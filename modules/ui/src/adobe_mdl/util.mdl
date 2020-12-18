@@ -1,0 +1,44 @@
+R"(
+mdl 1.3;
+
+import ::base::file_texture;
+import ::base::mono_mode;
+import ::base::rotation_translation_scale;
+import ::base::tangent_space_normal_texture;
+import ::base::texture_coordinate_info;
+import ::base::texture_return;
+import ::base::transform_coordinate;
+import ::state::texture_coordinate;
+import ::state::texture_tangent_u;
+import ::state::texture_tangent_v;
+import ::tex::wrap_mode;
+import ::state::normal;
+
+export bool bool_texture( uniform texture_2d texture ) varying {
+  return bool(::base::file_texture(texture, color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, ::base::transform_coordinate(::base::rotation_translation_scale(float3(0.f), float3(0.f), float3(1.f)), ::base::texture_coordinate_info(::state::texture_coordinate(0), ::state::texture_tangent_u(0), ::state::texture_tangent_v(0))), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).mono);
+}
+
+export int int_texture( uniform texture_2d texture ) varying {
+  return int(::base::file_texture(texture, color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, ::base::transform_coordinate(::base::rotation_translation_scale(float3(0.f), float3(0.f), float3(1.f)), ::base::texture_coordinate_info(::state::texture_coordinate(0), ::state::texture_tangent_u(0), ::state::texture_tangent_v(0))), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).mono);
+}
+
+export float float_texture( uniform texture_2d texture ) varying {
+  return ::base::file_texture(texture, color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, ::base::transform_coordinate(::base::rotation_translation_scale(float3(0.f), float3(0.f), float3(1.f)), ::base::texture_coordinate_info(::state::texture_coordinate(0), ::state::texture_tangent_u(0), ::state::texture_tangent_v(0))), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).mono;
+}
+
+export double double_texture( uniform texture_2d texture ) varying {
+  return ::base::file_texture(texture, color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, ::base::transform_coordinate(::base::rotation_translation_scale(float3(0.f), float3(0.f), float3(1.f)), ::base::texture_coordinate_info(::state::texture_coordinate(0), ::state::texture_tangent_u(0), ::state::texture_tangent_v(0))), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).mono;
+}
+
+export color color_texture( uniform texture_2d texture ) varying {
+  return ::base::file_texture(texture, color(0.f, 0.f, 0.f), color(1.f, 1.f, 1.f), ::base::mono_average, ::base::transform_coordinate(::base::rotation_translation_scale(float3(0.f), float3(0.f), float3(1.f)), ::base::texture_coordinate_info(::state::texture_coordinate(0), ::state::texture_tangent_u(0), ::state::texture_tangent_v(0))), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false).tint;
+}
+
+export float3 normal_texture( uniform texture_2d texture ) varying {
+  return ::base::tangent_space_normal_texture(texture, 1.f, false, false, ::base::transform_coordinate(::base::rotation_translation_scale(float3(0.f), float3(0.f), float3(1.f)), ::base::texture_coordinate_info(::state::texture_coordinate(0), ::state::texture_tangent_u(0), ::state::texture_tangent_v(0))), float2(0.f, 1.f), float2(0.f, 1.f), ::tex::wrap_repeat, ::tex::wrap_repeat, false, 1.f, 0.f);
+}
+
+export float3 vector_texture( uniform texture_2d texture ) varying {
+  return normal_texture(texture);
+}
+)"

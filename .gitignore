@@ -1,0 +1,61 @@
+# Hidden files
+*.swp
+*.DS_Store
+*.sw?
+
+*~
+\#*
+.\#*
+
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Python cache
+__pycache__
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Mesh files
+*.obj
+*.off
+*.ply
+*.msh
+*.mesh
+*.vtk
+
+# Extra directories
+/.vscode
+/.vs
+/.idea
+/.clangd
+/3rdparty
+/cmake-build-*
+/build*
+/_build
+/data
+
+# Lagrange specifics
+LagrangeOptions.cmake
+
+/external
+/dist
+/scripts/.miniconda3

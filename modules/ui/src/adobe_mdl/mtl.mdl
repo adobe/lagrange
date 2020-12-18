@@ -1,0 +1,155 @@
+R"(
+mdl 1.3;
+
+import ::tex::*;
+import ::anno::*;
+
+import ::df::custom_curve_layer;
+import ::df::diffuse_edf;
+import ::df::diffuse_reflection_bsdf;
+import ::df::directional_factor;
+import ::df::microfacet_ggx_smith_bsdf;
+import ::df::scatter_mode;
+import ::df::weighted_layer;
+import ::math::clamp;
+import ::math::log;
+import ::state::normal;
+import ::state::scene_units_per_meter;
+import ::state::texture_tangent_u;
+
+import ::adobe::annotations::*;
+
+export material standard(
+    varying color baseColor = color(0.814847f, 0.814847f, 0.814847f) [[
+        ::anno::description("The color of the surface."),
+        ::anno::display_name("Base Color"),
+        ::anno::in_group("Surface"),
+        ::adobe::annotations::shader_usage("baseColor"),
+        ::adobe::annotations::ui_position(0)
+    ]],
+    varying float glow = 0.f [[
+        ::anno::description("The intensity of light emitted from the surface."),
+        ::anno::display_name("Glow"),
+        ::anno::in_group("Surface"),
+        ::anno::soft_range(0.f,1.f),
+        ::anno::hard_range(0.f,1000000.f),
+        ::adobe::annotations::shader_usage("emissive"),
+        ::adobe::annotations::ui_position(1)
+    ]],
+    varying float opacity = 1.f [[
+        ::anno::description("The visibility of the surface."),
+        ::anno::display_name("Opacity"),
+        ::anno::in_group("Surface"),
+        ::anno::hard_range(0.f,1000000.f),
+        ::anno::soft_range(0.f,1.f),
+        ::adobe::annotations::shader_usage("opacity"),
+        ::adobe::annotations::ui_position(2)
+    ]],
+    varying float roughness = 0.4f [[
+        ::anno::description("How shiny the surface is."),
+        ::anno::display_name("Roughness"),
+        ::anno::in_group("Surface"),
+        ::anno::hard_range(0.f,1.f),
+        ::anno::soft_range(0.f,1.f),
+        ::adobe::annotations::shader_usage("roughness"),
+        ::adobe::annotations::ui_position(3)
+    ]],
+    varying float metallic = 0.f [[
+        ::anno::description("The degree of metallic luster the surface has."),
+        ::anno::display_name("Metallic"),
+        ::anno::in_group("Surface"),
+        ::anno::hard_range(0.f,1.f),
+        ::anno::soft_range(0.f,1.f),
+        ::adobe::annotations::shader_usage("metallic"),
+        ::adobe::annotations::ui_position(4)
+    ]],
+    varying float translucence = 0.f [[
+        ::anno::description("The amount of light able to refract through the object."),
+        ::anno::display_name("Translucence"),
+        ::anno::in_group("Interior"),
+        ::anno::hard_range(0.f,1.f),
+        ::anno::soft_range(0.f,1.f),
+        ::adobe::annotations::shader_usage("refraction"),
+        ::adobe::annotations::ui_position(5)
+    ]],
+    uniform float indexOfRefraction = 1.6f [[
+        ::anno::description("The amount light bends as it passes through the object."),
+        ::anno::display_name("Index of Refraction"),
+        ::anno::in_group("Interior"),
+        ::anno::soft_range(1.f,3.f),
+        ::anno::hard_range(0.f,40.f),
+        ::adobe::annotations::shader_usage("IOR"),
+        ::adobe::annotations::ui_position(6)
+    ]],
+    uniform float density = 0.f [[
+        ::anno::description("Adjusts the clarity of the interior volume to be clear or foggy."),
+        ::anno::display_name("Density"),
+        ::anno::in_group("Interior"),
+        ::anno::soft_range(0.f,10.f),
+        ::anno::hard_range(0.f,1000000.f),
+        ::adobe::annotations::shader_usage("density"),
+        ::adobe::annotations::ui_position(7)
+    ]],
+    uniform color interiorColor = color(1.f, 1.f, 1.f) [[
+        ::anno::description("Adjusts the color of interior volume fog."),
+        ::anno::display_name("Interior Color"),
+        ::anno::in_group("Interior"),
+        ::adobe::annotations::shader_usage("interiorColor"),
+        ::adobe::annotations::ui_position(8)
+    ]],
+    varying float height = 0.5f [[
+        ::anno::description("Use an image to offset the surface shape."),
+        ::anno::display_name("Height"),
+        ::anno::in_group("Shape"),
+        ::anno::hard_range(0.f,1.f),
+        ::anno::soft_range(0.f,1.f),
+        ::adobe::annotations::shader_usage("height"),
+        ::adobe::annotations::ui_position(9)
+    ]],
+    uniform float heightScale = 1.f [[
+        ::anno::description("Adjust the strength of the offset created by the height image."),
+        ::anno::display_name("Height Scale"),
+        ::anno::in_group("Shape"),
+        ::anno::soft_range(0.f,10.f),
+        ::anno::hard_range(0.f,1000000.f),
+        ::adobe::annotations::shader_usage("heightScale"),
+        ::adobe::annotations::ui_position(10)
+    ]],
+    varying float3 normal = ::state::normal() [[
+        ::anno::description("Adds details to the surface without displacement."),
+        ::anno::display_name("Normal"),
+        ::anno::in_group("Shape"),
+        ::adobe::annotations::shader_usage("normal"),
+        ::adobe::annotations::ui_position(11)
+    ]])
+[[
+    ::anno::description("Adobe Standard Material with consolidated base color."),
+    ::anno::in_group("mtl"),
+    ::anno::display_name("Adobe Standard Material"),
+    ::anno::key_words(string[]("adobe")),
+    ::anno::copyright_notice("(c) 2016 Adobe Systems"),
+    ::anno::author("Adobe"),
+    ::anno::contributor("Daniel Babcock"),
+    ::anno::contributor("Stefano Corazza"),
+    ::anno::contributor("Paul Edmondson"),
+    ::anno::contributor("Zorana Gee"),
+    ::anno::contributor("Tyler Lafreniere"),
+    ::anno::contributor("Bushra Mahmood"),
+    ::anno::contributor("Jeanette Matthews"),
+    ::anno::contributor("Justin Patton"),
+    ::anno::contributor("Vladimir Petkovic"),
+    ::anno::contributor("Charles Pina"),
+    ::anno::version(1,0,0)
+]]
+ =
+    let
+        material tmp0(
+            thin_walled: false,
+            surface: material_surface(::df::weighted_layer(metallic, ::df::weighted_layer(translucence, ::df::custom_curve_layer((1.f - roughness * roughness) * 0.08f, 1.f, 5.f, 1.f, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, color(1.f, 1.f, 1.f), ::state::texture_tangent_u(0), ::df::scatter_reflect, ""), ::df::weighted_layer(translucence, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, baseColor, ::state::texture_tangent_u(0), ::df::scatter_reflect_transmit, ""), ::df::diffuse_reflection_bsdf(baseColor, roughness * roughness, ""), ::state::normal()), ::state::normal()), ::df::directional_factor(baseColor, color(1.f, 1.f, 1.f), 5.f, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, color(1.f, 1.f, 1.f), ::state::texture_tangent_u(0), ::df::scatter_reflect, "")), ::state::normal()), ::df::custom_curve_layer((1.f - roughness * roughness) * 0.08f, 1.f, 5.f, 1.f, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, color(1.f, 1.f, 1.f), ::state::texture_tangent_u(0), ::df::scatter_reflect, ""), ::df::weighted_layer(translucence, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, baseColor, ::state::texture_tangent_u(0), ::df::scatter_reflect_transmit, ""), ::df::diffuse_reflection_bsdf(baseColor, roughness * roughness, ""), ::state::normal()), ::state::normal()), ::state::normal()), material_emission(::df::diffuse_edf(""), color(glow * 2.86f) * baseColor, intensity_radiant_exitance)),
+            backface: material_surface(::df::weighted_layer(metallic, ::df::weighted_layer(translucence, ::df::custom_curve_layer((1.f - roughness * roughness) * 0.08f, 1.f, 5.f, 1.f, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, color(1.f, 1.f, 1.f), ::state::texture_tangent_u(0), ::df::scatter_reflect, ""), ::df::weighted_layer(translucence, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, baseColor, ::state::texture_tangent_u(0), ::df::scatter_reflect_transmit, ""), ::df::diffuse_reflection_bsdf(baseColor, roughness * roughness, ""), ::state::normal()), ::state::normal()), ::df::directional_factor(baseColor, color(1.f, 1.f, 1.f), 5.f, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, color(1.f, 1.f, 1.f), ::state::texture_tangent_u(0), ::df::scatter_reflect, "")), ::state::normal()), ::df::custom_curve_layer((1.f - roughness * roughness) * 0.08f, 1.f, 5.f, 1.f, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, color(1.f, 1.f, 1.f), ::state::texture_tangent_u(0), ::df::scatter_reflect, ""), ::df::weighted_layer(translucence, ::df::microfacet_ggx_smith_bsdf(roughness * roughness, roughness * roughness, baseColor, ::state::texture_tangent_u(0), ::df::scatter_reflect_transmit, ""), ::df::diffuse_reflection_bsdf(baseColor, roughness * roughness, ""), ::state::normal()), ::state::normal()), ::state::normal()), material_emission(::df::diffuse_edf(""), color(glow * 2.86f) * baseColor, intensity_radiant_exitance)),
+            ior: color(indexOfRefraction),
+            volume: material_volume(vdf(), -::math::log(::math::clamp(interiorColor, color(0.000303527f, 0.000303527f, 0.000303527f), color(0.991102f, 0.991102f, 0.991102f))) * density * ::state::scene_units_per_meter(), color(density * ::state::scene_units_per_meter()) * color(0.6931472f, 0.6931472f, 0.6931472f)),
+            geometry: material_geometry((height * 2.f - 1.f) * heightScale * ::state::normal(), opacity, normal));
+    in
+        material(thin_walled: tmp0.thin_walled,surface : tmp0.surface,backface : tmp0.backface,ior : tmp0.ior,volume : tmp0.volume,geometry : tmp0.geometry);
+)"

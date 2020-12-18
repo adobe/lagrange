@@ -1,0 +1,266 @@
+# Docs:
+# http://clang.llvm.org/docs/ClangFormatStyleOptions.html
+
+# The style used for all options not specifically set in the configuration.
+# Available options: LLVM, Google, Chromium, Mozilla, WebKit
+BasedOnStyle: Google
+
+# The extra indent or outdent of access modifiers, e.g. public:.
+AccessModifierOffset: -4
+
+# If true, horizontally aligns arguments after an open bracket.
+# This applies to round brackets (parentheses), angle brackets and square brackets. This will result in formattings like code someLongFunction(argument1, argument2); endcode
+AlignAfterOpenBracket: AlwaysBreak
+
+# If true, aligns escaped newlines as far left as possible. Otherwise puts them into the right-most column.
+AlignEscapedNewlinesLeft: Left
+
+# If true, horizontally align operands of binary and ternary expressions.
+AlignOperands: true
+
+# If true, aligns trailing comments.
+AlignTrailingComments: false
+
+# If a function call or braced initializer list doesn’t fit on a line, allow putting all arguments onto the next line, even if BinPackArguments is false.
+AllowAllArgumentsOnNextLine: false
+
+# Allow putting all parameters of a function declaration onto the next line even if BinPackParameters is false.
+AllowAllParametersOfDeclarationOnNextLine: false
+
+# Allows contracting simple braced statements to a single line.
+# E.g., this allows if (a) { return; } to be put on a single line.
+# Shayan: I set it to false. I think if you want to create a single line block,
+#   might as well just not create the block in the first place.
+AllowShortBlocksOnASingleLine: false
+
+# If true, short case labels will be contracted to a single line.
+AllowShortCaseLabelsOnASingleLine: true
+
+# Dependent on the value, int f() { return 0; } can be put on a single line.
+# SFS_None (in configuration: None) Never merge functions into a single line.
+# SFS_Inline (in configuration: Inline) Only merge functions defined inside a class.
+# SFS_Empty (in configuration: Empty) Only merge empty functions.
+# SFS_All (in configuration: All) Merge all functions fitting on a single line.
+AllowShortFunctionsOnASingleLine: Inline
+
+# If true, if (a) return; can be put on a single line.
+# Lagrange convention:
+# if( condition )  do something;    -> YES
+# if( condition )
+#     do something;                 -> DON'T
+AllowShortIfStatementsOnASingleLine: true
+
+# Dependent on the value, auto lambda []() { return 0; } can be put on a single line.
+AllowShortLambdasOnASingleLine: All
+
+# If true, while (true) continue; can be put on a single line.
+# Lagrange convention:
+# while( condition )  do something;    -> YES
+# while( condition )
+#     do something;                    -> DON'T
+AllowShortLoopsOnASingleLine: true
+
+# The function definition return type breaking style to use. This option is deprecated and is
+# retained for backwards compatibility.
+# AlwaysBreakAfterDefinitionReturnType: false
+
+# If true, always break before multiline string literals.
+AlwaysBreakBeforeMultilineStrings: false
+
+# If true, always break after the template<...> of a template declaration.
+AlwaysBreakTemplateDeclarations: true
+
+# If false, a function call's arguments will either be all on the same line or will have one line each.
+BinPackArguments: false
+
+# If false, a function call's arguments will either be all
+# on the same line or will have one line each.
+BinPackParameters: false
+
+# The way to wrap binary operators.
+# BOS_None (in configuration: None) Break after operators.
+# BOS_NonAssignment (in configuration: NonAssignment) Break before operators that aren't assignments.
+# BOS_All (in configuration: All) Break before operators.
+#BreakBeforeBinaryOperators: None
+
+# The brace breaking style to use.
+# BS_Attach (in configuration: Attach) Always attach braces to surrounding context.
+# BS_Linux (in configuration: Linux) Like Attach, but break before braces on function, namespace and class definitions.
+# BS_Stroustrup (in configuration: Stroustrup) Like Attach, but break before function definitions, and `else`.
+# BS_Allman (in configuration: Allman) Always break before braces.
+# BS_GNU (in configuration: GNU) Always break before braces and add an extra level of indentation to braces of control statements, not to those of class, function or other definitions.
+BraceWrapping:
+  AfterClass:      true
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   true
+  AfterNamespace:  false
+  AfterObjCDeclaration: false
+  AfterStruct:     true
+  AfterUnion:      false
+  BeforeCatch:     false
+  BeforeElse:      false
+  IndentBraces:    false
+  SplitEmptyFunction: false
+BreakBeforeBraces: Custom
+
+# If true, ternary operators will be placed after line breaks.
+BreakBeforeTernaryOperators: true
+
+# Always break constructor initializers before commas and align the commas with the colon.
+BreakConstructorInitializersBeforeComma: true
+
+# The column limit.
+# A column limit of 0 means that there is no column limit. In this case, clang-format will respect the input's line breaking decisions within statements unless they contradict other rules.
+ColumnLimit: 100
+
+# A regular expression that describes comments with special meaning, which should not be split into lines or otherwise changed.
+CommentPragmas: "\/*(.*)*\/"
+
+# If the constructor initializers don't fit on a line, put each initializer on its own line.
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+
+# The number of characters to use for indentation of constructor initializer lists.
+ConstructorInitializerIndentWidth: 4
+
+# Indent width for line continuations.
+# A little more than normal indent
+ContinuationIndentWidth: 4
+
+# If true, format braced lists as best suited for C++11 braced lists.
+# Important differences: - No spaces inside the braced list. - No line break before the closing brace. - Indentation with the continuation indent, not with the block indent.
+# Fundamentally, C++11 braced lists are formatted exactly like function calls would be formatted in their place. If the braced list follows a name (e.g. a type or variable name), clang-format formats as if the {} were the parentheses of a function call with that name. If there is no name, a zero-length name is assumed.
+Cpp11BracedListStyle: true
+
+# If true, analyze the formatted file for the most common alignment of & and *. Point
+#DerivePointerAlignment: false
+
+# Disables formatting at all.
+#DisableFormat: false
+
+# If true, clang-format detects whether function calls and definitions are formatted with one parameter per line.
+# Each call can be bin-packed, one-per-line or inconclusive. If it is inconclusive, e.g. completely on one line, but a decision needs to be made, clang-format analyzes whether there are other bin-packed cases in the input file and act accordingly.
+# NOTE: This is an experimental flag, that might go away or be renamed. Do not use this in config files, etc. Use at your own risk.
+#ExperimentalAutoDetectBinPacking: false
+
+# If true, clang-format adds missing namespace end comments and fixes invalid existing ones.
+FixNamespaceComments: true
+
+# A vector of macros that should be interpreted as foreach loops instead of as function calls.
+# These are expected to be macros of the form: code FOREACH(<variable-declaration>, ...) <loop-body> endcode
+# For example: BOOST_FOREACH.
+#ForEachMacros (std::vector<std::string>)
+
+# Dependent on the value, multiple #include blocks can be sorted as one and divided based on category.
+IncludeBlocks: Preserve
+
+# Indent case labels one level from the switch statement.
+# When false, use the same indentation level as for the switch statement. Switch statement body is always indented one level more than case labels.
+IndentCaseLabels: false
+
+# The number of columns to use for indentation.
+IndentWidth: 4
+
+# Indent if a function definition or declaration is wrapped after the type.
+#IndentWrappedFunctionNames: false
+
+# If true, empty lines at the start of blocks are kept.
+#KeepEmptyLinesAtTheStartOfBlocks: false
+
+# Language, this format style is targeted at.
+# LK_None (in configuration: None) Do not use.
+# LK_Cpp (in configuration: Cpp) Should be used for C, C++, ObjectiveC, ObjectiveC++.
+# LK_Java (in configuration: Java) Should be used for Java.
+# LK_JavaScript (in configuration: JavaScript) Should be used for JavaScript.
+# LK_Proto (in configuration: Proto) Should be used for Protocol Buffers (https://developers.google.com/protocol-buffers/).
+Language: Cpp
+
+# The maximum number of consecutive empty lines to keep.
+MaxEmptyLinesToKeep: 2
+
+# The indentation used for namespaces.
+# NI_None (in configuration: None) Don't indent in namespaces.
+# NI_Inner (in configuration: Inner) Indent only in inner namespaces (nested in other namespaces).
+# NI_All (in configuration: All) Indent in all namespaces.
+NamespaceIndentation: None
+
+# The number of characters to use for indentation of ObjC blocks.
+#ObjCBlockIndentWidth: 4
+
+# Add a space after @property in Objective-C, i.e. use \@property (readonly) instead of \@property(readonly).
+#ObjCSpaceAfterProperty: false
+
+# Add a space in front of an Objective-C protocol list, i.e. use Foo <Protocol> instead of Foo<Protocol>.
+#ObjCSpaceBeforeProtocolList: false
+
+# The penalty for breaking a function call after `call(`.
+#PenaltyBreakBeforeFirstCallParameter (unsigned)
+
+# The penalty for each line break introduced inside a comment.
+#PenaltyBreakComment (unsigned)
+
+# The penalty for breaking before the first <<.
+#PenaltyBreakFirstLessLess (unsigned)
+
+# The penalty for each line break introduced inside a string literal.
+#PenaltyBreakString (unsigned)
+
+# The penalty for each character outside of the column limit.
+#PenaltyExcessCharacter (unsigned)
+
+# Penalty for putting the return type of a function onto its own line.
+#PenaltyReturnTypeOnItsOwnLine (unsigned)
+
+# If true, analyze the formatted file for the most common alignment of & and *. PointerAlignment is then used only as fallback.
+PointerAlignment: Middle
+
+# If true, clang-format will attempt to re-flow comments.
+ReflowComments: true
+
+# Add a space before parantheses
+# if (condition) -> tick
+# if(condition)  -> cross
+SpaceBeforeParens: ControlStatements
+
+# If true, a space may be inserted after C style casts.
+SpaceAfterCStyleCast: false
+
+# If false, spaces will be removed before assignment operators.
+#SpaceBeforeAssignmentOperators: true
+
+# If true, spaces may be inserted into `()`.
+SpaceInEmptyParentheses: false
+
+# The number of spaces before trailing line comments (// - comments).
+# This does not affect trailing block comments (/**/ - comments) as those commonly have different usage patterns and a number of special cases.
+SpacesBeforeTrailingComments: 1
+
+# If true, spaces will be inserted after `<` and before `>` in template argument lists
+SpacesInAngles: false
+
+# If true, spaces may be inserted into C style casts.
+SpacesInCStyleCastParentheses: false
+
+# If true, spaces are inserted inside container literals (e.g. ObjC and Javascript array and dict literals).
+SpacesInContainerLiterals: false
+
+# If true, spaces will be inserted after `(` and before `)`.
+SpacesInParentheses: false
+
+# If true, spaces will be inserted after `[` and before `]`.
+SpacesInSquareBrackets: false
+
+# Format compatible with this standard, e.g. use A<A<int> > instead of A<A<int>> for LS_Cpp03.
+# LS_Cpp03 (in configuration: Cpp03) Use C++03-compatible syntax.
+# LS_Cpp11 (in configuration: Cpp11) Use features of C++11 (e.g. A<A<int>> instead of A<A<int> >).
+# LS_Auto (in configuration: Auto) Automatic detection based on the input.
+Standard: Cpp11
+
+# The number of columns used for tab stops.
+TabWidth: 4
+
+# The way to use tab characters in the resulting file.
+# UT_Never (in configuration: Never) Never use tab.
+# UT_ForIndentation (in configuration: ForIndentation) Use tabs only for indentation.
+# UT_Always (in configuration: Always) Use tabs whenever we need to fill whitespace that spans at least from one tab stop to the next one.
+UseTab: Never
