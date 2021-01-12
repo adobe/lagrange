@@ -250,12 +250,18 @@ public:
         return m_material_indices;
     }
 
+    void set_picking_enabled(bool value);
+    bool is_picking_enabled() const;
+
 
 private:
-    void init_acceleration();
+    void init_acceleration() const;
 
     std::unique_ptr<TriangleMesh3Df> m_mesh;
-    std::unique_ptr<ProxyMeshAccelImpl> m_accel_impl;
+    mutable std::unique_ptr<ProxyMeshAccelImpl> m_accel_impl;
+    AABB m_bounds;
+
+    bool m_picking_enabled = true;
 
     Index m_orig_vertex_dim;
     Index m_orig_facet_dim;

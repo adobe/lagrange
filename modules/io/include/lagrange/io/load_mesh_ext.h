@@ -366,6 +366,8 @@ auto load_mesh_ext(
 
         if (!loader.uvs.empty()) {
             mesh->initialize_uv(uvs, uv_indices);
+
+            // TODO: The loader should not do this mapping index -> corner
             map_indexed_attribute_to_corner_attribute(*mesh, "uv");
         }
 

@@ -11,7 +11,8 @@
  */
 #include <assert.h>
 #include <lagrange/ui/Camera.h>
-
+#include <lagrange/utils/utils.h>
+#include <lagrange/Logger.h>
 #include <cmath>
 
 namespace lagrange {
@@ -404,16 +405,44 @@ void Camera::rotate_arcball(const Eigen::Vector3f& camera_pos_start,
 void Camera::zoom(float delta)
 {
     if (delta == 0.0f) return;
+    delta = std::min(std::max(delta, -0.25f), 0.25f);
+    
+    if (get_type() == Camera::Type::PERSPECTIVE) {
+
+        const float fov = lagrange::to_degrees(get_fov());
+        
+        float max_step_deg = 2.0f;
+        if (fov > 100.0f) max_step_deg *= std::exp(-((fov - 100.0f) / 70.0f) * 8.0f);
+
+        float new_fov = 
+            std::max(std::min(fov * (1.0f - 0.5f * delta), fov + max_step_deg), fov - max_step_deg);
+        
+        new_fov = std::max(1.0e-5f, new_fov);
+        new_fov = std::min(170.0f, new_fov);
+        set_fov(lagrange::to_radians(new_fov));
+
+    } else {
+        dolly(delta);
+    }
+    
+}
+
+void Camera::dolly(float delta) {
+    if (delta == 0.0f) return;
+    delta = std::min(std::max(delta, -0.25f), 0.25f);
 
     if (get_type() == Camera::Type::PERSPECTIVE) {
         set_position(((1.0f - 1.0f * delta) * (get_position() - get_lookat())) + get_lookat());
     } else if (get_type() == Camera::Type::ORTHOGRAPHIC) {
-        auto v = get_ortho_viewport();
-        set_ortho_viewport(v * (1.0f - delta));
+        const auto new_v = (get_ortho_viewport() * (1.0f - delta)).eval();
+        if((new_v.array().cwiseAbs() > 1e-5f).all()){
+            set_ortho_viewport(new_v);
+        }
     }
 
     update_view();
     update_perspective();
+
 }
 
 void Camera::move_forward(float delta)
@@ -505,7 +534,7 @@ bool Camera::intersects_region(const Eigen::Vector2f& begin, const Eigen::Vector
 bool Camera::is_orthogonal_direction(Dir dir) const
 {
     auto config = get_orthogonal_direction(dir);
-    return config.first == get_position();
+    return (config.first.array() == get_position().array()).all();
 }
 
 void Camera::set_orthogonal_direction(Dir dir)

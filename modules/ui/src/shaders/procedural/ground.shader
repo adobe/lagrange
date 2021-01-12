@@ -76,6 +76,8 @@ uniform vec4 grid_color = vec4(0,0,0,0.058);
 uniform float shadow_catcher_alpha = 0.05f;
 uniform float ground_height = 0;
 
+uniform bool camera_is_ortho = false;
+
 float compute_line(vec2 uv, float period, float width){
     vec2 coord = 1.0f * mod(uv, period) / period;
     vec2 grid = abs(fract(coord - 0.5) - 0.5);
@@ -100,8 +102,8 @@ vec2 compute_axes(vec2 uv, float period, float width){
 }
 
 
-//Expects cameraPos uniform
-float isect_plane(in vec3 ray, out vec3 pos, out vec3 N){
+
+float isect_plane(in vec3 origin, in vec3 ray, out vec3 pos, out vec3 N){
 
     vec3 planeN = vec3(0,1,0);
     float planeD = -ground_height;
@@ -109,9 +111,9 @@ float isect_plane(in vec3 ray, out vec3 pos, out vec3 N){
 
      float t = 0;
     if(abs(planeDenom) > 0.0){
-        t = -(dot(planeN, cameraPos) + planeD) / planeDenom;
+        t = -(dot(planeN, origin) + planeD) / planeDenom;
 
-        pos = cameraPos + t * ray;
+        pos = origin + t * ray;
         N = planeN;
     }
     else {
@@ -121,12 +123,23 @@ float isect_plane(in vec3 ray, out vec3 pos, out vec3 N){
     return t;
 }
 
-vec3 calc_ray(in vec2 screen){
-    vec4 rayNorm = vec4(screen * 2 - vec2(1), -1,1);
-    vec4 rayEye = Pinv * rayNorm;
-    rayEye.z = -1;
-    rayEye.w = 0;
-    return normalize(vec3(Vinv * rayEye));
+vec3 calc_ray(in vec2 screen, out vec3 pos){
+
+    vec2 NDC = screen * 2 - vec2(1);
+    if(camera_is_ortho){
+        vec4 posNorm = vec4(NDC,-1,1);
+        vec4 posEye = Pinv * posNorm;
+        pos = vec3(Vinv * posEye);
+        return normalize(vec3(Vinv * vec4(0,0,-1,0)));
+    }
+    else {
+        vec4 rayNorm = vec4(NDC, 1,1);
+        vec4 rayEye = Pinv * rayNorm;
+        rayEye.w = 0;
+        pos = cameraPos;
+        return normalize(vec3(Vinv * rayEye));
+    }
+
 }
 
 
@@ -195,26 +208,34 @@ void main(){
     vec2 xy = gl_FragCoord.xy * screen_size_inv;
     
     //Get primary ray
-    vec3 rayWorld = calc_ray(xy);
+    vec3 rayOrigWorld;
+    vec3 rayWorld = calc_ray(xy, rayOrigWorld);
 
     vec3 pos;
     vec3 N;
     
-    float t = isect_plane(rayWorld, pos, N);
-    if(t <= 0)
-        discard;
-
+    float t = isect_plane(rayOrigWorld, rayWorld, pos, N);
+    
+    
+    if(camera_is_ortho){
+        t = abs(t);
+    }
+    else {
+        if(t <= 0)
+            discard;
+    }
+    
     //Get rays for position occupancy
-    vec3 rayX = calc_ray(xy + vec2(1,0) * screen_size_inv);
-    vec3 rayY = calc_ray(xy + vec2(0,1) * screen_size_inv);
+    vec3 rayOrigX,rayOrigY;
+    vec3 rayX = calc_ray(xy + vec2(1,0) * screen_size_inv,rayOrigX);
+    vec3 rayY = calc_ray(xy + vec2(0,1) * screen_size_inv,rayOrigY);
 
     //Get position of other rays based on normal
-    vec3 posX = cameraPos - rayX*dot( cameraPos-pos, N )/dot( rayX, N );
-    vec3 posY = cameraPos - rayY*dot( cameraPos-pos, N )/dot( rayY, N );
+    vec3 posX = rayOrigWorld - rayX*dot( rayOrigX-pos, N )/dot( rayX, N );
+    vec3 posY = rayOrigWorld - rayY*dot( rayOrigY-pos, N )/dot( rayY, N );
 
     //Sample between positions
     vec4 color = sample_between(pos,posX,posY,10);
-
     
 
     if(shadow_catcher){

@@ -23,5 +23,19 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(stb)
 
-add_library(stb::stb INTERFACE IMPORTED GLOBAL)
-target_include_directories(stb::stb INTERFACE "${stb_SOURCE_DIR}")
+# Generate implementation file
+file(WRITE "${stb_BINARY_DIR}/stb_image.cpp.in" [[
+    #define STB_IMAGE_IMPLEMENTATION
+    #include <stb_image.h>
+
+    #define STB_IMAGE_WRITE_IMPLEMENTATION
+    #include <stb_image_write.h>
+]])
+
+configure_file(${stb_BINARY_DIR}/stb_image.cpp.in ${stb_BINARY_DIR}/stb_image.cpp COPYONLY)
+
+# Define stb library
+add_library(stb_stb ${stb_BINARY_DIR}/stb_image.cpp)
+add_library(stb::stb ALIAS stb_stb)
+
+target_include_directories(stb_stb PUBLIC "${stb_SOURCE_DIR}")

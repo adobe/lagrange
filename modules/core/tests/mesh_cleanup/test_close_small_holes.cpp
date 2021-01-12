@@ -137,8 +137,6 @@ TEST_CASE("close_small_holes (with attributes)", "[cleanup][close_small_holes]")
         for (Index lv = 0; lv < 3; ++lv) {
             auto e = mesh->get_edge_new(f, lv);
             auto e1 = mesh1->get_edge_new(f, lv);
-            auto v = mesh->get_edge_vertices_new(e);
-            auto v1 = mesh1->get_edge_vertices_new(e);
             all_same &= (edge_new_attr.row(e) == edge_new_attr1.row(e1));
         }
     }

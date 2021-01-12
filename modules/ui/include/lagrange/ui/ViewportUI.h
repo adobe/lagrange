@@ -62,8 +62,6 @@ public:
     void enable_selection(bool value);
     bool is_selection_enabled() const;
 
-
-
     Eigen::Vector2f& get_last_mouse_click_pos(int key);
     Eigen::Vector2f& get_last_mouse_pos();
     bool hovered() const;
@@ -103,6 +101,19 @@ public:
     {
         m_callbacks.add<CallbackType>(CallbackType{fun});
     }
+
+
+    /// Enable dolly zoom. If disabled, field of view zoom is used.
+    void enable_dolly(bool enable);
+
+    /// Whether dolly zoom is enabled.
+    bool is_dolly_enabled() const;
+
+    /// When enabled x,y panning is used instead of 3D rotation
+    void enable_2D_orthographic_panning(bool enable);
+
+    /// Enables automatic clipping planes based on the scene bounds
+    void enable_automatic_clipping_planes(bool enable);
 
 private:
     void draw_viewport_toolbar();
@@ -158,9 +169,10 @@ private:
     bool m_ortho_interaction_2D = false;
 
     Callbacks<PostUpdateModelTransform> m_callbacks;
-    
+
 
     bool m_auto_nearfar = true;
+    bool m_fov_zoom = false;
     friend CallbacksBase<ViewportUI>;
 };
 

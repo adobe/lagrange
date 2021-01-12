@@ -158,20 +158,17 @@ void ViewportUI::update(double dt)
             float nearest = scene.get_nearest_bounds_distance(cam.get_position());
             float furthest = scene.get_furthest_bounds_distance(cam.get_position());
 
-            float near_plane = cam.get_near();
-            float far_plane = cam.get_far();
-            if (nearest != std::numeric_limits<float>::max() &&
-                cam.get_type() == Camera::Type::PERSPECTIVE) {
+            auto near_plane = cam.get_near();
+            auto far_plane = cam.get_far();
+            if (nearest != std::numeric_limits<float>::max()) {
                 near_plane = std::max(0.5f * nearest, 0.000001f);
             }
 
-            if (furthest != std::numeric_limits<float>::min() &&
-                cam.get_type() == Camera::Type::PERSPECTIVE) {
+            if (furthest != std::numeric_limits<float>::min()) {
                 far_plane = 2.0f * furthest;
             }
 
-            if (nearest != std::numeric_limits<float>::max() &&
-                cam.get_type() == Camera::Type::PERSPECTIVE) {
+            if (nearest != std::numeric_limits<float>::max()) {
                 near_plane = std::max(0.5f * nearest, 0.000001f);
             }
 
@@ -207,8 +204,25 @@ const Viewport& ViewportUI::get_viewport() const
 }
 
 
+void ViewportUI::enable_dolly(bool enable)
+{
+    m_fov_zoom = !enable;
+}
+
+bool ViewportUI::is_dolly_enabled() const
+{
+    return !m_fov_zoom;
+}
+
+void ViewportUI::enable_2D_orthographic_panning(bool enable)
+{
+    m_ortho_interaction_2D = enable;
+}
+
 void ViewportUI::draw_viewport_toolbar()
 {
+    auto& keys = get_viewer()->get_keybinds();
+
     // Add padding, as window padding is disabled
     ImGui::Dummy(ImVec2(5, 1));
     ImGui::Dummy(ImVec2(1, 5));
@@ -335,18 +349,23 @@ void ViewportUI::draw_viewport_toolbar()
     */
     auto& cam = get_viewport().get_camera();
     bool perspective = (cam.get_type() == Camera::Type::PERSPECTIVE);
-    bool ortho = (cam.get_type() == Camera::Type::ORTHOGRAPHIC);
 
-    if (button_icon(perspective, ICON_FA_LESS_THAN, "Perspective")) {
-        if (!perspective) cam.set_type(Camera::Type::PERSPECTIVE);
+    if (UIWidget::button_icon(perspective, ICON_FA_LESS_THAN, "Perspective")) {
+        if (!perspective)
+            cam.set_type(Camera::Type::PERSPECTIVE);
+        else
+            cam.set_type(Camera::Type::ORTHOGRAPHIC);
     }
     ImGui::SameLine();
-    if (button_icon(ortho, ICON_FA_BARS, "Orthographic")) {
-        if (!ortho) cam.set_type(Camera::Type::ORTHOGRAPHIC);
+    if (UIWidget::button_icon(!perspective, ICON_FA_BARS, "Orthographic")) {
+        if (!perspective)
+            cam.set_type(Camera::Type::PERSPECTIVE);
+        else
+            cam.set_type(Camera::Type::ORTHOGRAPHIC);
     }
     ImGui::SameLine();
-    if (ortho) {
-        if (button_icon(
+    if (!perspective) {
+        if (UIWidget::button_icon(
                 m_ortho_interaction_2D, "2D", "2D Orthographic Camera Interaction")) {
             m_ortho_interaction_2D = !m_ortho_interaction_2D;
         }
@@ -427,7 +446,7 @@ void ViewportUI::draw_viewport_toolbar()
                 if (model_ptr->get_selection().get_persistent().size() > 0) {
                     focus = model_ptr->get_selection_bounds().center();
                 } else {
-                    model_ptr->get_bounds().center();
+                    focus = model_ptr->get_bounds().center();
                 }
             }
 
@@ -444,6 +463,63 @@ void ViewportUI::draw_viewport_toolbar()
         cam.set_lookat(focus);
         cam.set_up(Eigen::Vector3f(0, 1, 0));
     }
+    ImGui::SameLine();
+
+    if (UIWidget::button_icon(false,
+            ICON_FA_EXPAND,
+            "Zoom To Fit Selection",
+            "global.camera.zoom_to_fit",
+            &keys)) {
+
+        auto& selection = get_viewer()->get_selection();
+        auto& obj_sel = selection.get_global().get_persistent().get_selection();
+
+        AABB bb;
+
+        //Find union bounding box
+        for (auto obj : obj_sel) {
+            auto model = dynamic_cast<const Model*>(obj);
+            if (!model) continue;
+
+            if (model->get_selection().get_persistent().size() > 0) {
+                bb.extend(model->get_selection_bounds());
+            } else {
+                bb.extend(model->get_bounds());
+            }
+        }
+
+        if (!bb.isEmpty()) {
+            float radius = std::max(bb.diagonal().norm() / 2.0f, 0.0001f);
+
+            if (cam.get_type() == Camera::Type::PERSPECTIVE) {
+                if (m_fov_zoom) {
+                    const float dist = (bb.center() - cam.get_position()).norm();
+                    const float fov = 2.0f * std::atan(1.25f * radius / dist);
+                    cam.set_lookat(bb.center());
+                    cam.set_fov(fov);
+
+                } else {
+                    const float dist = (radius * 1.25f) / std::tan(cam.get_fov() / 2.0f);
+                    const auto dir = cam.get_direction().normalized().eval();
+                    cam.set_lookat(bb.center());
+                    cam.set_position(cam.get_lookat() - dir * dist);
+                }
+            } else {
+                cam.set_lookat(bb.center());
+                Eigen::Vector4f v = cam.get_ortho_viewport();
+                v *= 1.5 * radius / v.minCoeff();
+                cam.set_ortho_viewport(v);
+            }
+
+        }
+    }
+
+    ImGui::SameLine();
+
+    if (UIWidget::button_icon(!m_fov_zoom, ICON_FA_ARROWS_ALT_V, "Dolly")) {
+        m_fov_zoom = !m_fov_zoom;
+    }
+
     ImGui::SameLine();
 
     separator();
@@ -634,7 +710,11 @@ void ViewportUI::zoom(float delta, Eigen::Vector2f screen_pos)
     auto& cam = get().get_camera();
 
     if (!m_ortho_interaction_2D) {
-        cam.zoom(delta);
+        if (m_fov_zoom) {
+            cam.zoom(delta);
+        } else {
+            cam.dolly(delta);
+        }
     } else {
         Eigen::Vector2f origin_window =
             Eigen::Vector2f(screen_pos.x() / float(cam.get_window_width()),
@@ -991,6 +1071,11 @@ void ViewportUI::enable_selection(bool value)
 bool ViewportUI::is_selection_enabled() const
 {
     return m_selection_enabled;
+}
+
+void ViewportUI::enable_automatic_clipping_planes(bool enable)
+{
+    m_auto_nearfar = enable;
 }
 
 } // namespace ui

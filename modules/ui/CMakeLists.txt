@@ -51,12 +51,12 @@ target_compile_definitions(imgui PUBLIC
 target_link_libraries(lagrange_ui
     PRIVATE
         lagrange::assets
+        stb::stb
     PUBLIC
         lagrange::core
         lagrange::io
         gl3w::gl3w
         glfw::glfw
-        stb::stb
         imgui::imgui
         imguizmo::imguizmo
         imgui::fonts

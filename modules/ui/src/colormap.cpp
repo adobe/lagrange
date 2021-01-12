@@ -27,8 +27,8 @@ namespace ui {
 Color colormap_lookup(const int palette[], const size_t N, float t)
 {
     t = std::min(std::max(t, 0.0f), 1.f);
-    const size_t i0 = std::min(static_cast<size_t>(std::floor(t * N - 1)), N - 1);
-    const size_t i1 = std::min(static_cast<size_t>(std::ceil(t * N - 1)), N - 1);
+    const size_t i0 = std::min(static_cast<size_t>(std::floor(t * (N - 1))), N - 1);
+    const size_t i1 = std::min(static_cast<size_t>(std::ceil(t * (N - 1))), N - 1);
     assert(i0 < N);
     assert(i1 < N);
 
@@ -42,8 +42,8 @@ Color colormap_lookup(const int palette[], const size_t N, float t)
 Color colormap_lookup(const float palette[][3], const size_t N, float t)
 {
     t = std::min(std::max(t, 0.0f), 1.f);
-    const size_t i0 = std::min(static_cast<size_t>(std::floor(t * N - 1)), N - 1);
-    const size_t i1 = std::min(static_cast<size_t>(std::ceil(t * N - 1)), N - 1);
+    const size_t i0 = std::min(static_cast<size_t>(std::floor(t * (N - 1))), N - 1);
+    const size_t i1 = std::min(static_cast<size_t>(std::ceil(t * (N - 1))), N - 1);
     assert(i0 < N);
     assert(i1 < N);
 

@@ -496,7 +496,7 @@ RenderPass<Viz::PassData>* Viz::add_to(RenderPipeline& pipeline, Resource<Common
             }
             if (config.primitive == Primitive::LINES) {
                 if (config.attribute == Attribute::EDGE) {
-                    options.add<float>("Line Width", 0.002f, 0.0f);
+                    options.add<float>("Line Width", 3.0f, 0.0f);
                 }
                 else {
                     options.add<float>("Line Width", 0.0f, 0.0f);
@@ -712,6 +712,7 @@ RenderPass<Viz::PassData>* Viz::add_to(RenderPipeline& pipeline, Resource<Common
 
                 //Upload transformations
                 shader["PV"] = object_cam.get_PV();
+                shader["PVinv"] = object_cam.get_PV().inverse().eval();
                 shader["screen_size"] = object_cam.get_window_size();
                 if (config.replace_with_bounding_box) {
                     shader["M"] = model.get_bounds().get_cube_transform();

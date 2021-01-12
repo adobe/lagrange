@@ -350,6 +350,9 @@ public:
     //If not a mesh, return empty resource
     virtual Resource<MeshBuffer> get_buffer() const { return Resource<MeshBuffer>(); }
 
+    virtual void set_picking_enabled(bool value) = 0;
+    virtual bool is_picking_enabled() const { return false; }
+
 protected:
     virtual void trigger_change();
 

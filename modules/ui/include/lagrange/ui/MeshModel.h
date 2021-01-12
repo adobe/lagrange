@@ -159,7 +159,15 @@ protected:
 
     bool update_proxy_mesh()
     {
+        bool picking_enabled = true;
+        if (m_proxy.data()->get() != nullptr) {
+            picking_enabled = m_proxy->is_picking_enabled();
+        }
         set_proxy(Resource<ProxyMesh>::create_deferred(m_mesh, (MeshType*)(nullptr)));
+
+        if (!picking_enabled) {
+            m_proxy->set_picking_enabled(false);
+        }
         return true;
     }
 

@@ -288,5 +288,15 @@ AABB MeshModelBase::get_selection_bounds() const
     return get_proxy_mesh().get_selection_bounds(get_selection()).transformed(get_transform());
 }
 
+void MeshModelBase::set_picking_enabled(bool value)
+{
+    m_proxy->set_picking_enabled(value);
+}
+
+bool MeshModelBase::is_picking_enabled() const
+{
+    return m_proxy->is_picking_enabled();
+}
+
 } // namespace ui
 } // namespace lagrange

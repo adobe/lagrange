@@ -29,6 +29,12 @@ void CameraUI::draw()
     this->begin();
 
 
+    if (ImGui::Button("Reset Camera", ImVec2(ImGui::GetWindowContentRegionWidth(),0))) {
+        cam = Camera::default_camera(cam.get_window_width(), cam.get_window_height());
+    }
+
+    ImGui::Separator();
+
     ImGui::Text("%s", "Rotation Type");
     auto rotation_mode = cam.get_rotation_mode();
     if (ImGui::RadioButton(

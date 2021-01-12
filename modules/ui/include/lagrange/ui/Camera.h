@@ -199,6 +199,7 @@ public:
         const Eigen::Vector2f& mouse_current);
 
     void zoom(float delta);
+    void dolly(float delta);
 
 
     /// \deprecated Deprecated

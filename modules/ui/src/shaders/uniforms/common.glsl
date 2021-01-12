@@ -17,6 +17,7 @@ uniform mat4 PV;
 uniform mat4 M;
 uniform mat4 NMat;
 uniform vec3 cameraPos;
+uniform mat4 PVinv;
 
 /*
     Target properties

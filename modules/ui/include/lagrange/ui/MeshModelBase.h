@@ -90,6 +90,9 @@ public:
 
     Resource<MeshBuffer> get_buffer() const override { return m_buffer; }
 
+    void set_picking_enabled(bool value) override;
+    bool is_picking_enabled() const override;
+
 protected:
 
     /// Triangle Proxy mesh for rendering, picking and bounds

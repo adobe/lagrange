@@ -72,19 +72,14 @@ std::unique_ptr<GroundPass> create_grid_pass(
 
 
             GLScope gl;
+            utils::render::set_render_pass_defaults(gl);
             fbo.bind();
 
 
             shader.bind();
-            gl(glEnable, GL_BLEND);
             gl(glViewport, 0, 0, int(camera.get_window_width()), int(camera.get_window_height()));
             gl(glDisable, GL_CULL_FACE);
-
-            gl(glEnable, GL_DEPTH_CLAMP);
-            gl(glDepthFunc, GL_LEQUAL);
-
             gl(glEnable, GL_DEPTH_TEST);
-            gl(glEnable, GL_TEXTURE_CUBE_MAP_SEAMLESS);
 
             // Layering
             utils::render::set_render_layer(gl, pass_counter);
@@ -128,6 +123,8 @@ std::unique_ptr<GroundPass> create_grid_pass(
                 utils::render::set_map(shader, "normal", mat, tex_units_global);
                 shader["material.opacity"] = mat["opacity"].value.to_vec3().x();
             }
+
+            shader["camera_is_ortho"] = (camera.get_type() == Camera::Type::ORTHOGRAPHIC);
 
             quad.render(MeshBuffer::Primitive::TRIANGLES);
         });

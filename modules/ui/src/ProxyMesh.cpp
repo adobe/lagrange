@@ -437,7 +437,10 @@ ProxyMesh::ProxyMesh(const MeshType& orig_mesh)
         }
     }
 
-    init_acceleration();
+
+    //Compute bounds
+    m_bounds = AABB(m_mesh->get_vertices().colwise().minCoeff(), m_mesh->get_vertices().colwise().maxCoeff());
+    
 }
 
 
@@ -473,8 +476,7 @@ ProxyMesh::~ProxyMesh() {}
 
 AABB ProxyMesh::get_bounds() const
 {
-    assert(m_accel_impl);
-    return m_accel_impl->tree.m_box;
+    return m_bounds;
 }
 
 ProxyMesh::Index ProxyMesh::proxy_to_orig_facet(Index i) const
@@ -506,7 +508,7 @@ std::vector<ProxyMesh::Index> ProxyMesh::polygon_triangles(Index i) const
 }
 
 
-void ProxyMesh::init_acceleration()
+void ProxyMesh::init_acceleration() const
 {
     m_accel_impl = std::make_unique<ProxyMeshAccelImpl>();
     m_accel_impl->init(*this);
@@ -519,6 +521,15 @@ bool ProxyMesh::get_proxy_facet_at(
     float& t_out,
     Eigen::Vector3f& barycentric_out) const
 {
+    if (!m_picking_enabled) {
+        return false;
+    }
+
+    // Lazily initialize acceleration structure for picking
+    if (!m_accel_impl) {
+        init_acceleration();
+    }
+
     igl::Hit hit;
     bool res = m_accel_impl->tree.intersect_ray(
         mesh().get_vertices(),
@@ -561,6 +572,11 @@ ProxyMesh::get_facets_in_frustum(const Frustum& f, bool ignore_backfacing, bool 
 
     const auto& V = get_vertices();
     const auto& F = get_facets();
+
+    // Lazily initialize acceleration structure for picking
+    if (!m_accel_impl) {
+        init_acceleration();
+    }
 
     if (proxy_indices) {
         inserter = [&](int x) -> void {
@@ -615,6 +631,11 @@ std::unordered_set<int> ProxyMesh::get_vertices_in_frustum(const Frustum& f, boo
     const auto& V = get_vertices();
     const auto& F = get_facets();
 
+    // Lazily initialize acceleration structure for picking
+    if (!m_accel_impl) {
+        init_acceleration();
+    }
+
 
     inserter = [&](int fi, bool inside) -> void {
         if (ignore_backfacing &&
@@ -667,6 +688,11 @@ std::unordered_set<int> ProxyMesh::get_edges_in_frustum(const Frustum& f, bool i
 
     const auto& V = get_vertices();
     const auto& F = get_facets();
+
+    // Lazily initialize acceleration structure for picking
+    if (!m_accel_impl) {
+        init_acceleration();
+    }
 
 
     inserter = [&](int fi, bool inside) -> void {
@@ -721,6 +747,10 @@ bool ProxyMesh::intersects(const Frustum& f) const
     const auto& V = get_vertices();
     const auto& F = get_facets();
 
+    // Lazily initialize acceleration structure for picking
+    if (!m_accel_impl) {
+        init_acceleration();
+    }
 
     auto near_phase = [&](int f_index) {
         return f.intersects(V.row(F(f_index, 0)), V.row(F(f_index, 1)), V.row(F(f_index, 2)));
@@ -774,6 +804,16 @@ AABB ProxyMesh::get_selection_bounds(const ElementSelection& sel) const
         }
     }
     return bb;
+}
+
+void ProxyMesh::set_picking_enabled(bool value)
+{
+    m_picking_enabled = value;
+}
+
+bool ProxyMesh::is_picking_enabled() const
+{
+    return m_picking_enabled;
 }
 
 } // namespace ui

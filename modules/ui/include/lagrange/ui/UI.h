@@ -30,6 +30,8 @@
 #include <lagrange/ui/colormap.h>
 
 #include <lagrange/ui/default_ibls.h>
+#include <lagrange/ui/file_dialog.h>
+#include <lagrange/ui/imgui/progress.h>
 
 //For custom render pass definition
 #include <lagrange/ui/Viz.h>

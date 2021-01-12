@@ -95,6 +95,8 @@ Keybinds initialize_default_keybinds()
     k.add("global.scene.open", GLFW_KEY_O, {GLFW_KEY_LEFT_CONTROL});
     k.add("global.scene.add", GLFW_KEY_O, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_SHIFT});
 
+    k.add("global.camera.zoom_to_fit", GLFW_KEY_Z, {GLFW_KEY_LEFT_SHIFT});
+
     set_camera_scheme(k, DefaultCameraScheme::DIMENSION);
 
     return k;
