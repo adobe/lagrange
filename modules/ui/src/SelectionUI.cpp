@@ -66,7 +66,7 @@ SelectionUI::SelectionUI(Viewer* viewer)
     });
 
 
-    auto update_selection_buffer = [this](Model& model, bool persistent, SelectionElementType type) {
+    auto update_selection_buffer = [](Model& model, bool persistent, SelectionElementType type) {
         
         LA_IGNORE(type);
         auto buffer = model.get_buffer();
@@ -79,7 +79,7 @@ SelectionUI::SelectionUI(Viewer* viewer)
     };
 
     // Make sure element selection in model updates render buffers
-    scene.add_callback<Scene::OnModelAdd>([this, update_selection_buffer](Model& model) {
+    scene.add_callback<Scene::OnModelAdd>([update_selection_buffer](Model& model) {
         auto mesh_model_ptr = dynamic_cast<MeshModelBase*>(&model);
         if (!mesh_model_ptr) return;
 

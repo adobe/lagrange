@@ -210,8 +210,6 @@ struct MDLImpl
                             if (!filename) break;
 
                             Texture::Params p;
-                            float eff_gamma = tex->get_effective_gamma();
-                            float gamma = tex->get_gamma();
                             p.sRGB = (tex->get_effective_gamma() > 1.0f);
 
                             return Resource<Texture>::create(filename, p);
@@ -226,7 +224,7 @@ struct MDLImpl
             }
         }
 
-        return nullptr;
+        return {};
     }
 
     std::shared_ptr<Material> load_adobe_standard_single(const IModule* module, int index)
@@ -252,8 +250,8 @@ struct MDLImpl
         auto param_types = handle_of(material_definition->get_parameter_types());
 
         // Iterate through default values of material's parameters
-        for (mi::Size index = 0; index < count; index++) {
-            std::string name = material_definition->get_parameter_name(index);
+        for (mi::Size param_index = 0; param_index < count; param_index++) {
+            std::string name = material_definition->get_parameter_name(param_index);
 
             auto default_ = handle_of(defaults->get_expression(name.c_str()));
 
