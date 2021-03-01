@@ -440,7 +440,7 @@ ProxyMesh::ProxyMesh(const MeshType& orig_mesh)
 
     //Compute bounds
     m_bounds = AABB(m_mesh->get_vertices().colwise().minCoeff(), m_mesh->get_vertices().colwise().maxCoeff());
-    
+
 }
 
 
@@ -573,6 +573,10 @@ ProxyMesh::get_facets_in_frustum(const Frustum& f, bool ignore_backfacing, bool 
     const auto& V = get_vertices();
     const auto& F = get_facets();
 
+    if (!m_picking_enabled) {
+        return {};
+    }
+
     // Lazily initialize acceleration structure for picking
     if (!m_accel_impl) {
         init_acceleration();
@@ -631,11 +635,14 @@ std::unordered_set<int> ProxyMesh::get_vertices_in_frustum(const Frustum& f, boo
     const auto& V = get_vertices();
     const auto& F = get_facets();
 
+    if (!m_picking_enabled) {
+        return {};
+    }
+
     // Lazily initialize acceleration structure for picking
     if (!m_accel_impl) {
         init_acceleration();
     }
-
 
     inserter = [&](int fi, bool inside) -> void {
         if (ignore_backfacing &&
@@ -689,11 +696,14 @@ std::unordered_set<int> ProxyMesh::get_edges_in_frustum(const Frustum& f, bool i
     const auto& V = get_vertices();
     const auto& F = get_facets();
 
+    if (!m_picking_enabled) {
+        return {};
+    }
+
     // Lazily initialize acceleration structure for picking
     if (!m_accel_impl) {
         init_acceleration();
     }
-
 
     inserter = [&](int fi, bool inside) -> void {
         if (ignore_backfacing &&
@@ -747,6 +757,10 @@ bool ProxyMesh::intersects(const Frustum& f) const
     const auto& V = get_vertices();
     const auto& F = get_facets();
 
+    if (!m_picking_enabled) {
+        return false;
+    }
+
     // Lazily initialize acceleration structure for picking
     if (!m_accel_impl) {
         init_acceleration();
@@ -777,6 +791,10 @@ bool ProxyMesh::intersects(const Frustum& f) const
 AABB ProxyMesh::get_selection_bounds(const ElementSelection& sel) const
 {
     AABB bb;
+
+    if (!m_picking_enabled) {
+        return bb;
+    }
 
     const auto& V = get_vertices();
 

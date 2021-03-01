@@ -70,10 +70,37 @@ void save_mesh_basic(const fs::path& filename, const MeshType& mesh)
     }
 }
 
-template <typename MeshType>
-void save_mesh_with_uv(const fs::path& filename, const MeshType& mesh)
+template <typename MeshType, typename DerivedV, typename DerivedF>
+void extract_attribute(
+    const MeshType& mesh,
+    const std::string& attr_name,
+    Eigen::MatrixBase<DerivedV>& values,
+    Eigen::MatrixBase<DerivedF>& indices)
 {
-    LA_ASSERT(mesh.is_uv_initialized());
+    const auto& facets = mesh.get_facets();
+    if (mesh.has_indexed_attribute(attr_name)) {
+        auto attr = mesh.get_indexed_attribute(attr_name);
+        values = std::get<0>(attr);
+        indices = std::get<1>(attr);
+    } else if (mesh.has_corner_attribute(attr_name)) {
+        values = mesh.get_corner_attribute(attr_name);
+        indices.derived().resize(facets.rows(), facets.cols());
+        typename MeshType::Index count = 0;
+        for (auto i : range(facets.rows())) {
+            for (auto j : range(facets.cols())) {
+                indices(i, j) = count;
+                count++;
+            }
+        }
+    } else if (mesh.has_vertex_attribute(attr_name)) {
+        values = mesh.get_vertex_attribute(attr_name);
+        indices = facets;
+    }
+}
+
+template <typename MeshType>
+void save_mesh_obj(const fs::path& filename, const MeshType& mesh)
+{
     using Scalar = typename MeshType::Scalar;
     using Index = typename MeshType::Index;
 
@@ -82,72 +109,14 @@ void save_mesh_with_uv(const fs::path& filename, const MeshType& mesh)
 
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> CN;
     Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> FN;
+    Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor> TC;
+    Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> FTC;
 
-    const auto& TC = mesh.get_uv();
-    const auto& FTC = mesh.get_uv_indices();
-
-    if (mesh.has_corner_attribute("normal")) {
-        CN = mesh.get_corner_attribute("normal");
-        FN.resize(facets.rows(), 3);
-        std::iota(FN.data(), FN.data() + FN.size(), 0);
-    } else if (mesh.has_indexed_attribute("normal")) {
-        auto attr = mesh.get_indexed_attribute("normal");
-        CN = std::get<0>(attr);
-        FN = std::get<1>(attr);
-    }
+    extract_attribute(mesh, "uv", TC, FTC);
+    extract_attribute(mesh, "normal", CN, FN);
 
     igl::writeOBJ(filename.string(), vertices, facets, CN, FN, TC, FTC);
 }
-
-template <typename MeshType>
-void save_mesh_with_vertex_uv(const fs::path& filename, const MeshType& mesh)
-{
-    LA_ASSERT(mesh.has_vertex_attribute("uv"));
-
-    using Scalar = typename MeshType::Scalar;
-    using Index = typename MeshType::Index;
-    const auto& vertices = mesh.get_vertices();
-    const auto& facets = mesh.get_facets();
-
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 3, Eigen::RowMajor> CN;
-    Eigen::Matrix<Index, Eigen::Dynamic, 3, Eigen::RowMajor> FN;
-
-    const auto& TC = mesh.get_vertex_attribute("uv");
-    const auto& FTC = facets;
-
-    igl::writeOBJ(filename.string(), vertices, facets, CN, FN, TC, FTC);
-}
-
-template <typename MeshType>
-void save_mesh_with_corner_uv(const fs::path& filename, const MeshType& mesh)
-{
-    LA_ASSERT(mesh.has_corner_attribute("uv"));
-
-    using Scalar = typename MeshType::Scalar;
-    using Index = typename MeshType::Index;
-    const auto& vertices = mesh.get_vertices();
-    const auto& facets = mesh.get_facets();
-    const Index num_facets = mesh.get_num_facets();
-    const Index vertex_per_facet = mesh.get_vertex_per_facet();
-    LA_ASSERT(vertex_per_facet == 3);
-
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 3, Eigen::RowMajor> CN;
-    Eigen::Matrix<Index, Eigen::Dynamic, 3, Eigen::RowMajor> FN;
-
-    const auto& TC = mesh.get_corner_attribute("uv");
-    LA_ASSERT(safe_cast<Index>(TC.rows()) == num_facets * vertex_per_facet);
-    LA_ASSERT(TC.cols() == 2);
-    Eigen::Matrix<Index, Eigen::Dynamic, 3, Eigen::RowMajor> FTC;
-    FTC.resize(num_facets, 3);
-    for (Index i = 0; i < num_facets; i++) {
-        FTC(i, 0) = i * 3;
-        FTC(i, 1) = i * 3 + 1;
-        FTC(i, 2) = i * 3 + 2;
-    }
-
-    igl::writeOBJ(filename.string(), vertices, facets, CN, FN, TC, FTC);
-}
-
 
 template <typename MeshType>
 void save_mesh_vtk(
@@ -304,15 +273,7 @@ void save_mesh(const fs::path& filename, const MeshType& mesh)
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
 
     if (filename.extension() == ".obj") {
-        if (mesh.is_uv_initialized()) {
-            internal::save_mesh_with_uv(filename, mesh);
-        } else if (mesh.has_vertex_attribute("uv")) {
-            internal::save_mesh_with_vertex_uv(filename, mesh);
-        } else if (mesh.has_corner_attribute("uv")) {
-            internal::save_mesh_with_corner_uv(filename, mesh);
-        } else {
-            internal::save_mesh_basic(filename, mesh);
-        }
+        internal::save_mesh_obj(filename, mesh);
     } else if (filename.extension() == ".vtk") {
         internal::save_mesh_vtk(
             filename,

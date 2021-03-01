@@ -14,7 +14,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/utils/range.h>
-#include <tbb/tbb.h>
+#include <tbb/parallel_for.h>
 
 #include <functional>
 #include <string>

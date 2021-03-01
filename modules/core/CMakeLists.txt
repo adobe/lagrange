@@ -21,6 +21,8 @@ target_include_directories(lagrange_core PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
+target_compile_features(lagrange_core PUBLIC cxx_std_14)
+
 set_target_properties(lagrange_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 option(LAGRANGE_DEPRECATE_EDGE_API "Mark old edge API methods as deprecated." OFF)

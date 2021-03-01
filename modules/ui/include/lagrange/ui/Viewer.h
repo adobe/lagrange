@@ -123,7 +123,7 @@ public:
         int gl_version_minor = 3;
         /// Focus the window
         bool focus_on_show = true;
-        
+
         ///
         /// Generates a dump on crash in the current folder.
         /// This is done by catching normally uncaught exceptions.
@@ -137,13 +137,13 @@ public:
         /// For available ibls \see create_default_ibl()
         ///
         /// Set to "" to disable ibl
-        std::string default_ibl = "studio011"; 
+        std::string default_ibl = "studio011";
     };
 
-    
+
     ///
     /// Object manipulation mode
-    /// 
+    ///
     enum class ManipulationMode { SELECT, TRANSLATE, ROTATE, SCALE, count };
 
 
@@ -165,11 +165,11 @@ public:
 
     ~Viewer();
 
-    
+
     /// Starts a new frame
     void begin_frame();
 
-    
+
     /// Ends current frame and renders it
     void end_frame();
 
@@ -201,8 +201,8 @@ public:
     ///
     RenderPass<Viz::PassData>* add_viz(const Viz& visualization, bool show = true);
 
-    
-    /// Returns camera of currently focused viewport    
+
+    /// Returns camera of currently focused viewport
     Camera& get_current_camera();
     /// Returns camera of currently focused viewport
     const Camera& get_current_camera() const;
@@ -232,24 +232,26 @@ public:
 
     /// Default Scene UI Panel
     SceneUI& get_scene_ui();
-    
+
     /// Default Camera UI Panel
     CameraUI& get_camera_ui();
-    
+
     /// Default Renderer UI Panel
     RendererUI& get_renderer_ui();
-    
+
     /// Returns currently focused viewport UI Panel
     ViewportUI& get_focused_viewport_ui();
     const std::vector<ViewportUI*>& get_viewports() { return m_viewports; }
-    
+
     /// Default Logger UI Panel
     LogUI& get_log_ui();
-    
+
     /// Default Detail UI Panel
     DetailUI& get_detail_ui();
 
-    
+    /// DPI scaling factor
+    float get_ui_scaling() { return m_ui_scaling; }
+
     /// Returns elapsed time in seconds from the last frame
     double get_frame_elapsed_time() const;
 

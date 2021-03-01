@@ -38,15 +38,15 @@ namespace lagrange {
 // eigenvalues and eigenvectors of this matrix would be
 // the principal moments and directions.
 //
-// This refactors segmetnation/Pca.h
+// This refactors segmentation/Pca.h
 
 template <typename Scalar>
 struct ComputePointcloudPCAOutput
 {
-    // The point around which the covariance matrix is evalutated.
+    // The point around which the covariance matrix is evaluated.
     // Col vector to be consistent with `components` and weights.
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> center;
-    // Each column is a component, sorted by weight magnitdes.
+    // Each column is a component, sorted by weight magnitudes.
     // n_rows == n_cols == space dimension
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> components;
     // Each entry is a weight for the corresponding principal component
@@ -77,7 +77,7 @@ ComputePointcloudPCAOutput<typename Derived1::Scalar> compute_pointcloud_pca(
     // Prechecks
     LA_ASSERT(points.rows() >= 2, "There must be at least two points");
 
-    // Compute covarice
+    // Compute covariance
     MatrixXS covariance;
     RowVectorXS center;
 
@@ -96,7 +96,7 @@ ComputePointcloudPCAOutput<typename Derived1::Scalar> compute_pointcloud_pca(
         covariance = ((points.rowwise() - center).transpose() * (points.rowwise() - center));
     } // end of should_normalize
 
-    // SelfAdjointEigenSolver is guranteed to return the eigenvalues sorted
+    // SelfAdjointEigenSolver is guaranteed to return the eigenvalues sorted
     // in increasing order. Note that this is not true for the general EigenValueSolver.
     Eigen::SelfAdjointEigenSolver<MatrixXS> eigs(covariance);
     // Unless something is going wrong, the covariance matrix should

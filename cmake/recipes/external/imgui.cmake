@@ -29,7 +29,7 @@ include(FetchContent)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/adobe/imgui.git
-    GIT_TAG 220809e59b8878297b91452b5e67301cd3ca39c5
+    GIT_TAG ee9ae8bae5a453749baea58f65e275f438cfb6e2
 )
 FetchContent_MakeAvailable(imgui)
 
@@ -42,10 +42,11 @@ add_library(imgui
     "${imgui_SOURCE_DIR}/imgui_widgets.cpp"
     "${imgui_SOURCE_DIR}/imgui_spectrum.h"
     "${imgui_SOURCE_DIR}/imgui_spectrum.cpp"
-    "${imgui_SOURCE_DIR}/examples/imgui_impl_opengl3.h"
-    "${imgui_SOURCE_DIR}/examples/imgui_impl_opengl3.cpp"
-    "${imgui_SOURCE_DIR}/examples/imgui_impl_glfw.h"
-    "${imgui_SOURCE_DIR}/examples/imgui_impl_glfw.cpp"
+    "${imgui_SOURCE_DIR}/imgui_tables.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.h"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_opengl3.cpp"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.h"
+    "${imgui_SOURCE_DIR}/backends/imgui_impl_glfw.cpp"
     "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.h"
     "${imgui_SOURCE_DIR}/misc/cpp/imgui_stdlib.cpp"
 )

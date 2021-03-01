@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/DisjointSets.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/attributes/map_attributes.h>
@@ -18,7 +19,6 @@
 #include <lagrange/chain_edges_into_simple_loops.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
-#include <lagrange/DisjointSets.h>
 #include <lagrange/utils/stl_eigen.h>
 
 #include <vector>
@@ -26,19 +26,18 @@
 namespace lagrange {
 
 ///
-/// Close small topological holes. For holes with > 3 vertices, inserts a vertex
-/// at the barycenter of the hole polygon. If a hole is not a simple polygon,
-/// we attempt to turn it into simple polygons by cutting ears.
+/// Close small topological holes. For holes with > 3 vertices, inserts a vertex at the barycenter
+/// of the hole polygon. If a hole is not a simple polygon, we attempt to turn it into simple
+/// polygons by cutting ears.
 ///
 /// @todo       Remap attribute. For now all input mesh attributes are dropped.
 ///
 /// @param[in]  mesh           Input mesh whose holes to close.
-/// @param[in]  max_hole_size  Maximum number of vertices on a hole to be
-///                            closed.
+/// @param[in]  max_hole_size  Maximum number of vertices on a hole to be closed.
 ///
 /// @tparam     MeshType       Mesh type.
 ///
-/// @return     A new mesh with the holes clossed.
+/// @return     A new mesh with the holes closed.
 ///
 template <typename MeshType>
 std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size)
@@ -92,8 +91,8 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     // Compute simple loops
     logger().trace("[close_small_holes] chain edges into simple loops");
     std::vector<std::vector<Index>> loops;
-    Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> remaining_edges;
     {
+        Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> remaining_edges;
         Eigen::Map<const Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>
             edges_map(
                 reinterpret_cast<const Index *>(boundary_edges.data()),
@@ -168,8 +167,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     // Append elements to existing mesh
     logger().trace("[close_small_holes] append new facets");
     VertexArray vertices;
-    flat_vector_to_eigen(
-        values, vertices, (Index) values.size() / dim, dim, Eigen::RowMajor);
+    flat_vector_to_eigen(values, vertices, (Index)values.size() / dim, dim, Eigen::RowMajor);
 
     FacetArray facets(num_facets + new_facets.size(), 3);
     facets.topRows(num_facets) = mesh.get_facets();
@@ -317,7 +315,8 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
                     vals.row(counter * nvpf + 2) = w * (vals.row(c20[0]) + vals.row(c12[1]));
                     ++counter;
                 } else {
-                    // Copy attributes from opposite facets, and average corner attributes in the barycenter
+                    // Copy attributes from opposite facets, and average corner attributes in the
+                    // barycenter
                     const Index shared_corner = counter * nvpf + 2;
                     vals.row(shared_corner).setZero();
                     for (auto e : loop) {
@@ -329,7 +328,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
                         counter++;
                     }
                     vals.row(shared_corner) /= 2 * loop.size();
-                    for (Index i = 0; i < (Index) loop.size(); ++i) {
+                    for (Index i = 0; i < (Index)loop.size(); ++i) {
                         vals.row(shared_corner + i * nvpf) = vals.row(shared_corner);
                     }
                 }
@@ -382,7 +381,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
                     group_means.assign(num_groups * num_coords, 0);
                     for (size_t lc = 0; lc < 2 * loop.size(); ++lc) {
                         const Index idx = indices[boundary_corners[loop[lc / 2]][lc % 2]];
-                        const Scalar * val = values.data() + idx * num_coords;
+                        const Scalar *val = values.data() + idx * num_coords;
                         const Index repr = group_color[lc];
                         group_sizes[repr]++;
                         for (Index k = 0; k < num_coords; ++k) {

@@ -14,10 +14,7 @@
 namespace lagrange {
 namespace io {
 
-enum class FileEncoding {
-  Binary,
-  Ascii
-};
+enum class FileEncoding { Binary, Ascii };
 
 } // namespace io
 } // namespace lagrange

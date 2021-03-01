@@ -44,7 +44,7 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
         "-Wno-unknown-pragmas"
         "-Wshadow"
         "-Werror=c++17-extensions"
-        "-Werror=c++20-extensions"
+        "-Werror=c++2a-extensions"
         "-msse3"
     )
 

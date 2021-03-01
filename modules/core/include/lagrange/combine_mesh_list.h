@@ -51,7 +51,9 @@ void combine_all_edge_attributes_new(
     MeshType2& combined_mesh);
 
 template <typename MeshTypePtr, typename MeshType2>
-void combine_uv(const std::vector<MeshTypePtr>& mesh_list, MeshType2& combined_mesh);
+void combine_all_indexed_attributes(
+    const std::vector<MeshTypePtr>& mesh_list,
+    MeshType2& combined_mesh);
 
 } // namespace combine_mesh_list_internal
 
@@ -113,7 +115,7 @@ std::unique_ptr<typename std::pointer_traits<MeshTypePtr>::element_type> combine
         combine_all_edge_attributes(mesh_list, *combined_mesh);
 #endif
         combine_all_edge_attributes_new(mesh_list, *combined_mesh);
-        combine_uv(mesh_list, *combined_mesh);
+        combine_all_indexed_attributes(mesh_list, *combined_mesh);
     }
 
     return combined_mesh;
@@ -359,24 +361,100 @@ void combine_all_edge_attributes_new(
 }
 
 template <typename MeshTypePtr, typename MeshType2>
-void combine_uv(const std::vector<MeshTypePtr>& mesh_list, MeshType2& combined_mesh)
+void combine_all_indexed_attributes(
+    const std::vector<MeshTypePtr>& mesh_list,
+    MeshType2& combined_mesh)
 {
-    using UVMeshType = typename MeshType2::AttributeMesh;
+    using MeshType = typename std::pointer_traits<MeshTypePtr>::element_type;
+    using Scalar = typename MeshType::Scalar;
+    using Index = typename MeshType::Index;
+    using AttributeArray = typename MeshType::AttributeArray;
+    using IndexArray = typename MeshType::IndexArray;
 
-    std::vector<std::unique_ptr<UVMeshType>> uv_meshes;
-    // Requiring uvs to be initilized in all meshes.
-    for (const auto& mesh : mesh_list) {
-        if (!mesh->is_uv_initialized()) {
-            logger().warn("Not all mesh has UV initialized, skipping merging UV step");
-            return;
+    const auto& front_mesh = mesh_list.front();
+
+    for (const auto& attr_name : front_mesh->get_indexed_attribute_names()) {
+        bool can_merge = true;
+        auto ref_attr = front_mesh->get_indexed_attribute_array(attr_name);
+        const auto& ref_values = *std::get<0>(ref_attr);
+        const auto& ref_indices = *std::get<1>(ref_attr);
+
+        if (ref_values.get_scalar_type() != experimental::ScalarToEnum_v<Scalar>) {
+            std::string expected_type = experimental::ScalarToEnum<Scalar>::name;
+            std::string current_type = experimental::enum_to_name(ref_values.get_scalar_type());
+            logger().warn(
+                "Cannot combined indexed attribute ({}) with custom Scalar type \"{}\".  "
+                "Expecting \"{}\".", attr_name, current_type, expected_type);
+            continue;
         }
-        uv_meshes.push_back(mesh->get_uv_mesh());
+        if (ref_indices.get_scalar_type() != experimental::ScalarToEnum_v<Index>) {
+            std::string expected_type = experimental::ScalarToEnum<Index>::name;
+            std::string current_type = experimental::enum_to_name(ref_indices.get_scalar_type());
+            logger().warn(
+                "Cannot combined indexed attribute ({}) with custom Index type \"{}\".  "
+                "Expecting \"{}\".", attr_name, current_type, expected_type);
+            continue;
+        }
+
+        Index combined_num_values = 0;
+        Index combined_num_indices = 0;
+
+        for (const auto& mesh : mesh_list) {
+            if (!mesh->has_indexed_attribute(attr_name)) {
+                can_merge = false;
+                logger().warn("Cannot combine indexed attribute \"{}\"", attr_name);
+                break;
+            }
+            auto attr = mesh->get_indexed_attribute_array(attr_name);
+            const auto& values = *std::get<0>(attr);
+            const auto& indices = *std::get<1>(attr);
+
+            if (values.get_scalar_type() != ref_values.get_scalar_type()) {
+                can_merge = false;
+                logger().warn("Cannot combine indexed attribute because value type mismatch.");
+                break;
+            }
+            if (indices.get_scalar_type() != ref_indices.get_scalar_type()) {
+                can_merge = false;
+                logger().warn("Cannot combine indexed attribute because index type mismatch.");
+                break;
+            }
+
+            combined_num_values += safe_cast<Index>(values.rows());
+            combined_num_indices += safe_cast<Index>(indices.rows());
+        }
+        if (!can_merge) continue;
+
+        AttributeArray combined_values(combined_num_values, ref_values.cols());
+        IndexArray combined_indices(combined_num_indices, ref_indices.cols());
+
+        Index curr_value_row = 0;
+        Index curr_index_row = 0;
+        for (const auto& mesh : mesh_list) {
+            auto attr = mesh->get_indexed_attribute_array(attr_name);
+            const auto& values = *std::get<0>(attr);
+            const auto& indices = *std::get<1>(attr);
+
+            combined_values.block(curr_value_row, 0, values.rows(), values.cols()) =
+                values.template view<AttributeArray>();
+            combined_indices.block(curr_index_row, 0, indices.rows(), indices.cols()) =
+                indices.template view<IndexArray>().array() + curr_value_row;
+
+            curr_value_row += safe_cast<Index>(values.rows());
+            curr_index_row += safe_cast<Index>(indices.rows());
+        }
+
+        combined_mesh.add_indexed_attribute(attr_name);
+        combined_mesh.import_indexed_attribute(
+            attr_name,
+            std::move(combined_values),
+            std::move(combined_indices));
     }
 
-    auto uv_mesh = combine_mesh_list(uv_meshes, false);
-    combined_mesh.initialize_uv(uv_mesh->get_vertices(), uv_mesh->get_facets());
-}
 
+
+
+}
 
 } // namespace combine_mesh_list_internal
 

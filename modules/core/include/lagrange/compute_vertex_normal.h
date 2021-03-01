@@ -27,7 +27,10 @@
 
 namespace lagrange {
 template <typename MeshType>
-void compute_vertex_normal(MeshType& mesh)
+void compute_vertex_normal(
+    MeshType& mesh,
+    const igl::PerVertexNormalsWeightingType weighting =
+        igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_ANGLE)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     if (mesh.get_vertex_per_facet() != 3) {
@@ -44,12 +47,7 @@ void compute_vertex_normal(MeshType& mesh)
     const auto& facets = mesh.get_facets();
     const auto& facet_normals = mesh.get_facet_attribute("normal");
     AttributeArray vertex_normals;
-    igl::per_vertex_normals(
-        vertices,
-        facets,
-        igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_ANGLE,
-        facet_normals,
-        vertex_normals);
+    igl::per_vertex_normals(vertices, facets, weighting, facet_normals, vertex_normals);
     mesh.add_vertex_attribute("normal");
     mesh.import_vertex_attribute("normal", vertex_normals);
 }

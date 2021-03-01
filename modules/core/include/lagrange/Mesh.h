@@ -384,6 +384,16 @@ public:
             data->template get_indices<IndexArray>());
     }
 
+    auto get_indexed_attribute_array(const std::string& name) const
+    {
+        LA_ASSERT(is_initialized());
+        const auto data = m_indexed_attributes->get(name);
+        LA_ASSERT(data != nullptr);
+        return std::make_tuple(
+            data->get_values(),
+            data->get_indices());
+    }
+
     void set_vertex_attribute(const std::string& name, const AttributeArray& attr)
     {
         LA_ASSERT(is_initialized());

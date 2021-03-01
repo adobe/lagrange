@@ -25,10 +25,20 @@
 
 namespace lagrange {
 
+/**
+ * Compute smooth normals based on specified sharp edges and cone vertices.
+ *
+ * @param[in]  mesh           The input triangular mesh.
+ * @param[in]  is_edge_smooth Returns true on (fi, fj) if the edge between fi
+ *                            and fj is smooth.  Assumes fi and fi are adjacent.
+ * @param[in]  cone_vertices  A set of cone vertices.
+ *
+ * The computed normals are stored as an indexed attribute named `normal`.
+ */
 template <typename MeshType>
 void compute_normal(
     MeshType& mesh,
-    const typename MeshType::Scalar feature_angle_threshold,
+    std::function<bool(typename MeshType::Index, typename MeshType::Index)> is_edge_smooth,
     const std::vector<typename MeshType::Index>& cone_vertices = {})
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
@@ -72,14 +82,6 @@ void compute_normal(
     for (auto vi : cone_vertices) {
         is_cone_vertex[vi] = true;
     }
-
-    // Assumes fi and fj are adjacent facets.
-    auto is_edge_smooth = [&](Index fi, Index fj) {
-        const RowVector3r ni = facet_normals.row(fi);
-        const RowVector3r nj = facet_normals.row(fj);
-        const auto theta = angle_between(ni, nj);
-        return theta < feature_angle_threshold;
-    };
 
     // Check if two face vertices are collapsed
     auto is_face_degenerate = [&](Index f) {
@@ -183,6 +185,34 @@ void compute_normal(
 
     mesh.add_indexed_attribute("normal");
     mesh.set_indexed_attribute("normal", normal_values, normal_indices);
+}
+
+template <typename MeshType>
+void compute_normal(
+    MeshType& mesh,
+    const typename MeshType::Scalar feature_angle_threshold,
+    const std::vector<typename MeshType::Index>& cone_vertices = {})
+{
+    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
+    using Index = typename MeshType::Index;
+    using Scalar = typename MeshType::Scalar;
+    using RowVector3r = Eigen::Matrix<Scalar, 1, 3>;
+
+    LA_ASSERT(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.");
+    if (!mesh.has_facet_attribute("normal")) {
+        compute_triangle_normal(mesh);
+    }
+    const auto& facet_normals = mesh.get_facet_attribute("normal");
+
+    // Assumes fi and fj are adjacent facets.
+    auto is_edge_smooth = [&](Index fi, Index fj) {
+        const RowVector3r ni = facet_normals.row(fi);
+        const RowVector3r nj = facet_normals.row(fj);
+        const auto theta = angle_between(ni, nj);
+        return theta < feature_angle_threshold;
+    };
+
+    compute_normal(mesh, is_edge_smooth, cone_vertices);
 }
 
 } // namespace lagrange

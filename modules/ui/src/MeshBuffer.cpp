@@ -172,10 +172,7 @@ bool MeshBuffer::render(Primitive primitive, const SubBufferSelection& selection
         GL(glDrawArrays(gl_primitive(primitive), 0, primitive_multipier(primitive) * pos->count));
     } else {
         bind_indices(indices);
-        GL(glDrawElements(gl_primitive(primitive),
-            primitive_multipier(primitive) * indices->count,
-            indices->glType,
-            0));
+        GL(glDrawElements(gl_primitive(primitive), indices->count, indices->glType, 0));
     }
 
     glBindVertexArray(0);
@@ -226,7 +223,13 @@ MeshBuffer& MeshBuffer::quad()
 
     m_quad->get_sub_buffer(MeshBuffer::SubBufferType::POSITION).upload(V);
     m_quad->get_sub_buffer(MeshBuffer::SubBufferType::UV).upload(UV);
-    m_quad->get_sub_buffer(MeshBuffer::SubBufferType::INDICES).upload(F);
+    
+    VertexBuffer::DataDescription desc;
+    desc.count = F.size();
+    desc.gl_type = GL_UNSIGNED_INT;
+    desc.integral = true;
+    m_quad->get_sub_buffer(MeshBuffer::SubBufferType::INDICES)
+        .upload(F.data(), sizeof(unsigned int) * F.size(), desc); // as flat array, not matrix
 
     return *m_quad;
 }
@@ -279,7 +282,14 @@ MeshBuffer& MeshBuffer::infinite_plane()
 
     m_infinite_plane->get_sub_buffer(MeshBuffer::SubBufferType::POSITION).upload(V);
     m_infinite_plane->get_sub_buffer(MeshBuffer::SubBufferType::UV).upload(UV);
-    m_infinite_plane->get_sub_buffer(MeshBuffer::SubBufferType::INDICES).upload(F);
+
+
+    VertexBuffer::DataDescription desc;
+    desc.count = F.size();
+    desc.gl_type = GL_UNSIGNED_INT;
+    desc.integral = true;
+    m_infinite_plane->get_sub_buffer(MeshBuffer::SubBufferType::INDICES)
+        .upload(F.data(), sizeof(unsigned int) * F.size(), desc); // as flat array, not matrix
 
     return *m_infinite_plane;
 }
@@ -364,7 +374,13 @@ MeshBuffer& MeshBuffer::cube(bool edges)
         F.row(11) = Index{6, 2, 1};
 
         ptr->get_sub_buffer(MeshBuffer::SubBufferType::POSITION).upload(V);
-        ptr->get_sub_buffer(MeshBuffer::SubBufferType::INDICES).upload(F);
+
+        VertexBuffer::DataDescription desc;
+        desc.count = F.size();
+        desc.gl_type = GL_UNSIGNED_INT;
+        desc.integral = true;
+        ptr->get_sub_buffer(MeshBuffer::SubBufferType::INDICES)
+            .upload(F.data(), sizeof(unsigned int) * F.size(), desc); // as flat array, not matrix
     }
 
     return *ptr;

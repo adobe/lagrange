@@ -25,7 +25,7 @@
 namespace lagrange {
 
 template <typename MeshType>
-void compute_triangle_normal(MeshType& mesh)
+auto compute_triangle_normal_const(const MeshType &mesh) -> typename MeshType::AttributeArray
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     if (mesh.get_vertex_per_facet() != 3) {
@@ -39,7 +39,14 @@ void compute_triangle_normal(MeshType& mesh)
 
     igl::per_face_normals(vertices, facets, default_normal, normals);
 
-    mesh.add_facet_attribute("normal");
-    mesh.import_facet_attribute("normal", normals);
+    return normals;
 }
+
+template <typename MeshType>
+void compute_triangle_normal(MeshType& mesh)
+{
+    mesh.add_facet_attribute("normal");
+    mesh.import_facet_attribute("normal", compute_triangle_normal_const(mesh));
+}
+
 } // namespace lagrange

@@ -41,6 +41,105 @@ bool has_holes(MeshType &mesh) { return count_boundary_edges(mesh) != 0; }
 
 } // namespace
 
+TEST_CASE("chain_edges_into_simple_loops", "[cleanup][close_small_holes]")
+{
+    SECTION("graph_1") {
+        Eigen::MatrixXi edges(4, 2);
+        // clang-format off
+        edges <<
+            0, 1,
+            1, 2,
+            2, 0,
+            2, 3;
+        // clang-format on
+
+        Eigen::MatrixXi remaining;
+        std::vector<std::vector<int>> loops;
+        bool all_loops = lagrange::chain_edges_into_simple_loops(edges, loops, remaining);
+        REQUIRE(all_loops == false);
+
+        Eigen::MatrixXi expected_remaining(1, 2);
+        expected_remaining << 2, 3;
+        const std::vector<std::vector<int>> expected_loops = {{2, 0, 1}};
+        REQUIRE(loops == expected_loops);
+        REQUIRE(remaining.size() == expected_remaining.size());
+        REQUIRE(remaining == expected_remaining);
+    }
+
+    SECTION("graph_2") {
+        Eigen::MatrixXi edges(4, 2);
+        // clang-format off
+        edges <<
+            0, 1,
+            1, 2,
+            2, 3,
+            3, 4;
+        // clang-format on
+
+        Eigen::MatrixXi remaining;
+        std::vector<std::vector<int>> loops;
+        bool all_loops = lagrange::chain_edges_into_simple_loops(edges, loops, remaining);
+        REQUIRE(all_loops == false);
+
+        Eigen::MatrixXi expected_remaining = edges;
+        const std::vector<std::vector<int>> expected_loops = {};
+        REQUIRE(loops == expected_loops);
+        REQUIRE(remaining.size() == expected_remaining.size());
+        REQUIRE(remaining == expected_remaining);
+    }
+
+    SECTION("graph_3") {
+        Eigen::MatrixXi edges(7, 2);
+        // clang-format off
+        edges <<
+            0, 1,
+            1, 2,
+            2, 0,
+            2, 5,
+            5, 3,
+            3, 4,
+            4, 5;
+        // clang-format on
+
+        Eigen::MatrixXi remaining;
+        std::vector<std::vector<int>> loops;
+        bool all_loops = lagrange::chain_edges_into_simple_loops(edges, loops, remaining);
+        REQUIRE(all_loops == false);
+
+        Eigen::MatrixXi expected_remaining(1, 2);
+        expected_remaining << 2, 5;
+        const std::vector<std::vector<int>> expected_loops = {{4, 5, 6}, {2, 0, 1}};
+        REQUIRE(loops == expected_loops);
+        REQUIRE(remaining.size() == expected_remaining.size());
+        REQUIRE(remaining == expected_remaining);
+    }
+
+    SECTION("graph_4") {
+        Eigen::MatrixXi edges(6, 2);
+        // clang-format off
+        edges <<
+            0, 1,
+            1, 0,
+            1, 2,
+            2, 1,
+            2, 0,
+            0, 2;
+        // clang-format on
+
+        Eigen::MatrixXi remaining;
+        std::vector<std::vector<int>> loops;
+        bool all_loops = lagrange::chain_edges_into_simple_loops(edges, loops, remaining);
+        REQUIRE(all_loops == false);
+
+        // This graph has no simple loop, so it cannot be simplified by pruning "ears".
+        Eigen::MatrixXi expected_remaining = edges;
+        const std::vector<std::vector<int>> expected_loops = {};
+        REQUIRE(loops == expected_loops);
+        REQUIRE(remaining.size() == expected_remaining.size());
+        REQUIRE(remaining == expected_remaining);
+    }
+}
+
 TEST_CASE("close_small_holes (simple)", "[cleanup][close_small_holes]")
 {
     auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/stanford-bunny.obj");
@@ -66,6 +165,19 @@ TEST_CASE("close_small_holes (complex)", "[cleanup][close_small_holes]")
     REQUIRE(count_boundary_edges(*mesh1) == 8*8 + 15);
     auto mesh2 = lagrange::close_small_holes(*mesh, 100);
     REQUIRE(count_boundary_edges(*mesh2) == 15);
+}
+
+TEST_CASE("close_small_holes (non-manifold)", "[cleanup][close_small_holes]")
+{
+    auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/prout.obj");
+    REQUIRE(mesh);
+
+    REQUIRE(has_holes(*mesh));
+    lagrange::logger().info("num boundary edges: {}", count_boundary_edges(*mesh));
+    REQUIRE(count_boundary_edges(*mesh) == 141);
+
+    auto mesh1 = lagrange::close_small_holes(*mesh, 3);
+    REQUIRE(count_boundary_edges(*mesh1) == 105);
 }
 
 TEST_CASE("close_small_holes (with uv)", "[cleanup][close_small_holes]")

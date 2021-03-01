@@ -31,11 +31,8 @@ bool MeshBufferFactory::update_selection_indices(
 
 
     std::vector<unsigned int> indices;
-    int per_element = 0;
-
     // Translate original indices to proxy indices
     if (element_selection.get_type() == SelectionElementType::FACE) {
-        per_element = 3;
         indices.reserve(selection.size() * 2 * 3);
         for (auto orig_fid : selection) {
             const auto proxy_tris = proxy.polygon_triangles(orig_fid);
@@ -49,7 +46,6 @@ bool MeshBufferFactory::update_selection_indices(
         }
     } else if (element_selection.get_type() == SelectionElementType::VERTEX) {
         const auto& v2v_mapping = proxy.get_vertex_to_vertex_mapping();
-        per_element = 1;
         indices.reserve(selection.size());
 
         for (auto orig_vid : selection) {
@@ -57,7 +53,6 @@ bool MeshBufferFactory::update_selection_indices(
         }
     } else if (element_selection.get_type() == SelectionElementType::EDGE) {
         const auto& e2v = proxy.get_edge_to_vertices();
-        per_element = 2;
         indices.reserve(selection.size() * 2);
         for (auto orig_eid : selection) {
             indices.push_back(e2v[2 * orig_eid + 0]);
@@ -72,7 +67,7 @@ bool MeshBufferFactory::update_selection_indices(
     auto& index_buffer =
         target_buffer.get_sub_buffer(MeshBuffer::SubBufferType::INDICES, sub_buffer_id);
 
-    index_buffer.upload(indices, per_element);
+    index_buffer.upload(indices);
     return true;
 }
 

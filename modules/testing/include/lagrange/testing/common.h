@@ -51,5 +51,16 @@ std::unique_ptr<MeshType> load_mesh(const fs::path &relative_path)
     return result;
 }
 
+///
+/// Set up MKL Conditional Numerical Reproducibility to ensure maximum compatibility between
+/// devices. This is only called before setting up unit tests that depend on reproducible numerical
+/// results. Otherwise, the behavior can be controlled by the environment variable MKL_CBWR. See [1]
+/// for additional information. This function has no effect if Lagrange is compiled without MKL.
+///
+/// [1]:
+/// https://software.intel.com/content/www/us/en/develop/articles/introduction-to-the-conditional-numerical-reproducibility-cnr.html
+///
+void setup_mkl_reproducibility();
+
 } // namespace testing
 } // namespace lagrange

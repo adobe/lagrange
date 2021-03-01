@@ -38,6 +38,7 @@ set(EMBREE_MAX_ISA           "DEFAULT" CACHE STRING "Selects highest ISA to supp
 # - https://crascit.com/2018/09/14/do-not-redefine-cmake-commands/
 function(embree_import_target)
     macro(ignore_package NAME)
+        unset(${NAME}_ROOT CACHE) # Prevent warning CMP0074 due to embree's CMake setting policies based on CMake 3.1.0
         file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${NAME}/${NAME}Config.cmake "")
         set(${NAME}_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NAME} CACHE PATH "")
     endmacro()
@@ -55,11 +56,14 @@ function(embree_import_target)
     # - https://gitlab.kitware.com/cmake/cmake/issues/17357
     # - https://gitlab.kitware.com/cmake/cmake/issues/15415
     ignore_package(TBB)
+
+    # We globally link against TBB using old-style folder-based commands (this is bad!), because
+    # Embree's CMake is poorly written and does not offer a reliable way to provide a custom TBB
+    # target.
     include(tbb)
-    get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
-    add_library(tbb_interface INTERFACE IMPORTED)
-    target_link_libraries(tbb_interface INTERFACE TBB::tbb)
-    set(TBB_LIBRARIES tbb_interface)
+    set(TBB_INCLUDE_DIRS "")
+    set(TBB_LIBRARIES "")
+    link_libraries(TBB::tbb)
 
     # Ready to include embree's atrocious CMake
     FetchContent_MakeAvailable(embree)
@@ -76,9 +80,12 @@ function(embree_import_target)
 
     # Now we need to do some juggling to propagate the include directory properties
     # along with the `embree` target
-    add_library(embree::embree INTERFACE IMPORTED GLOBAL)
-    target_include_directories(embree::embree SYSTEM INTERFACE ${embree_SOURCE_DIR}/include)
-    target_link_libraries(embree::embree INTERFACE embree)
+    include(GNUInstallDirs)
+    target_include_directories(embree SYSTEM INTERFACE
+        "$<BUILD_INTERFACE:${embree_SOURCE_DIR}/include>"
+        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>"
+    )
+
     add_library(embree::embree ALIAS embree)
 endfunction()
 

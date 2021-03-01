@@ -25,11 +25,10 @@ namespace lagrange {
 
 ///
 /// Chain edges into simple loops by cutting "ears" progressively from the digraph. An ear is
-/// defined as a simple cycle with at most 1 vertex of degree > 2. The input digraph is assume to
-/// not contain any "dangling" branch (vertices with degree_in != degree_out). Otherwise an empty
-/// result is returned. If the graph cannot be pruned by removing ears, then the list of remaining
-/// edges that cannot be pruned is returned in the remaining_edges output variable (e.g., a chain of
-/// "8" that loops back to itself).
+/// defined as a simple cycle with at most 1 vertex of degree > 2. The input digraph can contain
+/// "dangling" vertices (vertices with degree_in != degree_out). If the graph cannot be pruned by
+/// removing ears, then the list of remaining edges that cannot be pruned is returned in the
+/// remaining_edges output variable (e.g., a chain of "8" that loops back to itself).
 ///
 /// @param[in]  edges            #EI x 2 array of oriented edges in the input digraph.
 /// @param[out] output           Output list of loops. Each loop is an array of edge indices.
@@ -71,91 +70,103 @@ bool chain_edges_into_simple_loops(
         degree_in[v1]++;
     }
     if (!(degree_in.array() == degree_out.array()).all()) {
-        logger().warn("Input digraph has dangling vertices.");
-        return false;
+        logger().debug("Input digraph has dangling vertices.");
     }
 
-    // arc -> first edge in the arc
-    std::vector<Index> arc_to_first_edge;
+    // path -> first edge in the path
+    std::vector<Index> path_to_first_edge;
 
-    // vertex -> single outgoing edge (or INVALID if degree_out is > 1)
+    // vertex -> single outgoing edge along path (or INVALID if degree_out is > 1)
     std::vector<Index> vertex_to_outgoing_edge(num_vertices, INVALID<Index>());
 
-    // edge -> next edge along arc (or INVALID if last edge along arc)
-    std::vector<Index> next_edge_along_arc(num_edges, INVALID<Index>());
+    // edge -> next edge along path (or INVALID if last edge along path)
+    std::vector<Index> next_edge_along_path(num_edges, INVALID<Index>());
 
-    // Chain edges into arcs
+    // Chain edges into paths
     for (Index e = 0; e < num_edges; ++e) {
         Index v0 = edges(e, 0);
-        if (degree_out[v0] > 1) {
-            // New arc starting here
-            arc_to_first_edge.push_back(e);
-        } else {
+        if (degree_out[v0] == 1 && degree_in[v0] == 1) {
+            // v0 is a mid-path vertex. There is only one possibility for the next edge along a path
+            // going through v0.
             vertex_to_outgoing_edge[v0] = e;
+        } else {
+            // v0 is a junction vertex. We start one path for each outgoing edge e starting from
+            // vertex v0.
+            path_to_first_edge.push_back(e);
         }
     }
+    // Chain edges together based on the vertex -> outgoing edge mapping we previously computed
     for (Index e = 0; e < num_edges; ++e) {
         Index v1 = edges(e, 1);
-        next_edge_along_arc[e] = vertex_to_outgoing_edge[v1];
+        next_edge_along_path[e] = vertex_to_outgoing_edge[v1];
     }
 
-    // Follow each arc until we reach the last edge
-    std::vector<bool> edge_is_in_arc(num_edges, false);
-    std::vector<Index> arc_to_last_edge(arc_to_first_edge.size());
+    // Follow each path until we reach the last edge
+    std::vector<Index> edge_label(num_edges, INVALID<Index>());
+    std::vector<Index> path_to_last_edge(path_to_first_edge.size());
     std::stack<Index> ears;
-    std::vector<std::vector<Index>> arcs_in(num_vertices);
-    std::vector<std::vector<Index>> arcs_out(num_vertices);
-    std::vector<bool> arc_is_pending(arc_to_first_edge.size(), false);
+    std::vector<std::vector<Index>> paths_in(num_vertices);
+    std::vector<std::vector<Index>> paths_out(num_vertices);
+    std::vector<bool> path_is_pending(path_to_first_edge.size(), false);
 
-    auto first_vertex_in_arc = [&](Index a) { return edges(arc_to_first_edge[a], 0); };
+    auto first_vertex_in_path = [&](Index a) { return edges(path_to_first_edge[a], 0); };
 
-    auto last_vertex_in_arc = [&](Index a) { return edges(arc_to_last_edge[a], 1); };
+    auto last_vertex_in_path = [&](Index a) { return edges(path_to_last_edge[a], 1); };
 
-    for (Index a = 0; a < (Index)arc_to_first_edge.size(); ++a) {
-        // Follow edges along the arc
-        for (Index e = arc_to_first_edge[a]; e != INVALID<Index>(); e = next_edge_along_arc[e]) {
-            arc_to_last_edge[a] = e;
-            edge_is_in_arc[e] = true;
+    // For each path that we have started at a junction vertex, follow edges along the path until
+    // each edge has been labeled as belonging to the path. Note that our paths do not contain
+    // junction vertices by construction. So the only case where the path can contain a cycle is
+    // when the path starts and ends at the same vertex.
+    for (Index a = 0; a < (Index)path_to_first_edge.size(); ++a) {
+        // Follow edges along the path and label them as belonging to the path
+        for (Index e = path_to_first_edge[a];
+             e != INVALID<Index>() && edge_label[e] == INVALID<Index>();
+             e = next_edge_along_path[e]) {
+            edge_label[e] = a;
+            path_to_last_edge[a] = e;
         }
 
-        const Index v_first = first_vertex_in_arc(a);
-        const Index v_last = last_vertex_in_arc(a);
+        const Index v_first = first_vertex_in_path(a);
+        const Index v_last = last_vertex_in_path(a);
 
-        // Compute outgoing and ingoing arcs per vertices of degree > 1
-        arcs_out[v_first].push_back(a);
-        arcs_in[v_last].push_back(a);
+        // Compute outgoing and ingoing paths per vertices of degree > 1
+        paths_out[v_first].push_back(a);
+        paths_in[v_last].push_back(a);
 
         if (v_first == v_last) {
-            // Arc is an ear, will be popped next
-            LA_ASSERT_DEBUG(arc_is_pending[a] == false);
-            arc_is_pending[a] = true;
+            // Path is an ear (simple loop), will be popped next
+            LA_ASSERT_DEBUG(path_is_pending[a] == false);
+            path_is_pending[a] = true;
             ears.push(a);
         }
     }
 
-    // For arcs which are already simple loops, there was no `arc_to_first_edge`.
-    // We do an additional pass on all edges to make sure we didn't miss anyone.
+    // For paths which are isolated cycles, there is no "starting vertex" (each vertex has total
+    // degree 2). We do an additional pass on each edge and start a new path for each unlabeled
+    // edge.
     for (Index e = 0; e < num_edges; ++e) {
-        if (!edge_is_in_arc[e]) {
-            // Add a new arc starting here
-            const Index a = (Index)arc_to_first_edge.size();
-            arc_to_first_edge.emplace_back(e);
-            arc_is_pending.push_back(false);
+        if (edge_label[e] == INVALID<Index>()) {
+            // Add a new path starting here
+            const Index a = (Index)path_to_first_edge.size();
+            path_to_first_edge.emplace_back(e);
+            path_to_last_edge.emplace_back(e);
+            path_is_pending.push_back(false);
 
-            // Follow edges along the arc and tag last edge on the arc
-            arc_to_last_edge.emplace_back(e);
-            edge_is_in_arc[e] = true;
-            for (Index ei = next_edge_along_arc[e]; ei != e; ei = next_edge_along_arc[ei]) {
-                arc_to_last_edge[a] = ei;
-                edge_is_in_arc[ei] = true;
+            // Follow edges along the path and record the last edge on the path
+            edge_label[e] = a;
+            for (Index ei = next_edge_along_path[e];
+                 ei != INVALID<Index>() && edge_label[ei] == INVALID<Index>();
+                 ei = next_edge_along_path[ei]) {
+                edge_label[ei] = a;
+                path_to_last_edge[a] = ei;
             }
-            LA_ASSERT_DEBUG(next_edge_along_arc[arc_to_last_edge[a]] == e);
-            LA_ASSERT_DEBUG(first_vertex_in_arc(a) == last_vertex_in_arc(a));
-            next_edge_along_arc[arc_to_last_edge[a]] = INVALID<Index>();
+            LA_ASSERT_DEBUG(next_edge_along_path[path_to_last_edge[a]] == e);
+            LA_ASSERT_DEBUG(first_vertex_in_path(a) == last_vertex_in_path(a));
+            next_edge_along_path[path_to_last_edge[a]] = INVALID<Index>();
 
-            // This arc is an ear
-            LA_ASSERT_DEBUG(arc_is_pending[a] == false);
-            arc_is_pending[a] = true;
+            // Path is an isolated cycle
+            LA_ASSERT_DEBUG(path_is_pending[a] == false);
+            path_is_pending[a] = true;
             ears.push(a);
         }
     }
@@ -167,21 +178,22 @@ bool chain_edges_into_simple_loops(
         vec.pop_back();
     };
 
-    // Pop ears repeatedly
     Index num_edges_removed = 0;
     std::vector<bool> edge_is_removed(num_edges, false);
-    std::vector<bool> arc_is_removed(arc_to_first_edge.size(), false);
+
+    // Pop ears repeatedly
+    std::vector<bool> path_is_removed(path_to_first_edge.size(), false);
     while (!ears.empty()) {
         const Index a = ears.top();
         ears.pop();
-        LA_ASSERT_DEBUG(!arc_is_removed[a]);
-        arc_is_removed[a] = true;
+        LA_ASSERT_DEBUG(!path_is_removed[a]);
+        path_is_removed[a] = true;
 
-        // Arc starts and ends on the same vertex, compute corresponding (simple) loop
-        LA_ASSERT_DEBUG(first_vertex_in_arc(a) == last_vertex_in_arc(a));
-        LA_ASSERT_DEBUG(arc_to_first_edge[a] != INVALID<Index>());
+        // path starts and ends on the same vertex, compute corresponding (simple) loop
+        LA_ASSERT_DEBUG(first_vertex_in_path(a) == last_vertex_in_path(a));
+        LA_ASSERT_DEBUG(path_to_first_edge[a] != INVALID<Index>());
         std::vector<Index> loop;
-        for (Index e = arc_to_first_edge[a]; e != INVALID<Index>(); e = next_edge_along_arc[e]) {
+        for (Index e = path_to_first_edge[a]; e != INVALID<Index>(); e = next_edge_along_path[e]) {
             loop.push_back(e);
             LA_ASSERT_DEBUG(edge_is_removed[e] == false);
             edge_is_removed[e] = true;
@@ -189,66 +201,65 @@ bool chain_edges_into_simple_loops(
         }
         output.emplace_back(std::move(loop));
 
-        // Remove current arc from the in/out arcs of the endoint vertex v
-        const Index v = first_vertex_in_arc(a);
-        LA_ASSERT_DEBUG(v == last_vertex_in_arc(a));
-        for (size_t i = 0; i < arcs_out[v].size();) {
-            if (arcs_out[v][i] == a) {
-                remove_from_vector(arcs_out[v], i);
+        // Remove current path from the in/out paths of the endpoint vertex v
+        const Index v = first_vertex_in_path(a);
+        LA_ASSERT_DEBUG(v == last_vertex_in_path(a));
+        for (size_t i = 0; i < paths_out[v].size();) {
+            if (paths_out[v][i] == a) {
+                remove_from_vector(paths_out[v], i);
             } else {
-                LA_ASSERT_DEBUG(!arc_is_removed[arcs_out[v][i]]);
+                LA_ASSERT_DEBUG(!path_is_removed[paths_out[v][i]]);
                 ++i;
             }
         }
-        for (size_t i = 0; i < arcs_in[v].size();) {
-            if (arcs_in[v][i] == a) {
-                remove_from_vector(arcs_in[v], i);
+        for (size_t i = 0; i < paths_in[v].size();) {
+            if (paths_in[v][i] == a) {
+                remove_from_vector(paths_in[v], i);
             } else {
-                LA_ASSERT_DEBUG(!arc_is_removed[arcs_in[v][i]]);
+                LA_ASSERT_DEBUG(!path_is_removed[paths_in[v][i]]);
                 ++i;
             }
         }
-        LA_ASSERT_DEBUG(arcs_in[v].size() == arcs_out[v].size());
 
-        // If there are only 1 remaining in/out arcs, join them
-        if (arcs_in[v].size() == 1) {
-            const Index a_in = arcs_in[v].front();
-            const Index a_out = arcs_out[v].front();
-            LA_ASSERT_DEBUG(last_vertex_in_arc(a_in) == v);
-            LA_ASSERT_DEBUG(first_vertex_in_arc(a_out) == v);
+        // If there are only 1 remaining in/out paths, join them
+        if (paths_in[v].size() == 1 && paths_out[v].size() == 1) {
+            const Index a_in = paths_in[v].front();
+            const Index a_out = paths_out[v].front();
+            LA_ASSERT_DEBUG(last_vertex_in_path(a_in) == v);
+            LA_ASSERT_DEBUG(first_vertex_in_path(a_out) == v);
             if (a_in != a_out) {
-                // If the arcs are different, then join them
-                LA_ASSERT_DEBUG(arc_to_first_edge[a_in] != INVALID<Index>());
-                LA_ASSERT_DEBUG(arc_to_last_edge[a_in] != INVALID<Index>());
-                LA_ASSERT_DEBUG(arc_to_first_edge[a_out] != INVALID<Index>());
-                LA_ASSERT_DEBUG(arc_to_last_edge[a_out] != INVALID<Index>());
-                LA_ASSERT_DEBUG(next_edge_along_arc[arc_to_last_edge[a_in]] == INVALID<Index>());
+                // If the paths are different, then join them
+                LA_ASSERT_DEBUG(path_to_first_edge[a_in] != INVALID<Index>());
+                LA_ASSERT_DEBUG(path_to_last_edge[a_in] != INVALID<Index>());
+                LA_ASSERT_DEBUG(path_to_first_edge[a_out] != INVALID<Index>());
+                LA_ASSERT_DEBUG(path_to_last_edge[a_out] != INVALID<Index>());
+                LA_ASSERT_DEBUG(next_edge_along_path[path_to_last_edge[a_in]] == INVALID<Index>());
                 LA_ASSERT_DEBUG(
-                    edges(arc_to_last_edge[a_in], 1) == edges(arc_to_first_edge[a_out], 0));
+                    edges(path_to_last_edge[a_in], 1) == edges(path_to_first_edge[a_out], 0));
 
-                // Replace a_out by a_in in last_vertex_in_arc(a_out)
-                for (auto &ai : arcs_in[last_vertex_in_arc(a_out)]) {
+                // Replace a_out by a_in in last_vertex_in_path(a_out)
+                for (auto &ai : paths_in[last_vertex_in_path(a_out)]) {
                     if (ai == a_out) {
                         ai = a_in;
                     }
                 }
 
                 // Update chain to joint a_in --> a_out
-                next_edge_along_arc[arc_to_last_edge[a_in]] = arc_to_first_edge[a_out];
-                arc_to_last_edge[a_in] = arc_to_last_edge[a_out];
+                next_edge_along_path[path_to_last_edge[a_in]] = path_to_first_edge[a_out];
+                path_to_last_edge[a_in] = path_to_last_edge[a_out];
 
                 // Cleaning up
-                arc_to_first_edge[a_out] = INVALID<Index>();
-                arc_to_last_edge[a_out] = INVALID<Index>();
-                arc_is_removed[a_out] = true;
-                arcs_in[v].clear();
-                arcs_out[v].clear();
+                path_to_first_edge[a_out] = INVALID<Index>();
+                path_to_last_edge[a_out] = INVALID<Index>();
+                path_is_removed[a_out] = true;
+                paths_in[v].clear();
+                paths_out[v].clear();
             }
-            const Index v_first = first_vertex_in_arc(a_in);
-            const Index v_last = last_vertex_in_arc(a_in);
-            LA_ASSERT_DEBUG(!arc_is_removed[a_in]);
-            if (v_first == v_last && !arc_is_pending[a_in]) {
-                arc_is_pending[a_in] = true;
+            const Index v_first = first_vertex_in_path(a_in);
+            const Index v_last = last_vertex_in_path(a_in);
+            LA_ASSERT_DEBUG(!path_is_removed[a_in]);
+            if (v_first == v_last && !path_is_pending[a_in]) {
+                path_is_pending[a_in] = true;
                 ears.push(a_in);
             }
         }

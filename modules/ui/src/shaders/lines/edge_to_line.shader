@@ -24,12 +24,12 @@ out VARYING {
 } vs_out;
 
 void main()
-{       
+{
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
+    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
     vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
     vs_out.uv = in_uv;
-    vs_out.color = has_color_attrib ? in_color : uniform_color;   
+    vs_out.color = has_color_attrib ? in_color : uniform_color;
 
     vec4 clip_space = PV * vec4(vs_out.pos,1.0);
     vs_out.screen_pos = screen_size * 0.5f * (clip_space.xy / clip_space.w);
@@ -57,7 +57,7 @@ out VARYING_GEOM {
     vec3 pos;
     vec3 normal;
     vec2 uv;
-    vec4 color; 
+    vec4 color;
     float edge_dist;
 } gs_out;
 
@@ -83,7 +83,7 @@ vec3 ndc_to_screen(vec4 v){
 }
 
 vec3 screen_to_ndc(vec3 s){
-    
+
     const float zrange = 1;
     return s  * vec3(1/screen_size.x, 1/screen_size.y, 1/zrange) * 2.0 - vec3(1.0);
 }
@@ -99,7 +99,7 @@ vec4 screen_to_clip(vec3 screen, float w){
 
 void main() {
 
-    
+
     vec4 p1 = vec4(gs_in[0].pos.xyz,1);
     vec4 p2 = vec4(gs_in[1].pos.xyz,1);
 
@@ -116,11 +116,6 @@ void main() {
     //Calculate normal direction and length in screen space
     vec3 ns = vec3(normalize(vec2(-ds.y, ds.x)) * line_width * 0.5f, 0);
 
-    
-    //World space normal
-    vec3 nw = normalize(gs_in[0].normal);
-    vec3 side = cross(nw, normalize(p2.xyz - p1.xyz)); // 'side' vector 
-
     //Quad in screen space back to clip space
     vec4 P[4];
     P[0] = screen_to_clip(p1s + ns, p1c.w);
@@ -128,23 +123,13 @@ void main() {
     P[2] = screen_to_clip(p2s + ns, p2c.w);
     P[3] = screen_to_clip(p2s - ns, p2c.w);
 
-    //How far should the quad extend
-    float w1 = length(clip_to_world(P[0]) - clip_to_world(P[1])) * 0.5f;
-    float w2 = length(clip_to_world(P[2]) - clip_to_world(P[3])) * 0.5f;
-
-    //Calculate quad that's tangential to the edge
-    P[0] = world_to_clip(vec4(p1.xyz + side*w1, 1));
-    P[1] = world_to_clip(vec4(p1.xyz - side*w1, 1));
-    P[2] = world_to_clip(vec4(p2.xyz + side*w2, 1));
-    P[3] = world_to_clip(vec4(p2.xyz - side*w2, 1));
-
     //Interpolated distances
     float dist[4];
     dist[0] = 1;
     dist[1] = -1;
     dist[2] = 1;
     dist[3] = -1;
-    
+
     gs_out.color = gs_in[0].color;
 
     gs_out.edge_dist = dist[0];
@@ -205,6 +190,6 @@ void main(){
     gl_FragDepth += 0.000001f;
     return;
 
-    
+
 }
 

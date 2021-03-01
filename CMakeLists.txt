@@ -35,12 +35,12 @@ cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths
 # Include user-provided default options if available. We do that before the main
 # `project()` so that we can define the C/C++ compilers from the option file.
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
-   message(STATUS "Using local options file: ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake")
-   include(${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
+    message(STATUS "Using local options file: ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake")
+    include(${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 4.0)
+project(Lagrange VERSION 4.1)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -52,14 +52,27 @@ endif()
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL               "Build all lagrange modules" OFF)
 
+# When building anorigami module, defaults to using Eigen with MKL-dynamic and TBB-dynamic
+if(LAGRANGE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+    set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+    option(EIGEN_WITH_MKL      "Use Eigen with MKL"       ON)
+    option(TBB_PREFER_STATIC   "Build with static TBB"    OFF)
+    option(TBB_BUILD_TBBMALLOC "Build TBB malloc library" ON)
+endif()
+
+# When building Arpack from source, we need to enable Fortran support in the top-level directory
+if(ARPACK_BUILD_FROM_SOURCE)
+    enable_language(Fortran)
+endif()
+
 # Tests and examples
 option(LAGRANGE_UNIT_TESTS        "Build all unit tests"             ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_PERFORMANCE_TESTS "Build all performance tests"      ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_EXAMPLES          "Build all examples"               ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_USE_TBB_STATIC    "Build with static TBB"            ON) # TODO: Switch to dynamic one day
 option(LAGRANGE_USE_PCH           "Enable precompiled headers"       OFF)
 option(LAGRANGE_INSTALL           "Enable installation"              ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"      OFF)
+option(LAGRANGE_COPY_RUNTIME_DEPS "Copy runtime dependencies into executable folders" ${LAGRANGE_TOPLEVEL_PROJECT})
 
 # Third-party dependency management
 option(LAGRANGE_EXTERNAL_FIRST    "Third-party libs: prefer public mirrors over corporate ones" OFF)
@@ -68,28 +81,27 @@ option(LAGRANGE_EXTERNAL_ONLY     "Third-party libs: only download from public m
 # Artifactory key file
 set(LAGRANGE_ARTIFACTORY_KEYFILE "" CACHE FILEPATH "Path to secret artifactory key.")
 
-# Dependent options
-set(TBB_PREFER_STATIC ${LAGRANGE_USE_TBB_STATIC} CACHE BOOL "Use the static version of TBB for the alias target" FORCE)
-
 # Set default minimum C++ standard
-set(CMAKE_CXX_STANDARD 14)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_EXTENSIONS OFF)
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD_REQUIRED ON)
+    set(CMAKE_CXX_EXTENSIONS OFF)
+endif()
 
 if(LAGRANGE_EXTERNAL_ONLY)
-    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/recipes/external/")
+    list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/recipes/external/")
 elseif(LAGRANGE_EXTERNAL_FIRST)
-    list(APPEND CMAKE_MODULE_PATH
+    list(PREPEND CMAKE_MODULE_PATH
         "${PROJECT_SOURCE_DIR}/cmake/recipes/external/"
         "${PROJECT_SOURCE_DIR}/cmake/recipes/internal/"
     )
 else()
-    list(APPEND CMAKE_MODULE_PATH
+    list(PREPEND CMAKE_MODULE_PATH
         "${PROJECT_SOURCE_DIR}/cmake/recipes/internal/"
         "${PROJECT_SOURCE_DIR}/cmake/recipes/external/"
     )
 endif()
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/lagrange/")
+list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/lagrange/")
 
 
 include(sanitizers)
@@ -116,8 +128,7 @@ if(LAGRANGE_UNIT_TESTS)
     # Include Catch2 and provide function `catch_discover_tests` to register tests.
     include(catch2)
     FetchContent_GetProperties(catch2)
-    list(APPEND CMAKE_MODULE_PATH ${catch2_SOURCE_DIR}/contrib)
-    include(Catch)
+    include("${catch2_SOURCE_DIR}/contrib/Catch.cmake")
 endif()
 
 # Build modules
@@ -126,6 +137,15 @@ add_subdirectory(modules)
 # Build documentation
 if(LAGRANGE_DOCUMENTATION)
     add_subdirectory(docs)
+endif()
+
+# Copy shared dependencies for executables created by Lagrange. Clients using Lagrange as a subfolder must use their
+# own mechanism to copy shared dlls into their executable folder. One possibility is to register their executable using
+# `lagrange_add_executable`, and install dependencies by calling `lagrange_copy_all_runtime_dependencies` at the end of
+# their own CMake script. Please follow https://gitlab.kitware.com/cmake/cmake/-/issues/20417 for an official solution
+# when available.
+if(LAGRANGE_COPY_RUNTIME_DEPS)
+    lagrange_copy_all_runtime_dependencies()
 endif()
 
 ################################################################################

@@ -10,7 +10,8 @@
 # governing permissions and limitations under the License.
 #
 function(lagrange_add_performance name)
-    add_executable(${name} ${ARGN})
+    include(lagrange_add_executable)
+    lagrange_add_executable(${name} ${ARGN})
 
     # Folder in IDE
     set_target_properties(${name} PROPERTIES FOLDER "Lagrange//Performance")

@@ -82,6 +82,14 @@ public:
     ///
     void update(float progress);
 
+    ///
+    /// Sets the verbosity. A verbose progress callback will print the section name as debug info
+    /// whenever `set_section` is called with a non-empty section name.
+    ///
+    /// @param[in]  verbose  Verbosity level.
+    ///
+    void set_verbose(bool verbose) { m_verbose = verbose; }
+
 private:
     /// Callback function to be called by the update method.
     std::function<void(const std::string &, float)> m_callback;
@@ -97,6 +105,9 @@ private:
 
     /// Mutex to be tentatively locked before calling the callback function.
     tbb::spin_mutex m_mutex;
+
+    /// Verbosity level
+    bool m_verbose = false;
 };
 
 } // namespace lagrange

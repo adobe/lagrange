@@ -42,8 +42,8 @@
 # set(CMAKE_OSX_DEPLOYMENT_TARGET 10.12 CACHE STRING "macOS deployment target")
 
 # Always add colored output (e.g. when using Ninja)
-# add_compile_options(-fdiagnostics-color=always) # GCC
-# add_compile_options(-fcolor-diagnostics) # Clang
+# list(APPEND CMAKE_CXX_FLAGS -fdiagnostics-color=always) # GCC
+# list(APPEND CMAKE_CXX_FLAGS -fcolor-diagnostics) # Clang
 
 ################################################################################
 # Lagrange Options
@@ -69,6 +69,12 @@
 # option(LAGRANGE_INSTALL              "Enable installation"               OFF)
 # option(LAGRANGE_DOCUMENTATION        "Build Doxygen documentation"       ON)
 # set(LAGRANGE_DATA_FOLDER             "Where to download or find test data" CACHE PATH "path/to/data")
+
+# Options for third-party libraries
+# option(EIGEN_WITH_MKL "Use Eigen with MKL" ON)
+# set(MKL_INTERFACE "lp64" CACHE STRING "Interface layer to use with MKL (lp64 or ilp64)")
+# set(MKL_THREADING "tbb" CACHE STRING "Threading layer to use with MKL (sequential, tbb or openmp)")
+# set(MKL_LINKING "static" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
 
 ################################################################################
 # Sanitizer Options

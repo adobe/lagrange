@@ -64,6 +64,7 @@ TEST_CASE("combine_mesh_list", "[mesh][combine]")
         auto mesh = to_shared_ptr(wrap_with_mesh(vertices, facets));
         using MeshTypePtr = decltype(mesh);
         using AttributeArray = MeshTypePtr::element_type::AttributeArray;
+        using IndexArray = MeshTypePtr::element_type::IndexArray;
         using UVArray = MeshTypePtr::element_type::UVArray;
         using UVIndices = MeshTypePtr::element_type::UVIndices;
 
@@ -181,6 +182,33 @@ TEST_CASE("combine_mesh_list", "[mesh][combine]")
 
             const auto out_mesh = combine_mesh_list<MeshTypePtr>({mesh, mesh2}, true);
             REQUIRE(out_mesh->is_uv_initialized());
+        }
+
+        SECTION("Indexed attribute")
+        {
+            AttributeArray values(6, 1);
+            values << 1, 2, 3, 4, 5, 6;
+            IndexArray indices(2, 3);
+            indices << 0, 1, 2, 3, 4, 5;
+            mesh->add_indexed_attribute("test");
+            mesh->set_indexed_attribute("test", values, indices);
+
+            const auto out_mesh = combine_mesh_list<MeshTypePtr>({mesh, mesh}, true);
+            REQUIRE(out_mesh->has_indexed_attribute("test"));
+
+            const auto attr = out_mesh->get_indexed_attribute("test");
+            const auto out_values = std::get<0>(attr);
+            const auto out_indices = std::get<1>(attr);
+
+            REQUIRE(out_values.rows() == 12);
+            REQUIRE(out_values.cols() == 1);
+            REQUIRE(out_indices.rows() == 4);
+            REQUIRE(out_indices.cols() == 3);
+
+            REQUIRE(out_values.minCoeff() == Approx(1));
+            REQUIRE(out_values.maxCoeff() == Approx(6));
+            REQUIRE(out_indices.minCoeff() == Approx(0));
+            REQUIRE(out_indices.maxCoeff() == Approx(11));
         }
     }
 }

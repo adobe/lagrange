@@ -19,12 +19,14 @@ message(STATUS "Third-party (external): creating target 'tinyobjloader::tinyobjl
 include(FetchContent)
 set(TINYOBJLOADER_VERSION "b200acfe63c1ccbd67948eea4de7ad8f769561b2")
 set(TINYOBJLOADER_URL "https://raw.githubusercontent.com/tinyobjloader/tinyobjloader/${TINYOBJLOADER_VERSION}/tiny_obj_loader.h")
-set(TINYOBJLOADER_FOLDER "${FETCHCONTENT_BASE_DIR}/tinyobjloader/${TINYOBJLOADER_VERSION}")
-set(TINYOBJLOADER_FILE "${TINYOBJLOADER_FOLDER}/tiny_obj_loader.h")
+set(TINYOBJLOADER_SOURCE_DIR "${FETCHCONTENT_BASE_DIR}/tinyobjloader-src/${TINYOBJLOADER_VERSION}")
+set(TINYOBJLOADER_BINARY_DIR "${FETCHCONTENT_BASE_DIR}/tinyobjloader-build")
+set(TINYOBJLOADER_FILE "${TINYOBJLOADER_SOURCE_DIR}/tiny_obj_loader.h")
 
 if(NOT EXISTS ${TINYOBJLOADER_FILE})
+    # Note: Once we move to CMake 3.18, we can use FetchContent with the DOWNLOAD_NO_EXTRACT option
     message(STATUS "Downloading ${TINYOBJLOADER_URL} to ${TINYOBJLOADER_FILE}")
-    file(MAKE_DIRECTORY ${TINYOBJLOADER_FOLDER})
+    file(MAKE_DIRECTORY ${TINYOBJLOADER_SOURCE_DIR})
     file(
         DOWNLOAD ${TINYOBJLOADER_URL} ${TINYOBJLOADER_FILE}
         TIMEOUT 60
@@ -33,6 +35,30 @@ if(NOT EXISTS ${TINYOBJLOADER_FILE})
     )
 endif()
 
-add_library(tinyobjloader::tinyobjloader INTERFACE IMPORTED GLOBAL)
-target_compile_definitions(tinyobjloader::tinyobjloader INTERFACE TINYOBJLOADER_USE_DOUBLE)
-target_include_directories(tinyobjloader::tinyobjloader SYSTEM INTERFACE ${TINYOBJLOADER_FOLDER})
+# Generate implementation file
+file(WRITE "${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp.in" [[
+    #define TINYOBJLOADER_IMPLEMENTATION
+    #include <tiny_obj_loader.h>
+]])
+
+configure_file(${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp.in ${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp COPYONLY)
+
+# Define tinyobjloader library
+add_library(tinyobjloader ${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp)
+add_library(tinyobjloader::tinyobjloader ALIAS tinyobjloader)
+
+include(GNUInstallDirs)
+target_include_directories(tinyobjloader PUBLIC
+    $<BUILD_INTERFACE:${TINYOBJLOADER_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
+target_compile_definitions(tinyobjloader PUBLIC TINYOBJLOADER_USE_DOUBLE)
+
+set_target_properties(tinyobjloader PROPERTIES FOLDER third_party)
+
+# Install rules
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME tinyobjloader)
+install(DIRECTORY ${TINYOBJLOADER_SOURCE_DIR} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(TARGETS tinyobjloader EXPORT Tinyobjloader_Targets)
+install(EXPORT Tinyobjloader_Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/tinyobjloader NAMESPACE tinyobjloader::)

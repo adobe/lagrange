@@ -35,7 +35,9 @@ file(WRITE "${stb_BINARY_DIR}/stb_image.cpp.in" [[
 configure_file(${stb_BINARY_DIR}/stb_image.cpp.in ${stb_BINARY_DIR}/stb_image.cpp COPYONLY)
 
 # Define stb library
-add_library(stb_stb ${stb_BINARY_DIR}/stb_image.cpp)
-add_library(stb::stb ALIAS stb_stb)
+add_library(stb ${stb_BINARY_DIR}/stb_image.cpp)
+add_library(stb::stb ALIAS stb)
 
-target_include_directories(stb_stb PUBLIC "${stb_SOURCE_DIR}")
+target_include_directories(stb PUBLIC "${stb_SOURCE_DIR}")
+
+set_target_properties(stb PROPERTIES FOLDER third_party)

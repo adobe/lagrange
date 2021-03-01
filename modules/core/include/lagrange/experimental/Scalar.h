@@ -27,17 +27,12 @@ enum class ScalarEnum : uint8_t {
     UINT64 = 7,
     FLOAT = 8,
     DOUBLE = 9,
-    LONG_DOUBLE = 10,
     SIZET = 11,
-    LONG = 12,
-    UNKNOWN = 255
 };
 
 template <typename T, typename T2 = void>
 struct ScalarToEnum
-{
-    static constexpr const char* name = "unknown";
-};
+{};
 
 template <>
 struct ScalarToEnum<int8_t, void>
@@ -98,6 +93,7 @@ struct ScalarToEnum<uint64_t, void>
 template <>
 struct ScalarToEnum<float, void>
 {
+    static_assert(sizeof(float) == 4, "sizeof(float) == 4");
     static constexpr ScalarEnum value = ScalarEnum::FLOAT;
     static constexpr const char* name = "float";
 };
@@ -105,15 +101,9 @@ struct ScalarToEnum<float, void>
 template <>
 struct ScalarToEnum<double, void>
 {
+    static_assert(sizeof(double) == 8, "sizeof(double) == 8");
     static constexpr ScalarEnum value = ScalarEnum::DOUBLE;
     static constexpr const char* name = "double";
-};
-
-template <>
-struct ScalarToEnum<long double, void>
-{
-    static constexpr ScalarEnum value = ScalarEnum::LONG_DOUBLE;
-    static constexpr const char* name = "long double";
 };
 
 template <typename T>
@@ -123,19 +113,9 @@ struct ScalarToEnum<
         std::is_same<T, size_t>::value && !std::is_same<T, uint32_t>::value &&
         !std::is_same<T, uint64_t>::value>>
 {
+    static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8");
     static constexpr ScalarEnum value = ScalarEnum::SIZET;
     static constexpr const char* name = "size_t";
-};
-
-template <typename T>
-struct ScalarToEnum<
-    T,
-    std::enable_if_t<
-        std::is_same<T, long>::value && !std::is_same<T, int32_t>::value &&
-        !std::is_same<T, int64_t>::value>>
-{
-    static constexpr ScalarEnum value = ScalarEnum::LONG;
-    static constexpr const char* name = "long";
 };
 
 template <typename T>
@@ -208,25 +188,46 @@ struct EnumToScalar<ScalarEnum::DOUBLE>
 };
 
 template <>
-struct EnumToScalar<ScalarEnum::LONG_DOUBLE>
-{
-    using type = long double;
-};
-
-template <>
 struct EnumToScalar<ScalarEnum::SIZET>
 {
     using type = size_t;
 };
 
-template <>
-struct EnumToScalar<ScalarEnum::LONG>
-{
-    using type = long;
-};
-
 template <ScalarEnum T>
 using EnumToScalar_t = typename EnumToScalar<T>::type;
+
+/**
+ * Look up ScalarEnum name at run time.
+ */
+inline std::string enum_to_name(ScalarEnum t)
+{
+    switch(t) {
+        case ScalarEnum::INT8:
+            return ScalarToEnum<int8_t>::name;
+        case ScalarEnum::INT16:
+            return ScalarToEnum<int16_t>::name;
+        case ScalarEnum::INT32:
+            return ScalarToEnum<int32_t>::name;
+        case ScalarEnum::INT64:
+            return ScalarToEnum<int64_t>::name;
+        case ScalarEnum::UINT8:
+            return ScalarToEnum<uint8_t>::name;
+        case ScalarEnum::UINT16:
+            return ScalarToEnum<uint16_t>::name;
+        case ScalarEnum::UINT32:
+            return ScalarToEnum<uint32_t>::name;
+        case ScalarEnum::UINT64:
+            return ScalarToEnum<uint64_t>::name;
+        case ScalarEnum::FLOAT:
+            return ScalarToEnum<float>::name;
+        case ScalarEnum::DOUBLE:
+            return ScalarToEnum<double>::name;
+        case ScalarEnum::SIZET:
+            return ScalarToEnum<size_t>::name;
+        default:
+            return "unknown";
+    }
+}
 
 } // namespace experimental
 } // namespace lagrange

@@ -133,7 +133,7 @@ ContinuationIndentWidth: 4
 Cpp11BracedListStyle: true
 
 # If true, analyze the formatted file for the most common alignment of & and *. Point
-#DerivePointerAlignment: false
+DerivePointerAlignment: false
 
 # Disables formatting at all.
 #DisableFormat: false
@@ -211,13 +211,13 @@ NamespaceIndentation: None
 # Penalty for putting the return type of a function onto its own line.
 #PenaltyReturnTypeOnItsOwnLine (unsigned)
 
-# If true, analyze the formatted file for the most common alignment of & and *. PointerAlignment is then used only as fallback.
-PointerAlignment: Middle
+# Pointer and reference alignment style.
+PointerAlignment: Left
 
 # If true, clang-format will attempt to re-flow comments.
 ReflowComments: true
 
-# Add a space before parantheses
+# Add a space before parentheses
 # if (condition) -> tick
 # if(condition)  -> cross
 SpaceBeforeParens: ControlStatements

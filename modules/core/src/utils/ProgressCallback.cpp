@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/utils/ProgressCallback.h>
+#include <lagrange/Logger.h>
 
 #include <algorithm>
 #include <cassert>
@@ -30,6 +31,9 @@ void ProgressCallback::set_section(std::string name, size_t num_iterations)
     m_section_name = std::move(name);
     m_num_iterations = std::max<size_t>(num_iterations, 1);
     m_current_iteration = 0;
+    if (m_verbose && !m_section_name.empty()) {
+        logger().debug("[progress] {}", m_section_name);
+    }
     if (m_callback && !m_section_name.empty()) {
         m_callback(m_section_name, 0.f);
     }

@@ -96,7 +96,6 @@ TEST_CASE("MeshLoad", "[Mesh][Load]")
 {
     using namespace lagrange;
     using namespace lagrange::io;
-    using Vertices3DL = Eigen::Matrix<long double, Eigen::Dynamic, 3, Eigen::RowMajor>;
 
     const std::string tmp_filename = "tmp.obj";
 
@@ -135,9 +134,6 @@ TEST_CASE("MeshLoad", "[Mesh][Load]")
 
         // Double
         test_type(load_mesh_ext<Mesh<Vertices3D, Triangles>>(tmp_filename));
-
-        // Long double
-        test_type(load_mesh_ext<Mesh<Vertices3DL, Triangles>>(tmp_filename));
     }
 
     SECTION("QuadMesh3DTwoObjects")
@@ -175,9 +171,6 @@ TEST_CASE("MeshLoad", "[Mesh][Load]")
 
         // Double
         test_type(load_mesh_ext<Mesh<Vertices3D, Quads>>(tmp_filename));
-
-        // Long double
-        test_type(load_mesh_ext<Mesh<Vertices3DL, Quads>>(tmp_filename));
     }
 
     SECTION("TwoObjectAsOne")

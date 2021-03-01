@@ -11,15 +11,16 @@
  */
 #pragma once
 
-#include <algorithm>
-
-#include <tbb/parallel_for.h>
-#include <tbb/parallel_sort.h>
-
 #include <lagrange/Logger.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
+
+#include <tbb/parallel_for.h>
+#include <tbb/parallel_sort.h>
+
+#include <algorithm>
+#include <numeric>
 
 namespace lagrange {
 

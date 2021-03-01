@@ -16,7 +16,8 @@ function(lagrange_add_test)
 
     # Create test executable
     file(GLOB_RECURSE SRC_FILES "*.cpp" "*.h")
-    add_executable(test_${module_name} ${SRC_FILES})
+    include(lagrange_add_executable)
+    lagrange_add_executable(test_${module_name} ${SRC_FILES})
     set_target_properties(test_${module_name} PROPERTIES FOLDER "Lagrange//Tests")
 
     # Dependencies

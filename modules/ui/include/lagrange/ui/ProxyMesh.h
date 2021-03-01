@@ -207,6 +207,7 @@ public:
         LA_ASSERT(safe_cast<size_t>(data.rows()) == get_original_edges().size());
 
         MatrixType flattened = MatrixType(get_num_triangles() * 3, data.cols());
+        flattened.setZero();
 
         const auto& edge_index_map = get_original_edge_index_map();
 

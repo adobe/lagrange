@@ -28,7 +28,7 @@ if(TARGET TBB::tbb)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating targets 'TBB::tbb'")
+message(STATUS "Third-party (external): creating target 'TBB::tbb'")
 
 # Using wjakob's fork as it has a better cmake build system
 # Change it back to intel's once they fix it
@@ -37,14 +37,14 @@ include(FetchContent)
 FetchContent_Declare(
     tbb
     GIT_REPOSITORY https://github.com/wjakob/tbb.git
-    GIT_TAG 344fa84f34089681732a54f5def93a30a3056ab9
+    GIT_TAG 141b0e310e1fb552bdca887542c9c1a8544d6503
     GIT_SHALLOW FALSE
 )
 
 option(TBB_PREFER_STATIC         "Use the static version of TBB for the alias target" ON)
 option(TBB_BUILD_SHARED          "Build TBB shared library" OFF)
 option(TBB_BUILD_STATIC          "Build TBB static library" OFF)
-option(TBB_BUILD_TBBMALLOC       "Build TBB malloc library" OFF)
+option(TBB_BUILD_TBBMALLOC       "Build TBB malloc library" ON)
 option(TBB_BUILD_TBBMALLOC_PROXY "Build TBB malloc proxy library" OFF)
 option(TBB_BUILD_TESTS           "Build TBB tests and enable testing infrastructure" OFF)
 option(TBB_NO_DATE               "Do not save the configure date in the version string" ON)
@@ -62,29 +62,76 @@ else()
     set(TBB_BUILD_STATIC OFF CACHE BOOL "Build TBB static library" FORCE)
 endif()
 
+set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME TBB)
 FetchContent_MakeAvailable(tbb)
 
-# Create an interface target following the upstream namespace `TBB::foo`.
-# We use an imported target so that it doesn't appear in the export set of
-# our targets (we assume that clients will have their own way of finding TBB).
-add_library(TBB::tbb IMPORTED INTERFACE GLOBAL)
-if(TBB_PREFER_STATIC)
-    target_link_libraries(TBB::tbb INTERFACE tbb_static)
-    set_target_properties(tbb_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    get_target_property(TBB_INCLUDE_DIRS tbb_static INTERFACE_INCLUDE_DIRECTORIES)
-else()
-    target_link_libraries(TBB::tbb INTERFACE tbb)
-    set_target_properties(tbb PROPERTIES POSITION_INDEPENDENT_CODE ON)
-    get_target_property(TBB_INCLUDE_DIRS tbb INTERFACE_INCLUDE_DIRECTORIES)
+# Install rules for the tbb_static target (not defined by upstream CMakeLists.txt)
+if(TBB_INSTALL_TARGETS AND TBB_BUILD_STATIC)
+    if(NOT TBB_INSTALL_RUNTIME_DIR)
+      set(TBB_INSTALL_RUNTIME_DIR bin)
+    endif()
+    if(NOT TBB_INSTALL_LIBRARY_DIR)
+      set(TBB_INSTALL_LIBRARY_DIR lib)
+    endif()
+    if(NOT TBB_INSTALL_ARCHIVE_DIR)
+      set(TBB_INSTALL_ARCHIVE_DIR lib)
+    endif()
+    if(NOT TBB_INSTALL_INCLUDE_DIR)
+      set(TBB_INSTALL_INCLUDE_DIR include)
+    endif()
+    if(NOT TBB_CMAKE_PACKAGE_INSTALL_DIR)
+      set(TBB_CMAKE_PACKAGE_INSTALL_DIR lib/cmake/tbb)
+    endif()
+    if(TARGET tbb_interface)
+        install(TARGETS tbb_interface EXPORT TBB)
+    endif()
+    if(TARGET tbb_static)
+        install(TARGETS tbb_static EXPORT TBB
+                LIBRARY DESTINATION ${TBB_INSTALL_LIBRARY_DIR}
+                ARCHIVE DESTINATION ${TBB_INSTALL_ARCHIVE_DIR}
+                RUNTIME DESTINATION ${TBB_INSTALL_RUNTIME_DIR})
+    endif()
+    if(TARGET tbbmalloc_static)
+        install(TARGETS tbbmalloc_static EXPORT TBB
+                LIBRARY DESTINATION ${TBB_INSTALL_LIBRARY_DIR}
+                ARCHIVE DESTINATION ${TBB_INSTALL_ARCHIVE_DIR}
+                RUNTIME DESTINATION ${TBB_INSTALL_RUNTIME_DIR})
+    endif()
+    install(EXPORT TBB DESTINATION ${TBB_CMAKE_PACKAGE_INSTALL_DIR} NAMESPACE TBB:: FILE TBBConfig.cmake)
 endif()
-# Is this a bug in CMake? Transitive include dirs are not correctly propagated to
-# the properties of the target TBB::tbb. Code seems to compile ok without it, but
-# we need to be able to extract TBB's interface include directories for our embree.cmake
-target_include_directories(TBB::tbb SYSTEM INTERFACE ${TBB_INCLUDE_DIRS})
 
+# Fix include directories to not explicitly reference the build directory, otherwise install() will complain
+function(tbb_fix_include_dirs)
+    foreach(name IN ITEMS ${ARGN})
+        if(NOT TARGET ${name})
+            message(FATAL_ERROR "'${name}' is not a CMake target")
+        endif()
+        get_target_property(__include_dirs ${name} INTERFACE_INCLUDE_DIRECTORIES)
+        set_property(TARGET ${name} PROPERTY INTERFACE_INCLUDE_DIRECTORIES
+            $<BUILD_INTERFACE:${__include_dirs}>
+            $<INSTALL_INTERFACE:${TBB_INSTALL_INCLUDE_DIR}>
+        )
+    endforeach()
+endfunction()
+
+# Meta-target that brings both tbb and tbbmalloc
+add_library(tbb_tbb INTERFACE)
+add_library(TBB::tbb ALIAS tbb_tbb)
+if(TBB_PREFER_STATIC)
+    target_link_libraries(tbb_tbb INTERFACE tbb_static tbbmalloc_static)
+    tbb_fix_include_dirs(tbb_static)
+else()
+    target_link_libraries(tbb_tbb INTERFACE tbb tbbmalloc)
+    tbb_fix_include_dirs(tbb)
+endif()
+
+# Install rules
+install(TARGETS tbb_tbb EXPORT TBB)
+
+# Set -fPIC flag and IDE folder name for tbb targets
 foreach(name IN ITEMS tbb_def_files tbb_static tbb tbbmalloc tbbmalloc_static)
     if(TARGET ${name})
+        set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
         set_target_properties(${name} PROPERTIES FOLDER third_party)
     endif()
 endforeach()
-
