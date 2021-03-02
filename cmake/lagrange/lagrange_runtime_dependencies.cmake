@@ -74,8 +74,8 @@ function(lagrange_prepare_runtime_dependencies target)
     add_custom_command(
         TARGET ${target}
         PRE_LINK
-        COMMAND
-            ${CMAKE_COMMAND} -P "${CMAKE_BINARY_DIR}/runtime_deps/copy_dll_${target}_$<CONFIG>.cmake"
+        COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/runtime_deps/copy_dll_${target}_$<CONFIG>.cmake"
+        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_BINARY_DIR}/runtime_deps/copy_dll_${target}_$<CONFIG>.cmake"
         COMMENT "Copying dlls for target ${target}"
     )
 endfunction()
@@ -102,7 +102,7 @@ function(lagrange_populate_runtime_dependencies target)
     lagrange_get_dependencies(TARGET_DEPENDENCIES ${target})
 
     # Iterate over dependencies, and create a copy rule for each .dll that we find
-    unset(COPY_SCRIPT_CONTENT)
+    set(COPY_SCRIPT_CONTENT "")
     foreach(DEPENDENCY IN ITEMS ${TARGET_DEPENDENCIES})
         get_target_property(TYPE ${DEPENDENCY} TYPE)
         if(NOT (${TYPE} STREQUAL "SHARED_LIBRARY" OR ${TYPE} STREQUAL "MODULE_LIBRARY"))
@@ -120,11 +120,9 @@ function(lagrange_populate_runtime_dependencies target)
     endforeach()
 
     # Finally generate one script for each configuration supported by this generator
-    if(COPY_SCRIPT_CONTENT)
-        message(STATUS "Populating copy rules for target: ${target}")
-        file(GENERATE
-            OUTPUT ${COPY_SCRIPT}_$<CONFIG>.cmake
-            CONTENT ${COPY_SCRIPT_CONTENT}
-        )
-    endif()
+    message(STATUS "Populating copy rules for target: ${target}")
+    file(GENERATE
+        OUTPUT ${COPY_SCRIPT}_$<CONFIG>.cmake
+        CONTENT "${COPY_SCRIPT_CONTENT}"
+    )
 endfunction()
