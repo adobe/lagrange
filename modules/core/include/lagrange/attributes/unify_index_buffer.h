@@ -30,7 +30,7 @@ namespace lagrange {
  */
 template <typename MeshType>
 std::unique_ptr<MeshType> unify_index_buffer(
-    MeshType& mesh,
+    const MeshType& mesh,
     const std::vector<std::string>& indexed_attribute_names)
 {
     using VertexArray = typename MeshType::VertexArray;

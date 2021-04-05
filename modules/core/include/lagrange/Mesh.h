@@ -747,6 +747,44 @@ public:
     }
 
     ///
+    /// Retrieve the edge id from end vertices (v0, v1).
+    ///
+    /// @param[in]  v0  Edge edge point 0.
+    /// @param[in]  v1  Edge edge point 1.
+    ///
+    /// @return  The edge index if (v0, v1) is a valid edge;
+    ///          INVALID<Index>() otherwise.
+    ///
+    Index find_edge_from_vertices_new(Index v0, Index v1) const
+    {
+        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        Index edge_id = INVALID<Index>();
+
+        const Index vertex_per_facet = get_vertex_per_facet();
+        foreach_corners_around_vertex_new(v0, [&](Index c) {
+            const Index fid = c / vertex_per_facet;
+            const Index lv = c % vertex_per_facet;
+            if (get_facets()(fid, (lv + 1) % vertex_per_facet) == v1) {
+                edge_id = get_edge_new(fid, lv);
+            }
+        });
+        if (edge_id != INVALID<Index>()) return edge_id;
+
+        // It is possiable that (v0, v1) is a boundary edge, in which case
+        // the above code will only find the edge_id if (v0, v1) is oriented
+        // correctly (i.e. counterclockwise).  Thus, we need to check the
+        // opposite orientation if the above code failed.
+        foreach_corners_around_vertex_new(v1, [&](Index c) {
+            const Index fid = c / vertex_per_facet;
+            const Index lv = c % vertex_per_facet;
+            if (get_facets()(fid, (lv + 1) % vertex_per_facet) == v0) {
+                edge_id = get_edge_new(fid, lv);
+            }
+        });
+        return edge_id;
+    }
+
+    ///
     /// Retrieve edge endpoints.
     ///
     /// @param[in]  e     Queried edge index.

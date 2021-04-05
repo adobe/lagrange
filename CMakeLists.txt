@@ -40,7 +40,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 4.1)
+project(Lagrange VERSION 4.2.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -73,6 +73,7 @@ option(LAGRANGE_USE_PCH           "Enable precompiled headers"       OFF)
 option(LAGRANGE_INSTALL           "Enable installation"              ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"      OFF)
 option(LAGRANGE_COPY_RUNTIME_DEPS "Copy runtime dependencies into executable folders" ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_CI_BUILD          "Building for continuous integration" OFF)
 
 # Third-party dependency management
 option(LAGRANGE_EXTERNAL_FIRST    "Third-party libs: prefer public mirrors over corporate ones" OFF)

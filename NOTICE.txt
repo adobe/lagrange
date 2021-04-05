@@ -11,18 +11,24 @@ This codebase contains a modified portion of code from CMake Scripts which can b
     * https://github.com/StableCoder/cmake-scripts/blob/master/LICENSE
 
 -------------------------------------------------------------------------------
-This codebase contains a modified portion of code from scope_guard which can be obtained at:
+This codebase contains a modified portion of code from Floating-point exception handling example which can be obtained at:
   * SOURCE:
-    * https://github.com/ricab/scope_guard/blob/master/scope_guard.hpp
+    * http://www-personal.umich.edu/~williams/archive/computation/fe-handling-example.c
 
   * LICENSE:
-    * https://github.com/ricab/scope_guard/blob/master/LICENSE
+      Title:  Floating-point exception handling example
+     Author:  David N. Williams
+       File:  fe-handlng-example.c
+    License:  Public Domain
+    Version:  0.5.0
+    Started:  21-Sep-09
+    Revised:  22-Sep-09
+    Revised:  30-Sep-09 (comment typo)
 
 -------------------------------------------------------------------------------
 This codebase contains a modified portion of code from Geogram which can be obtained at:
   * SOURCE:
-    * https://github.com/alicevision/geogram/blob/98def2ce2393c04c9a6dbf034483deefd690da7b/src/lib/geogram/basic/geometry_nd.h#L481
-    * https://github.com/alicevision/geogram/blob/98def2ce2393c04c9a6dbf034483deefd690da7b/src/lib/geogram/basic/geometry_nd.h#L409
+    * http://alice.loria.fr/software/geogram/doc/html/index.html
 
   * LICENSE:
     Geogram is licensed under the 3-clauses BSD License (also called "Revised BSD License", "New BSD License", or "Modified BSD License"):
@@ -42,7 +48,41 @@ This codebase contains a modified portion of code from Geogram which can be obta
     ALICE Project LORIA, INRIA Lorraine, Campus Scientifique, BP 239 54506 VANDOEUVRE-LES-NANCY CEDEX FRANCE
 
 -------------------------------------------------------------------------------
-This codebase contains a modified portion of code from predicates which can be obtained at:
+This codebase contains a modified portion of code from ImGui Progress Indicators which can be obtained at:
+  * SOURCE:
+    * https://github.com/ocornut/imgui/issues/1901
+
+  * LICENSE:
+    Copyright (c) 2018 Zelimir Fedoran
+
+    Permission is hereby granted, free of charge, to any person obtaining a copy
+    of this software and associated documentation files (the "Software"), to deal
+    in the Software without restriction, including without limitation the rights
+    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the Software is
+    furnished to do so, subject to the following conditions:
+
+    The above copyright notice and this permission notice shall be included in all
+    copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+    SOFTWARE.
+
+-------------------------------------------------------------------------------
+This codebase contains a modified portion of code from scope_guard which can be obtained at:
+  * SOURCE:
+    * https://github.com/ricab/scope_guard/blob/master/scope_guard.hpp
+
+  * LICENSE:
+    * https://github.com/ricab/scope_guard/blob/master/LICENSE
+
+-------------------------------------------------------------------------------
+This codebase contains a modified portion of code from Shewchuk's predicates which can be obtained at:
   * SOURCE:
     * https://www.cs.cmu.edu/~quake/robust.html
 
@@ -73,45 +113,4 @@ This codebase contains a modified portion of code from predicates which can be o
 
     This file, the paper listed above, and other information are available
       from the Web page http://www.cs.cmu.edu/~quake/robust.html.
-
--------------------------------------------------------------------------------
-This codebase contains a modified portion of code from Floating-point exception handling example which can be obtained at:
-  * SOURCE:
-    * http://www-personal.umich.edu/~williams/archive/computation/fe-handling-example.c
-
-  * LICENSE:
-      Title:  Floating-point exception handling example
-     Author:  David N. Williams
-       File:  fe-handlng-example.c
-    License:  Public Domain
-    Version:  0.5.0
-    Started:  21-Sep-09
-    Revised:  22-Sep-09
-    Revised:  30-Sep-09 (comment typo)
-
--------------------------------------------------------------------------------
-This codebase contains a modified portion of code from ImGui Progress Indicators which can be obtained at:
-  * SOURCE:
-    * https://github.com/ocornut/imgui/issues/1901
-
-  * LICENSE:
-    Copyright (c) 2018 Zelimir Fedoran
-
-    Permission is hereby granted, free of charge, to any person obtaining a copy
-    of this software and associated documentation files (the "Software"), to deal
-    in the Software without restriction, including without limitation the rights
-    to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-    copies of the Software, and to permit persons to whom the Software is
-    furnished to do so, subject to the following conditions:
-
-    The above copyright notice and this permission notice shall be included in all
-    copies or substantial portions of the Software.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-    IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-    FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-    AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-    LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-    OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-    SOFTWARE.
 

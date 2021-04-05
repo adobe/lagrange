@@ -79,8 +79,8 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
         mesh_ref.has_vertex_attribute(vertex_attribute_name),
         "attribute does not exist in the mesh");
     LA_ASSERT(mesh_ref.get_vertex_per_facet() == 3, "only works for triangle meshes");
-    if (!mesh_ref.is_edge_data_initialized()) {
-        mesh_ref.initialize_edge_data();
+    if (!mesh_ref.is_edge_data_initialized_new()) {
+        mesh_ref.initialize_edge_data_new();
     }
 
     const auto& attribute = mesh_ref.get_vertex_attribute(vertex_attribute_name);
@@ -92,20 +92,21 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
     std::vector<VertexType> extracted_vertices;
     std::vector<Index> extracted_vertices_parent_edge;
     std::vector<Scalar> extracted_vertices_parent_param;
-    std::vector<Index> parent_edge_to_extracted_vertex(mesh_ref.get_num_edges(), INVALID<Index>());
+    std::vector<Index> parent_edge_to_extracted_vertex(
+        mesh_ref.get_num_edges_new(),
+        INVALID<Index>());
 
     //
     // Find the point that attains a zero value on an edge
     // (if it does not exists, creates it)
     // Returns the index of this vertex
     //
-    auto find_zero = [&](Index v0, Index v1, Scalar p0, Scalar p1) -> Index {
-        const auto parent_edge_id = mesh_ref.get_edge_index({v0, v1});
+    auto find_zero = [&](Index parent_edge_id, Index v0, Index v1, Scalar p0, Scalar p1) -> Index {
         if (parent_edge_to_extracted_vertex[parent_edge_id] != INVALID<Index>()) {
             return parent_edge_to_extracted_vertex[parent_edge_id];
         } else {
             // Get the edge and see if the order of v0 v1 and the edge values are the same.
-            const auto parent_edge = mesh_ref.get_edges()[parent_edge_id];
+            const auto parent_edge = mesh_ref.get_edge_vertices_new(parent_edge_id);
             if ((v0 == parent_edge[1]) && (v1 == parent_edge[0])) {
                 std::swap(p0, p1);
                 std::swap(v0, v1);
@@ -143,6 +144,10 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
         Scalar p1 = attribute(v1, attribute_col_index) - isovalue;
         Scalar p2 = attribute(v2, attribute_col_index) - isovalue;
 
+        const Index e01 = mesh_ref.get_edge_new(tri_id, 0);
+        const Index e12 = mesh_ref.get_edge_new(tri_id, 1);
+        const Index e20 = mesh_ref.get_edge_new(tri_id, 2);
+
         // guard against topological degeneracies
         if (p0 == 0) p0 = Scalar(1e-30);
         if (p1 == 0) p1 = Scalar(1e-30);
@@ -154,30 +159,30 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
                     return; // no contour here
                 } else { /* p2>0 */
                     extracted_edges.push_back(
-                        Edge(find_zero(v1, v2, p1, p2), find_zero(v0, v2, p0, p2)));
+                        Edge(find_zero(e12, v1, v2, p1, p2), find_zero(e20, v0, v2, p0, p2)));
                 } // p2
             } else { // p1>0
                 if (p2 < 0) {
                     extracted_edges.push_back(
-                        Edge(find_zero(v0, v1, p0, p1), find_zero(v1, v2, p1, p2)));
+                        Edge(find_zero(e01, v0, v1, p0, p1), find_zero(e12, v1, v2, p1, p2)));
                 } else { /* p2>0 */
                     extracted_edges.push_back(
-                        Edge(find_zero(v0, v1, p0, p1), find_zero(v0, v2, p0, p2)));
+                        Edge(find_zero(e01, v0, v1, p0, p1), find_zero(e20, v0, v2, p0, p2)));
                 } // p2
             } // p1
         } else { // p0>0
             if (p1 < 0) {
                 if (p2 < 0) {
                     extracted_edges.push_back(
-                        Edge(find_zero(v0, v2, p0, p2), find_zero(v0, v1, p0, p1)));
+                        Edge(find_zero(e20, v0, v2, p0, p2), find_zero(e01, v0, v1, p0, p1)));
                 } else { /* p2>0 */
                     extracted_edges.push_back(
-                        Edge(find_zero(v1, v2, p1, p2), find_zero(v0, v1, p0, p1)));
+                        Edge(find_zero(e12, v1, v2, p1, p2), find_zero(e01, v0, v1, p0, p1)));
                 } // p2
             } else { // p1>0
                 if (p2 < 0) {
                     extracted_edges.push_back(
-                        Edge(find_zero(v0, v2, p0, p2), find_zero(v1, v2, p1, p2)));
+                        Edge(find_zero(e20, v0, v2, p0, p2), find_zero(e12, v1, v2, p1, p2)));
                 } else { /* p2>0 */
                     return; // no contour here
                 } // p2

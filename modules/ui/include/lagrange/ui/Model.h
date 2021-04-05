@@ -353,10 +353,9 @@ public:
     virtual void set_picking_enabled(bool value) = 0;
     virtual bool is_picking_enabled() const { return false; }
 
-protected:
     virtual void trigger_change();
 
-
+protected:
     template <class F, class Tuple, size_t I>
     struct visit_tuple_impl
     {

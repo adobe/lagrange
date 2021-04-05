@@ -42,55 +42,110 @@ inline double timestamp_diff_in_seconds(timestamp_type start)
     return p.count();
 }
 
-// ===================================
-//   Timers
-//   Creation examples
-//     auto timer = create_verbose_timer(logger())
-//     auto timer = create_silent_timer()
-//   Start
-//     timer.tick()
-//   Stop
-//     auto duration = timer.tock()
-//     For verbose timer also prints the take time
-// ===================================
-
-// Timer that prints after tock()
+///
+/// Creates a verbose timer that prints after tock().
+///
 class VerboseTimer
 {
 public:
-    VerboseTimer() = delete;
-
-    VerboseTimer(std::string prefix)
+    ///
+    /// Constructs a new instance.
+    ///
+    /// @param[in]  prefix  Prefix name to prepend to each log message. Defaults to empty string.
+    /// @param[in]  log     Optional logger to use. Defaults to the lagrange logger.
+    /// @param[in]  level   Log level to use. Defaults to debug.
+    ///
+    VerboseTimer(
+        std::string prefix = "",
+        spdlog::logger* log = nullptr,
+        spdlog::level::level_enum level = spdlog::level::debug)
         : m_prefix(std::move(prefix))
-        , m_logger(&logger())
+        , m_logger(log ? log : &logger())
+        , m_level(level)
     {}
 
-    VerboseTimer(spdlog::logger* log = nullptr)
-        : m_logger(log ? log : &logger())
-    {}
-
+    ///
+    /// Starts the timer.
+    ///
     void tick() { m_start_time = get_timestamp(); }
 
+    ///
+    /// Stops the timer.
+    ///
+    /// @param[in]  name  Name of the message to show.
+    ///
+    /// @return     The elapsed time in seconds.
+    ///
     double tock(const std::string name = "")
     {
         auto end_time = get_timestamp();
         auto duration = timestamp_diff_in_seconds(m_start_time, end_time);
-        m_logger->debug("{}{} time: {} (s)", m_prefix, name, duration);
+        m_logger->log(m_level, "{}{} time: {} (s)", m_prefix, name, duration);
         return duration;
     }
 
 private:
     std::string m_prefix;
-    spdlog::logger* m_logger;
+    spdlog::logger* m_logger = nullptr;
+    spdlog::level::level_enum m_level = spdlog::level::debug;
     timestamp_type m_start_time;
 };
 
-// Timer that does not print after tock()
+///
+/// Similar to a VerboseTimer, but uses RAII to call tick()/tock().
+///
+class ScopedTimer
+{
+public:
+    ///
+    /// Constructs a new instance.
+    ///
+    /// @param[in]  prefix  Prefix name to prepend to each log message. Defaults to empty string.
+    /// @param[in]  log     Optional logger to use. Defaults to the lagrange logger.
+    /// @param[in]  level   Log level to use. Defaults to debug.
+    ///
+    ScopedTimer(
+        std::string prefix,
+        spdlog::logger* log = nullptr,
+        spdlog::level::level_enum level = spdlog::level::debug)
+        : m_timer(std::make_unique<VerboseTimer>(prefix, log, level))
+    {
+        m_timer->tick();
+    }
+
+    ~ScopedTimer()
+    {
+        if (m_timer) {
+            m_timer->tock();
+        }
+    }
+
+    ScopedTimer(ScopedTimer&&) = default;
+    ScopedTimer& operator=(ScopedTimer&&) = default;
+
+private:
+    // Because RVO is not guaranteed until C++17, we need to store the content of the class in a
+    // moveable unique_ptr. Otherwise we can't write helper functions that return a ScopedTimer.
+    // Once we move to C++17, we should update this class and delete its move/copy operators.
+    std::unique_ptr<VerboseTimer> m_timer;
+};
+
+///
+/// A timer that does not print after tock()
+///
 class SilentTimer
 {
 public:
+    ///
+    /// Starts the timer.
+    ///
     void tick() { m_start_time = get_timestamp(); }
 
+    ///
+    /// Stops the timer.
+    ///
+    /// @return     The elapsed time in seconds.
+    ///
     double tock(const std::string name = "")
     {
         (void)name;
@@ -102,24 +157,22 @@ private:
     timestamp_type m_start_time;
 };
 
-inline VerboseTimer create_verbose_timer(spdlog::logger& logger)
-{
-    return VerboseTimer(&logger);
-}
-
-inline SilentTimer create_silent_timer()
-{
-    return SilentTimer();
-}
-
-// Timer that keeps track of total as well as intervals
+///
+/// A timer that keeps track of a total time as well as intervals.
+///
 class SilentMultiTimer
 {
 public:
-    // Sets / resets starting time.
+    ///
+    /// Starts/restarts the timer.
+    ///
     void reset() { m_start = m_last = get_timestamp(); }
 
-    // Returns current interval time (in seconds) and resets interval to now
+    ///
+    /// Returns current interval time (in seconds) and resets interval to now.
+    ///
+    /// @return     Current interval time.
+    ///
     double interval()
     {
         auto last = m_last;
@@ -127,7 +180,11 @@ public:
         return timestamp_diff_in_seconds(last, m_last);
     }
 
-    // Returns total time. Does not reset.
+    ///
+    /// Returns total time. Does not reset.
+    ///
+    /// @return     Total time since the timer was started.
+    ///
     double total() { return timestamp_diff_in_seconds(m_start); }
 
 private:

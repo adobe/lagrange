@@ -150,13 +150,13 @@ public:
 
     DataGUID get_data_guid() const override { return DataGUID(m_mesh.get()); };
 
-protected:
     void trigger_change() override
     {
         update_proxy_mesh();
         Model::trigger_change();
     }
 
+protected:
     bool update_proxy_mesh()
     {
         bool picking_enabled = true;

@@ -31,6 +31,8 @@ file(GLOB SRC_FILES
 add_library(WindingNumber ${SRC_FILES})
 add_library(WindingNumber::WindingNumber ALIAS WindingNumber)
 
+target_include_directories(WindingNumber PUBLIC ${windingnumber_SOURCE_DIR})
+
 include(tbb)
 target_link_libraries(WindingNumber PUBLIC TBB::tbb)
 

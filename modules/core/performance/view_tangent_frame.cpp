@@ -45,7 +45,7 @@ int main(int argc, char* argv[])
     lagrange::logger().info("Loading mesh: {}", args.input);
     auto mesh = lagrange::io::load_mesh<lagrange::TriangleMesh3D>(args.input);
 
-    auto timer = lagrange::create_verbose_timer(lagrange::logger());
+    lagrange::VerboseTimer timer;
 
     // Compute indexed normals, tangent and bitangent
     const double EPS = 1e-3;

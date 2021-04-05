@@ -68,13 +68,14 @@
 # option(LAGRANGE_USE_PCH              "Enable precompiled headers"        ON)
 # option(LAGRANGE_INSTALL              "Enable installation"               OFF)
 # option(LAGRANGE_DOCUMENTATION        "Build Doxygen documentation"       ON)
+# option(LAGRANGE_WITH_ASSIMP          "Add assimp functionality to lagrange::io" OFF)
 # set(LAGRANGE_DATA_FOLDER             "Where to download or find test data" CACHE PATH "path/to/data")
 
 # Options for third-party libraries
 # option(EIGEN_WITH_MKL "Use Eigen with MKL" ON)
 # set(MKL_INTERFACE "lp64" CACHE STRING "Interface layer to use with MKL (lp64 or ilp64)")
-# set(MKL_THREADING "tbb" CACHE STRING "Threading layer to use with MKL (sequential, tbb or openmp)")
 # set(MKL_LINKING "static" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+# set(MKL_THREADING "tbb" CACHE STRING "Threading layer to use with MKL (sequential, tbb or openmp)")
 
 ################################################################################
 # Sanitizer Options

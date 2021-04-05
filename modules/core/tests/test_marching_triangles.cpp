@@ -148,7 +148,7 @@ void verify_vertex_positions(const MeshType& m, const MarchingTrianglesOutput& o
 {
     const auto& mesh_vertices = m.get_vertices();
     for (auto i : range(o.vertices.rows())) {
-        const auto parent_edge = m.get_edges()[o.vertices_parent_edge[i]];
+        const auto parent_edge = m.get_edge_vertices_new(o.vertices_parent_edge[i]);
         const auto v1 = o.vertices.row(i).eval();
         const auto vp1 = mesh_vertices.row(parent_edge[0]).eval();
         const auto vp2 = mesh_vertices.row(parent_edge[1]).eval();
