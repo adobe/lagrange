@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2021 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -20,22 +20,30 @@
 namespace lagrange {
 
 ///
-/// Stack-allocated vector with a maximum size.
+/// Stack-allocated set with a maximum size.
 ///
 /// @tparam     T     Value type.
 /// @tparam     N     Maximum size.
 ///
 template <typename T, size_t N>
-struct SmallVector
+struct SmallSet
 {
 private:
     std::array<T, N> m_array;
     size_t m_size = 0;
 
 public:
-    SmallVector() = default;
+    using iterator = typename std::array<T, N>::iterator;
+    using const_iterator = typename std::array<T, N>::const_iterator;
+    iterator begin() { return m_array.begin(); }
+    iterator end() { return m_array.begin() + m_size; }
+    const_iterator begin() const { return m_array.begin(); }
+    const_iterator end() const { return m_array.begin() + m_size; }
 
-    SmallVector(std::initializer_list<T> init)
+public:
+    SmallSet() = default;
+
+    SmallSet(std::initializer_list<T> init)
         : m_size(init.size())
     {
         LA_ASSERT(m_size <= N);
@@ -44,6 +52,7 @@ public:
             m_array[i] = std::move(*it);
             ++it;
         }
+        ensure_unique();
     }
 
     size_t size() const { return m_size; }
@@ -56,36 +65,99 @@ public:
         m_size = i;
     }
 
-    void push_back(const T& v)
+    std::pair<iterator, bool> insert(const T& v)
     {
         LA_ASSERT(m_size < m_array.size());
+        for (size_t i = 0; i < m_size; ++i) {
+            if (m_array[i] == v) {
+                return {begin() + i, false};
+            }
+        }
         m_array[m_size++] = v;
+        return {begin() + m_size - 1, true};
     }
 
-    template <class... Args>
-    void emplace_back(Args&&... args)
+    size_t erase(const T& v)
     {
         LA_ASSERT(m_size < m_array.size());
-        m_array[m_size++] = T(std::forward<Args>(args)...);
+        auto it = find(v);
+        if (it != end()) {
+            std::swap(*it, *(end() - 1));
+            --m_size;
+            return 1;
+        }
+        return 0;
     }
 
-    void pop_back()
-    {
-        LA_ASSERT(m_size > 0);
-        --m_size;
-    }
+    bool contains(const T& v) const { return find(v) != end(); }
 
-    T* data() { return m_array.data(); }
+    const_iterator find(const T& v) const { return std::find(begin(), end(), v); }
 
     const T* data() const { return m_array.data(); }
 
-    T& front()
+    const T& front() const
     {
         LA_ASSERT(m_size > 0);
         return m_array.front();
     }
 
-    const T& front() const
+    const T& back() const
+    {
+        LA_ASSERT(m_size > 0);
+        return m_array.at(m_size - 1);
+    }
+
+    const T& at(const size_t i) const
+    {
+        LA_ASSERT(i < m_size);
+        return m_array.at(i);
+    }
+
+    const T& operator[](const size_t i) const
+    {
+        LA_ASSERT(i < m_size);
+        return m_array[i];
+    }
+
+    template <typename U, class UnaryOperation>
+    auto transformed(UnaryOperation op)
+    {
+        SmallSet<U, N> result;
+        result.resize(size());
+        for (size_t i = 0; i < size(); ++i) {
+            result[i] = op(at(i));
+        }
+        result.ensure_unique();
+        return result;
+    }
+
+    template <size_t D>
+    auto to_tuple()
+    {
+        assert(D == m_size);
+        static_assert(D <= N, "Invalid size");
+        return to_tuple_helper(std::make_index_sequence<D>());
+    }
+
+protected:
+    template <size_t... Indices>
+    auto to_tuple_helper(std::index_sequence<Indices...>)
+    {
+        return std::make_tuple(m_array[Indices]...);
+    }
+
+    void ensure_unique()
+    {
+        std::sort(m_array.begin(), m_array.end());
+        auto it = std::unique(m_array.begin(), m_array.end());
+        m_size = static_cast<size_t>(std::distance(m_array.begin(), it));
+    }
+
+    iterator find(const T& v) { return std::find(begin(), end(), v); }
+
+    T* data() { return m_array.data(); }
+
+    T& front()
     {
         LA_ASSERT(m_size > 0);
         return m_array.front();
@@ -96,71 +168,10 @@ public:
         LA_ASSERT(m_size > 0);
         return m_array.at(m_size - 1);
     }
-
-    const T& back() const
-    {
-        LA_ASSERT(m_size > 0);
-        return m_array.at(m_size - 1);
-    }
-
-    T& at(const size_t i)
-    {
-        LA_ASSERT(i < m_size);
-        return m_array.at(i);
-    }
-
-    const T& at(const size_t i) const
-    {
-        LA_ASSERT(i < m_size);
-        return m_array.at(i);
-    }
-
-    T& operator[](const size_t i)
-    {
-        LA_ASSERT(i < m_size);
-        return m_array[i];
-    }
-
-    const T& operator[](const size_t i) const
-    {
-        LA_ASSERT(i < m_size);
-        return m_array[i];
-    }
-
-    template <typename U, class UnaryOperation>
-    auto transformed(UnaryOperation op) {
-        SmallVector<U, N> result;
-        result.resize(size());
-        for (size_t i = 0; i < size(); ++i) {
-            result[i] = op(at(i));
-        }
-        return result;
-    }
-
-    template <size_t D>
-    auto to_tuple() {
-        assert(D == m_size);
-        static_assert(D <= N, "Invalid size");
-        return to_tuple_helper(std::make_index_sequence<D>());
-    }
-
-private:
-    template <size_t... Indices>
-    auto to_tuple_helper(std::index_sequence<Indices...>) {
-        return std::make_tuple(m_array[Indices]...);
-    }
-
-public:
-    using iterator = typename std::array<T, N>::iterator;
-    using const_iterator = typename std::array<T, N>::const_iterator;
-    iterator begin() { return m_array.begin(); }
-    iterator end() { return m_array.begin() + m_size; }
-    const_iterator begin() const { return m_array.begin(); }
-    const_iterator end() const { return m_array.begin() + m_size; }
 };
 
 template <class T, size_t N>
-bool operator==(const SmallVector<T, N>& lhs, const SmallVector<T, N>& rhs)
+bool operator==(const SmallSet<T, N>& lhs, const SmallSet<T, N>& rhs)
 {
     return (lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin()));
 }

@@ -104,7 +104,7 @@ std::vector<std::unique_ptr<MeshType>> extract_meshes_assimp(const aiScene* scen
     }
     for (unsigned int i = 0; i < scene->mNumMeshes; ++i) {
         const aiMesh* mesh = scene->mMeshes[i];
-        ret.push_back(std::move(convert_mesh_assimp<MeshType>(mesh)));
+        ret.emplace_back(convert_mesh_assimp<MeshType>(mesh));
     }
     return ret;
 }

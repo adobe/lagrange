@@ -11,54 +11,35 @@
  */
 #pragma once
 
-#include <iostream>
-#include <memory>
-#include <mutex>
-
 #include <lagrange/ExactPredicates.h>
-#include <lagrange/common.h>
-#include <lagrange/predicates.h>
 
 namespace lagrange {
+
 class ExactPredicatesShewchuk : public ExactPredicates
 {
-private:
-    static void exact_init()
-    {
-        // Make sure that exact_init() is only called once, even if multiple threads are
-        // attempting to call it around the same time.
-        // We can alternatively use Meyer's singleton.
-        static std::once_flag once_flag;
-        std::call_once(once_flag, []() { lagrange::exactinit(); });
-    }
+public:
+    ExactPredicatesShewchuk();
 
 public:
-    ExactPredicatesShewchuk() { exact_init(); }
+    ///
+    /// @copydoc ExactPredicates::orient2D
+    ///
+    virtual short orient2D(double p1[2], double p2[2], double p3[2]) const;
 
-public:
-    virtual short orient2D(double p1[2], double p2[2], double p3[2]) const
-    {
-        auto r = lagrange::orient2d(p1, p2, p3);
-        return (r == 0) ? 0 : ((r > 0) ? 1 : -1);
-    }
+    ///
+    /// @copydoc ExactPredicates::orient2D
+    ///
+    virtual short orient3D(double p1[3], double p2[3], double p3[3], double p4[3]) const;
 
-    virtual short orient3D(double p1[3], double p2[3], double p3[3], double p4[3]) const
-    {
-        auto r = lagrange::orient3d(p1, p2, p3, p4);
-        return (r == 0) ? 0 : ((r > 0) ? 1 : -1);
-    }
+    ///
+    /// @copydoc ExactPredicates::orient2D
+    ///
+    virtual short incircle(double p1[2], double p2[2], double p3[2], double p4[2]) const;
 
-    virtual short incircle(double p1[2], double p2[2], double p3[2], double p4[2]) const
-    {
-        auto r = lagrange::incircle(p1, p2, p3, p4);
-        return (r == 0) ? 0 : ((r > 0) ? 1 : -1);
-    }
-
-    virtual short insphere(double p1[3], double p2[3], double p3[3], double p4[3], double p5[3])
-        const
-    {
-        auto r = lagrange::insphere(p1, p2, p3, p4, p5);
-        return (r == 0) ? 0 : ((r > 0) ? 1 : -1);
-    }
+    ///
+    /// @copydoc ExactPredicates::orient2D
+    ///
+    virtual short insphere(double p1[3], double p2[3], double p3[3], double p4[3], double p5[3]) const;
 };
+
 } // namespace lagrange

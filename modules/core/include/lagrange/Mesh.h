@@ -389,9 +389,7 @@ public:
         LA_ASSERT(is_initialized());
         const auto data = m_indexed_attributes->get(name);
         LA_ASSERT(data != nullptr);
-        return std::make_tuple(
-            data->get_values(),
-            data->get_indices());
+        return std::make_tuple(data->get_values(), data->get_indices());
     }
 
     void set_vertex_attribute(const std::string& name, const AttributeArray& attr)
@@ -747,7 +745,22 @@ public:
     }
 
     ///
+    /// Gets the edge index corresponding to a corner index.
+    ///
+    /// @param[in]  c     Corner index.
+    ///
+    /// @return     The edge.
+    ///
+    Index get_edge_from_corner_new(Index c) const
+    {
+        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        return m_navigation->get_edge_from_corner(c);
+    }
+
+    ///
     /// Retrieve the edge id from end vertices (v0, v1).
+    ///
+    /// @todo Move this to MeshNavigation?
     ///
     /// @param[in]  v0  Edge edge point 0.
     /// @param[in]  v1  Edge edge point 1.
@@ -854,13 +867,27 @@ public:
     ///
     /// @param[in]  e     Queried edge index.
     ///
-    /// @return     Face index of one facet incident to the queried edge.
+    /// @return     Index of the first corner around the queried edge.
     ///
     Index get_one_corner_around_edge_new(Index e) const
     {
         LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
         return m_navigation->get_one_corner_around_edge(e);
     }
+
+    ///
+    /// Get the index of one corner around a given vertex.
+    ///
+    /// @param[in]  v     Queried vertex index.
+    ///
+    /// @return     Index of the first corner around the queried vertex.
+    ///
+    Index get_one_corner_around_vertex_new(Index v) const
+    {
+        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        return m_navigation->get_one_corner_around_vertex(v);
+    }
+
     ///
     /// Determines whether the specified edge e is a boundary edge.
     ///
@@ -895,10 +922,13 @@ public:
     /// @param[in]  v     Queried vertex index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_facets_around_vertex_new(Index v, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_facets_around_vertex_new(Index v, Func func) const
     {
         LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
-        m_navigation->foreach_facets_around_vertex(v, std::move(func));
+        m_navigation->foreach_facets_around_vertex(v, func);
     }
 
     ///
@@ -907,10 +937,13 @@ public:
     /// @param[in]  e     Queried edge index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_facets_around_edge_new(Index e, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_facets_around_edge_new(Index e, Func func) const
     {
         LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
-        m_navigation->foreach_facets_around_edge(e, std::move(func));
+        m_navigation->foreach_facets_around_edge(e, func);
     }
 
     ///
@@ -919,10 +952,13 @@ public:
     /// @param[in]  v     Queried vertex index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_corners_around_vertex_new(Index v, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_corners_around_vertex_new(Index v, Func func) const
     {
         LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
-        m_navigation->foreach_corners_around_vertex(v, std::move(func));
+        m_navigation->foreach_corners_around_vertex(v, func);
     }
 
     ///
@@ -931,10 +967,13 @@ public:
     /// @param[in]  e     Queried edge index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_corners_around_edge_new(Index e, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_corners_around_edge_new(Index e, Func func) const
     {
         LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
-        m_navigation->foreach_corners_around_edge(e, std::move(func));
+        m_navigation->foreach_corners_around_edge(e, func);
     }
 
     //========================

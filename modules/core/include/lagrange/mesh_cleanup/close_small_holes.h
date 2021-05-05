@@ -40,7 +40,7 @@ namespace lagrange {
 /// @return     A new mesh with the holes closed.
 ///
 template <typename MeshType>
-std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size)
+std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     LA_ASSERT(mesh.get_vertex_per_facet() == 3, "This method is only for triangle meshes.");
@@ -95,13 +95,13 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
         Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> remaining_edges;
         Eigen::Map<const Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>
             edges_map(
-                reinterpret_cast<const Index *>(boundary_edges.data()),
+                reinterpret_cast<const Index*>(boundary_edges.data()),
                 boundary_edges.size(),
                 2);
         chain_edges_into_simple_loops(edges_map, loops, remaining_edges);
     }
 
-    auto get_from_corner = [](const auto &matrix, Index c) {
+    auto get_from_corner = [](const auto& matrix, Index c) {
         const Index nvpf = matrix.cols();
         return matrix(c / nvpf, c % nvpf);
     };
@@ -109,11 +109,11 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     // Compute which hole can be filled with a single triangle,
     // and which hole needs an additional vertex at its barycenter
     std::vector<bool> needs_barycenter(loops.size(), false);
-    for (const auto &name : mesh.get_indexed_attribute_names()) {
-        const auto &attr = mesh.get_indexed_attribute(name);
-        const auto &indices = std::get<1>(attr);
+    for (const auto& name : mesh.get_indexed_attribute_names()) {
+        const auto& attr = mesh.get_indexed_attribute(name);
+        const auto& indices = std::get<1>(attr);
         for (size_t loop_id = 0; loop_id < loops.size(); ++loop_id) {
-            const auto &loop = loops[loop_id];
+            const auto& loop = loops[loop_id];
             if (loop.size() <= max_hole_size && loop.size() <= 3) {
                 assert(loop.size() == 3); // holes of size 1 or 2 shouldn't be possible
                 for (Index lv = 0; lv < 3; ++lv) {
@@ -136,7 +136,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     std::vector<Triangle> new_facets;
     eigen_to_flat_vector(mesh.get_vertices(), values, Eigen::RowMajor);
     for (size_t loop_id = 0; loop_id < loops.size(); ++loop_id) {
-        const auto &loop = loops[loop_id];
+        const auto& loop = loops[loop_id];
         if (loop.size() <= max_hole_size) {
             if (loop.size() == 3 && !needs_barycenter[loop_id]) {
                 assert(loop.size() == 3); // holes of size 1 or 2 shouldn't be possible
@@ -177,13 +177,13 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     auto new_mesh = lagrange::create_mesh(std::move(vertices), std::move(facets));
 
     // Remap vertex attributes
-    for (const auto &name : mesh.get_vertex_attribute_names()) {
-        const auto &attr = mesh.get_vertex_attribute(name);
+    for (const auto& name : mesh.get_vertex_attribute_names()) {
+        const auto& attr = mesh.get_vertex_attribute(name);
         AttributeArray vals(new_mesh->get_num_vertices(), attr.cols());
         vals.topRows(attr.rows()) = attr;
         Index counter = mesh.get_num_vertices();
         for (size_t loop_id = 0; loop_id < loops.size(); ++loop_id) {
-            const auto &loop = loops[loop_id];
+            const auto& loop = loops[loop_id];
             if (loop.size() <= max_hole_size) {
                 if (loop.size() == 3 && !needs_barycenter[loop_id]) {
                     // Nothing to do
@@ -204,13 +204,13 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     }
 
     // Remap facet attributes
-    for (const auto &name : mesh.get_facet_attribute_names()) {
-        const auto &attr = mesh.get_facet_attribute(name);
+    for (const auto& name : mesh.get_facet_attribute_names()) {
+        const auto& attr = mesh.get_facet_attribute(name);
         AttributeArray vals(new_mesh->get_num_facets(), attr.cols());
         vals.topRows(attr.rows()) = attr;
         Index counter = mesh.get_num_facets();
         for (size_t loop_id = 0; loop_id < loops.size(); ++loop_id) {
-            const auto &loop = loops[loop_id];
+            const auto& loop = loops[loop_id];
             if (loop.size() <= max_hole_size) {
                 if (loop.size() == 3 && !needs_barycenter[loop_id]) {
                     // Average attribute from opposite facets
@@ -235,10 +235,10 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     }
 
     // Remap edge attributes (old API, fill with zeros)
-    for (const auto &name : mesh.get_edge_attribute_names()) {
+    for (const auto& name : mesh.get_edge_attribute_names()) {
         new_mesh->initialize_edge_data();
         logger().warn("[close_small_holes] edge attribute (old API) filled with zeros: {}", name);
-        const auto &attr = mesh.get_edge_attribute(name);
+        const auto& attr = mesh.get_edge_attribute(name);
         AttributeArray vals(new_mesh->get_num_edges(), attr.cols());
         vals.topRows(attr.rows()) = attr;
         vals.bottomRows(vals.rows() - attr.rows()).setZero();
@@ -247,9 +247,9 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     }
 
     // Remap edge attributes (new API, average values)
-    for (const auto &name : mesh.get_edge_attribute_names_new()) {
+    for (const auto& name : mesh.get_edge_attribute_names_new()) {
         new_mesh->initialize_edge_data_new();
-        const auto &attr = mesh.get_edge_attribute_new(name);
+        const auto& attr = mesh.get_edge_attribute_new(name);
         AttributeArray vals(new_mesh->get_num_edges_new(), attr.cols());
         vals.setZero();
 
@@ -265,7 +265,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
         // Compute new values
         Index facet_counter = mesh.get_num_facets();
         for (size_t loop_id = 0; loop_id < loops.size(); ++loop_id) {
-            const auto &loop = loops[loop_id];
+            const auto& loop = loops[loop_id];
             if (loop.size() <= max_hole_size) {
                 if (loop.size() == 3 && !needs_barycenter[loop_id]) {
                     // Nothing to do
@@ -295,13 +295,13 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     }
 
     // Remap corner attributes
-    for (const auto &name : mesh.get_corner_attribute_names()) {
-        const auto &attr = mesh.get_corner_attribute(name);
+    for (const auto& name : mesh.get_corner_attribute_names()) {
+        const auto& attr = mesh.get_corner_attribute(name);
         AttributeArray vals(new_mesh->get_num_facets() * nvpf, attr.cols());
         vals.topRows(attr.rows()) = attr;
         Index counter = mesh.get_num_facets();
         for (size_t loop_id = 0; loop_id < loops.size(); ++loop_id) {
-            const auto &loop = loops[loop_id];
+            const auto& loop = loops[loop_id];
             if (loop.size() <= max_hole_size) {
                 if (loop.size() == 3 && !needs_barycenter[loop_id]) {
                     assert(loop.size() == 3); // holes of size 1 or 2 shouldn't be possible
@@ -345,14 +345,14 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
     std::vector<Index> group_color;
     std::vector<Index> group_sizes;
     std::vector<Scalar> group_means;
-    for (const auto &name : mesh.get_indexed_attribute_names()) {
-        const auto &attr = mesh.get_indexed_attribute(name);
+    for (const auto& name : mesh.get_indexed_attribute_names()) {
+        const auto& attr = mesh.get_indexed_attribute(name);
         const Index num_coords = std::get<0>(attr).cols();
         logger().trace("[close_small_holes] remaping indexed attribute: {}", name);
         eigen_to_flat_vector(std::get<0>(attr), values, Eigen::RowMajor);
         eigen_to_flat_vector(std::get<1>(attr), indices, Eigen::RowMajor);
         for (size_t loop_id = 0; loop_id < loops.size(); ++loop_id) {
-            const auto &loop = loops[loop_id];
+            const auto& loop = loops[loop_id];
             if (loop.size() <= max_hole_size) {
                 if (loop.size() == 3 && !needs_barycenter[loop_id]) {
                     assert(loop.size() == 3); // holes of size 1 or 2 shouldn't be possible
@@ -381,7 +381,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType &mesh, size_t max_hole_size
                     group_means.assign(num_groups * num_coords, 0);
                     for (size_t lc = 0; lc < 2 * loop.size(); ++lc) {
                         const Index idx = indices[boundary_corners[loop[lc / 2]][lc % 2]];
-                        const Scalar *val = values.data() + idx * num_coords;
+                        const Scalar* val = values.data() + idx * num_coords;
                         const Index repr = group_color[lc];
                         group_sizes[repr]++;
                         for (Index k = 0; k < num_coords; ++k) {

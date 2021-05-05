@@ -17,6 +17,7 @@
 #include <lagrange/MeshTrait.h>
 #include <lagrange/attributes/eval_as_attribute.h>
 #include <lagrange/compute_triangle_normal.h>
+#include <lagrange/utils/geometry3d.h>
 
 namespace lagrange {
 /*
@@ -41,29 +42,57 @@ void compute_dihedral_angles(MeshType& mesh)
     using Index = typename MeshType::Index;
     using Scalar = typename MeshType::Scalar;
 
-    mesh.initialize_edge_data();
+    mesh.initialize_edge_data_new();
 
     if (!mesh.has_facet_attribute("normal")) {
         compute_triangle_normal(mesh);
     }
 
     const auto& facet_normals = mesh.get_facet_attribute("normal");
+    bool non_manifold = false;
+    eval_as_edge_attribute_new(mesh, "dihedral_angle", [&](Index i) -> Scalar {
+        const auto num_adj_facets = mesh.get_num_facets_around_edge_new(i);
+        if (num_adj_facets > 2) {
+            non_manifold = true;
+        }
+
+        if (num_adj_facets <= 1) {
+            return 0;
+        } else if (num_adj_facets == 2) {
+            Eigen::Matrix<Scalar, 2, 3, Eigen::RowMajor> normals(num_adj_facets, 3);
+            Index index = 0;
+            mesh.foreach_facets_around_edge_new(i, [&](Index fid) {
+                normals.row(index) = facet_normals.row(fid);
+                index++;
+            });
+
+            const Eigen::Matrix<Scalar, 1, 3>& n1 = normals.row(0);
+            const Eigen::Matrix<Scalar, 1, 3>& n2 = normals.row(1);
+            return angle_between(n1, n2);
+        } else {
+            // Non-manifold edge encountered.  Default to 2 * M_PI.
+            return 2 * M_PI;
+        }
+    });
+
+#ifdef LA_KEEP_TRANSITION_CODE
+    mesh.initialize_edge_data();
     const auto& edge_facet_adjacency = mesh.get_edge_facet_adjacency();
 
-    bool non_manifold = false;
     eval_as_edge_attribute(mesh, "dihedral_angle", [&](Index i) -> Scalar {
         const auto& adj_facets = edge_facet_adjacency[i];
-        if (adj_facets.size() <= 1) {
+        const auto num_adj_facets = adj_facets.size();
+
+        if (num_adj_facets <= 1) {
             return 0;
         } else {
             const Eigen::Matrix<Scalar, 3, 1>& n1 = facet_normals.row(adj_facets[0]);
             const Eigen::Matrix<Scalar, 3, 1>& n2 = facet_normals.row(adj_facets[1]);
             return std::atan2((n1.cross(n2)).norm(), n1.dot(n2));
         }
-        if (adj_facets.size() > 2) {
-            non_manifold = true;
-        }
     });
+#endif
+
     if (non_manifold) {
         lagrange::logger().warn("Computing dihedral angles on a non-manifold mesh!");
     }

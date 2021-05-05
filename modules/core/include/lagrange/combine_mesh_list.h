@@ -255,9 +255,7 @@ void combine_all_edge_attributes(
         if (!mesh->is_edge_data_initialized()) return;
     }
 
-    if (!combined_mesh.is_edge_data_initialized()) {
-        combined_mesh.initialize_edge_data();
-    }
+    combined_mesh.initialize_edge_data();
 
     const auto total_num_edges = combined_mesh.get_num_edges();
 
@@ -309,9 +307,7 @@ void combine_all_edge_attributes_new(
         if (!mesh->is_edge_data_initialized_new()) return;
     }
 
-    if (!combined_mesh.is_edge_data_initialized_new()) {
-        combined_mesh.initialize_edge_data_new();
-    }
+    combined_mesh.initialize_edge_data_new();
 
     const auto total_num_edges = combined_mesh.get_num_edges_new();
 

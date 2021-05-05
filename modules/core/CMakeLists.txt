@@ -54,6 +54,11 @@ target_link_libraries(lagrange_core PUBLIC
     TBB::tbb
 )
 
+if(LAGRANGE_WITH_TRACY)
+    include(tracy)
+    target_link_libraries(lagrange_core PUBLIC tracy::client)
+endif()
+
 # precompile headers target. Link to this target in tests or modules with
 # lots of compilation units (.cpp files) to speed up compilation time!
 if(LAGRANGE_USE_PCH)

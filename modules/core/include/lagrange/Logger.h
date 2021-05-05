@@ -37,4 +37,23 @@ spdlog::logger& logger();
 ///
 void set_logger(std::shared_ptr<spdlog::logger> logger);
 
+///
+/// Changes the level of logger to something else in a scope.
+/// Mostly used in unit tests. Don't use in the library itself.
+///
+/// @param[in]  level  New level to set temporarily.
+/// @param[in]  logger  Which logger to apply this to, defaults to the lagrange logger
+///
+class ScopedLogLevel
+{
+public:
+    ScopedLogLevel(spdlog::level::level_enum, spdlog::logger& = logger());
+    ~ScopedLogLevel();
+
+private:
+    spdlog::level::level_enum m_prev_level;
+    spdlog::logger* m_logger;
+};
+
+
 } // namespace lagrange

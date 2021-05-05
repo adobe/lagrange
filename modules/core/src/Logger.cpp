@@ -46,4 +46,16 @@ void set_logger(std::shared_ptr<spdlog::logger> x)
     s_logger = std::move(x);
 }
 
+ScopedLogLevel::ScopedLogLevel(spdlog::level::level_enum lvl, spdlog::logger& logger_)
+{
+    m_logger = &logger_;
+    m_prev_level = m_logger->level();
+    m_logger->set_level(lvl);
+}
+
+ScopedLogLevel::~ScopedLogLevel()
+{
+    m_logger->set_level(m_prev_level);
+}
+
 } // namespace lagrange

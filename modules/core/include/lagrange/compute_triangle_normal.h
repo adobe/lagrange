@@ -13,31 +13,38 @@
 
 #include <exception>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <igl/per_face_normals.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 
 namespace lagrange {
 
 template <typename MeshType>
-auto compute_triangle_normal_const(const MeshType &mesh) -> typename MeshType::AttributeArray
+auto compute_triangle_normal_const(const MeshType& mesh) -> typename MeshType::AttributeArray
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
+    using Index = IndexOf<MeshType>;
+    using Scalar = ScalarOf<MeshType>;
+    using AttributeArray = typename MeshType::AttributeArray;
+    using RowVector3s = Eigen::Matrix<Scalar, 1, 3>;
+
     if (mesh.get_vertex_per_facet() != 3) {
         throw std::runtime_error("Input mesh is not triangle mesh.");
+    }
+    if (mesh.get_dim() != 3) {
+        throw std::runtime_error("Input mesh vertices should have dimension 3.");
     }
 
     const auto& vertices = mesh.get_vertices();
     const auto& facets = mesh.get_facets();
-    typename Eigen::Matrix<typename MeshType::Scalar, 1, 3> default_normal(0, 0, 0);
-    typename MeshType::AttributeArray normals;
+    AttributeArray normals(facets.rows(), 3);
 
-    igl::per_face_normals(vertices, facets, default_normal, normals);
+    // Iterate over facets in parallel
+    tbb::parallel_for(Index(0), mesh.get_num_facets(), [&](Index f) {
+        const RowVector3s p0 = vertices.row(facets(f, 0));
+        const RowVector3s p1 = vertices.row(facets(f, 1));
+        const RowVector3s p2 = vertices.row(facets(f, 2));
+        normals.row(f) = (p1 - p0).cross(p2 - p0).stableNormalized();
+    });
 
     return normals;
 }

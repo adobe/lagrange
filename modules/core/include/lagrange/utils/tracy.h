@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2021 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -11,12 +11,17 @@
  */
 #pragma once
 
-namespace lagrange {
+#ifdef TRACY_ENABLE
+#include <Tracy.hpp>
 
-void exactinit();
-double orient2d(const double* pa, const double* pb, const double* pc);
-double orient3d(const double* pa, const double* pb, const double* pc, const double* pd);
-double incircle(const double* pa, const double* pb, const double* pc, const double* pd);
-double insphere(const double* pa, const double* pb, const double* pc, const double* pd, const double* pe);
+// Alias Tracy macros used in Lagrange
+#define LAGRANGE_ZONE_SCOPED ZoneScoped
+#define LAGRANGE_FRAME_MARK FrameMark
 
-} // namespace lagrange
+#else
+
+// Empty placeholders when Tracy is disabled
+#define LAGRANGE_ZONE_SCOPED
+#define LAGRANGE_FRAME_MARK
+
+#endif

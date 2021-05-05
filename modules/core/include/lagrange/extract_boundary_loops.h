@@ -16,8 +16,10 @@
 #include <limits>
 #include <vector>
 
+#include <lagrange/common.h>
 #include <lagrange/Edge.h>
 #include <lagrange/MeshTrait.h>
+#include <lagrange/utils/range.h>
 
 namespace lagrange {
 
@@ -38,34 +40,33 @@ std::vector<std::vector<typename MeshType::Index>> extract_boundary_loops(MeshTy
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     using Index = typename MeshType::Index;
     const Index num_vertices = mesh.get_num_vertices();
-    const Index INVALID = std::numeric_limits<Index>::max();
 
-    if (!mesh.is_edge_data_initialized()) {
-        mesh.initialize_edge_data();
-    }
-    std::vector<Index> boundary_next(num_vertices, INVALID);
+    mesh.initialize_edge_data_new();
+    std::vector<Index> boundary_next(num_vertices, INVALID<Index>());
 
-    for (const auto& edge : mesh.get_edges()) {
-        if (mesh.get_is_edge_boundary(edge)) {
-            if (boundary_next[edge.v1()] != INVALID && boundary_next[edge.v1()] != edge.v2()) {
+    const Index num_edges = mesh.get_num_edges_new();
+    for (auto ei : range(num_edges)) {
+        if (mesh.is_boundary_edge_new(ei)) {
+            const auto edge = mesh.get_edge_vertices_new(ei);
+            if (boundary_next[edge[0]] != INVALID<Index>() && boundary_next[edge[0]] != edge[1]) {
                 throw std::runtime_error("The boundary loops are not simple.");
             }
-            boundary_next[edge.v1()] = edge.v2();
+            boundary_next[edge[0]] = edge[1];
         }
     }
 
     std::vector<std::vector<Index>> bd_loops;
     bd_loops.reserve(4);
     for (Index i = 0; i < num_vertices; i++) {
-        if (boundary_next[i] != INVALID) {
+        if (boundary_next[i] != INVALID<Index>()) {
             bd_loops.emplace_back();
             auto& loop = bd_loops.back();
 
             Index curr_idx = i;
             loop.push_back(curr_idx);
-            while (boundary_next[curr_idx] != INVALID) {
+            while (boundary_next[curr_idx] != INVALID<Index>()) {
                 loop.push_back(boundary_next[curr_idx]);
-                boundary_next[curr_idx] = INVALID;
+                boundary_next[curr_idx] = INVALID<Index>();
                 curr_idx = loop.back();
             }
             assert(!loop.empty());

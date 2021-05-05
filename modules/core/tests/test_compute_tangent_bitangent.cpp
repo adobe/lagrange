@@ -68,8 +68,6 @@ auto indexed_tangent_bitangent(
 
 TEST_CASE("compute_tangent_bitangent", "[core]")
 {
-    lagrange::logger().set_level(spdlog::level::debug);
-
     using AttributeArray = lagrange::TriangleMesh3D::AttributeArray;
     using FacetArray = lagrange::TriangleMesh3D::FacetArray;
 
@@ -114,9 +112,6 @@ TEST_CASE("compute_tangent_bitangent", "[core]")
 
 TEST_CASE("compute_tangent_bitangent: degenerate", "[core]")
 {
-    lagrange::logger().set_level(spdlog::level::debug);
-
-
     Eigen::Matrix<double, Eigen::Dynamic, 3> vertices(2, 3);
     vertices << 0.1, 1.0, 0.5, 0.9, 0.3, 0.7;
     Eigen::Matrix<size_t, Eigen::Dynamic, 3> facets(2, 3);
@@ -166,8 +161,6 @@ TEST_CASE("compute_tangent_bitangent: degenerate", "[core]")
 TEST_CASE("compute_tangent_bitangent_bug01", "[core]" LA_CORP_FLAG)
 {
     using namespace lagrange;
-    logger().set_level(spdlog::level::debug);
-
     auto mesh = lagrange::testing::load_mesh<TriangleMesh3D>(
         "corp/core/Erin_Kim__comfy_substance_6_dbg_objs/Erin_Kim__comfy_substance_6.20.obj");
 

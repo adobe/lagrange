@@ -34,6 +34,10 @@ public:
         std::iota(m_parent.begin(), m_parent.end(), IndexType(0));
     }
 
+    IndexType size() const { return safe_cast<IndexType>(m_parent.size()); }
+
+    void clear() { m_parent.clear(); }
+
     IndexType find(IndexType i)
     {
         LA_ASSERT(i >= 0 && i < safe_cast<IndexType>(m_parent.size()), "Index out of bound!");
@@ -50,8 +54,6 @@ public:
         const auto root_j = find(j);
         return m_parent[root_j] = root_i;
     }
-
-    void clear() { m_parent.clear(); }
 
     std::vector<std::vector<IndexType>> extract_disjoint_sets()
     {
@@ -94,11 +96,6 @@ public:
 
         return counter;
     }
-
-    IndexType& operator[](IndexType i) { return m_parent[i]; }
-    const IndexType& operator[](IndexType i) const { return m_parent[i]; }
-
-    IndexType size() const { return safe_cast<IndexType>(m_parent.size()); }
 
 private:
     std::vector<IndexType> m_parent;

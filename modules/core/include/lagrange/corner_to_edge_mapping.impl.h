@@ -65,23 +65,20 @@ Eigen::Index corner_to_edge_mapping(
             edges.emplace_back(v1, v2, f * vert_per_facet + lv);
         }
     }
-    logger().trace("[corner_to_edge_mapping] sorting edges");
     tbb::parallel_sort(edges.begin(), edges.end());
-    logger().trace("[corner_to_edge_mapping] sorting done");
 
     // Assign unique edge ids
     C2E.resize(F.rows() * F.cols());
     Index num_edges = 0;
-    for (auto itBegin = edges.begin(); itBegin != edges.end();) {
-        // First the first edge after itBegin that has a different key
-        auto itEnd = std::find_if(itBegin, edges.end(), [&](auto e) { return (e != *itBegin); });
-        for (auto it = itBegin; it != itEnd; ++it) {
+    for (auto it_begin = edges.begin(); it_begin != edges.end();) {
+        // First the first edge after it_begin that has a different key
+        auto it_end = std::find_if(it_begin, edges.end(), [&](auto e) { return (e != *it_begin); });
+        for (auto it = it_begin; it != it_end; ++it) {
             C2E(it->corner) = num_edges;
         }
         ++num_edges;
-        itBegin = itEnd;
+        it_begin = it_end;
     }
-    logger().trace("[corner_to_edge_mapping] cleanup");
 
     return num_edges;
 }

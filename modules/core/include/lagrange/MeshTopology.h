@@ -15,6 +15,10 @@
 #include <stdexcept>
 #include <vector>
 
+#include <tbb/blocked_range.h>
+#include <tbb/enumerable_thread_specific.h>
+#include <tbb/parallel_reduce.h>
+
 #include <lagrange/chain_edges.h>
 #include <lagrange/extract_boundary_loops.h>
 #include <lagrange/get_opposite_edge.h>
@@ -40,17 +44,10 @@ public:
 
     void initialize(MeshType& mesh)
     {
-        if (!mesh.is_connectivity_initialized()) {
-            mesh.initialize_connectivity();
-        }
-        if (!mesh.is_edge_data_initialized()) {
-            mesh.initialize_edge_data();
-        }
-
+        mesh.initialize_edge_data_new();
         initialize_euler(mesh);
         initialize_manifoldness(mesh);
         initialize_boundary(mesh);
-
         m_initialized = true;
     }
 
@@ -78,8 +75,8 @@ public:
 protected:
     void initialize_euler(const MeshType& mesh)
     {
-        m_euler =
-            (int)mesh.get_num_vertices() + (int)mesh.get_num_facets() - (int)mesh.get_num_edges();
+        m_euler = (int)mesh.get_num_vertices() + (int)mesh.get_num_facets() -
+                  (int)mesh.get_num_edges_new();
     }
 
     void initialize_manifoldness(const MeshType& mesh)
@@ -104,36 +101,52 @@ protected:
 
     bool check_edge_manifold(const MeshType& mesh) const
     {
-        for (const auto& adj_facets : mesh.get_edge_facet_adjacency()) {
-            if (adj_facets.size() > 2) return false;
+        const Index num_edges = mesh.get_num_edges_new();
+        for (auto ei : range(num_edges)) {
+            if (mesh.get_num_facets_around_edge_new(ei) > 2) return false;
         }
         return true;
     }
 
     bool check_vertex_manifold(const MeshType& mesh) const
     {
-        LA_ASSERT(mesh.is_connectivity_initialized(), "Connectivity is not initialized");
         LA_ASSERT(
             mesh.get_vertex_per_facet() == 3,
             "Vertex manifold check only supports triangle mesh for now.");
 
         const auto num_vertices = mesh.get_num_vertices();
         const auto& facets = mesh.get_facets();
+        tbb::enumerable_thread_specific<std::vector<Edge>> thread_rim_edges;
 
-        std::vector<Edge> rim_edges;
-        for (Index i = 0; i < num_vertices; i++) {
-            const auto& adj_facets = mesh.get_facets_adjacent_to_vertex(i);
-
+        auto is_vertex_manifold = [&](Index vid) {
+            auto& rim_edges = thread_rim_edges.local();
             rim_edges.clear();
-            rim_edges.reserve(adj_facets.size());
-            for (const auto fid : adj_facets) {
-                rim_edges.push_back(get_opposite_edge(facets, fid, i));
-            }
+            rim_edges.reserve(mesh.get_num_facets_around_vertex_new(vid));
+
+            mesh.foreach_corners_around_vertex_new(vid, [&](Index ci) {
+                Index fid = ci / 3;
+                Index lv = ci % 3;
+                rim_edges.push_back({facets(fid, (lv + 1) % 3), facets(fid, (lv + 2) % 3)});
+            });
 
             const auto chains = chain_edges<Index>(rim_edges);
-            if (chains.size() > 1) return false;
-        }
-        return true;
+            return (chains.size() == 1);
+        };
+
+        return tbb::parallel_reduce(
+            tbb::blocked_range<Index>(0, num_vertices),
+            true, ///< initial value of the result.
+            [&](const tbb::blocked_range<Index>& r, bool manifold) -> bool {
+                if (!manifold) return false;
+
+                for (Index vi = r.begin(); vi != r.end(); vi++) {
+                    if (!is_vertex_manifold(vi)) {
+                        return false;
+                    }
+                }
+                return true;
+            },
+            [](bool r1, bool r2) -> bool { return r1 && r2; });
     }
 
 private:

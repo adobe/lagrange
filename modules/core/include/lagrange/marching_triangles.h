@@ -79,9 +79,7 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
         mesh_ref.has_vertex_attribute(vertex_attribute_name),
         "attribute does not exist in the mesh");
     LA_ASSERT(mesh_ref.get_vertex_per_facet() == 3, "only works for triangle meshes");
-    if (!mesh_ref.is_edge_data_initialized_new()) {
-        mesh_ref.initialize_edge_data_new();
-    }
+    mesh_ref.initialize_edge_data_new();
 
     const auto& attribute = mesh_ref.get_vertex_attribute(vertex_attribute_name);
     LA_ASSERT(attribute_col_index < safe_cast<Index>(attribute.cols()), "col_index is invalid");

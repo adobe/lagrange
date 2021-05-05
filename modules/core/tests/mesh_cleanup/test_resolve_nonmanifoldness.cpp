@@ -14,7 +14,6 @@
 
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
-#include <lagrange/mesh_cleanup/is_vertex_manifold.h>
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 
 
@@ -42,7 +41,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         auto out_mesh = lagrange::resolve_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();
         REQUIRE(out_mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*out_mesh));
 
         REQUIRE(out_mesh->is_uv_initialized());
         REQUIRE(out_mesh->get_uv_indices().rows() == 1);
@@ -68,7 +66,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         auto out_mesh = lagrange::resolve_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();
         REQUIRE(out_mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*out_mesh));
 
         REQUIRE(out_mesh->is_uv_initialized());
         REQUIRE(out_mesh->get_uv_indices().rows() == 2);
@@ -99,7 +96,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         out_mesh->initialize_topology();
         REQUIRE(out_mesh->is_vertex_manifold());
         REQUIRE(out_mesh->get_num_components() == 2);
-        REQUIRE(is_vertex_manifold(*out_mesh));
 
         REQUIRE(out_mesh->is_uv_initialized());
         REQUIRE(out_mesh->get_uv_indices().rows() == 2);
@@ -125,7 +121,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         auto out_mesh = lagrange::resolve_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();
         REQUIRE(out_mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*out_mesh));
 
         REQUIRE(out_mesh->is_uv_initialized());
         REQUIRE(out_mesh->get_uv_indices().rows() == out_mesh->get_num_facets());
@@ -156,7 +151,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         out_mesh->initialize_topology();
         REQUIRE(out_mesh->get_num_vertices() == 7);
         REQUIRE(out_mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*out_mesh));
 
         REQUIRE(out_mesh->is_uv_initialized());
         REQUIRE(out_mesh->get_uv_indices().rows() == out_mesh->get_num_facets());
@@ -192,7 +186,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         out_mesh->initialize_topology();
         REQUIRE(out_mesh->get_num_vertices() == 8);
         REQUIRE(out_mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*out_mesh));
 
         REQUIRE(out_mesh->has_vertex_attribute("indices"));
         REQUIRE(out_mesh->has_facet_attribute("indices"));
@@ -230,7 +223,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         mesh->initialize_topology();
         REQUIRE(mesh->is_edge_manifold());
         REQUIRE(mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*mesh));
     }
 
     SECTION("topologically degenerated faces 2")
@@ -250,7 +242,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         mesh->initialize_topology();
         REQUIRE(mesh->is_edge_manifold());
         REQUIRE(mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*mesh));
     }
 }
 
@@ -268,7 +259,6 @@ TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh][.slow]" LA_CORP_FLAG
         mesh = lagrange::resolve_nonmanifoldness(*mesh);
         mesh->initialize_topology();
         REQUIRE(mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*mesh));
     }
 
     SECTION("desk")
@@ -283,6 +273,5 @@ TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh][.slow]" LA_CORP_FLAG
         mesh = lagrange::resolve_nonmanifoldness(*mesh);
         mesh->initialize_topology();
         REQUIRE(mesh->is_vertex_manifold());
-        REQUIRE(is_vertex_manifold(*mesh));
     }
 }

@@ -10,11 +10,10 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/ExactPredicates.h>
+#include <lagrange/ExactPredicatesShewchuk.h>
 
 #include <exception>
 #include <sstream>
-
-#include <lagrange/ExactPredicatesShewchuk.h>
 
 namespace lagrange {
 
@@ -27,6 +26,26 @@ std::unique_ptr<ExactPredicates> ExactPredicates::create(const std::string& engi
         err_msg << "Unsupported exact predicate engine: " << engine;
         throw std::runtime_error(err_msg.str());
     }
+}
+
+short ExactPredicates::collinear3D(double p1[3], double p2[3], double p3[3]) const
+{
+    for (int k = 0; k < 3; ++k) {
+        double q1[2];
+        double q2[2];
+        double q3[2];
+        for (int i = 0, j = 0; i < 3; ++i) {
+            if (i == k) continue;
+            q1[j] = p1[i];
+            q2[j] = p2[i];
+            q3[j] = p3[i];
+            j++;
+        }
+        if (orient2D(q1, q2, q3)) {
+            return 0;
+        }
+    }
+    return 1;
 }
 
 } // namespace lagrange

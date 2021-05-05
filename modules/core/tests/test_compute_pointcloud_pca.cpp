@@ -51,7 +51,7 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
     points.row(4) << 0, 0, c;
     points.row(5) << 0, 0, -c;
 
-    // Make sure that the pca was corrent
+    // Make sure that the pca was correct
     auto verify_pca = [eps, a, b, c](
                           const double mass,
                           const Eigen::MatrixXd& pts,

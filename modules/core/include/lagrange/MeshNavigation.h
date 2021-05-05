@@ -36,7 +36,7 @@ public:
     using IndexArray = Eigen::Matrix<Index, Eigen::Dynamic, 1>;
 
 public:
-    MeshNavigation(const MeshType &mesh) { initialize(mesh); }
+    MeshNavigation(const MeshType& mesh) { initialize(mesh); }
 
 public:
     ///
@@ -57,6 +57,55 @@ public:
     Index get_edge(Index f, Index lv) const { return m_c2e(f * m_vertex_per_facet + lv); }
 
     ///
+    /// Gets the edge index corresponding to a corner index. Given a face (v0, v1, v2) with
+    /// associated corners (c0, c1, c2), the edge associated to corner ci is the edge between (vi,
+    /// vi+1), as determined by the corner_to_edge_mapping function.
+    ///
+    /// @param[in]  c     Corner index.
+    ///
+    /// @return     The edge.
+    ///
+    Index get_edge_from_corner(Index c) const { return m_c2e(c); }
+
+    ///
+    /// Get the index of the first corner around a given edge.
+    ///
+    /// @param[in]  e     Queried edge index.
+    ///
+    /// @return     Index of the first corner around the queried edge.
+    ///
+    Index get_first_corner_around_edge(Index e) const { return m_e2c[e]; }
+
+    ///
+    /// Gets the next corner around the edge associated to a corner. If the corner is the last one
+    /// in the chain, this function returns INVALID<Index>.
+    ///
+    /// @param[in]  c     Corner index.
+    ///
+    /// @return     Next corner around the edge.
+    ///
+    Index get_next_corner_around_edge(Index c) const { return m_next_corner_around_edge[c]; }
+
+    ///
+    /// Get the index of the first corner around a given vertex.
+    ///
+    /// @param[in]  v     Queried vertex index.
+    ///
+    /// @return     Index of the first corner around the queried vertex.
+    ///
+    Index get_first_corner_around_vertex(Index v) const { return m_v2c[v]; }
+
+    ///
+    /// Gets the next corner around the vertex associated to a corner. If the corner is the last one
+    /// in the chain, this function returns INVALID<Index>.
+    ///
+    /// @param[in]  c     Corner index.
+    ///
+    /// @return     Next corner around the vertex.
+    ///
+    Index get_next_corner_around_vertex(Index c) const { return m_next_corner_around_vertex[c]; }
+
+    ///
     /// Retrieve edge endpoints.
     ///
     /// @param[in]  facets  #F x k array of facet indices.
@@ -64,7 +113,7 @@ public:
     ///
     /// @return     Array of vertex ids at the edge endpoints.
     ///
-    std::array<Index, 2> get_edge_vertices(const FacetArray &facets, Index e) const
+    std::array<Index, 2> get_edge_vertices(const FacetArray& facets, Index e) const
     {
         Index c = m_e2c[e];
         if (c == INVALID<Index>()) {
@@ -86,7 +135,7 @@ public:
     ///
     /// @return     Vertex id.
     ///
-    Index get_vertex_opposite_edge(const FacetArray &facets, Index e) const
+    Index get_vertex_opposite_edge(const FacetArray& facets, Index e) const
     {
         LA_ASSERT(m_vertex_per_facet == 3, "This method is only for triangle meshes.");
         Index c = m_e2c[e];
@@ -147,11 +196,28 @@ public:
     ///
     /// Get the index of one corner around a given edge.
     ///
+    /// @note       While this is technically redundant with get_first_corner_around_edge, the
+    ///             latter can be used when iterating manually over a chain of corners, while this
+    ///             method can be used to retrieve a single corner around a given edge.
+    ///
     /// @param[in]  e     Queried edge index.
     ///
-    /// @return     Face index of one facet incident to the queried edge.
+    /// @return     Index of the first corner around the queried edge.
     ///
     Index get_one_corner_around_edge(Index e) const { return m_e2c[e]; }
+
+    ///
+    /// Get the index of one corner around a given vertex.
+    ///
+    /// @note       While this is technically redundant with get_first_corner_around_vertex, the
+    ///             latter can be used when iterating manually over a chain of corners, while this
+    ///             method can be used to retrieve a single corner around a given vertex.
+    ///
+    /// @param[in]  v     Queried vertex index.
+    ///
+    /// @return     Index of the first corner around the queried vertex.
+    ///
+    Index get_one_corner_around_vertex(Index v) const { return m_v2c[v]; }
 
     ///
     /// Determines whether the specified edge e is a boundary edge.
@@ -183,7 +249,10 @@ public:
     /// @param[in]  v     Queried vertex index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_facets_around_vertex(Index v, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_facets_around_vertex(Index v, Func func) const
     {
         // Loop over incident facets
         for (Index c = m_v2c[v]; c != INVALID<Index>(); c = m_next_corner_around_vertex[c]) {
@@ -198,7 +267,10 @@ public:
     /// @param[in]  e     Queried edge index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_facets_around_edge(Index e, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_facets_around_edge(Index e, Func func) const
     {
         // Loop over incident facets
         for (Index c = m_e2c[e]; c != INVALID<Index>(); c = m_next_corner_around_edge[c]) {
@@ -213,7 +285,10 @@ public:
     /// @param[in]  v     Queried vertex index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_corners_around_vertex(Index v, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_corners_around_vertex(Index v, Func func) const
     {
         // Loop over incident facets
         for (Index c = m_v2c[v]; c != INVALID<Index>(); c = m_next_corner_around_vertex[c]) {
@@ -227,7 +302,10 @@ public:
     /// @param[in]  e     Queried edge index.
     /// @param[in]  func  Callback to apply to each incident facet.
     ///
-    void foreach_corners_around_edge(Index e, std::function<void(Index)> func) const
+    /// @tparam     Func  A callable function of type Index -> void.
+    ///
+    template <typename Func>
+    void foreach_corners_around_edge(Index e, Func func) const
     {
         // Loop over incident facets
         for (Index c = m_e2c[e]; c != INVALID<Index>(); c = m_next_corner_around_edge[c]) {
@@ -236,7 +314,7 @@ public:
     }
 
 protected:
-    void initialize(const MeshType &mesh)
+    void initialize(const MeshType& mesh)
     {
         // Assumed to be constant
         m_vertex_per_facet = mesh.get_vertex_per_facet();
@@ -247,7 +325,10 @@ protected:
         // Chain corners around vertices and edges
         chain_corners_around_edges(mesh.get_facets(), m_c2e, m_e2c, m_next_corner_around_edge);
         chain_corners_around_vertices(
-            mesh.get_num_vertices(), mesh.get_facets(), m_v2c, m_next_corner_around_vertex);
+            mesh.get_num_vertices(),
+            mesh.get_facets(),
+            m_v2c,
+            m_next_corner_around_vertex);
 
         // Tag boundary vertices
         m_is_boundary_vertex.assign(mesh.get_num_vertices(), false);

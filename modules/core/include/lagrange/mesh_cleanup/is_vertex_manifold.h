@@ -26,64 +26,13 @@ namespace lagrange {
 
 /**
  * Check if the input mesh is vertex manifold for all vertices.
+ *
+ * @deprecated Use `mesh.is_vertex_manifold()` instead.
  */
 template <typename MeshType>
+[[deprecated("Use `mesh.is_vertex_manifold()` instead.")]]
 bool is_vertex_manifold(const MeshType& mesh)
 {
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    if (!mesh.is_connectivity_initialized()) {
-        throw std::runtime_error("Connectivity needs to be initialized!");
-    }
-    if (mesh.get_vertex_per_facet() != 3) {
-        throw std::runtime_error("Vertex manifold check is for triangle mesh only.");
-    }
-
-    using Index = typename MeshType::Index;
-    using IndexList = typename MeshType::IndexList;
-    using Edge = typename MeshType::Edge;
-
-    const auto num_vertices = mesh.get_num_vertices();
-    const auto& facets = mesh.get_facets();
-
-    auto compute_euler_characteristic = [&facets](const IndexList& adj_facets) -> int {
-        std::unordered_set<Index> vertices;
-        EdgeSet<Index> edges;
-        for (const auto fid : adj_facets) {
-            Index v0{facets(fid, 0)};
-            Index v1{facets(fid, 1)};
-            Index v2{facets(fid, 2)};
-            edges.insert({v0, v1});
-            edges.insert({v1, v2});
-            edges.insert({v2, v0});
-            vertices.insert(v0);
-            vertices.insert(v1);
-            vertices.insert(v2);
-        }
-
-        // Euelr characteristic can be negative!
-        return safe_cast<int>(vertices.size()) - safe_cast<int>(edges.size()) +
-               safe_cast<int>(adj_facets.size());
-    };
-
-    for (Index i = 0; i < num_vertices; i++) {
-        const auto& adj_facets = mesh.get_facets_adjacent_to_vertex(i);
-
-        // A necessary but not sufficient check:
-        // For each vertex, its one ring neighborhood should have Euler
-        // characteristic 1 if it has disk topology.
-        if (compute_euler_characteristic(adj_facets) != 1) {
-            return false;
-        } else {
-            std::list<Edge> rim_edges;
-            for (const auto fid : adj_facets) {
-                rim_edges.push_back(get_opposite_edge(facets, fid, i));
-            }
-            const auto chains = chain_edges<Index>(rim_edges);
-            if (chains.size() > 1) {
-                return false;
-            }
-        }
-    }
-    return true;
+    return mesh.is_vertex_manifold();
 }
 } // namespace lagrange

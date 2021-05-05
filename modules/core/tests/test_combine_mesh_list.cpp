@@ -14,7 +14,6 @@
 #include <lagrange/combine_mesh_list.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
-#include <lagrange/mesh_cleanup/is_vertex_manifold.h>
 
 TEST_CASE("combine_mesh_list", "[mesh][combine]")
 {
@@ -46,7 +45,7 @@ TEST_CASE("combine_mesh_list", "[mesh][combine]")
             m.initialize_components();
             m.initialize_topology();
             CHECK(m.get_num_components() == 3);
-            CHECK(is_vertex_manifold(m));
+            CHECK(m.is_vertex_manifold());
         };
 
         verify_mesh(*m1);

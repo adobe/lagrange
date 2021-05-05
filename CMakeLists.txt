@@ -40,7 +40,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 4.2.0)
+project(Lagrange VERSION 4.3.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -65,7 +65,7 @@ if(ARPACK_BUILD_FROM_SOURCE)
     enable_language(Fortran)
 endif()
 
-# Tests and examples
+# General CMake options
 option(LAGRANGE_UNIT_TESTS        "Build all unit tests"             ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_PERFORMANCE_TESTS "Build all performance tests"      ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_EXAMPLES          "Build all examples"               ${LAGRANGE_TOPLEVEL_PROJECT})
@@ -74,6 +74,7 @@ option(LAGRANGE_INSTALL           "Enable installation"              ${LAGRANGE_
 option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"      OFF)
 option(LAGRANGE_COPY_RUNTIME_DEPS "Copy runtime dependencies into executable folders" ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_CI_BUILD          "Building for continuous integration" OFF)
+option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange" OFF)
 
 # Third-party dependency management
 option(LAGRANGE_EXTERNAL_FIRST    "Third-party libs: prefer public mirrors over corporate ones" OFF)

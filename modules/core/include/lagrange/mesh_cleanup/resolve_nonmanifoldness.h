@@ -17,7 +17,6 @@
 #include <unordered_map>
 #include <vector>
 
-#include <lagrange/Edge.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/attributes/map_attributes.h>
 #include <lagrange/common.h>
@@ -47,15 +46,11 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
         mesh.initialize_connectivity();
     }
 
-    if (!mesh.is_edge_data_initialized()) {
-        mesh.initialize_edge_data();
-    }
-
+    mesh.initialize_edge_data_new();
 
     using Index = typename MeshType::Index;
     using VertexArray = typename MeshType::VertexArray;
     using FacetArray = typename MeshType::FacetArray;
-    using Edge = typename MeshType::Edge;
 
     const Index num_vertices = mesh.get_num_vertices();
     const Index num_facets = mesh.get_num_facets();
@@ -83,29 +78,46 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
     };
 
     /**
-     * Return true iff f0 and f1 are **inconsistently** oriented.
+     * Return true iff facets around an edge are **inconsistently** oriented.
      * E.g. f0: * [0, 1, 2] and f1: [1, 2, 3], with e=[1, 2]
      *
-     * This method assumes e is shared by f0 and f1.
-     * Note: this method does not depend on the orientaiton of the edge e.
+     * @note: This method does not depend on the orientaiton of the edge e.
+     *        This method also assumes the edge `ei` has exactly 2 adjacent
+     *        facets.
      */
-    auto is_inconsistently_oriented =
-        [&get_orientation](const Edge& e, const Index f0, const Index f1) -> bool {
-        bool o0 = get_orientation(e[0], e[1], f0);
-        bool o1 = get_orientation(e[0], e[1], f1);
-        return o0 == o1;
+    auto is_inconsistently_oriented = [&mesh, &get_orientation](const Index ei) -> bool {
+        const auto e = mesh.get_edge_vertices_new(ei);
+        std::array<bool, 2> orientations;
+        size_t count = 0;
+        mesh.foreach_facets_around_edge_new(ei, [&](Index fid) {
+            orientations[count] = get_orientation(e[0], e[1], fid);
+            count++;
+        });
+        return orientations[0] == orientations[1];
     };
+
+    /**
+     * Return true iff f0 and f1 are consistantly oriented with respect to edge
+     * ei.  This is **almost** the same as `is_inconsistently_oriented`.
+     * With `f0` and `f1` specified, this version can work with non-manifold
+     * edges.
+     */
+    auto is_inconsistently_oriented_wrt_facets =
+        [&mesh, &get_orientation](const Index ei, const Index f0, const Index f1) {
+            const auto e = mesh.get_edge_vertices_new(ei);
+            return get_orientation(e[0], e[1], f0) == get_orientation(e[0], e[1], f1);
+        };
 
     /**
      * Return true iff edge e has more than 2 incident facets or it has
      * exactly 2 incident facet but they are inconsistently oriented.
      */
-    auto is_nonmanifold_edge =
-        [&is_inconsistently_oriented](const Edge& e, const std::vector<Index>& adj_facets) {
-            if (adj_facets.size() > 2) return true;
-            if (adj_facets.size() <= 1) return false;
-            return is_inconsistently_oriented(e, adj_facets.front(), adj_facets.back());
-        };
+    auto is_nonmanifold_edge = [&mesh, &is_inconsistently_oriented](const Index ei) {
+        auto edge_valence = mesh.get_num_facets_around_edge_new(ei);
+        if (edge_valence > 2) return true;
+        if (edge_valence <= 1) return false;
+        return is_inconsistently_oriented(ei);
+    };
 
     // Flood fill color across manifold edges.  The color field split the
     // facets into locally manifold components.  Edges and vertices adjacent
@@ -122,18 +134,15 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
             Index curr_fid = Q.front();
             Q.pop();
             for (Index j = 0; j < vertex_per_facet; j++) {
-                Edge e{facets(curr_fid, j), facets(curr_fid, (j + 1) % vertex_per_facet)};
-                if (e[0] > e[1]) {
-                    e = Edge(e[1], e[0]); // std::swap(e[0], e[1]);
-                }
-                auto adj_facets = mesh.get_edge_adjacent_facets(e);
-                if (is_nonmanifold_edge(e, adj_facets)) continue;
-                for (const auto adj_fid : adj_facets) {
+                Index ei = mesh.get_edge_new(curr_fid, j);
+                if (is_nonmanifold_edge(ei)) continue;
+
+                mesh.foreach_facets_around_edge_new(ei, [&](Index adj_fid) {
                     if (colors[adj_fid] == BLANK) {
                         colors[adj_fid] = curr_color;
                         Q.push(adj_fid);
                     }
-                }
+                });
             }
         }
         curr_color++;
@@ -151,11 +160,10 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
     // A color map maps specific color to the vertex index after the split.
     std::unordered_map<Index, std::unordered_map<Index, Index>> vertex_map;
     // Split non-manifold edges.
-    for (Index i = 0; i < mesh.get_num_edges(); ++i) {
-        const auto& e = mesh.get_edges()[i];
-        const auto& adj_facets = mesh.get_edge_facet_adjacency()[i];
+    for (Index i = 0; i < mesh.get_num_edges_new(); ++i) {
+        const auto e = mesh.get_edge_vertices_new(i);
 
-        if (!is_nonmanifold_edge(e, adj_facets)) continue;
+        if (!is_nonmanifold_edge(i)) continue;
         auto itr0 = vertex_map.find(e[0]);
         auto itr1 = vertex_map.find(e[1]);
 
@@ -170,7 +178,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
         auto& color_map_1 = itr1->second;
 
         std::unordered_map<Index, std::list<Index>> color_count;
-        for (const auto fid : adj_facets) {
+        mesh.foreach_facets_around_edge_new(i, [&](Index fid) {
             const auto c = colors[fid];
 
             auto c_itr = color_count.find(c);
@@ -199,7 +207,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
                     vertex_count++;
                 }
             }
-        }
+        });
 
         for (const auto& entry : color_count) {
             // Corner case 1:
@@ -208,7 +216,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
             // detacted.
             const bool inconsistent_edge =
                 (entry.second.size() == 2) &&
-                is_inconsistently_oriented(e, entry.second.front(), entry.second.back());
+                is_inconsistently_oriented_wrt_facets(i, entry.second.front(), entry.second.back());
 
             // Corner case 2:
             // Some facets around this non-manifold edge are connected via
@@ -290,7 +298,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
     map_attributes(mesh, *out_mesh, backward_vertex_map);
 
     out_mesh->initialize_connectivity();
-    out_mesh->initialize_edge_data();
+    out_mesh->initialize_edge_data_new();
 
     out_mesh = resolve_vertex_nonmanifoldness(*out_mesh);
     out_mesh = remove_topologically_degenerate_triangles(*out_mesh);
