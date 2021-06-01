@@ -2,10 +2,7 @@ UI Module
 ============
 
 @namespace lagrange::ui
-@brief Multi-purpose OpenGL viewer.
-
+@brief Lagrange UI Viewer and mini 3D engine
 @defgroup ui
-@brief Multi-purpose OpenGL viewer.
 
-### Quick links
-
+For full documentation, refer to [README.md](@ref modules/ui/README.md)

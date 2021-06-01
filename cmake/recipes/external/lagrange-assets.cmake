@@ -17,7 +17,7 @@ include(FetchContent)
 FetchContent_Declare(
     lagrange-assets
     GIT_REPOSITORY https://github.com/adobe/lagrange-assets.git
-    GIT_TAG ffd7bf726ac08921948d9e8495eda8d03e381c9d
+    GIT_TAG f3407b0eb8266111c720b28577050e9a8f7901a5
 )
 message(STATUS "Lagrange: creating target 'lagrange::assets'")
 FetchContent_MakeAvailable(lagrange-assets)

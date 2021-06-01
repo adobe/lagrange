@@ -15,6 +15,8 @@
 
 #include "util/vertex_layout.glsl"
 
+//Default color when attribute is not set 
+#pragma property triangle_color "Triangle Color" Color(0,0,0,0)
 
 out VARYING {
     vec3 pos;
@@ -30,7 +32,7 @@ void main()
     vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
     vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
     vs_out.uv = in_uv;
-    vs_out.color = has_color_attrib ? in_color : uniform_color;   
+    vs_out.color = has_color_attrib ? in_color : triangle_color;
 
     vec4 clip_space = PV * vec4(vs_out.pos,1.0);
     vs_out.screen_pos = screen_size * 0.5f * (clip_space.xy / clip_space.w);
@@ -42,7 +44,7 @@ void main()
 #pragma GEOMETRY
 
 layout(triangles) in;
-layout(triangle_strip, max_vertices = 4) out;
+layout(triangle_strip, max_vertices = 3) out;
 
 in VARYING {
     vec3 pos;
@@ -79,7 +81,7 @@ void main() {
 
         h *= gl_Position.w;
         gs_out.edge_dist = vec3(0);
-        gs_out.edge_dist[k] = h;
+        gs_out.edge_dist[k] = abs(h); // absolute value is needed when vertex is behind camera
         
         EmitVertex();    
     }
@@ -98,19 +100,17 @@ in VARYING_GEOM {
     vec3 edge_dist;
 } fs_in;
 
+#pragma property line_width "Line Width" float(1,1,10) 
+#pragma property line_color "Line Color" Color(0,0,0,1)
 
-uniform float line_width = 1.0;
 void main(){
-
-
     float d = min(fs_in.edge_dist[0],min(fs_in.edge_dist[1],fs_in.edge_dist[2]));
 
-    d = max(d - line_width, 0); //expand width    
     d *= gl_FragCoord.w; //perspective correction
-    d = exp2(-2 * d * d); //edge function
-    
-    fragColor = fs_in.color;
-    fragColor.a *= d;
+    d = d - max(line_width - 1, 0) / 2;
+    d = smoothstep(0, 1, d);
+
+    fragColor = mix(line_color, fs_in.color, d);
     if(fragColor.a < 0.0001)
         discard;
 }

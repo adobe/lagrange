@@ -111,27 +111,33 @@ vec4 index_to_color(int i){
 #define ELEMENT_EDGE 1
 #define ELEMENT_VERTEX 2
 
-uniform int element_mode = ELEMENT_FACE;
+uniform int element_mode = ELEMENT_EDGE;
 uniform bool debug_output = false;
 
 void main(){
 
     vec3 b = fs_in.bary_pos;
-    
+
     //Get closest vertex id color (largest bary coord)
     if(element_mode == ELEMENT_VERTEX){
+        
         if(b.x > b.y){
-            if(b.x > b.z)
+            if(b.x > b.z){
                 fragColor = index_to_color(fs_in.vertex_ids[0]);
-            else
+            }
+            else{
                 fragColor = index_to_color(fs_in.vertex_ids[2]);
+            }
         }
         else {
-            if(b.y > b.z)
-                fragColor = index_to_color(fs_in.vertex_ids[1]);            
-            else
+            if(b.y > b.z){
+                fragColor = index_to_color(fs_in.vertex_ids[1]);                            
+            }
+            else{
                 fragColor = index_to_color(fs_in.vertex_ids[2]);
+            }
         }
+        return;
     }
     //Get closest edge id color (smallest bary coord)
     //Indexed as 3*face_id + edge_id, where edge_id = 0,1,2
@@ -139,26 +145,46 @@ void main(){
     
         int edge_id = 3 * fs_in.primitive_id;
         if(b.x < b.y){
-            if(b.x < b.z)
+            if(b.x < b.z){
+                //fragColor = vec4(1,0,0,1); 
                 edge_id += 0;
-            else 
+                if(b.x > 0.1){
+                    discard;
+                }
+            }
+            else {
+                //fragColor = vec4(0,0,1,1); 
                 edge_id += 2;
+                if(b.z > 0.1){
+                    discard;
+                }
+            }
         }
         else {
-            if(b.y < b.z)
+            if(b.y < b.z){
+                //fragColor = vec4(0,1,0,1); 
                 edge_id += 1;
-            else
+                if(b.y > 0.1){
+                    discard;
+                }
+            }
+            else{
+                //fragColor = vec4(0,0,1,1); 
                 edge_id += 2;
+                if(b.z > 0.1){
+                    discard;
+                }
+            }
         }
 
-        fragColor = index_to_color(edge_id);
+        fragColor = index_to_color(edge_id) ;
     }
     else if(element_mode == ELEMENT_FACE){
         fragColor = index_to_color(fs_in.primitive_id);
     }
 
     if(debug_output){
-        fragColor.xyz *= 50;
+        fragColor.xyz *= 5;
         
         vec2 d = vec2(
             length(dFdx(fragColor.xyz)),
@@ -167,5 +193,5 @@ void main(){
         fragColor.xyz *= 1.0 - vec3(max(d.x, d.y));
     }
 
-    gl_FragDepth = gl_FragCoord.z + depth_offset;
+    gl_FragDepth = gl_FragCoord.z;// + depth_offset;
 }

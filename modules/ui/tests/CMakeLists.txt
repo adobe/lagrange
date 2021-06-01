@@ -12,5 +12,5 @@
 lagrange_add_test()
 
 if(LAGRANGE_UI_OPENGL_TESTS)
-target_compile_definitions(test_ui PRIVATE LAGRANGE_UI_OPENGL_TESTS)
+target_compile_definitions(test_lagrange_ui PRIVATE LAGRANGE_UI_OPENGL_TESTS)
 endif()

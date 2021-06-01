@@ -18,11 +18,6 @@
 #include <lagrange/select_facets_in_frustum.h>
 #include <lagrange/utils/timing.h>
 
-#ifdef UI_ENABLED
-#include <lagrange/ui/Frustum.h>
-#include <lagrange/ui/ProxyMesh.h>
-#endif
-
 int main(int argc, char** argv)
 {
     CLI::App app{argv[0]};
@@ -59,69 +54,6 @@ int main(int argc, char** argv)
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> times(N);
     times.setZero();
 
-#ifdef UI_ENABLED
-    using FVertex = lagrange::ui::FrustumVertices;
-
-    auto construct_plane = [](const VertexType& p, const VertexType& n) {
-        return lagrange::ui::Frustum::Plane(n.cast<float>(), p.cast<float>());
-    };
-    auto set_frustum_vertex = [](lagrange::ui::Frustum& f, FVertex which, const VertexType& p) {
-        auto pf = p.cast<float>();
-        f.vertices[which] = {pf[0], pf[1], pf[2]};
-    };
-
-    auto construct_frustum = [&]() -> lagrange::ui::Frustum {
-        // p3     p2
-        //  +----+
-        //  |    |
-        //  +----+
-        // p0     p1
-        lagrange::ui::Frustum frustum;
-
-        set_frustum_vertex(frustum, FVertex::FRUSTUM_NEAR_LEFT_BOTTOM, p0);
-        set_frustum_vertex(
-            frustum,
-            FVertex::FRUSTUM_FAR_LEFT_BOTTOM,
-            p0 + (p0 - camera_pos).normalized() * diagonal_len);
-
-        set_frustum_vertex(frustum, FVertex::FRUSTUM_NEAR_RIGHT_BOTTOM, p1);
-        set_frustum_vertex(
-            frustum,
-            FVertex::FRUSTUM_FAR_RIGHT_BOTTOM,
-            p1 + (p1 - camera_pos).normalized() * diagonal_len);
-
-        set_frustum_vertex(frustum, FVertex::FRUSTUM_NEAR_LEFT_TOP, p3);
-        set_frustum_vertex(
-            frustum,
-            FVertex::FRUSTUM_FAR_LEFT_TOP,
-            p3 + (p3 - camera_pos).normalized() * diagonal_len);
-
-        set_frustum_vertex(frustum, FVertex::FRUSTUM_NEAR_RIGHT_TOP, p2);
-        set_frustum_vertex(
-            frustum,
-            FVertex::FRUSTUM_FAR_RIGHT_TOP,
-            p2 + (p2 - camera_pos).normalized() * diagonal_len);
-
-
-        frustum.planes[0] = construct_plane(camera_pos, {0, 0, -1}); // Near plane
-        frustum.planes[1] =
-            construct_plane(camera_pos - VertexType(0, 0, 100 * diagonal_len), {0, 0, 1}); // Far
-        frustum.planes[2] = construct_plane(p3, n30); // Left
-        frustum.planes[3] = construct_plane(p1, n12); // Right
-        frustum.planes[4] = construct_plane(p2, n23); // Top
-        frustum.planes[5] = construct_plane(p0, n01); // Bottom
-        return frustum;
-    };
-    auto start_time_proxy = lagrange::get_timestamp();
-    auto proxy_mesh = std::make_unique<lagrange::ui::ProxyMesh>(*mesh);
-    auto end_time_proxy = lagrange::get_timestamp();
-    lagrange::logger().info(
-        "Proxy mesh construction: {}s",
-        lagrange::timestamp_diff_in_seconds(start_time_proxy, end_time_proxy));
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 1> times_2(N);
-    times_2.setZero();
-#endif
-
     for (int i = 0; i < N; i++) {
         const Scalar x = step_x * i + bbox_min[0];
         const Scalar y = step_y * i + bbox_min[1];
@@ -140,39 +72,8 @@ int main(int argc, char** argv)
         auto end_time = lagrange::get_timestamp();
         times[i] = lagrange::timestamp_diff_in_seconds(start_time, end_time);
         lagrange::logger().info("select_facets run {}: {}s  selected: {}", i, times[i], r);
-
-#ifdef UI_ENABLED
-        auto frustum = construct_frustum();
-        start_time = lagrange::get_timestamp();
-        bool r2 = proxy_mesh->intersects(frustum);
-        end_time = lagrange::get_timestamp();
-        times_2[i] = lagrange::timestamp_diff_in_seconds(start_time, end_time);
-        lagrange::logger().info("UI select run {}: {}s  selected: {}", i, times_2[i], r2);
-
-        if (r2 != r) {
-            lagrange::logger().error("Ops, select_facet and UI select disagrees!");
-            using VertexArray = typename MeshType::VertexArray;
-            using FacetArray = typename MeshType::FacetArray;
-
-            VertexArray frustum_vertices(5, 3);
-            frustum_vertices.row(0) = camera_pos;
-            frustum_vertices.row(1) = camera_pos + (p0 - camera_pos) * 10;
-            frustum_vertices.row(2) = camera_pos + (p1 - camera_pos) * 10;
-            frustum_vertices.row(3) = camera_pos + (p2 - camera_pos) * 10;
-            frustum_vertices.row(4) = camera_pos + (p3 - camera_pos) * 10;
-            FacetArray frustum_facets(4, 3);
-            frustum_facets << 0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 1;
-            auto frustum2 = lagrange::wrap_with_mesh(frustum_vertices, frustum_facets);
-            auto filename = fmt::format("frustum_{}.obj", i);
-            lagrange::io::save_mesh(filename, *frustum2);
-            lagrange::logger().error("Saving frustum as {} for further debugging", filename);
-        }
-#endif
     }
 
     lagrange::logger().info("select_facet average time over {} runs: {}", N, times.mean());
-#ifdef UI_ENABLED
-    lagrange::logger().info("UI select average time over {} runs: {}", N, times_2.mean());
-#endif
     return 0;
 }

@@ -10,118 +10,60 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/ui/Viewer.h>
-#include <stdio.h>
-#ifdef _WIN32
-#include <Windows.h>
-#endif
+#include <lagrange/ui/components/ObjectIDViewport.h>
+#include <lagrange/ui/components/SelectionViewport.h>
+#include <lagrange/ui/default_entities.h>
+#include <lagrange/ui/default_events.h>
+#include <lagrange/ui/default_ibls.h>
+#include <lagrange/ui/default_panels.h>
+#include <lagrange/ui/default_shaders.h>
+#include <lagrange/ui/default_tools.h>
+#include <lagrange/ui/panels/RendererPanel.h>
+#include <lagrange/ui/panels/ToolbarPanel.h>
+#include <lagrange/ui/panels/ViewportPanel.h>
+#include <lagrange/ui/systems/camera_systems.h>
+#include <lagrange/ui/systems/render_geometry.h>
+#include <lagrange/ui/systems/render_shadowmaps.h>
+#include <lagrange/ui/systems/render_viewports.h>
+#include <lagrange/ui/systems/update_accelerated_picking.h>
+#include <lagrange/ui/systems/update_lights.h>
+#include <lagrange/ui/systems/update_mesh_bounds.h>
+#include <lagrange/ui/systems/update_mesh_buffers.h>
+#include <lagrange/ui/systems/update_mesh_elements_hovered.h>
+#include <lagrange/ui/systems/update_mesh_hovered.h>
+#include <lagrange/ui/systems/update_scene_bounds.h>
+#include <lagrange/ui/systems/update_transform_hierarchy.h>
+#include <lagrange/ui/types/GLContext.h>
+#include <lagrange/ui/utils/bounds.h>
+#include <lagrange/ui/utils/events.h>
+#include <lagrange/ui/utils/file_dialog.h>
+#include <lagrange/ui/utils/ibl.h>
+#include <lagrange/ui/utils/io.h>
+#include <lagrange/ui/utils/mesh.h>
+#include <lagrange/ui/utils/mesh.impl.h>
+#include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/treenode.h>
+#include <lagrange/ui/utils/viewport.h>
 
-
-#include <lagrange/ui/GLContext.h>
-
-#include <fstream>
 
 // Imgui and related
 #include <IconsFontAwesome5.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
+#include <fonts/fontawesome5.h>
 #include <imgui.h>
-#include <imgui_internal.h>
+#include <imgui_internal.h> //todo move dock stuff to uiwindow system
 #include <misc/cpp/imgui_stdlib.h>
 
-// Docking API is currently internal only
-// Change to public API once imgui docking is finished and in master
-#include <IconsFontAwesome5.h>
-#include <ImGuizmo.h>
-#include <fonts/fontawesome5.h>
-#include <lagrange/Logger.h>
-#include <lagrange/ui/CameraUI.h>
-#include <lagrange/ui/DetailUI.h>
-#include <lagrange/ui/KeybindsUI.h>
-#include <lagrange/ui/LogUI.h>
-#include <lagrange/ui/MeshBufferFactory.h>
-#include <lagrange/ui/MeshModel.h>
-#include <lagrange/ui/ModelFactory.h>
-#include <lagrange/ui/Renderer.h>
-#include <lagrange/ui/RendererUI.h>
-#include <lagrange/ui/Scene.h>
-#include <lagrange/ui/SceneUI.h>
-#include <lagrange/ui/SelectionUI.h>
-#include <lagrange/ui/ToolbarUI.h>
-#include <lagrange/ui/ViewportUI.h>
-#include <lagrange/ui/default_ibls.h>
-
-#ifdef _WIN32
-/*
-    Windows only - generate minidump on unhandled exception
-*/
-
-#include <Dbghelp.h>
 #include <stdio.h>
-#include <strsafe.h>
-#include <tchar.h>
-#include <windows.h>
+#include <fstream>
 
-#pragma comment(lib, "DbgHelp")
-
-LONG CALLBACK unhandled_handler(EXCEPTION_POINTERS* e)
-{
-    SYSTEMTIME sysTime = {0};
-    GetSystemTime(&sysTime);
-
-    TCHAR dump_fname[1024] = {0};
-    StringCbPrintf(
-        dump_fname,
-        _countof(dump_fname),
-        _T("%s_%4d-%02d-%02d_%02d-%02d-%02d.dmp"),
-        _T("lagrange_ui_dump"),
-        sysTime.wYear,
-        sysTime.wMonth,
-        sysTime.wDay,
-        sysTime.wHour,
-        sysTime.wMinute,
-        sysTime.wSecond);
-
-    HANDLE file_handle = CreateFile(
-        dump_fname,
-        GENERIC_WRITE,
-        FILE_SHARE_READ,
-        0,
-        CREATE_ALWAYS,
-        FILE_ATTRIBUTE_NORMAL,
-        0);
-
-    if (file_handle == INVALID_HANDLE_VALUE) return EXCEPTION_CONTINUE_SEARCH;
-
-    MINIDUMP_EXCEPTION_INFORMATION exceptionInfo;
-    exceptionInfo.ThreadId = GetCurrentThreadId();
-    exceptionInfo.ExceptionPointers = e;
-    exceptionInfo.ClientPointers = FALSE;
-
-    _tprintf("Unhandled Exception occured, dumping to %s", dump_fname);
-
-    MiniDumpWriteDump(
-        GetCurrentProcess(),
-        GetCurrentProcessId(),
-        file_handle,
-        MINIDUMP_TYPE(
-            MiniDumpWithIndirectlyReferencedMemory | MiniDumpScanMemory | MiniDumpWithFullMemory),
-        e ? &exceptionInfo : NULL,
-        NULL,
-        NULL);
-
-    if (file_handle) {
-        CloseHandle(file_handle);
-        file_handle = NULL;
-    }
-
-    return EXCEPTION_CONTINUE_SEARCH;
-}
-#endif
 
 #define MODAL_NAME_SHADER_ERROR "Shader Error"
 
 namespace lagrange {
 namespace ui {
+
 
 bool Viewer::is_key_down(int key)
 {
@@ -160,96 +102,247 @@ Viewer::Viewer(const std::string& window_title, int window_width, int window_hei
 Viewer::Viewer(const WindowOptions& window_options)
     : m_initial_window_options(window_options)
     , m_imgui_ini_path(get_config_folder() + "_" + m_initial_window_options.window_title + ".ini")
-    , m_keybinds(initialize_default_keybinds())
 {
-#ifdef _WIN32
-    if (window_options.minidump_on_crash) {
-        SetUnhandledExceptionFilter(unhandled_handler);
-    }
-#endif
-
-    register_default_resources();
-
-    // For now register used types, TODO: leave it up to the user to initialize non basic types
-    register_mesh_resource<Vertices3Df, Triangles>();
-    register_mesh_resource<Vertices3D, Triangles>();
-    register_mesh_resource<Vertices3Df, Quads>();
-    register_mesh_resource<Vertices3D, Quads>();
-    register_mesh_resource<Vertices2Df, Triangles>();
-    register_mesh_resource<Vertices2D, Triangles>();
-    register_mesh_resource<Vertices2Df, Quads>();
-    register_mesh_resource<Vertices2D, Quads>();
-    register_mesh_resource<Eigen::MatrixXf, Eigen::MatrixXi>();
-    register_mesh_resource<
-        Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
-        Eigen::
-            Matrix<typename Triangles::Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>();
-    register_mesh_resource<
-        Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>,
-        Eigen::
-            Matrix<typename Triangles::Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>();
-
-    UIPanelBase::reset_ui_panel_counter();
-    ViewportUI::reset_viewport_ui_counter();
-
-    m_log_ui_ptr = &(add_ui_panel(std::make_shared<LogUI>(this)));
-
     if (!init_glfw(window_options)) return;
+    if (!init_imgui()) return;
 
-    if (!init_imgui(window_options)) return;
+    update_scale();
 
-    // Initialize objects
-    m_scene = std::make_shared<Scene>();
-    try {
-        m_renderer = std::make_shared<Renderer>(window_options.default_render_passes);
-    } catch (std::runtime_error& ex) {
-        logger().error("Renderer failed to initialize: {}", ex.what());
-        return;
-    }
-
-    m_width = window_options.width;
-    m_height = window_options.height;
-
-    auto ground_pass = m_renderer->get_default_pass<PASS_GROUND>();
-    if (ground_pass) {
-        m_ground = std::make_unique<Ground>(*ground_pass);
-    }
-
-    m_renderer_ui_ptr = &(add_ui_panel(std::make_shared<RendererUI>(this, m_renderer)));
-    m_scene_ui_ptr = &(add_ui_panel(std::make_shared<SceneUI>(this, m_scene)));
-    m_selection = &(add_ui_panel(std::make_shared<SelectionUI>(this)));
-    m_detail_ui_ptr = &(add_ui_panel(std::make_shared<DetailUI>(this)));
-    m_toolbar_ui_ptr = &(add_ui_panel(std::make_shared<ToolbarUI>(this)));
-    m_focused_viewport_ui_ptr = &(add_viewport_panel(
-        std::make_shared<ViewportUI>(this, std::make_shared<Viewport>(m_renderer, m_scene))));
-
-    m_camera_ui_ptr = &(add_ui_panel(
-        std::make_shared<CameraUI>(this, m_focused_viewport_ui_ptr->get().get_camera_ptr())));
-
-    m_keybinds_ui_ptr = &(add_ui_panel(std::make_shared<KeybindsUI>(this)));
-    m_keybinds_ui_ptr->set_visible(false);
+    register_default_component_widgets();
 
 
-    // Add drop loading
-    add_callback<OnDrop>([](Viewer& v, int n, const char** vals) {
-        auto& scene = v.get_scene();
+    entt::meta<lagrange::MeshBase>().type();
 
-        for (auto i = 0; i < n; i++) {
-            const fs::path f = vals[i];
-            if (f.extension() == ".obj") {
-                auto p = v.get_scene_ui().get_mesh_load_params();
-                auto res = ModelFactory::load_obj<QuadMesh3D>(f, p);
-                scene.add_models(std::move(res));
-            }
+    // entt::meta<lagrange::MeshBase>().func<>("get_mesh_vertices"_hs);
+
+    ui::register_mesh_type<lagrange::TriangleMesh3Df>();
+    ui::register_mesh_type<lagrange::TriangleMesh3D>();
+
+    /*
+        System registration
+    */
+
+    // Initialization of the frame
+    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::make_current, this));
+    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::update_time, this));
+    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::process_input, this));
+
+    m_systems.add(Systems::Stage::Init, [](Registry& r) {
+        // Reload shader, etc.
+        if (lagrange::ui::get_keybinds(r).is_released("global.reload")) {
+            get_shader_cache(r).clear();
+            lagrange::logger().info("Cleared shader cache.");
         }
     });
 
-    resize(0, 0);
+    // Make sure that selection/outline and objectid viewports have correct size and post process effects
+    m_systems.add(Systems::Stage::Init, [](Registry& r) {
+        auto focused_viewport_entity = ui::get_focused_viewport_entity(r);
+        auto selection_viewport_entity = ui::get_selection_viewport_entity(r);
+
+        auto& focused = r.get<ViewportComponent>(focused_viewport_entity);
+        auto& selection = r.get<ViewportComponent>(selection_viewport_entity);
+
+        auto object_mode =
+            get_selection_context(r).element_type == entt::resolve<ElementObject>().id();
+
+        // If there's none, check all components first and delete them, then add it to this one
+        if (focused.post_process_effects.count("SelectionOutline") == 0 || !object_mode) {
+            const auto& view = r.view<ViewportComponent>();
+            for (auto e : view) {
+                view.get<ViewportComponent>(e).post_process_effects.erase("SelectionOutline");
+            }
+
+            // Only show outline if in object mode
+            if (object_mode) {
+                add_selection_outline_post_process(r, focused_viewport_entity);
+            }
+        }
+
+
+        selection.camera_reference = focused.camera_reference;
+        selection.width = focused.width;
+        selection.height = focused.height;
+
+
+        // Sort viewports so that selection is before focused
+        r.sort<ViewportComponent>([=](Entity a, Entity b) {
+            if (a == selection_viewport_entity) return true;
+            return a < b;
+        });
+    });
+
+    // Selection render layer
+    m_systems.add(Systems::Stage::Init, [](Registry& r) {
+        r.view<Layer>().each([&](Entity e, Layer& s) {
+            if (is_in_layer(r, e, DefaultLayers::Selection)) {
+                if (!is_selected(r, e)) {
+                    remove_from_layer(r, e, DefaultLayers::Selection);
+                }
+            }
+            if (is_in_layer(r, e, DefaultLayers::Hover)) {
+                if (!is_hovered(r, e)) {
+                    remove_from_layer(r, e, DefaultLayers::Hover);
+                }
+            }
+        });
+
+        selected_view(r).each(
+            [&](Entity e, Selected& s) { add_to_layer(r, e, DefaultLayers::Selection); });
+
+        hovered_view(r).each(
+            [&](Entity e, Hovered& s) { add_to_layer(r, e, DefaultLayers::Hover); });
+    });
+
+
+    // Draw all
+    m_systems.add(Systems::Stage::Interface, [](Registry& r) {
+        auto view = r.view<UIPanel>();
+        for (auto e : view) {
+            auto& window = view.get<UIPanel>(e);
+
+            // Skip hidden windows
+            if (!window.visible) continue;
+
+            if (window.static_position_enabled) {
+                ImGui::SetNextWindowPos(
+                    ImVec2(window.static_position.x(), window.static_position.y()));
+            }
+            if (window.static_size_enabled) {
+                ImGui::SetNextWindowSize(ImVec2(window.static_size.x(), window.static_size.y()));
+            }
+
+            if (window.before_fn) window.before_fn(r, e);
+
+            if (begin_panel(window) && window.body_fn) {
+                window.body_fn(r, e);
+            }
+
+            end_panel(window);
+
+            if (window.after_fn) window.after_fn(r, e);
+        }
+    });
+    m_systems.add(Systems::Stage::Interface, &update_mesh_hovered);
+    m_systems.add(Systems::Stage::Interface, &update_mesh_elements_hovered);
+    m_systems.add(Systems::Stage::Interface, [=](Registry& r) { r.ctx<Tools>().run_current(r); });
+    m_systems.add(Systems::Stage::Interface, &update_lights_system);
+
+    // Simulation stage systems
+    m_systems.add(Systems::Stage::Simulation, &update_transform_hierarchy);
+    m_systems.add(Systems::Stage::Simulation, &update_mesh_bounds_system);
+    m_systems.add(Systems::Stage::Simulation, &update_scene_bounds_system);
+    m_systems.add(Systems::Stage::Simulation, &camera_controller_system);
+    m_systems.add(Systems::Stage::Simulation, &camera_turntable_system);
+    m_systems.add(Systems::Stage::Simulation, &camera_focusfit_system);
+
+
+    m_systems.add(Systems::Stage::Render, &update_accelerated_picking);
+    m_systems.add(Systems::Stage::Render, &update_mesh_buffers_system);
+    m_systems.add(Systems::Stage::Render, &setup_vertex_data);
+    m_systems.add(Systems::Stage::Render, &render_shadowmaps);
+    m_systems.add(Systems::Stage::Render, &render_viewports);
+
+
+    // Remove mesh dirty flag -> its now propagated
+    m_systems.add(Systems::Stage::Post, [](Registry& r) { r.clear<MeshDataDirty>(); });
+
+
+    // onDestroy behavior for Tree component -> ensure correctness
+    m_registry.on_destroy<TreeNode>().connect<&orphan_without_subtree>();
+
+
+    /*
+        Entity and context variable initialization
+    */
+    // Initialize InputState context variable
+    {
+        InputState input;
+        input.keybinds = std::make_shared<Keybinds>(initialize_default_keybinds());
+        registry().set<InputState>(std::move(input));
+    }
+
+
+    // Layer names
+    register_default_layer_names(registry());
+
+    registry().set<WindowSize>(WindowSize{window_options.width, window_options.height});
+
+    // Tool context
+    auto& tools = registry().set<Tools>(Tools{});
+    register_default_tools(tools);
+
+    // Shaders
+    register_default_shaders(registry());
+
+    // Scene bounds
+    registry().set<Bounds>(Bounds());
+
+    registry().create(); //Create zero'th entity 
+
+    // UI windows - create and set as context variable
+    auto& windows = m_registry.set<DefaultPanels>(add_default_panels(registry()));
 
     m_width = window_options.width;
     m_height = window_options.height;
 
-    // m_last_timestamp = glfwGetTime();
+
+    // Create default camera
+    auto default_camera =
+        add_camera(registry(), Camera::default_camera(float(m_width), float(m_height)));
+
+
+    // Set up offscreen viewports
+
+    auto selection_viewport = [&]() {
+        auto& r = registry();
+        auto viewport = add_viewport(r, default_camera);
+        r.emplace_or_replace<Name>(viewport, "Selection Mask Viewport");
+
+        // Set viewport to see only selection layer
+        auto& vc = r.get<ViewportComponent>(viewport);
+        vc.visible_layers.reset().set(DefaultLayers::Selection, true);
+        vc.material_override = create_material(r, DefaultShaders::Simple);
+        vc.material_override->set_color("in_color", Color::red());
+        vc.material_override->set_int(RasterizerOptions::Primitive, GL_TRIANGLES);
+        return viewport;
+    }();
+    registry().set<SelectionViewport>(SelectionViewport{selection_viewport});
+
+
+    auto object_id_viewport = [&]() {
+        auto& r = registry();
+        auto viewport = add_viewport(r, default_camera);
+        r.emplace_or_replace<Name>(viewport, "ObjectID Viewport");
+
+        auto& vc = r.get<ViewportComponent>(viewport);
+        vc.enabled = false; // Off by default
+        vc.material_override = create_material(r, DefaultShaders::ObjectID);
+        vc.material_override->set_int(RasterizerOptions::Primitive, GL_TRIANGLES);
+        return viewport;
+    }();
+    // Set as context variable
+    registry().set<ObjectIDViewport>(ObjectIDViewport{object_id_viewport});
+
+
+    // Set up default viewport
+    {
+        // Create viewport
+        auto main_viewport = add_viewport(registry(), default_camera);
+        registry().emplace_or_replace<Name>(main_viewport, "Default Viewport");
+
+        // Set the viewport to default viewport window
+        registry().get<ViewportPanel>(windows.viewport).viewport = main_viewport;
+    }
+
+
+    // Sort viewports (manually for now)
+    {
+        registry().sort<ViewportComponent>([&](Entity a, Entity b) {
+            if (a == m_main_viewport) return false;
+            return a < b;
+        });
+    }
 
     m_initialized = true;
     m_instance_initialized = true;
@@ -258,325 +351,118 @@ Viewer::Viewer(const WindowOptions& window_options)
         Load default ibl
     */
     if (window_options.default_ibl != "") {
-        m_scene->add_emitter(create_default_ibl(window_options.default_ibl));
-    }
+        // Todo extract out into public API
+        try {
+            auto ibl = ui::generate_default_ibl(
+                window_options.default_ibl,
+                window_options.default_ibl_resolution);
+            ibl.blur = 2.0f;
+            auto entity = create_scene_node(registry(), "IBL");
+            registry().emplace<IBL>(entity, std::move(ibl));
 
-    get_renderer().update_selection(get_selection());
-    get_selection().set_selection_mode(SelectionElementType::OBJECT);
-}
-
-void Viewer::draw_toolbar()
-{
-    if (UIWidget::button_toolbar(
-            get_manipulation_mode() == ManipulationMode::SELECT,
-            ICON_FA_VECTOR_SQUARE,
-            "Select",
-            "global.manipulation_mode.select",
-            &get_keybinds())) {
-        set_manipulation_mode(ManipulationMode::SELECT);
-    }
-
-    if (UIWidget::button_toolbar(
-            get_manipulation_mode() == ManipulationMode::TRANSLATE,
-            ICON_FA_ARROWS_ALT,
-            "Translate",
-            "global.manipulation_mode.translate",
-            &get_keybinds())) {
-        set_manipulation_mode(ManipulationMode::TRANSLATE);
-    }
-
-    if (UIWidget::button_toolbar(
-            get_manipulation_mode() == ManipulationMode::ROTATE,
-            ICON_FA_REDO,
-            "Rotate",
-            "global.manipulation_mode.rotate",
-            &get_keybinds())) {
-        set_manipulation_mode(ManipulationMode::ROTATE);
-    }
-
-    if (UIWidget::button_toolbar(
-            get_manipulation_mode() == ManipulationMode::SCALE,
-            ICON_FA_COMPRESS_ARROWS_ALT,
-            "Scale",
-            "global.manipulation_mode.scale",
-            &get_keybinds())) {
-        set_manipulation_mode(ManipulationMode::SCALE);
-    }
-}
-
-void Viewer::begin_frame()
-{
-    assert(m_window);
-    glfwMakeContextCurrent(m_window);
-    assert(m_window);
-
-    m_mouse_delta = {0, 0};
-    glfwPollEvents();
-
-
-    /*
-        Process one keyboard event at a time
-    */
-    if (!m_key_queue.empty()) {
-        auto event = m_key_queue.front();
-        get_keybinds().set_key_state(event.first, event.second);
-        m_key_queue.pop();
-    }
-
-    /*
-        Process one mouse key event at a time
-    */
-    if (!m_mouse_key_queue.empty()) {
-        auto event = m_mouse_key_queue.front();
-        get_keybinds().set_key_state(event.first, event.second);
-        m_mouse_key_queue.pop();
-    }
-
-    ImGui::SetCurrentContext(m_imgui_context);
-    ImGui_ImplOpenGL3_NewFrame();
-    ImGui_ImplGlfw_NewFrame();
-    ImGui::NewFrame();
-
-    // Set keybind context
-    std::string keybind_context = "global";
-    if (get_focused_viewport_ui().hovered()) {
-        keybind_context = "viewport";
-    }
-    m_keybinds.update(keybind_context);
-
-
-    {
-        auto& io = ImGui::GetIO();
-        io.FontGlobalScale = 0.5f * m_ui_scaling; // divide by two since we're oversampling
-        auto& style = ImGui::GetStyle();
-
-        ImGui::PushStyleVar(
-            ImGuiStyleVar_FramePadding,
-            ImVec2(style.FramePadding.x * m_ui_scaling, style.FramePadding.y * m_ui_scaling));
-
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, style.FrameRounding * m_ui_scaling);
-        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, style.TabRounding * m_ui_scaling);
-        ImGui::PushStyleVar(
-            ImGuiStyleVar_ScrollbarSize,
-            std::max(7.0f, style.ScrollbarSize * m_ui_scaling));
-        ImGui::PushStyleVar(
-            ImGuiStyleVar_ScrollbarRounding,
-            style.ScrollbarRounding * m_ui_scaling);
-    }
-
-    // Update scene and renderer
-    float dt = ImGui::GetIO().DeltaTime;
-    get_selection().update(dt);
-    get_scene().update(dt);
-    get_renderer().update();
-
-    // Update panels
-    for (auto& panel : m_ui_panels) {
-        panel->update(dt);
-    }
-
-
-    /*
-        Clear default framebuffer
-    */
-    GLScope gl;
-    {
-        gl(glBindFramebuffer, GL_FRAMEBUFFER, 0);
-        gl(glViewport, 0, 0, m_width, m_height);
-        Color bgcolor = Color(0, 0, 0, 0);
-        gl(glClearColor, bgcolor.x(), bgcolor.y(), bgcolor.z(), bgcolor.a());
-        gl(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    }
-    // Imgui Tab styling
-    {
-        ImGui::PushStyleColor(ImGuiCol_Tab, ImColor(255, 255, 255, 255).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabActive, ImColor(255, 255, 255, 255).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabHovered, ImColor(255, 255, 255, 255).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ImColor(ImGui::Spectrum::GRAY200).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabUnfocused, ImColor(ImGui::Spectrum::GRAY400).Value);
-    }
-    static bool imgui_demo = false;
-    static bool imgui_style = false;
-
-
-    ImGui::BeginMainMenuBar();
-    if (ImGui::BeginMenu("File")) {
-        m_scene_ui_ptr->draw_menu();
-
-        ImGui::Separator();
-        if (ImGui::MenuItem(ICON_FA_WINDOW_CLOSE " Quit")) {
-            glfwSetWindowShouldClose(m_window, GL_TRUE);
+        } catch (const std::exception& ex) {
+            lagrange::logger().error("Failed to generate ibl: {}", ex.what());
         }
-
-        ImGui::EndMenu();
     }
+}
 
-    if (ImGui::BeginMenu("View")) {
-        for (auto& panel : m_ui_panels) {
-            const char* title = panel->get_title();
-            if (title[0] != '#') {
-                if (ImGui::MenuItem(title, "", panel->is_visible())) {
-                    panel->set_visible(!panel->is_visible());
-                }
+
+bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
+{
+    if (!is_initialized()) return false;
+
+    while (!should_close()) {
+        /*
+            Initialization systems
+        */
+        m_systems.run(Systems::Stage::Init, registry());
+
+
+        start_imgui_frame();
+
+
+        draw_menu();
+        // Dock space
+        {
+            start_dockspace();
+            if (m_show_imgui_demo) {
+                ImGui::ShowDemoWindow(&m_show_imgui_demo);
             }
+
+            if (m_show_imgui_style) {
+                ImGui::Begin("Style Editor", &m_show_imgui_style);
+                ImGui::ShowStyleEditor();
+                ImGui::End();
+            }
+
+            m_systems.run(Systems::Stage::Interface, registry());
+
+
+            show_last_shader_error();
+            end_dockspace();
         }
 
-        ImGui::Separator();
-        ImGui::MenuItem("ImGui Demo Window", "", &imgui_demo);
-        ImGui::MenuItem("Style Editor", "", &imgui_style);
-
-        ImGui::Separator();
+        end_imgui_frame();
 
 
-        if (ImGui::MenuItem("New Viewport")) {
-            add_viewport_panel();
+        if (main_loop) {
+            if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
         }
 
-        ImGui::Separator();
 
-        if (ImGui::MenuItem("Reset layout")) {
-            // Empty the .ini file
+        m_systems.run(Systems::Stage::Simulation, registry());
+
+
+        // All rendering goes here
+        {
+            /*
+                Render to texture
+            */
+            try {
+                m_last_shader_error = "";
+                m_last_shader_error_desc = "";
+
+                m_systems.run(Systems::Stage::Render, registry());
+
+            } catch (ShaderException& ex) {
+                m_last_shader_error = ex.what();
+                m_last_shader_error_desc = ex.get_desc();
+                lagrange::logger().error("{}", m_last_shader_error);
+            }
+
+            /*
+                Clear default framebuffer
+            */
+            GLScope gl;
             {
-                std::ofstream f(get_imgui_config_path(), std::ios::app);
+                gl(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+                gl(glViewport, 0, 0, m_width, m_height);
+                Color bgcolor = Color(0, 0, 0, 0);
+                gl(glClearColor, bgcolor.x(), bgcolor.y(), bgcolor.z(), bgcolor.a());
+                gl(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             }
 
-            reset_layout();
+
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); // render to screen buffer
         }
 
-        ImGui::EndMenu();
+
+        glfwSwapBuffers(m_window);
+
+
+        m_systems.run(Systems::Stage::Post, registry());
     }
 
-    for (auto& panel : m_ui_panels) {
-        if (panel.get() == m_scene_ui_ptr) continue;
-        panel->draw_menu();
-    }
-
-
-#ifdef _DEBUG
-    if (m_ui_scaling != 1.0f) {
-        ImGui::Text("(dpi scale: %.2f)", m_ui_scaling);
-    }
-#endif
-
-
-    ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::GetFontSize() * 5);
-    ImGui::Text("(%.0f fps)", ImGui::GetIO().Framerate);
-    if ((m_initial_window_options.fullscreen || m_initial_window_options.window_fullscreen)) {
-        if (ImGui::Button(ICON_FA_CROSS)) {
-            glfwSetWindowShouldClose(m_window, GL_TRUE);
-        }
-    }
-
-    m_menubar_height = ImGui::GetWindowSize().y;
-    ImGui::EndMainMenuBar();
-
-    m_dockspace_id = ImGui::GetID("MyDockSpace");
-    if (ImGui::DockBuilderGetNode(m_dockspace_id) == NULL) {
-        reset_layout();
-    }
-
-    // Show tab bar if there's more than one viewport
-    if (m_viewports.size() > 1) {
-        for (auto* v : m_viewports) {
-            v->enable_tab_bar(true);
-        }
-    }
-
-    {
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(ImVec2(ToolbarUI::toolbar_width, m_menubar_height));
-        ImGui::SetNextWindowSize(ImVec2(
-            viewport->Size.x - ToolbarUI::toolbar_width,
-            viewport->Size.y - m_menubar_height));
-        ImGui::SetNextWindowViewport(viewport->ID);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
-    }
-
-    ImGui::Begin(
-        "Dockspace window",
-        nullptr,
-        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove |
-            ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus);
-    ImGui::PopStyleVar(3);
-
-    ImGui::DockSpace(m_dockspace_id);
-
-    if (imgui_demo) ImGui::ShowDemoWindow(&imgui_demo);
-
-    if (imgui_style) {
-        ImGui::Begin("Style Editor", &imgui_style);
-        ImGui::ShowStyleEditor();
-        ImGui::End();
-    }
-
-    for (auto& panel : m_ui_panels) {
-        if (panel->is_visible()) panel->draw();
-    }
-
-    if (!m_dock_queue.empty()) {
-        auto& fn = m_dock_queue.front();
-        if (fn()) {
-            m_dock_queue.pop();
-        }
-    }
-
-    ImGui::End();
-    ImGui::PopStyleColor(5);
+    return true;
 }
 
-void Viewer::end_frame()
+
+bool Viewer::run(const std::function<void(void)>& main_loop /*= {}*/)
 {
-    /*
-        Render to texture
-    */
-    try {
-        m_last_shader_error = "";
-        m_last_shader_error_desc = "";
-
-        for (auto* v : m_viewports) {
-            v->get().render();
-        }
-
-    } catch (ShaderException& ex) {
-        ImGui::OpenPopup(MODAL_NAME_SHADER_ERROR);
-        m_last_shader_error = ex.what();
-        m_last_shader_error_desc = ex.get_desc();
-    }
-
-
-    if (ImGui::BeginPopupModal(MODAL_NAME_SHADER_ERROR)) {
-        ImGui::Text("%s", m_last_shader_error_desc.c_str());
-
-        ImGui::InputTextMultiline(
-            "",
-            &m_last_shader_error,
-            ImVec2(float((get_width() / 3) * 2), float((get_height() / 5) * 4)));
-
-        if (m_last_shader_error.length() == 0) {
-            ImGui::CloseCurrentPopup();
-        }
-
-        if (ImGui::Button("Try again", ImVec2(ImGui::GetContentRegionAvail().x, 40.0f))) {
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::EndPopup();
-    }
-
-
-    m_renderer->end_frame();
-
-    ImGui::PopStyleVar(5);
-    ImGui::Render(); // note: this renders to imgui's vertex buffers, not to screen
-
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); // render to screen buffer
-
-    m_callbacks.call<OnRenderFinished>(*this);
-
-    glfwSwapBuffers(m_window);
-    m_frame_counter++;
+    return run([=](Registry& r) -> bool {
+        if (main_loop) main_loop();
+        return true;
+    });
 }
 
 bool Viewer::should_close() const
@@ -584,253 +470,22 @@ bool Viewer::should_close() const
     return glfwWindowShouldClose(m_window);
 }
 
-bool Viewer::run()
-{
-    if (!is_initialized()) return false;
-
-    while (!should_close()) {
-        begin_frame();
-        end_frame();
-    }
-    return true;
-}
-
-Scene& Viewer::get_scene()
-{
-    return *m_scene;
-}
-
-const Scene& Viewer::get_scene() const
-{
-    return *m_scene;
-}
-
-Renderer& Viewer::get_renderer()
-{
-    return *m_renderer;
-}
-
-const Renderer& Viewer::get_renderer() const
-{
-    return *m_renderer;
-}
-
-SelectionUI& Viewer::get_selection()
-{
-    return *m_selection;
-}
-
-const SelectionUI& Viewer::get_selection() const
-{
-    return *m_selection;
-}
-
-RenderPass<Viz::PassData>* Viewer::add_viz(const Viz& config, bool show /*= true*/)
-{
-    auto ptr = m_renderer->add_viz(config);
-    if (!ptr) {
-        lagrange::logger().error("Failed to add visualization.");
-        return nullptr;
-    }
-
-    if (show) {
-        for (auto* viewport_ui : m_viewports) {
-            viewport_ui->get_viewport().enable_render_pass(ptr, true);
-        }
-    }
-    return ptr;
-}
-
-Camera& Viewer::get_current_camera()
-{
-    assert(m_focused_viewport_ui_ptr);
-    return m_focused_viewport_ui_ptr->get().get_camera();
-}
-
-const Camera& Viewer::get_current_camera() const
-{
-    assert(m_focused_viewport_ui_ptr);
-    return m_focused_viewport_ui_ptr->get().get_camera();
-}
 
 bool Viewer::is_initialized() const
 {
     return m_initialized;
 }
 
-bool Viewer::remove_ui_panel(const UIPanelBase* panel)
-{
-    auto it = std::find_if(m_ui_panels.begin(), m_ui_panels.end(), [=](auto& panel_ptr) {
-        return panel_ptr.get() == panel;
-    });
-
-    if (it == m_ui_panels.end()) return false;
-    m_ui_panels.erase(it);
-
-    // Search in viewports and remove there as well
-    {
-        auto it_v = std::find_if(m_viewports.begin(), m_viewports.end(), [=](auto& panel_ptr) {
-            return panel_ptr == panel;
-        });
-        if (it_v != m_viewports.end()) {
-            m_viewports.erase(it_v);
-        }
-    }
-
-    return true;
-}
-
-ViewportUI& Viewer::add_viewport_panel(std::shared_ptr<ViewportUI> viewport_panel)
-{
-    if (viewport_panel == nullptr) {
-        viewport_panel = std::make_shared<ViewportUI>(
-            this,
-            lagrange::to_shared_ptr(get_focused_viewport_ui().get().clone()));
-    }
-
-
-    viewport_panel->UIPanelBase::add_callback<UIPanelBase::OnChangeFocus>([=](UIPanelBase& panel,
-                                                                              bool focused) {
-        if (focused) {
-            this->m_focused_viewport_ui_ptr = reinterpret_cast<ViewportUI*>(&panel);
-
-            // Set viewport's camera to camera_ui
-            if (this->m_camera_ui_ptr) {
-                this->m_camera_ui_ptr->set(this->m_focused_viewport_ui_ptr->get().get_camera_ptr());
-            }
-        }
-    });
-
-    m_viewports.push_back(viewport_panel.get());
-    return add_ui_panel(std::move(viewport_panel));
-}
-
-
-SceneUI& Viewer::get_scene_ui()
-{
-    return *m_scene_ui_ptr;
-}
-
-CameraUI& Viewer::get_camera_ui()
-{
-    return *m_camera_ui_ptr;
-}
-
-RendererUI& Viewer::get_renderer_ui()
-{
-    return *m_renderer_ui_ptr;
-}
-
-ViewportUI& Viewer::get_focused_viewport_ui()
-{
-    return *m_focused_viewport_ui_ptr;
-}
-
-LogUI& Viewer::get_log_ui()
-{
-    return *m_log_ui_ptr;
-}
-
-DetailUI& Viewer::get_detail_ui()
-{
-    return *m_detail_ui_ptr;
-}
 
 double Viewer::get_frame_elapsed_time() const
 {
     return ImGui::GetIO().DeltaTime;
 }
 
-void Viewer::reset_layout()
-{
-    constexpr float right_panel_width = 320.0f;
-    constexpr float bottom_panel_width = 150.0f;
-
-    ImGui::DockBuilderRemoveNode(m_dockspace_id);
-    ImGui::DockBuilderAddNode(
-        m_dockspace_id,
-        ImGuiDockNodeFlagsPrivate_::ImGuiDockNodeFlags_DockSpace |
-            ImGuiDockNodeFlagsPrivate_::ImGuiDockNodeFlags_HiddenTabBar);
-    ImGui::DockBuilderSetNodeSize(m_dockspace_id, ImVec2(float(m_width), float(m_height)));
-
-    ImGuiID dock_id_main;
-    ImGuiID dock_id_right;
-    ImGuiID dock_id_right_top;
-    ImGuiID dock_id_right_bottom;
-    ImGuiID dock_id_bottom;
-
-    ImGui::DockBuilderSplitNode(
-        m_dockspace_id,
-        ImGuiDir_Right,
-        right_panel_width / float(m_width),
-        &dock_id_right,
-        &dock_id_main);
-
-    ImGui::DockBuilderSplitNode(
-        dock_id_right,
-        ImGuiDir_Down,
-        0.7f,
-        &dock_id_right_bottom,
-        &dock_id_right_top);
-
-    ImGui::DockBuilderSplitNode(
-        dock_id_main,
-        ImGuiDir_Down,
-        bottom_panel_width / float(m_height),
-        &dock_id_bottom,
-        &dock_id_main);
-
-    // Disable tab bar for viewport
-    {
-        ImGuiDockNode* node = ImGui::DockBuilderGetNode(dock_id_main);
-        node->LocalFlags |= ImGuiDockNodeFlags_NoTabBar | ImGuiDockNodeFlags_CentralNode;
-    }
-
-    ImGui::DockBuilderDockWindow(m_focused_viewport_ui_ptr->get_title(), dock_id_main);
-
-    ImGui::DockBuilderDockWindow(m_scene_ui_ptr->get_title(), dock_id_right_top);
-
-    // docking creation API is still experimental. We can improve this code once it's stable.
-    // Note: do not force order using focus (FocusWindow), it'll focus the whole docking window
-    // and cover any user-created floating windows.
-    //
-    // https://github.com/ocornut/imgui/issues/3136
-    //
-    ImGui::DockBuilderDockWindow(m_renderer_ui_ptr->get_title(), dock_id_right_bottom);
-    ImGui::DockBuilderDockWindow(m_camera_ui_ptr->get_title(), dock_id_right_bottom);
-    ImGui::DockBuilderDockWindow(m_detail_ui_ptr->get_title(), dock_id_right_bottom);
-
-    ImGui::DockBuilderDockWindow(m_log_ui_ptr->get_title(), dock_id_bottom);
-
-    ImGui::DockBuilderFinish(m_dockspace_id);
-}
-
-void Viewer::set_manipulation_mode(ManipulationMode mode)
-{
-    m_manipulation_mode = mode;
-    m_callbacks.call<OnManipulationModeChange>(mode);
-}
-
-Viewer::ManipulationMode Viewer::get_manipulation_mode() const
-{
-    return m_manipulation_mode;
-}
 
 const std::string& Viewer::get_imgui_config_path() const
 {
     return m_imgui_ini_path;
-}
-
-void Viewer::enqueue_dock(
-    UIPanelBase& target,
-    UIPanelBase& source,
-    UIPanelBase::DockDir dir,
-    float ratio,
-    bool split_outer)
-{
-    auto target_ptr = &target;
-    auto source_ptr = &source;
-    m_dock_queue.push([=]() { return source_ptr->dock_to(*target_ptr, dir, ratio, split_outer); });
 }
 
 float Viewer::get_window_scaling() const
@@ -838,39 +493,25 @@ float Viewer::get_window_scaling() const
     return m_ui_scaling;
 }
 
-void Viewer::enable_ground(bool enable)
+Keybinds& Viewer::get_keybinds()
 {
-    auto pass = m_renderer->get_default_pass<PASS_GROUND>();
-    LA_ASSERT(pass, "Ground render pass was not enabled");
-    for (auto v : m_viewports) {
-        v->get().enable_render_pass(pass, enable);
-    }
+    return lagrange::ui::get_keybinds(m_registry);
 }
 
-Ground& Viewer::get_ground()
+const Keybinds& Viewer::get_keybinds() const
 {
-    LA_ASSERT(m_ground, "Ground render pass was not enabled.");
-    return *m_ground;
+    return lagrange::ui::get_keybinds(m_registry);
 }
 
-const Ground& Viewer::get_ground() const
-{
-    LA_ASSERT(m_ground, "Ground render pass was not enabled.");
-    return *m_ground;
-}
 
 Viewer::~Viewer()
 {
-    m_callbacks.call<OnClose>(*this);
+    publish<WindowCloseEvent>(m_registry);
+
     // Explicitly remove scene and renderer first before closing
     // the opengl context
+    m_registry = {};
 
-    // Remove ui panels first
-    m_ui_panels.clear();
-    m_scene = nullptr;
-    m_renderer = nullptr;
-
-    MeshBuffer::clear_static_data();
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
@@ -1032,7 +673,11 @@ bool Viewer::init_glfw(const WindowOptions& options)
     });
 
     glfwSetCursorPosCallback(m_window, [](GLFWwindow* window, double x, double y) {
-        static_cast<Viewer*>(glfwGetWindowUserPointer(window))->cursor_pos(x, y);
+        const Eigen::Vector2f new_pos = Eigen::Vector2f(x, y);
+
+        auto& input = static_cast<Viewer*>(glfwGetWindowUserPointer(window))->get_input();
+        input.mouse_delta += new_pos - input.mouse_position;
+        input.mouse_position = new_pos;
     });
 
     glfwSetKeyCallback(
@@ -1046,10 +691,17 @@ bool Viewer::init_glfw(const WindowOptions& options)
             ->m_mouse_key_queue.push({button, action});
     });
 
+    glfwSetScrollCallback(m_window, [](GLFWwindow* window, double x, double y) {
+        auto& input = static_cast<Viewer*>(glfwGetWindowUserPointer(window))->get_input();
+        input.mouse_wheel = float(y);
+        input.mouse_wheel_horizontal = float(x);
+    });
+
+
     return true;
 }
 
-bool Viewer::init_imgui(const WindowOptions& LGUI_UNUSED(window_options))
+bool Viewer::init_imgui()
 {
     IMGUI_CHECKVERSION();
     m_imgui_context = ImGui::CreateContext();
@@ -1103,6 +755,7 @@ bool Viewer::init_imgui_fonts()
     return font_awesome != nullptr;
 }
 
+
 void Viewer::resize(int window_width, int window_height)
 {
     if (window_width < 0 || window_height < 0) {
@@ -1116,14 +769,18 @@ void Viewer::resize(int window_width, int window_height)
     update_scale();
 
 
+    registry().set<WindowSize>(WindowSize{window_width, window_height});
+
     m_width = window_width;
     m_height = window_height;
 
-    m_callbacks.call<OnResize>(*this, window_width, window_height);
+    ui::publish<WindowResizeEvent>(m_registry, window_width, window_height);
 }
 
-void Viewer::move(int LGUI_UNUSED(x), int LGUI_UNUSED(y))
+void Viewer::move(int x, int y)
 {
+    (void)(x);
+    (void)(y);
     update_scale();
 }
 
@@ -1141,7 +798,7 @@ void Viewer::update_scale()
 
 void Viewer::drop(int count, const char** paths)
 {
-    m_callbacks.call<OnDrop>(*this, count, paths);
+    publish<WindowDropEvent>(m_registry, count, paths);
 }
 
 std::string Viewer::get_config_folder()
@@ -1160,22 +817,296 @@ std::string Viewer::get_options_file_path()
     return (get_config_folder() + "lagrange-ui.json");
 }
 
-Eigen::Vector2f Viewer::get_mouse_pos()
+void Viewer::process_input()
 {
-    return m_mouse_pos;
+    // Reset input before polling events
+    get_input().mouse_wheel = 0.0f;
+    get_input().mouse_wheel_horizontal = 0.0f;
+    get_input().mouse_delta = Eigen::Vector2f(0, 0);
+
+    glfwPollEvents();
+
+
+    /*
+        Process one keyboard event at a time
+    */
+    if (!m_key_queue.empty()) {
+        auto event = m_key_queue.front();
+        get_keybinds().set_key_state(event.first, event.second);
+        m_key_queue.pop();
+    }
+
+    /*
+        Process one mouse key event at a time
+    */
+    if (!m_mouse_key_queue.empty()) {
+        auto event = m_mouse_key_queue.front();
+        get_keybinds().set_key_state(event.first, event.second);
+        m_mouse_key_queue.pop();
+    }
+
+    // Set keybind context
+    std::string keybind_context = "global";
+
+    // If any viewport hovered, set context to "viewport"
+    bool any_viewport_hovered = false;
+    registry().view<const ViewportPanel>().each(
+        [&](const ViewportPanel& v) { any_viewport_hovered |= v.hovered; });
+    if (any_viewport_hovered) {
+        keybind_context = "viewport";
+    }
+
+    get_input().keybinds->update(keybind_context);
 }
 
-Eigen::Vector2f Viewer::get_mouse_delta()
+void Viewer::update_time()
 {
-    return m_mouse_delta;
+    float dt = ImGui::GetIO().DeltaTime;
+    auto& global_time = registry().ctx_or_set<GlobalTime>();
+    global_time.t += dt;
+    global_time.dt = dt;
 }
 
-void Viewer::cursor_pos(double x, double y)
+void Viewer::start_imgui_frame()
 {
-    Eigen::Vector2f new_pos = Eigen::Vector2f(x, y);
-    m_mouse_delta += new_pos - m_mouse_pos;
-    m_mouse_pos = new_pos;
+    // Start new ImGui Frame
+    ImGui::SetCurrentContext(m_imgui_context);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+
+    // Set up ui scaling
+    {
+        auto& io = ImGui::GetIO();
+        io.FontGlobalScale = 0.5f * m_ui_scaling; // divide by two since we're oversampling
+        auto& style = ImGui::GetStyle();
+
+        ImGui::PushStyleVar(
+            ImGuiStyleVar_FramePadding,
+            ImVec2(style.FramePadding.x * m_ui_scaling, style.FramePadding.y * m_ui_scaling));
+
+        ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, style.FrameRounding * m_ui_scaling);
+        ImGui::PushStyleVar(ImGuiStyleVar_TabRounding, style.TabRounding * m_ui_scaling);
+        ImGui::PushStyleVar(
+            ImGuiStyleVar_ScrollbarSize,
+            std::max(7.0f, style.ScrollbarSize * m_ui_scaling));
+        ImGui::PushStyleVar(
+            ImGuiStyleVar_ScrollbarRounding,
+            style.ScrollbarRounding * m_ui_scaling);
+    }
+
+    // Imgui Tab styling
+    {
+        ImGui::PushStyleColor(ImGuiCol_Tab, ImColor(255, 255, 255, 255).Value);
+        ImGui::PushStyleColor(ImGuiCol_TabActive, ImColor(255, 255, 255, 255).Value);
+        ImGui::PushStyleColor(ImGuiCol_TabHovered, ImColor(255, 255, 255, 255).Value);
+        ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ImColor(ImGui::Spectrum::GRAY200).Value);
+        ImGui::PushStyleColor(ImGuiCol_TabUnfocused, ImColor(ImGui::Spectrum::GRAY400).Value);
+    }
 }
+
+void Viewer::end_imgui_frame()
+{
+    ImGui::PopStyleColor(5);
+
+    ImGui::PopStyleVar(5);
+    ImGui::Render(); // note: this renders to imgui's vertex buffers, not to screen
+}
+
+void Viewer::make_current()
+{
+    assert(m_window);
+    glfwMakeContextCurrent(m_window);
+}
+
+void Viewer::draw_menu()
+{
+    auto& r = registry();
+    ImGui::BeginMainMenuBar();
+    if (ImGui::BeginMenu("File")) {
+        //lagrange::logger().info("TODO load/save menu");
+
+        if (ImGui::MenuItem(ICON_FA_FILE " Clear Scene")) {
+            ui::clear_scene(r);
+        }
+
+        ImGui::Separator();
+#ifdef LAGRANGE_WITH_ASSIMP
+        if (ImGui::MenuItem(ICON_FA_FILE_IMPORT " Import Scene")) {
+            auto path = load_dialog("");
+            if (!path.empty()) {
+                ui::load_scene<TriangleMesh3Df>(r, path);
+                ui::camera_focus_and_fit(r, get_focused_camera_entity(r));
+            }
+        }
+#else
+        ImGui::MenuItem(ICON_FA_WINDOW_CLOSE " Load Scene", nullptr, false, false);
+        if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
+            ImGui::SetTooltip("Load Scene is only available when Lagrange is compiled with\n"
+                              "Assimp support (CMake option: LAGRANGE_WITH_ASSIMP=ON)");
+        }
+#endif
+
+        if (ImGui::MenuItem(ICON_FA_FILE_IMPORT " Import Single Mesh")) {
+            auto path = load_dialog("");
+            if (!path.empty()) {
+                auto m = ui::load_obj<TriangleMesh3Df>(r, path);
+                if (m != NullEntity) {
+                    ui::show_mesh(r, m);
+                    ui::camera_focus_and_fit(r, get_focused_camera_entity(r));
+                }
+            }
+        }
+
+        // TODO: Add export capabilities once the UI can do useful stuff (mesh cleanup, etc). 
+
+        ImGui::Separator();
+        if (ImGui::MenuItem(ICON_FA_WINDOW_CLOSE " Quit")) {
+            glfwSetWindowShouldClose(m_window, GL_TRUE);
+        }
+
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("View")) {
+        r.view<UIPanel>().each([](UIPanel& window) {
+            if (window.title.length() > 0 && window.title[0] != '#') {
+                if (ImGui::MenuItem(window.title.c_str(), nullptr, window.visible)) {
+                    window.visible = !window.visible;
+                }
+            }
+        });
+
+
+        ImGui::Separator();
+        ImGui::MenuItem("ImGui Demo Window", "", &m_show_imgui_demo);
+        ImGui::MenuItem("Style Editor", "", &m_show_imgui_style);
+
+        ImGui::Separator();
+
+
+        if (ImGui::MenuItem("New Viewport")) {
+            auto viewport = add_viewport(registry(), get_focused_camera_entity(registry()));
+            add_viewport_panel(registry(), "Viewport", viewport);
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("Reset layout")) {
+            // Empty the .ini file
+            {
+                std::ofstream f(get_imgui_config_path(), std::ios::app);
+            }
+
+            reset_layout(registry());
+        }
+
+        if (ImGui::MenuItem("Show Tab Bars")) {
+            r.view<UIPanel>().each([](UIPanel& window) {
+                if (window.imgui_window && window.imgui_window->DockNode) {
+                    window.imgui_window->DockNode->LocalFlags &= ~ImGuiDockNodeFlags_NoTabBar;
+                }
+            });
+        }
+
+        ImGui::EndMenu();
+    }
+
+    {
+        auto view = r.view<UIPanel>();
+        for (auto e : view) {
+            auto& window = view.get<UIPanel>(e);
+            if (window.menubar_fn) window.menubar_fn(r, e);
+        }
+    }
+
+    ImGui::SameLine(ImGui::GetWindowWidth() - ImGui::GetFontSize() * 5);
+    ImGui::Text("(%.0f fps)", ImGui::GetIO().Framerate);
+    if ((m_initial_window_options.fullscreen || m_initial_window_options.window_fullscreen)) {
+        ImGui::PushID("x");
+        if (ImGui::Button(ICON_FA_TIMES)) {
+            glfwSetWindowShouldClose(m_window, GL_TRUE);
+        }
+        ImGui::PopID();
+    }
+
+    // Update context to have main menu height - needed for toolbar rendering
+    r.set<MainMenuHeight>(MainMenuHeight{ImGui::GetWindowSize().y});
+
+    ImGui::EndMainMenuBar();
+}
+
+void Viewer::start_dockspace()
+{
+    // Set dockspace from Imgui to context
+    auto dockspace = registry().set<Dockspace>(Dockspace{ImGui::GetID("MyDockSpace")});
+
+    if (ImGui::DockBuilderGetNode(dockspace.ID) == NULL) {
+        reset_layout(registry());
+    }
+
+    // Position dockspace window
+    {
+        float left_offset = 0.0f;
+
+        const auto& toolbar = m_registry.get<UIPanel>(m_registry.ctx<DefaultPanels>().toolbar);
+        if (toolbar.visible) {
+            left_offset += ToolbarPanel::toolbar_width;
+        }
+
+        const auto menubar_height = get_menu_height(registry()).height;
+        ImGuiViewport* viewport = ImGui::GetMainViewport();
+        ImGui::SetNextWindowPos(ImVec2(left_offset, menubar_height));
+        ImGui::SetNextWindowSize(
+            ImVec2(viewport->Size.x - left_offset, viewport->Size.y - menubar_height));
+        ImGui::SetNextWindowViewport(viewport->ID);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
+        ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.0f, 0.0f));
+    }
+
+    ImGui::Begin(
+        "Dockspace window",
+        nullptr,
+        ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoDocking | ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoNav | ImGuiWindowFlags_NoBringToFrontOnFocus);
+
+    {
+        ImGui::PopStyleVar(3);
+    }
+
+
+    ImGui::DockSpace(dockspace.ID);
+}
+
+void Viewer::end_dockspace()
+{
+    ImGui::End();
+}
+
+void Viewer::show_last_shader_error()
+{
+    if (ImGui::BeginPopupModal(MODAL_NAME_SHADER_ERROR)) {
+        ImGui::Text("%s", m_last_shader_error_desc.c_str());
+
+        ImGui::InputTextMultiline(
+            "",
+            &m_last_shader_error,
+            ImVec2(float((get_width() / 3) * 2), float((get_height() / 5) * 4)));
+
+        if (m_last_shader_error.length() == 0) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        if (ImGui::Button("Try again", ImVec2(ImGui::GetContentRegionAvail().x, 40.0f))) {
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+}
+
 
 bool Viewer::m_instance_initialized = false;
 

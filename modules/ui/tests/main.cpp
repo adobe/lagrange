@@ -13,7 +13,7 @@
 #include <lagrange/testing/common.h>
 
 #ifdef LAGRANGE_UI_OPENGL_TESTS
-#include <lagrange/ui/GLContext.h>
+#include <lagrange/ui/types/GLContext.h>
 
 struct MiniGLContext
 {

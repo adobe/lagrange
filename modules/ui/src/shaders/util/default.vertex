@@ -9,8 +9,18 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include "util/vertex_layout.glsl"
-//assumes "uniforms_common" has been included
+
+layout (location = 0) in vec3 in_pos;
+layout (location = 1) in vec3 in_normal;
+layout (location = 2) in vec2 in_uv;
+layout (location = 3) in vec4 in_tangent;
+layout (location = 4) in vec4 in_bitangent;
+
+#ifdef SKELETAL
+layout (location = 5) in vec4 in_bone_ids;
+layout (location = 6) in vec4 in_bone_weights;
+#endif
+
 out VARYING {
     vec3 pos;
     vec3 normal;
@@ -20,11 +30,28 @@ out VARYING {
     vec3 bitangent;
 } vs_out;
 
+#ifdef SKELETAL
+const int MAX_NUM_BONES = 32;
+uniform mat4 bones[MAX_NUM_BONES];
+#endif
+
+//Default color when attribute is not set 
+#pragma property in_color "Default Color" Color(1,0,0,1)
 
 void main()
 {       
+    vec4 model_pos = vec4(in_pos, 1);
+
+    #ifdef SKELETAL
+    model_pos = bones[int(in_bone_ids[0])] * model_pos * in_bone_weights[0]
+    + bones[int(in_bone_ids[1])] * model_pos * in_bone_weights[1]
+    + bones[int(in_bone_ids[2])] * model_pos * in_bone_weights[2]
+    + bones[int(in_bone_ids[3])] * model_pos * in_bone_weights[3];
+    #endif
+    
+   
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
+    vs_out.pos = (M * model_pos).xyz; 
     vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
     vs_out.uv = in_uv;
     vs_out.color = in_color;  

@@ -24,7 +24,10 @@ in VARYING {
 
 void main(){
     
+    //discard;
     fragColor = pbr(fs_in.pos, fs_in.normal, fs_in.uv, fs_in.color, fs_in.tangent, fs_in.bitangent);
     fragColor.a *= alpha_multiplier;
+
+    
     
 }

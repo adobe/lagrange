@@ -55,7 +55,7 @@ vec3 pbr_ibl_color(vec3 N, float cos_out, vec3 lightOut, vec3 f_0, float metalli
 vec4 pbr(
     vec3 in_pos, vec3 in_normal, vec2 in_uv, vec4 in_color, vec3 in_tangent, vec3 in_bitangent
 ){
-
+    
     vec3 baseColor;
     float metallic, roughness, opacity;
     read_material(in_uv, baseColor, metallic, roughness, opacity);
@@ -97,10 +97,14 @@ vec4 pbr(
         
         color += pbr_color(L, f_0, N, roughness, metallic, baseColor);
     }
+    
 
     color += pbr_ibl_color(N, cos_out, lightOut, f_0, metallic, roughness, baseColor);
     
     color = gamma_correction(color);
+
+    
+    
 
     return vec4(color, opacity);
 }

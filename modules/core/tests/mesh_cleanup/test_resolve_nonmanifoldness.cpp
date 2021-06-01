@@ -36,7 +36,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(in_mesh->is_uv_initialized());
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         auto out_mesh = lagrange::resolve_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();
@@ -61,7 +60,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(in_mesh->is_uv_initialized());
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         auto out_mesh = lagrange::resolve_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();
@@ -86,7 +84,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(in_mesh->get_num_components() == 1);
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         in_mesh->initialize_uv(vertices.leftCols(2).eval(), facets);
         REQUIRE(in_mesh->is_uv_initialized());
@@ -113,7 +110,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(!in_mesh->is_vertex_manifold());
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         in_mesh->initialize_uv(vertices.leftCols(2).eval(), facets);
         REQUIRE(in_mesh->is_uv_initialized());
@@ -138,7 +134,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(!in_mesh->is_vertex_manifold());
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         Eigen::Matrix<double, Eigen::Dynamic, 2> uv(3, 2);
         uv << 0.0, 0.0, 1.0, 0.0, 0.0, 1.0;
@@ -180,7 +175,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(!in_mesh->is_vertex_manifold());
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         auto out_mesh = lagrange::resolve_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();
@@ -217,7 +211,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(!mesh->is_vertex_manifold());
 
         mesh->initialize_connectivity();
-        mesh->initialize_edge_data();
 
         mesh = lagrange::resolve_nonmanifoldness(*mesh);
         mesh->initialize_topology();
@@ -236,7 +229,6 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(!mesh->is_vertex_manifold());
 
         mesh->initialize_connectivity();
-        mesh->initialize_edge_data();
 
         mesh = lagrange::resolve_nonmanifoldness(*mesh);
         mesh->initialize_topology();
@@ -254,7 +246,6 @@ TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh][.slow]" LA_CORP_FLAG
         auto mesh = lagrange::testing::load_mesh<TriangleMesh3D>("corp/core/splash_08_debug.obj");
 
         mesh->initialize_connectivity();
-        mesh->initialize_edge_data();
 
         mesh = lagrange::resolve_nonmanifoldness(*mesh);
         mesh->initialize_topology();
@@ -268,7 +259,6 @@ TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh][.slow]" LA_CORP_FLAG
         REQUIRE(!mesh->is_vertex_manifold());
 
         mesh->initialize_connectivity();
-        mesh->initialize_edge_data();
 
         mesh = lagrange::resolve_nonmanifoldness(*mesh);
         mesh->initialize_topology();

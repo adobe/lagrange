@@ -17,7 +17,7 @@ add_library(lagrange::ui ALIAS lagrange_ui)
 message(STATUS "Lagrange: creating target 'lagrange::ui'")
 
 if(WIN32)
-    target_compile_definitions(lagrange_ui PUBLIC -DNOMINMAX)
+    target_compile_definitions(lagrange_ui PUBLIC -DNOMINMAX -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 endif()
 
 target_compile_features(lagrange_ui PUBLIC cxx_std_17)
@@ -31,10 +31,16 @@ target_include_directories(lagrange_ui PUBLIC
 # 2. target sources
 file(GLOB_RECURSE INC_FILES "include/*.h")
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")
+
+source_group(
+    TREE "${PROJECT_SOURCE_DIR}"
+    FILES ${INC_FILES} ${SRC_FILES})
+
 target_sources(lagrange_ui PRIVATE ${INC_FILES} ${SRC_FILES})
 
 # 3. dependencies
 lagrange_include_modules(io)
+include(nanoflann)
 include(gl3w)
 include(glfw)
 include(stb)
@@ -44,9 +50,10 @@ include(imgui_fonts)
 include(nativefiledialog)
 include(nlohmann_json)
 include(lagrange-assets)
+include(entt)
 target_link_libraries(imgui PUBLIC Eigen3::Eigen)
 target_compile_definitions(imgui PUBLIC
-    IMGUI_USER_CONFIG="${PROJECT_SOURCE_DIR}/modules/ui/include/lagrange/ui/imconfig.h"
+    IMGUI_USER_CONFIG="${PROJECT_SOURCE_DIR}/modules/ui/include/lagrange/ui/imgui/imconfig.h"
 )
 target_link_libraries(lagrange_ui
     PRIVATE
@@ -62,6 +69,8 @@ target_link_libraries(lagrange_ui
         imgui::fonts
         nativefiledialog::nativefiledialog
         nlohmann_json::nlohmann_json
+        EnTT::EnTT
+        nanoflann::nanoflann
 )
 
 
@@ -76,6 +85,10 @@ if(LAGRANGE_UI_USE_MDL)
     include(mdl)
     target_compile_definitions(lagrange_ui PUBLIC LAGRANGE_UI_USE_MDL)
     target_link_libraries(lagrange_ui PUBLIC mdl::mdl)
+endif()
+
+if(LAGRANGE_DEBUG_SHADERS)
+    target_compile_definitions(lagrange_ui PRIVATE DEFAULT_SHADERS_USE_REAL_PATH="${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/")
 endif()
 
 # 4. automatic shader generation
@@ -102,25 +115,7 @@ if(LAGRANGE_USE_PCH)
     target_precompile_headers(lagrange_ui_pch INTERFACE
         <imgui.h>
         <nlohmann/json.hpp>
-
-        <lagrange/ui/Camera.h>
-        <lagrange/ui/IBL.h>
-        <lagrange/ui/Light.h>
-        <lagrange/ui/Material.h>
-        <lagrange/ui/MeshBufferFactory.h>
-        <lagrange/ui/MeshModel.h>
-        <lagrange/ui/MeshModelBase.h>
-        <lagrange/ui/ProxyMesh.h>
-        <lagrange/ui/Renderer.h>
-        <lagrange/ui/RenderUtils.h>
-        <lagrange/ui/RenderResourceBuilder.h>
-        <lagrange/ui/Scene.h>
-        <lagrange/ui/SelectionUI.h>
-        <lagrange/ui/Texture.h>
-        <lagrange/ui/UIWidget.h>
-        <lagrange/ui/Viewer.h>
-        <lagrange/ui/Viewport.h>
-        <lagrange/ui/ViewportUI.h>
+        <lagrange/ui/UI.h>
     )
     target_compile_features(lagrange_ui_pch INTERFACE cxx_std_17)
 
@@ -141,3 +136,5 @@ endif()
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()
+
+

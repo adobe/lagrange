@@ -21,15 +21,19 @@ in VARYING {
 } fs_in;
 
 
-#include "uniforms/materials.glsl"
 #include "uniforms/lights.glsl"
+
+#pragma property material_base_color "Base Color" Texture2D(0.7,0.7,0.7,1)
+#pragma property material_normal "Normal" Texture2D [normal]
+
 
 uniform bool has_ibl = false;
 uniform samplerCube ibl_diffuse;
 
 void main(){
-    vec4 baseColor_ =  material.baseColor.has_texture ? 
-        texture(material.baseColor.texture, fs_in.uv) : material.baseColor.value;
+
+    vec4 baseColor_ =  material_base_color_texture_bound ? 
+        texture(material_base_color, fs_in.uv) : material_base_color_default_value;
 
     
     vec3 baseColor = baseColor_.xyz;
@@ -41,6 +45,8 @@ void main(){
         baseColor = uniform_color.xyz;
     }
 
+    
+
     fragColor = vec4(0,0,0,0);
 
     vec3 N = normalize(fs_in.normal);
@@ -48,28 +54,34 @@ void main(){
 
     vec3 ambient_default = vec3(1.0);
     vec3 ibl_dir = N;
-    vec3 irradiance_diffuse =  has_ibl ? 
-        texture(ibl_diffuse, ibl_dir).xyz : ambient_default;
-    
+    vec3 irradiance_diffuse = ambient_default;
+    if(has_ibl)
+        irradiance_diffuse = texture(ibl_diffuse, ibl_dir).xyz;
+
     
 
     //Perturb normal in tangent space
-    if(material.normal.has_texture){
+    if(material_normal_texture_bound){
         vec3 T = normalize(fs_in.tangent);
         vec3 BT = normalize(fs_in.bitangent);
         mat3 TBN = mat3(T, BT, N);        
         vec3 N_in_TBN = TBN * N;
 
-        vec3 Ntex = texture(material.normal.texture, fs_in.uv).xyz * 2.0f - vec3(1.0f);
+        vec3 Ntex = texture(material_normal, fs_in.uv).xyz * 2.0f - vec3(1.0f);
         vec3 Ntex_in_world = TBN * Ntex;
 
         N = normalize(Ntex_in_world);        
     }
 
+    
+
     vec3 color = vec3(0);
     
     vec3 lightOut = normalize(cameraPos - fs_in.pos);
     float cos_out = max(0.0, dot(lightOut,N)); //n dot v
+
+    
+    
 
     for(int light_type = 0; light_type < 3; light_type++){
 
@@ -159,6 +171,8 @@ void main(){
             color += (diffuse + specular) *  radiance;
         }
     }
+
+    
 
     color += irradiance_diffuse * baseColor;
 

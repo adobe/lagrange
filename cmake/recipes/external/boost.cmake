@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     boost-cmake
     GIT_REPOSITORY https://github.com/Orphis/boost-cmake.git
-    GIT_TAG 70b12f62da331dd402b78102ec8f6a15d59a7af9
+    GIT_TAG 7f97a08b64bd5d2e53e932ddf80c40544cf45edf
 )
 
 set(PREVIOUS_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
@@ -28,7 +28,13 @@ set(OLD_CMAKE_POSITION_INDEPENDENT_CODE ${CMAKE_POSITION_INDEPENDENT_CODE})
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # This guy will download boost using FetchContent
-FetchContent_MakeAvailable(boost-cmake)
+FetchContent_GetProperties(boost-cmake)
+if(NOT boost-cmake_POPULATED)
+    FetchContent_Populate(boost-cmake)
+    # File lcid.cpp from Boost_locale.cpp doesn't compile on MSVC, so we exclude them from the default
+    # targets being built by the project (only targets explicitly used by other targets will be built).
+    add_subdirectory(${boost-cmake_SOURCE_DIR} ${boost-cmake_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ${OLD_CMAKE_POSITION_INDEPENDENT_CODE})
 set(CMAKE_CXX_FLAGS "${PREVIOUS_CMAKE_CXX_FLAGS}")

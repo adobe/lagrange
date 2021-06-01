@@ -19,6 +19,8 @@
 #include <lagrange/utils/timing.h>
 #include <CLI/CLI.hpp>
 
+namespace ui = lagrange::ui;
+
 int main(int argc, char* argv[])
 {
     struct
@@ -83,58 +85,35 @@ int main(int argc, char* argv[])
         timer.tock("Unify buffers");
     }
 
-    if(args.headless){
+    if (args.headless) {
         return 0;
     }
 
-    lagrange::ui::Viewer::WindowOptions wopt;
-    wopt.width = 1920;
-    wopt.height = 1080;
-    wopt.window_title = "Tangent Frame Viewer";
-    wopt.vsync = false;
 
-    lagrange::ui::Viewer viewer(wopt);
-    if (!viewer.is_initialized()) return 1;
+    ui::Viewer viewer("Tangent Frame Viewer", 1920, 1080);
 
-    lagrange::ui::Scene& scene = viewer.get_scene();
-    scene.add_model(lagrange::ui::ModelFactory::make(std::move(mesh)));
+    // TODO: use optional arg for mesh name?
+    auto mesh_view = ui::add_mesh(viewer, std::move(mesh), "Mesh");
+    auto mesh_geometry = ui::get_meshdata_entity(viewer, mesh_view);
 
-    viewer.enable_ground(true);
-    viewer.get_ground().enable_grid(true).enable_axes(true).set_height(-1.0f);
+    const auto M =
+        ui::get_mesh_bounds(ui::get_mesh_data(viewer, mesh_geometry)).get_normalization_transform();
 
-    auto colormap = [&](const lagrange::ui::Model& /*model*/,
-                        const lagrange::ui::Viz::AttribValue& value) {
-        Eigen::Vector3f vec = value.head<3>().cast<float>();
-        auto rgb = (vec + Eigen::Vector3f::Constant(1.0f)).normalized().eval();
-        if (args.pad) {
-            return lagrange::ui::Color::random((int)value(3));
-        } else {
-            return lagrange::ui::Color(rgb.x(), rgb.y(), rgb.z(), 1.0f);
-        }
-    };
-    viewer.add_viz(lagrange::ui::Viz::create_attribute_colormapping(
-        "Tangent",
-        lagrange::ui::Viz::Attribute::CORNER,
-        "tangent",
-        lagrange::ui::Viz::Primitive::TRIANGLES,
-        colormap));
-    viewer.add_viz(lagrange::ui::Viz::create_attribute_colormapping(
-        "Bitangent",
-        lagrange::ui::Viz::Attribute::CORNER,
-        "bitangent",
-        lagrange::ui::Viz::Primitive::TRIANGLES,
-        colormap));
-    viewer.add_viz(lagrange::ui::Viz::create_attribute_colormapping(
-        "Normal",
-        lagrange::ui::Viz::Attribute::CORNER,
-        "normal",
-        lagrange::ui::Viz::Primitive::TRIANGLES,
-        colormap));
+    ui::apply_transform(viewer, mesh_view, M);
 
-    while (!viewer.should_close()) {
-        viewer.begin_frame();
-        viewer.end_frame();
+    // TODO: add ground
+    // viewer.enable_ground(true);
+    // viewer.get_ground().enable_grid(true).enable_axes(true).set_height(-1.0f);
+
+    float xpos = -1.0f;
+    for (auto attr : {"tangent", "bitangent", "normal"}) {
+        // TODO: map 3-vec to 1-vec for colormapping
+        auto e = ui::show_indexed_attribute(viewer, mesh_geometry, attr, ui::Glyph::Surface);
+        ui::apply_transform(viewer, e, Eigen::Translation3f(xpos, 0, -1.0f) * M);
+        xpos += 1.0f;
     }
+
+    viewer.run();
 
     return 0;
 }

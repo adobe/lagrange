@@ -15,6 +15,7 @@
 #include "util/default.vertex"
 
 
+
 #pragma FRAGMENT
 layout(location = 0) out vec4 fragColor;
 
@@ -27,11 +28,10 @@ in VARYING {
     vec3 bitangent;
 } fs_in;
 
-void main(){
-    if(has_color_attrib)
-        fragColor = fs_in.color;
-    else
-        fragColor = uniform_color;
+#pragma property opacity "Opacity" float(1,0,1) 
 
-    fragColor.a *= alpha_multiplier;
+void main(){
+    
+    fragColor = fs_in.color;
+    fragColor.a *= opacity;
 }

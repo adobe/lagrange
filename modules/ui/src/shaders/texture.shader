@@ -11,26 +11,31 @@
  */
 #pragma VERTEX
 
-in vec3 position;
-out vec3 vposition;
+layout (location = 0) in vec3 in_pos;
+layout (location = 2) in vec2 in_uv;
+out vec3 vertex_uv;
+
+uniform mat4 PV = mat4(1.0);
+uniform mat4 M = mat4(1.0);
 
 void main() {
-    gl_Position = vec4(position,1);
-    vposition = position;   
+    gl_Position = PV * M * vec4(in_pos,1);
+    vertex_uv = vec3(in_uv,0);   
 }
 
 #pragma FRAGMENT
 
-in vec3 vposition;
+in vec3 vertex_uv;
 
-uniform sampler2D tex_2D;
-uniform samplerCube tex_cube;
+#pragma property tex "Texture" Texture2D(1.0,0.0,0.0,1)
+#pragma property tex_cube "Cubemap" TextureCube
+#pragma property tex_opacity "Opacity" Texture2D(1.0)
+#pragma property bias "Bias" float(1)
+
+
 uniform int cubemap_face = 0;
 uniform bool is_cubemap = false;
-
-uniform float opacity = 1.0;
-uniform float bias = 1.0;
-uniform bool useTextureAlpha = false;
+uniform bool useTextureAlpha = true;
 
 uniform bool useTextureLod = false;
 uniform float textureLevel = 0.0;
@@ -46,8 +51,8 @@ uniform float normalize_min = 0.0f;
 uniform float normalize_range = 1.0f;
 
 uniform bool is_depth = false;
-uniform float depth_near;
-uniform float depth_far;
+uniform float depth_near = 1.0f;
+uniform float depth_far = 32.0f;
 
 float linearize_depth(float depth, float near, float far)
 {
@@ -57,11 +62,15 @@ float linearize_depth(float depth, float near, float far)
 void main(){
 
     
-    vec2 coord = (vposition.xy + vec2(1)) * 0.5;
+    vec2 coord = vertex_uv.xy;
+    /*fragColor.xy = coord;
+    fragColor.z = 0;
+    fragColor.w = 1;
+    return;*/
 
     vec4 t;
     if(useTextureLod){
-        t = textureLod(tex_2D,coord,textureLevel);
+        t = textureLod(tex,coord,textureLevel);
     }
     else if(is_cubemap){
         vec3 cube_coord = vec3(0);
@@ -89,13 +98,25 @@ void main(){
         t = texture(tex_cube, cube_coord);  
     }
     else {
-        t = texture(tex_2D,coord);  
+        t = texture(tex,coord);  
 
     }
 
+    float opacity = 1.0f;
 
+    if(useTextureAlpha){
+        opacity *= t.a;
+    }
+
+    if(tex_opacity_texture_bound){
+        opacity *= texture(tex_opacity, coord).r;
+    }
+    else {
+        opacity *= tex_opacity_default_value;
+    }
 
     fragColor = vec4(t.xyz*bias,opacity);
+
 
     if(is_depth){
         float d = linearize_depth(t.x, depth_near, depth_far);
@@ -112,16 +133,13 @@ void main(){
         }       
     }
 
-
-    if(useTextureAlpha)
-        fragColor.a = t.a;
-
     if(showOnlyAlpha)
         fragColor = vec4(vec3(t.a*bias), opacity);
 
     if(normalize_values){
         fragColor.xyz = (fragColor.xyz - normalize_min) / normalize_range;
     }
+
 
     
 }

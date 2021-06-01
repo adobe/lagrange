@@ -28,11 +28,12 @@ target_sources(lagrange_testing PRIVATE ${INC_FILES} ${SRC_FILES})
 set_target_properties(lagrange_testing PROPERTIES FOLDER "Lagrange//Tests")
 
 # 3. dependencies
-lagrange_include_modules(io)
+lagrange_include_modules(io serialization)
 target_link_libraries(lagrange_testing PUBLIC
     Catch2::Catch2
     Threads::Threads
     lagrange::io
+    lagrange::serialization
 )
 
 # 4. test-specific properties

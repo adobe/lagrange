@@ -16,6 +16,9 @@
 namespace lagrange {
 namespace ui {
 
+using RowMajorMatrixXf = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+using RowMajorMatrixXi = Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
 /// Returns 4x4 transformation matrix that can be used for normals
 /// Performs transpose inverse
 Eigen::Matrix4f normal_matrix(const Eigen::Affine3f& transform);
@@ -40,8 +43,8 @@ Eigen::Projective3f perspective(float fovy, float aspect, float zNear, float zFa
 /// @param[in] zFar     far plane
 ///
 /// @return    Eigen::Projective3f      orthographic projection matrix
-Eigen::Projective3f ortho(
-    float left, float right, float bottom, float top, float zNear, float zFar);
+Eigen::Projective3f
+ortho(float left, float right, float bottom, float top, float zNear, float zFar);
 
 /// Constructs "look at" view matrix,
 ///
@@ -50,8 +53,8 @@ Eigen::Projective3f ortho(
 /// @param[in] up       up direction
 ///
 /// @return    Eigen::Matrix4f      view matrix
-Eigen::Matrix4f look_at(
-    const Eigen::Vector3f& eye, const Eigen::Vector3f& center, const Eigen::Vector3f& up);
+Eigen::Matrix4f
+look_at(const Eigen::Vector3f& eye, const Eigen::Vector3f& center, const Eigen::Vector3f& up);
 
 /// Unprojects screen point (with x,y in screen coordinates and z in NDC) back to 3D world
 ///
@@ -61,7 +64,8 @@ Eigen::Matrix4f look_at(
 /// @param[in] viewport     viewport coordinates (x0,y0,x1,y1), x0,y0 being lower left
 ///
 /// @return    Eigen::Vector3f      unprojected 3D point in world space
-Eigen::Vector3f unproject_point(const Eigen::Vector3f& v,
+Eigen::Vector3f unproject_point(
+    const Eigen::Vector3f& v,
     const Eigen::Matrix4f& view,
     const Eigen::Matrix4f& perspective,
     const Eigen::Vector4f& viewport);

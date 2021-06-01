@@ -9,8 +9,9 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/ui/types/GLContext.h>
 #include <lagrange/ui/default_keybinds.h>
-#include <lagrange/ui/GLContext.h>
+
 
 #include <unordered_map>
 
@@ -22,38 +23,38 @@ using Scheme = std::unordered_map<std::string, std::pair<int, std::vector<int>>>
 
 const static std::unordered_map<DefaultCameraScheme, Scheme> default_schemes = {
     {DefaultCameraScheme::DIMENSION,
-        {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_2, {}}},
-            {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {}}},
-            {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_SPACE}}},
-            {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_SPACE, GLFW_KEY_LEFT_SHIFT}}},
-            {"viewport.camera.center_on_cursor", {GLFW_KEY_X, {}}},
-            {"global.camera.center_on_selection", {GLFW_KEY_Z, {}}}}},
+     {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_2, {}}},
+      {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {}}},
+      {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_SPACE}}},
+      {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_SPACE, GLFW_KEY_LEFT_SHIFT}}},
+      {"viewport.camera.center_on_cursor", {GLFW_KEY_X, {}}},
+      {"global.camera.center_on_selection", {GLFW_KEY_Z, {}}}}},
 
     {DefaultCameraScheme::MAYA,
-        {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_ALT}}},
-            {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
-            {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_LEFT_ALT}}},
-            {"viewport.camera.center_on_cursor", {GLFW_KEY_X, {GLFW_KEY_LEFT_ALT}}},
-            {"global.camera.center_on_selection", {GLFW_KEY_Z, {GLFW_KEY_LEFT_ALT}}},
-            {"viewport.selection.select.erase",
-                {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_ALT}}}}},
+     {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_ALT}}},
+      {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
+      {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_LEFT_ALT}}},
+      {"viewport.camera.center_on_cursor", {GLFW_KEY_X, {GLFW_KEY_LEFT_ALT}}},
+      {"global.camera.center_on_selection", {GLFW_KEY_Z, {GLFW_KEY_LEFT_ALT}}},
+      {"viewport.selection.select.erase",
+       {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_ALT}}}}},
 
 
     {DefaultCameraScheme::BLENDER,
-        {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_3, {}}},
-            {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_SHIFT}}},
-            {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_CONTROL}}},
-            {"viewport.camera.center_on_cursor", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
-            {"global.camera.center_on_selection", {GLFW_KEY_Z, {}}}}},
+     {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_3, {}}},
+      {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_SHIFT}}},
+      {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_CONTROL}}},
+      {"viewport.camera.center_on_cursor", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
+      {"global.camera.center_on_selection", {GLFW_KEY_Z, {}}}}},
 
     {DefaultCameraScheme::SUBSTANCE,
-        {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_ALT}}},
-            {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
-            {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_LEFT_ALT}}},
-            {"viewport.camera.center_on_cursor", {GLFW_KEY_F, {GLFW_KEY_LEFT_ALT}}},
-            {"global.camera.center_on_selection", {GLFW_KEY_F, {}}},
-            {"viewport.selection.select.erase",
-                {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_ALT}}}}}};
+     {{"viewport.camera.rotate", {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_ALT}}},
+      {"viewport.camera.pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
+      {"viewport.camera.dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_LEFT_ALT}}},
+      {"viewport.camera.center_on_cursor", {GLFW_KEY_F, {GLFW_KEY_LEFT_ALT}}},
+      {"global.camera.center_on_selection", {GLFW_KEY_F, {}}},
+      {"viewport.selection.select.erase",
+       {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_ALT}}}}}};
 
 void set_camera_scheme(Keybinds& keybinds, DefaultCameraScheme camera_scheme)
 {
@@ -96,6 +97,8 @@ Keybinds initialize_default_keybinds()
     k.add("global.scene.add", GLFW_KEY_O, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_SHIFT});
 
     k.add("global.camera.zoom_to_fit", GLFW_KEY_Z, {GLFW_KEY_LEFT_SHIFT});
+
+    k.add("global.reload", GLFW_KEY_R, {GLFW_KEY_LEFT_SHIFT});
 
     set_camera_scheme(k, DefaultCameraScheme::DIMENSION);
 

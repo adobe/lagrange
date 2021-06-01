@@ -9,6 +9,9 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-add_subdirectory(ui_basic)
-add_subdirectory(ui_mesh)
-add_subdirectory(ui_viz)
+add_subdirectory(ui_playground)
+add_subdirectory(ui_show_attribute)
+add_subdirectory(ui_dynamic_mesh)
+add_subdirectory(ui_scene)
+add_subdirectory(ui_callbacks)
+add_subdirectory(ui_treenode)

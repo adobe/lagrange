@@ -11,19 +11,23 @@
  */
 #pragma once
 
-#include <lagrange/ui/Callbacks.h>
-#include <lagrange/ui/Camera.h>
-#include <lagrange/ui/Options.h>
-#include <lagrange/ui/Selection.h>
-#include <lagrange/ui/UIPanel.h>
-#include <lagrange/ui/Viz.h>
-#include <lagrange/ui/default_render_passes.h>
-#include <lagrange/ui/default_keybinds.h>
 
+#include <lagrange/ui/Entity.h>
+#include <lagrange/ui/types/Systems.h>
+#include <lagrange/ui/types/Tools.h>
+#include <lagrange/ui/default_components.h>
+#include <lagrange/ui/default_keybinds.h>
+#include <lagrange/ui/types/Camera.h>
+#include <lagrange/ui/utils/layer.h>
+#include <lagrange/ui/utils/uipanel.h>
+#include <lagrange/ui/utils/input.h>
+#include <lagrange/ui/panels/ViewportPanel.h>
+
+#include <imgui.h>
 #include <memory>
+#include <queue>
 #include <set>
 #include <string>
-#include <queue>
 
 struct GLFWwindow;
 struct ImGuiContext;
@@ -31,40 +35,15 @@ struct ImGuiContext;
 namespace lagrange {
 namespace ui {
 
-class Scene;
+
 class Renderer;
-class SelectionUI;
-class UIPanelBase;
-class SceneUI;
-class RendererUI;
-class CameraUI;
-class DetailUI;
-class ViewportUI;
-class ToolbarUI;
-class LogUI;
-class SelectionUI;
-class KeybindsUI;
 
-///
-/// Main Viewer Class
-///
-class Viewer : public CallbacksBase<Viewer> {
+/// @brief Viewer
+/// use `systems()` to add functions that should be called every frame
+/// use `registry()` or util functions to read and manipulate application's state
+class Viewer
+{
 public:
-    // Called on window resize
-    using OnResize = UI_CALLBACK(void(Viewer&, int, int));
-
-    // Called on file drop
-    using OnDrop = UI_CALLBACK(void(Viewer&, int, const char**));
-
-    // Called in destructor
-    using OnClose = UI_CALLBACK(void(Viewer&));
-
-    enum class ManipulationMode;
-    using OnManipulationModeChange = UI_CALLBACK(void(ManipulationMode));
-
-    // Called after all rendering finished, before buffers are swapped
-    using OnRenderFinished = UI_CALLBACK(void(Viewer&));
-
     /*
         IO functions
     */
@@ -75,17 +54,17 @@ public:
     bool is_mouse_clicked(int key);
     bool is_mouse_released(int key);
 
-    /// Returns mouse position in pixels
-    Eigen::Vector2f get_mouse_pos();
+    /// Returns keyboard and mouse state
+    InputState& get_input() { return lagrange::ui::get_input(registry()); }
 
-    // Returns mouse position change from last frame in pixels
-    Eigen::Vector2f get_mouse_delta();
+    /// Returns keyboard and mouse state
+    const InputState& get_input() const { return lagrange::ui::get_input(registry()); }
 
     ///
     /// Window creation options
     ///
-    struct WindowOptions {
-
+    struct WindowOptions
+    {
         /// Window title
         std::string window_title = "";
 
@@ -105,17 +84,6 @@ public:
         bool vsync = true;
         /// Which monitor to create window on
         int monitor_index = 0;
-
-        ///
-        /// Specifies which default passes will be created
-        ///
-        /// Use as bitmask:
-        ///
-        /// e.g. default_render_passes &= ~DefaultPasses::PASS_FXAA will disable the FXAA pass
-        ///
-        /// See DefaultPasses for options
-        ///
-        DefaultPasses_t default_render_passes = DefaultPasses::PASS_ALL;
 
         /// Major OpenGL Version
         int gl_version_major = 3;
@@ -138,13 +106,8 @@ public:
         ///
         /// Set to "" to disable ibl
         std::string default_ibl = "studio011";
+        size_t default_ibl_resolution = 1024;
     };
-
-
-    ///
-    /// Object manipulation mode
-    ///
-    enum class ManipulationMode { SELECT, TRANSLATE, ROTATE, SCALE, count };
 
 
     ///
@@ -163,15 +126,11 @@ public:
     ///
     Viewer(const WindowOptions& window_options);
 
-    ~Viewer();
+    virtual ~Viewer();
 
+    operator ui::Registry &() { return registry(); }
 
-    /// Starts a new frame
-    void begin_frame();
-
-
-    /// Ends current frame and renders it
-    void end_frame();
+    operator const ui::Registry &() const { return registry(); }
 
     ///
     /// UI action wants the window to close
@@ -180,167 +139,88 @@ public:
     bool should_close() const;
 
     ///
-    /// Runs the viewer until UI wants to close it.
+    /// Runs the viewer until closed by the user or main_loop returns false
     ///
-    bool run();
-
-
-    Scene& get_scene();
-    const Scene& get_scene() const;
-
-    Renderer& get_renderer();
-    const Renderer& get_renderer() const;
-
-    SelectionUI& get_selection();
-    const SelectionUI& get_selection() const;
+    bool run(const std::function<bool(Registry& r)>& main_loop);
 
     ///
-    /// Adds render pass defined in Viz::Config
-    /// @param[in] config   Visualization configuration
-    /// @param[in] show     Show or hide the resulting render pass
+    /// Runs the viewer until closed by the user
     ///
-    RenderPass<Viz::PassData>* add_viz(const Viz& visualization, bool show = true);
+    bool run(const std::function<void(void)>& main_loop = {});
 
-
-    /// Returns camera of currently focused viewport
-    Camera& get_current_camera();
-    /// Returns camera of currently focused viewport
-    const Camera& get_current_camera() const;
-
-
-    /// Returns true if viewer initialized
+    /// Returns true if viewer initialized succesfully
     bool is_initialized() const;
-
-    ///
-    /// Adds a UI panel
-    ///
-    /// @param[in] ui_panel     must inherit from UIPanelBase
-    /// @return                 reference to the ui panel
-    ///
-    template <typename T>
-    T& add_ui_panel(std::shared_ptr<T> ui_panel)
-    {
-        m_ui_panels.push_back(ui_panel);
-        return *ui_panel;
-    }
-
-
-    bool remove_ui_panel(const UIPanelBase* panel);
-
-    ViewportUI& add_viewport_panel(std::shared_ptr<ViewportUI> viewport_panel = nullptr);
-
-
-    /// Default Scene UI Panel
-    SceneUI& get_scene_ui();
-
-    /// Default Camera UI Panel
-    CameraUI& get_camera_ui();
-
-    /// Default Renderer UI Panel
-    RendererUI& get_renderer_ui();
-
-    /// Returns currently focused viewport UI Panel
-    ViewportUI& get_focused_viewport_ui();
-    const std::vector<ViewportUI*>& get_viewports() { return m_viewports; }
-
-    /// Default Logger UI Panel
-    LogUI& get_log_ui();
-
-    /// Default Detail UI Panel
-    DetailUI& get_detail_ui();
-
-    /// DPI scaling factor
-    float get_ui_scaling() { return m_ui_scaling; }
 
     /// Returns elapsed time in seconds from the last frame
     double get_frame_elapsed_time() const;
 
+    // Window width in pixels
     int get_width() const { return m_width; }
+
+    // Window height in pixels
     int get_height() const { return m_height; }
-    float get_menubar_height() const { return m_menubar_height; }
-
-    /// Reset UI Panel layout and docking
-    void reset_layout();
-
-    void set_manipulation_mode(ManipulationMode mode);
-    ManipulationMode get_manipulation_mode() const;
 
     const std::string& get_imgui_config_path() const;
-
-    /// Returns all UI Panels
-    const std::vector<std::shared_ptr<UIPanelBase>>& get_ui_panels() const { return m_ui_panels; }
-
-    /// Enqueues docking of source to target in direction with ratio
-    void enqueue_dock(UIPanelBase& target,
-        UIPanelBase& source,
-        UIPanelBase::DockDir dir,
-        float ratio = 0.5f,
-        bool split_outer = false);
 
     /// Returns UI window scaling (when Windows or retina scaling is active)
     float get_window_scaling() const;
 
     /// Returns keybinds object
-    Keybinds& get_keybinds() { return m_keybinds; }
+    Keybinds& get_keybinds();
 
     /// Returns keybinds object
-    const Keybinds& get_keybinds() const { return m_keybinds; }
+    const Keybinds& get_keybinds() const;
 
-    /// Enable ground rendering
-    void enable_ground(bool enable);
+    /// Returns reference to the registry
+    Registry& registry() { return m_registry; }
 
-    /// Returns ground object
-    Ground& get_ground();
+    /// Returns reference to the registry
+    const Registry& registry() const { return m_registry; }
 
-    /// Returns ground object
-    const Ground& get_ground() const;
+    /// Returns reference to the systems
+    const Systems& systems() const { return m_systems; }
 
-    /// Internal use only!
-    void draw_toolbar();
+    /// Returns reference to the systems
+    Systems& systems() { return m_systems; }
 
 private:
     bool init_glfw(const WindowOptions& options);
-    bool init_imgui(const WindowOptions& options);
+    bool init_imgui();
     bool init_imgui_fonts();
+
 
     void resize(int window_width, int window_height);
     void move(int x, int y);
     void update_scale();
     void drop(int count, const char** paths);
-    void cursor_pos(double x, double y);
+
 
     static std::string get_config_folder();
     static std::string get_options_file_path();
+
+
+    void process_input();
+
+    void update_time();
+
+    void start_imgui_frame();
+
+    void end_imgui_frame();
+
+    void make_current();
+
+    void draw_menu();
+
+    void start_dockspace();
+    void end_dockspace();
+
+    void show_last_shader_error();
 
     WindowOptions m_initial_window_options;
 
     GLFWwindow* m_window;
     ImGuiContext* m_imgui_context;
 
-    Callbacks<OnResize,
-        OnDrop,
-        OnClose,
-        OnManipulationModeChange,
-        OnRenderFinished>
-        m_callbacks;
-
-    std::shared_ptr<Scene> m_scene;
-    std::shared_ptr<Renderer> m_renderer;
-
-    std::vector<std::shared_ptr<UIPanelBase>> m_ui_panels;
-    std::vector<ViewportUI*> m_viewports;
-    unsigned int m_dockspace_id;
-
-    // Default ui elements, store for later retrieval
-    SceneUI* m_scene_ui_ptr = nullptr;
-    CameraUI* m_camera_ui_ptr = nullptr;
-    RendererUI* m_renderer_ui_ptr = nullptr;
-    DetailUI* m_detail_ui_ptr = nullptr;
-    ViewportUI* m_focused_viewport_ui_ptr = nullptr;
-    ToolbarUI* m_toolbar_ui_ptr = nullptr;
-    LogUI* m_log_ui_ptr = nullptr;
-    SelectionUI* m_selection = nullptr;
-    KeybindsUI* m_keybinds_ui_ptr = nullptr;
 
     bool m_initialized = false;
 
@@ -348,37 +228,26 @@ private:
 
     const std::string m_imgui_ini_path;
 
-    /*
-        IO
-    */
-    Eigen::Vector2f m_mouse_pos;
-    Eigen::Vector2f m_mouse_delta;
-
     int m_width;
     int m_height;
-    float m_menubar_height = 0.0f;
 
     // DPI aware scaling
     float m_ui_scaling = 1.0f;
 
-    ManipulationMode m_manipulation_mode = ManipulationMode::SELECT;
-
-    size_t m_frame_counter = 0;
-
-    std::queue<std::function<bool()>> m_dock_queue;
     std::queue<std::pair<int, int>> m_key_queue;
     std::queue<std::pair<int, int>> m_mouse_key_queue;
 
-    Keybinds m_keybinds;
-
-    std::unique_ptr<Ground> m_ground;
 
     std::string m_last_shader_error;
     std::string m_last_shader_error_desc;
 
+    bool m_show_imgui_demo = false;
+    bool m_show_imgui_style = false;
 
-    friend CallbacksBase<Viewer>;
+    entt::registry m_registry;
+    Systems m_systems;
 
+    Entity m_main_viewport;
 };
 
 } // namespace ui

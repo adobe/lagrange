@@ -11,5 +11,5 @@
 #
 lagrange_add_test()
 
-target_compile_definitions(test_fs PRIVATE TEST_APP_PATH="$<TARGET_FILE:test_fs>")
-target_compile_definitions(test_fs PRIVATE TEST_WORK_DIR="${CMAKE_CURRENT_BINARY_DIR}")
+target_compile_definitions(test_lagrange_fs PRIVATE TEST_APP_PATH="$<TARGET_FILE:test_lagrange_fs>")
+target_compile_definitions(test_lagrange_fs PRIVATE TEST_WORK_DIR="${CMAKE_CURRENT_BINARY_DIR}")

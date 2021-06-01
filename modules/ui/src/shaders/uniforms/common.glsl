@@ -13,11 +13,17 @@
 /*
     Transformation / Projection
 */
+//Global
 uniform mat4 PV;
-uniform mat4 M;
-uniform mat4 NMat;
 uniform vec3 cameraPos;
 uniform mat4 PVinv;
+
+//Model
+uniform mat4 M;
+uniform mat4 NMat;
+
+uniform int object_id = 0;
+
 
 /*
     Target properties
@@ -35,4 +41,3 @@ uniform vec4 uniform_color = vec4(1,0,0,1);
 */
 uniform float alpha_multiplier = 1.0f;
 uniform bool cull_backface = true;
-

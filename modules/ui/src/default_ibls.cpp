@@ -9,9 +9,10 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/ui/default_ibls.h>
-#include <lagrange/ui/Shader.h>
 #include <lagrange/Logger.h>
+#include <lagrange/ui/default_ibls.h>
+#include <lagrange/ui/utils/ibl.h>
+
 
 #include "ibls/studio003.h"
 #include "ibls/studio011.h"
@@ -22,32 +23,33 @@
 namespace lagrange {
 namespace ui {
 
-std::unique_ptr<lagrange::ui::IBL> create_default_ibl(const std::string& name)
+IBL generate_default_ibl(const std::string& name, size_t resolution)
 {
     Texture::Params p = Texture::Params::rgb();
 
-    try {
-        if (name == "studio003")
-            return std::make_unique<IBL>(
-                "studio003", Resource<Texture>::create(ibl_studio003, ibl_studio003_len, p));
-        if (name == "studio011")
-            return std::make_unique<IBL>(
-                "studio011", Resource<Texture>::create(ibl_studio011, ibl_studio011_len, p));
-        if (name == "studio030")
-            return std::make_unique<IBL>(
-                "studio030", Resource<Texture>::create(ibl_studio030, ibl_studio030_len, p));
-        if (name == "studio032")
-            return std::make_unique<IBL>(
-                "studio032", Resource<Texture>::create(ibl_studio032, ibl_studio032_len, p));
-        if (name == "studio033")
-            return std::make_unique<IBL>(
-                "studio033", Resource<Texture>::create(ibl_studio033, ibl_studio033_len, p));
-    }
-    catch (ShaderException& ex) {
-        logger().error("{} in {}", ex.what() , ex.get_desc());
-    }
 
-    return nullptr;
+    if (name == "studio003")
+        return generate_ibl(
+            std::make_shared<Texture>(ibl_studio003, ibl_studio003_len, p),
+            resolution);
+    if (name == "studio011")
+        return generate_ibl(
+            std::make_shared<Texture>(ibl_studio011, ibl_studio011_len, p),
+            resolution);
+    if (name == "studio030")
+        return generate_ibl(
+            std::make_shared<Texture>(ibl_studio030, ibl_studio030_len, p),
+            resolution);
+    if (name == "studio032")
+        return generate_ibl(
+            std::make_shared<Texture>(ibl_studio032, ibl_studio032_len, p),
+            resolution);
+    if (name == "studio033")
+        return generate_ibl(
+            std::make_shared<Texture>(ibl_studio033, ibl_studio033_len, p),
+            resolution);
+
+    return IBL{};
 }
 
 } // namespace ui

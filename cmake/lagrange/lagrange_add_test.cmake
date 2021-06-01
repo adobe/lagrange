@@ -17,22 +17,23 @@ function(lagrange_add_test)
     # Create test executable
     file(GLOB_RECURSE SRC_FILES "*.cpp" "*.h")
     include(lagrange_add_executable)
-    lagrange_add_executable(test_${module_name} ${SRC_FILES})
-    set_target_properties(test_${module_name} PROPERTIES FOLDER "Lagrange//Tests")
+    set(test_target "test_lagrange_${module_name}")
+    lagrange_add_executable(${test_target} ${SRC_FILES})
+    set_target_properties(${test_target} PROPERTIES FOLDER "Lagrange//Tests")
 
     # Dependencies
     lagrange_include_modules(testing)
-    target_link_libraries(test_${module_name} PUBLIC
+    target_link_libraries(${test_target} PUBLIC
         lagrange::${module_name}
         lagrange::testing
     )
 
     # Output directory
-    set_target_properties(test_${module_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
+    set_target_properties(${test_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
     # Register tests
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/reports")
-    catch_discover_tests(test_${module_name}
+    catch_discover_tests(${test_target}
         REPORTER junit
         OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
         OUTPUT_SUFFIX ".xml"

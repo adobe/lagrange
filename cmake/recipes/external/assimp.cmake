@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     assimp
     GIT_REPOSITORY https://github.com/assimp/assimp.git
-    GIT_TAG 63f1b66224a02bf1aca76d06d420a8c8113e9b44
+    GIT_TAG 40f9d37a38209f0dbd10b71361bc905d314f10a7
 )
 
 option(BUILD_SHARED_LIBS "Build package with shared libraries." OFF)
@@ -34,6 +34,7 @@ option(ASSIMP_BUILD_TESTS "If the test suite for Assimp is built in addition to 
 option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." OFF)
 option(ASSIMP_INSTALL_PBD "" OFF)
 option(ASSIMP_INJECT_DEBUG_POSTFIX "Inject debug postfix in .a/.so/.dll lib names" OFF)
+option(ASSIMP_BUILD_PBRT_EXPORTER "Build Assimp with PBRT importer" OFF)
 
 # Use a CACHE variable to prevent Assimp from building with its embedded clipper
 set(Clipper_SRCS "" CACHE STRING "" FORCE)

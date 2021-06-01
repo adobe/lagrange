@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#include <lagrange/ui/IBL.h>
+#include <lagrange/ui/components/IBL.h>
 
 namespace lagrange {
 namespace ui {
@@ -39,7 +39,7 @@ namespace ui {
 ///        https://www.deviantart.com/zbyg/art/HDRi-Pack-3-112847728
 ///
 ///        CC 3.0 License
-std::unique_ptr<IBL> create_default_ibl(const std::string & name = "studio011");
+IBL generate_default_ibl(const std::string& name = "studio011", size_t resolution = 1024);
 
-}
-}
+} // namespace ui
+} // namespace lagrange

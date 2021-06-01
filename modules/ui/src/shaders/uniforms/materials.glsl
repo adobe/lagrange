@@ -10,10 +10,15 @@
  * governing permissions and limitations under the License.
  */
 #include "util/material.glsl"
-uniform MaterialAdobe material;
+//uniform MaterialAdobe material;
 
-
-
+//pragma uniform SHADER_NAME   DISPLAY_NAME     TYPE(DEFAULT_VALUE) [tag0,tag1]
+//For Texture, the value is used as a fallback value -> it will generate name_texture_bound and name_default_value
+#pragma property material_base_color "Base Color" Texture2D(0.7,0.7,0.7,1)
+#pragma property material_roughness "Roughness" Texture2D(0.4)
+#pragma property material_metallic "Metallic" Texture2D(0.1)
+#pragma property material_normal "Normal" Texture2D [normal]
+#pragma property material_opacity "Opacity" float(1,0,1) 
 
 //Will read individual material properties, either from texture or from constant value
 void read_material(
@@ -24,18 +29,18 @@ void read_material(
     out float opacity
 ){
 
-    vec4 baseColor_a = material.baseColor.has_texture ? 
-        texture(material.baseColor.texture, uv) : material.baseColor.value;    
+    vec4 baseColor_a = material_base_color_texture_bound ? 
+        texture(material_base_color, uv) : material_base_color_default_value;    
     
     baseColor = baseColor_a.xyz;
 
-    metallic =  material.metallic.has_texture ? 
-        texture(material.metallic.texture, uv).x : material.metallic.value.x;
+    metallic =  material_metallic_texture_bound ? 
+        texture(material_metallic, uv).x : material_metallic_default_value;
 
-    roughness =  material.roughness.has_texture ? 
-        texture(material.roughness.texture, uv).x : material.roughness.value.x;
+    roughness =  material_roughness_texture_bound ? 
+        texture(material_roughness, uv).x : material_roughness_default_value;
 
-    opacity = baseColor_a.a * material.opacity;
+    opacity = baseColor_a.a * material_opacity;
 }
 
 // Will decide which color to use
@@ -60,7 +65,7 @@ vec3 adjust_normal(vec3 N, vec3 T, vec3 BT, vec2 uv){
 
     N = normalize(N);
     
-    if(material.normal.has_texture){
+    if(material_normal_texture_bound){
 
         T = normalize(T);
         BT = normalize(BT);
@@ -68,7 +73,7 @@ vec3 adjust_normal(vec3 N, vec3 T, vec3 BT, vec2 uv){
         mat3 TBN = mat3(T, BT, N);        
         vec3 N_in_TBN = TBN * N;
 
-        vec3 Ntex = texture(material.normal.texture, uv).xyz * 2.0f - vec3(1.0f);
+        vec3 Ntex = texture(material_normal, uv).xyz * 2.0f - vec3(1.0f);
         vec3 Ntex_in_world = TBN * Ntex;
 
         N = normalize(Ntex_in_world);  

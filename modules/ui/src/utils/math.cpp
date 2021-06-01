@@ -64,8 +64,8 @@ Eigen::Projective3f perspective(float fovy, float aspect, float zNear, float zFa
     return Eigen::Projective3f(result);
 }
 
-Eigen::Matrix4f look_at(
-    const Eigen::Vector3f& eye, const Eigen::Vector3f& center, const Eigen::Vector3f& up)
+Eigen::Matrix4f
+look_at(const Eigen::Vector3f& eye, const Eigen::Vector3f& center, const Eigen::Vector3f& up)
 {
     const Eigen::Vector3f f = (center - eye).normalized();
     const Eigen::Vector3f s = f.cross(up).normalized();
@@ -99,7 +99,8 @@ Eigen::Projective3f ortho(float left, float right, float bottom, float top, floa
     return Eigen::Projective3f(result);
 }
 
-Eigen::Vector3f unproject_point(const Eigen::Vector3f& v,
+Eigen::Vector3f unproject_point(
+    const Eigen::Vector3f& v,
     const Eigen::Matrix4f& view,
     const Eigen::Matrix4f& perspective,
     const Eigen::Vector4f& viewport)

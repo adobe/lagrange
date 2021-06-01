@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#include <lagrange/ui/Keybinds.h>
+#include <lagrange/ui/types/Keybinds.h>
 
 namespace lagrange {
 namespace ui {

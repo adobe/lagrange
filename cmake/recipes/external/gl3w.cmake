@@ -13,7 +13,7 @@ if(TARGET gl3w::gl3w)
     return()
 endif()
 
-message(STATUS "Third-party (internal): creating target 'gl3w::gl3w'")
+message(STATUS "Third-party (external): creating target 'gl3w::gl3w'")
 
 include(FetchContent)
 FetchContent_Declare(

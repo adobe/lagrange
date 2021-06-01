@@ -53,10 +53,42 @@ set(OPENVDB_SIMD AVX CACHE STRING "")
 # - https://gitlab.kitware.com/cmake/cmake/issues/17735
 # - https://crascit.com/2018/09/14/do-not-redefine-cmake-commands/
 function(openvdb_import_target)
+    macro(push_variable var value)
+        if(DEFINED CACHE{${var}})
+            set(OPENVDB_OLD_${var}_VALUE "${${var}}")
+            set(OPENVDB_OLD_${var}_TYPE CACHE_TYPE)
+        elseif(DEFINED ${var})
+            set(OPENVDB_OLD_${var}_VALUE "${${var}}")
+            set(OPENVDB_OLD_${var}_TYPE NORMAL_TYPE)
+        else()
+            set(OPENVDB_OLD_${var}_TYPE NONE_TYPE)
+        endif()
+        set(${var} "${value}" CACHE PATH "" FORCE)
+    endmacro()
+
+    macro(pop_variable var)
+        if(OPENVDB_OLD_${var}_TYPE STREQUAL CACHE_TYPE)
+            set(${var} "${OPENVDB_OLD_${var}_VALUE}" CACHE PATH "" FORCE)
+        elseif(OPENVDB_OLD_${var}_TYPE STREQUAL NORMAL_TYPE)
+            unset(${var} CACHE)
+            set(${var} "${OPENVDB_OLD_${var}_VALUE}")
+        elseif(OPENVDB_OLD_${var}_TYPE STREQUAL NONE_TYPE)
+            unset(${var} CACHE)
+        else()
+            message(FATAL_ERROR "Trying to pop a variable that has not been pushed: ${var}")
+        endif()
+    endmacro()
+
     macro(ignore_package NAME)
-        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${NAME}/${NAME}Config.cmake "")
-        set(${NAME}_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NAME} CACHE PATH "")
-        set(${NAME}_ROOT ${CMAKE_CURRENT_BINARY_DIR}/${NAME} CACHE PATH "")
+        set(OPENVDB_DUMMY_DIR "${CMAKE_CURRENT_BINARY_DIR}/openvdb_cmake/${NAME}")
+        file(WRITE ${OPENVDB_DUMMY_DIR}/${NAME}Config.cmake "")
+        push_variable(${NAME}_DIR ${OPENVDB_DUMMY_DIR})
+        push_variable(${NAME}_ROOT ${OPENVDB_DUMMY_DIR})
+    endmacro()
+
+    macro(unignore_package NAME)
+        pop_variable(${NAME}_DIR)
+        pop_variable(${NAME}_ROOT)
     endmacro()
 
     # Prefer Config mode before Module mode to prevent embree from loading its own FindTBB.cmake
@@ -81,6 +113,10 @@ function(openvdb_import_target)
         # https://github.com/AcademySoftwareFoundation/openvdb/issues/939
         add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/openvdb ${openvdb_BINARY_DIR})
     endif()
+
+    unignore_package(TBB)
+    unignore_package(Boost)
+    unignore_package(IlmBase)
 
     # Forward ALIAS target for openvdb
     get_target_property(_aliased openvdb ALIASED_TARGET)

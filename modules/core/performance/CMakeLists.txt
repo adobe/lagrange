@@ -52,8 +52,7 @@ lagrange_add_performance(condense_uv attributes/condense_uv.cpp)
 target_link_libraries(condense_uv lagrange::core lagrange::io)
 
 lagrange_add_performance(marquee marquee.cpp)
-target_link_libraries(marquee lagrange::core lagrange::io lagrange::ui CLI11::CLI11)
-target_compile_definitions(marquee PRIVATE UI_ENABLED)
+target_link_libraries(marquee lagrange::core lagrange::io CLI11::CLI11)
 
 lagrange_add_performance(array experimental/array.cpp)
 target_link_libraries(array lagrange::core lagrange::io)

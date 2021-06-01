@@ -116,21 +116,60 @@ std::unique_ptr<MeshType> convert_mesh_assimp(const aiMesh* mesh)
 
     using VertexArray = typename MeshType::VertexArray;
     using FacetArray = typename MeshType::FacetArray;
-    VertexArray vertices(mesh->mNumVertices, 3); // should we support arbitrary dimension?
-    FacetArray faces(mesh->mNumFaces, 3);
 
+    // Check that all facets have the same size
+    unsigned int nvpf = 0;
+    bool triangulate = false;
+    for (unsigned int j = 0; j < mesh->mNumFaces; ++j) {
+        const aiFace& face = mesh->mFaces[j];
+        if (nvpf == 0) {
+            nvpf = face.mNumIndices;
+        } else if (face.mNumIndices != nvpf) {
+            logger().warn("Facets with varying number of vertices detected, triangulating");
+            nvpf = 3;
+            triangulate = true;
+            break;
+        }
+    }
+    if (FacetArray::ColsAtCompileTime != Eigen::Dynamic && FacetArray::ColsAtCompileTime != nvpf) {
+        logger().warn(
+            "FacetArray cannot hold facets with n!={} vertex per facet, triangulating",
+            FacetArray::ColsAtCompileTime);
+        triangulate = true;
+        nvpf = 3;
+    }
+
+    // If triangulating a heterogeneous mesh, we need to count the number of facets
+    unsigned int num_output_facets = mesh->mNumFaces;
+    if (triangulate) {
+        num_output_facets = 0;
+        for (unsigned int j = 0; j < mesh->mNumFaces; ++j) {
+            const aiFace& face = mesh->mFaces[j];
+            num_output_facets += face.mNumIndices - 2;
+        }
+    }
+
+    VertexArray vertices(mesh->mNumVertices, 3); // should we support arbitrary dimension?
     for (unsigned int j = 0; j < mesh->mNumVertices; ++j) {
         const aiVector3D& vec = mesh->mVertices[j];
         vertices(j, 0) = vec.x;
         vertices(j, 1) = vec.y;
         vertices(j, 2) = vec.z;
     }
-    for (unsigned int j = 0; j < mesh->mNumFaces; ++j) {
+
+    FacetArray faces(num_output_facets, nvpf);
+    for (unsigned int j = 0, f = 0; j < mesh->mNumFaces; ++j) {
         const aiFace& face = mesh->mFaces[j];
-        assert(face.mNumIndices == 3);
-        for (unsigned int k = 0; k < face.mNumIndices; ++k) {
-            faces(j, k) = face.mIndices[k];
+        if (triangulate) {
+            for (unsigned int k = 2; k < face.mNumIndices; ++k) {
+                faces.row(f++) << face.mIndices[0], face.mIndices[k - 1], face.mIndices[k];
+            }
+        } else {
+            for (unsigned int k = 0; k < face.mNumIndices; ++k) {
+                faces(j, k) = face.mIndices[k];
+            }
         }
+        assert(f <= num_output_facets);
     }
 
     auto lagrange_mesh = create_mesh(std::move(vertices), std::move(faces));
