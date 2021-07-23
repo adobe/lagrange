@@ -203,8 +203,8 @@ void camera_focusfit_system(Registry& registry)
                 } else {
                     const float dist = (radius * 2.0f) / std::tan(cam.get_fov() / 2.0f);
                     const auto dir = cam.get_direction().normalized().eval();
-                    const auto new_pos = cam.get_lookat() - dir * dist;
-                    const auto old_pos = cam.get_position();
+                    const Eigen::Vector3f new_pos = cam.get_lookat() - dir * dist;
+                    const Eigen::Vector3f old_pos = cam.get_position();
 
                     fit_reached = (old_pos - new_pos).squaredNorm() < eps;
                     cam.set_position(t * new_pos + (1.0f - t) * cam.get_position());

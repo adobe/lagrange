@@ -29,7 +29,6 @@ struct SkyboxCubeVertexData
 
 void render_background(Registry& r)
 {
-    auto& rctx = get_render_context(r);
     auto& viewport = get_render_context_viewport(r);
 
     // Grab and bind fbo if set

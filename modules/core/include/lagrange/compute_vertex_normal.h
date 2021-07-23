@@ -30,7 +30,8 @@ template <typename MeshType>
 void compute_vertex_normal(
     MeshType& mesh,
     const igl::PerVertexNormalsWeightingType weighting =
-        igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_ANGLE)
+        igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_ANGLE,
+    bool recompute_facet_normals = false)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     using Index = IndexOf<MeshType>;
@@ -40,7 +41,7 @@ void compute_vertex_normal(
         throw std::runtime_error("Input mesh is not triangle mesh.");
     }
 
-    if (!mesh.has_facet_attribute("normal")) {
+    if (!mesh.has_facet_attribute("normal") || recompute_facet_normals) {
         compute_triangle_normal(mesh);
         LA_ASSERT(mesh.has_facet_attribute("normal"));
     }

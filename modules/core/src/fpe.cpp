@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#ifdef _WIN32
+#if defined(_WIN32) || defined(LA_DISABLE_FPE)
 
 namespace {
 
@@ -29,11 +29,11 @@ inline int fedisableexcept(unsigned int excepts)
 
 } // namespace
 
-#elif __linux__
+#elif defined(__linux__)
 
 #include <fenv.h>
 
-#elif __APPLE__
+#elif defined(__APPLE__)
 
 #include <fenv.h>
 
@@ -41,6 +41,7 @@ inline int fedisableexcept(unsigned int excepts)
 // http://www-personal.umich.edu/~williams/archive/computation/fe-handling-example.c
 
 namespace {
+
 inline int feenableexcept(unsigned int excepts)
 {
     static fenv_t fenv;

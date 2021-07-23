@@ -347,11 +347,7 @@ void update_vao(VertexData& vd)
             continue;
         }
 
-        auto& vbo = buffer->vbo();
-
-        if (vbo.size == 0) {
-            lagrange::logger().warn("VBO at location {} is empty", i);
-        }
+        const auto& vbo = buffer->vbo();
 
         LA_ASSERT(
             vbo.target == GL_ARRAY_BUFFER,
@@ -377,7 +373,7 @@ void update_vao(VertexData& vd)
 
     // Bind index array
     if (vd.index_buffer) {
-        auto& vbo = vd.index_buffer->vbo();
+        const auto& vbo = vd.index_buffer->vbo();
 
         LA_ASSERT(
             vbo.target == GL_ELEMENT_ARRAY_BUFFER,

@@ -79,10 +79,31 @@ void show_mesh_geometry(Registry* rptr, Entity orig_e)
     }
     ImGui::Text("MeshType: %s", typeinfo.name().data());
 
-    int sub_id = m.submesh_index;
+    const size_t num_vertices = get_num_vertices(mesh_data);
+    if (num_vertices == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::RED400);
+    ImGui::Text("Vertices: %zu", num_vertices);
+    if (num_vertices == 0) ImGui::PopStyleColor();
 
-    if (ImGui::InputInt("Submesh/Material ID", &sub_id)) {
-        if (sub_id >= 0) m.submesh_index = entt::id_type(sub_id);
+    const size_t num_facets = get_num_facets(mesh_data);
+    if (num_facets == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::RED400);
+    ImGui::Text("Facets: %zu", num_facets);
+    if (num_facets == 0) ImGui::PopStyleColor();
+
+    int sub_id = m.submesh_index;
+    if (m.submesh_index == entt::null) {
+        ImGui::Text("Submesh/Material ID not set");
+        ImGui::SameLine();
+
+        if (ImGui::Button("Set")) {
+            m.submesh_index = 0;
+        }
+    } else {
+        if (ImGui::InputInt("Submesh/Material ID", &sub_id) && sub_id >= 0) {
+            m.submesh_index = entt::id_type(sub_id);
+        }
+        if (ImGui::Button("Unset Submesh/Material ID")) {
+            m.submesh_index = entt::null;
+        }
     }
 
     if (has_accelerated_picking(r, m.entity)) {
@@ -1034,12 +1055,18 @@ void show_bounds(Registry* rptr, Entity e)
     const auto& bounds = rptr->get<Bounds>(e);
 
     const auto show_bb = [](const AABB& bb) {
-        Eigen::Vector3f tmp_min = bb.min(), tmp_max = bb.max(), tmp_extent = bb.diagonal(),
-                        tmp_center = bb.center();
-        ImGui::DragFloat3("Min", tmp_min.data());
-        ImGui::DragFloat3("Max", tmp_max.data());
-        ImGui::DragFloat3("Extent", tmp_extent.data());
-        ImGui::DragFloat3("Center", tmp_center.data());
+        if (bb.isEmpty()) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::RED400);
+            ImGui::Text("Empty");
+            ImGui::PopStyleColor();
+        } else {
+            Eigen::Vector3f tmp_min = bb.min(), tmp_max = bb.max(), tmp_extent = bb.diagonal(),
+                            tmp_center = bb.center();
+            ImGui::DragFloat3("Min", tmp_min.data());
+            ImGui::DragFloat3("Max", tmp_max.data());
+            ImGui::DragFloat3("Extent", tmp_extent.data());
+            ImGui::DragFloat3("Center", tmp_center.data());
+        }
     };
 
     ImGui::Text("Local");

@@ -17,11 +17,11 @@
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/select_facets_in_frustum.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/types/Camera.h>
 #include <lagrange/ui/types/Color.h>
 #include <lagrange/ui/types/Frustum.h>
 #include <lagrange/ui/types/RayFacetHit.h>
 #include <lagrange/ui/types/VertexBuffer.h>
-#include <lagrange/ui/types/Camera.h>
 #include <lagrange/ui/utils/math.h>
 #include <lagrange/ui/utils/objectid_viewport.h>
 
@@ -161,6 +161,8 @@ template <typename MeshType>
 AABB get_mesh_bounds(const MeshBase* mesh_base)
 {
     const auto& mesh = reinterpret_cast<const MeshType&>(*mesh_base);
+    if (mesh.get_num_vertices() == 0) return AABB();
+
     const auto& V = mesh.get_vertices();
     return AABB(
         V.colwise().minCoeff().template cast<float>(),
@@ -248,7 +250,9 @@ void ensure_is_selected_attribute(MeshBase* d)
 
     if (mesh.is_edge_data_initialized_new() && !mesh.has_edge_attribute_new(attrib_name)) {
         mesh.add_edge_attribute_new(attrib_name);
-        mesh.import_edge_attribute_new(attrib_name, AttributeArray::Zero(mesh.get_num_edges_new(), 1));
+        mesh.import_edge_attribute_new(
+            attrib_name,
+            AttributeArray::Zero(mesh.get_num_edges_new(), 1));
     }
 
     if (!mesh.has_vertex_attribute(attrib_name)) {
@@ -552,7 +556,7 @@ void select_vertices_in_frustum(
     using Index = typename MeshType::Index;
 
     const auto num_vertices = mesh.get_num_vertices();
-    const auto& vertices = mesh.get_vertices();    
+    const auto& vertices = mesh.get_vertices();
 
     AttributeArray attr;
 
@@ -891,7 +895,6 @@ void select_facets(
 }
 
 
-
 template <typename MeshType>
 void filter_closest_vertex(
     MeshBase* mesh_base,
@@ -900,7 +903,6 @@ void filter_closest_vertex(
     const Camera& camera,
     const Eigen::Vector2i& viewport_pos)
 {
-
     auto& mesh = reinterpret_cast<MeshType&>(*mesh_base);
     using AttribArray = typename MeshType::AttributeArray;
 
@@ -936,7 +938,8 @@ void filter_closest_vertex(
 
                 if (vertex_attrib(vi) == 0.0f) continue;
 
-                const auto proj = camera.project_with_depth(vertices.row(vi).template cast<float>());
+                const auto proj =
+                    camera.project_with_depth(vertices.row(vi).template cast<float>());
                 const auto diff =
                     (Eigen::Vector2i(int(proj.x()), int(camera.get_window_height() - proj.y())) -
                      viewport_pos)
@@ -984,7 +987,6 @@ void filter_closest_vertex(
         const auto value = (sel_behavior != SelectionBehavior::ERASE) ? Scalar(1) : Scalar(0);
 
         if (final_buffer.min_vi != lagrange::INVALID<Index>()) {
-
             vertex_attrib(final_buffer.min_vi, 0) = value;
             for (auto equiv_vi : final_buffer.equivalence) {
                 vertex_attrib(equiv_vi, 0) = value;
@@ -1038,8 +1040,7 @@ void register_mesh_type(const std::string& display_name = entt::type_id<MeshType
     entt::meta<MeshType>().template func<&detail::get_mesh_attribute_range<MeshType>>(
         "get_mesh_attribute_range"_hs);
 
-    entt::meta<MeshType>().template func<&detail::get_mesh_bounds<MeshType>>(
-        "get_mesh_bounds"_hs);
+    entt::meta<MeshType>().template func<&detail::get_mesh_bounds<MeshType>>("get_mesh_bounds"_hs);
 
 
     // Ensure attribs
@@ -1112,11 +1113,9 @@ void register_mesh_type(const std::string& display_name = entt::type_id<MeshType
     entt::meta<MeshType>().template func<&detail::select_vertices_by_color<MeshType>>(
         "select_vertices_by_color"_hs);
 
-    entt::meta<MeshType>().template func<&detail::select_facets<MeshType>>(
-        "select_facets"_hs);
+    entt::meta<MeshType>().template func<&detail::select_facets<MeshType>>("select_facets"_hs);
     entt::meta<MeshType>().template func<&detail::filter_closest_vertex<MeshType>>(
         "filter_closest_vertex"_hs);
-
 }
 
 

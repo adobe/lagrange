@@ -90,7 +90,7 @@ Entity add_directional_light(
         auto viz = ui::show_mesh(r, m, DefaultShaders::TrianglesToLines);
         ui::get_material(r, viz)->set_int(RasterizerOptions::Pass, 10);
 
-        auto dims = (Eigen::Vector3f::Ones() + 100 * initial_dir).normalized() * 1.0f;
+        Eigen::Vector3f dims = (Eigen::Vector3f::Ones() + 100 * initial_dir).normalized() * 1.0f;
         ui::set_transform(r, viz, Eigen::Scaling(dims));
         ui::set_parent(r, viz, e);
         ui::add_to_layer(r, viz, DefaultLayers::NoShadow);
@@ -139,7 +139,7 @@ lagrange::ui::Entity add_spot_light(
             DefaultShaders::TrianglesToLines);
         ui::get_material(r, viz)->set_int(RasterizerOptions::Pass, 10);
 
-        auto dims = (Eigen::Vector3f::Ones() + 2 * initial_dir).normalized() * 1.0f;
+        Eigen::Vector3f dims = (Eigen::Vector3f::Ones() + 2 * initial_dir).normalized() * 1.0f;
         ui::set_transform(r, viz, Eigen::Scaling(dims));
         ui::set_parent(r, viz, e);
         ui::add_to_layer(r, viz, DefaultLayers::NoShadow);

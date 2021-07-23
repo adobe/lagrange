@@ -25,7 +25,9 @@ void update_scene_bounds_system(Registry& registry)
         auto view = registry.view<Transform, Bounds>();
         for (auto e : view) {
             auto& b = view.get<Bounds>(e);
-            b.global = b.local.transformed(view.get<Transform>(e).global);
+            if (!b.local.isEmpty()) {
+                b.global = b.local.transformed(view.get<Transform>(e).global);
+            }
         }
     }
 
@@ -87,22 +89,14 @@ void update_scene_bounds_system(Registry& registry)
             }
 
 
-
             // If parent does not have bounds component yet
             if (!registry.has<Bounds>(parent)) {
                 auto& parent_bounds = registry.emplace<Bounds>(parent);
-                if (registry.has<Transform>(parent)) {
-                    const auto& t = registry.get<Transform>(parent);
-                    const auto local_pos = t.local.matrix().block<3, 1>(0, 3).eval();
-                    const auto global_pos = t.global.matrix().block<3, 1>(0, 3).eval();
-                    parent_bounds.local = AABB(local_pos, local_pos);
-                    parent_bounds.global = AABB(global_pos, global_pos);
-                    parent_bounds.bvh_node = parent_bounds.global; //Init with empty box at global position
-                } else {
-                    parent_bounds.local = AABB();
-                    parent_bounds.global = AABB();
-                    parent_bounds.bvh_node = bvh_node; //Init with child
-                }
+                // Empty bounds
+                parent_bounds.local = AABB();
+                parent_bounds.global = AABB();
+                // Init with child's bvh
+                parent_bounds.bvh_node = bvh_node;
             }
 
             // Update parent and mark as dirty

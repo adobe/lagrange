@@ -38,13 +38,6 @@ struct DefaultShaderIndicesNames
     constexpr static const entt::id_type TriangleIndices = entt::hashed_string{"_triangle_indices"};
 };
 
-struct GLOcclusionQuery
-{
-    GLuint id;
-    GLenum type;
-    GLint last_result;
-};
-
 struct GLMesh
 {
     std::shared_ptr<GPUBuffer> get_attribute_buffer(entt::id_type id) const

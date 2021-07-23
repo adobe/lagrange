@@ -35,6 +35,11 @@ if(LAGRANGE_KEEP_TRANSITION_CODE)
     target_compile_definitions(lagrange_core PUBLIC -DLA_KEEP_TRANSITION_CODE)
 endif()
 
+option(LAGRANGE_DISABLE_FPE "Disable floating point exception code" OFF)
+if(LAGRANGE_DISABLE_FPE)
+    target_compile_definitions(lagrange_core PRIVATE -DLA_DISABLE_FPE)
+endif()
+
 # 2. target sources
 file(GLOB_RECURSE INC_FILES "include/*.h")
 file(GLOB_RECURSE SRC_FILES "src/*.cpp")

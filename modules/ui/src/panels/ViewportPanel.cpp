@@ -234,6 +234,13 @@ void draw_framebuffer_popup(Registry& registry, ViewportPanel& data)
                 ImGui::InputInt("Width", &v.width);
                 ImGui::InputInt("Height", &v.height);
                 ImGui::Checkbox("Auto near/far", &v.auto_nearfar);
+
+                if (v.auto_nearfar) {
+                    auto n = v.computed_camera.get_near();
+                    auto f = v.computed_camera.get_far();
+                    ImGui::InputFloat("Computed near", &n);
+                    ImGui::InputFloat("Computed far", &f);
+                }
             }
 
             if (ImGui::CollapsingHeader("Layer visibility")) {

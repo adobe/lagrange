@@ -397,17 +397,15 @@ bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
 
             m_systems.run(Systems::Stage::Interface, registry());
 
+           if (main_loop) {
+                if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
+            }
 
             show_last_shader_error();
             end_dockspace();
         }
 
         end_imgui_frame();
-
-
-        if (main_loop) {
-            if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
-        }
 
 
         m_systems.run(Systems::Stage::Simulation, registry());

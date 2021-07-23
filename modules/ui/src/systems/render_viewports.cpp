@@ -47,11 +47,11 @@ void adjust_camera(Registry& registry, ViewportComponent& viewport, Camera& cam)
     auto near_plane = cam.get_near();
     auto far_plane = cam.get_far();
 
-    if (furthest != std::numeric_limits<float>::min()) {
+    if (furthest > 0) {
         far_plane = 1.01f * furthest;
     }
-    if (nearest != std::numeric_limits<float>::max()) {
-        near_plane = std::max(0.99f * nearest, near_plane);
+    if (nearest > 0) {
+        near_plane = 0.99f * nearest;
     }
     cam.set_planes(near_plane, far_plane);
 }

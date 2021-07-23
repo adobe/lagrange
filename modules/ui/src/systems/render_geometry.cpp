@@ -413,8 +413,6 @@ void render_gl_render_queue(Registry& r)
     auto& cam = viewport.computed_camera;
     const auto P = cam.get_perspective();
     const auto V = cam.get_view();
-    const auto PV = cam.get_PV();
-    const auto PVinv = cam.get_PV().inverse().eval();
     const auto cameraPos = cam.get_position();
     const auto screen_size = cam.get_window_size();
 
