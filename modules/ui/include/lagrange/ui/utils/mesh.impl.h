@@ -24,6 +24,7 @@
 #include <lagrange/ui/types/VertexBuffer.h>
 #include <lagrange/ui/utils/math.h>
 #include <lagrange/ui/utils/objectid_viewport.h>
+#include <lagrange/utils/tbb.h>
 
 
 namespace lagrange {
@@ -580,7 +581,7 @@ void select_vertices_in_frustum(
         tbb::blocked_range<Index>(0, num_vertices),
         [&value, &attr, &frustum, &vertices](const tbb::blocked_range<Index>& tbb_range) {
             for (auto vi = tbb_range.begin(); vi != tbb_range.end(); vi++) {
-                if (tbb::task::self().is_cancelled()) break;
+                if (tbb_utils::is_cancelled()) break;
                 if (frustum.contains(vertices.row(vi).template cast<float>())) {
                     attr(vi, 0) = value;
                 }
@@ -673,7 +674,7 @@ void propagate_vertex_selection(MeshBase* mesh_base, const std::string& attrib_n
         tbb::blocked_range<Index>(0, num_facets),
         [&](const tbb::blocked_range<Index>& tbb_range) {
             for (auto fi = tbb_range.begin(); fi != tbb_range.end(); fi++) {
-                if (tbb::task::self().is_cancelled()) break;
+                if (tbb_utils::is_cancelled()) break;
 
                 for (Index j = 0; j < vertex_per_facet; j++) {
                     if (vertex_attrib(facets(fi, j)) != 0.0f) {
@@ -748,7 +749,7 @@ void combine_vertex_and_corner_selection(MeshBase* mesh_base, const std::string&
         tbb::blocked_range<Index>(0, num_facets),
         [&](const tbb::blocked_range<Index>& tbb_range) {
             for (auto fi = tbb_range.begin(); fi != tbb_range.end(); fi++) {
-                if (tbb::task::self().is_cancelled()) break;
+                if (tbb_utils::is_cancelled()) break;
                 for (Index j = 0; j < vertex_per_facet; j++) {
                     auto& corner_val = corner_attrib(fi * vertex_per_facet + j);
                     if (vertex_attrib(facets(fi, j)) != Scalar(0) && corner_val != Scalar(0)) {
@@ -934,7 +935,7 @@ void filter_closest_vertex(
             auto& equiv = temp_vars.local().equivalence;
 
             for (auto vi = tbb_range.begin(); vi != tbb_range.end(); vi++) {
-                if (tbb::task::self().is_cancelled()) break;
+                if (tbb_utils::is_cancelled()) break;
 
                 if (vertex_attrib(vi) == 0.0f) continue;
 

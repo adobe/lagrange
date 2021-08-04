@@ -61,21 +61,23 @@
 # option(LAGRANGE_UI_USE_MDL           "Use Material Definition Library"   ON)
 
 # Others
-# option(LAGRANGE_EXAMPLES             "Build all examples"                ON)
-# option(LAGRANGE_PERFORMANCE_TESTS    "Build all performance tests"       ON)
-# option(LAGRANGE_UNIT_TESTS           "Build all unit tests"              ON)
-# option(LAGRANGE_USE_TBB_STATIC       "Build with static TBB"             ON)
-# option(LAGRANGE_USE_PCH              "Enable precompiled headers"        ON)
-# option(LAGRANGE_INSTALL              "Enable installation"               OFF)
-# option(LAGRANGE_DOCUMENTATION        "Build Doxygen documentation"       ON)
-# option(LAGRANGE_WITH_ASSIMP          "Add assimp functionality to lagrange::io" OFF)
-# set(LAGRANGE_DATA_FOLDER             "Where to download or find test data" CACHE PATH "path/to/data")
+# option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"                          ON)
+# option(LAGRANGE_EXAMPLES          "Build all examples"                                   ON)
+# option(LAGRANGE_INSTALL           "Enable installation"                                  OFF)
+# option(LAGRANGE_PERFORMANCE_TESTS "Build all performance tests"                          ON)
+# option(LAGRANGE_UNIT_TESTS        "Build all unit tests"                                 ON)
+# option(LAGRANGE_USE_PCH           "Enable precompiled headers"                           ON)
+# option(LAGRANGE_WITH_ASSIMP       "Add assimp functionality to lagrange::io"             OFF)
+# option(LAGRANGE_WITH_ONETBB       "Build Lagrange with OneTBB 2021 rather than TBB 2020" OFF)
+# option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange"                     ON)
+# set(LAGRANGE_DATA_FOLDER          "Where to download or find test data" CACHE PATH "path/to/data")
 
 # Options for third-party libraries
 # option(EIGEN_WITH_MKL "Use Eigen with MKL" ON)
-# set(MKL_INTERFACE "lp64" CACHE STRING "Interface layer to use with MKL (lp64 or ilp64)")
-# set(MKL_LINKING "static" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-# set(MKL_THREADING "tbb" CACHE STRING "Threading layer to use with MKL (sequential, tbb or openmp)")
+# set(MKL_INTERFACE "lp64"   CACHE STRING "Interface layer to use with MKL (lp64 or ilp64)")
+# set(MKL_LINKING   "static" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+# set(MKL_THREADING "tbb"    CACHE STRING "Threading layer to use with MKL (sequential, tbb or openmp)")
+# option(TBB_PREFER_STATIC        "Use the static version of TBB for the alias target" ON)
 
 ################################################################################
 # Sanitizer Options

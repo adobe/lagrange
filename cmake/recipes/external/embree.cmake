@@ -19,14 +19,14 @@ include(FetchContent)
 FetchContent_Declare(
     embree
     GIT_REPOSITORY https://github.com/embree/embree.git
-    GIT_TAG        v3.9.0
+    GIT_TAG        v3.13.0
     GIT_SHALLOW    TRUE
 )
 
 # Set Embree's default options
-option(EMBREE_ISPC_SUPPORT "Build Embree with support for ISPC applications." OFF)
-option(EMBREE_TUTORIALS    "Enable to build Embree tutorials"                 OFF)
-option(EMBREE_STATIC_LIB   "Build Embree as a static library."                ON)
+option(EMBREE_ISPC_SUPPORT   "Build Embree with support for ISPC applications." OFF)
+option(EMBREE_TUTORIALS      "Enable to build Embree tutorials"                 OFF)
+option(EMBREE_STATIC_LIB     "Build Embree as a static library."                ON)
 set(EMBREE_TESTING_INTENSITY 0         CACHE STRING "Intensity of testing (0 = no testing, 1 = verify and tutorials, 2 = light testing, 3 = intensive testing.")
 set(EMBREE_TASKING_SYSTEM    "TBB"     CACHE STRING "Selects tasking system")
 set(EMBREE_MAX_ISA           "DEFAULT" CACHE STRING "Selects highest ISA to support.")
@@ -38,32 +38,22 @@ set(EMBREE_MAX_ISA           "DEFAULT" CACHE STRING "Selects highest ISA to supp
 # - https://crascit.com/2018/09/14/do-not-redefine-cmake-commands/
 function(embree_import_target)
     macro(ignore_package NAME)
-        unset(${NAME}_ROOT CACHE) # Prevent warning CMP0074 due to embree's CMake setting policies based on CMake 3.1.0
         file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${NAME}/${NAME}Config.cmake "")
-        set(${NAME}_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NAME} CACHE PATH "")
+        set(${NAME}_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NAME} CACHE PATH "" FORCE)
     endmacro()
 
     # Prefer Config mode before Module mode to prevent embree from loading its own FindTBB.cmake
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
-    # Note that embree wants to be able to export() its target. If we use `TBB::tbb`
-    # directly in `TBB_LIBRARIES` we will get an error. For now we hide tbb's target
-    # from the exported dependencies of embree by going through an intermediate
-    # IMPORTED library. If the client cares about where all this stuff is installed,
-    # they will probably have their own way of installing embree/tbb.
-    #
-    # See relevant discussion here:
-    # - https://gitlab.kitware.com/cmake/cmake/issues/17357
-    # - https://gitlab.kitware.com/cmake/cmake/issues/15415
-    ignore_package(TBB)
-
-    # We globally link against TBB using old-style folder-based commands (this is bad!), because
-    # Embree's CMake is poorly written and does not offer a reliable way to provide a custom TBB
-    # target.
+    # Embree wants to be able to export() its target, and expects a target named `TBB` to exist.
+    # Somehow we stil need to define `TBB_INCLUDE_DIRS`, and linking against `TBB` isn't sufficient
+    # to compile embree targets properly.
     include(tbb)
-    set(TBB_INCLUDE_DIRS "")
-    set(TBB_LIBRARIES "")
-    link_libraries(TBB::tbb)
+    ignore_package(TBB)
+    get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
+    add_library(TBB INTERFACE)
+    target_link_libraries(TBB INTERFACE TBB::tbb)
+    set(TBB_LIBRARIES TBB)
 
     # Ready to include embree's atrocious CMake
     FetchContent_MakeAvailable(embree)
@@ -80,24 +70,17 @@ function(embree_import_target)
 
     # Now we need to do some juggling to propagate the include directory properties
     # along with the `embree` target
-    include(GNUInstallDirs)
-    target_include_directories(embree SYSTEM INTERFACE
-        "$<BUILD_INTERFACE:${embree_SOURCE_DIR}/include>"
-        "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}/>"
-    )
-
-    add_library(embree::embree ALIAS embree)
+    add_library(embree::embree INTERFACE IMPORTED GLOBAL)
+    target_include_directories(embree::embree SYSTEM INTERFACE ${embree_SOURCE_DIR}/include)
+    target_link_libraries(embree::embree INTERFACE embree)
 endfunction()
 
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
 embree_import_target()
 
-# Some order for IDEs
-set_target_properties(embree PROPERTIES FOLDER "third_party//embree")
-set_target_properties(algorithms PROPERTIES FOLDER "third_party//embree")
-set_target_properties(lexers PROPERTIES FOLDER "third_party//embree")
-set_target_properties(math PROPERTIES FOLDER "third_party//embree")
-set_target_properties(simd PROPERTIES FOLDER "third_party//embree")
-set_target_properties(sys PROPERTIES FOLDER "third_party//embree")
-set_target_properties(tasking PROPERTIES FOLDER "third_party//embree")
-set_target_properties(uninstall PROPERTIES FOLDER "third_party//embree")
+# Cleanup for IDEs
+foreach(name IN ITEMS embree algorithms lexers math simd sys tasking uninstall)
+    if(TARGET ${name})
+        set_target_properties(${name} PROPERTIES FOLDER "third_party//embree")
+    endif()
+endforeach()

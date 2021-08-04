@@ -13,6 +13,9 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/Mesh.h>
+#include <lagrange/attributes/map_corner_attributes.h>
+#include <lagrange/attributes/map_facet_attributes.h>
+#include <lagrange/attributes/map_vertex_attributes.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
 
@@ -151,6 +154,18 @@ std::unique_ptr<MeshType> unify_index_buffer(
             });
         unified_mesh->import_vertex_attribute(attr_name, unified_attr);
     }
+
+    // Map vertex, facet and corner attribute over.
+    {
+        std::vector<Index> vertex_map(num_vertices + num_added_vertices);
+        tbb::parallel_for(Index(0), num_vertices, [&](Index i) { vertex_map[i] = i; });
+        tbb::parallel_for(Index(0), num_added_vertices, [&](Index i) {
+            vertex_map[num_vertices + i] = new_vertices[i];
+        });
+        map_vertex_attributes(mesh, *unified_mesh, vertex_map);
+    }
+    map_facet_attributes(mesh, *unified_mesh);
+    map_corner_attributes(mesh, *unified_mesh);
 
     return unified_mesh;
 }

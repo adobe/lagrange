@@ -118,7 +118,7 @@ TEST_CASE("experimental/IndexedAttributes", "[attribute][indexed]")
         {
             TestArray<short, 3> values(3, 3);
             values.setIdentity();
-            TestArray<size_t, 3> indices(3, 3);
+            TestArray<uint64_t, 3> indices(3, 3);
             indices << 0, 0, 0, 1, 1, 1, 2, 2, 2;
             manager.add("test", values, indices);
         }

@@ -36,7 +36,22 @@ int main(int argc, char** argv)
     ui::Viewer viewer("UI Example - Callbacks", 1920, 1080);
 
     // Get reference to the registry (global state of the ui)
-    ui::show_mesh(viewer, ui::register_mesh(viewer, lagrange::create_sphere()));
+    const auto mesh = ui::register_mesh(viewer, lagrange::create_sphere());
+    const int n = 16;
+    for (auto i = 0; i < 16; i++) {
+        auto instance = ui::show_mesh(viewer, mesh);
+        float t = i / float(n);
+
+        ui::set_transform(viewer, instance, Eigen::Scaling(ui::pi() / n));
+        ui::apply_transform(
+            viewer,
+            instance,
+            Eigen::Translation3f(std::sin(t * ui::two_pi()), 0, std::cos(t * ui::two_pi())));
+        ui::get_material(viewer, instance)
+            ->set_color(ui::PBRMaterial::BaseColor, ui::colormap_viridis(t));
+        ui::set_name(viewer, instance, lagrange::string_format("instance {}", i));
+    }
+
 
     /*
         See <lagrange/ui/default_events.h> for a list of event types
@@ -75,6 +90,21 @@ int main(int argc, char** argv)
             "Camera of entity {} changed. Position:\n{}",
             e.entity,
             cam.get_position());
+    });
+
+
+    // Selection and hover events
+    ui::on<ui::SelectedEvent>(viewer, [](const ui::SelectedEvent& e) {
+        lagrange::logger().info("Entity {} selected", e.entity);
+    });
+    ui::on<ui::DeselectedEvent>(viewer, [](const ui::DeselectedEvent& e) {
+        lagrange::logger().info("Entity {} deselected", e.entity);
+    });
+    ui::on<ui::HoveredEvent>(viewer, [](const ui::HoveredEvent& e) {
+        lagrange::logger().info("Entity {} hovered", e.entity);
+    });
+    ui::on<ui::DehoveredEvent>(viewer, [](const ui::DehoveredEvent& e) {
+        lagrange::logger().info("Entity {} dehovered", e.entity);
     });
 
 

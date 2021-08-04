@@ -33,9 +33,14 @@ function(lagrange_add_test)
 
     # Register tests
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/reports")
-    catch_discover_tests(${test_target}
-        REPORTER junit
-        OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
-        OUTPUT_SUFFIX ".xml"
-    )
+    if(LAGRANGE_TOPLEVEL_PROJECT)
+        catch_discover_tests(${test_target}
+            REPORTER junit
+            OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
+            OUTPUT_SUFFIX ".xml"
+        )
+    else()
+        catch_discover_tests(${test_target})
+    endif()
+
 endfunction()

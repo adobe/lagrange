@@ -18,87 +18,67 @@
 // #include <lagrange/utils/warning.h>
 //
 // LA_DISABLE_WARNING_BEGIN
-// LA_DISABLE_WARNING(unused-local-typedefs)
+// LA_DISABLE_WARNING_CLANG(-Wdeprecated-declarations)
+// LA_DISABLE_WARNING_GCC(-Wdeprecated-declarations)
+// LA_DISABLE_WARNING_MSVC(4996)
 // ...
 // <code that may cause warning>
 // ...
 // LA_DISABLE_WARNING_END
+// ```
 //
 
 // clang-format off
+
+// Define macros for each compiler
 #if defined(__clang__)
-#define LA_PRAGMA(X) _Pragma(#X)
-#define LA_DISABLE_WARNING_BEGIN LA_PRAGMA(clang diagnostic push)
-#define LA_DISABLE_WARNING_END LA_PRAGMA(clang diagnostic pop)
-#define LA_DISABLE_WARNING(warning_name) LA_PRAGMA(clang diagnostic ignored #warning_name)
-
-// Ignore shadow warnings
-#define LA_IGNORE_SHADOW_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING(-Wshadow)
-#define LA_IGNORE_SHADOW_WARNING_END LA_DISABLE_WARNING_END
-
-// Ignore deprecation warnings
-#define LA_IGNORE_DEPRECATION_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING(-Wdeprecated-declarations)
-#define LA_IGNORE_DEPRECATION_WARNING_END LA_DISABLE_WARNING_END
-
-// Ignore unused local typedefs
-#define LA_IGNORE_UNUSED_TYPEDEF_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING(-Wunused-local-typedefs)
-#define LA_IGNORE_UNUSED_TYPEDEF_END LA_DISABLE_WARNING_END
-
-
+    #define LA_PRAGMA(X) _Pragma(#X)
+    #define LA_DISABLE_WARNING_BEGIN LA_PRAGMA(clang diagnostic push)
+    #define LA_DISABLE_WARNING_END LA_PRAGMA(clang diagnostic pop)
+    #define LA_DISABLE_WARNING_CLANG(warning_name) LA_PRAGMA(clang diagnostic ignored #warning_name)
+    #define LA_DISABLE_WARNING_GCC(warning_name)
+    #define LA_DISABLE_WARNING_MSVC(warning_number)
 #elif defined(__GNUC__)
-#define LA_PRAGMA(X) _Pragma(#X)
-#define LA_DISABLE_WARNING_BEGIN LA_PRAGMA(GCC diagnostic push)
-#define LA_DISABLE_WARNING_END LA_PRAGMA(GCC diagnostic pop)
-#define LA_DISABLE_WARNING(warning_name) LA_PRAGMA(GCC diagnostic ignored #warning_name)
-
-// Ignore shadow warnings
-#define LA_IGNORE_SHADOW_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING(-Wshadow)
-#define LA_IGNORE_SHADOW_WARNING_END LA_DISABLE_WARNING_END
-
-// Ignore deprecation warnings
-#define LA_IGNORE_DEPRECATION_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING(-Wdeprecated-declarations)
-#define LA_IGNORE_DEPRECATION_WARNING_END LA_DISABLE_WARNING_END
-
-// Ignore unused local typedefs
-#define LA_IGNORE_UNUSED_TYPEDEF_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING(-Wunused-local-typedefs)
-#define LA_IGNORE_UNUSED_TYPEDEF_END LA_DISABLE_WARNING_END
-
-
+    #define LA_PRAGMA(X) _Pragma(#X)
+    #define LA_DISABLE_WARNING_BEGIN LA_PRAGMA(GCC diagnostic push)
+    #define LA_DISABLE_WARNING_END LA_PRAGMA(GCC diagnostic pop)
+    #define LA_DISABLE_WARNING_CLANG(warning_name)
+    #define LA_DISABLE_WARNING_GCC(warning_name) LA_PRAGMA(GCC diagnostic ignored #warning_name)
+    #define LA_DISABLE_WARNING_MSVC(warning_number)
 #elif defined(_MSC_VER)
-#define LA_DISABLE_WARNING_BEGIN __pragma(warning(push))
-#define LA_DISABLE_WARNING_END __pragma(warning(pop))
-#define LA_DISABLE_WARNING(warning_number) __pragma(warning( disable : warning_number ))
-
-// Ignore shadow warnings
-#define LA_IGNORE_SHADOW_WARNING_BEGIN
-#define LA_IGNORE_SHADOW_WARNING_END
-
-// Ignore deprecation warnings
-#define LA_IGNORE_DEPRECATION_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING(4996)
-#define LA_IGNORE_DEPRECATION_WARNING_END LA_DISABLE_WARNING_END
-
-// Ignore shadow warnings
-#define LA_IGNORE_UNUSED_TYPEDEF_BEGIN
-#define LA_IGNORE_UNUSED_TYPEDEF_END
-
+    #define LA_DISABLE_WARNING_BEGIN __pragma(warning(push))
+    #define LA_DISABLE_WARNING_END __pragma(warning(pop))
+    #define LA_DISABLE_WARNING_CLANG(warning_name)
+    #define LA_DISABLE_WARNING_GCC(warning_name)
+    #define LA_DISABLE_WARNING_MSVC(warning_number) __pragma(warning( disable : warning_number ))
 #else
-#define LA_DISABLE_WARNING_BEGIN
-#define LA_DISABLE_WARNING_END
-#define LA_DISABLE_WARNING(X)
-#define LA_IGNORE_SHADOW_WARNING_BEGIN
-#define LA_IGNORE_SHADOW_WARNING_END
-#define LA_IGNORE_DEPRECATION_WARNING_BEGIN
-#define LA_IGNORE_DEPRECATION_WARNING_END
-#define LA_IGNORE_UNUSED_TYPEDEF_BEGIN
-#define LA_IGNORE_UNUSED_TYPEDEF_END
+    #define LA_DISABLE_WARNING_BEGIN
+    #define LA_DISABLE_WARNING_END
+    #define LA_DISABLE_WARNING_CLANG(warning_name)
+    #define LA_DISABLE_WARNING_GCC(warning_name)
+    #define LA_DISABLE_WARNING_MSVC(warning_number)
 #endif
 
+// Ignore shadow warnings
+#define LA_IGNORE_SHADOW_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wshadow) \
+    LA_DISABLE_WARNING_GCC(-Wshadow)
+#define LA_IGNORE_SHADOW_WARNING_END LA_DISABLE_WARNING_END
+
+// Ignore deprecation warnings
+#define LA_IGNORE_DEPRECATION_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wdeprecated-declarations) \
+    LA_DISABLE_WARNING_GCC(-Wdeprecated-declarations) \
+    LA_DISABLE_WARNING_MSVC(4996)
+#define LA_IGNORE_DEPRECATION_WARNING_END LA_DISABLE_WARNING_END
+
+// Ignore unused local typedefs
+#define LA_IGNORE_UNUSED_TYPEDEF_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wunused-local-typedefs) \
+    LA_DISABLE_WARNING_GCC(-Wunused-local-typedefs)
+#define LA_IGNORE_UNUSED_TYPEDEF_END LA_DISABLE_WARNING_END
+
+// Ignore x to avoid an unused variable warning
 #define LA_IGNORE(x) (void)x
+
 // clang-format on

@@ -40,7 +40,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.0.0)
+project(Lagrange VERSION 5.2.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -66,15 +66,16 @@ if(ARPACK_BUILD_FROM_SOURCE)
 endif()
 
 # General CMake options
-option(LAGRANGE_UNIT_TESTS        "Build all unit tests"             ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_PERFORMANCE_TESTS "Build all performance tests"      ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_EXAMPLES          "Build all examples"               ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_USE_PCH           "Enable precompiled headers"       OFF)
-option(LAGRANGE_INSTALL           "Enable installation"              ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"      OFF)
-option(LAGRANGE_COPY_RUNTIME_DEPS "Copy runtime dependencies into executable folders" ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_CI_BUILD          "Building for continuous integration" OFF)
-option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange" OFF)
+option(LAGRANGE_CI_BUILD          "Building for continuous integration"                  OFF)
+option(LAGRANGE_COPY_RUNTIME_DEPS "Copy runtime dependencies into executable folders"    ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"                          OFF)
+option(LAGRANGE_EXAMPLES          "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_INSTALL           "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_PERFORMANCE_TESTS "Build all performance tests"                          OFF)
+option(LAGRANGE_UNIT_TESTS        "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_USE_PCH           "Enable precompiled headers"                           OFF)
+option(LAGRANGE_WITH_ONETBB       "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
+option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange"                     OFF)
 
 # Third-party dependency management
 option(LAGRANGE_EXTERNAL_FIRST    "Third-party libs: prefer public mirrors over corporate ones" OFF)
@@ -108,7 +109,6 @@ list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/lagrange/")
 
 include(sanitizers)
 include(lagrange_add_example)
-include(lagrange_add_module)
 include(lagrange_add_performance)
 include(lagrange_add_test)
 include(lagrange_global_flags)
@@ -122,10 +122,15 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 find_package(Threads REQUIRED)
 
+# Include OneTBB early to provide TBB::tbb target
+if(LAGRANGE_WITH_ONETBB)
+    set(MKL_VERSION 2021.3.0 CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
+    include(onetbb)
+endif()
+
 # Enable unit testing at the root level
 if(LAGRANGE_UNIT_TESTS)
     include(CTest)
-    enable_testing()
 
     # Include Catch2 and provide function `catch_discover_tests` to register tests.
     include(catch2)

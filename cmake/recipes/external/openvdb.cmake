@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     openvdb
     GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
-    GIT_TAG v8.0.0
+    GIT_TAG 05b32911c2699b2cfe4b364da071cca9fcc420f2
 )
 
 option(OPENVDB_CORE_SHARED "" OFF)
@@ -40,8 +40,14 @@ option(DISABLE_DEPENDENCY_VERSION_CHECKS "" ON)
 option(OPENVDB_FUTURE_DEPRECATION "" ON)
 option(USE_PKGCONFIG "" OFF)
 option(OPENVDB_DISABLE_BOOST_IMPLICIT_LINKING "" OFF)
+option(OPENVDB_ENABLE_UNINSTALL "Adds a CMake uninstall target." OFF)
 
 set(OPENVDB_SIMD AVX CACHE STRING "")
+
+if(NOT CMAKE_MSVC_RUNTIME_LIBRARY)
+    # Workaround https://github.com/AcademySoftwareFoundation/openvdb/issues/1131
+    set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
 
 # Note: OpenVDB will link against TBB::tbbmalloc or TBB::tbbmalloc_proxy if available.
 # We may want to use that in our host application to improve performances.
@@ -106,13 +112,7 @@ function(openvdb_import_target)
     set(IlmBase_VERSION 2.4 CACHE STRING "" FORCE)
 
     # Ready to include openvdb CMake
-    FetchContent_GetProperties(openvdb)
-    if(NOT openvdb_POPULATED)
-        FetchContent_Populate(openvdb)
-        # Temporary workaround, until OpenVDB removes their 'uninstall' target
-        # https://github.com/AcademySoftwareFoundation/openvdb/issues/939
-        add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/openvdb ${openvdb_BINARY_DIR})
-    endif()
+    FetchContent_MakeAvailable(openvdb)
 
     unignore_package(TBB)
     unignore_package(Boost)

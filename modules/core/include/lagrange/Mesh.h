@@ -716,6 +716,12 @@ public:
         m_navigation = std::make_unique<MeshNavigation<MeshType>>(std::ref(*this));
     }
 
+    // ==== clear edge data =====
+    void clear_edge_data_new()
+    {
+        m_navigation = nullptr;
+    }
+
     // ==== edge data accessors (const) ====
     bool is_edge_data_initialized_new() const { return m_navigation != nullptr; }
 
@@ -783,7 +789,7 @@ public:
         });
         if (edge_id != INVALID<Index>()) return edge_id;
 
-        // It is possiable that (v0, v1) is a boundary edge, in which case
+        // It is possible that (v0, v1) is a boundary edge, in which case
         // the above code will only find the edge_id if (v0, v1) is oriented
         // correctly (i.e. counterclockwise).  Thus, we need to check the
         // opposite orientation if the above code failed.

@@ -24,3 +24,5 @@ FetchContent_Declare(
 )
 
 FetchContent_MakeAvailable(entt)
+
+set_target_properties(aob PROPERTIES FOLDER third_party)

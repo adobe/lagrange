@@ -114,12 +114,12 @@ TEST_CASE("compute_tangent_bitangent: degenerate", "[core]")
 {
     Eigen::Matrix<double, Eigen::Dynamic, 3> vertices(2, 3);
     vertices << 0.1, 1.0, 0.5, 0.9, 0.3, 0.7;
-    Eigen::Matrix<size_t, Eigen::Dynamic, 3> facets(2, 3);
+    Eigen::Matrix<uint64_t, Eigen::Dynamic, 3> facets(2, 3);
     facets << 0, 1, 1, 1, 1, 1;
 
     lagrange::Vertices2D uvs(1, 2);
     uvs << 0.0, 0.0;
-    Eigen::Matrix<size_t, Eigen::Dynamic, 3> uv_indices(2, 3);
+    Eigen::Matrix<uint64_t, Eigen::Dynamic, 3> uv_indices(2, 3);
     uv_indices << 0, 0, 0, 0, 0, 0;
 
     auto mesh = lagrange::wrap_with_mesh(vertices, facets);

@@ -21,6 +21,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/common.h>
+#include <lagrange/utils/tbb.h>
 
 namespace lagrange {
 
@@ -203,7 +204,7 @@ bool select_facets_in_frustum(
         tbb::blocked_range<Index>(0, num_facets),
         [&](const tbb::blocked_range<Index>& tbb_range) {
             for (auto fi = tbb_range.begin(); fi != tbb_range.end(); fi++) {
-                if (tbb::task::self().is_cancelled()) break;
+                if (tbb_utils::is_cancelled()) break;
 
                 // Triangle (v0, v1, v2) intersect the cone defined by 4 planes
                 // iff the tetrahedron (q0, q1, q2, q3) does not intersect the negative octant.
@@ -236,7 +237,7 @@ bool select_facets_in_frustum(
                 }
 
                 if (greedy && ri) {
-                    tbb::task::self().cancel_group_execution();
+                    tbb_utils::cancel_group_execution();
                     break;
                 }
             }

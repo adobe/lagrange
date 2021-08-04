@@ -33,6 +33,12 @@ set(MKL_LINKING_CHOICES static dynamic sdl)
 set_property(CACHE MKL_LINKING PROPERTY STRINGS ${MKL_LINKINK_CHOICES})
 message(STATUS "MKL linking strategy: ${MKL_LINKING}")
 
+# MKL version
+set(MKL_VERSION "2020.4" CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
+set(MKL_VERSION_CHOICES 2020.4 2021.3.0)
+set_property(CACHE MKL_VERSION PROPERTY STRINGS ${MKL_VERSION_CHOICES})
+message(STATUS "MKL version: ${MKL_VERSION}")
+
 ################################################################################
 
 # Check option for the interface layer
@@ -57,9 +63,13 @@ if(MKL_LINKING STREQUAL sdl)
     message(FATAL_ERROR "MKL_LINKING=sdl is not fully supported yet.")
 endif()
 
+# Check option for the library version
+if(NOT MKL_VERSION IN_LIST MKL_VERSION_CHOICES)
+    message(FATAL_ERROR "Unrecognized option for MKL_VERSION: ${MKL_VERSION}")
+endif()
+
 ################################################################################
 
-set(MKL_VERSION 2020.4)
 if(WIN32)
     set(MKL_PLATFORM win-64)
 elseif(APPLE)
@@ -68,35 +78,8 @@ elseif(UNIX)
     set(MKL_PLATFORM linux-64)
 endif()
 
-# To compute the md5 checksums for each lib, use the following bash script (replace the target version number):
-# for f in mkl mkl-include mkl-static mkl-devel; do for os in linux osx win; do cat <(printf "$f-$os-64-md5") <(conda search --override-channel --channel intel $f=2020.4 --platform $os-64 -i | grep md5 | cut -d : -f 2); done; done
-set(mkl-linux-64-md5 f85891f97a04c7b2fbf619d1b903d7f5)
-set(mkl-osx-64-md5 735d7f93c7fbcffe658f1ccf67418cb3)
-set(mkl-win-64-md5 37ade09cace5cd73053b16574a3ee3c3)
-set(mkl-include-linux-64-md5 8b2bf0e42bd95dd700d9877add1ca6de)
-set(mkl-include-osx-64-md5 26043328553952cdb064c5aab8b50c78)
-set(mkl-include-win-64-md5 87e9a73a6e6757a8ed0dbc87d50d7f60)
-set(mkl-static-linux-64-md5 9f589a1508fb083c3e73427db459ca4c)
-set(mkl-static-osx-64-md5 2f9e1b8b6d6b0903e81a573084e4494f)
-set(mkl-static-win-64-md5 5ae780c06edd0be62966c6d8ab47d5fb)
-set(mkl-devel-linux-64-md5 b571698ef237c0e61abe15b7d300f157)
-set(mkl-devel-osx-64-md5 ee58da0463676d910eeab9aec0470f0e)
-set(mkl-devel-win-64-md5 8a7736b81b9bc2d5c044b88d6ac8af6e)
-
-# To compute file names, we use the following bash script:
-# for f in mkl mkl-include mkl-static mkl-devel; do for os in linux osx win; do cat <(printf "$f-$os-64-file") <(conda search --override-channel --channel intel $f=2020.4 --platform $os-64 -i | grep file | cut -d : -f 2); done; done
-set(mkl-linux-64-file mkl-2020.4-intel_304.tar.bz2)
-set(mkl-osx-64-file mkl-2020.4-intel_301.tar.bz2)
-set(mkl-win-64-file mkl-2020.4-intel_311.tar.bz2)
-set(mkl-include-linux-64-file mkl-include-2020.4-intel_304.tar.bz2)
-set(mkl-include-osx-64-file mkl-include-2020.4-intel_301.tar.bz2)
-set(mkl-include-win-64-file mkl-include-2020.4-intel_311.tar.bz2)
-set(mkl-static-linux-64-file mkl-static-2020.4-intel_304.tar.bz2)
-set(mkl-static-osx-64-file mkl-static-2020.4-intel_301.tar.bz2)
-set(mkl-static-win-64-file mkl-static-2020.4-intel_311.tar.bz2)
-set(mkl-devel-linux-64-file mkl-devel-2020.4-intel_304.tar.bz2)
-set(mkl-devel-osx-64-file mkl-devel-2020.4-intel_301.tar.bz2)
-set(mkl-devel-win-64-file mkl-devel-2020.4-intel_311.tar.bz2)
+# Include pre-computed md5 checksums
+include(mkl-${MKL_VERSION})
 
 # On Windows, `mkl-devel` contains the .lib files (needed at link time),
 # while `mkl` contains the .dll files (needed at run time). On macOS/Linux,
@@ -122,6 +105,7 @@ endforeach()
 # Find compiled libraries
 unset(MKL_LIB_HINTS)
 unset(MKL_LIB_SUFFIX)
+unset(MKL_DLL_SUFFIX)
 if(MKL_LINKING STREQUAL static)
     list(APPEND MKL_LIB_HINTS
         "${mkl-static_SOURCE_DIR}/lib"
@@ -130,6 +114,9 @@ if(MKL_LINKING STREQUAL static)
 else()
     if(WIN32)
         set(MKL_LIB_SUFFIX "_dll")
+    endif()
+    if(WIN32 AND MKL_VERSION STREQUAL 2021.3.0)
+        set(MKL_DLL_SUFFIX ".1")
     endif()
     list(APPEND MKL_LIB_HINTS
         "${mkl_SOURCE_DIR}/lib"
@@ -190,7 +177,7 @@ function(mkl_add_imported_library name)
             # Find dll file and set IMPORTED_LOCATION to the .dll file
             string(TOUPPER mkl_${name}_dll DLLVAR)
             find_file(${DLLVAR}
-                NAMES mkl_${name}.dll
+                NAMES mkl_${name}${MKL_DLL_SUFFIX}.dll
                 HINTS ${MKL_LIB_HINTS}
                 NO_DEFAULT_PATH
             )
@@ -233,7 +220,7 @@ function(mkl_add_shared_libraries)
         # Find dll file
         string(TOUPPER mkl_${name}_dll DLLVAR)
         find_file(${DLLVAR}
-            NAMES mkl_${name}.dll
+            NAMES mkl_${name}${MKL_DLL_SUFFIX}.dll
             HINTS ${MKL_LIB_HINTS}
             NO_DEFAULT_PATH
         )

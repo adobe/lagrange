@@ -31,14 +31,17 @@ AABB get_bounding_box_local(const Registry& registry, Entity e);
 /// If there's no selection returns an empty AABB
 AABB get_selection_bounding_box(const Registry& registry);
 
-/// Returns distance to nearest visible object's bounds. If `from` is within bounds it is ignored.
+/// Returns the least distance between `from` and any point within any bounding box.
+/// Returns 0 if `from` lies within a bounding box.
+/// Returns -1 if no bounds exist.
 float get_nearest_bounds_distance(
     const Registry& registry,
     const Eigen::Vector3f& from,
     const Layer& visible,
     const Layer& hidden);
 
-/// Returns distance to furthest visible object's bounds. Distance is measured to the furthest point of the bounds.
+/// Returns the greatest distance between `from` and any point within any bounding box.
+/// Returns -1 if no bounds exist.
 float get_furthest_bounds_distance(
     const Registry& registry,
     const Eigen::Vector3f& from,

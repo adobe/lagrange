@@ -73,7 +73,7 @@ TEST_CASE("compute_normal", "[mesh][attribute][normal]")
     {
         Eigen::Matrix<double, Eigen::Dynamic, 3> vertices(5, 3);
         vertices << 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.5, 0.5, 1.0;
-        Eigen::Matrix<size_t, Eigen::Dynamic, 3> facets(6, 3);
+        Eigen::Matrix<uint64_t, Eigen::Dynamic, 3> facets(6, 3);
         facets << 0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4, 0, 2, 1, 0, 3, 2;
 
         auto mesh = wrap_with_mesh(vertices, facets);
@@ -148,7 +148,7 @@ TEST_CASE("compute_normal", "[mesh][attribute][normal]")
     {
         Eigen::Matrix<double, Eigen::Dynamic, 3> vertices(2, 3);
         vertices << 0.1, 1.0, 0.5, 0.9, 0.3, 0.7;
-        Eigen::Matrix<size_t, Eigen::Dynamic, 3> facets(2, 3);
+        Eigen::Matrix<uint64_t, Eigen::Dynamic, 3> facets(2, 3);
         facets << 0, 1, 1, 1, 1, 1;
 
         auto mesh = wrap_with_mesh(vertices, facets);

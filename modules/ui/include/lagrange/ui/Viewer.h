@@ -93,13 +93,6 @@ public:
         bool focus_on_show = true;
 
         ///
-        /// Generates a dump on crash in the current folder.
-        /// This is done by catching normally uncaught exceptions.
-        /// \note Windows only
-        ///
-        bool minidump_on_crash = true;
-
-        ///
         /// Default Image Based Light environment map to load
         ///
         /// For available ibls \see create_default_ibl()
@@ -107,6 +100,11 @@ public:
         /// Set to "" to disable ibl
         std::string default_ibl = "studio011";
         size_t default_ibl_resolution = 1024;
+
+        /// Path to imgui .ini file
+        /// If not set, the .ini file will be at %APPDATA%/_window_title.ini
+        /// 
+        std::string imgui_ini_path = "";
     };
 
 
@@ -196,9 +194,7 @@ private:
 
 
     static std::string get_config_folder();
-    static std::string get_options_file_path();
-
-
+    
     void process_input();
 
     void update_time();
@@ -226,7 +222,7 @@ private:
 
     static bool m_instance_initialized;
 
-    const std::string m_imgui_ini_path;
+    std::string m_imgui_ini_path;
 
     int m_width;
     int m_height;

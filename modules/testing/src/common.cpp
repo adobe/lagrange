@@ -22,7 +22,7 @@ namespace testing {
 
 // A nice thing about this function is that we don't have to rebuild "everything"
 // when we change it.
-fs::path get_data_path(const fs::path & relative_path)
+fs::path get_data_path(const fs::path& relative_path)
 {
     if (relative_path.is_absolute()) {
         logger().error("Expected relative path, got absolute path: {}", relative_path);
@@ -44,7 +44,7 @@ void setup_mkl_reproducibility()
     class MySingleton
     {
     public:
-        static MySingleton & instance()
+        static MySingleton& instance()
         {
             static MySingleton instance;
             return instance;
@@ -66,10 +66,15 @@ void setup_mkl_reproducibility()
             // - MKL_CBWR_SSE4_2
             // - MKL_CBWR_AVX
             // - MKL_CBWR_AVX2
+
+#if __APPLE__
             auto res = mkl_cbwr_set(MKL_CBWR_AVX | MKL_CBWR_STRICT);
+#else
+            auto res = mkl_cbwr_set(MKL_CBWR_COMPATIBLE | MKL_CBWR_STRICT);
+#endif
             lagrange::logger().debug("MKL auto cbwr branch: {}", cbwr_branch);
             lagrange::logger().info("Setting MKL reproducibility flag: {}", res);
-            assert(res == MKL_CBWR_SUCCESS);
+            LA_ASSERT(res == MKL_CBWR_SUCCESS);
         }
     };
     MySingleton::instance();

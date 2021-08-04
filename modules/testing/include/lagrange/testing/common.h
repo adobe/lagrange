@@ -18,7 +18,6 @@
 #endif
 
 #include <lagrange/io/load_mesh.h>
-#include <lagrange/serialization/all.h>
 
 #include <catch2/catch.hpp>
 
@@ -50,20 +49,6 @@ std::unique_ptr<MeshType> load_mesh(const fs::path &relative_path)
     auto result = lagrange::io::load_mesh<MeshType>(get_data_path(relative_path));
     REQUIRE(result);
     return result;
-}
-
-///
-/// Load any serialized object from test data directory.
-///
-/// @param[in]   relative_path  Relative path of the file to load.
-/// @param[out]  obj            Output reference to the deserialized object.
-///
-/// @tparam      T              The target output type.
-///
-template <typename T>
-void deserialize(const fs::path& relative_path, T& obj)
-{
-    lagrange::serialization::file_utils::load_object(get_data_path(relative_path), obj);
 }
 
 ///

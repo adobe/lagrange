@@ -36,7 +36,7 @@ if(LAGRANGE_KEEP_TRANSITION_CODE)
 endif()
 
 option(LAGRANGE_DISABLE_FPE "Disable floating point exception code" OFF)
-if(LAGRANGE_DISABLE_FPE)
+if(LAGRANGE_DISABLE_FPE OR EMSCRIPTEN)
     target_compile_definitions(lagrange_core PRIVATE -DLA_DISABLE_FPE)
 endif()
 

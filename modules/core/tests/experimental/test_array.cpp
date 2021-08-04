@@ -173,24 +173,26 @@ TEST_CASE("experimental/Array.h", "[array]")
 
     SECTION("Create from a map")
     {
-        std::vector<size_t> A(9, 0);
-        Eigen::Map<Eigen::Matrix<size_t, 3, 3, Eigen::RowMajor>> A_map(A.data(), 3, 3);
+        using Scalar = uint64_t;
+        std::vector<Scalar> A(9, 0);
+        Eigen::Map<Eigen::Matrix<Scalar, 3, 3, Eigen::RowMajor>> A_map(A.data(), 3, 3);
 
         auto A_array = experimental::create_array(A_map);
         REQUIRE(A_array->is_row_major());
 
-        check_view<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(A_array);
+        check_view<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(A_array);
     }
 
     SECTION("Create from a const map")
     {
-        std::vector<size_t> A(9, 0);
-        const Eigen::Map<Eigen::Matrix<size_t, 3, 3, Eigen::RowMajor>> A_map(A.data(), 3, 3);
+        using Scalar = uint64_t;
+        std::vector<Scalar> A(9, 0);
+        const Eigen::Map<Eigen::Matrix<Scalar, 3, 3, Eigen::RowMajor>> A_map(A.data(), 3, 3);
 
         auto A_array = experimental::create_array(A_map);
         REQUIRE(A_array->is_row_major());
 
-        check_view<Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(A_array);
+        check_view<Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>(A_array);
     }
 
     SECTION("Wrap with array")
@@ -244,14 +246,15 @@ TEST_CASE("experimental/Array.h", "[array]")
 
     SECTION("Wrap raw array")
     {
-        std::vector<size_t> A(9);
+        using Scalar = uint64_t;
+        std::vector<Scalar> A(9);
         auto A_array = experimental::wrap_with_array(A.data(), 3, 3);
 
         REQUIRE(A_array->rows() == 3);
         REQUIRE(A_array->cols() == 3);
         REQUIRE(A_array->data() == A.data());
 
-        check_view<Eigen::Matrix<size_t, 3, 3, Eigen::RowMajor>>(A_array);
+        check_view<Eigen::Matrix<Scalar, 3, 3, Eigen::RowMajor>>(A_array);
 
         // Resizing RawArray is disabled since it does not own the memory
         // and resizing may invalidate the memory.
@@ -260,14 +263,15 @@ TEST_CASE("experimental/Array.h", "[array]")
 
     SECTION("Wrap const raw array")
     {
-        const std::vector<size_t> A(9, 1);
+        using Scalar = uint64_t;
+        const std::vector<Scalar> A(9, 1);
         auto A_array = experimental::wrap_with_array(A.data(), 3, 3);
 
         REQUIRE(A_array->rows() == 3);
         REQUIRE(A_array->cols() == 3);
         REQUIRE(A_array->data() == A.data());
 
-        // check_view<Eigen::Matrix<size_t, 3, 3, Eigen::RowMajor>>(A_array);
+        // check_view<Eigen::Matrix<Scalar, 3, 3, Eigen::RowMajor>>(A_array);
 
         //// Resizing RawArray is disabled since it does not own the memory
         //// and resizing may invalidate the memory.
@@ -276,14 +280,15 @@ TEST_CASE("experimental/Array.h", "[array]")
 
     SECTION("Wrap Eigen map")
     {
-        std::vector<size_t> A(9, 0);
-        Eigen::Map<Eigen::Matrix<size_t, 3, 3, Eigen::RowMajor>> A_map(A.data(), 3, 3);
+        using Scalar = uint64_t;
+        std::vector<Scalar> A(9, 0);
+        Eigen::Map<Eigen::Matrix<Scalar, 3, 3, Eigen::RowMajor>> A_map(A.data(), 3, 3);
 
         auto A_array = experimental::wrap_with_array(A_map);
         REQUIRE(A.data() == A_array->data());
         REQUIRE(A_array->is_row_major());
 
-        check_view<Eigen::Matrix<size_t, Eigen::Dynamic, 3, Eigen::RowMajor>>(A_array);
+        check_view<Eigen::Matrix<Scalar, Eigen::Dynamic, 3, Eigen::RowMajor>>(A_array);
 
         // Resizing wrapped map is disabled since it does not own the memory
         // and resizing may invalidate the memory.
@@ -292,8 +297,9 @@ TEST_CASE("experimental/Array.h", "[array]")
 
     SECTION("Wrap const Eigen map")
     {
-        std::vector<size_t> A(9, 0);
-        using EigenType = Eigen::Matrix<size_t, 3, 3, Eigen::RowMajor>;
+        using Scalar = uint64_t;
+        std::vector<Scalar> A(9, 0);
+        using EigenType = Eigen::Matrix<Scalar, 3, 3, Eigen::RowMajor>;
         using MapType = Eigen::Map<const EigenType>;
         MapType A_map(A.data(), 3, 3);
 
@@ -302,7 +308,7 @@ TEST_CASE("experimental/Array.h", "[array]")
         REQUIRE(A_array->is_row_major());
 
         const auto A_view = A_array->template view<
-            const Eigen::Matrix<size_t, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>();
+            const Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>();
         REQUIRE(A_array->data() == A_view.data());
         REQUIRE(A_view == A_map);
     }

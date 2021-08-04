@@ -64,7 +64,7 @@ TEST_CASE("wrap_with_mesh", "[mesh][io][wrap]")
     SECTION("ColMajor")
     {
         using VertexArray = Eigen::Matrix<float, Eigen::Dynamic, 3>;
-        using FacetArray = Eigen::Matrix<size_t, Eigen::Dynamic, 3>;
+        using FacetArray = Eigen::Matrix<uint64_t, Eigen::Dynamic, 3>;
 
         VertexArray vertices(3, 3);
         vertices << 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0;

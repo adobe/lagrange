@@ -27,7 +27,6 @@ enum class ScalarEnum : uint8_t {
     UINT64 = 7,
     FLOAT = 8,
     DOUBLE = 9,
-    SIZET = 11,
 };
 
 template <typename T, typename T2 = void>
@@ -107,18 +106,6 @@ struct ScalarToEnum<double, void>
 };
 
 template <typename T>
-struct ScalarToEnum<
-    T,
-    std::enable_if_t<
-        std::is_same<T, size_t>::value && !std::is_same<T, uint32_t>::value &&
-        !std::is_same<T, uint64_t>::value>>
-{
-    static_assert(sizeof(size_t) == 8, "sizeof(size_t) == 8");
-    static constexpr ScalarEnum value = ScalarEnum::SIZET;
-    static constexpr const char* name = "size_t";
-};
-
-template <typename T>
 constexpr ScalarEnum ScalarToEnum_v = ScalarToEnum<T>::value;
 
 
@@ -187,12 +174,6 @@ struct EnumToScalar<ScalarEnum::DOUBLE>
     using type = double;
 };
 
-template <>
-struct EnumToScalar<ScalarEnum::SIZET>
-{
-    using type = size_t;
-};
-
 template <ScalarEnum T>
 using EnumToScalar_t = typename EnumToScalar<T>::type;
 
@@ -222,8 +203,6 @@ inline std::string enum_to_name(ScalarEnum t)
             return ScalarToEnum<float>::name;
         case ScalarEnum::DOUBLE:
             return ScalarToEnum<double>::name;
-        case ScalarEnum::SIZET:
-            return ScalarToEnum<size_t>::name;
         default:
             return "unknown";
     }

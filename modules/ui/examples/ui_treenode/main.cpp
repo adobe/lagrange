@@ -23,23 +23,22 @@ int main(int argc, char** argv)
     auto a = ui::create_scene_node(v, "Empty scene node");
 
     // Creates an empty scene node with a as parent
-    auto b = ui::create_scene_node(v, "Another node", a);
+    ui::create_scene_node(v, "Another node", a);
 
-    // Light is another scene node, with <LightComponent> 
+    // Light is another scene node, with <LightComponent>
     auto light = ui::add_directional_light(v);
     ui::set_name(v, light, "Light Node");
 
     // Group under a scene node
-    auto group = ui::group(v, {a, light}, "Group");
+    [[maybe_unused]] auto group = ui::group(v, {a, light}, "Group");
 
     // Ungroup (and remove new parent)
-    //ui::ungroup(v, group, true);
+    // ui::ungroup(v, group, true);
 
 
-    
     {
         auto top_level = ui::create_scene_node(v, "Top level");
-        
+
         // Create nodes recursively
         ui::Entity parent = top_level;
         for (auto i = 0; i < 5; i++) {
@@ -49,7 +48,6 @@ int main(int argc, char** argv)
         // Remove recursively
         ui::remove(v, top_level, true);
     }
-    
 
 
     v.run();

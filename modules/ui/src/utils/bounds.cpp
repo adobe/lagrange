@@ -19,11 +19,6 @@
 namespace lagrange {
 namespace ui {
 
-/**
- * Returns the least distance between `from` and any point within any bounding box.
- * Returns 0 if `from` lies within a bounding box.
- * Returns -1 if no bounds exist.
- */
 float get_nearest_bounds_distance(
     const Registry& ctx,
     const Eigen::Vector3f& from,
@@ -47,10 +42,6 @@ float get_nearest_bounds_distance(
     return -1;
 }
 
-/**
- * Returns the greatest distance between `from` and any point within any bounding box.
- * Returns -1 if no bounds exist.
- */
 float get_furthest_bounds_distance(
     const Registry& ctx,
     const Eigen::Vector3f& from,

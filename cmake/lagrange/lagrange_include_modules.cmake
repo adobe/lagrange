@@ -12,7 +12,11 @@
 function(lagrange_include_modules)
     foreach(name IN ITEMS ${ARGN})
         if(NOT TARGET lagrange::${name})
-            add_subdirectory(${PROJECT_SOURCE_DIR}/modules/${name} lagrange_${name})
+            add_subdirectory(${PROJECT_SOURCE_DIR}/modules/${name} ${PROJECT_BINARY_DIR}/modules/lagrange_${name})
+        endif()
+
+        if(NOT TARGET lagrange::${name})
+            message(FATAL_ERROR "Failed to create lagrange module: ${name}")
         endif()
 
         if(TARGET lagrange_${name}_)

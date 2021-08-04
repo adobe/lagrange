@@ -54,6 +54,30 @@ void publish(Registry &r, Args&&... args)
     get_event_emitter(r).publish<Event>(std::forward<Args>(args)...);
 }
 
+/// @brief Utility function for forwarding events that contain only an entity identifier
+template <typename Event>
+void forward_entity_event(Registry& r, Entity e)
+{
+    ui::publish<Event>(r, e);
+}
+
+/// @brief Enable/Disable on_construct and on_destroy events depending on whether
+/// ConstructEvent and DestroyEvent have any listeners.
+template <typename Component, typename ConstructEvent, typename DestroyEvent>
+void toggle_component_event(Registry& r)
+{
+    if (!get_event_emitter(r).empty<ConstructEvent>()) {
+        r.on_construct<Component>().template connect<&forward_entity_event<ConstructEvent>>();
+    } else {
+        r.on_construct<Component>().template disconnect<&forward_entity_event<ConstructEvent>>();
+    }
+
+    if (!get_event_emitter(r).empty<DestroyEvent>()) {
+        r.on_destroy<Component>().template connect<&forward_entity_event<DestroyEvent>>();
+    } else {
+        r.on_destroy<Component>().template disconnect<&forward_entity_event<DestroyEvent>>();
+    }
+}
 
 }
 }

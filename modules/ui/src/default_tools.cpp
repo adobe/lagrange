@@ -187,14 +187,17 @@ void select_object(Registry& r)
     const auto& sel_ctx = get_selection_context(r);
     SelectionBehavior behavior = sel_ctx.behavior;
 
-    // Deselect all objects if needed
+    // Convert hovered to selected
+    auto v = r.view<Hovered>();
     if (behavior == SelectionBehavior::SET) {
-        deselect_all(r);
+        
+        //Deselect those not hovered first 
+        auto vsel = r.view<Selected>(entt::exclude<Hovered>);
+        r.remove<Selected>(vsel.begin(), vsel.end());
+
         behavior = SelectionBehavior::ADD;
     }
 
-    // Convert hovered to selected
-    auto v = r.view<Hovered>();
     for (auto e : v) {
         ui::set_selected(r, e, behavior);
     }

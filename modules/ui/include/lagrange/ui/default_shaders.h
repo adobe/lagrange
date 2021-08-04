@@ -19,35 +19,35 @@ namespace ui {
 
 struct DefaultShaders
 {
-    constexpr static const entt::id_type Simple = "Simple"_hs;
-    constexpr static const entt::id_type PBR = "PBR"_hs;
-    constexpr static const entt::id_type PBRSkeletal = "PBRSkeletal"_hs;
-    constexpr static const entt::id_type TextureView = "TextureView"_hs;
-    constexpr static const entt::id_type TrianglesToLines = "TrianglesToLines"_hs;
-    constexpr static const entt::id_type Outline = "Outline"_hs;
-    constexpr static const entt::id_type ShadowDepth = "ShadowDepth"_hs;
-    constexpr static const entt::id_type ShadowCubemap = "ShadowCubemap"_hs;
-    constexpr static const entt::id_type SurfaceVertexAttribute = "SurfaceVertexAttribute"_hs;
-    constexpr static const entt::id_type LineVertexAttribute = "LineVertexAttribute"_hs;
-    constexpr static const entt::id_type SurfaceEdgeAttribute =
+    constexpr static const StringID Simple = "Simple"_hs;
+    constexpr static const StringID PBR = "PBR"_hs;
+    constexpr static const StringID PBRSkeletal = "PBRSkeletal"_hs;
+    constexpr static const StringID TextureView = "TextureView"_hs;
+    constexpr static const StringID TrianglesToLines = "TrianglesToLines"_hs;
+    constexpr static const StringID Outline = "Outline"_hs;
+    constexpr static const StringID ShadowDepth = "ShadowDepth"_hs;
+    constexpr static const StringID ShadowCubemap = "ShadowCubemap"_hs;
+    constexpr static const StringID SurfaceVertexAttribute = "SurfaceVertexAttribute"_hs;
+    constexpr static const StringID LineVertexAttribute = "LineVertexAttribute"_hs;
+    constexpr static const StringID SurfaceEdgeAttribute =
         "SurfaceEdgeAttribute"_hs; // Uses special edge attribute interpolation
-    constexpr static const entt::id_type ObjectID = "ObjectID"_hs;
-    constexpr static const entt::id_type MeshElementID = "MeshElementID"_hs;
+    constexpr static const StringID ObjectID = "ObjectID"_hs;
+    constexpr static const StringID MeshElementID = "MeshElementID"_hs;
 };
 
 struct ColormapShaderMode
 {
-    constexpr static const entt::id_type Passthrough = 0;
-    constexpr static const entt::id_type Texture = 1;
+    constexpr static const StringID Passthrough = 0;
+    constexpr static const StringID Texture = 1;
 };
 
 struct PBRMaterial
 {
-    constexpr static const entt::id_type BaseColor = "material_base_color"_hs;
-    constexpr static const entt::id_type Roughness = "material_roughness"_hs;
-    constexpr static const entt::id_type Normal = "material_normal"_hs;
-    constexpr static const entt::id_type Metallic = "material_metallic"_hs;
-    constexpr static const entt::id_type Opacity = "material_opacity"_hs;
+    constexpr static const StringID BaseColor = "material_base_color"_hs;
+    constexpr static const StringID Roughness = "material_roughness"_hs;
+    constexpr static const StringID Normal = "material_normal"_hs;
+    constexpr static const StringID Metallic = "material_metallic"_hs;
+    constexpr static const StringID Opacity = "material_opacity"_hs;
 
     
 };

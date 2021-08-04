@@ -16,6 +16,7 @@
 #include <limits>
 
 #include <lagrange/Logger.h>
+#include <lagrange/utils/warning.h>
 
 namespace lagrange {
 
@@ -54,9 +55,10 @@ constexpr std::enable_if_t<!std::is_same<SourceType, TargetType>::value, TargetT
 
         // generates warning C4146: "unary minus operator applied to unsigned type, result still
         // unsigned" this cannot happen, as we check for unsigned types above.
-#pragma warning(disable : 4146)
+        LA_DISABLE_WARNING_BEGIN
+        LA_DISABLE_WARNING_MSVC(4146)
         const SourceType value_abs = value_3 > 0 ? value_3 : -value_3;
-#pragma warning(default : 4146)
+        LA_DISABLE_WARNING_END
 
         const SourceType scaled_eps = value_abs >= (SourceType)1 ? EPS * value_abs : EPS;
         if (value_3 > value && value_3 < value + scaled_eps)

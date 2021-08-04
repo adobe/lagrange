@@ -33,6 +33,12 @@
 
 namespace lagrange {
 namespace ui {
+
+struct HoveredTemp
+{
+    bool _dummy;
+};
+
 void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
 {
 
@@ -70,8 +76,8 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
                 buffer[pixel_size * i + 1],
                 buffer[pixel_size * i + 2]);
 
-            if (!is_id_background(id)) {
-                ui::set_hovered(r, Entity(id), SelectionBehavior::ADD);
+            if (!is_id_background(id) && r.valid(Entity(id))) {
+                r.emplace<HoveredTemp>(Entity(id));
             }
         }
 
@@ -110,7 +116,7 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
             const bool isect = frustum.intersects(bb, all_in);
 
             if (all_in) {
-                ui::set_hovered(r, e, SelectionBehavior::ADD);
+                r.emplace<HoveredTemp>(e);
             } else if (isect) {
                 GLuint id;
                 glGenQueries(1, &id); // TODO cache these in a pool somewhere
@@ -130,7 +136,7 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
 
                 GLint result = q.result;
                 if (result > 0) {
-                    ui::set_hovered(r, e, SelectionBehavior::ADD);
+                    r.emplace<HoveredTemp>(e);
                 }
                 glDeleteQueries(1, &q.id);
                 r.remove<GLQuery>(e);
@@ -149,8 +155,6 @@ void update_mesh_hovered(Registry& r)
     if (!r.valid(sel_ctx.active_viewport)) return;
     if (sel_ctx.element_type != entt::resolve<ElementObject>().id()) return;
 
-    dehover_all(r);
-
     if (!sel_ctx.marquee_active) {
         sel_ctx.marquee_active = true;
         sel_ctx.frustum = sel_ctx.onepx_frustum;
@@ -159,6 +163,15 @@ void update_mesh_hovered(Registry& r)
         sel_ctx.viewport_max = sel_ctx.viewport_min + Eigen::Vector2i::Ones();
     }
     update_mesh_hovered_GL(r, sel_ctx);
+
+    auto not_hovered_anymore = r.view<Hovered>(entt::exclude<HoveredTemp>);
+    r.remove<Hovered>(not_hovered_anymore.begin(), not_hovered_anymore.end());
+    
+    auto v = r.view<HoveredTemp>();
+    for (auto e : v) {
+        ui::set_hovered(r, e, SelectionBehavior::ADD);
+    }
+    r.remove<HoveredTemp>(v.begin(), v.end());
 }
 
 

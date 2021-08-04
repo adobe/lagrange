@@ -17,6 +17,7 @@
 #include <lagrange/ui/default_ibls.h>
 #include <lagrange/ui/default_panels.h>
 #include <lagrange/ui/default_shaders.h>
+#include <lagrange/ui/default_systems.h>
 #include <lagrange/ui/default_tools.h>
 #include <lagrange/ui/panels/RendererPanel.h>
 #include <lagrange/ui/panels/ToolbarPanel.h>
@@ -101,8 +102,23 @@ Viewer::Viewer(const std::string& window_title, int window_width, int window_hei
 
 Viewer::Viewer(const WindowOptions& window_options)
     : m_initial_window_options(window_options)
-    , m_imgui_ini_path(get_config_folder() + "_" + m_initial_window_options.window_title + ".ini")
 {
+    if (window_options.imgui_ini_path.empty()) {
+        m_imgui_ini_path =
+            get_config_folder() + m_initial_window_options.window_title + ".ini";
+    } else {
+        m_imgui_ini_path = window_options.imgui_ini_path;
+    }
+
+    {
+        lagrange::fs::path folder = lagrange::fs::path(m_imgui_ini_path).parent_path();
+        if (!lagrange::fs::exists(folder)) {
+            if (!lagrange::fs::create_directories(folder)) {
+                lagrange::logger().error("Cannot create folder {} for UI settings", folder);
+            }
+        }
+    }
+
     if (!init_glfw(window_options)) return;
     if (!init_imgui()) return;
 
@@ -121,131 +137,176 @@ Viewer::Viewer(const WindowOptions& window_options)
     /*
         System registration
     */
+    using DS = DefaultSystems;
 
     // Initialization of the frame
-    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::make_current, this));
-    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::update_time, this));
-    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::process_input, this));
+    m_systems.add(
+        Systems::Stage::Init,
+        std::bind(&Viewer::make_current, this),
+        DS::MakeContextCurrent);
 
-    m_systems.add(Systems::Stage::Init, [](Registry& r) {
-        // Reload shader, etc.
-        if (lagrange::ui::get_keybinds(r).is_released("global.reload")) {
-            get_shader_cache(r).clear();
-            lagrange::logger().info("Cleared shader cache.");
-        }
-    });
+    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::update_time, this), DS::UpdateTime);
+    m_systems.add(Systems::Stage::Init, std::bind(&Viewer::process_input, this), DS::ProcessInput);
+
 
     // Make sure that selection/outline and objectid viewports have correct size and post process effects
-    m_systems.add(Systems::Stage::Init, [](Registry& r) {
-        auto focused_viewport_entity = ui::get_focused_viewport_entity(r);
-        auto selection_viewport_entity = ui::get_selection_viewport_entity(r);
+    m_systems.add(
+        Systems::Stage::Init,
+        [](Registry& r) {
+            auto focused_viewport_entity = ui::get_focused_viewport_entity(r);
+            auto selection_viewport_entity = ui::get_selection_viewport_entity(r);
 
-        auto& focused = r.get<ViewportComponent>(focused_viewport_entity);
-        auto& selection = r.get<ViewportComponent>(selection_viewport_entity);
+            auto& focused = r.get<ViewportComponent>(focused_viewport_entity);
+            auto& selection = r.get<ViewportComponent>(selection_viewport_entity);
 
-        auto object_mode =
-            get_selection_context(r).element_type == entt::resolve<ElementObject>().id();
+            auto object_mode =
+                get_selection_context(r).element_type == entt::resolve<ElementObject>().id();
 
-        // If there's none, check all components first and delete them, then add it to this one
-        if (focused.post_process_effects.count("SelectionOutline") == 0 || !object_mode) {
-            const auto& view = r.view<ViewportComponent>();
-            for (auto e : view) {
-                view.get<ViewportComponent>(e).post_process_effects.erase("SelectionOutline");
+            // If there's none, check all components first and delete them, then add it to this one
+            if (focused.post_process_effects.count("SelectionOutline") == 0 || !object_mode) {
+                const auto& view = r.view<ViewportComponent>();
+                for (auto e : view) {
+                    view.get<ViewportComponent>(e).post_process_effects.erase("SelectionOutline");
+                }
+
+                // Only show outline if in object mode
+                if (object_mode) {
+                    add_selection_outline_post_process(r, focused_viewport_entity);
+                }
             }
 
-            // Only show outline if in object mode
-            if (object_mode) {
-                add_selection_outline_post_process(r, focused_viewport_entity);
-            }
-        }
+
+            selection.camera_reference = focused.camera_reference;
+            selection.width = focused.width;
+            selection.height = focused.height;
 
 
-        selection.camera_reference = focused.camera_reference;
-        selection.width = focused.width;
-        selection.height = focused.height;
-
-
-        // Sort viewports so that selection is before focused
-        r.sort<ViewportComponent>([=](Entity a, Entity b) {
-            if (a == selection_viewport_entity) return true;
-            return a < b;
-        });
-    });
+            // Sort viewports so that selection is before focused
+            r.sort<ViewportComponent>([=](Entity a, Entity b) {
+                if (a == selection_viewport_entity) return true;
+                return a < b;
+            });
+        },
+        DS::UpdateSelectionOutlineViewport);
 
     // Selection render layer
-    m_systems.add(Systems::Stage::Init, [](Registry& r) {
-        r.view<Layer>().each([&](Entity e, Layer& s) {
-            if (is_in_layer(r, e, DefaultLayers::Selection)) {
-                if (!is_selected(r, e)) {
-                    remove_from_layer(r, e, DefaultLayers::Selection);
+    m_systems.add(
+        Systems::Stage::Init,
+        [](Registry& r) {
+            r.view<Layer>().each([&](Entity e, Layer& s) {
+                if (is_in_layer(r, e, DefaultLayers::Selection)) {
+                    if (!is_selected(r, e)) {
+                        remove_from_layer(r, e, DefaultLayers::Selection);
+                    }
                 }
-            }
-            if (is_in_layer(r, e, DefaultLayers::Hover)) {
-                if (!is_hovered(r, e)) {
-                    remove_from_layer(r, e, DefaultLayers::Hover);
+                if (is_in_layer(r, e, DefaultLayers::Hover)) {
+                    if (!is_hovered(r, e)) {
+                        remove_from_layer(r, e, DefaultLayers::Hover);
+                    }
                 }
+            });
+
+            selected_view(r).each(
+                [&](Entity e, Selected& s) { add_to_layer(r, e, DefaultLayers::Selection); });
+
+            hovered_view(r).each(
+                [&](Entity e, Hovered& s) { add_to_layer(r, e, DefaultLayers::Hover); });
+        },
+        DS::UpdateSelectedRenderLayer);
+
+    m_systems.add(
+        Systems::Stage::Init,
+        [](Registry& r) {
+            // Toggle selected and hovered on_construct and on_destroy listeners
+            toggle_component_event<Selected, SelectedEvent, DeselectedEvent>(r);
+            toggle_component_event<Hovered, HoveredEvent, DehoveredEvent>(r);
+
+            // Reload shader, etc.
+            if (lagrange::ui::get_keybinds(r).is_released("global.reload")) {
+                get_shader_cache(r).clear();
+                lagrange::logger().info("Cleared shader cache.");
             }
-        });
-
-        selected_view(r).each(
-            [&](Entity e, Selected& s) { add_to_layer(r, e, DefaultLayers::Selection); });
-
-        hovered_view(r).each(
-            [&](Entity e, Hovered& s) { add_to_layer(r, e, DefaultLayers::Hover); });
-    });
+        },
+        DS::InitMisc);
 
 
     // Draw all
-    m_systems.add(Systems::Stage::Interface, [](Registry& r) {
-        auto view = r.view<UIPanel>();
-        for (auto e : view) {
-            auto& window = view.get<UIPanel>(e);
+    m_systems.add(
+        Systems::Stage::Interface,
+        [](Registry& r) {
+            auto view = r.view<UIPanel>();
+            for (auto e : view) {
+                auto& window = view.get<UIPanel>(e);
 
-            // Skip hidden windows
-            if (!window.visible) continue;
+                // Skip hidden windows
+                if (!window.visible) continue;
 
-            if (window.static_position_enabled) {
-                ImGui::SetNextWindowPos(
-                    ImVec2(window.static_position.x(), window.static_position.y()));
+                if (window.static_position_enabled) {
+                    ImGui::SetNextWindowPos(
+                        ImVec2(window.static_position.x(), window.static_position.y()));
+                }
+                if (window.static_size_enabled) {
+                    ImGui::SetNextWindowSize(
+                        ImVec2(window.static_size.x(), window.static_size.y()));
+                }
+
+                if (window.before_fn) window.before_fn(r, e);
+
+                if (begin_panel(window) && window.body_fn) {
+                    window.body_fn(r, e);
+                }
+
+                end_panel(window);
+
+                if (window.after_fn) window.after_fn(r, e);
             }
-            if (window.static_size_enabled) {
-                ImGui::SetNextWindowSize(ImVec2(window.static_size.x(), window.static_size.y()));
-            }
+        },
+        DS::DrawUIPanels);
 
-            if (window.before_fn) window.before_fn(r, e);
+    m_systems.add(Systems::Stage::Interface, &update_mesh_hovered, DS::UpdateMeshHovered);
 
-            if (begin_panel(window) && window.body_fn) {
-                window.body_fn(r, e);
-            }
+    m_systems.add(
+        Systems::Stage::Interface,
+        &update_mesh_elements_hovered,
+        DS::UpdateMeshElementsHovered);
 
-            end_panel(window);
+    m_systems.add(
+        Systems::Stage::Interface,
+        [=](Registry& r) { r.ctx<Tools>().run_current(r); },
+        DS::RunCurrentTool);
 
-            if (window.after_fn) window.after_fn(r, e);
-        }
-    });
-    m_systems.add(Systems::Stage::Interface, &update_mesh_hovered);
-    m_systems.add(Systems::Stage::Interface, &update_mesh_elements_hovered);
-    m_systems.add(Systems::Stage::Interface, [=](Registry& r) { r.ctx<Tools>().run_current(r); });
-    m_systems.add(Systems::Stage::Interface, &update_lights_system);
+    m_systems.add(Systems::Stage::Interface, &update_lights_system, DS::UpdateLights);
 
     // Simulation stage systems
-    m_systems.add(Systems::Stage::Simulation, &update_transform_hierarchy);
-    m_systems.add(Systems::Stage::Simulation, &update_mesh_bounds_system);
-    m_systems.add(Systems::Stage::Simulation, &update_scene_bounds_system);
-    m_systems.add(Systems::Stage::Simulation, &camera_controller_system);
-    m_systems.add(Systems::Stage::Simulation, &camera_turntable_system);
-    m_systems.add(Systems::Stage::Simulation, &camera_focusfit_system);
+    m_systems.add(
+        Systems::Stage::Simulation,
+        &update_transform_hierarchy,
+        DS::UpdateTransformHierarchy);
+    m_systems.add(Systems::Stage::Simulation, &update_mesh_bounds_system, DS::UpdateMeshBounds);
+    m_systems.add(Systems::Stage::Simulation, &update_scene_bounds_system, DS::UpdateSceneBounds);
+    m_systems.add(
+        Systems::Stage::Simulation,
+        &camera_controller_system,
+        DS::UpdateCameraController);
+    m_systems.add(Systems::Stage::Simulation, &camera_turntable_system, DS::UpdateCameraTurntable);
+    m_systems.add(Systems::Stage::Simulation, &camera_focusfit_system, DS::UpdateCameraFocusFit);
 
 
-    m_systems.add(Systems::Stage::Render, &update_accelerated_picking);
-    m_systems.add(Systems::Stage::Render, &update_mesh_buffers_system);
-    m_systems.add(Systems::Stage::Render, &setup_vertex_data);
-    m_systems.add(Systems::Stage::Render, &render_shadowmaps);
-    m_systems.add(Systems::Stage::Render, &render_viewports);
+    m_systems.add(
+        Systems::Stage::Render,
+        &update_accelerated_picking,
+        DS::UpdateAcceleratedPicking);
+    m_systems.add(Systems::Stage::Render, &update_mesh_buffers_system, DS::UpdateMeshBuffers);
+    m_systems.add(Systems::Stage::Render, &setup_vertex_data, DS::SetupVertexData);
+    m_systems.add(Systems::Stage::Render, &render_shadowmaps, DS::RenderShadowMaps);
+    m_systems.add(Systems::Stage::Render, &render_viewports, DS::RenderViewports);
 
 
     // Remove mesh dirty flag -> its now propagated
-    m_systems.add(Systems::Stage::Post, [](Registry& r) { r.clear<MeshDataDirty>(); });
+    m_systems.add(
+        Systems::Stage::Post,
+        [](Registry& r) { r.clear<MeshDataDirty>(); },
+        DS::ClearDirtyFlags);
 
 
     // onDestroy behavior for Tree component -> ensure correctness
@@ -278,7 +339,7 @@ Viewer::Viewer(const WindowOptions& window_options)
     // Scene bounds
     registry().set<Bounds>(Bounds());
 
-    registry().create(); //Create zero'th entity 
+    registry().create(); // Create zero'th entity
 
     // UI windows - create and set as context variable
     auto& windows = m_registry.set<DefaultPanels>(add_default_panels(registry()));
@@ -397,7 +458,7 @@ bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
 
             m_systems.run(Systems::Stage::Interface, registry());
 
-           if (main_loop) {
+            if (main_loop) {
                 if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
             }
 
@@ -801,19 +862,16 @@ void Viewer::drop(int count, const char** paths)
 
 std::string Viewer::get_config_folder()
 {
-#ifdef _WIN32
-    const char* appdata = getenv("APPDATA");
-    return std::string(appdata) + "\\";
+#if defined(_WIN32)
+    const char* appdata = getenv("LOCALAPPDATA");
+    return std::string(appdata) + "\\lagrange\\";
+#elif defined(__APPLE__)
+    return std::string("~/Library/Preferences/lagrange/");
 #else
-    LA_ASSERT("Appdata folder not implemented on unix yet");
-    return "";
+    return std::string("~/.lagrange/");
 #endif
 }
 
-std::string Viewer::get_options_file_path()
-{
-    return (get_config_folder() + "lagrange-ui.json");
-}
 
 void Viewer::process_input()
 {
@@ -957,7 +1015,7 @@ void Viewer::draw_menu()
             }
         }
 
-        // TODO: Add export capabilities once the UI can do useful stuff (mesh cleanup, etc). 
+        // TODO: Add export capabilities once the UI can do useful stuff (mesh cleanup, etc).
 
         ImGui::Separator();
         if (ImGui::MenuItem(ICON_FA_WINDOW_CLOSE " Quit")) {

@@ -41,14 +41,38 @@ struct WindowDropEvent
 
 /// Triggered when Transform component has changed
 /// Only monitors global transform (not local)
-/// Note: this check is only perfomed when at least listener is registered. When enabled, 
-/// it is perfomed for all entities with Transform component.
+/// Note: this check is only performed when at least one listener is registered. When enabled, 
+/// it is checked for all entities with Transform component.
 struct TransformChangedEvent {
     Entity entity;
 };
 
 /// Triggered when Camera component has changed in the default systems
 struct CameraChangedEvent
+{
+    Entity entity;
+};
+
+/// Triggered when Selected component is added to an entity
+struct SelectedEvent
+{
+    Entity entity;
+};
+
+/// Triggered when Selected component is removed from an entity
+struct DeselectedEvent
+{
+    Entity entity;
+};
+
+/// Triggered when Hovered component is added to an entity
+struct HoveredEvent
+{
+    Entity entity;
+};
+
+/// Triggered when Hovered component is removed from an entity
+struct DehoveredEvent
 {
     Entity entity;
 };

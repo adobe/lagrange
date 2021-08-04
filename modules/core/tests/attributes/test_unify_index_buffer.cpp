@@ -16,7 +16,9 @@
 #include <lagrange/attributes/condense_indexed_attribute.h>
 #include <lagrange/attributes/unify_index_buffer.h>
 #include <lagrange/common.h>
+#include <lagrange/compute_facet_area.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/compute_vertex_valence.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
 
@@ -191,8 +193,21 @@ TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]")
         }
     }
 
-    SECTION("Regression")
+    SECTION("Map attribute")
     {
-        // TODO
+        auto mesh = create_cube();
+        mesh = lagrange::split_long_edges(*mesh, 0.1, true);
+        REQUIRE(mesh->is_uv_initialized());
+
+        compute_facet_area(*mesh);
+        REQUIRE(mesh->has_facet_attribute("area"));
+
+        compute_vertex_valence(*mesh);
+        REQUIRE(mesh->has_vertex_attribute("valence"));
+
+        auto unified_mesh = unify_index_buffer(*mesh, {"uv"});
+        REQUIRE(unified_mesh->has_facet_attribute("area"));
+        REQUIRE(unified_mesh->has_vertex_attribute(
+            "valence")); // Although, valence is no longer accurate.
     }
 }

@@ -35,14 +35,14 @@ int main(int argc, char** argv)
 
     ui::Viewer viewer("UI Example - Scene", 1920, 1080);
 
-    #ifdef LAGRANGE_WITH_ASSIMP
+#ifdef LAGRANGE_WITH_ASSIMP
     if (!args.input.empty()) {
-        auto root = ui::load_scene<lagrange::TriangleMesh3Df>(viewer, args.input);
+        ui::load_scene<lagrange::TriangleMesh3Df>(viewer, args.input);
         ui::camera_focus_and_fit(viewer, ui::get_focused_camera_entity(viewer));
     }
-    #else
+#else
     lagrange::logger().error("Load scene is only available with Assimp.");
-    #endif
+#endif
 
     viewer.run();
 

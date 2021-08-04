@@ -32,5 +32,14 @@ set_target_properties(lagrange_core PROPERTIES FOLDER "Lagrange")
 
 # Iterate over each module folder and include it
 foreach(name IN ITEMS ${module_names})
-    lagrange_add_module(${name} "Build module lagrange::${name}")
+    # Deduct module flag option from lowercase module name
+    string(TOUPPER ${name} MODULE_FLAG)
+    set(MODULE_FLAG LAGRANGE_${MODULE_FLAG})
+
+    # Allows setting the option
+    option(${MODULE_FLAG} "Build module lagrange::${name}" OFF)
+
+    if(${MODULE_FLAG} OR LAGRANGE_ALL)
+        lagrange_include_modules(${name})
+    endif()
 endforeach()

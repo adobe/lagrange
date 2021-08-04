@@ -59,24 +59,37 @@ void combine_all_indexed_attributes(
 
 /**
  * Combines vector of meshes (represented by any pointer type, smart or raw)
- * Returns unique_ptr to combined mesh
+ * Returns unique_ptr to combined mesh.  nullptr's are ignored.
  *
  * All valid vertex/facet/corner/edge attributes are combined and forwarded to
  * the output mesh.  An attribute is considered as valid iff it is set for all
  * meshes in `mesh_list`.
  */
 template <typename MeshTypePtr>
-std::unique_ptr<typename std::pointer_traits<MeshTypePtr>::element_type> combine_mesh_list(
-    const std::vector<MeshTypePtr>& mesh_list,
-    bool preserve_attributes = false)
+auto combine_mesh_list(const std::vector<MeshTypePtr>& mesh_list, bool preserve_attributes = false)
+    -> std::unique_ptr<std::decay_t<typename std::pointer_traits<MeshTypePtr>::element_type>>
 {
     static_assert(MeshTrait<MeshTypePtr>::is_mesh_ptr(), "Input type is not Mesh smart ptr");
-    using MeshType = typename std::pointer_traits<MeshTypePtr>::element_type;
+    using MeshType = typename std::decay_t<typename std::pointer_traits<MeshTypePtr>::element_type>;
     using Index = typename MeshType::Index;
     using Vtype = typename MeshType::VertexArray;
     using Ftype = typename MeshType::FacetArray;
 
     if (mesh_list.size() == 0) return nullptr;
+
+    {
+        // Remove null meshes.
+        auto is_valid = [](const MeshTypePtr& ptr) { return ptr != nullptr; };
+        if (!std::all_of(mesh_list.begin(), mesh_list.end(), is_valid)) {
+            std::vector<const MeshType*> valid_mesh_list;
+            valid_mesh_list.reserve(mesh_list.size());
+            for (auto& ptr : mesh_list) {
+                if (ptr == nullptr) continue;
+                valid_mesh_list.push_back(&*ptr);
+            }
+            return combine_mesh_list(valid_mesh_list, preserve_attributes);
+        }
+    }
 
     const auto& front_mesh = mesh_list.front();
     const Index dim = front_mesh->get_dim();
@@ -380,7 +393,10 @@ void combine_all_indexed_attributes(
             std::string current_type = experimental::enum_to_name(ref_values.get_scalar_type());
             logger().warn(
                 "Cannot combined indexed attribute ({}) with custom Scalar type \"{}\".  "
-                "Expecting \"{}\".", attr_name, current_type, expected_type);
+                "Expecting \"{}\".",
+                attr_name,
+                current_type,
+                expected_type);
             continue;
         }
         if (ref_indices.get_scalar_type() != experimental::ScalarToEnum_v<Index>) {
@@ -388,7 +404,10 @@ void combine_all_indexed_attributes(
             std::string current_type = experimental::enum_to_name(ref_indices.get_scalar_type());
             logger().warn(
                 "Cannot combined indexed attribute ({}) with custom Index type \"{}\".  "
-                "Expecting \"{}\".", attr_name, current_type, expected_type);
+                "Expecting \"{}\".",
+                attr_name,
+                current_type,
+                expected_type);
             continue;
         }
 
@@ -446,10 +465,6 @@ void combine_all_indexed_attributes(
             std::move(combined_values),
             std::move(combined_indices));
     }
-
-
-
-
 }
 
 } // namespace combine_mesh_list_internal

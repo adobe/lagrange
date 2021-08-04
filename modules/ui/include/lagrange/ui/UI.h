@@ -16,6 +16,7 @@
 #include <lagrange/ui/Viewer.h>
 #include <lagrange/ui/default_entities.h>
 #include <lagrange/ui/default_events.h>
+#include <lagrange/ui/default_systems.h>
 #include <lagrange/ui/imgui/progress.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
 #include <lagrange/ui/utils/colormap.h>
