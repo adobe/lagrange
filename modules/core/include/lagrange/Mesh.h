@@ -33,10 +33,6 @@
 #include <string>
 #include <vector>
 
-#ifndef LA_DEPRECATE_EDGE_API
-#define LA_DEPRECATE_EDGE_API
-#endif
-
 namespace lagrange {
 
 // TODO: Extend base class with non-templated methods for access to vertex/facet/attribute generic arrays!
@@ -110,7 +106,7 @@ public:
     bool is_initialized() const
     {
         return m_geometry && m_vertex_attributes && m_facet_attributes && m_corner_attributes &&
-               m_edge_attributes && m_edge_attributes_new && m_indexed_attributes;
+               m_edge_attributes && m_indexed_attributes;
     }
 
     Index get_dim() const
@@ -163,16 +159,10 @@ public:
         return m_corner_attributes->get_names();
     }
 
-    LA_DEPRECATE_EDGE_API std::vector<std::string> get_edge_attribute_names() const
+    std::vector<std::string> get_edge_attribute_names() const
     {
         LA_ASSERT(is_initialized());
         return m_edge_attributes->get_names();
-    }
-
-    std::vector<std::string> get_edge_attribute_names_new() const
-    {
-        LA_ASSERT(is_initialized());
-        return m_edge_attributes_new->get_names();
     }
 
     std::vector<std::string> get_indexed_attribute_names() const
@@ -199,16 +189,10 @@ public:
         return m_corner_attributes->has(name);
     }
 
-    LA_DEPRECATE_EDGE_API bool has_edge_attribute(const std::string& name) const
+    bool has_edge_attribute(const std::string& name) const
     {
         LA_ASSERT(is_initialized());
         return m_edge_attributes->has(name);
-    }
-
-    bool has_edge_attribute_new(const std::string& name) const
-    {
-        LA_ASSERT(is_initialized());
-        return m_edge_attributes_new->has(name);
     }
 
     bool has_indexed_attribute(const std::string& name) const
@@ -235,16 +219,10 @@ public:
         m_corner_attributes->add(name);
     }
 
-    LA_DEPRECATE_EDGE_API void add_edge_attribute(const std::string& name) const
+    void add_edge_attribute(const std::string& name) const
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->add(name);
-    }
-
-    void add_edge_attribute_new(const std::string& name) const
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        m_edge_attributes_new->add(name);
     }
 
     void add_indexed_attribute(const std::string& name) const
@@ -326,7 +304,7 @@ public:
         return attr->get();
     }
 
-    LA_DEPRECATE_EDGE_API const AttributeArray& get_edge_attribute(const std::string& name) const
+    const AttributeArray& get_edge_attribute(const std::string& name) const
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         const auto* attr = m_edge_attributes->get(name);
@@ -334,42 +312,10 @@ public:
         return attr->get()->template get<AttributeArray>();
     }
 
-    LA_DEPRECATE_EDGE_API decltype(auto) get_edge_attribute_array(const std::string& name) const
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
-        const auto* attr = m_edge_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
-        return attr->get();
-    }
-
-    LA_DEPRECATE_EDGE_API decltype(auto) get_edge_attribute_array(const std::string& name)
+    decltype(auto) get_edge_attribute_array(const std::string& name)
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         auto* attr = m_edge_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
-        return attr->get();
-    }
-
-    const AttributeArray& get_edge_attribute_new(const std::string& name) const
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        const auto* attr = m_edge_attributes_new->get(name);
-        LA_ASSERT(attr != nullptr);
-        return attr->get()->template get<AttributeArray>();
-    }
-
-    decltype(auto) get_edge_attribute_array_new(const std::string& name) const
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        const auto* attr = m_edge_attributes_new->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
-        return attr->get();
-    }
-
-    decltype(auto) get_edge_attribute_array_new(const std::string& name)
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        auto* attr = m_edge_attributes_new->get(name);
         LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
@@ -410,18 +356,10 @@ public:
         m_corner_attributes->set(name, attr);
     }
 
-    LA_DEPRECATE_EDGE_API void set_edge_attribute(
-        const std::string& name,
-        const AttributeArray& attr)
+    void set_edge_attribute(const std::string& name, const AttributeArray& attr)
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->set(name, attr);
-    }
-
-    void set_edge_attribute_new(const std::string& name, const AttributeArray& attr)
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        m_edge_attributes_new->set(name, attr);
     }
 
     template <typename Derived>
@@ -446,17 +384,10 @@ public:
     }
 
     template <typename Derived>
-    LA_DEPRECATE_EDGE_API void set_edge_attribute_array(const std::string& name, Derived&& attr)
+    void set_edge_attribute_array(const std::string& name, Derived&& attr)
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->set(name, std::forward<Derived>(attr));
-    }
-
-    template <typename Derived>
-    void set_edge_attribute_array_new(const std::string& name, Derived&& attr)
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        m_edge_attributes_new->set(name, std::forward<Derived>(attr));
     }
 
     void set_indexed_attribute(
@@ -488,16 +419,10 @@ public:
         m_corner_attributes->remove(name);
     }
 
-    LA_DEPRECATE_EDGE_API void remove_edge_attribute(const std::string& name)
+    void remove_edge_attribute(const std::string& name)
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->remove(name);
-    }
-
-    void remove_edge_attribute_new(const std::string& name)
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        m_edge_attributes_new->remove(name);
     }
 
     void remove_indexed_attribute(const std::string& name)
@@ -551,19 +476,10 @@ public:
     }
 
     template <typename AttributeDerived>
-    LA_DEPRECATE_EDGE_API void import_edge_attribute(
-        const std::string& name,
-        AttributeDerived&& attr) const
+    void import_edge_attribute(const std::string& name, AttributeDerived&& attr) const
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->import_data(name, std::forward<AttributeDerived>(attr));
-    }
-
-    template <typename AttributeDerived>
-    void import_edge_attribute_new(const std::string& name, AttributeDerived&& attr) const
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        m_edge_attributes_new->import_data(name, std::forward<AttributeDerived>(attr));
     }
 
     template <typename ValueDerived, typename IndexDerived>
@@ -613,19 +529,10 @@ public:
     }
 
     template <typename Derived>
-    LA_DEPRECATE_EDGE_API void export_edge_attribute(
-        const std::string& name,
-        Eigen::PlainObjectBase<Derived>& attr)
+    void export_edge_attribute(const std::string& name, Eigen::PlainObjectBase<Derived>& attr)
     {
         LA_ASSERT(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->export_data(name, attr);
-    }
-
-    template <typename Derived>
-    void export_edge_attribute_new(const std::string& name, Eigen::PlainObjectBase<Derived>& attr)
-    {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized_new());
-        m_edge_attributes_new->export_data(name, attr);
     }
 
     template <typename ValueDerived, typename IndexDerived>
@@ -689,50 +596,32 @@ public:
         return m_connectivity->get_facets_adjacent_to_facet(fi);
     }
 
-    LA_DEPRECATE_EDGE_API std::vector<Edge> get_facet_edges(Index fi) const
-    {
-        const auto& vertices_per_facet = get_vertex_per_facet();
-        const auto& facet = get_facets().row(fi);
-        std::vector<Edge> ret;
-        ret.reserve(vertices_per_facet);
-        for (Index i = 0; i < vertices_per_facet; ++i) {
-            ret.emplace_back(facet(i), facet((i + 1) % vertices_per_facet));
-        }
-        return ret;
-    }
-
 public:
     // ========================
     // Edge-facet map functions.
-    //
-    // During the transition period where we keep both API, all methods in this section are suffixed
-    // with `_new` until the old edge-data methods are removed.
     // ========================
 
-    // ==== edge data initialization ====
-    void initialize_edge_data_new()
+    /// Edge data initialization
+    void initialize_edge_data()
     {
         if (m_navigation) return;
         m_navigation = std::make_unique<MeshNavigation<MeshType>>(std::ref(*this));
     }
 
-    // ==== clear edge data =====
-    void clear_edge_data_new()
-    {
-        m_navigation = nullptr;
-    }
+    /// Clear edge data
+    void clear_edge_data() { m_navigation = nullptr; }
 
-    // ==== edge data accessors (const) ====
-    bool is_edge_data_initialized_new() const { return m_navigation != nullptr; }
+    /// Edge data accessors (const)
+    bool is_edge_data_initialized() const { return m_navigation != nullptr; }
 
     ///
     /// Gets the number of edges.
     ///
     /// @return     The number of edges.
     ///
-    Index get_num_edges_new() const
+    Index get_num_edges() const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_num_edges();
     }
 
@@ -744,9 +633,9 @@ public:
     ///
     /// @return     The edge.
     ///
-    Index get_edge_new(Index f, Index lv) const
+    Index get_edge(Index f, Index lv) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_edge(f, lv);
     }
 
@@ -757,9 +646,9 @@ public:
     ///
     /// @return     The edge.
     ///
-    Index get_edge_from_corner_new(Index c) const
+    Index get_edge_from_corner(Index c) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_edge_from_corner(c);
     }
 
@@ -774,17 +663,17 @@ public:
     /// @return  The edge index if (v0, v1) is a valid edge;
     ///          INVALID<Index>() otherwise.
     ///
-    Index find_edge_from_vertices_new(Index v0, Index v1) const
+    Index find_edge_from_vertices(Index v0, Index v1) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         Index edge_id = INVALID<Index>();
 
         const Index vertex_per_facet = get_vertex_per_facet();
-        foreach_corners_around_vertex_new(v0, [&](Index c) {
+        foreach_corners_around_vertex(v0, [&](Index c) {
             const Index fid = c / vertex_per_facet;
             const Index lv = c % vertex_per_facet;
             if (get_facets()(fid, (lv + 1) % vertex_per_facet) == v1) {
-                edge_id = get_edge_new(fid, lv);
+                edge_id = get_edge(fid, lv);
             }
         });
         if (edge_id != INVALID<Index>()) return edge_id;
@@ -793,11 +682,11 @@ public:
         // the above code will only find the edge_id if (v0, v1) is oriented
         // correctly (i.e. counterclockwise).  Thus, we need to check the
         // opposite orientation if the above code failed.
-        foreach_corners_around_vertex_new(v1, [&](Index c) {
+        foreach_corners_around_vertex(v1, [&](Index c) {
             const Index fid = c / vertex_per_facet;
             const Index lv = c % vertex_per_facet;
             if (get_facets()(fid, (lv + 1) % vertex_per_facet) == v0) {
-                edge_id = get_edge_new(fid, lv);
+                edge_id = get_edge(fid, lv);
             }
         });
         return edge_id;
@@ -810,9 +699,9 @@ public:
     ///
     /// @return     Array of vertex ids at the edge endpoints.
     ///
-    std::array<Index, 2> get_edge_vertices_new(Index e) const
+    std::array<Index, 2> get_edge_vertices(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_edge_vertices(get_facets(), e);
     }
 
@@ -825,9 +714,9 @@ public:
     ///
     /// @return     Vertex id.
     ///
-    Index get_vertex_opposite_edge_new(Index e) const
+    Index get_vertex_opposite_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_vertex_opposite_edge(get_facets(), e);
     }
 
@@ -837,9 +726,9 @@ public:
     ///
     /// @return     Number of facets incident to the queried vertex.
     ///
-    Index get_num_facets_around_vertex_new(Index v) const
+    Index get_num_facets_around_vertex(Index v) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_num_facets_around_vertex(v);
     }
 
@@ -849,9 +738,9 @@ public:
     ///
     /// @return     Number of facets incident to the queried edge.
     ///
-    Index get_num_facets_around_edge_new(Index e) const
+    Index get_num_facets_around_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_num_facets_around_edge(e);
     }
 
@@ -862,9 +751,9 @@ public:
     ///
     /// @return     Face index of one facet incident to the queried edge.
     ///
-    Index get_one_facet_around_edge_new(Index e) const
+    Index get_one_facet_around_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_one_facet_around_edge(e);
     }
 
@@ -875,9 +764,9 @@ public:
     ///
     /// @return     Index of the first corner around the queried edge.
     ///
-    Index get_one_corner_around_edge_new(Index e) const
+    Index get_one_corner_around_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_one_corner_around_edge(e);
     }
 
@@ -888,9 +777,9 @@ public:
     ///
     /// @return     Index of the first corner around the queried vertex.
     ///
-    Index get_one_corner_around_vertex_new(Index v) const
+    Index get_one_corner_around_vertex(Index v) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_one_corner_around_vertex(v);
     }
 
@@ -901,9 +790,9 @@ public:
     ///
     /// @return     True if the specified edge e is a boundary edge, False otherwise.
     ///
-    bool is_boundary_edge_new(Index e) const
+    bool is_boundary_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->is_boundary_edge(e);
     }
 
@@ -914,9 +803,9 @@ public:
     ///
     /// @return     True if the specified vertex v is a boundary vertex, False otherwise.
     ///
-    bool is_boundary_vertex_new(Index v) const
+    bool is_boundary_vertex(Index v) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->is_boundary_vertex(v);
     }
 
@@ -931,9 +820,9 @@ public:
     /// @tparam     Func  A callable function of type Index -> void.
     ///
     template <typename Func>
-    void foreach_facets_around_vertex_new(Index v, Func func) const
+    void foreach_facets_around_vertex(Index v, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_facets_around_vertex(v, func);
     }
 
@@ -946,9 +835,9 @@ public:
     /// @tparam     Func  A callable function of type Index -> void.
     ///
     template <typename Func>
-    void foreach_facets_around_edge_new(Index e, Func func) const
+    void foreach_facets_around_edge(Index e, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_facets_around_edge(e, func);
     }
 
@@ -961,9 +850,9 @@ public:
     /// @tparam     Func  A callable function of type Index -> void.
     ///
     template <typename Func>
-    void foreach_corners_around_vertex_new(Index v, Func func) const
+    void foreach_corners_around_vertex(Index v, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_corners_around_vertex(v, func);
     }
 
@@ -976,115 +865,10 @@ public:
     /// @tparam     Func  A callable function of type Index -> void.
     ///
     template <typename Func>
-    void foreach_corners_around_edge_new(Index e, Func func) const
+    void foreach_corners_around_edge(Index e, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized_new(), "Edge data not initialized");
+        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_corners_around_edge(e, func);
-    }
-
-    //========================
-    // Edge-facet map functions [[deprecated]]
-    //========================
-
-    // ==== edge data initialization ====
-    LA_DEPRECATE_EDGE_API void initialize_edge_data()
-    {
-        if (is_edge_data_initialized()) return;
-        Eigen::Matrix<Index, Eigen::Dynamic, 1> c2e;
-        const Index num_edges = safe_cast<Index>(corner_to_edge_mapping(get_facets(), c2e));
-        std::vector<bool> is_set(num_edges, false);
-        m_edges.reserve(num_edges);
-        m_edge_facet_adjacency.resize(num_edges);
-        m_edge_index_map.reserve(num_edges);
-        const auto& facets = get_facets();
-        const auto nv = get_vertex_per_facet();
-        for (Index e = 0; e < num_edges; ++e) {
-            m_edges.emplace_back(0, 0);
-        }
-        for (Index f = 0; f < get_num_facets(); ++f) {
-            for (Index lv = 0; lv < nv; ++lv) {
-                LA_ASSERT(facets(f, lv) != INVALID<Index>());
-                auto e = c2e(f * nv + lv);
-                m_edge_facet_adjacency[e].push_back(f);
-                if (!is_set[e]) {
-                    auto v0 = facets(f, lv);
-                    auto v1 = facets(f, (lv + 1) % nv);
-                    Edge edge(v0, v1);
-                    m_edge_index_map.emplace(edge, e);
-                    m_edges[e] = edge;
-                    is_set[e] = true;
-                }
-            }
-        }
-        m_is_edge_data_initialized = true;
-    }
-
-    // ==== edge data accessors (const) ====
-    LA_DEPRECATE_EDGE_API bool is_edge_data_initialized() const
-    {
-        return m_is_edge_data_initialized;
-    }
-
-    LA_DEPRECATE_EDGE_API const std::unordered_map<Edge, Index>& get_edge_index_map() const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return m_edge_index_map;
-    }
-
-    LA_DEPRECATE_EDGE_API const std::vector<Edge>& get_edges() const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return m_edges;
-    }
-
-    // Uses the same indexing as get_edges, so that the facets of get_edges()[i]
-    // are get_edge_facet_adjacency()[i]. Or you can use the utility function below.
-    LA_DEPRECATE_EDGE_API const std::vector<std::vector<Index>>& get_edge_facet_adjacency() const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return m_edge_facet_adjacency;
-    }
-
-    // ==== edge data utility functions ====
-    LA_DEPRECATE_EDGE_API Index get_num_edges() const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return safe_cast<Index>(m_edges.size());
-    }
-
-    // This index is arbitrary, but it is guaranteed to not change in the lagrange mesh lifetime.
-    // You can use it to store edge-related data using vectors instead of edge maps.
-    // Also note that mesh->get_edges()[i] == edge iff mesh->get_edge_index(edge) == i.
-    LA_DEPRECATE_EDGE_API Index get_edge_index(const Edge& e) const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        const auto it = m_edge_index_map.find(e);
-        LA_ASSERT(it != m_edge_index_map.end());
-        return it->second;
-    }
-
-    LA_DEPRECATE_EDGE_API auto get_edge_adjacent_facets(const Index& e_idx) const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return m_edge_facet_adjacency[e_idx];
-    }
-
-    LA_DEPRECATE_EDGE_API auto get_edge_adjacent_facets(const Edge& e) const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return m_edge_facet_adjacency[get_edge_index(e)];
-    }
-
-    LA_DEPRECATE_EDGE_API bool get_is_edge_boundary(const Index& e_idx) const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return get_edge_adjacent_facets(e_idx).size() <= 1;
-    }
-
-    LA_DEPRECATE_EDGE_API bool get_is_edge_boundary(const Edge& e) const
-    {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
-        return get_edge_adjacent_facets(e).size() <= 1;
     }
 
 public:
@@ -1220,9 +1004,9 @@ public:
             VERTEX_ATTR = 2,
             FACET_ATTR = 3,
             CORNER_ATTR = 4,
-            EDGE_ATTR_NEW = 5,
+            EDGE_ATTR = 5,
             INDEXED_ATTR = 6,
-            EDGE_ATTR = 7, // last because it's deprecated
+            DEPRECATED_EDGE_ATTR = 7, // Not used anymore, but we keep the slot occupied
         };
         ar.object([&](auto& ar) {
             ar("version", VERSION) & version;
@@ -1230,9 +1014,8 @@ public:
             ar("vertex_attributes", VERTEX_ATTR) & m_vertex_attributes;
             ar("facet_attributes", FACET_ATTR) & m_facet_attributes;
             ar("corner_attributes", CORNER_ATTR) & m_corner_attributes;
-            ar("edge_attributes_new", EDGE_ATTR_NEW) & m_edge_attributes_new;
-            ar("indexed_attributes", INDEXED_ATTR) & m_indexed_attributes;
             ar("edge_attributes", EDGE_ATTR) & m_edge_attributes;
+            ar("indexed_attributes", INDEXED_ATTR) & m_indexed_attributes;
         });
         LA_ASSERT(version == current_version, "Incompatible version number");
         LA_IGNORE_SHADOW_WARNING_END
@@ -1241,9 +1024,6 @@ public:
         if (ar.is_input()) {
             if (m_edge_attributes->get_size() > 0) {
                 initialize_edge_data();
-            }
-            if (m_edge_attributes_new->get_size() > 0) {
-                initialize_edge_data_new();
             }
         }
 
@@ -1268,7 +1048,6 @@ protected:
         m_facet_attributes = std::make_unique<experimental::AttributeManager>();
         m_corner_attributes = std::make_unique<experimental::AttributeManager>();
         m_edge_attributes = std::make_unique<experimental::AttributeManager>();
-        m_edge_attributes_new = std::make_unique<experimental::AttributeManager>();
         m_indexed_attributes = std::make_unique<experimental::IndexedAttributeManager>();
     }
 
@@ -1283,14 +1062,7 @@ protected:
     std::unique_ptr<experimental::AttributeManager> m_facet_attributes;
     std::unique_ptr<experimental::AttributeManager> m_corner_attributes;
     std::unique_ptr<experimental::AttributeManager> m_edge_attributes;
-    std::unique_ptr<experimental::AttributeManager> m_edge_attributes_new;
     std::unique_ptr<experimental::IndexedAttributeManager> m_indexed_attributes;
-
-    // edge data [[deprecated]]
-    bool m_is_edge_data_initialized = false;
-    std::unordered_map<Edge, Index> m_edge_index_map; // map to edge index in the vectors below
-    std::vector<Edge> m_edges;
-    std::vector<std::vector<Index>> m_edge_facet_adjacency;
 };
 
 template <typename _VertexArray, typename _FacetArray, typename Archive>

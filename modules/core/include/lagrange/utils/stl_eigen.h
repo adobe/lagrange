@@ -11,8 +11,6 @@
  */
 #pragma once
 
-// TODO: Move this file to lagrange::core?
-
 ////////////////////////////////////////////////////////////////////////////////
 #include <Eigen/Dense>
 ////////////////////////////////////////////////////////////////////////////////
@@ -109,7 +107,7 @@ void flat_vector_to_eigen(
     LA_ASSERT(rows * cols == from.size(), "Invalid vector size");
     to.resize(rows, cols);
     const bool is_row_major = (row_major_flag & Eigen::RowMajor);
-    for (size_t i = 0; i < to.size(); ++i) {
+    for (Eigen::Index i = 0; i < to.size(); ++i) {
         size_t r = (is_row_major ? i / cols : i % rows);
         size_t c = (is_row_major ? i % cols : i / rows);
         to(r, c) = from[i];

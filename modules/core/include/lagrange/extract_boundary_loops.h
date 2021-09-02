@@ -41,13 +41,13 @@ std::vector<std::vector<typename MeshType::Index>> extract_boundary_loops(MeshTy
     using Index = typename MeshType::Index;
     const Index num_vertices = mesh.get_num_vertices();
 
-    mesh.initialize_edge_data_new();
+    mesh.initialize_edge_data();
     std::vector<Index> boundary_next(num_vertices, INVALID<Index>());
 
-    const Index num_edges = mesh.get_num_edges_new();
+    const Index num_edges = mesh.get_num_edges();
     for (auto ei : range(num_edges)) {
-        if (mesh.is_boundary_edge_new(ei)) {
-            const auto edge = mesh.get_edge_vertices_new(ei);
+        if (mesh.is_boundary_edge(ei)) {
+            const auto edge = mesh.get_edge_vertices(ei);
             if (boundary_next[edge[0]] != INVALID<Index>() && boundary_next[edge[0]] != edge[1]) {
                 throw std::runtime_error("The boundary loops are not simple.");
             }

@@ -134,7 +134,7 @@ int main(int argc, char** argv)
     const int rows = std::max(1, int(sqrtf(float(scene_entities.size()))));
     const int cols = (int(scene_entities.size()) + rows - 1) / rows;
 
-    for (auto i = 0; i < scene_entities.size(); i++) {
+    for (size_t i = 0; i < scene_entities.size(); i++) {
         int row = i % cols;
         int col = i / cols;
 

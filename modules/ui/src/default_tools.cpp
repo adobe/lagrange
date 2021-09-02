@@ -190,8 +190,7 @@ void select_object(Registry& r)
     // Convert hovered to selected
     auto v = r.view<Hovered>();
     if (behavior == SelectionBehavior::SET) {
-        
-        //Deselect those not hovered first 
+        // Deselect those not hovered first
         auto vsel = r.view<Selected>(entt::exclude<Hovered>);
         r.remove<Selected>(vsel.begin(), vsel.end());
 
@@ -204,7 +203,7 @@ void select_object(Registry& r)
 }
 
 
-void select_element(Registry& r) {}
+void select_element(Registry& /*r*/) {}
 
 
 void register_default_tools(Tools& tools)

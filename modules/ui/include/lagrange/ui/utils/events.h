@@ -40,7 +40,7 @@ template <typename Event>
 EventEmitter::connection<Event> on(Registry& r, std::function<void(Event&)> listener)
 {
     return get_event_emitter(r).on<Event>(
-        [=](Event& event, EventEmitter& emitter) { listener(event); });
+        [=](Event& event, EventEmitter& /*emitter*/) { listener(event); });
 }
 
 

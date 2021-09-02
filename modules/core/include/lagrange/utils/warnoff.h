@@ -21,6 +21,8 @@
 #pragma clang diagnostic ignored "-Wunused-value"
 #pragma clang diagnostic ignored "-Wreorder-ctor"
 #pragma clang diagnostic ignored "-Wreorder"
+#pragma clang diagnostic ignored "-Wignored-qualifiers"
+#pragma clang diagnostic ignored "-Wrange-loop-analysis"
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
@@ -34,6 +36,7 @@
 #pragma GCC diagnostic ignored "-Wclass-memaccess"
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
+#pragma GCC diagnostic ignored "-Wignored-qualifiers"
 #elif defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4005) // macro redefintion.

@@ -11,19 +11,23 @@
  */
 #include <lagrange/testing/common.h>
 
-#include <lagrange/offset_and_close_mesh.h>
+#include <lagrange/thicken_and_close_mesh.h>
 
-TEST_CASE("offset_and_close_mesh")
+TEST_CASE("thicken_and_close_mesh")
 {
     using MeshType = lagrange::TriangleMesh3D;
     auto mesh = lagrange::testing::load_mesh<MeshType>("open/core/hemisphere.obj");
+    mesh->initialize_edge_data();
 
     Eigen::Vector3d dir(0, 1, 0);
-    auto flat_mesh = lagrange::offset_and_close_mesh(*mesh, dir, -0.5, 0);
-    auto mirrored_mesh = lagrange::offset_and_close_mesh(*mesh, dir, 0, -1);
+    auto flat_mesh = lagrange::thicken_and_close_mesh(*mesh, dir, -0.5, 0);
+    auto mirrored_mesh = lagrange::thicken_and_close_mesh(*mesh, dir, 0, -1);
+    auto thickened_mesh = lagrange::thicken_and_close_mesh(*mesh, 1);
 
     REQUIRE(flat_mesh->get_num_vertices() == 682);
     REQUIRE(flat_mesh->get_num_facets() == 1360);
     REQUIRE(mirrored_mesh->get_num_vertices() == 682);
     REQUIRE(mirrored_mesh->get_num_facets() == 1360);
+    REQUIRE(thickened_mesh->get_num_vertices() == 682);
+    REQUIRE(thickened_mesh->get_num_facets() == 1360);
 }

@@ -54,7 +54,7 @@ TEST_CASE("ComputeBorderedComponents", "[components][border]")
     std::unique_ptr<MeshType> mesh;
 
     auto get_edge_id = [&](Index v0, Index v1) -> Index {
-        return mesh->find_edge_from_vertices_new(v0, v1);
+        return mesh->find_edge_from_vertices(v0, v1);
     };
 
 
@@ -86,25 +86,25 @@ TEST_CASE("ComputeBorderedComponents", "[components][border]")
         facets.row(2) << 1, 4, 0;
         facets.row(3) << 3, 4, 0;
         mesh = create_mesh(vertices, facets);
-        mesh->initialize_edge_data_new();
+        mesh->initialize_edge_data();
 
         SECTION("all edges passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             const auto comps = compute_bordered_components(*mesh, is_passable);
             verify_answer(comps, {4});
         }
 
         SECTION("no edge passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), false);
+            std::vector<bool> is_passable(mesh->get_num_edges(), false);
             const auto comps = compute_bordered_components(*mesh, is_passable);
             verify_answer(comps, {1, 1, 1, 1});
         }
 
         SECTION("one edge not passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             is_passable[get_edge_id(1, 4)] = false;
             const auto comps = compute_bordered_components(*mesh, is_passable);
             verify_answer(comps, {4});
@@ -112,7 +112,7 @@ TEST_CASE("ComputeBorderedComponents", "[components][border]")
 
         SECTION("two edges not passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             is_passable[get_edge_id(1, 4)] = false;
             is_passable[get_edge_id(0, 4)] = false;
             const auto comps = compute_bordered_components(*mesh, is_passable);
@@ -121,7 +121,7 @@ TEST_CASE("ComputeBorderedComponents", "[components][border]")
 
         SECTION("three edges not passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             is_passable[get_edge_id(1, 4)] = false;
             is_passable[get_edge_id(0, 4)] = false;
             is_passable[get_edge_id(2, 4)] = false;
@@ -148,25 +148,25 @@ TEST_CASE("ComputeBorderedComponents", "[components][border]")
         facets.row(4) << 5, 1, 0;
         facets.row(5) << 5, 4, 3;
         mesh = create_mesh(vertices, facets);
-        mesh->initialize_edge_data_new();
+        mesh->initialize_edge_data();
 
         SECTION("all edges passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             const auto comps = compute_bordered_components(*mesh, is_passable);
             verify_answer(comps, {6});
         }
 
         SECTION("no edge passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), false);
+            std::vector<bool> is_passable(mesh->get_num_edges(), false);
             const auto comps = compute_bordered_components(*mesh, is_passable);
             verify_answer(comps, {1, 1, 1, 1, 1, 1});
         }
 
         SECTION("two edge not passable ")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             is_passable[get_edge_id(1, 4)] = false;
             is_passable[get_edge_id(3, 4)] = false;
             const auto comps = compute_bordered_components(*mesh, is_passable);
@@ -175,7 +175,7 @@ TEST_CASE("ComputeBorderedComponents", "[components][border]")
 
         SECTION("two edges not passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             is_passable[get_edge_id(1, 4)] = false;
             is_passable[get_edge_id(0, 4)] = false;
             const auto comps = compute_bordered_components(*mesh, is_passable);
@@ -184,7 +184,7 @@ TEST_CASE("ComputeBorderedComponents", "[components][border]")
 
         SECTION("three edges not passable")
         {
-            std::vector<bool> is_passable(mesh->get_num_edges_new(), true);
+            std::vector<bool> is_passable(mesh->get_num_edges(), true);
             is_passable[get_edge_id(1, 4)] = false;
             is_passable[get_edge_id(0, 4)] = false;
             is_passable[get_edge_id(2, 4)] = false;

@@ -19,12 +19,12 @@ namespace ui = lagrange::ui;
 
 TEST_CASE("Systems", "[ui][systems]")
 {
-    ui::Registry r; //dummy registry
+    ui::Registry r; // dummy registry
 
     SECTION("add with no id")
     {
         ui::Systems S;
-        auto id = S.add(ui::Systems::Stage::Init, [](ui::Registry &r) {});
+        auto id = S.add(ui::Systems::Stage::Init, [](ui::Registry& /*r*/) {});
         REQUIRE(id != 0);
     }
 
@@ -34,7 +34,7 @@ TEST_CASE("Systems", "[ui][systems]")
         ui::Systems S;
         auto id = S.add(
             ui::Systems::Stage::Init,
-            [](ui::Registry &r) {},
+            [](ui::Registry& /*r*/) {},
             ui::string_id("my id"));
 
         REQUIRE(id == ui::string_id("my id"));
@@ -46,12 +46,12 @@ TEST_CASE("Systems", "[ui][systems]")
         ui::Systems S;
         auto id0 = S.add(
             ui::Systems::Stage::Init,
-            [](ui::Registry &r) {},
+            [](ui::Registry& /*r*/) {},
             ui::string_id("my id"));
 
         auto id1 = S.add(
             ui::Systems::Stage::Init,
-            [](ui::Registry &r) {},
+            [](ui::Registry& /*r*/) {},
             ui::string_id("my id"));
         REQUIRE(id0 == ui::string_id("my id"));
         REQUIRE(id1 == 0);
@@ -64,7 +64,7 @@ TEST_CASE("Systems", "[ui][systems]")
         ui::Systems S;
         auto id = S.add(
             ui::Systems::Stage::Init,
-            [&](ui::Registry &r) { runs++; },
+            [&](ui::Registry& /*r*/) { runs++; },
             ui::string_id("my id"));
 
 
@@ -83,7 +83,7 @@ TEST_CASE("Systems", "[ui][systems]")
         ui::Systems S;
         auto id = S.add(
             ui::Systems::Stage::Init,
-            [&](ui::Registry &r) { runs++; },
+            [&](ui::Registry& /*r*/) { runs++; },
             ui::string_id("my id"));
 
 
@@ -103,7 +103,7 @@ TEST_CASE("Systems", "[ui][systems]")
         int current = 0;
 
         for (auto i = N - 1; i >= 0; i--) {
-            S.add(ui::Systems::Stage(i), [=, &current, &order](ui::Registry &r) {
+            S.add(ui::Systems::Stage(i), [=, &current, &order](ui::Registry& /*r*/) {
                 order[current++] = i;
             });
         }
@@ -126,9 +126,9 @@ TEST_CASE("Systems", "[ui][systems]")
         int current = 0;
 
         ui::Systems S;
-        auto id_a = S.add(stage, [&](ui::Registry &r) { order[current++] = 1; });
-        auto id_b = S.add(stage, [&](ui::Registry &r) { order[current++] = 2; });
-        auto id_c = S.add(stage, [&](ui::Registry &r) { order[current++] = 3; });
+        auto id_a = S.add(stage, [&](ui::Registry& /*r*/) { order[current++] = 1; });
+        auto id_b = S.add(stage, [&](ui::Registry& /*r*/) { order[current++] = 2; });
+        auto id_c = S.add(stage, [&](ui::Registry& /*r*/) { order[current++] = 3; });
 
         S.run(ui::Systems::Stage::Init, r);
 

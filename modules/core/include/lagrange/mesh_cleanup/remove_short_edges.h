@@ -60,10 +60,10 @@ std::unique_ptr<MeshType> remove_short_edges(
     DisjointSets<Index> clusters(num_vertices);
 
     compute_edge_lengths(mesh);
-    const auto num_edges = mesh.get_num_edges_new();
-    const auto& edge_lengths = mesh.get_edge_attribute_new("length");
+    const auto num_edges = mesh.get_num_edges();
+    const auto& edge_lengths = mesh.get_edge_attribute("length");
     for (Index edge_idx = 0; edge_idx < num_edges; ++edge_idx) {
-        const auto& edge = mesh.get_edge_vertices_new(edge_idx);
+        const auto& edge = mesh.get_edge_vertices(edge_idx);
         const auto& length = edge_lengths(edge_idx);
         if (length <= tol) {
             clusters.merge(edge[0], edge[1]);

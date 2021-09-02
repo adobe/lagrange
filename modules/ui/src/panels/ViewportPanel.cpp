@@ -22,11 +22,11 @@
 #include <lagrange/ui/systems/update_scene_bounds.h>
 #include <lagrange/ui/types/Camera.h>
 #include <lagrange/ui/types/Systems.h>
-#include <lagrange/ui/utils/uipanel.h>
 #include <lagrange/ui/utils/bounds.h>
 #include <lagrange/ui/utils/input.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/uipanel.h>
 #include <lagrange/ui/utils/viewport.h>
 
 #include <IconsFontAwesome5.h>
@@ -133,7 +133,9 @@ void draw_texture_widget(Texture& tex)
 }
 
 
-void draw_render_pass_popup(Registry& registry, ViewportPanel& data)
+void draw_render_pass_popup(
+    [[maybe_unused]] Registry& registry,
+    [[maybe_unused]] ViewportPanel& data)
 {
 #ifdef LGUI_RENDERER_DEPRECATED
     if (!ImGui::BeginPopupContextItem(render_pass_popup_name(registry, data).c_str())) return;
@@ -244,7 +246,7 @@ void draw_framebuffer_popup(Registry& registry, ViewportPanel& data)
             }
 
             if (ImGui::CollapsingHeader("Layer visibility")) {
-                for (auto i = 0; i < get_max_layers(); i++) {
+                for (size_t i = 0; i < get_max_layers(); i++) {
                     const auto& name = get_layer_name(registry, i);
                     if (name.length() == 0) continue;
 

@@ -409,10 +409,10 @@ void clear_scene(Registry& r)
     // Do not delete viewport cameras
     std::unordered_set<Entity> protected_entities;
     r.view<ViewportComponent>().each(
-        [&](Entity e, ViewportComponent& v) { protected_entities.insert(v.camera_reference); });
+        [&](Entity /*e*/, ViewportComponent& v) { protected_entities.insert(v.camera_reference); });
 
     // Otherwise delete everything with Tree
-    r.view<TreeNode>().each([&](Entity e, TreeNode& t) {
+    r.view<TreeNode>().each([&](Entity e, TreeNode& /*t*/) {
         if (protected_entities.count(e)) return;
         r.destroy(e);
     });

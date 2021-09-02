@@ -40,7 +40,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.2.0)
+project(Lagrange VERSION 5.3.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -76,6 +76,12 @@ option(LAGRANGE_UNIT_TESTS        "Build all unit tests"                        
 option(LAGRANGE_USE_PCH           "Enable precompiled headers"                           OFF)
 option(LAGRANGE_WITH_ONETBB       "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange"                     OFF)
+
+# Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
+# option, targeted at users who wish to have explicit knowledge of which module is implicitly
+# compiled by Lagrange. By default, an empty list means all modules are allowed.
+set(LAGRANGE_ALLOWLIST "" CACHE STRING "List of modules allowed in the project (empty: allow everything)")
+set(LAGRANGE_BLOCKLIST "" CACHE STRING "List of modules excluded from the project")
 
 # Third-party dependency management
 option(LAGRANGE_EXTERNAL_FIRST    "Third-party libs: prefer public mirrors over corporate ones" OFF)

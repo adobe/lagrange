@@ -42,7 +42,7 @@ void compute_dihedral_angles(MeshType& mesh)
     using Index = typename MeshType::Index;
     using Scalar = typename MeshType::Scalar;
 
-    mesh.initialize_edge_data_new();
+    mesh.initialize_edge_data();
 
     if (!mesh.has_facet_attribute("normal")) {
         compute_triangle_normal(mesh);
@@ -51,7 +51,7 @@ void compute_dihedral_angles(MeshType& mesh)
     const auto& facet_normals = mesh.get_facet_attribute("normal");
     bool non_manifold = false;
     eval_as_edge_attribute_new(mesh, "dihedral_angle", [&](Index i) -> Scalar {
-        const auto num_adj_facets = mesh.get_num_facets_around_edge_new(i);
+        const auto num_adj_facets = mesh.get_num_facets_around_edge(i);
         if (num_adj_facets > 2) {
             non_manifold = true;
         }
@@ -61,7 +61,7 @@ void compute_dihedral_angles(MeshType& mesh)
         } else if (num_adj_facets == 2) {
             Eigen::Matrix<Scalar, 2, 3, Eigen::RowMajor> normals(num_adj_facets, 3);
             Index index = 0;
-            mesh.foreach_facets_around_edge_new(i, [&](Index fid) {
+            mesh.foreach_facets_around_edge(i, [&](Index fid) {
                 normals.row(index) = facet_normals.row(fid);
                 index++;
             });
@@ -74,24 +74,6 @@ void compute_dihedral_angles(MeshType& mesh)
             return 2 * M_PI;
         }
     });
-
-#ifdef LA_KEEP_TRANSITION_CODE
-    mesh.initialize_edge_data();
-    const auto& edge_facet_adjacency = mesh.get_edge_facet_adjacency();
-
-    eval_as_edge_attribute(mesh, "dihedral_angle", [&](Index i) -> Scalar {
-        const auto& adj_facets = edge_facet_adjacency[i];
-        const auto num_adj_facets = adj_facets.size();
-
-        if (num_adj_facets <= 1) {
-            return 0;
-        } else {
-            const Eigen::Matrix<Scalar, 3, 1>& n1 = facet_normals.row(adj_facets[0]);
-            const Eigen::Matrix<Scalar, 3, 1>& n2 = facet_normals.row(adj_facets[1]);
-            return std::atan2((n1.cross(n2)).norm(), n1.dot(n2));
-        }
-    });
-#endif
 
     if (non_manifold) {
         lagrange::logger().warn("Computing dihedral angles on a non-manifold mesh!");

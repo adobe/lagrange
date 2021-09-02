@@ -17,12 +17,12 @@ namespace {
 #define FE_INVALID 0
 #define FE_OVERFLOW 0
 
-inline int feenableexcept(unsigned int excepts)
+inline int feenableexcept(unsigned int /*excepts*/)
 {
     return 0;
 }
 
-inline int fedisableexcept(unsigned int excepts)
+inline int fedisableexcept(unsigned int /*excepts*/)
 {
     return 0;
 }

@@ -48,7 +48,7 @@ void compute_corner_normal(
     if (!mesh.is_connectivity_initialized()) {
         mesh.initialize_connectivity();
     }
-    mesh.initialize_edge_data_new();
+    mesh.initialize_edge_data();
 
     const Index dim = mesh.get_dim();
     const Index num_vertices = mesh.get_num_vertices();
@@ -116,10 +116,10 @@ void compute_corner_normal(
 
         for (auto vj : adj_vertices) {
             if (!is_sharp(vi, vj)) {
-                auto ei = mesh.find_edge_from_vertices_new(vi, vj);
+                auto ei = mesh.find_edge_from_vertices(vi, vj);
                 e_fids.clear();
-                e_fids.reserve(mesh.get_num_facets_around_edge_new(ei));
-                mesh.foreach_facets_around_edge_new(ei, [&](Index fid) {
+                e_fids.reserve(mesh.get_num_facets_around_edge(ei));
+                mesh.foreach_facets_around_edge(ei, [&](Index fid) {
                     e_fids.push_back(index_of(adj_facets, fid));
                 });
 
@@ -189,15 +189,15 @@ void compute_corner_normal(
     LA_ASSERT(feature_angle_threshold < 4, "This angle is in degrees, must be in radians");
     using Index = typename MeshType::Index;
 
-    mesh.initialize_edge_data_new();
-    if (!mesh.has_edge_attribute_new("dihedral_angle")) {
+    mesh.initialize_edge_data();
+    if (!mesh.has_edge_attribute("dihedral_angle")) {
         compute_dihedral_angles(mesh);
     }
 
     auto is_sharp = [&mesh, feature_angle_threshold](Index vi, Index vj) {
-        assert(mesh.has_edge_attribute_new("dihedral_angle"));
-        const auto& dihedral_angles = mesh.get_edge_attribute_new("dihedral_angle");
-        Index eid = mesh.find_edge_from_vertices_new(vi, vj);
+        assert(mesh.has_edge_attribute("dihedral_angle"));
+        const auto& dihedral_angles = mesh.get_edge_attribute("dihedral_angle");
+        Index eid = mesh.find_edge_from_vertices(vi, vj);
         return std::abs(dihedral_angles(eid, 0)) > feature_angle_threshold;
     };
 

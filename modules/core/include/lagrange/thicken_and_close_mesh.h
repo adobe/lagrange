@@ -13,28 +13,37 @@
 
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
+#include <lagrange/attributes/map_indexed_attributes.h>
+#include <lagrange/compute_vertex_normal.h>
+#include <lagrange/create_mesh.h>
 
 namespace lagrange {
 
+namespace {
+
+
 ///
-/// Offset a mesh, and close the shape into a thick 3D solid. The mesh is assumed to have a disk
-/// topology. Input mesh vertices are duplicated and projected onto a target plane and can be
+/// Thicken a mesh by offsetting it in a fixed direction or along the normals.
+/// Close the shape into a thick 3D solid. Input mesh vertices are duplicated and projected onto a target plane and can be
 /// additionally mirrored wrt to this plane.
 ///
-/// @param[in,out] input_mesh     Input mesh, assumed to have a disk topology. Modified to compute
-///                               edge information.
-/// @param[in]     direction      Offset direction.
-/// @param[in]     offset_amount  Coordinate along the direction vector to project onto.
-/// @param[in]     mirror_amount  Mirror amount (between -1 and 1). -1 means fully mirrored, 0 means
-///                               flat region, and 1 means fully translated.
+/// @param[in]     input_mesh                   Input mesh, Must have edge information included.
+///                                             edge information.
+/// @param[in]     use_direction_and_mirror     If on, uses a fixed direction for the thickening.
+/// @param[in]     direction                    Offset direction.
+/// @param[in]     offset_amount                Coordinate along the direction vector to project onto.
+/// @param[in]     mirror_amount                Mirror amount (between -1 and 1). -1 means fully mirrored, 0 means
+///                                             flat region, and 1 means fully translated.
 ///
-/// @tparam        MeshType       Mesh type.
+/// @tparam        MeshType                     Mesh type.
 ///
 /// @return        A mesh of the offset and closed surface.
 ///
+
 template <typename MeshType>
-std::unique_ptr<MeshType> offset_and_close_mesh(
-    MeshType& input_mesh,
+std::unique_ptr<MeshType> thicken_and_close_mesh(
+    const MeshType& input_mesh,
+    bool use_direction_and_mirror,
     Eigen::Matrix<ScalarOf<MeshType>, 3, 1> direction,
     ScalarOf<MeshType> offset_amount,
     ScalarOf<MeshType> mirror_amount)
@@ -44,6 +53,7 @@ std::unique_ptr<MeshType> offset_and_close_mesh(
     using Scalar = typename MeshType::Scalar;
     using Index = typename MeshType::Index;
     using VertexArray = typename MeshType::VertexArray;
+    using AttributeArray = typename MeshType::AttributeArray;
     using UVArray = typename MeshType::UVArray;
     using UVIndices = typename MeshType::UVIndices;
     using FacetArray = typename MeshType::FacetArray;
@@ -53,10 +63,25 @@ std::unique_ptr<MeshType> offset_and_close_mesh(
     LA_ASSERT(
         input_mesh.get_vertex_per_facet() == 3,
         "This function only supports triangle meshes.");
+    LA_ASSERT(input_mesh.is_edge_data_initialized(), "This function requires the mesh to have edge data pre-initialized.");
 
     direction.stableNormalize();
-    const Vector3s mirror_vector = (Scalar(1) - mirror_amount) * direction;
-    const Vector3s offset_vector = offset_amount * direction;
+    Vector3s offset_vector(0.0, 1.0, 0.0);
+    Vector3s mirror_vector(0.0, 0.0, 0.0);
+    AttributeArray vertex_normal;
+
+    if (use_direction_and_mirror) {
+        offset_vector = offset_amount * direction;
+        mirror_vector = (Scalar(1) - mirror_amount) * direction;
+    } else {
+        // compute vertex normal vector
+        std::unique_ptr<MeshType> copied_mesh = wrap_with_mesh<VertexArray, FacetArray>(
+            input_mesh.get_vertices(),
+            input_mesh.get_facets());
+        compute_vertex_normal(*copied_mesh);
+        copied_mesh->export_vertex_attribute("normal", vertex_normal);
+        LA_ASSERT(vertex_normal.rows() == input_mesh.get_num_vertices());
+    }
     const Index num_input_vertices = input_mesh.get_num_vertices();
     const Index num_input_facets = input_mesh.get_num_facets();
     const bool has_uvs = input_mesh.is_uv_initialized();
@@ -65,20 +90,29 @@ std::unique_ptr<MeshType> offset_and_close_mesh(
     // Vertices
     VertexArray offset_vertices(num_input_vertices * 2, 3);
     for (Index v = 0; v < num_input_vertices; ++v) {
+        if (!use_direction_and_mirror) {
+            // compute per vertex normal and use it as offset direction
+            // TODO: a smarter version could compensate for tight angles with disjoint
+            // indexed normals and amplify this vector to preserve the apparent thickness
+            // of the resulting solid.
+            offset_vector = -vertex_normal.row(v).template head<3>() * offset_amount;
+        }
         Vector3s vertex = input_mesh.get_vertices().row(v).template head<3>();
         // copy original vertices
         offset_vertices.row(v) = vertex;
         // also opposite face
-        offset_vertices.row(v + num_input_vertices) =
-            vertex - vertex.dot(direction) * mirror_vector + offset_vector;
+        vertex += offset_vector;
+        if (use_direction_and_mirror) {
+            vertex -= vertex.dot(direction) * mirror_vector;
+        }
+        offset_vertices.row(v + num_input_vertices) = vertex;
     }
 
     // Facets
     // 0. Count boundary edges in the input mesh
-    input_mesh.initialize_edge_data_new();
     Index num_input_boundary_edges = 0;
-    for (Index e = 0; e < input_mesh.get_num_edges_new(); ++e) {
-        if (input_mesh.is_boundary_edge_new(e)) {
+    for (Index e = 0; e < input_mesh.get_num_edges(); ++e) {
+        if (input_mesh.is_boundary_edge(e)) {
             ++num_input_boundary_edges;
         }
     }
@@ -92,9 +126,9 @@ std::unique_ptr<MeshType> offset_and_close_mesh(
             facet[2] + num_input_vertices, facet[1] + num_input_vertices;
     }
     // 2. Stitch
-    for (Index e = 0, f = 2 * num_input_facets; e < input_mesh.get_num_edges_new(); ++e) {
-        if (input_mesh.is_boundary_edge_new(e)) {
-            auto v = input_mesh.get_edge_vertices_new(e);
+    for (Index e = 0, f = 2 * num_input_facets; e < input_mesh.get_num_edges(); ++e) {
+        if (input_mesh.is_boundary_edge(e)) {
+            auto v = input_mesh.get_edge_vertices(e);
             assert(f + 1 < offset_facets.rows());
             offset_facets.row(f++) << v[0], v[0] + num_input_vertices, v[1];
             offset_facets.row(f++) << v[1], v[0] + num_input_vertices, v[1] + num_input_vertices;
@@ -122,18 +156,18 @@ std::unique_ptr<MeshType> offset_and_close_mesh(
                 uv_facet[1] + num_input_uvs;
         }
         // Stitch
-        for (Index e = 0, f_uv = 2 * input_uv_indices.rows(); e < input_mesh.get_num_edges_new();
+        for (Index e = 0, f_uv = 2 * input_uv_indices.rows(); e < input_mesh.get_num_edges();
              ++e) {
-            if (input_mesh.is_boundary_edge_new(e)) {
+            if (input_mesh.is_boundary_edge(e)) {
                 // Find first and only face on this edge
-                const Index f = input_mesh.get_one_facet_around_edge_new(e);
+                const Index f = input_mesh.get_one_facet_around_edge(e);
                 assert(f != lagrange::INVALID<Index>());
                 const auto& facet = input_mesh.get_facets().row(f);
                 assert((facet.array() < num_input_vertices).all());
                 const auto& uv_facet = input_uv_indices.row(f);
                 assert((uv_facet.array() < num_input_uvs).all());
                 // Find vertices on this edge
-                auto edge_vertices = input_mesh.get_edge_vertices_new(e);
+                auto edge_vertices = input_mesh.get_edge_vertices(e);
                 // Now find corresponding uvs on this edge
                 Index uv_index_0 = lagrange::INVALID<Index>();
                 Index uv_index_1 = lagrange::INVALID<Index>();
@@ -162,6 +196,60 @@ std::unique_ptr<MeshType> offset_and_close_mesh(
     }
 
     return offset_mesh;
+}
+
+} // namespace
+
+///
+/// Thicken a mesh by offsetting it in a fixed direction.
+/// Close the shape into a thick 3D solid. The mesh is assumed to have a disk
+/// topology. Input mesh vertices are duplicated and projected onto a target plane and can be
+/// additionally mirrored wrt to this plane.
+///
+/// @param[in] input_mesh         Input mesh, assumed to have a disk topology. Must have edge
+///                               information included.
+/// @param[in]     direction      Offset direction.
+/// @param[in]     offset_amount  Coordinate along the direction vector to project onto.
+/// @param[in]     mirror_amount  Mirror amount (between -1 and 1). -1 means fully mirrored, 0 means
+///                               flat region, and 1 means fully translated.
+///
+/// @tparam        MeshType       Mesh type.
+///
+/// @return        A mesh of the offset and closed surface.
+///
+template <typename MeshType>
+std::unique_ptr<MeshType> thicken_and_close_mesh(
+    const MeshType& input_mesh,
+    Eigen::Matrix<ScalarOf<MeshType>, 3, 1> direction,
+    ScalarOf<MeshType> offset_amount,
+    ScalarOf<MeshType> mirror_amount)
+{
+    return thicken_and_close_mesh(input_mesh, true, direction, offset_amount, mirror_amount);
+}
+
+///
+/// Thicken a mesh vertices along normals, and close the shape into a thick 3D solid.
+/// This function makes no assumption on the shape's topology and will apply its effect nicely to any surface,
+/// even those that have no holes (e.g. a solid sphere will become a hollow sphere with a solid shell).
+///
+/// @param[in] input_mesh         Input mesh. Must have edge information included.
+/// @param[in]     offset_amount  Coordinate along the direction vector to project onto.
+///
+/// @tparam        MeshType       Mesh type.
+///
+/// @return        A mesh of the offset and closed surface.
+///
+template <typename MeshType>
+std::unique_ptr<MeshType> thicken_and_close_mesh(
+    const MeshType& input_mesh,
+    ScalarOf<MeshType> offset_amount)
+{
+    return thicken_and_close_mesh(
+        input_mesh,
+        false,
+        Eigen::Matrix<ScalarOf<MeshType>, 3, 1>(0.0, 1.0, 0.0),
+        offset_amount,
+        0.f);
 }
 
 } // namespace lagrange

@@ -45,7 +45,7 @@ void setup_vertex_data(Registry& r)
 
     // Setup default mesh rendering attribute arrays
     r.view<VertexData, MeshRender, MeshGeometry>().each(
-        [&](Entity e, VertexData& glvd, MeshRender& render, const MeshGeometry& geom_entity) {
+        [&](Entity /*e*/, VertexData& glvd, MeshRender& render, const MeshGeometry& geom_entity) {
             if (!r.valid(geom_entity.entity)) return;
             if (!r.has<GLMesh>(geom_entity.entity)) return;
             if (!render.material) return;
@@ -61,7 +61,7 @@ void setup_vertex_data(Registry& r)
 
     // Setup attribute renders
     r.view<VertexData, MeshRender, AttributeRender, MeshGeometry>().each(
-        [&](Entity e, VertexData& glvd, MeshRender& render, AttributeRender& ar, MeshGeometry& mg) {
+        [&](Entity /*e*/, VertexData& glvd, MeshRender& render, AttributeRender& ar, MeshGeometry& mg) {
             if (!r.valid(mg.entity)) return;
 
             auto& md = r.get<MeshData>(mg.entity);

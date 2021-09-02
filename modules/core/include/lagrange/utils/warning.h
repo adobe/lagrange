@@ -81,4 +81,9 @@
 // Ignore x to avoid an unused variable warning
 #define LA_IGNORE(x) (void)x
 
+// Ignore range loop variable may be a copy
+#define LA_IGNORE_RANGE_LOOP_ANALYSIS_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wrange-loop-analysis)
+#define LA_IGNORE_RANGE_LOOP_ANALYSIS_END LA_DISABLE_WARNING_END
+
 // clang-format on

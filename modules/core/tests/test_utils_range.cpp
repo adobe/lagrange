@@ -147,7 +147,7 @@ TEST_CASE("range", "[range]")
 
         SECTION("vertices")
         {
-            for (const auto& row : row_range(vertices)) {
+            for (const auto row : row_range(vertices)) {
                 REQUIRE((row.array() == vertices.row(i).array()).all());
                 i++;
             }
@@ -156,7 +156,7 @@ TEST_CASE("range", "[range]")
 
         SECTION("facets")
         {
-            for (const auto& row : row_range(facets)) {
+            for (const auto row : row_range(facets)) {
                 REQUIRE((row.array() == facets.row(i).array()).all());
                 i++;
             }
@@ -167,7 +167,7 @@ TEST_CASE("range", "[range]")
         {
             Eigen::MatrixXi M(3, 3);
             M << 1, 2, 3, 4, 5, 6, 7, 8, 9;
-            for (const auto& row : row_range(M)) {
+            for (const auto row : row_range(M)) {
                 REQUIRE((row.array() == M.row(i).array()).all());
                 i++;
             }
@@ -177,7 +177,7 @@ TEST_CASE("range", "[range]")
         SECTION("Empty matrix")
         {
             Eigen::MatrixXi Z(0, 3);
-            for (const auto& row : row_range(Z)) {
+            for (const auto row : row_range(Z)) {
                 REQUIRE((row.array() == Z.row(i).array()).all());
                 i++;
             }
@@ -187,7 +187,7 @@ TEST_CASE("range", "[range]")
         SECTION("Empty matrix 2")
         {
             Eigen::MatrixXi Z(3, 0);
-            for (const auto& row : row_range(Z)) {
+            for (const auto row : row_range(Z)) {
                 REQUIRE((row.array() == Z.row(i).array()).all());
                 i++;
             }

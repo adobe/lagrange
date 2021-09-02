@@ -61,7 +61,7 @@ size_t get_num_facets(const MeshBase* mesh_base)
 template <typename MeshType>
 size_t get_num_edges(const MeshBase* mesh_base)
 {
-    return reinterpret_cast<const MeshType&>(*mesh_base).get_num_edges_new();
+    return reinterpret_cast<const MeshType&>(*mesh_base).get_num_edges();
 }
 
 template <typename MeshType>
@@ -105,7 +105,7 @@ template <typename MeshType>
 RowMajorMatrixXf get_mesh_edge_attribute(const MeshBase* mesh_base, const std::string& name)
 {
     return reinterpret_cast<const MeshType&>(*mesh_base)
-        .get_edge_attribute_new(name)
+        .get_edge_attribute(name)
         .template cast<float>();
 }
 
@@ -123,7 +123,7 @@ get_mesh_attribute(const MeshBase* mesh_base, IndexingMode mode, const std::stri
     case lagrange::ui::IndexingMode::VERTEX:
         return mesh.get_vertex_attribute(name).template cast<float>();
     case lagrange::ui::IndexingMode::EDGE:
-        return mesh.get_edge_attribute_new(name).template cast<float>();
+        return mesh.get_edge_attribute(name).template cast<float>();
     case lagrange::ui::IndexingMode::FACE:
         return mesh.get_facet_attribute(name).template cast<float>();
     case lagrange::ui::IndexingMode::CORNER:
@@ -145,7 +145,7 @@ get_mesh_attribute_range(const MeshBase* mesh_base, IndexingMode mode, const std
 
     switch (mode) {
     case lagrange::ui::IndexingMode::VERTEX: aa = &mesh.get_vertex_attribute(name); break;
-    case lagrange::ui::IndexingMode::EDGE: aa = &mesh.get_edge_attribute_new(name); break;
+    case lagrange::ui::IndexingMode::EDGE: aa = &mesh.get_edge_attribute(name); break;
     case lagrange::ui::IndexingMode::FACE: aa = &mesh.get_facet_attribute(name); break;
     case lagrange::ui::IndexingMode::CORNER: aa = &mesh.get_corner_attribute(name); break;
     default: break;
@@ -249,11 +249,11 @@ void ensure_is_selected_attribute(MeshBase* d)
         mesh.import_facet_attribute(attrib_name, AttributeArray::Zero(mesh.get_num_facets(), 1));
     }
 
-    if (mesh.is_edge_data_initialized_new() && !mesh.has_edge_attribute_new(attrib_name)) {
-        mesh.add_edge_attribute_new(attrib_name);
-        mesh.import_edge_attribute_new(
+    if (mesh.is_edge_data_initialized() && !mesh.has_edge_attribute(attrib_name)) {
+        mesh.add_edge_attribute(attrib_name);
+        mesh.import_edge_attribute(
             attrib_name,
-            AttributeArray::Zero(mesh.get_num_edges_new(), 1));
+            AttributeArray::Zero(mesh.get_num_edges(), 1));
     }
 
     if (!mesh.has_vertex_attribute(attrib_name)) {
@@ -359,8 +359,8 @@ template <typename MeshType>
 void upload_mesh_edge_attribute(const MeshBase* d, const RowMajorMatrixXf* data, GPUBuffer* gpu)
 {
     const auto& m = reinterpret_cast<const MeshType&>(*d);
-    LA_ASSERT(m.is_edge_data_initialized_new(), "Edge data (new) not initialized");
-    LA_ASSERT(data->rows() == m.get_num_edges_new());
+    LA_ASSERT(m.is_edge_data_initialized(), "Edge data (new) not initialized");
+    LA_ASSERT(data->rows() == m.get_num_edges());
 
     const auto& F = m.get_facets();
     const auto per_facet = m.get_vertex_per_facet();
@@ -371,7 +371,7 @@ void upload_mesh_edge_attribute(const MeshBase* d, const RowMajorMatrixXf* data,
     for (auto i = 0; i < F.rows(); i++) {
         // For each of its edges
         for (auto k = 0; k < per_facet; k++) {
-            const auto ei = m.get_edge_new(i, k);
+            const auto ei = m.get_edge(i, k);
             flattened.row(per_facet * i + k) = data->row(ei);
         }
     }
@@ -477,7 +477,7 @@ bool has_mesh_facet_attribute(const MeshBase* d, const std::string& name)
 template <typename MeshType>
 bool has_mesh_edge_attribute(const MeshBase* d, const std::string& name)
 {
-    return reinterpret_cast<const MeshType&>(*d).has_edge_attribute_new(name);
+    return reinterpret_cast<const MeshType&>(*d).has_edge_attribute(name);
 }
 template <typename MeshType>
 bool has_mesh_indexed_attribute(const MeshBase* d, const std::string& name)
@@ -520,7 +520,7 @@ bool intersect_ray(
 template <typename MeshType>
 bool select_facets_in_frustum(
     MeshBase* mesh_base,
-    SelectionBehavior sel_behavior,
+    SelectionBehavior /*sel_behavior*/,
     const Frustum* frustum_ptr)
 {
     auto& mesh = reinterpret_cast<MeshType&>(*mesh_base);
@@ -593,9 +593,9 @@ void select_vertices_in_frustum(
 
 template <typename MeshType>
 void select_edges_in_frustum(
-    MeshBase* mesh_base,
-    SelectionBehavior sel_behavior,
-    const Frustum* frustum_ptr)
+    MeshBase* /*mesh_base*/,
+    SelectionBehavior /*sel_behavior*/,
+    const Frustum* /*frustum_ptr*/)
 {
     LA_ASSERT(false, "not implemented yet");
 }
@@ -785,7 +785,7 @@ void select_facets_by_color(
     const auto value = (sel_behavior != SelectionBehavior::ERASE) ? Scalar(1) : Scalar(0);
 
     const size_t pixel_size = 4;
-    for (auto i = 0; i < colors_byte_size / pixel_size; i++) {
+    for (size_t i = 0; i < colors_byte_size / pixel_size; i++) {
         const auto id = color_to_id(
             color_bytes[pixel_size * i + 0],
             color_bytes[pixel_size * i + 1],
@@ -819,7 +819,7 @@ void select_edges_by_color(
     const auto value = (sel_behavior != SelectionBehavior::ERASE) ? Scalar(1) : Scalar(0);
 
     const size_t pixel_size = 4;
-    for (auto i = 0; i < colors_byte_size / pixel_size; i++) {
+    for (size_t i = 0; i < colors_byte_size / pixel_size; i++) {
         const auto id = color_to_id(
             color_bytes[pixel_size * i + 0],
             color_bytes[pixel_size * i + 1],
@@ -856,7 +856,7 @@ void select_vertices_by_color(
 
 
     const size_t pixel_size = 4;
-    for (auto i = 0; i < colors_byte_size / pixel_size; i++) {
+    for (size_t i = 0; i < colors_byte_size / pixel_size; i++) {
         const auto id = color_to_id(
             color_bytes[pixel_size * i + 0],
             color_bytes[pixel_size * i + 1],
@@ -1004,7 +1004,7 @@ void filter_closest_vertex(
 
 
 template <typename MeshType>
-void register_mesh_type(const std::string& display_name = entt::type_id<MeshType>().name().data())
+void register_mesh_type([[maybe_unused]] const std::string& display_name = entt::type_id<MeshType>().name().data())
 {
     using namespace entt::literals;
 

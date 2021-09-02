@@ -61,7 +61,7 @@ read_pixels(Registry& r, ViewportComponent& v, int x, int y, int w, int h)
 
 ViewportComponent& setup_offscreen_viewport(
     Registry& r,
-    Entity ofscreen_viewport_entity,
+    Entity /*ofscreen_viewport_entity*/,
     Entity active_viewport_entity,
     StringID override_shader)
 {
@@ -85,7 +85,7 @@ ViewportComponent& setup_offscreen_viewport(
 
 
 std::tuple<int, int, int, int>
-setup_scissor(Registry& r, ViewportComponent& offscreen_viewport, const SelectionContext &sel_ctx)
+setup_scissor(Registry& /*r*/, ViewportComponent& offscreen_viewport, const SelectionContext &sel_ctx)
 {
     // Calculate in-viewport coordinates
     const int x = int(sel_ctx.viewport_min.x());

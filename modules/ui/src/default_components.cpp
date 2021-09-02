@@ -1039,7 +1039,7 @@ void show_layer(Registry* rptr, Entity e)
     auto& layer = rptr->get<Layer>(e);
 
 
-    for (auto i = 0; i < get_max_layers(); i++) {
+    for (size_t i = 0; i < get_max_layers(); i++) {
         const auto& name = get_layer_name(*rptr, i);
         if (name.length() == 0) continue;
         bool value = layer.test(i);

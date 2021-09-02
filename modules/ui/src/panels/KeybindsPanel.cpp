@@ -28,7 +28,7 @@ namespace ui {
 namespace {
 
 
-void keybinds_panel_system(Registry& registry, Entity e)
+void keybinds_panel_system(Registry& registry, Entity /*e*/)
 {
     auto& k = get_keybinds(registry);
     auto& mapping = k.get();

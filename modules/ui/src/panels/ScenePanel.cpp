@@ -230,7 +230,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
 
                 return node_open;
             },
-            [&](Entity e, bool open) {
+            [&](Entity /*e*/, bool open) {
                 if (open) {
                     ImGui::TreePop();
                 }
@@ -272,7 +272,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
 
     if (ImGui::CollapsingHeader("Scene Panel Layers")) {
         ImGui::Indent(); // align with the treeview above
-        for (auto i = 0; i < get_max_layers(); i++) {
+        for (size_t i = 0; i < get_max_layers(); i++) {
             const auto& name = get_layer_name(registry, i);
             if (name.length() == 0) continue;
 
@@ -295,7 +295,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
 
             ImGui::TableHeadersRow();
 
-            for (auto i = 0; i < registry.size(); i++) {
+            for (size_t i = 0; i < registry.size(); i++) {
                 ImGui::TableNextRow();
                 auto e = registry.data()[i];
 

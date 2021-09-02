@@ -25,19 +25,21 @@ target_compile_features(lagrange_core PUBLIC cxx_std_17)
 
 set_target_properties(lagrange_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-option(LAGRANGE_DEPRECATE_EDGE_API "Mark old edge API methods as deprecated." OFF)
-if(LAGRANGE_DEPRECATE_EDGE_API)
-    target_compile_definitions(lagrange_core PUBLIC -DLA_DEPRECATE_EDGE_API=[[deprecated]])
-endif()
-
 option(LAGRANGE_KEEP_TRANSITION_CODE "Keep transition code kept for backward compatibility with the old edge API." ON)
 if(LAGRANGE_KEEP_TRANSITION_CODE)
     target_compile_definitions(lagrange_core PUBLIC -DLA_KEEP_TRANSITION_CODE)
 endif()
 
 option(LAGRANGE_DISABLE_FPE "Disable floating point exception code" OFF)
-if(LAGRANGE_DISABLE_FPE OR EMSCRIPTEN)
+if(LAGRANGE_DISABLE_FPE)
     target_compile_definitions(lagrange_core PRIVATE -DLA_DISABLE_FPE)
+else()
+    # Try to compile fpe.cpp, and disable if not supported (e.g. emscripten, apple m1, etc.)
+    try_compile(LAGRANGE_SUPPORT_FPE ${CMAKE_CURRENT_BINARY_DIR}/lagrange_fpe ${CMAKE_CURRENT_LIST_DIR}/src/fpe.cpp)
+    if(NOT LAGRANGE_SUPPORT_FPE)
+        message(WARNING "Lagrange: disabling unsupported FPE code")
+        target_compile_definitions(lagrange_core PRIVATE -DLA_DISABLE_FPE)
+    endif()
 endif()
 
 # 2. target sources

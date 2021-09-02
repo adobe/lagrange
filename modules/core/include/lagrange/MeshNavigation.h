@@ -158,7 +158,7 @@ public:
     {
         // Count number of incident facets
         Index num_incident_facets = 0;
-        foreach_facets_around_vertex(v, [&](Index f) { ++num_incident_facets; });
+        foreach_facets_around_vertex(v, [&](Index /*f*/) { ++num_incident_facets; });
         return num_incident_facets;
     }
 
@@ -172,7 +172,7 @@ public:
     {
         // Count number of incident facets
         Index num_incident_facets = 0;
-        foreach_facets_around_edge(e, [&](Index f) { ++num_incident_facets; });
+        foreach_facets_around_edge(e, [&](Index /*f*/) { ++num_incident_facets; });
         return num_incident_facets;
     }
 

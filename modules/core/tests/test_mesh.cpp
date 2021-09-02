@@ -57,7 +57,7 @@ TEST_CASE("MeshCreation", "[Mesh][Creation]")
         REQUIRE(mesh->get_num_facets() == 0);
     }
 
-    SECTION("edges")
+    SECTION("edges_new")
     {
         if (!mesh->is_edge_data_initialized()) {
             mesh->initialize_edge_data();
@@ -66,52 +66,9 @@ TEST_CASE("MeshCreation", "[Mesh][Creation]")
         const auto num_edges = mesh->get_num_edges();
         REQUIRE(3 == num_edges);
 
-        const auto fedges = mesh->get_facet_edges(0); // facet edges
-        REQUIRE(fedges.size() == 3);
-        // remember we cannot rely on the order of the edges
-        REQUIRE(std::find(fedges.begin(), fedges.end(), MeshType::Edge(0, 1)) != fedges.end());
-        REQUIRE(std::find(fedges.begin(), fedges.end(), MeshType::Edge(1, 2)) != fedges.end());
-        REQUIRE(std::find(fedges.begin(), fedges.end(), MeshType::Edge(2, 0)) != fedges.end());
-
-        for (auto& edge : mesh->get_edges()) {
-            auto idx = mesh->get_edge_index(edge);
-            auto edge2 = mesh->get_edges()[idx];
-            REQUIRE(edge == edge2);
-        }
-
         for (MeshType::Index i = 0; i < num_edges; ++i) {
-            auto edge = mesh->get_edges()[i];
-            REQUIRE(i == mesh->get_edge_index(edge));
-
-            // overloading should not be a problem
-            REQUIRE(mesh->get_is_edge_boundary(edge));
-            REQUIRE(mesh->get_is_edge_boundary(i));
-
-            // overloading should not be a problem, and should return the same
-            // note that we are testing a mesh with a single triangle,
-            // so all adjacency lists should be { 0 }
-            auto f_adjacency1 = mesh->get_edge_adjacent_facets(i);
-            auto f_adjacency2 = mesh->get_edge_adjacent_facets(edge);
-            REQUIRE(f_adjacency1.size() == 1);
-            REQUIRE(f_adjacency1.front() == 0);
-            REQUIRE(f_adjacency2.size() == 1);
-            REQUIRE(f_adjacency2.front() == 0);
-        }
-    }
-
-
-    SECTION("edges_new")
-    {
-        if (!mesh->is_edge_data_initialized_new()) {
-            mesh->initialize_edge_data_new();
-        }
-
-        const auto num_edges = mesh->get_num_edges_new();
-        REQUIRE(3 == num_edges);
-
-        for (MeshType::Index i = 0; i < num_edges; ++i) {
-            REQUIRE(mesh->is_boundary_edge_new(i));
-            REQUIRE(mesh->get_num_facets_around_edge_new(i) == 1);
+            REQUIRE(mesh->is_boundary_edge(i));
+            REQUIRE(mesh->get_num_facets_around_edge(i) == 1);
         }
     }
 
@@ -193,8 +150,8 @@ TEST_CASE("MeshCreation", "[Mesh][Creation]")
         const auto num_edges = mesh->get_num_edges();
         REQUIRE(3 == num_edges);
         AttributeArray attr = AttributeArray::Zero(num_edges, 1);
-        for (const auto& e : mesh->get_edges()) {
-            const auto i = mesh->get_edge_index(e);
+        for (auto i : range(mesh->get_num_edges())) {
+            auto e = mesh->get_edge_vertices(i);
             attr(i, 0) = (vertices.row(e[0]) - vertices.row(e[1])).norm();
             REQUIRE(attr(i, 0) > 0);
         }

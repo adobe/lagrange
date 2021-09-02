@@ -44,7 +44,7 @@ public:
 
     void initialize(MeshType& mesh)
     {
-        mesh.initialize_edge_data_new();
+        mesh.initialize_edge_data();
         initialize_euler(mesh);
         initialize_manifoldness(mesh);
         initialize_boundary(mesh);
@@ -76,7 +76,7 @@ protected:
     void initialize_euler(const MeshType& mesh)
     {
         m_euler = (int)mesh.get_num_vertices() + (int)mesh.get_num_facets() -
-                  (int)mesh.get_num_edges_new();
+                  (int)mesh.get_num_edges();
     }
 
     void initialize_manifoldness(const MeshType& mesh)
@@ -101,9 +101,9 @@ protected:
 
     bool check_edge_manifold(const MeshType& mesh) const
     {
-        const Index num_edges = mesh.get_num_edges_new();
+        const Index num_edges = mesh.get_num_edges();
         for (auto ei : range(num_edges)) {
-            if (mesh.get_num_facets_around_edge_new(ei) > 2) return false;
+            if (mesh.get_num_facets_around_edge(ei) > 2) return false;
         }
         return true;
     }
@@ -121,9 +121,9 @@ protected:
         auto is_vertex_manifold = [&](Index vid) {
             auto& rim_edges = thread_rim_edges.local();
             rim_edges.clear();
-            rim_edges.reserve(mesh.get_num_facets_around_vertex_new(vid));
+            rim_edges.reserve(mesh.get_num_facets_around_vertex(vid));
 
-            mesh.foreach_corners_around_vertex_new(vid, [&](Index ci) {
+            mesh.foreach_corners_around_vertex(vid, [&](Index ci) {
                 Index fid = ci / 3;
                 Index lv = ci % 3;
                 rim_edges.push_back({facets(fid, (lv + 1) % 3), facets(fid, (lv + 2) % 3)});

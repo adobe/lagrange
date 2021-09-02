@@ -54,8 +54,8 @@ ComputeBorderedComponentsOutput<typename MeshType::Index> compute_bordered_compo
     using Index = typename MeshType::Index;
 
     // We just check it, since the use must have called it in order to populate is_edge_passable.
-    LA_ASSERT(mesh.is_edge_data_initialized_new(), "Edge data is not initialized");
-    LA_ASSERT(safe_cast<Index>(is_edge_passable.size()) == mesh.get_num_edges_new());
+    LA_ASSERT(mesh.is_edge_data_initialized(), "Edge data is not initialized");
+    LA_ASSERT(safe_cast<Index>(is_edge_passable.size()) == mesh.get_num_edges());
 
     std::vector<Index> facet_component_ids(mesh.get_num_facets(), INVALID<Index>());
 
@@ -69,10 +69,10 @@ ComputeBorderedComponentsOutput<typename MeshType::Index> compute_bordered_compo
             if (facet_component_ids[candidate_id] == INVALID<Index>()) {
                 facet_component_ids[candidate_id] = component_id;
                 for (Index ci : range(mesh.get_vertex_per_facet())) {
-                    const auto edge_id = mesh.get_edge_new(candidate_id, ci);
+                    const auto edge_id = mesh.get_edge(candidate_id, ci);
                     const bool is_passable = is_edge_passable[edge_id];
                     if (is_passable) {
-                        mesh.foreach_facets_around_edge_new(edge_id, [&](Index f) {
+                        mesh.foreach_facets_around_edge(edge_id, [&](Index f) {
                             if (f != candidate_id) { // Not a mandatory check.
                                 search_queue.push_back(f);
                             }

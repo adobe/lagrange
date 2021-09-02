@@ -17,7 +17,7 @@
 
 #include <lagrange/Edge.h>
 #include <lagrange/common.h>
-
+#include <lagrange/utils/warning.h>
 
 namespace lagrange {
 /**
@@ -43,10 +43,12 @@ std::vector<std::list<Index>> chain_edges(const Allocator& edges)
     std::unordered_set<Index> visited;
     visited.reserve(edges.size() * 2);
 
+LA_IGNORE_RANGE_LOOP_ANALYSIS_BEGIN
     for (const auto& e : edges) {
         next[e[0]] = e[1];
         prev[e[1]] = e[0];
     }
+LA_IGNORE_RANGE_LOOP_ANALYSIS_END
 
     /**
      * A more readable handy method.
@@ -91,6 +93,7 @@ std::vector<std::list<Index>> chain_edges(const Allocator& edges)
         }
     };
 
+LA_IGNORE_RANGE_LOOP_ANALYSIS_BEGIN
     for (const auto& e : edges) {
         if (!has_visited(e[0])) {
             chains.emplace_back();
@@ -102,6 +105,7 @@ std::vector<std::list<Index>> chain_edges(const Allocator& edges)
             grow_chain_backward(chain);
         }
     }
+LA_IGNORE_RANGE_LOOP_ANALYSIS_END
     return chains;
 }
 } // namespace lagrange

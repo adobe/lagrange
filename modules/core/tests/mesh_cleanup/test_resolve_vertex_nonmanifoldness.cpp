@@ -32,7 +32,6 @@ TEST_CASE("resolve_vertex_nonmanifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(in_mesh->is_vertex_manifold());
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         auto out_mesh = lagrange::resolve_vertex_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();
@@ -51,7 +50,6 @@ TEST_CASE("resolve_vertex_nonmanifoldness", "[nonmanifold][Mesh][cleanup]")
         REQUIRE(in_mesh->is_vertex_manifold());
 
         in_mesh->initialize_connectivity();
-        in_mesh->initialize_edge_data();
 
         auto out_mesh = lagrange::resolve_vertex_nonmanifoldness(*in_mesh);
         out_mesh->initialize_topology();

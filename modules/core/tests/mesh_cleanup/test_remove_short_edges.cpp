@@ -96,8 +96,8 @@ TEST_CASE("RemoveShortEdges", "[short_edges][cleanup]")
         REQUIRE(mesh2->is_vertex_manifold());
 
         compute_edge_lengths(*mesh2);
-        const auto& edge_lengths = mesh2->get_edge_attribute_new("length");
-        REQUIRE(edge_lengths.rows() == mesh2->get_num_edges_new());
+        const auto& edge_lengths = mesh2->get_edge_attribute("length");
+        REQUIRE(edge_lengths.rows() == mesh2->get_num_edges());
         REQUIRE(edge_lengths.minCoeff() > tol);
     }
 
@@ -115,8 +115,8 @@ TEST_CASE("RemoveShortEdges", "[short_edges][cleanup]")
         mesh = remove_short_edges(*mesh, tol);
 
         compute_edge_lengths(*mesh);
-        const auto& edge_lengths = mesh->get_edge_attribute_new("length");
-        REQUIRE(edge_lengths.rows() == mesh->get_num_edges_new());
+        const auto& edge_lengths = mesh->get_edge_attribute("length");
+        REQUIRE(edge_lengths.rows() == mesh->get_num_edges());
         REQUIRE(edge_lengths.minCoeff() > tol);
     }
 
@@ -180,7 +180,7 @@ TEST_CASE("RemoveShortEdges2", "[short_edges][cleanup]" LA_CORP_FLAG)
         auto mesh = lagrange::testing::load_mesh<TriangleMesh3D>("corp/core/EUC_10594.obj");
         auto mesh2 = remove_short_edges(*mesh);
         compute_edge_lengths(*mesh2);
-        const auto& edge_lengths = mesh2->get_edge_attribute_new("length");
+        const auto& edge_lengths = mesh2->get_edge_attribute("length");
         REQUIRE(edge_lengths.minCoeff() > 0.0);
     }
 }

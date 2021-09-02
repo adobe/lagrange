@@ -79,7 +79,7 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
         mesh_ref.has_vertex_attribute(vertex_attribute_name),
         "attribute does not exist in the mesh");
     LA_ASSERT(mesh_ref.get_vertex_per_facet() == 3, "only works for triangle meshes");
-    mesh_ref.initialize_edge_data_new();
+    mesh_ref.initialize_edge_data();
 
     const auto& attribute = mesh_ref.get_vertex_attribute(vertex_attribute_name);
     LA_ASSERT(attribute_col_index < safe_cast<Index>(attribute.cols()), "col_index is invalid");
@@ -91,7 +91,7 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
     std::vector<Index> extracted_vertices_parent_edge;
     std::vector<Scalar> extracted_vertices_parent_param;
     std::vector<Index> parent_edge_to_extracted_vertex(
-        mesh_ref.get_num_edges_new(),
+        mesh_ref.get_num_edges(),
         INVALID<Index>());
 
     //
@@ -104,7 +104,7 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
             return parent_edge_to_extracted_vertex[parent_edge_id];
         } else {
             // Get the edge and see if the order of v0 v1 and the edge values are the same.
-            const auto parent_edge = mesh_ref.get_edge_vertices_new(parent_edge_id);
+            const auto parent_edge = mesh_ref.get_edge_vertices(parent_edge_id);
             if ((v0 == parent_edge[1]) && (v1 == parent_edge[0])) {
                 std::swap(p0, p1);
                 std::swap(v0, v1);
@@ -142,9 +142,9 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
         Scalar p1 = attribute(v1, attribute_col_index) - isovalue;
         Scalar p2 = attribute(v2, attribute_col_index) - isovalue;
 
-        const Index e01 = mesh_ref.get_edge_new(tri_id, 0);
-        const Index e12 = mesh_ref.get_edge_new(tri_id, 1);
-        const Index e20 = mesh_ref.get_edge_new(tri_id, 2);
+        const Index e01 = mesh_ref.get_edge(tri_id, 0);
+        const Index e12 = mesh_ref.get_edge(tri_id, 1);
+        const Index e20 = mesh_ref.get_edge(tri_id, 2);
 
         // guard against topological degeneracies
         if (p0 == 0) p0 = Scalar(1e-30);

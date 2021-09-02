@@ -35,7 +35,7 @@ public:
 
 public:
     MeshGeometry() = default;
-    MeshGeometry(const VertexArray& vertices, const FacetArray& facets) {}
+    MeshGeometry(const VertexArray& /*vertices*/, const FacetArray& /*facets*/) {}
     virtual ~MeshGeometry() = default;
 
     virtual Index get_dim() const = 0;

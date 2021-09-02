@@ -15,7 +15,7 @@
 
 namespace ui = lagrange::ui;
 
-int main(int argc, char** argv)
+int main()
 {
     ui::Viewer v("UI Example - Tree Node", 1920, 1080);
 

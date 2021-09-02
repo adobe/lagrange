@@ -117,15 +117,15 @@ internal::SparseRange<typename MeshType::Index> range_vertices(
 
 // Prevent bad calls
 template <typename T>
-internal::SparseRange<T> range_sparse(T max, std::vector<T>&& active)
+internal::SparseRange<T> range_sparse(T /*max*/, std::vector<T>&& /*active*/)
 {
     static_assert(StaticAssertableBool<T>::False, "active indices cannot be an rvalue vector");
 }
 
 template <typename MeshType>
 internal::SparseRange<typename MeshType::Index> range_facets(
-    const MeshType& mesh,
-    typename MeshType::IndexList&& active)
+    const MeshType& /*mesh*/,
+    typename MeshType::IndexList&& /*active*/)
 {
     static_assert(
         StaticAssertableBool<MeshType>::False,
@@ -134,8 +134,8 @@ internal::SparseRange<typename MeshType::Index> range_facets(
 
 template <typename MeshType>
 internal::SparseRange<typename MeshType::Index> range_vertices(
-    const MeshType& mesh,
-    typename MeshType::IndexList&& active)
+    const MeshType& /*mesh*/,
+    typename MeshType::IndexList&& /*active*/)
 {
     static_assert(
         StaticAssertableBool<MeshType>::False,

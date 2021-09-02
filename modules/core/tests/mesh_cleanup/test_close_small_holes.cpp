@@ -29,7 +29,7 @@ int count_boundary_edges(MeshType &mesh)
     mesh.initialize_edge_data();
     int num_boundary_edges = 0;
     for (Index e = 0; e < mesh.get_num_edges(); ++e) {
-        if (mesh.get_is_edge_boundary(e)) {
+        if (mesh.is_boundary_edge(e)) {
             ++num_boundary_edges;
         }
     }
@@ -211,24 +211,20 @@ TEST_CASE("close_small_holes (with attributes)", "[cleanup][close_small_holes]")
     using AttributeArray = lagrange::TriangleMesh3D::AttributeArray;
     using Index = lagrange::TriangleMesh3D::Index;
     mesh->initialize_edge_data();
-    mesh->initialize_edge_data_new();
 
     srand(0);
     AttributeArray vertex_attr = AttributeArray::Random(mesh->get_num_vertices(), 4);
     AttributeArray facet_attr = AttributeArray::Random(mesh->get_num_facets(), 5);
     AttributeArray corner_attr = AttributeArray::Random(mesh->get_num_facets() * 3, 3);
-    AttributeArray edge_attr = AttributeArray::Random(mesh->get_num_edges(), 2);
-    AttributeArray edge_new_attr = AttributeArray::Random(mesh->get_num_edges_new(), 1);
+    AttributeArray edge_new_attr = AttributeArray::Random(mesh->get_num_edges(), 1);
     mesh->add_vertex_attribute("color");
     mesh->set_vertex_attribute("color", vertex_attr);
     mesh->add_facet_attribute("normal");
     mesh->set_facet_attribute("normal", facet_attr);
     mesh->add_corner_attribute("kwak");
     mesh->set_corner_attribute("kwak", corner_attr);
-    mesh->add_edge_attribute("weight");
-    mesh->set_edge_attribute("weight", edge_attr);
-    mesh->add_edge_attribute_new("bary");
-    mesh->set_edge_attribute_new("bary", edge_new_attr);
+    mesh->add_edge_attribute("bary");
+    mesh->set_edge_attribute("bary", edge_new_attr);
 
     auto mesh1 = lagrange::close_small_holes(*mesh, 100);
     REQUIRE(count_boundary_edges(*mesh1) == 0);
@@ -236,19 +232,17 @@ TEST_CASE("close_small_holes (with attributes)", "[cleanup][close_small_holes]")
     const auto &vertex_attr1 = mesh1->get_vertex_attribute("color");
     const auto &facet_attr1 = mesh1->get_facet_attribute("normal");
     const auto &corner_attr1 = mesh1->get_corner_attribute("kwak");
-    const auto &edge_attr1 = mesh1->get_edge_attribute("weight");
-    const auto &edge_new_attr1 = mesh1->get_edge_attribute_new("bary");
+    const auto &edge_new_attr1 = mesh1->get_edge_attribute("bary");
     REQUIRE(vertex_attr == vertex_attr1.topRows(vertex_attr.rows()));
     REQUIRE(facet_attr == facet_attr1.topRows(facet_attr.rows()));
     REQUIRE(corner_attr == corner_attr1.topRows(corner_attr.rows()));
-    REQUIRE(edge_attr == edge_attr1.topRows(edge_attr.rows()));
 
     // New edges might be indexed differently, so let's iterate over facet corners and compare values
     bool all_same = true;
     for (Index f = 0; f < mesh->get_num_facets(); ++f) {
         for (Index lv = 0; lv < 3; ++lv) {
-            auto e = mesh->get_edge_new(f, lv);
-            auto e1 = mesh1->get_edge_new(f, lv);
+            auto e = mesh->get_edge(f, lv);
+            auto e1 = mesh1->get_edge(f, lv);
             all_same &= (edge_new_attr.row(e) == edge_new_attr1.row(e1));
         }
     }

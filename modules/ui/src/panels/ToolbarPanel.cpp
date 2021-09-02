@@ -27,7 +27,7 @@ namespace ui {
 namespace {
 
 
-void toolbar_panel_system(Registry& registry, Entity e)
+void toolbar_panel_system(Registry& registry, Entity /*e*/)
 {
     auto* keybinds = &get_keybinds(registry);
     auto& tools = registry.ctx<Tools>();
@@ -89,7 +89,7 @@ void toolbar_panel_system(Registry& registry, Entity e)
     ImGui::PopID();
 }
 
-void toolbar_panel_pre(Registry& registry, Entity e)
+void toolbar_panel_pre(Registry& registry, Entity /*e*/)
 {
     const float menubar_height = get_menu_height(registry).height;
 
@@ -99,7 +99,7 @@ void toolbar_panel_pre(Registry& registry, Entity e)
 
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 }
-void toolbar_panel_post(Registry& registry, Entity e)
+void toolbar_panel_post(Registry& /*registry*/, Entity /*e*/)
 {
     ImGui::PopStyleVar();
 }

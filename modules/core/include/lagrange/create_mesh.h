@@ -121,8 +121,8 @@ auto wrap_with_mesh(
 // Prevent user from wrapping Mesh around temp variables.
 template <typename VertexArray, typename FacetArray>
 void wrap_with_mesh(
-    const Eigen::MatrixBase<VertexArray>&& vertices,
-    const Eigen::MatrixBase<FacetArray>&& facets)
+    const Eigen::MatrixBase<VertexArray>&& /*vertices*/,
+    const Eigen::MatrixBase<FacetArray>&& /*facets*/)
 {
     static_assert(
         StaticAssertableBool<VertexArray, FacetArray>::False,
@@ -130,8 +130,8 @@ void wrap_with_mesh(
 }
 template <typename VertexArray, typename FacetArray>
 void wrap_with_mesh(
-    const Eigen::MatrixBase<VertexArray>& vertices,
-    const Eigen::MatrixBase<FacetArray>&& facets)
+    const Eigen::MatrixBase<VertexArray>& /*vertices*/,
+    const Eigen::MatrixBase<FacetArray>&& /*facets*/)
 {
     static_assert(
         StaticAssertableBool<VertexArray, FacetArray>::False,
@@ -139,8 +139,8 @@ void wrap_with_mesh(
 }
 template <typename VertexArray, typename FacetArray>
 void wrap_with_mesh(
-    const Eigen::MatrixBase<VertexArray>&& vertices,
-    const Eigen::MatrixBase<FacetArray>& facets)
+    const Eigen::MatrixBase<VertexArray>&& /*vertices*/,
+    const Eigen::MatrixBase<FacetArray>& /*facets*/)
 {
     static_assert(
         StaticAssertableBool<VertexArray, FacetArray>::False,

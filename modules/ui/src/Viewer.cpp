@@ -193,7 +193,7 @@ Viewer::Viewer(const WindowOptions& window_options)
     m_systems.add(
         Systems::Stage::Init,
         [](Registry& r) {
-            r.view<Layer>().each([&](Entity e, Layer& s) {
+            r.view<Layer>().each([&](Entity e, Layer& /*s*/) {
                 if (is_in_layer(r, e, DefaultLayers::Selection)) {
                     if (!is_selected(r, e)) {
                         remove_from_layer(r, e, DefaultLayers::Selection);
@@ -207,10 +207,10 @@ Viewer::Viewer(const WindowOptions& window_options)
             });
 
             selected_view(r).each(
-                [&](Entity e, Selected& s) { add_to_layer(r, e, DefaultLayers::Selection); });
+                [&](Entity e, Selected& /*s*/) { add_to_layer(r, e, DefaultLayers::Selection); });
 
             hovered_view(r).each(
-                [&](Entity e, Hovered& s) { add_to_layer(r, e, DefaultLayers::Hover); });
+                [&](Entity e, Hovered& /*s*/) { add_to_layer(r, e, DefaultLayers::Hover); });
         },
         DS::UpdateSelectedRenderLayer);
 
@@ -518,7 +518,7 @@ bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
 
 bool Viewer::run(const std::function<void(void)>& main_loop /*= {}*/)
 {
-    return run([=](Registry& r) -> bool {
+    return run([=](Registry& /*r*/) -> bool {
         if (main_loop) main_loop();
         return true;
     });

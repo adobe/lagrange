@@ -73,10 +73,10 @@ void compute_vertex_normal(
         default: assert(false && "Unknown weighting type");
         }
 
-        if (mesh.is_edge_data_initialized_new()) {
+        if (mesh.is_edge_data_initialized()) {
             // Parallel version, iterating over vertices
             tbb::parallel_for(Index(0), mesh.get_num_vertices(), [&](Index v) {
-                mesh.foreach_corners_around_vertex_new(v, [&](const Index c) {
+                mesh.foreach_corners_around_vertex(v, [&](const Index c) {
                     const Index f = c / 3;
                     const Index lv = c % 3;
                     vertex_normals.row(v) += weights(f, lv) * facet_normals.row(f);

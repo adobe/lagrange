@@ -139,10 +139,10 @@ Entity get_objectid_viewport_entity(const Registry& registry)
 }
 
 void camera_zoom_to_fit(
-    Registry& registry,
-    Entity camera,
-    float duration_seconds,
-    const std::function<bool(Registry& r, Entity e)>& filter /*= nullptr*/)
+    Registry& /*registry*/,
+    Entity /*camera*/,
+    float /*duration_seconds*/,
+    const std::function<bool(Registry& r, Entity e)>& /*filter*/ /*= nullptr*/)
 {}
 
 void camera_focus_on(

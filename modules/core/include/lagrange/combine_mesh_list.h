@@ -46,7 +46,7 @@ void combine_all_edge_attributes(
     MeshType2& combined_mesh);
 
 template <typename MeshTypePtr, typename MeshType2>
-void combine_all_edge_attributes_new(
+void combine_all_edge_attributes(
     const std::vector<MeshTypePtr>& mesh_list,
     MeshType2& combined_mesh);
 
@@ -124,10 +124,7 @@ auto combine_mesh_list(const std::vector<MeshTypePtr>& mesh_list, bool preserve_
         combine_all_vertex_attributes(mesh_list, *combined_mesh);
         combine_all_facet_attributes(mesh_list, *combined_mesh);
         combine_all_corner_attributes(mesh_list, *combined_mesh);
-#ifdef LA_KEEP_TRANSITION_CODE
         combine_all_edge_attributes(mesh_list, *combined_mesh);
-#endif
-        combine_all_edge_attributes_new(mesh_list, *combined_mesh);
         combine_all_indexed_attributes(mesh_list, *combined_mesh);
     }
 
@@ -286,74 +283,22 @@ void combine_all_edge_attributes(
         const auto attribute_dim = front_mesh->get_edge_attribute(attr_name).cols();
         AttributeArray attr(total_num_edges, attribute_dim);
 
-        Index index_offset = 0;
-        for (const auto& mesh : mesh_list) {
-            const auto& edges = mesh->get_edges();
-            const auto& per_mesh_attr = mesh->get_edge_attribute(attr_name);
-            for (auto i : range(mesh->get_num_edges())) {
-                const auto& e = edges[i];
-                Index e_idx =
-                    combined_mesh.get_edge_index({e[0] + index_offset, e[1] + index_offset});
-                attr.row(e_idx) = per_mesh_attr.row(i);
-            }
-            index_offset += mesh->get_num_vertices();
-        }
-
-        combined_mesh.add_edge_attribute(attr_name);
-        combined_mesh.import_edge_attribute(attr_name, attr);
-    }
-}
-
-template <typename MeshTypePtr, typename MeshType2>
-void combine_all_edge_attributes_new(
-    const std::vector<MeshTypePtr>& mesh_list,
-    MeshType2& combined_mesh)
-{
-    using MeshType = typename std::pointer_traits<MeshTypePtr>::element_type;
-    using Index = typename MeshType::Index;
-    using AttributeArray = typename MeshType::AttributeArray;
-
-    const auto& front_mesh = mesh_list.front();
-
-    // All meshes must have edge initialized for this function to work.
-    for (const auto& mesh : mesh_list) {
-        if (!mesh->is_edge_data_initialized_new()) return;
-    }
-
-    combined_mesh.initialize_edge_data_new();
-
-    const auto total_num_edges = combined_mesh.get_num_edges_new();
-
-    for (const auto& attr_name : front_mesh->get_edge_attribute_names_new()) {
-        bool can_merge = true;
-        for (const auto& mesh : mesh_list) {
-            if (!mesh->has_edge_attribute_new(attr_name)) {
-                can_merge = false;
-                logger().warn("Cannot combine edge attribute \"{}\"", attr_name);
-                break;
-            }
-        }
-        if (!can_merge) continue;
-
-        const auto attribute_dim = front_mesh->get_edge_attribute_new(attr_name).cols();
-        AttributeArray attr(total_num_edges, attribute_dim);
-
         Index vertex_offset = 0;
         Index facet_offset = 0;
         Index edge_offset = 0;
         for (const auto& mesh : mesh_list) {
-            const auto& per_mesh_attr = mesh->get_edge_attribute_new(attr_name);
-            for (auto old_e : range(mesh->get_num_edges_new())) {
-                const auto& c = mesh->get_one_corner_around_edge_new(old_e);
+            const auto& per_mesh_attr = mesh->get_edge_attribute(attr_name);
+            for (auto old_e : range(mesh->get_num_edges())) {
+                const auto& c = mesh->get_one_corner_around_edge(old_e);
                 const Index f = c / mesh->get_vertex_per_facet();
                 const Index lv = c % mesh->get_vertex_per_facet();
-                LA_ASSERT_DEBUG(mesh->get_edge_new(f, lv) == old_e);
-                const auto new_e = combined_mesh.get_edge_new(f + facet_offset, lv);
+                LA_ASSERT_DEBUG(mesh->get_edge(f, lv) == old_e);
+                const auto new_e = combined_mesh.get_edge(f + facet_offset, lv);
                 attr.row(new_e) = per_mesh_attr.row(old_e);
 
                 // sanity check
-                auto old_v = mesh->get_edge_vertices_new(old_e);
-                auto new_v = combined_mesh.get_edge_vertices_new(new_e);
+                auto old_v = mesh->get_edge_vertices(old_e);
+                auto new_v = combined_mesh.get_edge_vertices(new_e);
                 std::sort(old_v.begin(), old_v.end());
                 std::sort(new_v.begin(), new_v.end());
                 LA_ASSERT_DEBUG(new_v[0] == old_v[0] + vertex_offset);
@@ -361,11 +306,11 @@ void combine_all_edge_attributes_new(
             }
             vertex_offset += mesh->get_num_vertices();
             facet_offset += mesh->get_num_facets();
-            edge_offset += mesh->get_num_edges_new();
+            edge_offset += mesh->get_num_edges();
         }
 
-        combined_mesh.add_edge_attribute_new(attr_name);
-        combined_mesh.import_edge_attribute_new(attr_name, attr);
+        combined_mesh.add_edge_attribute(attr_name);
+        combined_mesh.import_edge_attribute(attr_name, attr);
     }
 }
 

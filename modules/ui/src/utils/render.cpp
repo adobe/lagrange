@@ -339,7 +339,7 @@ void update_vao(VertexData& vd)
     }
     GL(glBindVertexArray(vd.vao->id));
 
-    for (auto i = 0; i < vd.attribute_buffers.size(); i++) {
+    for (size_t i = 0; i < vd.attribute_buffers.size(); i++) {
         auto& buffer = vd.attribute_buffers[i];
 
         if (!buffer) {

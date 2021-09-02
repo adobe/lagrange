@@ -66,13 +66,13 @@ void gizmo_system(
 
     // Count selected objects
     const auto selected_count =
-        std::count_if(view.begin(), view.end(), [&](Entity e) { return 1; });
+        std::count_if(view.begin(), view.end(), [&](Entity /*e*/) { return 1; });
 
     if (selected_count == 0) return;
 
     // Adjust rectangle if only a single object is selected with scaled viewport transform
     if (selected_count == 1) {
-        auto it = std::find_if(view.begin(), view.end(), [&](Entity e) { return 1; });
+        auto it = std::find_if(view.begin(), view.end(), [&](Entity /*e*/) { return 1; });
 
         const auto& vt = view.get<Transform>(*it).viewport;
         if (vt.scale.x() != 1.0f || vt.scale.y() != 1.0f) {
@@ -104,7 +104,7 @@ void gizmo_system(
             Selection centroid
         */
         Eigen::Vector3f avg_pos = Eigen::Vector3f::Zero();
-        view.each([&](Entity e, const Selected& sel, Transform& t) {
+        view.each([&](Entity e, const Selected& /*sel*/, Transform& t) {
             auto bounds = registry.try_get<Bounds>(e);
 
             if (bounds) {
@@ -143,7 +143,7 @@ void gizmo_system(
 
 
     AABB bbox;
-    view.each([&](Entity e, const Selected& sel, Transform& t) {
+    view.each([&](Entity e, const Selected& /*sel*/, Transform& /*t*/) {
         auto bb = registry.try_get<Bounds>(e);
         if (bb) bbox.extend(bb->global);
     });

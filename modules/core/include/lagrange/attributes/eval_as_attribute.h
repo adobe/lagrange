@@ -136,7 +136,7 @@ void eval_as_facet_attribute(
 }
 
 template <typename MeshType>
-LA_DEPRECATE_EDGE_API void eval_as_edge_attribute(
+void eval_as_edge_attribute_new(
     MeshType& mesh,
     const std::string& attribute_name,
     const std::function<typename MeshType::Scalar(typename MeshType::Index e_idx)>& func,
@@ -168,41 +168,6 @@ LA_DEPRECATE_EDGE_API void eval_as_edge_attribute(
         mesh.add_edge_attribute(attribute_name);
     }
     mesh.import_edge_attribute(attribute_name, attr);
-}
-
-template <typename MeshType>
-void eval_as_edge_attribute_new(
-    MeshType& mesh,
-    const std::string& attribute_name,
-    const std::function<typename MeshType::Scalar(typename MeshType::Index e_idx)>& func,
-    bool parallel = true)
-{
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-
-    using AttributeArray = typename MeshType::AttributeArray;
-    using Index = typename MeshType::Index;
-
-    const auto num_edges = mesh.get_num_edges_new();
-    AttributeArray attr(num_edges, 1);
-
-    if (parallel) {
-        tbb::parallel_for(
-            tbb::blocked_range<Index>(0, num_edges),
-            [&](const tbb::blocked_range<Index>& tbb_range) {
-                for (auto e_idx = tbb_range.begin(); e_idx != tbb_range.end(); ++e_idx) {
-                    attr(e_idx, 0) = func(e_idx);
-                };
-            });
-    } else {
-        for (auto e_idx : range(num_edges)) {
-            attr(e_idx, 0) = func(e_idx);
-        }
-    }
-
-    if (!mesh.has_edge_attribute_new(attribute_name)) {
-        mesh.add_edge_attribute_new(attribute_name);
-    }
-    mesh.import_edge_attribute_new(attribute_name, attr);
 }
 
 } // namespace lagrange

@@ -52,7 +52,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
     using AttributeArray = typename MeshType::AttributeArray;
 
     logger().trace("[close_small_holes] initialize edge data");
-    mesh.initialize_edge_data_new();
+    mesh.initialize_edge_data();
 
     // Compute boundary edge list + reduce indexing of boundary vertices
     logger().trace("[close_small_holes] clustering holes");
@@ -73,10 +73,10 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
         return vertex_to_reduced[v];
     };
 
-    for (Index e = 0; e < mesh.get_num_edges_new(); ++e) {
-        const Index c = mesh.get_one_corner_around_edge_new(e);
+    for (Index e = 0; e < mesh.get_num_edges(); ++e) {
+        const Index c = mesh.get_one_corner_around_edge(e);
         assert(c != INVALID<Index>());
-        if (mesh.is_boundary_edge_new(e)) {
+        if (mesh.is_boundary_edge(e)) {
             const Index f = c / nvpf;
             const Index lv = c % nvpf;
             const Index lv2 = (lv + 1) % nvpf;
@@ -234,30 +234,18 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
         new_mesh->import_facet_attribute(name, std::move(vals));
     }
 
-    // Remap edge attributes (old API, fill with zeros)
+    // Remap edge attributes (new API, average values)
     for (const auto& name : mesh.get_edge_attribute_names()) {
         new_mesh->initialize_edge_data();
-        logger().warn("[close_small_holes] edge attribute (old API) filled with zeros: {}", name);
         const auto& attr = mesh.get_edge_attribute(name);
         AttributeArray vals(new_mesh->get_num_edges(), attr.cols());
-        vals.topRows(attr.rows()) = attr;
-        vals.bottomRows(vals.rows() - attr.rows()).setZero();
-        new_mesh->add_edge_attribute(name);
-        new_mesh->import_edge_attribute(name, std::move(vals));
-    }
-
-    // Remap edge attributes (new API, average values)
-    for (const auto& name : mesh.get_edge_attribute_names_new()) {
-        new_mesh->initialize_edge_data_new();
-        const auto& attr = mesh.get_edge_attribute_new(name);
-        AttributeArray vals(new_mesh->get_num_edges_new(), attr.cols());
         vals.setZero();
 
         // Remap old values
         for (Index f = 0; f < mesh.get_num_facets(); ++f) {
             for (Index lv = 0; lv < nvpf; ++lv) {
-                const Index old_e = mesh.get_edge_new(f, lv);
-                const Index new_e = new_mesh->get_edge_new(f, lv);
+                const Index old_e = mesh.get_edge(f, lv);
+                const Index new_e = new_mesh->get_edge(f, lv);
                 vals.row(new_e) = attr.row(old_e);
             }
         }
@@ -279,10 +267,10 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                         assert(f == boundary_corners[e][0] / nvpf);
                         const Index lv = c % nvpf;
                         LA_ASSERT_DEBUG(mesh.get_facets()(f, (lv + 1) % nvpf) == v0);
-                        const Index e0 = new_mesh->get_edge_new(facet_counter, 0);
-                        const Index e1 = new_mesh->get_edge_new(facet_counter, 1);
-                        const Index e2 = new_mesh->get_edge_new(facet_counter, 2);
-                        assert(e0 == new_mesh->get_edge_new(f, lv));
+                        const Index e0 = new_mesh->get_edge(facet_counter, 0);
+                        const Index e1 = new_mesh->get_edge(facet_counter, 1);
+                        const Index e2 = new_mesh->get_edge(facet_counter, 2);
+                        assert(e0 == new_mesh->get_edge(f, lv));
                         vals.row(e1) += Scalar(0.5) * vals.row(e0);
                         vals.row(e2) += Scalar(0.5) * vals.row(e0);
                         facet_counter++;
@@ -290,8 +278,8 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                 }
             }
         }
-        new_mesh->add_edge_attribute_new(name);
-        new_mesh->import_edge_attribute_new(name, std::move(vals));
+        new_mesh->add_edge_attribute(name);
+        new_mesh->import_edge_attribute(name, std::move(vals));
     }
 
     // Remap corner attributes
@@ -390,7 +378,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                     }
                     // Normalize mean value for each group + allocate new attribute vertices
                     const Index offset = static_cast<Index>(values.size()) / num_coords;
-                    for (size_t g = 0; g < num_groups; ++g) {
+                    for (Index g = 0; g < num_groups; ++g) {
                         for (Index k = 0; k < num_coords; ++k) {
                             assert(group_sizes[g] > 0);
                             group_means[g * num_coords + k] /= static_cast<Scalar>(group_sizes[g]);

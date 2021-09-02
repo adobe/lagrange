@@ -15,6 +15,7 @@
 #include <lagrange/testing/common.h>
 #include <lagrange/Logger.h>
 #include <lagrange/io/load_mesh_assimp.h>
+#include <lagrange/utils/safe_cast.h>
 
 TEST_CASE("load_mesh_assimp", "[mesh][io]") {
     using namespace lagrange;
@@ -60,9 +61,10 @@ TEST_CASE("load glb", "[io]") {
     auto lmeshes = lagrange::io::extract_meshes_assimp<lagrange::TriangleMesh3D>(scene.get());
     REQUIRE(lmeshes.size() == 1);
 
+    using Index = lagrange::TriangleMesh3D::Index;
     auto lmesh = lagrange::io::convert_mesh_assimp<lagrange::TriangleMesh3D>(mesh);
-    REQUIRE(lmesh->get_num_vertices() == mesh->mNumVertices);
-    REQUIRE(lmesh->get_num_facets() == mesh->mNumFaces);
+    REQUIRE(lmesh->get_num_vertices() == lagrange::safe_cast<Index>(mesh->mNumVertices));
+    REQUIRE(lmesh->get_num_facets() == lagrange::safe_cast<Index>(mesh->mNumFaces));
     REQUIRE(lmesh->is_uv_initialized());
 }
 

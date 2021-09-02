@@ -78,14 +78,14 @@ bool dehover_all(Registry& r)
 std::vector<Entity> collect_selected(const Registry& r)
 {
     std::vector<Entity> result;
-    r.view<const Selected>().each([&](Entity e, const Selected& s) { result.push_back(e); });
+    r.view<const Selected>().each([&](Entity e, const Selected& /*s*/) { result.push_back(e); });
     return result;
 }
 
 std::vector<Entity> collect_hovered(const Registry& r)
 {
     std::vector<Entity> result;
-    r.view<const Hovered>().each([&](Entity e, const Hovered& s) { result.push_back(e); });
+    r.view<const Hovered>().each([&](Entity e, const Hovered& /*s*/) { result.push_back(e); });
     return result;
 }
 

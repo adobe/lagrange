@@ -11,6 +11,13 @@
 #
 function(lagrange_include_modules)
     foreach(name IN ITEMS ${ARGN})
+        if(LAGRANGE_ALLOWLIST AND NOT (${name} IN_LIST LAGRANGE_ALLOWLIST))
+            message(FATAL_ERROR "Lagrange module '${name}' is not allowed in this project")
+        endif()
+        if(${name} IN_LIST LAGRANGE_BLOCKLIST)
+            message(FATAL_ERROR "Lagrange module '${name}' is excluded from this project")
+        endif()
+
         if(NOT TARGET lagrange::${name})
             add_subdirectory(${PROJECT_SOURCE_DIR}/modules/${name} ${PROJECT_BINARY_DIR}/modules/lagrange_${name})
         endif()

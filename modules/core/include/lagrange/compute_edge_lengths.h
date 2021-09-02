@@ -31,29 +31,15 @@ void compute_edge_lengths(MeshType& mesh)
 
     using Index = typename MeshType::Index;
 
-    mesh.initialize_edge_data_new();
+    mesh.initialize_edge_data();
 
     const auto& vertices = mesh.get_vertices();
 
     eval_as_edge_attribute_new(mesh, "length", [&](Index e_idx) {
-        auto v = mesh.get_edge_vertices_new(e_idx);
+        auto v = mesh.get_edge_vertices(e_idx);
         auto p0 = vertices.row(v[0]);
         auto p1 = vertices.row(v[1]);
         return (p0 - p1).norm();
     });
-
-#ifdef LA_KEEP_TRANSITION_CODE
-    // Keep compatibility with old edge API for now:
-    mesh.initialize_edge_data();
-
-    const auto& edges = mesh.get_edges();
-
-    eval_as_edge_attribute(mesh, "length", [&](Index e_idx) {
-        const auto& edge = edges[e_idx];
-        auto p1 = vertices.row(edge.v1());
-        auto p2 = vertices.row(edge.v2());
-        return (p1 - p2).norm();
-    });
-#endif
 }
 } // namespace lagrange

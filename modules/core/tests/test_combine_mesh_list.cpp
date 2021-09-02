@@ -118,10 +118,8 @@ TEST_CASE("combine_mesh_list", "[mesh][combine]")
             REQUIRE(indices(5, 0) == indices(11, 0));
         }
 
-#ifdef LA_KEEP_TRANSITION_CODE
-        SECTION("Edge attribute")
+        SECTION("Edge attribute new")
         {
-            const auto num_vertices = mesh->get_num_vertices();
             AttributeArray edge_indices(5, 1);
             edge_indices << 0, 1, 2, 3, 4;
             mesh->initialize_edge_data();
@@ -133,30 +131,6 @@ TEST_CASE("combine_mesh_list", "[mesh][combine]")
             REQUIRE(out_mesh->has_edge_attribute("index"));
 
             const auto& indices = out_mesh->get_edge_attribute("index");
-            for (const auto& e : mesh->get_edges()) {
-                const auto ori_id = mesh->get_edge_index(e);
-                const auto new_id_1 = out_mesh->get_edge_index(e);
-                const auto new_id_2 =
-                    out_mesh->get_edge_index({e[0] + num_vertices, e[1] + num_vertices});
-                REQUIRE(edge_indices(ori_id, 0) == indices(new_id_1, 0));
-                REQUIRE(edge_indices(ori_id, 0) == indices(new_id_2, 0));
-            }
-        }
-#endif
-
-        SECTION("Edge attribute new")
-        {
-            AttributeArray edge_indices(5, 1);
-            edge_indices << 0, 1, 2, 3, 4;
-            mesh->initialize_edge_data_new();
-            mesh->add_edge_attribute_new("index");
-            mesh->set_edge_attribute_new("index", edge_indices);
-
-            const auto out_mesh = combine_mesh_list<MeshTypePtr>({mesh, mesh}, true);
-            REQUIRE(out_mesh->is_edge_data_initialized_new());
-            REQUIRE(out_mesh->has_edge_attribute_new("index"));
-
-            const auto& indices = out_mesh->get_edge_attribute_new("index");
             REQUIRE(indices.rows() == 10);
             REQUIRE(indices(0, 0) == indices(5, 0));
             REQUIRE(indices(1, 0) == indices(6, 0));

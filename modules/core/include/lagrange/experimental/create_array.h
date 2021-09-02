@@ -79,7 +79,7 @@ std::unique_ptr<const ArrayBase> wrap_with_array(const Eigen::PlainObjectBase<De
 }
 
 template <typename Derived>
-std::unique_ptr<ArrayBase> wrap_with_array(const Eigen::PlainObjectBase<Derived>&& matrix)
+std::unique_ptr<ArrayBase> wrap_with_array(const Eigen::PlainObjectBase<Derived>&& /*matrix*/)
 {
     static_assert(
         StaticAssertableBool<Derived>::False,

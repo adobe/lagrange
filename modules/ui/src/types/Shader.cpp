@@ -193,7 +193,7 @@ void Shader::process_properties(std::string& source)
                 std::find(tag_string.begin(), tag_string.end(), "attribute") != tag_string.end();
 
             p.default_value = Color(0, 0, 0, 1);
-            for (auto i = 0; i < params.size(); i++) {
+            for (size_t i = 0; i < params.size(); i++) {
                 p.default_value[i] = params[i];
             }
 
@@ -201,7 +201,7 @@ void Shader::process_properties(std::string& source)
                 gencode << "uniform vec4 " << name;
 
                 gencode << " = vec4(";
-                for (auto i = 0; i < params.size(); i++) {
+                for (size_t i = 0; i < params.size(); i++) {
                     gencode << params[i];
                     if (i < params.size() - 1) gencode << ",";
                 }
@@ -214,12 +214,12 @@ void Shader::process_properties(std::string& source)
             auto& p = m_vector_properties[id];
             p.display_name = display_name;
             p.default_value = Eigen::Vector4f(0, 0, 0, 0);
-            for (auto i = 0; i < params.size(); i++) {
+            for (size_t i = 0; i < params.size(); i++) {
                 p.default_value[i] = params[i];
             }
             gencode << "uniform vec4 " << name;
             gencode << " = vec4(";
-            for (auto i = 0; i < params.size(); i++) {
+            for (size_t i = 0; i < params.size(); i++) {
                 gencode << params[i];
                 if (i < params.size() - 1) gencode << ",";
             }
@@ -232,7 +232,7 @@ void Shader::process_properties(std::string& source)
             p.display_name = display_name;
 
             p.value_dimension = int(params.size());
-            for (auto i = 0; i < params.size(); i++) {
+            for (size_t i = 0; i < params.size(); i++) {
                 p.default_value.color[i] = params[i];
             }
 
@@ -263,7 +263,7 @@ void Shader::process_properties(std::string& source)
                 gencode << "uniform " << value_type << " " << name << "_default_value"
                         << " = " << value_type << "(";
 
-                for (auto i = 0; i < params.size(); i++) {
+                for (size_t i = 0; i < params.size(); i++) {
                     gencode << params[i];
                     if (i < params.size() - 1) gencode << ",";
                 }

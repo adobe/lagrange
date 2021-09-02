@@ -29,7 +29,12 @@ option(EMBREE_TUTORIALS      "Enable to build Embree tutorials"                 
 option(EMBREE_STATIC_LIB     "Build Embree as a static library."                ON)
 set(EMBREE_TESTING_INTENSITY 0         CACHE STRING "Intensity of testing (0 = no testing, 1 = verify and tutorials, 2 = light testing, 3 = intensive testing.")
 set(EMBREE_TASKING_SYSTEM    "TBB"     CACHE STRING "Selects tasking system")
+
+if(APPLE)
+set(EMBREE_MAX_ISA           "NEON" CACHE STRING "Selects highest ISA to support.")
+else()
 set(EMBREE_MAX_ISA           "DEFAULT" CACHE STRING "Selects highest ISA to support.")
+endif()
 
 # We want to compile Embree with TBB support, so we need to overwrite Embree's
 # `find_package()` and provide variables. The following discussion provide some

@@ -95,7 +95,7 @@ AABB get_selection_bounding_box(const Registry& registry)
 {
     AABB result;
 
-    registry.view<const Selected, const AABB>().each([&](const Selected& sel, const AABB& bb) {
+    registry.view<const Selected, const AABB>().each([&](const Selected& /*sel*/, const AABB& bb) {
         if (!bb.isEmpty()) result.extend(bb);
     });
 

@@ -87,7 +87,7 @@ int main(int argc, char** argv)
 
     viewer.run(
         // This function run at the beginning of every frame
-        [&](ui::Registry& r) {
+        [&](ui::Registry& /*r*/) {
             // Modify the mesh vertices
             {
                 lagrange::TriangleMesh3D::VertexArray V;

@@ -46,7 +46,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
         mesh.initialize_connectivity();
     }
 
-    mesh.initialize_edge_data_new();
+    mesh.initialize_edge_data();
 
     using Index = typename MeshType::Index;
     using VertexArray = typename MeshType::VertexArray;
@@ -86,10 +86,10 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
      *        facets.
      */
     auto is_inconsistently_oriented = [&mesh, &get_orientation](const Index ei) -> bool {
-        const auto e = mesh.get_edge_vertices_new(ei);
+        const auto e = mesh.get_edge_vertices(ei);
         std::array<bool, 2> orientations;
         size_t count = 0;
-        mesh.foreach_facets_around_edge_new(ei, [&](Index fid) {
+        mesh.foreach_facets_around_edge(ei, [&](Index fid) {
             orientations[count] = get_orientation(e[0], e[1], fid);
             count++;
         });
@@ -104,7 +104,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
      */
     auto is_inconsistently_oriented_wrt_facets =
         [&mesh, &get_orientation](const Index ei, const Index f0, const Index f1) {
-            const auto e = mesh.get_edge_vertices_new(ei);
+            const auto e = mesh.get_edge_vertices(ei);
             return get_orientation(e[0], e[1], f0) == get_orientation(e[0], e[1], f1);
         };
 
@@ -113,7 +113,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
      * exactly 2 incident facet but they are inconsistently oriented.
      */
     auto is_nonmanifold_edge = [&mesh, &is_inconsistently_oriented](const Index ei) {
-        auto edge_valence = mesh.get_num_facets_around_edge_new(ei);
+        auto edge_valence = mesh.get_num_facets_around_edge(ei);
         if (edge_valence > 2) return true;
         if (edge_valence <= 1) return false;
         return is_inconsistently_oriented(ei);
@@ -134,10 +134,10 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
             Index curr_fid = Q.front();
             Q.pop();
             for (Index j = 0; j < vertex_per_facet; j++) {
-                Index ei = mesh.get_edge_new(curr_fid, j);
+                Index ei = mesh.get_edge(curr_fid, j);
                 if (is_nonmanifold_edge(ei)) continue;
 
-                mesh.foreach_facets_around_edge_new(ei, [&](Index adj_fid) {
+                mesh.foreach_facets_around_edge(ei, [&](Index adj_fid) {
                     if (colors[adj_fid] == BLANK) {
                         colors[adj_fid] = curr_color;
                         Q.push(adj_fid);
@@ -160,8 +160,8 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
     // A color map maps specific color to the vertex index after the split.
     std::unordered_map<Index, std::unordered_map<Index, Index>> vertex_map;
     // Split non-manifold edges.
-    for (Index i = 0; i < mesh.get_num_edges_new(); ++i) {
-        const auto e = mesh.get_edge_vertices_new(i);
+    for (Index i = 0; i < mesh.get_num_edges(); ++i) {
+        const auto e = mesh.get_edge_vertices(i);
 
         if (!is_nonmanifold_edge(i)) continue;
         auto itr0 = vertex_map.find(e[0]);
@@ -178,7 +178,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
         auto& color_map_1 = itr1->second;
 
         std::unordered_map<Index, std::list<Index>> color_count;
-        mesh.foreach_facets_around_edge_new(i, [&](Index fid) {
+        mesh.foreach_facets_around_edge(i, [&](Index fid) {
             const auto c = colors[fid];
 
             auto c_itr = color_count.find(c);
@@ -298,7 +298,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
     map_attributes(mesh, *out_mesh, backward_vertex_map);
 
     out_mesh->initialize_connectivity();
-    out_mesh->initialize_edge_data_new();
+    out_mesh->initialize_edge_data();
 
     out_mesh = resolve_vertex_nonmanifoldness(*out_mesh);
     out_mesh = remove_topologically_degenerate_triangles(*out_mesh);

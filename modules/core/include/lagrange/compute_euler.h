@@ -22,7 +22,7 @@ template <typename MeshType>
 int compute_euler(MeshType& mesh)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    mesh.initialize_edge_data_new();
-    return (int)mesh.get_num_vertices() + (int)mesh.get_num_facets() - (int)mesh.get_num_edges_new();
+    mesh.initialize_edge_data();
+    return (int)mesh.get_num_vertices() + (int)mesh.get_num_facets() - (int)mesh.get_num_edges();
 }
 } // namespace lagrange

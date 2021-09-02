@@ -36,6 +36,9 @@ set(LAGRANGE_FS_BACKEND "ghc"
     CACHE STRING
     "Which file system backend to use? Options are 'std', 'ghc' and 'boost'.  Default is 'ghc'"
 )
+set(LAGRANGE_FS_BACKEND_CHOICES std ghc boost)
+set_property(CACHE LAGRANGE_FS_BACKEND PROPERTY STRINGS ${LAGRANGE_FS_BACKEND_CHOICES})
+
 string(TOLOWER ${LAGRANGE_FS_BACKEND} LAGRANGE_FS_BACKEND)
 if (LAGRANGE_FS_BACKEND STREQUAL "ghc")
     include(filesystem)

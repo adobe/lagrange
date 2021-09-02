@@ -63,7 +63,7 @@ int main(int argc, char** argv)
     });
 
     // Called just before window closes
-    ui::on<ui::WindowCloseEvent>(viewer, [](const ui::WindowCloseEvent& e) {
+    ui::on<ui::WindowCloseEvent>(viewer, [](const ui::WindowCloseEvent& /*e*/) {
         lagrange::logger().info("Window is closing");
     });
 

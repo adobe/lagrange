@@ -159,8 +159,8 @@ void accumulate_tangent_bitangent(
     using RowVector3r = Eigen::Matrix<Scalar, 1, 3>;
 
     LA_ASSERT(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.")
-    LA_ASSERT(tangents.rows() == mesh.get_num_facets() * 3);
-    LA_ASSERT(bitangents.rows() == mesh.get_num_facets() * 3);
+    LA_ASSERT(safe_cast<Index>(tangents.rows()) == mesh.get_num_facets() * 3);
+    LA_ASSERT(safe_cast<Index>(bitangents.rows()) == mesh.get_num_facets() * 3);
     LA_ASSERT(tangents.cols() == bitangents.cols());
     LA_ASSERT(tangents.cols() == 3 || tangents.cols() == 4);
 
@@ -423,7 +423,7 @@ void corner_tangent_bitangent_raw(
             bool sign;
             auto T_BT = triangle_tangent_bitangent(vertices, uvs, sign);
 
-            for (auto k = 0; k < per_facet; k++) {
+            for (Index k = 0; k < per_facet; k++) {
                 T.row(i * per_facet + k).template head<3>() = T_BT.row(0);
                 BT.row(i * per_facet + k).template head<3>() = T_BT.row(1);
                 if (pad_with_sign) {
@@ -472,7 +472,7 @@ void corner_tangent_bitangent_raw(
                 T_BT = quad_tangent_bitangent(vertices, uvs, sign);
             }
 
-            for (auto k = 0; k < per_facet; k++) {
+            for (Index k = 0; k < per_facet; k++) {
                 if (indices(k) == INVALID<typename MeshType::Index>()) break;
                 T.row(i * per_facet + k).template head<3>() = T_BT.row(0);
                 BT.row(i * per_facet + k).template head<3>() = T_BT.row(1);

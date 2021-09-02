@@ -57,7 +57,7 @@ void Material::set_vec4_array(StringID id, const Eigen::Vector4f* vectors, size_
 {
     auto& arr = vec4_array_values[id];
     arr.resize(N);
-    for (auto i = 0; i < N; i++) arr[i] = vectors[i];
+    for (size_t i = 0; i < N; i++) arr[i] = vectors[i];
 }
 
 void Material::set_vec4_array(const std::string& name, const Eigen::Vector4f* vectors, size_t N)
@@ -79,7 +79,7 @@ void Material::set_mat4_array(StringID id, const Eigen::Matrix4f* matrices, size
 {
     auto& arr = mat4_array_values[id];
     arr.clear();
-    for (auto i = 0; i < N; i++) arr.push_back(matrices[i]);
+    for (size_t i = 0; i < N; i++) arr.push_back(matrices[i]);
 }
 
 void Material::set_mat4_array(const std::string& name, const Eigen::Matrix4f* matrices, size_t N)
