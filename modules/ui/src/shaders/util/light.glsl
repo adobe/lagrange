@@ -14,6 +14,7 @@
 #define LIGHT_TYPE_DIRECTIONAL 2
 
 uniform float shadow_square_samples = 8;
+uniform float shadow_square_radius = 1.0;
 uniform float shadow_cube_samples = 4.0;
 
 struct SpotLight {
@@ -54,6 +55,8 @@ struct LightAtSurface {
     vec3 lightHalf;
     float cos_out;
     vec3 radiance;
+    float attenuation; //Light attenuation (spot/point)
+    float shadow_attenuation; //Shadow attenuation
 };
 
 
@@ -65,7 +68,7 @@ float calculate_spot_factor(vec3 pos, vec3 lightDir, vec3 spotDir, float angle){
     else {
         float d = (coneAngle / angle);
         return (1.0 - d*d*d);
-    }   
+    }
     return 0.0;
 }
 
@@ -75,55 +78,60 @@ float recoverShadowDepth(float depth, float near, float far){
 }
 
 float getShadowSquare(vec3 pos, mat4 PV, sampler2D shadowMap, float near, float far){
-    
+
     //Project to light space
     vec4 lightSpace = PV * (vec4(pos,1));
 
     //Clip space [-1,1]
-    vec3 coords = lightSpace.xyz / lightSpace.w; 
+    vec3 coords = lightSpace.xyz / lightSpace.w;
 
     //NDC space [0,1]
-    coords = coords * 0.5 + 0.5; 
+    coords = coords * 0.5 + 0.5;
 
     //Clamp light space z position
     coords.z = min(1, coords.z);
     coords.z = max(0, coords.z);
 
-    float currentDepth = coords.z;    
+    float currentDepth = coords.z;
 
-    float bias = 0.000; 
+    float bias = 0.000;
     float shadow = 0.0;
-    
+
+    //TODO add step size
+
     float samples = shadow_square_samples;
     vec2 texelSize = 2.0 / textureSize(shadowMap,0);
+    int sample_count = 0;
+
     for(float x = -texelSize.x; x < texelSize.x; x += texelSize.x / (samples * 0.5))
     {
         for(float y = -texelSize.y; y < texelSize.y; y += texelSize.y / (samples * 0.5))
-        {          
-                float closestDepth = texture(shadowMap,coords.xy + vec2(x,y)).x;                
+        {
+                sample_count += 1;
+                float closestDepth = texture(shadowMap,coords.xy + vec2(x,y) * shadow_square_radius).x;
                 if(currentDepth - bias > closestDepth)
                     shadow += 1.0;
         }
     }
-    shadow /= (samples * samples);
+    shadow /= sample_count;
 
     return 1.0 - shadow;
 }
 
 float getShadowCube(
-    vec3 pos, 
-    vec3 lightPos, 
+    vec3 pos,
+    vec3 lightPos,
     samplerCube shadowMap,
-    float near, 
+    float near,
     float far){
-    
+
 
     vec3 toL = pos - lightPos;
     float curD = length(toL);
-    
-    
+
+
     float shadow = 0.0;
-    float bias = 0.01; 
+    float bias = 0.01;
     float samples = shadow_cube_samples;
 
     float offset = 0.2 * curD / (far - near);
@@ -146,12 +154,12 @@ float getShadowCube(
 
                 float closestDepth = map_value * far;
                 if(curD - bias > closestDepth)
-                    shadow += 1.0;                     
+                    shadow += 1.0;
             }
         }
     }
 
     shadow /= total_samples;;
-    
+
     return 1.0f - shadow;
 }

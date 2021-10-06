@@ -22,7 +22,11 @@ namespace ui {
 
 void set_material(Registry& r, Entity meshrender_entity, std::shared_ptr<Material> mat);
 
-Entity show_mesh(Registry& r, const Entity& mesh_entity, StringID shader = DefaultShaders::PBR);
+Entity show_mesh(
+    Registry& r,
+    const Entity& mesh_entity,
+    StringID shader = DefaultShaders::PBR,
+    const ShaderDefines& shader_defines = {});
 Entity show_submesh(
     Registry& r,
     const Entity& mesh_entity,
@@ -33,7 +37,8 @@ Entity show_mesh(
     Registry& r,
     Entity mesh_entity,
     Entity scene_node_entity,
-    StringID shader = DefaultShaders::PBR);
+    StringID shader = DefaultShaders::PBR,
+    const ShaderDefines& shader_defines = {});
 
 Entity show_mesh(
     Registry& r,
@@ -176,7 +181,6 @@ Entity load_mesh(
             }
             return e;
         }
-
     }
 
     return NullEntity;
@@ -203,7 +207,8 @@ MeshData& get_meshdata(Registry& r, Entity scene_or_mesh_entity);
 /*
     Material
 */
-std::shared_ptr<Material> create_material(Registry& r, entt::id_type shader_id);
+std::shared_ptr<Material>
+create_material(Registry& r, entt::id_type shader_id, const ShaderDefines& shader_defines = {});
 
 
 Entity add_camera(Registry& r, const Camera& camera = Camera::default_camera(1, 1));

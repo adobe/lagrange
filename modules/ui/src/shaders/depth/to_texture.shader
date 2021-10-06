@@ -9,37 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include "uniforms/common.glsl"
+
 #pragma VERTEX
-
-in vec3 position;
-out vec4 vposition;
-
-uniform mat4 M;
-uniform mat4 PV;
-
-void main()
-{      
-    vposition = M * vec4(position,1.0);
-    gl_Position = PV * vposition;    
-}
-
+#include "util/default.vertex"
 
 #pragma FRAGMENT
-in vec4 vposition;
-
-
-uniform vec3 originPos;
-uniform float far;
-uniform float near;
+#include "layout/default_fragment_layout.glsl"
 
 void main(){
-    //Distance to object
-    //float d = length(originPos - vposition.xyz);
-    
-    //Normalize depth   
-    //gl_FragDepth = d;//(d - near) / (far-near);       
 
 }
-    
-    
+
+
 

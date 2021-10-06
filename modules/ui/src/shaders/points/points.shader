@@ -13,7 +13,7 @@
 
 #pragma VERTEX
 
-#include "util/vertex_layout.glsl"
+#include "layout/default_vertex_layout.glsl"
 
 out VARYING {
     vec3 pos;
@@ -24,13 +24,13 @@ out VARYING {
 } vs_out;
 
 void main()
-{       
+{
     //Pos and normal to world space
     vs_out.pos += normalize(cameraPos - in_pos);
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
+    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
     vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
     vs_out.uv = in_uv;
-    vs_out.color = in_color;   
+    vs_out.color = in_color;
 
     vec4 clip_space = PV * vec4(vs_out.pos,1.0);
     vs_out.screen_pos = screen_size * 0.5f * (clip_space.xy / clip_space.w);
@@ -57,7 +57,7 @@ out VARYING_GEOM {
     vec3 pos;
     vec3 normal;
     vec2 uv;
-    vec4 color; 
+    vec4 color;
     vec4 dist;
     vec2 center;
 } gs_out;
@@ -67,19 +67,19 @@ uniform float point_size = 5.0f;
 
 
 void main() {
-    
+
     //for(int k=0; k < 1; k++){
     vec4 clip = PV * vec4(gs_in[0].pos,1);
     //vec4 clip_max = PV * vec4(gs_in[0].pos + (cameraPos - gs_in[0].pos),1);
-    
-    
+
+
     vec2 screen = (clip.xy / clip.w) * screen_size;
     gs_out.center = screen;
     gs_out.color = gs_in[0].color;
 
     /*vec3 u = gs_in[0].pos - gs_in[1].pos;
     vec3 v = gs_in[0].pos - gs_in[2].pos;
-    
+
     vec3 n = cross(u,v);*/
     vec3 n = gs_in[0].normal;
     float dir = dot(gs_in[0].pos - cameraPos,n);
@@ -105,30 +105,30 @@ void main() {
     //backface
     if(dir > 0){
         gl_Position = ca;
-        EmitVertex();   
+        EmitVertex();
 
         gl_Position = cb;
-        EmitVertex();   
+        EmitVertex();
 
         gl_Position = cd;
-        EmitVertex();   
+        EmitVertex();
 
         gl_Position = cc;
-        EmitVertex();   
+        EmitVertex();
     }
     //Frontface
     else{
         gl_Position = ca;
-        EmitVertex();   
+        EmitVertex();
 
         gl_Position = cd;
-        EmitVertex();   
+        EmitVertex();
 
         gl_Position = cb;
-        EmitVertex();   
+        EmitVertex();
 
         gl_Position = cc;
-        EmitVertex();   
+        EmitVertex();
     }
 
     EndPrimitive();
@@ -155,7 +155,7 @@ void main(){
     vec2 center = (((fs_in.center / screen_size) + 1) / 2.0) * screen_size;
 
     float d = length(center - gl_FragCoord.xy);
-    
+
     d = d / (0.4 * point_size); // ~0-1 radius
     float d2 = d*d;
     float d4= d2*d2;

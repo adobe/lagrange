@@ -14,24 +14,13 @@
 #pragma VERTEX
 #include "util/default.vertex"
 
-
-
 #pragma FRAGMENT
-layout(location = 0) out vec4 fragColor;
+#include "layout/default_fragment_layout.glsl"
 
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec3 tangent;
-    vec3 bitangent;
-} fs_in;
-
-#pragma property opacity "Opacity" float(1,0,1) 
+#pragma property opacity "Opacity" float(1,0,1)
 
 void main(){
-    
+
     fragColor = fs_in.color;
     fragColor.a *= opacity;
 }

@@ -19,7 +19,7 @@ function(lagrange_add_test)
     include(lagrange_add_executable)
     set(test_target "test_lagrange_${module_name}")
     lagrange_add_executable(${test_target} ${SRC_FILES})
-    set_target_properties(${test_target} PROPERTIES FOLDER "Lagrange//Tests")
+    set_target_properties(${test_target} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")
 
     # Dependencies
     lagrange_include_modules(testing)

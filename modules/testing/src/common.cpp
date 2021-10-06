@@ -11,6 +11,9 @@
  */
 #include <lagrange/testing/common.h>
 
+#include <lagrange/io/load_mesh.impl.h>
+#include <lagrange/Mesh.h>
+
 #include <lagrange/Logger.h>
 
 #ifdef EIGEN_USE_MKL_ALL
@@ -37,6 +40,9 @@ fs::path get_data_path(const fs::path& relative_path)
     REQUIRE(fs::exists(absolute_path));
     return absolute_path;
 }
+
+template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
+template std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
 
 void setup_mkl_reproducibility()
 {

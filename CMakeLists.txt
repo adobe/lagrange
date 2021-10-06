@@ -19,7 +19,7 @@ else()
 endif()
 
 # Check required CMake version
-set(REQUIRED_CMAKE_VERSION "3.16.0")
+set(REQUIRED_CMAKE_VERSION "3.20.0")
 if(LAGRANGE_TOPLEVEL_PROJECT)
     cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
 else()
@@ -40,7 +40,7 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.3.0)
+project(Lagrange VERSION 5.4.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -52,12 +52,27 @@ endif()
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL               "Build all lagrange modules" OFF)
 
-# When building anorigami module, defaults to using Eigen with MKL-dynamic and TBB-dynamic
+# Temporary workaround for Linux-related build issues.
+if(CMAKE_HOST_SYSTEM_NAME MATCHES Linux)
+    # Unfortunately, on CentOS 7, the pre-compiled version of libarpack.so provided by
+    # anorigami is somehow incompatible with our built-from-source TBB. Indeed, their
+    # libarpack.so is looking for libtbb.so.2, but our CMake only produces a libtbb.so.
+    # Until we figure this out, we have to build arpack ourselves from source on CentOS.
+    option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
+    # Builds are super slow on Linux VM, so we keep the old TBB for now on Linux...
+    option(LAGRANGE_WITH_ONETBB     "Build Lagrange with OneTBB 2021 rather than TBB 2020" OFF)
+endif()
+
+# When building anorigami or deformers module, enable Eigen with MKL
+if(LAGRANGE_ANORIGAMI OR LAGRANGE_DEFORMERS OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+    option(EIGEN_WITH_MKL       "Use Eigen with MKL"        ON)
+endif()
+
+# When building anorigami module, additionally defaults to MKL-dynamic and TBB-dynamic
 if(LAGRANGE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-    option(EIGEN_WITH_MKL      "Use Eigen with MKL"       ON)
-    option(TBB_PREFER_STATIC   "Build with static TBB"    OFF)
-    option(TBB_BUILD_TBBMALLOC "Build TBB malloc library" ON)
+    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
+    option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
 endif()
 
 # When building Arpack from source, we need to enable Fortran support in the top-level directory
@@ -66,7 +81,6 @@ if(ARPACK_BUILD_FROM_SOURCE)
 endif()
 
 # General CMake options
-option(LAGRANGE_CI_BUILD          "Building for continuous integration"                  OFF)
 option(LAGRANGE_COPY_RUNTIME_DEPS "Copy runtime dependencies into executable folders"    ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"                          OFF)
 option(LAGRANGE_EXAMPLES          "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
@@ -76,6 +90,7 @@ option(LAGRANGE_UNIT_TESTS        "Build all unit tests"                        
 option(LAGRANGE_USE_PCH           "Enable precompiled headers"                           OFF)
 option(LAGRANGE_WITH_ONETBB       "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange"                     OFF)
+option(LAGRANGE_LIMIT_PARALLELISM "Limit parallelism according to available cpu/memory"  OFF)
 
 # Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
 # option, targeted at users who wish to have explicit knowledge of which module is implicitly
@@ -112,19 +127,31 @@ else()
 endif()
 list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/lagrange/")
 
+# Lagrange folder prefix for IDE
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set(LAGRANGE_IDE_PREFIX "")
+else()
+    set(LAGRANGE_IDE_PREFIX "third_party/")
+endif()
 
-include(sanitizers)
 include(lagrange_add_example)
+include(lagrange_add_module)
 include(lagrange_add_performance)
 include(lagrange_add_test)
 include(lagrange_global_flags)
 include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_warnings)
+include(lagrange_limit_parallelism)
+include(sanitizers)
 
 set(CMAKE_MACOSX_RPATH 1) # Set rpath for mac
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+if(LAGRANGE_LIMIT_PARALLELISM)
+    lagrange_limit_parallelism()
+endif()
 
 find_package(Threads REQUIRED)
 

@@ -13,7 +13,7 @@
 #include <lagrange/attributes/attribute_utils.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_tangent_bitangent.h>
-
+#include <lagrange/create_mesh.h>
 
 #include <lagrange/testing/common.h>
 

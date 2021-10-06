@@ -17,12 +17,3 @@ lagrange_add_example(ui_scene
 )
 
 target_link_libraries(ui_scene lagrange::ui lagrange::io CLI11::CLI11)
-
-if(LAGRANGE_UI_USE_MDL)
-    add_custom_command(TARGET ui_scene POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${MDL_DYNAMIC_LIBS}
-            $<TARGET_FILE_DIR:ui_scene>
-    )
-endif()
-

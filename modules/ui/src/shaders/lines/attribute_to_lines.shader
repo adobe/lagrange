@@ -18,7 +18,7 @@ layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec4 in_value;
 layout (location = 2) in vec3 in_normal;
 
-out VARYING {   
+out VARYING {
     vec3 pos;
     vec3 normal;
     vec4 value;
@@ -26,10 +26,10 @@ out VARYING {
 } vs_out;
 
 void main()
-{       
+{
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
-    vs_out.value = in_value;  
+    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
+    vs_out.value = in_value;
     vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
 
     vec4 clip_space = PV * vec4(vs_out.pos,1.0);
@@ -71,15 +71,15 @@ void main() {
 
         gs_out.value = gs_in[k].value;
         gs_out.normal = gs_in[k].normal;
-        
+
         gs_out.pos = gs_in[k].pos;
         gl_Position = PV * vec4(gs_out.pos,1);
 
         h *= gl_Position.w;
         gs_out.edge_dist = vec3(0);
         gs_out.edge_dist[k] = h;
-        
-        EmitVertex();    
+
+        EmitVertex();
     }
     EndPrimitive();
 }
@@ -98,19 +98,19 @@ in VARYING_GEOM {
 
 #include "surface/colormap.frag"
 
-#pragma property line_width "Line Width" float(1,0,100) 
-#pragma property opacity "Opacity" float(1,0,1) 
+#pragma property line_width "Line Width" float(1,0,100)
+#pragma property opacity "Opacity" float(1,0,1)
 
 void main(){
 
 
     float d = min(fs_in.edge_dist[0],min(fs_in.edge_dist[1],fs_in.edge_dist[2]));
 
-    d = max(d - line_width, 0); //expand width    
+    d = max(d - line_width, 0); //expand width
     d *= gl_FragCoord.w; //perspective correction
     d = exp2(-2 * d * d); //edge function
 
-    
+
     //fragColor = fs_in.value;
     fragColor = colormapped_fragment_color(fs_in.value);
     fragColor.a *= d * opacity;

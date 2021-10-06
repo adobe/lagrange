@@ -1071,4 +1071,13 @@ void serialize(Mesh<_VertexArray, _FacetArray>& mesh, Archive& ar)
     mesh.serialize_impl(ar);
 }
 
+extern template class Mesh<Vertices3D, Triangles>;
+extern template class Mesh<Vertices2D, Triangles>;
+extern template class Mesh<Vertices3Df, Triangles>;
+extern template class Mesh<Vertices2Df, Triangles>;
+extern template class Mesh<Vertices3D, Quads>;
+extern template class Mesh<Vertices2D, Quads>;
+extern template class Mesh<Vertices3Df, Quads>;
+extern template class Mesh<Vertices2Df, Quads>;
+
 } // namespace lagrange

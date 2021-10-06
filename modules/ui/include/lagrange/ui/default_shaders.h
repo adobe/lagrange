@@ -33,6 +33,7 @@ struct DefaultShaders
         "SurfaceEdgeAttribute"_hs; // Uses special edge attribute interpolation
     constexpr static const StringID ObjectID = "ObjectID"_hs;
     constexpr static const StringID MeshElementID = "MeshElementID"_hs;
+    constexpr static const StringID Skybox = "Skybox"_hs;
 };
 
 struct ColormapShaderMode

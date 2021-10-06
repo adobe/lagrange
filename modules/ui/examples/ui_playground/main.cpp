@@ -101,6 +101,16 @@ int main(int argc, char** argv)
     if (!viewer.is_initialized()) return 1;
 
 
+    // Test shaders
+    {
+        auto & shaders = ui::get_registered_shaders(viewer);
+        for (auto & it : shaders) {
+            //This will invoke shader compilation i
+            auto tmp_mat = ui::create_material(viewer, it.first);
+        }
+    }
+
+
     // Test mesh types and meta
     {
         ui::MeshData d;
@@ -234,7 +244,8 @@ int main(int argc, char** argv)
 
 
     // Creates a default visualization (PBR) of the mesh entity
-    auto obj_pbr = ui::show_mesh(registry, my_mesh, ui::DefaultShaders::PBRSkeletal);
+    auto obj_pbr =
+        ui::show_mesh(registry, my_mesh, ui::DefaultShaders::PBR, {{"SKELETAL", {"On"}}});
 
 
     registry.emplace_or_replace<ui::Name>(obj_pbr, "root");

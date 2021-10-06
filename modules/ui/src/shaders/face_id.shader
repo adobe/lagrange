@@ -13,46 +13,33 @@
 #include "uniforms/common.glsl"
 #pragma VERTEX
 
-#include "util/vertex_layout.glsl"
+#include "layout/default_vertex_layout.glsl"
 
-out VARYING {
+out VARYING_ID {
     vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
     flat int vertex_id;
-} vs_out;
-
-
+} vs_out_id;
 
 void main()
-{       
+{
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
-    vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
-    vs_out.uv = in_uv;
-    vs_out.color = in_color;   
-    vs_out.vertex_id = gl_VertexID;
+    vs_out_id.pos = (M * vec4(in_pos, 1.0)).xyz;
+    vs_out_id.vertex_id = gl_VertexID;
 
     //To clip space
     gl_Position = PV * vec4(vs_out.pos,1.0);
 }
-
-
-
 
 #pragma GEOMETRY
 
 layout (triangles) in;
 layout(triangle_strip, max_vertices = 4) out;
 
-in VARYING {
+
+in VARYING_ID {
     vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
     flat int vertex_id;
-} gs_in[];
+} vs_in_id[];
 
 out VARYING_GEOM {
     vec3 bary_pos;
@@ -60,27 +47,25 @@ out VARYING_GEOM {
     flat ivec3 vertex_ids;
 } gs_out;
 
-
-
 void main() {
 
     gs_out.vertex_ids = ivec3(
-        gs_in[0].vertex_id,
-        gs_in[1].vertex_id,
-        gs_in[2].vertex_id 
+        vs_in_id[0].vertex_id,
+        vs_in_id[1].vertex_id,
+        vs_in_id[2].vertex_id
     );
     gs_out.primitive_id = gl_PrimitiveIDIn;
-    
-    gs_out.bary_pos = vec3(1,0,0);  
-    gl_Position = PV * vec4(gs_in[0].pos,1);    
+
+    gs_out.bary_pos = vec3(1,0,0);
+    gl_Position = PV * vec4(vs_in_id[0].pos,1);
     EmitVertex();
 
     gs_out.bary_pos = vec3(0,1,0);
-    gl_Position = PV * vec4(gs_in[1].pos,1);    
+    gl_Position = PV * vec4(vs_in_id[1].pos,1);
     EmitVertex();
 
     gs_out.bary_pos = vec3(0,0,1);
-    gl_Position = PV * vec4(gs_in[2].pos,1);    
+    gl_Position = PV * vec4(vs_in_id[2].pos,1);
     EmitVertex();
 
     EndPrimitive();
@@ -116,11 +101,12 @@ uniform bool debug_output = false;
 
 void main(){
 
+
     vec3 b = fs_in.bary_pos;
 
     //Get closest vertex id color (largest bary coord)
     if(element_mode == ELEMENT_VERTEX){
-        
+
         if(b.x > b.y){
             if(b.x > b.z){
                 fragColor = index_to_color(fs_in.vertex_ids[0]);
@@ -131,7 +117,7 @@ void main(){
         }
         else {
             if(b.y > b.z){
-                fragColor = index_to_color(fs_in.vertex_ids[1]);                            
+                fragColor = index_to_color(fs_in.vertex_ids[1]);
             }
             else{
                 fragColor = index_to_color(fs_in.vertex_ids[2]);
@@ -141,19 +127,19 @@ void main(){
     }
     //Get closest edge id color (smallest bary coord)
     //Indexed as 3*face_id + edge_id, where edge_id = 0,1,2
-    else if(element_mode == ELEMENT_EDGE){  
-    
+    else if(element_mode == ELEMENT_EDGE){
+
         int edge_id = 3 * fs_in.primitive_id;
         if(b.x < b.y){
             if(b.x < b.z){
-                //fragColor = vec4(1,0,0,1); 
+                //fragColor = vec4(1,0,0,1);
                 edge_id += 0;
                 if(b.x > 0.1){
                     discard;
                 }
             }
             else {
-                //fragColor = vec4(0,0,1,1); 
+                //fragColor = vec4(0,0,1,1);
                 edge_id += 2;
                 if(b.z > 0.1){
                     discard;
@@ -162,14 +148,14 @@ void main(){
         }
         else {
             if(b.y < b.z){
-                //fragColor = vec4(0,1,0,1); 
+                //fragColor = vec4(0,1,0,1);
                 edge_id += 1;
                 if(b.y > 0.1){
                     discard;
                 }
             }
             else{
-                //fragColor = vec4(0,0,1,1); 
+                //fragColor = vec4(0,0,1,1);
                 edge_id += 2;
                 if(b.z > 0.1){
                     discard;
@@ -185,7 +171,7 @@ void main(){
 
     if(debug_output){
         fragColor.xyz *= 5;
-        
+
         vec2 d = vec2(
             length(dFdx(fragColor.xyz)),
             length(dFdy(fragColor.xyz))

@@ -247,7 +247,7 @@ void draw_framebuffer_popup(Registry& registry, ViewportPanel& data)
 
             if (ImGui::CollapsingHeader("Layer visibility")) {
                 for (size_t i = 0; i < get_max_layers(); i++) {
-                    const auto& name = get_layer_name(registry, i);
+                    const auto& name = get_layer_name(registry, LayerIndex(i));
                     if (name.length() == 0) continue;
 
                     bool value = v.visible_layers.test(i);
@@ -675,6 +675,10 @@ void viewport_panel_system(Registry& registry, Entity e)
 {
     ViewportPanel& data = registry.get<ViewportPanel>(e);
     auto& input = get_input(registry);
+    if (!registry.valid(data.viewport) || !registry.has<ViewportComponent>(data.viewport)) {
+        ImGui::Text("Invalid viewport");
+        return;
+    }
     auto& viewport = registry.get<ViewportComponent>(data.viewport);
 
 

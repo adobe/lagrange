@@ -12,7 +12,6 @@
 
 #include <lagrange/ui/systems/render_shadowmaps.h>
 
-#include <lagrange/ui/types/Material.h>
 #include <lagrange/ui/components/Common.h>
 #include <lagrange/ui/components/Light.h>
 #include <lagrange/ui/components/RenderContext.h>
@@ -20,10 +19,11 @@
 #include <lagrange/ui/components/Transform.h>
 #include <lagrange/ui/default_shaders.h>
 #include <lagrange/ui/systems/render_geometry.h>
+#include <lagrange/ui/types/Material.h>
+#include <lagrange/ui/utils/bounds.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/lights.h>
 #include <lagrange/ui/utils/render.h>
-#include <lagrange/ui/utils/bounds.h>
 #include <lagrange/utils/utils.h>
 
 
@@ -141,55 +141,46 @@ void render_shadowmaps(Registry& r)
             Eigen::Matrix4f PV;
 
             const Eigen::AlignedBox3f shadow_box = get_scene_bounds(r).global;
-            {
+            if (!shadow_box.isEmpty()) {
                 const auto plane = utils::render::compute_perpendicular_plane(dir);
-                if (shadow_box.isEmpty()) {
-                    /*const float range = (shadowmap.far_plane - shadowmap.near_plane) / 2.0f;
-                    const auto P = ortho(-range, range, -range, range, shadowmap.near_plane,
-                    shadowmap.far_plane); pos = (camera.get_lookat() - dir * shadowmap.far_plane
-                    * 0.5f); const auto V = look_at(pos, pos + dir, plane.first); PV = (P *
-                    V);*/
-                    // lagrange::logger().debug("Neeed shadowbox");
+                // Transformation to light space
+                Eigen::Matrix3f dir_proj;
+                dir_proj.col(0) = plane.first;
+                dir_proj.col(1) = plane.second;
+                dir_proj.col(2) = dir;
 
-                } else {
-                    // Transformation to light space
-                    Eigen::Matrix3f dir_proj;
-                    dir_proj.col(0) = plane.first;
-                    dir_proj.col(1) = plane.second;
-                    dir_proj.col(2) = dir;
-
-                    // Transform shadow box to light space and find its AABB
-                    AABB proj_bbox;
-                    for (int i = 0; i < 8; ++i) {
-                        auto p = shadow_box.corner(static_cast<Eigen::AlignedBox3f::CornerType>(i));
-                        proj_bbox.extend(dir_proj * p);
-                    }
-
-                    // Shadow map render position in light space
-                    Eigen::Vector3f cam_proj_center = Eigen::Vector3f(
-                        proj_bbox.center().x(),
-                        proj_bbox.center().y(),
-                        proj_bbox.min().z());
-
-                    // Shadow map render position in world space
-                    Eigen::Vector3f cam_reproj_center = dir_proj.inverse() * cam_proj_center;
-
-                    // Projection
-                    Eigen::Vector3f range = proj_bbox.diagonal();
-                    auto P = ortho(
-                        -range.x() * 0.5f,
-                        range.x() * 0.5f,
-                        -range.y() * 0.5f,
-                        range.y() * 0.5f,
-                        0,
-                        range.z());
-
-                    // View
-                    auto V = look_at(cam_reproj_center, cam_reproj_center + dir, plane.second);
-
-                    PV = (P * V);
-                    pos = cam_reproj_center;
+                // Transform shadow box to light space and find its AABB
+                AABB proj_bbox;
+                for (int i = 0; i < 8; ++i) {
+                    auto p = shadow_box.corner(static_cast<Eigen::AlignedBox3f::CornerType>(i));
+                    proj_bbox.extend(dir_proj * p);
                 }
+
+                // Shadow map render position in light space
+                Eigen::Vector3f cam_proj_center = Eigen::Vector3f(
+                    proj_bbox.center().x(),
+                    proj_bbox.center().y(),
+                    proj_bbox.min().z());
+
+                // Shadow map render position in world space
+                Eigen::Vector3f cam_reproj_center = dir_proj.inverse() * cam_proj_center;
+
+                // Projection
+                Eigen::Vector3f range = proj_bbox.diagonal();
+                auto P = ortho(
+                    -range.x() * 0.5f,
+                    range.x() * 0.5f,
+                    -range.y() * 0.5f,
+                    range.y() * 0.5f,
+                    0,
+                    range.z());
+
+                // View
+                auto V = look_at(cam_reproj_center, cam_reproj_center + dir, plane.second);
+
+                PV = (P * V);
+                pos = cam_reproj_center;
+                shadowmap.PV = PV;
             }
 
             viewport.material_override->set_mat4("PV", PV);
@@ -221,7 +212,6 @@ void render_shadowmaps(Registry& r)
         viewport.material_override->set_int(RasterizerOptions::ReadBuffer, GL_NONE);
         viewport.material_override->set_int(RasterizerOptions::CullFace, GL_FRONT);
         viewport.material_override->set_int(RasterizerOptions::CullFaceEnabled, GL_TRUE);
-        
     });
 }
 

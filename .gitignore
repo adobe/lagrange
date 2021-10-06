@@ -59,3 +59,6 @@ LagrangeOptions.cmake
 /external
 /dist
 /scripts/.miniconda3
+
+# CMake user presets
+/CMakeUserPresets.json

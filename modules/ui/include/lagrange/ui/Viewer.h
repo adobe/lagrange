@@ -13,18 +13,20 @@
 
 
 #include <lagrange/ui/Entity.h>
-#include <lagrange/ui/types/Systems.h>
-#include <lagrange/ui/types/Tools.h>
 #include <lagrange/ui/default_components.h>
 #include <lagrange/ui/default_keybinds.h>
+#include <lagrange/ui/panels/ViewportPanel.h>
 #include <lagrange/ui/types/Camera.h>
+#include <lagrange/ui/types/Systems.h>
+#include <lagrange/ui/types/Tools.h>
+#include <lagrange/ui/utils/input.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/uipanel.h>
-#include <lagrange/ui/utils/input.h>
-#include <lagrange/ui/panels/ViewportPanel.h>
 
 #include <imgui.h>
+#include <future>
 #include <memory>
+#include <mutex>
 #include <queue>
 #include <set>
 #include <string>
@@ -103,7 +105,7 @@ public:
 
         /// Path to imgui .ini file
         /// If not set, the .ini file will be at %APPDATA%/_window_title.ini
-        /// 
+        ///
         std::string imgui_ini_path = "";
     };
 
@@ -181,6 +183,23 @@ public:
     /// Returns reference to the systems
     Systems& systems() { return m_systems; }
 
+    /// Enqueues `fn` to be run on the main thread
+    std::future<void> run_on_main_thread(std::function<void(void)> fn);
+
+    /// Returns the limit of how many enqueued functions can be run during a single frame on the main thread
+    unsigned int get_main_thread_max_func_per_frame() const
+    {
+        return m_main_thread_max_func_per_frame;
+    }
+
+    /// Sets the limit of how many enqueued functions can be run during a single frame on the main thread
+    /// Use std::numeric_limits<unsigned int>::max() for no limit
+    void set_main_thread_max_func_per_frame(unsigned int limit)
+    {
+        m_main_thread_max_func_per_frame = limit;
+    }
+
+
 private:
     bool init_glfw(const WindowOptions& options);
     bool init_imgui();
@@ -194,7 +213,7 @@ private:
 
 
     static std::string get_config_folder();
-    
+
     void process_input();
 
     void update_time();
@@ -244,6 +263,13 @@ private:
     Systems m_systems;
 
     Entity m_main_viewport;
+
+    // Functions that will be run on next frame on the main thread
+    // Used for code interacting with OpenGL context
+    std::mutex m_mutex;
+    std::queue<std::pair<std::promise<void>, std::function<void(void)>>> m_main_thread_fn;
+    std::atomic_uint m_main_thread_max_func_per_frame =
+        std::numeric_limits<unsigned int>::max();
 };
 
 } // namespace ui

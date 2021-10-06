@@ -16,9 +16,11 @@
 #include <lagrange/compute_facet_area.h>
 #include <lagrange/utils/safe_cast.h>
 
-std::unique_ptr<lagrange::Mesh<lagrange::Vertices3D, lagrange::Triangles>> lagrange::create_cube()
+namespace lagrange {
+
+std::unique_ptr<TriangleMesh3D> create_cube()
 {
-    lagrange::Vertices3D vertices(8, 3);
+    Vertices3D vertices(8, 3);
     vertices.row(0) << -1, -1, -1;
     vertices.row(1) << 1, -1, -1;
     vertices.row(2) << 1, 1, -1;
@@ -28,60 +30,59 @@ std::unique_ptr<lagrange::Mesh<lagrange::Vertices3D, lagrange::Triangles>> lagra
     vertices.row(6) << 1, 1, 1;
     vertices.row(7) << -1, 1, 1;
 
-    lagrange::Triangles facets(12, 3);
+    Triangles facets(12, 3);
     facets << 0, 2, 1, 0, 3, 2, 4, 5, 6, 4, 6, 7, 1, 2, 6, 1, 6, 5, 3, 0, 7, 7, 0, 4, 2, 3, 7, 2, 7,
         6, 0, 1, 4, 4, 1, 5;
 
-    lagrange::Vertices2D uvs(14, 2);
+    Vertices2D uvs(14, 2);
     uvs << 0.25, 0.0, 0.5, 0.0, 0.0, 0.25, 0.25, 0.25, 0.5, 0.25, 0.75, 0.25, 0.0, 0.5, 0.25, 0.5,
         0.5, 0.5, 0.75, 0.5, 0.25, 0.75, 0.5, 0.75, 0.25, 1.0, 0.5, 1.0;
-    lagrange::Triangles uv_indices(12, 3);
+    Triangles uv_indices(12, 3);
     uv_indices << 10, 13, 11, 10, 12, 13, 7, 8, 4, 7, 4, 3, 9, 5, 4, 9, 4, 8, 2, 6, 3, 3, 6, 7, 1,
         0, 3, 1, 3, 4, 10, 11, 7, 7, 11, 8;
-    auto mesh = lagrange::create_mesh(vertices, facets);
+
+    auto mesh = create_mesh(vertices, facets);
     mesh->initialize_uv(uvs, uv_indices);
     return mesh;
 }
 
-std::unique_ptr<lagrange::Mesh<lagrange::Vertices3D, lagrange::Triangles>> lagrange::create_quad(
-    const bool with_center_vertex)
+std::unique_ptr<TriangleMesh3D> create_quad(bool with_center_vertex)
 {
-    std::unique_ptr<lagrange::Mesh<lagrange::Vertices3D, lagrange::Triangles>> mesh = nullptr;
+    std::unique_ptr<TriangleMesh3D> mesh = nullptr;
 
     if (with_center_vertex) {
-        lagrange::Vertices3D vertices(5, 3);
+        Vertices3D vertices(5, 3);
         vertices << -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0, 0, 0, 0;
 
-        lagrange::Triangles facets(4, 3);
+        Triangles facets(4, 3);
         facets << 0, 1, 4, 1, 2, 4, 2, 3, 4, 3, 0, 4;
 
-        mesh = lagrange::create_mesh(vertices, facets);
+        mesh = create_mesh(vertices, facets);
     } else {
-        lagrange::Vertices3D vertices(4, 3);
+        Vertices3D vertices(4, 3);
         vertices << -1, -1, 0, 1, -1, 0, 1, 1, 0, -1, 1, 0;
 
-        lagrange::Triangles facets(2, 3);
+        Triangles facets(2, 3);
         facets << 0, 1, 2, 0, 2, 3;
 
-        mesh = lagrange::create_mesh(vertices, facets);
+        mesh = create_mesh(vertices, facets);
     }
 
     assert(mesh);
-    lagrange::compute_facet_area(*mesh);
+    compute_facet_area(*mesh);
 
     return mesh;
 }
 
-std::unique_ptr<lagrange::Mesh<lagrange::Vertices3D, lagrange::Triangles>> lagrange::create_sphere(
-    typename lagrange::Triangles::Scalar refine_order)
+std::unique_ptr<TriangleMesh3D> create_sphere(double refine_order)
 {
     using MeshType = TriangleMesh3D;
     using Index = typename MeshType::Index;
-    lagrange::Vertices3D vertices(12, 3);
+    Vertices3D vertices(12, 3);
     double t = (1.0 + sqrt(5.0)) / 2.0;
     vertices << -1, t, 0, 1, t, 0, -1, -t, 0, 1, -t, 0, 0, -1, t, 0, 1, t, 0, -1, -t, 0, 1, -t, t,
         0, -1, t, 0, 1, -t, 0, -1, -t, 0, 1;
-    lagrange::Triangles facets(20, 3);
+    Triangles facets(20, 3);
     facets << 0, 11, 5, 0, 5, 1, 0, 1, 7, 0, 7, 10, 0, 10, 11, 1, 5, 9, 5, 11, 4, 11, 10, 2, 10, 7,
         6, 7, 1, 8, 3, 9, 4, 3, 4, 2, 3, 2, 6, 3, 6, 8, 3, 8, 9, 4, 9, 5, 2, 4, 11, 6, 2, 10, 8, 6,
         7, 9, 8, 1;
@@ -156,3 +157,5 @@ std::unique_ptr<lagrange::Mesh<lagrange::Vertices3D, lagrange::Triangles>> lagra
     normalize(*mesh);
     return mesh;
 }
+
+} // namespace lagrange

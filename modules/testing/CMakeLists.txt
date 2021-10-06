@@ -11,23 +11,10 @@
 #
 
 # 1. define module
-add_library(lagrange_testing)
-add_library(lagrange::testing ALIAS lagrange_testing)
-message(STATUS "Lagrange: creating target 'lagrange::testing'")
+lagrange_add_module()
+set_target_properties(lagrange_testing PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")
 
-include(GNUInstallDirs)
-target_include_directories(lagrange_testing PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
-# 2. target sources
-file(GLOB_RECURSE INC_FILES "include/*.h")
-file(GLOB_RECURSE SRC_FILES "src/*.cpp")
-target_sources(lagrange_testing PRIVATE ${INC_FILES} ${SRC_FILES})
-set_target_properties(lagrange_testing PROPERTIES FOLDER "Lagrange//Tests")
-
-# 3. dependencies
+# 2. dependencies
 lagrange_include_modules(io)
 target_link_libraries(lagrange_testing PUBLIC
     Catch2::Catch2
@@ -35,7 +22,7 @@ target_link_libraries(lagrange_testing PUBLIC
     lagrange::io
 )
 
-# 4. test-specific properties
+# 3. test-specific properties
 include(lagrange_download_data)
 add_dependencies(lagrange_testing lagrange_download_data)
 
@@ -47,7 +34,11 @@ target_compile_definitions(lagrange_testing
 )
 
 if(LAGRANGE_USE_PCH)
-    target_link_libraries(lagrange_testing PUBLIC lagrange::core_pch)
+    add_library(lagrange_testing_pch INTERFACE)
+    target_link_libraries(lagrange_testing_pch INTERFACE lagrange_core_pch)
+    target_precompile_headers(lagrange_testing_pch INTERFACE
+        <lagrange/testing/common.h>
+    )
 endif()
 
 # Set flag to hide unit tests depending on private data availability

@@ -19,17 +19,23 @@ function(lagrange_get_dependencies_recursive OUTPUT_VARIABLE TARGET)
 
     get_target_property(_IMPORTED ${TARGET} IMPORTED)
     get_target_property(_TYPE ${TARGET} TYPE)
-    if(_IMPORTED OR (${_TYPE} STREQUAL "INTERFACE_LIBRARY"))
-        get_target_property(TARGET_DEPENDENCIES ${TARGET} INTERFACE_LINK_LIBRARIES)
-    else()
-        get_target_property(TARGET_DEPENDENCIES ${TARGET} LINK_LIBRARIES)
-    endif()
 
-    # MKL-specific list of runtime dependencies
-    get_property(RUNTIME_DEPENDENCIES TARGET ${TARGET} PROPERTY mkl_RUNTIME_DEPENDENCIES)
-    if(RUNTIME_DEPENDENCIES)
-        list(APPEND TARGET_DEPENDENCIES ${RUNTIME_DEPENDENCIES})
+    # List both public and private dependencies, regardless of target type
+    unset(TARGET_DEPENDENCIES)
+    set(properties
+        INTERFACE_LINK_LIBRARIES
+        mkl_RUNTIME_DEPENDENCIES # MKL-specific list of runtime dependencies
+    )
+    if(NOT ${_TYPE} STREQUAL "INTERFACE_LIBRARY")
+        list(APPEND properties LINK_LIBRARIES)
     endif()
+    foreach(property IN ITEMS ${properties})
+        get_target_property(deps ${TARGET} ${property})
+        if(deps)
+            list(APPEND TARGET_DEPENDENCIES ${deps})
+        endif()
+    endforeach()
+    list(REMOVE_DUPLICATES TARGET_DEPENDENCIES)
 
     set(VISITED_TARGETS ${${OUTPUT_VARIABLE}})
     foreach(DEPENDENCY IN ITEMS ${TARGET_DEPENDENCIES})

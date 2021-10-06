@@ -33,11 +33,11 @@ uniform samplerCube texCube;
 
 void main(){
 
-     
+
 
     vec3 irradiance = vec3(0);
 
-    vec3 basis_Z = normalize(fs_in.pos);       
+    vec3 basis_Z = normalize(fs_in.pos);
     vec3 basis_X = cross(vec3(0,1,0), basis_Z);
     vec3 basis_Y = cross(basis_Z, basis_X);
 

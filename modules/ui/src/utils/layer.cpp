@@ -99,7 +99,7 @@ bool is_visible_in(
 LayerIndex get_next_available_layer_index(Registry& r) {
     const auto& names = r.ctx<LayerNames>();
     for (size_t i = 0; i < names.size(); i++) {
-        if (names[i].length() == 0) return i;
+        if (names[i].length() == 0) return LayerIndex(i);
     }
     return 0;
 }

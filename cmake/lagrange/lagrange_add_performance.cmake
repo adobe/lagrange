@@ -14,7 +14,7 @@ function(lagrange_add_performance name)
     lagrange_add_executable(${name} ${ARGN})
 
     # Folder in IDE
-    set_target_properties(${name} PROPERTIES FOLDER "Lagrange//Performance")
+    set_target_properties(${name} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Performance")
 
     # Output directory on disk
     set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/performance")

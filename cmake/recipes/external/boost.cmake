@@ -38,3 +38,9 @@ endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ${OLD_CMAKE_POSITION_INDEPENDENT_CODE})
 set(CMAKE_CXX_FLAGS "${PREVIOUS_CMAKE_CXX_FLAGS}")
+
+foreach(name IN ITEMS chrono container iostreams system thread timer)
+    if(TARGET Boost_${name})
+        set_target_properties(Boost_${name} PROPERTIES FOLDER third_party/boost)
+    endif()
+endforeach()

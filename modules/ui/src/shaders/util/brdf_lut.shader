@@ -16,7 +16,7 @@ out vec3 vposition;
 
 void main() {
     gl_Position = vec4(position,1);
-    vposition = position;   
+    vposition = position;
 }
 
 #pragma FRAGMENT
@@ -50,30 +50,30 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
         float NdotL = max(L.z, 0.0);
         float NdotH = max(H.z, 0.0);
         float VdotH = max(dot(V, H), 0.0);
-        float NdotV = max(dot(N, V), 0.0);  
+        float NdotV = max(dot(N, V), 0.0);
 
         if(NdotL > 0.0)
-        {               
+        {
             float G = G_Smith_GGX_Schlick(NdotV, NdotL, roughness);
-            
-            float G_Vis = (G * VdotH) / (NdotH * NdotV);            
+
+            float G_Vis = (G * VdotH) / (NdotH * NdotV);
             float Fc = pow(1.0 - VdotH, 5.0);
 
             A += (1.0 - Fc) * G_Vis;
             B += Fc * G_Vis;
         }
     }
-    
+
     A /= float(SAMPLE_COUNT);
-    B /= float(SAMPLE_COUNT);    
+    B /= float(SAMPLE_COUNT);
     return vec2(A, B);
 }
 
 void main(){
 
-    vec2 coord = (vposition.xy + vec2(1)) * 0.5; //to [0,1] range    
-    fragColor.xy = IntegrateBRDF(coord.x,coord.y);    
-    fragColor.z = 0;    
+    vec2 coord = (vposition.xy + vec2(1)) * 0.5; //to [0,1] range
+    fragColor.xy = IntegrateBRDF(coord.x,coord.y);
+    fragColor.z = 0;
     fragColor.a = 1.0;
 
 }

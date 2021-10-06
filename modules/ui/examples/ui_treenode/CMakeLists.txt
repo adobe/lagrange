@@ -17,12 +17,3 @@ lagrange_add_example(ui_treenode
 )
 
 target_link_libraries(ui_treenode lagrange::ui lagrange::io CLI11::CLI11)
-
-if(LAGRANGE_UI_USE_MDL)
-    add_custom_command(TARGET ui_treenode POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${MDL_DYNAMIC_LIBS}
-            $<TARGET_FILE_DIR:ui_treenode>
-    )
-endif()
-

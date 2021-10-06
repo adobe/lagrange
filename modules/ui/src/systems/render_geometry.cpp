@@ -43,22 +43,6 @@ void setup_vertex_data(Registry& r)
     });
 
 
-    // Setup default mesh rendering attribute arrays
-    r.view<VertexData, MeshRender, MeshGeometry>().each(
-        [&](Entity /*e*/, VertexData& glvd, MeshRender& render, const MeshGeometry& geom_entity) {
-            if (!r.valid(geom_entity.entity)) return;
-            if (!r.has<GLMesh>(geom_entity.entity)) return;
-            if (!render.material) return;
-
-            auto shader_handle = ui::get_shader(r, render.material->shader_id());
-            if (!shader_handle) return;
-
-            auto& glmesh = r.get<GLMesh>(geom_entity.entity);
-            auto& shader = *shader_handle;
-
-            update_vertex_data(glmesh, shader, glvd, render.indexing, geom_entity.submesh_index);
-        });
-
     // Setup attribute renders
     r.view<VertexData, MeshRender, AttributeRender, MeshGeometry>().each(
         [&](Entity /*e*/, VertexData& glvd, MeshRender& render, AttributeRender& ar, MeshGeometry& mg) {
@@ -138,6 +122,22 @@ void setup_vertex_data(Registry& r)
                 data.cols(),
                 data.rows(),
                 element_size);
+        });
+
+    // Setup default mesh rendering attribute arrays
+    r.view<VertexData, MeshRender, MeshGeometry>().each(
+        [&](Entity e, VertexData& glvd, MeshRender& render, const MeshGeometry& geom_entity) {
+            if (!r.valid(geom_entity.entity)) return;
+            if (!r.has<GLMesh>(geom_entity.entity)) return;
+            if (!render.material) return;
+
+            auto shader_handle = ui::get_shader(r, render.material->shader_id());
+            if (!shader_handle) return;
+
+            auto& glmesh = r.get<GLMesh>(geom_entity.entity);
+            auto& shader = *shader_handle;
+
+            update_vertex_data(glmesh, shader, glvd, render.indexing, geom_entity.submesh_index);
         });
 }
 
@@ -393,7 +393,7 @@ void sort_gl_render_queue(Registry& r)
         [](const GLRenderQueueItem& a, const GLRenderQueueItem& b) {
             const float a_cam_dist_inverse = -a.camera_distance;
             const float b_cam_dist_inverse = -b.camera_distance;
-            
+
             return std::tie(a.pass, a.shader, a_cam_dist_inverse, a.material, a.glvd) <
                    std::tie(b.pass, b.shader, b_cam_dist_inverse, b.material, b.glvd);
         });
@@ -591,6 +591,10 @@ void render_gl_render_queue(Registry& r)
             gl(glPointSize, float(material.int_values.at(RasterizerOptions::PointSize)));
         }
 
+        if (material.int_values.count(RasterizerOptions::DepthFunc)) {
+            gl(glDepthFunc, material.int_values.at(RasterizerOptions::DepthFunc));
+        }
+
 
         for (auto& it : material.float_values) {
             shader.uniform(it.first) = it.second;
@@ -625,6 +629,7 @@ void render_gl_render_queue(Registry& r)
         for (auto& it : material.texture_values) {
             const auto& tex_val = it.second;
 
+
             // Find the texture unit
             auto it_samplers = shader.sampler_indices().find(it.first);
 
@@ -632,6 +637,7 @@ void render_gl_render_queue(Registry& r)
                 // Unused sampler
                 continue;
             }
+
 
             const auto& name = shader.name(it.first);
 
@@ -642,21 +648,29 @@ void render_gl_render_queue(Registry& r)
                 shader.uniform(name + "_texture_bound") = true;
             } else {
                 shader.uniform(name + "_texture_bound") = false;
-                auto prop = shader.texture_properties().at(it.first);
+                const auto it_prop = shader.texture_properties().find(it.first);
 
-                // Set default color if there's no texture
-                if (prop.value_dimension == 1) {
-                    shader.uniform(name + "_default_value") = it.second.color.x();
-                } else if (prop.value_dimension == 2) {
-                    shader.uniform(name + "_default_value") =
-                        Eigen::Vector2f(it.second.color.x(), it.second.color.y());
-                } else if (prop.value_dimension == 3) {
-                    shader.uniform(name + "_default_value") = Eigen::Vector3f(
-                        it.second.color.x(),
-                        it.second.color.y(),
-                        it.second.color.z());
-                } else if (prop.value_dimension == 4) {
-                    shader.uniform(name + "_default_value") = it.second.color;
+                if (it_prop != shader.texture_properties().end()) {
+                    const auto& prop = it_prop->second;
+                    // Set default color if there's no texture
+                    if (prop.value_dimension == 1) {
+                        shader.uniform(name + "_default_value") = it.second.color.x();
+                    } else if (prop.value_dimension == 2) {
+                        shader.uniform(name + "_default_value") =
+                            Eigen::Vector2f(it.second.color.x(), it.second.color.y());
+                    } else if (prop.value_dimension == 3) {
+                        shader.uniform(name + "_default_value") = Eigen::Vector3f(
+                            it.second.color.x(),
+                            it.second.color.y(),
+                            it.second.color.z());
+                    } else if (prop.value_dimension == 4) {
+                        shader.uniform(name + "_default_value") = it.second.color;
+                    }
+                } else {
+                    lagrange::logger().warn(
+                        "There is no texture sampler for {} in the shader (Shader ID {})",
+                        name,
+                        material.shader_id());
                 }
             }
         }
@@ -760,6 +774,13 @@ void render_post_process(Registry& r)
 
         attrib_bindings[mat.get()] = VertexData{};
 
+
+        for (auto& tex : mat->texture_values) {
+            if (tex.second.texture && tex.second.texture->get_params().type == GL_TEXTURE_2D) {
+                tex.second.texture->bind();
+                glGenerateMipmap(GL_TEXTURE_2D);
+            }
+        }
 
         update_vertex_data(
             ppquad,

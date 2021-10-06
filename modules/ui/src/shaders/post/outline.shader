@@ -20,7 +20,7 @@ out vec4 vcolor;
 
 void main() {
     gl_Position = vec4(in_pos,1);
-    vposition = in_pos;   
+    vposition = in_pos;
     vcolor = in_color;
 }
 
@@ -44,17 +44,17 @@ void main(){
 
     vec2 coord = (vposition.xy + vec2(1)) * 0.5;
     float depth = texture(depth_tex, coord).r;
-    
+
 
     ivec2 screen_size = textureSize(color_tex,0);
     vec2 dx = vec2(1.0 / screen_size.x, 0) * dpos;
     vec2 dy = vec2(0, 1.0 / screen_size.y) * dpos;
-    vec3 t = texture(color_tex,coord).rgb;  
-    vec3 tup = texture(color_tex,coord -dy).rgb;    
+    vec3 t = texture(color_tex,coord).rgb;
+    vec3 tup = texture(color_tex,coord -dy).rgb;
     vec3 tdown = texture(color_tex,coord + dy ).rgb;
     vec3 tleft = texture(color_tex,coord - dx).rgb;
     vec3 tright = texture(color_tex,coord + dx).rgb;
-  
+
     float d = 0.0001;
     bool has_diff = len2(t - tup) > d || len2(t - tdown) > d || len2(t - tleft) > d || len2(t - tright) > d;
 
@@ -67,7 +67,7 @@ void main(){
     else{
         discard;
     }
-    
+
     gl_FragDepth = depth;
 
 }

@@ -59,6 +59,11 @@ public:
     /// @return true on success, false if `system_id` or `after_id` do not exist
     bool succeeds(StringID system_id, StringID after_id);
 
+    /// @brief Removes system identifier with `id`
+    /// @param id
+    /// @return true if system existed and was removed
+    bool remove(StringID id);
+
 private:
     struct SystemItem
     {

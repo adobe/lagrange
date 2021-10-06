@@ -343,7 +343,7 @@ void update_vao(VertexData& vd)
         auto& buffer = vd.attribute_buffers[i];
 
         if (!buffer) {
-            GL(glDisableVertexAttribArray(i));
+            GL(glDisableVertexAttribArray(GLuint(i)));
             continue;
         }
 
@@ -358,8 +358,8 @@ void update_vao(VertexData& vd)
             "Attribute must be of dimension 1,2,3, or 4");
 
         GL(glBindBuffer(vbo.target, vbo.id));
-        GL(glVertexAttribPointer(i, vd.attribute_dimensions[i], vbo.glType, GL_FALSE, 0, 0));
-        GL(glEnableVertexAttribArray(i));
+        GL(glVertexAttribPointer(GLuint(i), vd.attribute_dimensions[i], vbo.glType, GL_FALSE, 0, 0));
+        GL(glEnableVertexAttribArray(GLuint(i)));
 
 #ifdef LAGRANGE_TRACE_BUFFERS
         lagrange::logger().trace(

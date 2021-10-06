@@ -22,10 +22,10 @@ out VARYING {
 } vs_out;
 
 void main()
-{       
+{
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
-    vs_out.value = in_value;  
+    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
+    vs_out.value = in_value;
 
     //To clip space
     gl_Position = PV * vec4(vs_out.pos,1.0);
@@ -77,7 +77,7 @@ void main(){
     emit(0,2);
     emit(center_pos,center_value);
     EndPrimitive();
-    
+
 }
 
 #pragma FRAGMENT
@@ -91,10 +91,10 @@ in VARYING_GEOM {
 
 #include "surface/colormap.frag"
 
-#pragma property opacity "Opacity" float(1,0,1) 
+#pragma property opacity "Opacity" float(1,0,1)
 
 void main(){
-    
+
     fragColor = colormapped_fragment_color(fs_in.value);
     fragColor.a *= opacity;
 }

@@ -17,6 +17,7 @@
 #include <lagrange/testing/config.h>
 #endif
 
+#include <lagrange/fs/filesystem.h>
 #include <lagrange/io/load_mesh.h>
 
 #include <catch2/catch.hpp>
@@ -44,12 +45,14 @@ fs::path get_data_path(const fs::path &relative_path);
 /// @return     A unique_ptr to the newly allocated mesh.
 ///
 template <typename MeshType>
-std::unique_ptr<MeshType> load_mesh(const fs::path &relative_path)
+std::unique_ptr<MeshType> load_mesh(const fs::path& relative_path)
 {
     auto result = lagrange::io::load_mesh<MeshType>(get_data_path(relative_path));
     REQUIRE(result);
     return result;
 }
+extern template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
+extern template std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
 
 ///
 /// Set up MKL Conditional Numerical Reproducibility to ensure maximum compatibility between

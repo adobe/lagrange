@@ -11,6 +11,7 @@
  */
 #include <lagrange/common.h>
 #include <lagrange/compute_facet_area.h>
+#include <lagrange/io/load_mesh.impl.h>
 #include <lagrange/quad_to_tri.h>
 #include <Eigen/Core>
 #include <lagrange/testing/common.h>

@@ -9,17 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-layout(location = 0) out vec4 fragColor;
-
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec3 tangent;
-    vec3 bitangent;
-} fs_in;
-
+#include "layout/default_fragment_layout.glsl"
 
 void main(){
     if(has_color_attrib)

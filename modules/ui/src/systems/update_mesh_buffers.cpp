@@ -10,11 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/ui/components/Common.h>
 #include <lagrange/ui/components/GLMesh.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/components/MeshGeometry.h>
 #include <lagrange/ui/components/MeshRender.h>
-#include <lagrange/ui/components/Common.h>
 #include <lagrange/ui/systems/update_mesh_buffers.h>
 #include <lagrange/ui/utils/mesh.h>
 
@@ -57,11 +57,11 @@ void update_mesh_buffers_system(Registry& r)
             const auto& mr = view.get<MeshRender>(e);
             const auto& mesh_entity = view.get<MeshGeometry>(e).entity;
 
-            LA_ASSERT(r.valid(mesh_entity), "Invalid mesh entity " + ui::get_name(r,e));
+            LA_ASSERT(r.valid(mesh_entity), "Invalid mesh entity " + ui::get_name(r, e));
 
             auto& md = r.get<MeshData>(mesh_entity);
-            
-            //No material set
+
+            // No material set
             if (!mr.material) continue;
 
             auto shader_ref = ui::get_shader(r, mr.material->shader_id());
@@ -94,7 +94,14 @@ void update_mesh_buffers_system(Registry& r)
         for (auto e : view) {
             auto& meshdata = view.get<MeshData>(e);
 
-            if (!r.has<GLMesh>(e)) r.emplace<GLMesh>(e);
+            if (!r.has<GLMesh>(e)) {
+                r.emplace<GLMesh>(e);
+            } else {
+                // Skip non-dirty mesh entities that already have glmesh
+                if (!r.has<MeshDataDirty>(e)) {
+                    continue;
+                }
+            }
             auto& glmesh = r.get<GLMesh>(e);
 
 
@@ -106,7 +113,7 @@ void update_mesh_buffers_system(Registry& r)
                     *glmesh.attribute_buffers[DefaultShaderAtrribNames::Position]);
             }
 
-             if (!glmesh.get_index_buffer(DefaultShaderIndicesNames::TriangleIndices)) {
+            if (!glmesh.get_index_buffer(DefaultShaderIndicesNames::TriangleIndices)) {
                 glmesh.index_buffers[DefaultShaderIndicesNames::TriangleIndices] =
                     std::make_shared<GPUBuffer>(GL_ELEMENT_ARRAY_BUFFER);
                 upload_mesh_triangles(
@@ -146,12 +153,11 @@ void update_mesh_buffers_system(Registry& r)
                 }
             }
 
-            // Material id 
+            // Material id
             if (has_mesh_facet_attribute(meshdata, "material_id") &&
                 glmesh.submesh_indices.size() == 0) {
                 glmesh.submesh_indices = upload_submesh_indices(meshdata, "material_id");
             }
-           
         }
     }
 }

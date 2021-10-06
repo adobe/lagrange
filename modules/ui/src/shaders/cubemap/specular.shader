@@ -39,16 +39,16 @@ uniform float roughness = 0.0;
 //https://blog.selfshadow.com/publications/s2013-shading-course/karis/s2013_pbs_epic_notes_v2.pdf
 void main(){
 
-    
-    vec3 normal = normalize(fs_in.pos);    
+
+    vec3 normal = normalize(fs_in.pos);
     vec3 lightIn = normal;
     vec3 lightOut = lightIn;
-    
+
     float totalWeight = 0;
     vec3 color = vec3(0);
     for (uint i=0u; i < sampleCount; i++){
 
-        vec2 sampleSpherical = hammersley2d(i,sampleCount);        
+        vec2 sampleSpherical = hammersley2d(i,sampleCount);
         vec3 sampleDir = GGX_sample_dir(sampleSpherical, normal, roughness);
         vec3 lightDir = -reflect(lightOut, sampleDir);
 

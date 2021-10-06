@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/experimental/Array.h>
+#include <lagrange/Mesh.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/timing.h>

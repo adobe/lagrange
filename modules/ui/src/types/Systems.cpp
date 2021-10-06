@@ -86,6 +86,19 @@ bool Systems::succeeds(StringID system, StringID after)
     return true;
 }
 
+bool Systems::remove(StringID id) {
+
+    auto it = std::find_if(m_items.begin(), m_items.end(), [&](const SystemItem& item) {
+        return item.id == id;
+    });
+
+    if (it == m_items.end()) return false;
+
+    m_items.erase(it);
+
+    return true;
+}
+
 StringID Systems::new_id()
 {
     return m_id_counter++;

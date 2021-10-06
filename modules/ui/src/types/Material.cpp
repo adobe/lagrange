@@ -15,10 +15,15 @@
 namespace lagrange {
 namespace ui {
 
-Material::Material(Registry& r, StringID shader_id)
+Material::Material(Registry& r, StringID shader_id, const ShaderDefines& shader_defines)
     : m_shader_id(shader_id)
 {
-    auto shader = ui::get_shader(r, shader_id);
+    if (shader_defines.size() > 0) {
+        m_shader_id = register_shader_variant(r, shader_id, shader_defines);
+    }
+
+    auto shader = ui::get_shader(r, m_shader_id);
+
     if (!shader) {
         return;
     }
@@ -109,8 +114,12 @@ void Material::set_color(const std::string& name, Color color)
 void Material::set_texture(StringID id, std::shared_ptr<Texture> texture)
 {
     auto it_tex = texture_values.find(id);
-    if (it_tex == texture_values.end()) return;
-    it_tex->second.texture = std::move(texture);
+    if (it_tex == texture_values.end()) {
+        //Create new even though it's not exposed
+        texture_values[id].texture = std::move(texture);
+    } else {
+        it_tex->second.texture = std::move(texture);
+    }
 }
 
 void Material::set_texture(const std::string& name, std::shared_ptr<Texture> texture)

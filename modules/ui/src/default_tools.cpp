@@ -252,30 +252,29 @@ void register_default_tools(Tools& tools)
 
 
     tools.register_tool<SelectToolTag, ElementFace>([](Registry& r) { select(r, select_element); });
-
     tools.register_tool<SelectToolTag, ElementEdge>([](Registry& r) { select(r, select_element); });
-
     tools.register_tool<SelectToolTag, ElementVertex>(
         [](Registry& r) { select(r, select_element); });
 
-    /*tools.register_tool<TranslateToolTag, ElementFace>(
-        [](Registry& r) {
-            transform_tool_impl(r, GizmoMode::TRANSLATE);
-        });
-    tools.register_tool<RotateToolTag, ElementFace>(
-        [](Registry& r) {
-            transform_tool_impl(r, GizmoMode::ROTATE);
-        });
-    tools.register_tool<ScaleToolTag, ElementFace>(
-        [](Registry& r) {
-            transform_tool_impl(r, GizmoMode::SCALE);
-        });
-*/
+    // Translation, pass through to selection
+    tools.register_tool<TranslateToolTag, ElementFace>(
+        [](Registry& r) { select(r, select_element); });
+    tools.register_tool<TranslateToolTag, ElementEdge>(
+        [](Registry& r) { select(r, select_element); });
+    tools.register_tool<TranslateToolTag, ElementVertex>(
+        [](Registry& r) { select(r, select_element); });
 
+    // Rotation, pass through to selection
+    tools.register_tool<RotateToolTag, ElementFace>([](Registry& r) { select(r, select_element); });
+    tools.register_tool<RotateToolTag, ElementEdge>([](Registry& r) { select(r, select_element); });
+    tools.register_tool<RotateToolTag, ElementVertex>(
+        [](Registry& r) { select(r, select_element); });
 
-    /*tools.register_tool<SelectToolTag, ElementEdge>(select_object);
-    tools.register_tool<SelectToolTag, ElementVertex>(select_object);*/
-
+    // Scale, pass through to selection
+    tools.register_tool<ScaleToolTag, ElementFace>([](Registry& r) { select(r, select_element); });
+    tools.register_tool<ScaleToolTag, ElementEdge>([](Registry& r) { select(r, select_element); });
+    tools.register_tool<ScaleToolTag, ElementVertex>(
+        [](Registry& r) { select(r, select_element); });
 
     tools.set_current_element_type(entt::resolve<ElementObject>().id());
     tools.set_current_tool_type(entt::resolve<SelectToolTag>().id());

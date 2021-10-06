@@ -16,7 +16,7 @@
 
 //Takes default vertex data
 #pragma VERTEX
-#include "util/vertex_layout.glsl"
+#include "layout/default_vertex_layout.glsl"
 //assumes "uniforms_common" has been included
 out VARYING {
     vec3 pos;
@@ -29,14 +29,14 @@ out VARYING {
 
 
 void main()
-{       
-    
+{
+
     vs_out.pos = vec3(in_pos);
     vs_out.normal = in_normal;
     vs_out.uv = in_uv;
-    vs_out.color = in_color;  
+    vs_out.color = in_color;
     vs_out.tangent = vec3(in_tangent);
-    vs_out.bitangent = vec3(in_bitangent); 
+    vs_out.bitangent = vec3(in_bitangent);
     gl_Position = vec4(vs_out.pos,1);
 }
 
@@ -88,7 +88,7 @@ float compute_line(vec2 uv, float period, float width){
     return line;
 }
 
-vec2 compute_axes(vec2 uv, float period, float width){    
+vec2 compute_axes(vec2 uv, float period, float width){
     vec2 coord = abs(uv) / period;
     vec2 grid = coord;
     grid = grid / fwidth(coord * width);
@@ -150,7 +150,7 @@ vec4 color_at(vec3 pos){
 
     vec2 uv = pos.xz;
 
-    if(show_grid){        
+    if(show_grid){
         float l0 = compute_line(uv, period_primary, 3);
         float l1 = compute_line(uv, period_secondary, 1);
 
@@ -162,7 +162,7 @@ vec4 color_at(vec3 pos){
 
     if(show_axes){
         vec2 ax = compute_axes(uv,period_primary,2);
-        
+
         color.xyz = mix(color.xyz, vec3(1,0,0), ax.x);
         color.a = mix(color.a, ax.x, ax.x);
 
@@ -175,7 +175,7 @@ vec4 color_at(vec3 pos){
 
 
 vec4 sample_between(vec3 pos, vec3 posX, vec3 posY, int maxSamples){
-    
+
     vec4 color = vec4(0);
     vec3 dx = posX - pos;
     vec3 dy = posY - pos;
@@ -196,9 +196,9 @@ float recover_depth(vec3 pos){
 
     float near = 0.0f;
     float far = 1.0f;
-    
+
     float clip_depth = pos_clip.z / pos_clip.w;
-    float depth_ndc = (1.0 - 0.0) * 0.5 * clip_depth + (1.0 + 0.0) * 0.5;    
+    float depth_ndc = (1.0 - 0.0) * 0.5 * clip_depth + (1.0 + 0.0) * 0.5;
     return depth_ndc;
 
 }
@@ -206,17 +206,17 @@ float recover_depth(vec3 pos){
 void main(){
 
     vec2 xy = gl_FragCoord.xy * screen_size_inv;
-    
+
     //Get primary ray
     vec3 rayOrigWorld;
     vec3 rayWorld = calc_ray(xy, rayOrigWorld);
 
     vec3 pos;
     vec3 N;
-    
+
     float t = isect_plane(rayOrigWorld, rayWorld, pos, N);
-    
-    
+
+
     if(camera_is_ortho){
         t = abs(t);
     }
@@ -224,7 +224,7 @@ void main(){
         if(t <= 0)
             discard;
     }
-    
+
     //Get rays for position occupancy
     vec3 rayOrigX,rayOrigY;
     vec3 rayX = calc_ray(xy + vec2(1,0) * screen_size_inv,rayOrigX);
@@ -236,14 +236,14 @@ void main(){
 
     //Sample between positions
     vec4 color = sample_between(pos,posX,posY,10);
-    
+
 
     if(shadow_catcher){
-        
+
         float attenuation = 1.0;
         for(int i = 0; i < spot_lights_count; i++){
             attenuation *= get_shadow_at(pos, spot_lights[i]);
-        }   
+        }
 
         for(int i = 0; i < directional_lights_count; i++){
             attenuation *= get_shadow_at(pos, directional_lights[i]);
@@ -253,8 +253,8 @@ void main(){
             attenuation *= get_shadow_at(pos, point_lights[i]);
         }
 
-        float shadow = 1 - attenuation;        
-        shadow *= shadow_catcher_alpha;        
+        float shadow = 1 - attenuation;
+        shadow *= shadow_catcher_alpha;
         vec4 shadow_color = vec4(vec3(1 - shadow), 1);
         color = vec4(mix(shadow_color.xyz, color.xyz, color.a), 1);
     }
@@ -269,7 +269,7 @@ void main(){
         discard;
     }
 
-    fragColor = vec4(color);    
+    fragColor = vec4(color);
     gl_FragDepth = recover_depth(pos);
 
 }

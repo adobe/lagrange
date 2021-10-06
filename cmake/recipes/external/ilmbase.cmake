@@ -49,3 +49,5 @@ target_include_directories(IlmBase_Half PUBLIC
 )
 
 target_compile_features(IlmBase_Half PUBLIC cxx_std_14)
+
+set_target_properties(IlmBase_Half PROPERTIES FOLDER third_party)

@@ -148,11 +148,10 @@ void wrap_with_mesh(
 }
 
 
-std::unique_ptr<Mesh<Vertices3D, Triangles>> create_cube();
+std::unique_ptr<TriangleMesh3D> create_cube();
 
-std::unique_ptr<Mesh<Vertices3D, Triangles>> create_quad(const bool with_center_vertex);
+std::unique_ptr<TriangleMesh3D> create_quad(bool with_center_vertex);
 
-std::unique_ptr<Mesh<Vertices3D, Triangles>> create_sphere(
-    typename Triangles::Scalar refine_order = 2);
+std::unique_ptr<TriangleMesh3D> create_sphere(double refine_order = 2);
 
 } // namespace lagrange

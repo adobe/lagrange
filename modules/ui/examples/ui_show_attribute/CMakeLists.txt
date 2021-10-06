@@ -17,12 +17,3 @@ lagrange_add_example(ui_show_attribute
 )
 
 target_link_libraries(ui_show_attribute lagrange::ui lagrange::io CLI11::CLI11)
-
-if(LAGRANGE_UI_USE_MDL)
-    add_custom_command(TARGET ui_show_attribute POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different
-            ${MDL_DYNAMIC_LIBS}
-            $<TARGET_FILE_DIR:ui_show_attribute>
-    )
-endif()
-

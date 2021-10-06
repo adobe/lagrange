@@ -29,7 +29,7 @@ float G_Schlick(float cos_, float k){
     return cos_ / (cos_ * (1.0 - k) + k);
 }
 
-float G_Smith_GGX_Schlick(float cos_in_N, float cos_out_N, float roughness){    
+float G_Smith_GGX_Schlick(float cos_in_N, float cos_out_N, float roughness){
     float alpha = roughness*roughness;
     float k = alpha / 2.0;
     //float alpha = roughness + 1.0; //alternative version
@@ -67,7 +67,7 @@ vec3 F_schlick(vec3 f_0, float cos_l_h){
     //float cos_l_h = max(0.0,dot(l,h));
     cos_l_h = min(cos_l_h,1.0);
     return f_0 + (vec3(1.0) - f_0) * pow(1.0 - cos_l_h, 5.0);
-    
+
 }
 
 
@@ -91,15 +91,15 @@ vec3 get_f0(in vec3 baseColor, in float metallic){
 }
 
 vec3 pbr_color(
-    in LightAtSurface L, 
+    in LightAtSurface L,
     in vec3 f_0,
     in vec3 N,
     in float roughness,
     in float metallic,
     in vec3 baseColor
 ){
-        
-    float cos_in = max(0.0, dot(L.lightIn,N)); //n dot l        
+
+    float cos_in = max(0.0, dot(L.lightIn,N)); //n dot l
     float cos_half = max(0.0, dot(L.lightHalf,N));
     float cos_diff = max(0.0, dot(L.lightHalf,L.lightIn));
     float cos_diff2 = max(0.0, dot(L.lightHalf,L.lightOut));
@@ -112,8 +112,8 @@ vec3 pbr_color(
 
     //Geometry Shadowing/Masking function
     float G = G_Smith_GGX_Schlick(cos_in, L.cos_out, roughness);
-    
-    //Denominator 
+
+    //Denominator
     float denom = max(4 * cos_in * L.cos_out,0.00001);
 
     //Final specular direct light component

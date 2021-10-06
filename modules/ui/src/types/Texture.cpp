@@ -207,6 +207,7 @@ bool Texture::save_to(
     auto comp_cnt = [](GLenum gl_type) {
         if (gl_type == GL_RGB) return 3u;
         if (gl_type == GL_RED) return 1u;
+        if (gl_type == GL_DEPTH_COMPONENT) return 1u;
         if (gl_type == GL_RGBA) return 4u;
         return 0u;
     };

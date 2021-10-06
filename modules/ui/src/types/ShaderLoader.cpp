@@ -22,11 +22,20 @@
 namespace lagrange {
 namespace ui {
 
+entt::id_type hash_shader_definition(const ShaderDefinition& def)
+{
+    std::string hash_str = def.path + (def.path_type == ShaderLoader::PathType::REAL ? "0" : "1");
+    for (const auto& d : def.defines) {
+        hash_str += d.first + d.second;
+    }
+    return entt::hashed_string(hash_str.c_str());
+}
+
 
 std::shared_ptr<Shader> ShaderLoader::load(
     const std::string& generic_path,
     PathType pathtype,
-    ShaderDefines defines /*= {}*/) const
+    const ShaderDefines & defines /*= {}*/) const
 {
     try {
         if (pathtype == PathType::REAL) {
@@ -48,12 +57,36 @@ std::shared_ptr<Shader> ShaderLoader::load(
     return nullptr;
 }
 
+entt::id_type
+register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines& shader_defines)
+{
+
+    if (shader_defines.size() == 0) return id;
+
+    auto& registered = r.ctx_or_set<RegisteredShaders>();
+    auto def_it = registered.find(id);
+    if (def_it == registered.end()) return entt::null;
+    
+    // Add to existing defines
+    ShaderDefinition new_sdef = def_it->second;
+    for (auto& define : shader_defines) {
+        new_sdef.defines.push_back(define);
+    }
+
+    // Caculate alternative cache key
+    auto alternate_id = hash_shader_definition(new_sdef);
+    return register_shader_as(r, alternate_id, new_sdef);
+
+}
+
 
 ShaderResource get_shader(Registry& registry, entt::id_type id)
 {
     auto& cache = registry.ctx_or_set<ShaderCache>();
+
     if (cache.contains(id)) return cache.handle(id);
 
+    //Shader not registered, return empty handle
     auto& registered = registry.ctx_or_set<RegisteredShaders>();
     auto def_it = registered.find(id);
     if (def_it == registered.end()) return ShaderResource();
@@ -75,6 +108,24 @@ ShaderCache& get_shader_cache(Registry& registry)
     return registry.ctx_or_set<ShaderCache>();
 }
 
+bool add_file_to_shader_virtual_fs(
+    const std::string& virtual_path,
+    const std::string& contents,
+    bool overwrite)
+{
+#ifndef DEFAULT_SHADERS_USE_REAL_PATH
+    if (!overwrite) {
+        auto res = VIRTUAL_SHADERS.insert({virtual_path, contents});
+        return res.second;
+    } else {
+        VIRTUAL_SHADERS[virtual_path] = contents;
+        return true;
+    }
+#else
+    return false;
+#endif
+}
+
 entt::id_type register_shader_as(Registry& registry, entt::id_type id, const ShaderDefinition& def)
 {
     auto& registered = registry.ctx_or_set<RegisteredShaders>();
@@ -82,14 +133,10 @@ entt::id_type register_shader_as(Registry& registry, entt::id_type id, const Sha
     return id;
 }
 
-entt::id_type register_shader(Registry& registry, const ShaderDefinition& def)
-{
-    std::string hash_str = def.path + (def.path_type == ShaderLoader::PathType::REAL ? "0" : "1");
-    for (const auto& d : def.defines) {
-        hash_str += d.first + d.second;
-    }
 
-    return register_shader_as(registry, entt::hashed_string(hash_str.c_str()), def);
+entt::id_type register_shader(Registry& registry, const ShaderDefinition& def)
+{   
+    return register_shader_as(registry, hash_shader_definition(def), def);
 }
 
 entt::id_type
@@ -100,6 +147,7 @@ register_shader(Registry& registry, const std::string& path, const std::string& 
     def.display_name = display_name;
     return register_shader(registry, def);
 }
+
 
 } // namespace ui
 } // namespace lagrange

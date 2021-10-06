@@ -493,6 +493,9 @@ Camera Camera::transformed(const ViewportTransform& vt) const
             cam.get_window_width() * vt.scale.x(),
             cam.get_window_height() * vt.scale.y());
     } else {
+        cam.set_aspect_ratio(
+            cam.get_window_width() * vt.scale.x(),
+            cam.get_window_height() * vt.scale.y());
         const Eigen::Translation3f half = Eigen::Translation3f(Eigen::Vector3f(1.0f, 1.0f, 0));
         const Eigen::Vector2f translate_flip = Eigen::Vector2f(vt.translate.x(), 1.0f - vt.scale.y() - vt.translate.y());
         const Eigen::Vector2f offset = translate_flip * 2.0f - Eigen::Vector2f::Ones();

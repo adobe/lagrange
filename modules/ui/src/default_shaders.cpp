@@ -130,6 +130,14 @@ void register_default_shaders(Registry& r)
         d.display_name = "MeshElementID";
         register_shader_as(r, DefaultShaders::MeshElementID, d);
     }
+
+     {
+        ShaderDefinition d;
+        d.path = "skybox.shader";
+        d.path_type = ShaderLoader::PathType::VIRTUAL;
+        d.display_name = "Skybox";
+        register_shader_as(r, DefaultShaders::Skybox, d);
+    }
 }
 
 } // namespace ui

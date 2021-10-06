@@ -77,7 +77,7 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
                 buffer[pixel_size * i + 2]);
 
             if (!is_id_background(id) && r.valid(Entity(id))) {
-                r.emplace<HoveredTemp>(Entity(id));
+                r.emplace_or_replace<HoveredTemp>(Entity(id));
             }
         }
 

@@ -12,9 +12,7 @@
 option(LAGRANGE_UI_USE_MDL "Use Material Definition Library" OFF)
 
 # 1. define module
-add_library(lagrange_ui)
-add_library(lagrange::ui ALIAS lagrange_ui)
-message(STATUS "Lagrange: creating target 'lagrange::ui'")
+lagrange_add_module()
 
 if(WIN32)
     target_compile_definitions(lagrange_ui PUBLIC -DNOMINMAX -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
@@ -22,23 +20,7 @@ endif()
 
 target_compile_features(lagrange_ui PUBLIC cxx_std_17)
 
-include(GNUInstallDirs)
-target_include_directories(lagrange_ui PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
-# 2. target sources
-file(GLOB_RECURSE INC_FILES "include/*.h")
-file(GLOB_RECURSE SRC_FILES "src/*.cpp")
-
-source_group(
-    TREE "${PROJECT_SOURCE_DIR}"
-    FILES ${INC_FILES} ${SRC_FILES})
-
-target_sources(lagrange_ui PRIVATE ${INC_FILES} ${SRC_FILES})
-
-# 3. dependencies
+# 2. dependencies
 lagrange_include_modules(io)
 include(nanoflann)
 include(gl3w)
@@ -91,7 +73,7 @@ if(LAGRANGE_DEBUG_SHADERS)
     target_compile_definitions(lagrange_ui PRIVATE DEFAULT_SHADERS_USE_REAL_PATH="${CMAKE_CURRENT_SOURCE_DIR}/src/shaders/")
 endif()
 
-# 4. automatic shader generation
+# 3. automatic shader generation
 set(generated_dir "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY "${generated_dir}")
 target_include_directories(lagrange_ui PUBLIC "${generated_dir}")
@@ -109,8 +91,6 @@ add_dependencies(lagrange_ui lagrange_ui_generate_shaders)
 # PCH
 if(LAGRANGE_USE_PCH)
     add_library(lagrange_ui_pch INTERFACE)
-
-    add_library(lagrange::ui_pch ALIAS lagrange_ui_pch)
     target_link_libraries(lagrange_ui_pch INTERFACE lagrange_core_pch)
     target_precompile_headers(lagrange_ui_pch INTERFACE
         <imgui.h>
@@ -118,17 +98,16 @@ if(LAGRANGE_USE_PCH)
         <lagrange/ui/UI.h>
     )
     target_compile_features(lagrange_ui_pch INTERFACE cxx_std_17)
-
-    target_link_libraries(lagrange_ui PRIVATE lagrange::ui_pch lagrange::core_pch)
+    target_link_libraries(lagrange_ui PRIVATE lagrange_ui_pch)
 endif()
 
-# 5. installation
+# 4. installation
 # if(LAGRANGE_INSTALL)
 #     set_target_properties(lagrange_ui PROPERTIES EXPORT_NAME ui)
 #     lagrange_install(lagrange_ui)
 # endif()
 
-# 6. unit tests and examples
+# 5. unit tests and examples
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
 endif()

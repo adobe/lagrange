@@ -14,12 +14,8 @@
 #pragma VERTEX
 #include "util/default.vertex"
 
-
-
 #pragma FRAGMENT
-layout(location = 0) out vec4 fragColor;
-
-
+#include "layout/default_fragment_layout.glsl"
 
 vec4 index_to_color(int i){
     int r = (i & 0x000000FF);
@@ -27,18 +23,6 @@ vec4 index_to_color(int i){
     int b = (i & 0x00FF0000) >> 16;
     return vec4(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
 }
-
-
-
-
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec3 tangent;
-    vec3 bitangent;
-} fs_in;
 
 void main(){
     fragColor = index_to_color(object_id);

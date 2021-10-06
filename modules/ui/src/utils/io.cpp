@@ -221,13 +221,20 @@ Entity detail::load_scene_impl(
         {
             aiColor4D color(0.f, 0.f, 0.f, 1.f);
             if (amat->Get(AI_MATKEY_COLOR_DIFFUSE, color) == aiReturn_SUCCESS) {
-                mat->set_color(PBRMaterial::BaseColor, reinterpret_cast<Color&>(color));
+                ui::Color c;
+                c.r() = color.r;
+                c.g() = color.g;
+                c.b() = color.b;
+                c.a() = color.a;
+                mat->set_color(PBRMaterial::BaseColor, c);
+
+                lagrange::logger().trace("Material index {} name {} base color {}",i, matname.C_Str(), c);
             }
         }
         // Base color texture
         {
             aiString dpath;
-            if (amat->Get(AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE, 0), dpath) == aiReturn_SUCCESS &&
+            if (amat->Get(AI_MATKEY_TEXTURE_DIFFUSE(0), dpath) == aiReturn_SUCCESS &&
                 dpath.length > 0) {
                 mat->set_texture(PBRMaterial::BaseColor, load_texture(resolve_texture_path(dpath)));
             }
@@ -275,10 +282,10 @@ Entity detail::load_scene_impl(
             }
         }
 
-#ifdef LAGRANGE_UI_LIST_ASSIMP_MAT_PROPERTIES
-        for (auto i = 0; i < amat->mNumProperties; i++) {
+
+        for (size_t i = 0; i < amat->mNumProperties; i++) {
             auto prop = amat->mProperties[i];
-            lagrange::logger().info(
+            lagrange::logger().trace(
                 "key: {} length: {}, type: {:02X}, index: {}",
                 prop->mKey.C_Str(),
                 prop->mDataLength,
@@ -286,7 +293,6 @@ Entity detail::load_scene_impl(
                 prop->mIndex);
         }
 
-#endif
 
         materials.push_back(mat);
     }
@@ -317,8 +323,17 @@ Entity detail::load_scene_impl(
                 meshes[node->mMeshes[mesh_index]],
                 DefaultShaders::PBR); // todo PBRSkeletal if has bones
 
+            lagrange::logger().trace(
+                "Mesh index {}, name parent {}, material index {}",
+                mesh_index,
+                node->mName.C_Str(),
+                scene->mMeshes[node->mMeshes[mesh_index]]->mMaterialIndex);
+
             // Material
-            ui::set_material(r, mesh_e, materials[scene->mMeshes[mesh_index]->mMaterialIndex]);
+            ui::set_material(
+                r,
+                mesh_e,
+                materials[scene->mMeshes[node->mMeshes[mesh_index]]->mMaterialIndex]);
             ui::set_parent(r, mesh_e, e);
         }
 

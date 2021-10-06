@@ -104,8 +104,7 @@ Viewer::Viewer(const WindowOptions& window_options)
     : m_initial_window_options(window_options)
 {
     if (window_options.imgui_ini_path.empty()) {
-        m_imgui_ini_path =
-            get_config_folder() + m_initial_window_options.window_title + ".ini";
+        m_imgui_ini_path = get_config_folder() + m_initial_window_options.window_title + ".ini";
     } else {
         m_imgui_ini_path = window_options.imgui_ini_path;
     }
@@ -433,80 +432,98 @@ bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
     if (!is_initialized()) return false;
 
     while (!should_close()) {
-        /*
-            Initialization systems
-        */
-        m_systems.run(Systems::Stage::Init, registry());
-
-
-        start_imgui_frame();
-
-
-        draw_menu();
-        // Dock space
-        {
-            start_dockspace();
-            if (m_show_imgui_demo) {
-                ImGui::ShowDemoWindow(&m_show_imgui_demo);
-            }
-
-            if (m_show_imgui_style) {
-                ImGui::Begin("Style Editor", &m_show_imgui_style);
-                ImGui::ShowStyleEditor();
-                ImGui::End();
-            }
-
-            m_systems.run(Systems::Stage::Interface, registry());
-
-            if (main_loop) {
-                if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
-            }
-
-            show_last_shader_error();
-            end_dockspace();
-        }
-
-        end_imgui_frame();
-
-
-        m_systems.run(Systems::Stage::Simulation, registry());
-
-
-        // All rendering goes here
-        {
-            /*
-                Render to texture
-            */
-            try {
-                m_last_shader_error = "";
-                m_last_shader_error_desc = "";
-
-                m_systems.run(Systems::Stage::Render, registry());
-
-            } catch (ShaderException& ex) {
-                m_last_shader_error = ex.what();
-                m_last_shader_error_desc = ex.get_desc();
-                lagrange::logger().error("{}", m_last_shader_error);
-            }
-
-            /*
-                Clear default framebuffer
-            */
-            GLScope gl;
+        for (unsigned int fn_counter = 0; fn_counter < m_main_thread_max_func_per_frame; fn_counter++) {
+            std::pair<std::promise<void>, std::function<void(void)>> item;
             {
-                gl(glBindFramebuffer, GL_FRAMEBUFFER, 0);
-                gl(glViewport, 0, 0, m_width, m_height);
-                Color bgcolor = Color(0, 0, 0, 0);
-                gl(glClearColor, bgcolor.x(), bgcolor.y(), bgcolor.z(), bgcolor.a());
-                gl(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                // Consume queue item
+                std::lock_guard<std::mutex> lock(m_mutex);
+                if (m_main_thread_fn.empty()) break;
+                item = std::move(m_main_thread_fn.front());
+                m_main_thread_fn.pop();
             }
-
-
-            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); // render to screen buffer
+            // Run function
+            item.second();
+            // Set promise value
+            item.first.set_value();
         }
 
 
-        glfwSwapBuffers(m_window);
+        {
+            /*
+                Initialization systems
+            */
+            m_systems.run(Systems::Stage::Init, registry());
+
+
+            start_imgui_frame();
+
+
+            draw_menu();
+            // Dock space
+            {
+                start_dockspace();
+                if (m_show_imgui_demo) {
+                    ImGui::ShowDemoWindow(&m_show_imgui_demo);
+                }
+
+                if (m_show_imgui_style) {
+                    ImGui::Begin("Style Editor", &m_show_imgui_style);
+                    ImGui::ShowStyleEditor();
+                    ImGui::End();
+                }
+
+                m_systems.run(Systems::Stage::Interface, registry());
+
+                if (main_loop) {
+                    if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
+                }
+
+                show_last_shader_error();
+                end_dockspace();
+            }
+
+            end_imgui_frame();
+
+
+            m_systems.run(Systems::Stage::Simulation, registry());
+
+
+            // All rendering goes here
+            {
+                /*
+                    Render to texture
+                */
+                try {
+                    m_last_shader_error = "";
+                    m_last_shader_error_desc = "";
+
+                    m_systems.run(Systems::Stage::Render, registry());
+
+                } catch (ShaderException& ex) {
+                    m_last_shader_error = ex.what();
+                    m_last_shader_error_desc = ex.get_desc();
+                    lagrange::logger().error("{}", m_last_shader_error);
+                }
+
+                /*
+                    Clear default framebuffer
+                */
+                GLScope gl;
+                {
+                    gl(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+                    gl(glViewport, 0, 0, m_width, m_height);
+                    Color bgcolor = Color(0, 0, 0, 0);
+                    gl(glClearColor, bgcolor.x(), bgcolor.y(), bgcolor.z(), bgcolor.a());
+                    gl(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                }
+
+
+                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); // render to screen buffer
+            }
+
+
+            glfwSwapBuffers(m_window);
+        }
 
 
         m_systems.run(Systems::Stage::Post, registry());
@@ -518,7 +535,7 @@ bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
 
 bool Viewer::run(const std::function<void(void)>& main_loop /*= {}*/)
 {
-    return run([=](Registry& /*r*/) -> bool {
+    return run([=](Registry & /*r*/) -> bool {
         if (main_loop) main_loop();
         return true;
     });
@@ -974,6 +991,19 @@ void Viewer::make_current()
 {
     assert(m_window);
     glfwMakeContextCurrent(m_window);
+}
+
+
+std::future<void> Viewer::run_on_main_thread(std::function<void(void)> fn)
+{
+    std::promise<void> fn_promise;
+    auto future = fn_promise.get_future();
+
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        m_main_thread_fn.push({std::move(fn_promise), std::move(fn)});
+    }
+    return future;
 }
 
 void Viewer::draw_menu()

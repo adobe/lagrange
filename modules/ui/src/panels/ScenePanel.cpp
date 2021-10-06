@@ -273,7 +273,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
     if (ImGui::CollapsingHeader("Scene Panel Layers")) {
         ImGui::Indent(); // align with the treeview above
         for (size_t i = 0; i < get_max_layers(); i++) {
-            const auto& name = get_layer_name(registry, i);
+            const auto& name = get_layer_name(registry, LayerIndex(i));
             if (name.length() == 0) continue;
 
             bool value = scene_panel_data.visible_layers.test(i);

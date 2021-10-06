@@ -10,3 +10,10 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_test()
+
+if(LAGRANGE_USE_PCH)
+    # Use precompiled headers in core tests since there are a lot of cpp files in core tests. 
+    # Check the timing if you want to add this to your own module, it may or may not be worth it.
+    target_link_libraries(test_lagrange_core PRIVATE lagrange_testing_pch)
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/main.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
+endif()

@@ -15,32 +15,32 @@
 
 
 vec3 phong(
-    const in vec3 lightDir, 
-    const in vec3 viewDir, 
-    const in vec3 normal    
+    const in vec3 lightDir,
+    const in vec3 viewDir,
+    const in vec3 normal
 ){
 
-    
+
     float diffuseMagnitude = max(dot(normal,lightDir),0.0);
-    float ambientMagnitude = 1;  
-    
+    float ambientMagnitude = 1;
+
     vec3 mat_ambient =  material.ambient.has_texture ? texture(material.ambient.texture, fs_in.uv).xyz : material.ambient.value.xyz;
     vec3 mat_diffuse =  material.diffuse.has_texture ? texture(material.diffuse.texture, fs_in.uv).xyz : material.diffuse.value.xyz;
     vec3 mat_specular =  material.specular.has_texture ? texture(material.specular.texture, fs_in.uv).xyz : material.specular.value.xyz;
 
     mat_ambient = vec3(0.15);
-    //Ambient   
+    //Ambient
     vec3 ambient = mat_ambient * ambientMagnitude;
 
     //Diffuse
-    vec3 diffuse = clamp(mat_diffuse * diffuseMagnitude,0,1);   
+    vec3 diffuse = clamp(mat_diffuse * diffuseMagnitude,0,1);
 
     //Specular
-    vec3 specular = vec3(0);    
-    if (dot(normal, lightDir) >= 0.0){ 
-        float specularMagnitude = 
+    vec3 specular = vec3(0);
+    if (dot(normal, lightDir) >= 0.0){
+        float specularMagnitude =
             pow(
-                max(0.0, dot(reflect(-lightDir, normal),viewDir)), 
+                max(0.0, dot(reflect(-lightDir, normal),viewDir)),
                 material.shininess
             );
 
@@ -50,8 +50,8 @@ vec3 phong(
     return ambient + (diffuse + specular);
 }
 
-float lightOmniAttenuation(vec3 pos, vec3 lightPos, float intensity, float attenuation){    
-    float d = length(lightPos - pos);   
+float lightOmniAttenuation(vec3 pos, vec3 lightPos, float intensity, float attenuation){
+    float d = length(lightPos - pos);
     //return 1.0 / (1.0 + )
     return intensity * clamp(1.0 - d / attenuation, 0.0,1.0);
 }
@@ -64,6 +64,6 @@ float lightSpotAttenuation(vec3 pos, vec3 lightDir, vec3 spotDir, float angle,  
     else {
         float d = (coneAngle / angle);
         return (1.0 - d*d*d) * intensity;
-    }   
+    }
 }
 

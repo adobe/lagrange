@@ -108,7 +108,7 @@ void gizmo_system(
             auto bounds = registry.try_get<Bounds>(e);
 
             if (bounds) {
-                avg_pos += bounds->global.center();
+                avg_pos += bounds->bvh_node.center();
             } else {
                 avg_pos += t.global.matrix().col(3).hnormalized();
             }
@@ -145,7 +145,7 @@ void gizmo_system(
     AABB bbox;
     view.each([&](Entity e, const Selected& /*sel*/, Transform& /*t*/) {
         auto bb = registry.try_get<Bounds>(e);
-        if (bb) bbox.extend(bb->global);
+        if (bb) bbox.extend(bb->bvh_node);
     });
 
 

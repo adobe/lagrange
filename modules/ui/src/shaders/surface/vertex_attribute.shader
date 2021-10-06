@@ -16,16 +16,16 @@
 layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec4 in_value;
 
-out VARYING {   
+out VARYING {
     vec3 pos;
     vec4 value;
 } vs_out;
 
 void main()
-{       
+{
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz; 
-    vs_out.value = in_value;  
+    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
+    vs_out.value = in_value;
 
     //To clip space
     gl_Position = PV * vec4(vs_out.pos,1.0);
@@ -43,10 +43,10 @@ in VARYING {
 
 #include "surface/colormap.frag"
 
-#pragma property opacity "Opacity" float(1,0,1) 
+#pragma property opacity "Opacity" float(1,0,1)
 
 void main(){
-    
+
     fragColor = colormapped_fragment_color(fs_in.value);
     fragColor.a *= opacity;
 }

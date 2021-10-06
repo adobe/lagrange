@@ -9,9 +9,18 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-layout (location = 0) in vec3 in_pos;
-layout (location = 1) in vec3 in_normal;
-layout (location = 2) in vec2 in_uv;
-layout (location = 3) in vec4 in_color;
-layout (location = 4) in vec4 in_tangent;
-layout (location = 5) in vec4 in_bitangent;
+
+#include <lagrange/Mesh.h>
+
+namespace lagrange {
+
+template class Mesh<Vertices3D, Triangles>;
+template class Mesh<Vertices2D, Triangles>;
+template class Mesh<Vertices3Df, Triangles>;
+template class Mesh<Vertices2Df, Triangles>;
+template class Mesh<Vertices3D, Quads>;
+template class Mesh<Vertices2D, Quads>;
+template class Mesh<Vertices3Df, Quads>;
+template class Mesh<Vertices2Df, Quads>;
+
+}

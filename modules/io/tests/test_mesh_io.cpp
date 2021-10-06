@@ -11,8 +11,10 @@
  */
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
-#include <lagrange/io/save_mesh.h>
 #include <lagrange/testing/common.h>
+
+#include <lagrange/io/load_mesh.h>
+#include <lagrange/io/save_mesh.h>
 
 
 TEST_CASE("drop", "[mesh][io]")

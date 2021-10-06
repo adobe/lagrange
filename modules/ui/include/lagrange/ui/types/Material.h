@@ -21,7 +21,7 @@ namespace ui {
 class Material
 {
 public:
-    Material(Registry& r, StringID shader_id);
+    Material(Registry& r, StringID shader_id, const ShaderDefines & shader_defines = {});
 
     StringID shader_id() const;
 

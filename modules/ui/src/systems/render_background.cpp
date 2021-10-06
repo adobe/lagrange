@@ -15,6 +15,8 @@
 #include <lagrange/ui/components/Common.h>
 #include <lagrange/ui/components/IBL.h>
 #include <lagrange/ui/components/RenderContext.h>
+#include <lagrange/ui/default_shaders.h>
+#include <lagrange/ui/types/ShaderLoader.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/render.h>
 
@@ -40,10 +42,9 @@ void render_background(Registry& r)
     auto& shaders = r.ctx_or_set<entt::resource_cache<Shader>>();
     const auto& camera = viewport.computed_camera;
 
-    auto shader_res = get_or_load_shader(shaders, "skybox.shader", true);
+    auto shader_res = get_shader(r, DefaultShaders::Skybox);
     if (!shader_res) return;
     auto shader = *shader_res;
-
 
     auto& skybox_data = r.ctx_or_set<SkyboxCubeVertexData>();
     if (!skybox_data.vertex_data) skybox_data.vertex_data = generate_cube_vertex_data();
@@ -54,14 +55,13 @@ void render_background(Registry& r)
 
 
     gl(glFrontFace, GL_CW);
-    
+
 
     r.view<IBL>().each([&](const Entity& entity, IBL& ibl) {
-
         if (!ui::is_visible_in(r, entity, viewport.visible_layers, viewport.hidden_layers)) return;
 
         if (!ibl.show_skybox) return;
-        
+
         // Do not show in selection
         if (viewport.visible_layers.test(DefaultLayers::Selection)) return;
 

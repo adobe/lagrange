@@ -22,7 +22,7 @@ struct ShaderLoader : entt::resource_loader<ShaderLoader, Shader>
     enum class PathType { REAL, VIRTUAL };
 
     std::shared_ptr<Shader>
-    load(const std::string& generic_path, PathType pathtype, ShaderDefines defines = {}) const;
+    load(const std::string& generic_path, PathType pathtype, const ShaderDefines & defines = {}) const;
 };
 using ShaderCache = entt::resource_cache<Shader>;
 using ShaderResource = entt::resource_handle<Shader>;
@@ -46,12 +46,24 @@ entt::id_type register_shader(Registry& r, const ShaderDefinition& def);
 entt::id_type
 register_shader(Registry& r, const std::string& path, const std::string& display_name);
 
+entt::id_type register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines & shader_defines);
+
 ShaderResource get_shader(Registry& r, entt::id_type id);
+
 
 
 RegisteredShaders& get_registered_shaders(Registry& r);
 ShaderCache& get_shader_cache(Registry& r);
 
+/// Creates a file using `virtual_path` with `contents` in the shader virtual file system.
+/// This file will be visible to the ShaderLoader, to be directly loaded as a shader
+/// or to be included in another shader via #include "virtual/fs/path/.."
+/// Returns true if written successfully.
+/// Returns false if 1. No virtual fs is used (DEFAULT_SHADERS_USE_REAL_PATH is defined), 2. File already exists and overwrite==false
+bool add_file_to_shader_virtual_fs(
+    const std::string& virtual_path,
+    const std::string& contents,
+    bool overwrite = false);
 
 } // namespace ui
 } // namespace lagrange

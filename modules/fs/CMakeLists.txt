@@ -11,22 +11,9 @@
 #
 
 # 1. define module
-add_library(lagrange_fs)
-add_library(lagrange::fs ALIAS lagrange_fs)
-message(STATUS "Lagrange: creating target 'lagrange::fs'")
+lagrange_add_module()
 
-include(GNUInstallDirs)
-target_include_directories(lagrange_fs PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
-# 2. target sources
-file(GLOB_RECURSE INC_FILES "include/*.h")
-file(GLOB_RECURSE SRC_FILES "src/*.cpp")
-target_sources(lagrange_fs PRIVATE ${INC_FILES} ${SRC_FILES})
-
-# 3. dependencies
+# 2. dependencies
 lagrange_include_modules(core)
 target_link_libraries(lagrange_fs PUBLIC
     lagrange::core
@@ -58,13 +45,13 @@ else()
     message(FATAL_ERROR "Unsupported LAGRANGE_FS_BACKEND: ${LAGRANGE_FS_BACKEND}!")
 endif()
 
-# 4. installation
+# 3. installation
 if(LAGRANGE_INSTALL)
     set_target_properties(lagrange_fs PROPERTIES EXPORT_NAME fs)
     lagrange_install(lagrange_fs)
 endif()
 
-# 5. unit tests and examples
+# 4. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

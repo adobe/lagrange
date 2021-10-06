@@ -15,6 +15,7 @@
 #include <lagrange/common.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/utils/timing.h>
+#include <lagrange/Mesh.h>
 
 int main(int argc, char** argv)
 {

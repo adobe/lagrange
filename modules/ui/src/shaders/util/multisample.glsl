@@ -16,13 +16,13 @@ vec4 multisample(sampler2DMS s, vec2 uv)
 {
     ivec2 texel = ivec2(floor(textureSize(s) * uv));
 
-    vec4 color = vec4(0.0); 
+    vec4 color = vec4(0.0);
     for (int i = 0; i < num_samples; i++)
     {
         color += texelFetch(s, texel, i);
     }
-    
+
     color /= float(num_samples);
-    
+
     return color;
 }

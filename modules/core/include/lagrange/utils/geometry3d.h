@@ -12,6 +12,7 @@
 #pragma once
 
 #include <Eigen/Dense>
+#include <lagrange/MeshTrait.h>
 
 namespace lagrange {
 

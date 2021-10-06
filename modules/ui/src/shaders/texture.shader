@@ -20,7 +20,7 @@ uniform mat4 M = mat4(1.0);
 
 void main() {
     gl_Position = PV * M * vec4(in_pos,1);
-    vertex_uv = vec3(in_uv,0);   
+    vertex_uv = vec3(in_uv,0);
 }
 
 #pragma FRAGMENT
@@ -61,7 +61,7 @@ float linearize_depth(float depth, float near, float far)
 
 void main(){
 
-    
+
     vec2 coord = vertex_uv.xy;
     /*fragColor.xy = coord;
     fragColor.z = 0;
@@ -95,10 +95,10 @@ void main(){
                 break;
         }
         cube_coord = normalize(cube_coord);
-        t = texture(tex_cube, cube_coord);  
+        t = texture(tex_cube, cube_coord);
     }
     else {
-        t = texture(tex,coord);  
+        t = texture(tex,coord);
 
     }
 
@@ -120,17 +120,17 @@ void main(){
 
     if(is_depth){
         float d = linearize_depth(t.x, depth_near, depth_far);
-        fragColor = vec4(vec3(d*bias),opacity);         
+        fragColor = vec4(vec3(d*bias),opacity);
         return;
     }
     else if(singleChannel){
-        
+
         if(zeroIsTransparent){
             fragColor = vec4(vec3(t.x,0,0),(t.x > 0) ? 0.4f : 0.0f);
         }
         else{
-            fragColor = vec4(vec3(t.x*bias),opacity);   
-        }       
+            fragColor = vec4(vec3(t.x*bias),opacity);
+        }
     }
 
     if(showOnlyAlpha)
@@ -141,5 +141,5 @@ void main(){
     }
 
 
-    
+
 }

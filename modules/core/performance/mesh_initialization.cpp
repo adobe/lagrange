@@ -14,6 +14,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/utils/timing.h>
+#include <lagrange/create_mesh.h>
 
 using namespace lagrange;
 

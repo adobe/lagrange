@@ -21,12 +21,14 @@ namespace lagrange {
 namespace ui {
 
 
-std::shared_ptr<Material> create_material(Registry& r, entt::id_type shader_id)
+std::shared_ptr<Material>
+create_material(Registry& r, entt::id_type shader_id, const ShaderDefines& shader_defines)
 {
-    return std::make_shared<Material>(r, shader_id);
+    return std::make_shared<Material>(r, shader_id, shader_defines);
 }
 
-PrimitiveType get_raster_primitive(Glyph g) {
+PrimitiveType get_raster_primitive(Glyph g)
+{
     switch (g) {
     case lagrange::ui::Glyph::Surface: return PrimitiveType::TRIANGLES;
     case lagrange::ui::Glyph::Line: return PrimitiveType::LINES;
@@ -64,8 +66,7 @@ Entity show_attribute_surface(
 
     if (raster_primitive == PrimitiveType::LINES) {
         mat.set_int(RasterizerOptions::PolygonMode, GL_LINE);
-    }
-    else if (raster_primitive == PrimitiveType::POINTS) {
+    } else if (raster_primitive == PrimitiveType::POINTS) {
         mat.set_int(RasterizerOptions::PolygonMode, GL_POINT);
         mat.set_int(RasterizerOptions::PointSize, 3);
     } else {
@@ -208,8 +209,13 @@ Entity show_vertex_attribute(
 
     Entity e = ui::NullEntity;
 
-    if (glyph == Glyph::Surface ||  glyph == Glyph::Point) {
-        e = show_attribute_surface(registry, mesh_entity, IndexingMode::VERTEX, attribute, get_raster_primitive(glyph));
+    if (glyph == Glyph::Surface || glyph == Glyph::Point) {
+        e = show_attribute_surface(
+            registry,
+            mesh_entity,
+            IndexingMode::VERTEX,
+            attribute,
+            get_raster_primitive(glyph));
     } else if (glyph == Glyph::Line) {
         e = show_attribute_surface(
             registry,
@@ -245,7 +251,12 @@ Entity show_facet_attribute(
     Entity e = ui::NullEntity;
 
     if (glyph == Glyph::Surface || glyph == Glyph::Point) {
-        e = show_attribute_surface(registry, mesh_entity, IndexingMode::FACE, attribute, get_raster_primitive(glyph));
+        e = show_attribute_surface(
+            registry,
+            mesh_entity,
+            IndexingMode::FACE,
+            attribute,
+            get_raster_primitive(glyph));
     } else if (glyph == Glyph::Line) {
         e = show_attribute_surface(
             registry,
@@ -280,7 +291,7 @@ Entity show_corner_attribute(
 
     Entity e = ui::NullEntity;
 
-    if (glyph == Glyph::Surface ||glyph == Glyph::Point) {
+    if (glyph == Glyph::Surface || glyph == Glyph::Point) {
         e = show_attribute_surface(
             registry,
             mesh_entity,
@@ -418,19 +429,23 @@ void clear_scene(Registry& r)
     });
 }
 
-Entity show_mesh(Registry& registry, const Entity& mesh_entity, StringID shader_id)
+Entity show_mesh(
+    Registry& registry,
+    const Entity& mesh_entity,
+    StringID shader_id,
+    const ShaderDefines& shader_defines)
 {
-    return show_mesh(registry, mesh_entity, NullEntity, shader_id);
+    return show_mesh(registry, mesh_entity, NullEntity, shader_id, shader_defines);
 }
 
 Entity show_submesh(
     Registry& r,
     const Entity& mesh_entity,
     std::shared_ptr<Material> material,
-    entt::id_type material_id)
+    entt::id_type submesh_id)
 {
     auto e = show_mesh(r, mesh_entity, NullEntity, std::move(material));
-    r.get<ui::MeshGeometry>(e).submesh_index = material_id;
+    r.get<ui::MeshGeometry>(e).submesh_index = submesh_id;
     return e;
 }
 
@@ -439,9 +454,14 @@ Entity show_mesh(
     Registry& r,
     Entity mesh_entity,
     Entity scene_node_entity,
-    StringID shader /*= DefaultShaders::PBR*/)
+    StringID shader,
+    const ShaderDefines& shader_defines)
 {
-    return show_mesh(r, mesh_entity, scene_node_entity, ui::create_material(r, shader));
+    return show_mesh(
+        r,
+        mesh_entity,
+        scene_node_entity,
+        ui::create_material(r, shader, shader_defines));
 }
 
 Entity show_mesh(
@@ -450,7 +470,8 @@ Entity show_mesh(
     Entity scene_node_entity,
     std::shared_ptr<Material> material)
 {
-    if (scene_node_entity == NullEntity) scene_node_entity = create_scene_node(r, ui::get_name(r, mesh_entity));
+    if (scene_node_entity == NullEntity)
+        scene_node_entity = create_scene_node(r, ui::get_name(r, mesh_entity));
     r.emplace<MeshGeometry>(scene_node_entity, mesh_entity);
 
     MeshRender mr;

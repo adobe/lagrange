@@ -100,12 +100,17 @@ void render_viewport(Registry& r, Entity e)
            0,
            int(viewport.computed_camera.get_window_width()),
            int(viewport.computed_camera.get_window_height()));
-        gl(glClearColor,
-           viewport.background.x(),
-           viewport.background.y(),
-           viewport.background.z(),
-           viewport.background.w());
-        gl(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        
+
+        if (viewport.clear_bits != 0) {
+            gl(glClearColor,
+               viewport.background.x(),
+               viewport.background.y(),
+               viewport.background.z(),
+               viewport.background.w());
+
+            gl(glClear, viewport.clear_bits);
+        }
     }
 
     // TODO as geometry (skybox)!

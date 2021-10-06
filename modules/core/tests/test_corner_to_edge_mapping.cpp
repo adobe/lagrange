@@ -11,6 +11,7 @@
  */
 #include <lagrange/corner_to_edge_mapping.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/Mesh.h>
 
 
 // clang-format off

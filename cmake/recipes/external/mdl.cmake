@@ -23,8 +23,6 @@ set(MDL_FOLDER "${FETCHCONTENT_BASE_DIR}/mdl/${MDL_VERSION}")
 set(MDL_ARCHIVE "${MDL_FOLDER}/archive.zip")
 
 if(NOT EXISTS ${MDL_FOLDER})
-    unset(MDL_DYNAMIC_LIBS CACHE)
-
     file(MAKE_DIRECTORY ${MDL_FOLDER})
 
     if(NOT EXISTS ${MDL_ARCHIVE})
@@ -53,16 +51,51 @@ if(NOT EXISTS ${MDL_FOLDER})
     file(REMOVE ${MDL_ARCHIVE})
 endif()
 
+unset(MDL_PREFIX)
+unset(MDL_SUFFIX)
 if(WIN32)
-    file(GLOB __MDL_DYNAMIC_LIBS "${MDL_FOLDER}/nt-x86-64/lib/*.dll")
+    set(MDL_PREFIX "nt-x86-64")
+    set(MDL_SUFFIX ".dll")
 elseif(APPLE)
-    file(GLOB __MDL_DYNAMIC_LIBS "${MDL_FOLDER}/macosx-x86-64/lib/*.so")
+    set(MDL_PREFIX "macosx-x86-64")
+    set(MDL_SUFFIX ".so")
 elseif(UNIX)
-    file(GLOB __MDL_DYNAMIC_LIBS "${MDL_FOLDER}/linux-x86-64/lib/*.so")
+    set(MDL_PREFIX "linux-x86-64")
+    set(MDL_SUFFIX ".so")
 endif()
 
-set(MDL_DYNAMIC_LIBS ${__MDL_DYNAMIC_LIBS} CACHE STRING "MDL_DYNAMIC_LIBS")
+# Creates one IMPORTED target for each requested library
+function(mdl_add_imported_library name)
+    # Create imported target for library
+    add_library(mdl::${name} MODULE IMPORTED GLOBAL)
+    set_target_properties(mdl::${name} PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES CXX)
+
+    # Important to avoid absolute path referencing of the libraries in the executables
+    set_target_properties(mdl::${name} PROPERTIES IMPORTED_NO_SONAME TRUE)
+
+    # Find library file
+    string(TOUPPER mdl_${name}_lib LIBVAR)
+    find_file(${LIBVAR}
+        NAMES ${name}${MDL_SUFFIX}
+        HINTS "${MDL_FOLDER}/${MDL_PREFIX}/lib"
+        NO_DEFAULT_PATH
+        REQUIRED
+    )
+    message(STATUS "Creating target mdl::${name} for file: ${${LIBVAR}}")
+
+    # Set imported location
+    set_target_properties(mdl::${name} PROPERTIES
+        IMPORTED_LOCATION "${${LIBVAR}}"
+    )
+
+    # Add as dependency to the meta target mdl::mdl
+    target_link_libraries(mdl::mdl INTERFACE mdl::${name})
+endfunction()
 
 add_library(mdl::mdl INTERFACE IMPORTED GLOBAL)
-message(STATUS "MDL Path: ${MDL_FOLDER}")
+message(STATUS "MDL include dir: ${MDL_FOLDER}/include")
 target_include_directories(mdl::mdl SYSTEM INTERFACE ${MDL_FOLDER}/include)
+
+foreach(name IN ITEMS dds libmdl_sdk nv_freeimage)
+    mdl_add_imported_library(${name})
+endforeach()

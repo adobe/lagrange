@@ -490,18 +490,14 @@ void show_material(Registry* rptr, Material& mat)
 
             for (auto& it : values) {
                 const auto& id = it.first;
-                if (shader->texture_properties().find(id) == shader->texture_properties().end()) {
-                    ImGui::TableNextRow();
-                    ImGui::TableSetColumnIndex(0);
-                    ImGui::Text("Unknown texture property");
-                    continue;
-                }
+
+                auto& val = it.second;
+
+                auto has_property =
+                    shader->texture_properties().find(id) != shader->texture_properties().end();
 
                 ImGui::TableNextRow();
                 ImGui::PushID(it.first);
-
-                const auto& prop = shader->texture_properties().at(id);
-                auto& val = it.second;
 
 
                 ImGui::TableSetColumnIndex(0);
@@ -509,67 +505,79 @@ void show_material(Registry* rptr, Material& mat)
                 bool browse_clicked = browse_texture_widget(val.texture, tex_size);
 
                 ImGui::TableSetColumnIndex(1);
-                ImGui::Text("%s", prop.display_name.c_str());
 
+                if (has_property) {
+                    const auto& prop = shader->texture_properties().at(id);
 
-                if (prop.colormap) {
-                    if (ImGui::BeginPopup("###Choose Colormap")) {
-                        if (show_colormap_popup(*rptr, mat, it.first)) ImGui::CloseCurrentPopup();
-                        ImGui::EndPopup();
+                    ImGui::Text("%s", prop.display_name.c_str());
+
+                    if (prop.colormap) {
+                        if (ImGui::BeginPopup("###Choose Colormap")) {
+                            if (show_colormap_popup(*rptr, mat, it.first))
+                                ImGui::CloseCurrentPopup();
+                            ImGui::EndPopup();
+                        }
+
+                        if (ImGui::Button("Choose Colormap " ICON_FA_CARET_DOWN)) {
+                            ImGui::OpenPopup("###Choose Colormap");
+                        }
+                        ImGui::SameLine();
                     }
 
-                    if (ImGui::Button("Choose Colormap " ICON_FA_CARET_DOWN)) {
-                        ImGui::OpenPopup("###Choose Colormap");
+                    if (val.texture) {
+                        if (ImGui::Button("Clear texture")) {
+                            val.texture = nullptr;
+                        }
+                    } else {
+                        if (prop.value_dimension == 1) {
+                            ImGui::SliderFloat("##value", val.color.data(), 0, 1);
+                        } else if (prop.value_dimension == 2) {
+                            UIWidget("##value")(reinterpret_cast<Eigen::Vector2f&>(val.color));
+                        } else if (prop.value_dimension == 3) {
+                            Color c = Color(val.color.x(), val.color.y(), val.color.z(), 1.0f);
+                            if (UIWidget("##value")(c)) {
+                                val.color = c;
+                            }
+                        } else if (prop.value_dimension == 4) {
+                            Color c = val.color;
+                            if (UIWidget("##value")(c)) {
+                                val.color = c;
+                            }
+                        }
                     }
-                    ImGui::SameLine();
-                }
 
-                if (val.texture) {
-                    if (ImGui::Button("Clear texture")) {
-                        val.texture = nullptr;
+                    if (browse_clicked) {
+                        Texture::Params p;
+                        // todo srgb for base color?
+
+                        // If shader specifies value dimension, override texture upload defaults
+                        if (prop.value_dimension == 1) {
+                            p.format = GL_RED;
+                        } else if (prop.value_dimension == 2) {
+                            p.format = GL_RG;
+                        } else if (prop.value_dimension == 3) {
+                            p.format = GL_RGB;
+                        } else if (prop.value_dimension == 4) {
+                            p.format = GL_RGBA;
+                        }
+                        auto new_tex = load_texture_dialog(p);
+                        if (new_tex) val.texture = new_tex;
+                    }
+
+
+                    if (prop.transformable) {
+                        ImGui::Text("Transform:");
+                        UIWidget("rotation")(val.transform.rotation);
+                        UIWidget("offset")(val.transform.offset);
+                        UIWidget("scale")(val.transform.scale);
                     }
                 } else {
-                    if (prop.value_dimension == 1) {
-                        ImGui::SliderFloat("##value", val.color.data(), 0, 1);
-                    } else if (prop.value_dimension == 2) {
-                        UIWidget("##value")(reinterpret_cast<Eigen::Vector2f&>(val.color));
-                    } else if (prop.value_dimension == 3) {
-                        Color c = Color(val.color.x(), val.color.y(), val.color.z(), 1.0f);
-                        if (UIWidget("##value")(c)) {
-                            val.color = c;
-                        }
-                    } else if (prop.value_dimension == 4) {
-                        Color c = val.color;
-                        if (UIWidget("##value")(c)) {
-                            val.color = c;
+                    ImGui::Text("%s", "Unknown texture property");
+                    if (val.texture) {
+                        if (ImGui::Button("Clear texture")) {
+                            val.texture = nullptr;
                         }
                     }
-                }
-
-                if (browse_clicked) {
-                    Texture::Params p;
-                    // todo srgb for base color?
-
-                    // If shader specifies value dimension, override texture upload defaults
-                    if (prop.value_dimension == 1) {
-                        p.format = GL_RED;
-                    } else if (prop.value_dimension == 2) {
-                        p.format = GL_RG;
-                    } else if (prop.value_dimension == 3) {
-                        p.format = GL_RGB;
-                    } else if (prop.value_dimension == 4) {
-                        p.format = GL_RGBA;
-                    }
-                    auto new_tex = load_texture_dialog(p);
-                    if (new_tex) val.texture = new_tex;
-                }
-
-
-                if (prop.transformable) {
-                    ImGui::Text("Transform:");
-                    UIWidget("rotation")(val.transform.rotation);
-                    UIWidget("offset")(val.transform.offset);
-                    UIWidget("scale")(val.transform.scale);
                 }
 
                 ImGui::PopID();
@@ -1040,7 +1048,7 @@ void show_layer(Registry* rptr, Entity e)
 
 
     for (size_t i = 0; i < get_max_layers(); i++) {
-        const auto& name = get_layer_name(*rptr, i);
+        const auto& name = get_layer_name(*rptr, LayerIndex(i));
         if (name.length() == 0) continue;
         bool value = layer.test(i);
         if (ImGui::Checkbox(name.c_str(), &value)) {

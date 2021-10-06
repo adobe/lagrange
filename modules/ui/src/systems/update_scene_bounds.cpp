@@ -40,7 +40,13 @@ void update_scene_bounds_system(Registry& registry)
     auto view = registry.view<TreeNode>();
     for (auto e : view) {
         // Skip inner
-        if (view.get<TreeNode>(e).num_children != 0) continue;
+        if (view.get<TreeNode>(e).num_children != 0) {
+            //Clear previous bvh values
+            if (registry.has<Bounds>(e)) {
+                registry.get<Bounds>(e).bvh_node = AABB{};
+            }
+            continue;
+        }
 
         // Skip non bounded entities
         if (!registry.has<Bounds>(e)) continue;

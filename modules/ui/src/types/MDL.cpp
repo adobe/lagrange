@@ -77,19 +77,19 @@ struct MDLImpl
         auto context = handle_of(state.factory->create_execution_context());
         {
             const std::string mtl =
-#include "adobe_mdl/mtl.mdl"
+#include "../adobe_mdl/mtl.mdl"
                 ;
 
             const std::string util =
-#include "adobe_mdl/util.mdl"
+#include "../adobe_mdl/util.mdl"
                 ;
 
             const std::string annotations =
-#include "adobe_mdl/annotations.mdl"
+#include "../adobe_mdl/annotations.mdl"
                 ;
 
             const std::string convert =
-#include "adobe_mdl/convert.mdl"
+#include "../adobe_mdl/convert.mdl"
                 ;
 
             mi::Sint32 err_code;

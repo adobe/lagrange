@@ -25,7 +25,7 @@ uniform int directional_lights_count = 0;
 
 float get_shadow_at(vec3 surface_pos, SpotLight L){
     return getShadowSquare(
-        surface_pos, 
+        surface_pos,
         L.PV,
         L.shadow_map,
         L.shadow_near,
@@ -35,7 +35,7 @@ float get_shadow_at(vec3 surface_pos, SpotLight L){
 
 float get_shadow_at(vec3 surface_pos, DirectionalLight L){
     return getShadowSquare(
-        surface_pos, 
+        surface_pos,
         L.PV,
         L.shadow_map,
         L.shadow_near,
@@ -45,7 +45,7 @@ float get_shadow_at(vec3 surface_pos, DirectionalLight L){
 
 float get_shadow_at(vec3 surface_pos, PointLight L){
     return getShadowCube(
-        surface_pos, 
+        surface_pos,
         L.position,
         L.shadow_map,
         L.shadow_near,
@@ -55,14 +55,14 @@ float get_shadow_at(vec3 surface_pos, PointLight L){
 
 
 LightAtSurface get_light_at_surface(
-    SpotLight spot, 
+    SpotLight spot,
     vec3 surface_pos,
     vec3 lightOut,
     float cos_out
     ){
 
-    vec3 lightPos = spot.position; 
-    vec3 intensity = spot.intensity; 
+    vec3 lightPos = spot.position;
+    vec3 intensity = spot.intensity;
     float lightDistance = length(lightPos - surface_pos);
 
     LightAtSurface L;
@@ -72,32 +72,32 @@ LightAtSurface get_light_at_surface(
     L.lightHalf = normalize(L.lightIn + L.lightOut);
 
 
-    float shadow_attenuation = get_shadow_at(surface_pos, spot);
-    float attenuation = 1.0 / (lightDistance*lightDistance);
-
+    L.shadow_attenuation = get_shadow_at(surface_pos, spot);
+    L.attenuation = max(1.0 / (lightDistance*lightDistance),1.0);
     //Apply spot factor
-    attenuation *= calculate_spot_factor(
+    L.attenuation *= calculate_spot_factor(
         lightPos, L.lightIn, spot.direction, spot.cone_angle
     );
 
-    L.radiance = attenuation * shadow_attenuation * intensity;
-    
-    
+
+    L.radiance = L.attenuation * L.shadow_attenuation * intensity;
+
+
     return L;
 }
 
 
 
 LightAtSurface get_light_at_surface(
-    DirectionalLight dir, 
+    DirectionalLight dir,
     vec3 surface_pos,
     vec3 lightOut,
     float cos_out
     ){
-        
-    
-    vec3 intensity = dir.intensity; 
-    
+
+
+    vec3 intensity = dir.intensity;
+
 
     LightAtSurface L;
     L.lightOut = lightOut;
@@ -105,23 +105,23 @@ LightAtSurface get_light_at_surface(
     L.lightIn = normalize(-dir.direction);
     L.lightHalf = normalize(L.lightIn + L.lightOut);
 
-    float shadow_attenuation = get_shadow_at(surface_pos, dir);
-
-    L.radiance = shadow_attenuation * intensity;
+    L.attenuation = 1.0;
+    L.shadow_attenuation = get_shadow_at(surface_pos, dir);
+    L.radiance = L.shadow_attenuation * intensity;
 
     return L;
 }
 
 
 LightAtSurface get_light_at_surface(
-    PointLight point, 
+    PointLight point,
     vec3 surface_pos,
     vec3 lightOut,
     float cos_out
     ){
 
-    vec3 lightPos = point.position; 
-    vec3 intensity = point.intensity; 
+    vec3 lightPos = point.position;
+    vec3 intensity = point.intensity;
     float lightDistance = length(lightPos - surface_pos);
 
     LightAtSurface L;
@@ -130,11 +130,11 @@ LightAtSurface get_light_at_surface(
     L.lightIn = normalize(lightPos - surface_pos);
     L.lightHalf = normalize(L.lightIn + L.lightOut);
 
-    float shadow_attenuation = get_shadow_at(surface_pos, point);
-    float attenuation = 1.0 / (lightDistance*lightDistance);
+    L.shadow_attenuation = get_shadow_at(surface_pos, point);
+    L.attenuation = max(1.0 / (lightDistance*lightDistance), 1.0);
 
-    L.radiance = attenuation * shadow_attenuation * intensity;
-    
-    
+    L.radiance = L.attenuation * L.shadow_attenuation * intensity;
+
+
     return L;
 }

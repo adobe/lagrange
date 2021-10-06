@@ -52,15 +52,15 @@ void main() {
     vec3 n = normalize(cross(u,v));
 
     vec3 end = center + n * line_length;
-    
+
     gs_out.pos_a = center;
     gs_out.pos_b = end;
     gs_out.n = n;
-    
-    gl_Position = PV * vec4(center,1);  
+
+    gl_Position = PV * vec4(center,1);
     EmitVertex();
 
-    gl_Position = PV * vec4(end,1); 
+    gl_Position = PV * vec4(end,1);
     EmitVertex();
 
     EndPrimitive();
@@ -87,5 +87,5 @@ void main(){
     if(use_direction_color)
         fragColor = vec4(fs_in.n, color.a);
     else
-        fragColor = color;  
+        fragColor = color;
 }

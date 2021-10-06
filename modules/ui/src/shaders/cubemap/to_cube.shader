@@ -32,7 +32,7 @@ uniform sampler2D texRectangular;
 void main(){
 
     vec3 p = normalize(fs_in.pos);
-    
+
     vec2 UV = vec2(atan(p.z,p.x),asin(p.y));
     UV *= vec2(0.1591,0.3183);
     UV += vec2(0.5);

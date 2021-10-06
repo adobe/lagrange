@@ -86,6 +86,7 @@ struct RasterizerOptions
 {
     constexpr static const StringID DepthTest = "DepthTest"_hs;
     constexpr static const StringID DepthMask = "DepthMask"_hs;
+    constexpr static const StringID DepthFunc = "DepthFunc"_hs;
     constexpr static const StringID BlendEquation = "BlendEquation"_hs;
     constexpr static const StringID DrawBuffer = "DrawBuffer"_hs;
     constexpr static const StringID ReadBuffer = "ReadBuffer"_hs;

@@ -14,14 +14,14 @@
 layout (location = 0) in vec3 in_pos;
 
 out VARYING {
-    vec3 pos;   
+    vec3 pos;
 } vs_out;
 
 uniform mat4 PV;
 
 
 void main()
-{       
+{
     vs_out.pos = in_pos;
     gl_Position = (PV * vec4(vs_out.pos,1.0)).xyww;
 }
@@ -40,11 +40,11 @@ uniform float mip_level = 0.0f;
 void main(){
 
     vec3 p = normalize(fs_in.pos);
-     
-    fragColor = textureLod(texCubemap, p.xyz, mip_level);    
+
+    fragColor = textureLod(texCubemap, p.xyz, mip_level);
 
     //gamma correction
     const float gamma = 2.2;
     fragColor.xyz = pow(fragColor.xyz, vec3(1.0 / gamma));
-    
+
 }

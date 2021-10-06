@@ -42,11 +42,11 @@ layout(location = 0) out vec4 fragColor;
 #define FxaaTexLod0(t, p) textureLod(t, p, 0.0)
 #define FxaaTexOff(t, p, o, r) textureLodOffset(t, p, 0.0, o)
 
-vec3 FxaaPixelShader( 
+vec3 FxaaPixelShader(
     vec4 posPos, // Output of FxaaVertexShader interpolated across screen.
     sampler2D tex, // Input texture.
     vec2 rcpFrame) // Constant {1.0/frameWidth, 1.0/frameHeight}.
-{   
+{
 /*---------------------------------------------------------*/
     #define FXAA_REDUCE_MIN   (1.0/128.0)
     //#define FXAA_REDUCE_MUL   (1.0/8.0)
@@ -68,7 +68,7 @@ vec3 FxaaPixelShader(
     float lumaMin = min(lumaM, min(min(lumaNW, lumaNE), min(lumaSW, lumaSE)));
     float lumaMax = max(lumaM, max(max(lumaNW, lumaNE), max(lumaSW, lumaSE)));
 /*---------------------------------------------------------*/
-    vec2 dir; 
+    vec2 dir;
     dir.x = -((lumaNW + lumaNE) - (lumaSW + lumaSE));
     dir.y =  ((lumaNW + lumaSW) - (lumaNE + lumaSE));
 /*---------------------------------------------------------*/
@@ -76,8 +76,8 @@ vec3 FxaaPixelShader(
         (lumaNW + lumaNE + lumaSW + lumaSE) * (0.25 * FXAA_REDUCE_MUL),
         FXAA_REDUCE_MIN);
     float rcpDirMin = 1.0/(min(abs(dir.x), abs(dir.y)) + dirReduce);
-    dir = min(FxaaFloat2( FXAA_SPAN_MAX,  FXAA_SPAN_MAX), 
-          max(FxaaFloat2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX), 
+    dir = min(FxaaFloat2( FXAA_SPAN_MAX,  FXAA_SPAN_MAX),
+          max(FxaaFloat2(-FXAA_SPAN_MAX, -FXAA_SPAN_MAX),
           dir * rcpDirMin)) * rcpFrame.xy;
 /*--------------------------------------------------------*/
     vec3 rgbA = (1.0/2.0) * (
@@ -98,9 +98,9 @@ vec4 PostFX(sampler2D tex, vec2 uv, float time)
     c.a = 1.0;
     return c;
 }
-    
-void main() 
-{ 
+
+void main()
+{
     //vec2 uv = gl_TexCoord[0].st;
     fragColor = PostFX(tex0, uv, 0.0);
 }

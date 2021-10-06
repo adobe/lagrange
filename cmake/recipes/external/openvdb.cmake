@@ -130,3 +130,5 @@ endfunction()
 
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
 openvdb_import_target()
+
+set_target_properties(openvdb_static PROPERTIES FOLDER third_party)

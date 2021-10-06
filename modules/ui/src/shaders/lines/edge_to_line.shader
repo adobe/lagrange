@@ -12,7 +12,7 @@
 #include "uniforms/common.glsl"
 
 #pragma VERTEX
-#include "util/vertex_layout.glsl"
+#include "layout/default_vertex_layout.glsl"
 
 
 out VARYING {

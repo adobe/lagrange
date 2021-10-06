@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 #include "util/material.glsl"
-//uniform MaterialAdobe material;
 
 //pragma uniform SHADER_NAME   DISPLAY_NAME     TYPE(DEFAULT_VALUE) [tag0,tag1]
 //For Texture, the value is used as a fallback value -> it will generate name_texture_bound and name_default_value
@@ -18,26 +17,26 @@
 #pragma property material_roughness "Roughness" Texture2D(0.4)
 #pragma property material_metallic "Metallic" Texture2D(0.1)
 #pragma property material_normal "Normal" Texture2D [normal]
-#pragma property material_opacity "Opacity" float(1,0,1) 
+#pragma property material_opacity "Opacity" float(1,0,1)
 
 //Will read individual material properties, either from texture or from constant value
 void read_material(
-    in vec2 uv, 
-    out vec3 baseColor, 
-    out float metallic, 
+    in vec2 uv,
+    out vec3 baseColor,
+    out float metallic,
     out float roughness,
     out float opacity
 ){
 
-    vec4 baseColor_a = material_base_color_texture_bound ? 
-        texture(material_base_color, uv) : material_base_color_default_value;    
-    
+    vec4 baseColor_a = material_base_color_texture_bound ?
+        texture(material_base_color, uv) : material_base_color_default_value;
+
     baseColor = baseColor_a.xyz;
 
-    metallic =  material_metallic_texture_bound ? 
+    metallic =  material_metallic_texture_bound ?
         texture(material_metallic, uv).x : material_metallic_default_value;
 
-    roughness =  material_roughness_texture_bound ? 
+    roughness =  material_roughness_texture_bound ?
         texture(material_roughness, uv).x : material_roughness_default_value;
 
     opacity = baseColor_a.a * material_opacity;
@@ -64,23 +63,23 @@ vec3 adjust_color(
 vec3 adjust_normal(vec3 N, vec3 T, vec3 BT, vec2 uv){
 
     N = normalize(N);
-    
+
     if(material_normal_texture_bound){
 
         T = normalize(T);
         BT = normalize(BT);
 
-        mat3 TBN = mat3(T, BT, N);        
+        mat3 TBN = mat3(T, BT, N);
         vec3 N_in_TBN = TBN * N;
 
         vec3 Ntex = texture(material_normal, uv).xyz * 2.0f - vec3(1.0f);
         vec3 Ntex_in_world = TBN * Ntex;
 
-        N = normalize(Ntex_in_world);  
+        N = normalize(Ntex_in_world);
 
     }
-    
+
     return N;
-    
+
 
 }

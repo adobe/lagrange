@@ -14,8 +14,6 @@
 #pragma VERTEX
 #include "util/default.vertex"
 
-
-
 #pragma GEOMETRY
 
 layout(triangles) in;
@@ -78,7 +76,7 @@ void main(){
     emit(0,2);
     emit(center_pos,center_color,center_normal,center_uv,center_tangent, center_bitangent);
     EndPrimitive();
-    
+
 }
 
 #pragma FRAGMENT
