@@ -41,7 +41,7 @@ struct WindowDropEvent
 
 /// Triggered when Transform component has changed
 /// Only monitors global transform (not local)
-/// Note: this check is only performed when at least one listener is registered. When enabled, 
+/// Note: this check is only performed when at least one listener is registered. When enabled,
 /// it is checked for all entities with Transform component.
 struct TransformChangedEvent {
     Entity entity;
@@ -75,6 +75,26 @@ struct HoveredEvent
 struct DehoveredEvent
 {
     Entity entity;
+};
+
+/// Triggered when MeshRender component has changed
+struct MeshRenderChangedEvent
+{
+    Entity entity;
+};
+
+/// Triggered when Light component has changed
+struct LightComponentChangedEvent
+{
+    Entity entity;
+};
+
+/// Triggered when IBL has changed
+struct IBLChangedEvent
+{
+    Entity entity;
+    bool image_changed = false;
+    bool parameters_changed = false;
 };
 
 /*

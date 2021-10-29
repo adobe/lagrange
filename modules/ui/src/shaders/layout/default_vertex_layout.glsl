@@ -12,8 +12,8 @@
 layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec3 in_normal;
 layout (location = 2) in vec2 in_uv;
-layout (location = 3) in vec4 in_tangent;
-layout (location = 4) in vec4 in_bitangent;
+layout (location = 3) in vec3 in_tangent;
+layout (location = 4) in vec3 in_bitangent;
 
 #ifdef SKELETAL
 layout (location = 5) in vec4 in_bone_ids;

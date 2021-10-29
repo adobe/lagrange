@@ -32,10 +32,11 @@ void update_transform_recursive(
 
         if (check_change) {
             auto new_global = (parent_global_transform * transform.local);
-            if(transform.global.matrix() != new_global.matrix()){
+            const bool is_changed = transform.global.matrix() != new_global.matrix();
+            transform.global = new_global;
+            if (is_changed) {
                 ui::publish<TransformChangedEvent>(registry, e);
             }
-            transform.global = new_global;
         }
         else {
             transform.global = (parent_global_transform * transform.local);

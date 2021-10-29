@@ -87,6 +87,7 @@ void ensure_normal(MeshData& d);
 void ensure_tangent_bitangent(MeshData& d);
 void ensure_is_selected_attribute(MeshData& d);
 void map_indexed_attribute_to_corner_attribute(MeshData& d, const std::string& name);
+void map_corner_attribute_to_vertex_attribute(MeshData& d, const std::string& name);
 
 //////////////////////////////////////////////////////////////////////////////////////
 // Mesh to GPU upload

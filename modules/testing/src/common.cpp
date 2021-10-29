@@ -23,6 +23,11 @@
 namespace lagrange {
 namespace testing {
 
+fs::path get_data_dir()
+{
+    return fs::path(TEST_DATA_DIR);
+}
+
 // A nice thing about this function is that we don't have to rebuild "everything"
 // when we change it.
 fs::path get_data_path(const fs::path& relative_path)
@@ -32,7 +37,7 @@ fs::path get_data_path(const fs::path& relative_path)
     }
     REQUIRE(relative_path.is_relative());
 
-    fs::path absolute_path = fs::path(TEST_DATA_DIR) / relative_path;
+    fs::path absolute_path = get_data_dir() / relative_path;
 
     if (!fs::exists(absolute_path)) {
         logger().error("{} does not exist", absolute_path.string());

@@ -46,11 +46,17 @@ public:
 
     void set_color(const std::string& name, Color color);
     void set_color(StringID id, Color color);
+    const Color get_color(StringID id);
+    const Color get_color(const std::string& name);
     void set_texture(const std::string& name, std::shared_ptr<Texture> texture);
     void set_texture(StringID id, std::shared_ptr<Texture> texture);
+    std::shared_ptr<Texture> get_texture(StringID id);
+    std::shared_ptr<Texture> get_texture(const std::string& name);
 
     void set_float(const std::string& name, float value);
     void set_float(StringID id, float value);
+    float get_float(StringID id);
+    float get_float(const std::string& name);
 
     void set_int(const std::string& name, int value);
     void set_int(StringID id, int value);

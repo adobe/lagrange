@@ -28,6 +28,8 @@
 #include <lagrange/ui/utils/selection.h>
 #include <lagrange/ui/utils/uipanel.h>
 #include <lagrange/ui/utils/viewport.h>
+#include <lagrange/ui/default_events.h>
+#include <lagrange/ui/utils/events.h>
 
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
@@ -110,18 +112,22 @@ void draw_texture_widget(Texture& tex)
         case GL_RED: ImGui::Text("GL_RED"); break;
         case GL_RGBA: ImGui::Text("GL_RGBA"); break;
         case GL_DEPTH_COMPONENT: ImGui::Text("GL_DEPTH_COMPONENT"); break;
-        default: ImGui::Text("%x", p.format); break;
+        default: ImGui::Text("Other: %x", p.format); break;
         }
 
         ImGui::Text("Internal Format: ");
         ImGui::SameLine();
-        switch (p.format) {
+        switch (p.internal_format) {
         case GL_R8: ImGui::Text("GL_R8"); break;
         case GL_RGB: ImGui::Text("GL_RGB"); break;
         case GL_RGBA: ImGui::Text("GL_RGBA"); break;
+        case GL_SRGB_ALPHA: ImGui::Text("GL_SRGB_ALPHA"); break;
+        case GL_SRGB: ImGui::Text("GL_SRGB"); break;
+        case GL_SRGB8: ImGui::Text("GL_SRGB8"); break;
         case GL_DEPTH_COMPONENT24: ImGui::Text("GL_DEPTH_COMPONENT24"); break;
         case GL_RGB16F: ImGui::Text("GL_RGB16F"); break;
-        default: ImGui::Text("%x", p.format); break;
+        case GL_RGB32F: ImGui::Text("GL_RGB32F"); break;
+        default: ImGui::Text("Other: %x", p.format); break;
         }
 
         ImGui::Text("Generate Mipmap: %s", p.generate_mipmap ? "True" : "False");
@@ -457,6 +463,8 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
         registry.has<CameraController>(viewport.camera_reference)) {
         auto& controller = registry.get<CameraController>(viewport.camera_reference);
 
+        bool changed = false;
+
         // Camera modes
         {
             const bool perspective = (cam.get_type() == Camera::Type::PERSPECTIVE);
@@ -466,6 +474,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     cam.set_type(Camera::Type::PERSPECTIVE);
                 else
                     cam.set_type(Camera::Type::ORTHOGRAPHIC);
+                changed = true;
             }
             ImGui::SameLine();
 
@@ -474,6 +483,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     cam.set_type(Camera::Type::PERSPECTIVE);
                 else
                     cam.set_type(Camera::Type::ORTHOGRAPHIC);
+                changed = true;
             }
             ImGui::SameLine();
 
@@ -502,11 +512,13 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     "Top",
                     "Top-Down View")) {
                 cam.set_orthogonal_direction(Camera::Dir::TOP);
+                changed = true;
             }
             ImGui::SameLine();
 
             if (button_icon(cam.is_orthogonal_direction(Camera::Dir::BOTTOM), "Down", "Up View")) {
                 cam.set_orthogonal_direction(Camera::Dir::BOTTOM);
+                changed = true;
             }
             ImGui::SameLine();
 
@@ -515,16 +527,19 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     "Front",
                     "Front View")) {
                 cam.set_orthogonal_direction(Camera::Dir::FRONT);
+                changed = true;
             }
             ImGui::SameLine();
 
             if (button_icon(cam.is_orthogonal_direction(Camera::Dir::LEFT), "Left", "Left View")) {
                 cam.set_orthogonal_direction(Camera::Dir::LEFT);
+                changed = true;
             }
             ImGui::SameLine();
 
             if (button_icon(cam.is_orthogonal_direction(Camera::Dir::BACK), "Back", "Back View")) {
                 cam.set_orthogonal_direction(Camera::Dir::BACK);
+                changed = true;
             }
             ImGui::SameLine();
 
@@ -533,8 +548,16 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     "Right",
                     "Right View")) {
                 cam.set_orthogonal_direction(Camera::Dir::RIGHT);
+                changed = true;
             }
             ImGui::SameLine();
+        }
+
+        auto view = registry.view<CameraController, Camera>();
+
+        for (auto e : view) {
+            if (changed)
+                ui::publish<CameraChangedEvent>(registry, e);
         }
 
 

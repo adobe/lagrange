@@ -36,9 +36,9 @@ void main()
     vs_out.pos = (M * model_pos).xyz;
     vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
     vs_out.uv = in_uv;
-    vs_out.color = in_color;
-    vs_out.tangent = (NMat * vec4(in_tangent)).xyz;;
-    vs_out.bitangent = (NMat * vec4(in_bitangent)).xyz;;
+    vs_out.color = in_color;  
+    vs_out.tangent = (NMat * vec4(in_tangent,0.0)).xyz;;
+    vs_out.bitangent = (NMat * vec4(in_bitangent,0.0)).xyz;;
 
     //To clip space
     gl_Position = PV * vec4(vs_out.pos,1.0);

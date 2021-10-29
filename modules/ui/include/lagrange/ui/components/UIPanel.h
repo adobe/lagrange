@@ -48,10 +48,8 @@ struct UIPanel
     int child_width = 0;
     int child_height = 0;
 
-    // Set when changing enable_tab_bar
-    bool enable_tab_bar_active = false;
-    bool enable_tab_bar = true;
-
+    // set to hide the tab bar. Don't read it, it's only true for one frame. 
+    bool hide_tab_bar = false;
 
     bool static_position_enabled = false;
     Eigen::Vector2f static_position;

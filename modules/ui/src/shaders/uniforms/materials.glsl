@@ -19,6 +19,14 @@
 #pragma property material_normal "Normal" Texture2D [normal]
 #pragma property material_opacity "Opacity" float(1,0,1)
 
+// Currently not used in shader
+// TODO: change default value and add range
+#pragma property material_index_of_refraction "Index of Refraction" float(1.5,1,3)
+#pragma property material_glow "Glow" Texture2D(1, 1, 1, 1)
+#pragma property material_glow_intensity "Glow Intensity" float(0,0,10)
+#pragma property material_translucence "Translucence" Texture2D(0.0)
+#pragma property material_interior_color "Interior Color" Color(1,1,1,1)
+
 //Will read individual material properties, either from texture or from constant value
 void read_material(
     in vec2 uv,

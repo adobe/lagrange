@@ -111,6 +111,24 @@ void Material::set_color(const std::string& name, Color color)
     return set_color(string_id(name), color);
 }
 
+const Color Material::get_color(StringID id)
+{
+    auto it = color_values.find(id);
+    if (it == color_values.end()) {
+        // If not found, try to find texture property and get its fallback color
+        auto it_tex = texture_values.find(id);
+        // TODO: decide what is the desired behavior here
+        if (it_tex == texture_values.end()) return color_values[id];
+        return it_tex->second.color;
+    }
+    return it->second;
+}
+
+const Color Material::get_color(const std::string& name)
+{
+    return get_color(string_id(name));
+}
+
 void Material::set_texture(StringID id, std::shared_ptr<Texture> texture)
 {
     auto it_tex = texture_values.find(id);
@@ -125,6 +143,18 @@ void Material::set_texture(StringID id, std::shared_ptr<Texture> texture)
 void Material::set_texture(const std::string& name, std::shared_ptr<Texture> texture)
 {
     return set_texture(string_id(name), texture);
+}
+
+std::shared_ptr<Texture> Material::get_texture(StringID id)
+{
+    auto it_tex = texture_values.find(id);
+    if (it_tex == texture_values.end()) return nullptr;
+    return it_tex->second.texture;
+}
+
+std::shared_ptr<Texture> Material::get_texture(const std::string& name)
+{
+    return get_texture(string_id(name));
 }
 
 void Material::set_float(StringID id, float value)
@@ -148,6 +178,27 @@ void Material::set_float(StringID id, float value)
 void Material::set_float(const std::string& name, float value)
 {
     set_float(string_id(name), value);
+}
+
+float Material::get_float(StringID id)
+{
+    auto it = float_values.find(id);
+    if (it == float_values.end()) {
+        // If not found, try to find texture property and get its fallback red value
+        auto it_tex = texture_values.find(id);
+        if (it_tex == texture_values.end()) {
+            //Get as is, for user uniforms
+            // TODO: decide what is the desired behavior here
+            return float_values[id];
+        }
+        return it_tex->second.color.x();
+    }
+    return it->second;
+}
+
+float Material::get_float(const std::string& nam)
+{
+    return get_float(string_id(nam));
 }
 
 void Material::set_int(StringID id, int value)

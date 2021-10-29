@@ -44,15 +44,9 @@ bool begin_panel(UIPanel& window)
     }
 
 
-    if (window.enable_tab_bar_active && !window.enable_tab_bar) {
+    if (window.hide_tab_bar) {
         ImGuiWindowClass cls;
-        cls.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoTabBar;
-        ImGui::SetNextWindowClass(&cls);
-    }
-
-    if (window.enable_tab_bar_active && window.enable_tab_bar) {
-        ImGuiWindowClass cls;
-        cls.DockNodeFlagsOverrideClear = ImGuiDockNodeFlags_NoTabBar;
+        cls.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_HiddenTabBar;
         ImGui::SetNextWindowClass(&cls);
     }
 
@@ -76,7 +70,7 @@ bool begin_panel(UIPanel& window)
         window.dock_id = ImGui::GetWindowDockID();
     }
 
-    window.enable_tab_bar_active = false;
+    window.hide_tab_bar = false;
 
     return is_expanded;
 }
@@ -163,10 +157,9 @@ const MainMenuHeight& get_menu_height(const Registry& r)
     return r.ctx<MainMenuHeight>();
 }
 
-void enable_tab_bar(Registry& r, Entity uipanel_entity, bool enable)
+void hide_tab_bar(Registry& r, Entity uipanel_entity)
 {
-    r.get<UIPanel>(uipanel_entity).enable_tab_bar = enable;
-    r.get<UIPanel>(uipanel_entity).enable_tab_bar_active = true;
+    r.get<UIPanel>(uipanel_entity).hide_tab_bar = true;
 }
 
 

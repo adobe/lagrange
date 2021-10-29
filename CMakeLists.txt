@@ -53,7 +53,7 @@ endif()
 option(LAGRANGE_ALL               "Build all lagrange modules" OFF)
 
 # Temporary workaround for Linux-related build issues.
-if(CMAKE_HOST_SYSTEM_NAME MATCHES Linux)
+if(LAGRANGE_TOPLEVEL_PROJECT AND CMAKE_HOST_SYSTEM_NAME MATCHES Linux)
     # Unfortunately, on CentOS 7, the pre-compiled version of libarpack.so provided by
     # anorigami is somehow incompatible with our built-from-source TBB. Indeed, their
     # libarpack.so is looking for libtbb.so.2, but our CMake only produces a libtbb.so.
@@ -156,7 +156,7 @@ endif()
 find_package(Threads REQUIRED)
 
 # Include OneTBB early to provide TBB::tbb target
-if(LAGRANGE_WITH_ONETBB)
+if(LAGRANGE_WITH_ONETBB AND NOT (LAGRANGE_ALL OR LAGRANGE_LANTERN))
     set(MKL_VERSION 2021.3.0 CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
     include(onetbb)
 endif()

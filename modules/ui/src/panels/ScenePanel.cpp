@@ -151,7 +151,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
                     Control visibility in the Default layer
                 */
                 {
-                    ImGui::SameLine(ImGui::GetWindowContentRegionWidth() - eyebutton_width);
+                    ImGui::SameLine(ImGui::GetContentRegionAvail().x - eyebutton_width);
                     bool visible = ui::is_in_layer(registry, e, DefaultLayers::Default);
                     if (button_unstyled(visible ? ICON_FA_EYE : ICON_FA_EYE_SLASH)) {
                         if (visible) {

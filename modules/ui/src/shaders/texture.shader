@@ -63,11 +63,7 @@ void main(){
 
 
     vec2 coord = vertex_uv.xy;
-    /*fragColor.xy = coord;
-    fragColor.z = 0;
-    fragColor.w = 1;
-    return;*/
-
+    
     vec4 t;
     if(useTextureLod){
         t = textureLod(tex,coord,textureLevel);

@@ -269,6 +269,13 @@ void map_indexed_attribute_to_corner_attribute(MeshBase* d, const std::string& n
     lagrange::map_indexed_attribute_to_corner_attribute(mesh, name);
 }
 
+template <typename MeshType>
+void map_corner_attribute_to_vertex_attribute(MeshBase* d, const std::string& name)
+{
+    auto& mesh = reinterpret_cast<MeshType&>(*d);
+    lagrange::map_corner_attribute_to_vertex_attribute(mesh, name);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////
 // Mesh to GPU upload
 //////////////////////////////////////////////////////////////////////////////////////
@@ -1054,6 +1061,9 @@ void register_mesh_type([[maybe_unused]] const std::string& display_name = entt:
     entt::meta<MeshType>()
         .template func<&detail::map_indexed_attribute_to_corner_attribute<MeshType>>(
             "map_indexed_attribute_to_corner_attribute"_hs);
+    entt::meta<MeshType>()
+        .template func<&detail::map_corner_attribute_to_vertex_attribute<MeshType>>(
+            "map_corner_attribute_to_vertex_attribute"_hs);
 
 
     // Mesh to GPU

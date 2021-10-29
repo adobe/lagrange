@@ -205,7 +205,7 @@ void show_camera_turntable(Registry* rptr, Entity e)
         turntable.axis = turntable.axis.normalized();
 
 
-    if (ImGui::Button("Remove", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+    if (ImGui::Button("Remove", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
         rptr->remove<CameraTurntable>(e);
     }
 }
@@ -215,12 +215,12 @@ void show_camera(Registry* rptr, Entity e)
     auto& cam = rptr->get<Camera>(e);
     bool changed = false;
 
-    if (ImGui::Button("Reset Camera", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+    if (ImGui::Button("Reset Camera", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
         cam = Camera::default_camera(cam.get_window_width(), cam.get_window_height());
         changed = true;
     }
 
-    if (ImGui::Button("Add Turntable", ImVec2(ImGui::GetWindowContentRegionWidth(), 0))) {
+    if (ImGui::Button("Add Turntable", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
         rptr->emplace_or_replace<CameraTurntable>(e);
     }
 
@@ -379,19 +379,9 @@ bool show_colormap_popup(Registry& registry, Material& mat, const ui::StringID& 
     return false;
 }
 
-void show_material(Registry* rptr, Material& mat)
+void show_material(Registry* rptr, Entity e, Material& mat)
 {
-    /*static std::map<std::string, entt::id_type> defaults = {
-        {"Simple", DefaultShaders::Simple},
-        {"Phong", DefaultShaders::Phong},
-        {"PBR", DefaultShaders::PBR},
-        {"Flat", DefaultShaders::Flat},
-        {"TextureView", DefaultShaders::TextureView},
-        {"TrianglesToLines", DefaultShaders::TrianglesToLines}
-    };*/
-
     std::string shader_btn_text = "Shader: ";
-
 
     const auto& reg_shaders = ui::get_registered_shaders(*rptr);
     const auto reg_it = reg_shaders.find(mat.shader_id());
@@ -400,18 +390,9 @@ void show_material(Registry* rptr, Material& mat)
         return;
     }
 
+    bool changed = false;
 
-    // Todo register shaders? (display name, etc.)
-    /*switch (mat.shader_id()) {
-    case DefaultShaders::PBR: shader_btn_text += "PBR"; break;
-    case DefaultShaders::Phong: shader_btn_text += "Phong"; break;
-    case DefaultShaders::Simple: shader_btn_text += "Simple"; break;
-    case DefaultShaders::Flat: shader_btn_text += "Flat"; break;
-    case DefaultShaders::TextureView: shader_btn_text += "TextureView"; break;
-    case DefaultShaders::TrianglesToLines: shader_btn_text += "TrianglesToLines"; break;
-    default: shader_btn_text += "N/A";
-    }
-    */
+
     shader_btn_text = reg_it->second.display_name;
 
     if (ImGui::Button(shader_btn_text.c_str(), ImVec2(ImGui::GetContentRegionAvail().x, 32))) {
@@ -422,19 +403,13 @@ void show_material(Registry* rptr, Material& mat)
         for (auto& it : reg_shaders) {
             if (ImGui::Button(it.second.display_name.c_str(), ImVec2(256, 32))) {
                 mat = Material(*rptr, it.first);
+                changed = true;
             }
         }
-
-        /*for (const auto& it : defaults) {
-            if (ImGui::Button(it.first.c_str(), ImVec2(256, 32))) {
-                mat = NEWMaterial(*rptr, it.second);
-            }
-        }*/
 
         ImGui::EndPopup();
     }
 
-    // ImGui::BeginPopupContextWindow()
 
     auto shader = ui::get_shader(*rptr, mat.shader_id());
     if (!shader) {
@@ -527,10 +502,12 @@ void show_material(Registry* rptr, Material& mat)
                     if (val.texture) {
                         if (ImGui::Button("Clear texture")) {
                             val.texture = nullptr;
+                            changed = true;
                         }
                     } else {
                         if (prop.value_dimension == 1) {
                             ImGui::SliderFloat("##value", val.color.data(), 0, 1);
+                            if (ImGui::IsItemDeactivatedAfterEdit()) changed = true;
                         } else if (prop.value_dimension == 2) {
                             UIWidget("##value")(reinterpret_cast<Eigen::Vector2f&>(val.color));
                         } else if (prop.value_dimension == 3) {
@@ -542,6 +519,7 @@ void show_material(Registry* rptr, Material& mat)
                             Color c = val.color;
                             if (UIWidget("##value")(c)) {
                                 val.color = c;
+                                changed = true;
                             }
                         }
                     }
@@ -561,7 +539,10 @@ void show_material(Registry* rptr, Material& mat)
                             p.format = GL_RGBA;
                         }
                         auto new_tex = load_texture_dialog(p);
-                        if (new_tex) val.texture = new_tex;
+                        if (new_tex) {
+                            val.texture = new_tex;
+                            changed = true;
+                        }
                     }
 
 
@@ -609,8 +590,9 @@ void show_material(Registry* rptr, Material& mat)
                     if (prop.min_value != std::numeric_limits<float>::lowest() &&
                         prop.min_value != std::numeric_limits<float>::max()) {
                         ImGui::SliderFloat("##value", &val, prop.min_value, prop.max_value);
+                        if (ImGui::IsItemDeactivatedAfterEdit()) changed = true;
                     } else {
-                        ImGui::InputFloat("##value", &val);
+                        if (ImGui::InputFloat("##value", &val)) changed = true;
                     }
                 } else {
                     ImGui::Text("Unknown float uniform %d", ID);
@@ -923,6 +905,10 @@ void show_material(Registry* rptr, Material& mat)
 
 
     ImGui::Unindent();
+
+    if (changed) {
+        ui::publish<MeshRenderChangedEvent>(*rptr, e);
+    }
 }
 
 
@@ -932,7 +918,7 @@ void show_meshrender(Registry* rptr, Entity e)
 
 
     if (mr.material) {
-        show_material(rptr, *mr.material);
+        show_material(rptr, e, *mr.material);
     } else {
         ImGui::Text("No Material");
     }
@@ -960,12 +946,16 @@ void show_ibl(Registry* rptr, Entity e)
 {
     auto& ibl = rptr->get<IBL>(e);
 
+    IBLChangedEvent ev;
+    ev.entity = e;
+
     if (browse_texture_widget(ibl.background_rect, int(ImGui::GetContentRegionAvail().x) - 20)) {
         Texture::Params psrgb;
-        psrgb.sRGB = true;
+        psrgb.sRGB = false;
         auto t_new = load_texture_dialog(psrgb);
         if (t_new) {
             ibl = generate_ibl(t_new);
+            ev.image_changed = true;
         }
     }
 
@@ -993,13 +983,19 @@ void show_ibl(Registry* rptr, Entity e)
         ImGui::Text("None");
     }
 
-    ImGui::SliderFloat("Blur (mip level)", &ibl.blur, 0.0f, 16.0f);
+    ev.parameters_changed |= ImGui::SliderFloat("Blur (mip level)", &ibl.blur, 0.0f, 16.0f);
+
+    if (ev.parameters_changed || ev.image_changed) {
+        ui::publish<IBLChangedEvent>(*rptr, ev);
+    }
 }
 
 
 void show_light(Registry* rptr, Entity e)
 {
     auto& lc = rptr->get<LightComponent>(e);
+
+    bool changed = false;
 
     ImGui::Text("Type:");
 
@@ -1025,19 +1021,28 @@ void show_light(Registry* rptr, Entity e)
     if (UIWidget("Color")(color)) {
         const auto new_color = Eigen::Vector3f(color.x(), color.y(), color.z());
         lc.intensity = intensity * new_color * (1.0f / new_color.norm());
+        changed = true;
     }
 
     if (UIWidget("Absolute intensity")(intensity)) {
         lc.intensity = intensity * Eigen::Vector3f(color.x(), color.y(), color.z());
+        changed = true;
     }
 
-    UIWidget("RGB Intensity")(lc.intensity);
+    if (UIWidget("RGB Intensity")(lc.intensity)) {
+        changed = true;
+    };
 
 
     ImGui::Checkbox("Casts shadow", &lc.casts_shadow);
 
     if (lc.type == LightComponent::Type::SPOT) {
         ImGui::SliderAngle("Cone angle", &lc.cone_angle, 0.0f, 180.0f);
+        if (ImGui::IsItemDeactivatedAfterEdit()) changed = true;
+    }
+
+    if (changed) {
+        ui::publish<LightComponentChangedEvent>(*rptr, e);
     }
 }
 

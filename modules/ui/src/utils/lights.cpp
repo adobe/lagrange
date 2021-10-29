@@ -162,5 +162,10 @@ std::pair<Eigen::Vector3f, Eigen::Vector3f> get_light_position_and_direction(con
     return {pos, dir};
 }
 
+void clear_lights(Registry& r) {
+    auto v = r.view<LightComponent>();
+    r.destroy(v.begin(), v.end());
+}
+
 } // namespace ui
 } // namespace lagrange

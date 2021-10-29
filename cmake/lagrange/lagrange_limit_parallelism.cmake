@@ -20,7 +20,7 @@ function(lagrange_limit_parallelism)
     # Peak memory computed "manually" for each platform (in MB)
     # Use a hard coded limit of 2 parallel linking jobs
     set(max_rss_linux_debug 3000)
-    set(max_rss_linux_release 2100)
+    set(max_rss_linux_release 6000) # Force -j3 on a 16G memory machine.
     set(max_rss_darwin_debug 729)
     set(max_rss_darwin_release 395)
     set(max_rss_windows_debug 2100)

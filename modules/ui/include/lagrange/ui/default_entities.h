@@ -170,7 +170,7 @@ Entity load_mesh(
         if (mats.size() <= 1) {
             auto e = show_mesh(r, me, shader);
             ui::set_name(r, e, name);
-            if (mats.size() == 1) ui::set_material(r, me, mats.front());
+            if (mats.size() == 1) ui::set_material(r, e, mats.front());
             return e;
         } else {
             auto e = create_scene_node(r, name);

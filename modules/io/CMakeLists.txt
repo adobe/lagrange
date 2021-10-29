@@ -28,7 +28,7 @@ option(LAGRANGE_WITH_ASSIMP "Add assimp functionality to lagrange::io" FALSE)
 if(LAGRANGE_WITH_ASSIMP)
     include(assimp)
     target_link_libraries(lagrange_io PUBLIC assimp::assimp)
-    target_compile_definitions(lagrange_io LAGRANGE_WITH_ASSIMP)
+    target_compile_definitions(lagrange_io PUBLIC LAGRANGE_WITH_ASSIMP)
 endif()
 
 # 3. installation

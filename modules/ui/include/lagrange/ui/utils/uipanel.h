@@ -57,7 +57,7 @@ const WindowSize& get_window_size(const Registry& r);
 const MainMenuHeight& get_menu_height(const Registry& r);
 
 
-void enable_tab_bar(Registry& r, Entity uipanel_entity, bool enable = true);
+void hide_tab_bar(Registry& r, Entity uipanel_entity);
 
 
 } // namespace ui

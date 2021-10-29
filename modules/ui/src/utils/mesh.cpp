@@ -157,6 +157,12 @@ void map_indexed_attribute_to_corner_attribute(MeshData& d, const std::string& n
         .invoke({}, (MeshBase*)(d.mesh.get()), name);
 }
 
+void map_corner_attribute_to_vertex_attribute(MeshData& d, const std::string& name) {
+    entt::resolve(d.type)
+        .func(entt::hashed_string{"map_corner_attribute_to_vertex_attribute"})
+        .invoke({}, (MeshBase*)(d.mesh.get()), name);
+}
+
 bool has_mesh_vertex_attribute(const MeshData& d, const std::string& name)
 {
     return entt::resolve(d.type)

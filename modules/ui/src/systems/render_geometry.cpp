@@ -126,7 +126,7 @@ void setup_vertex_data(Registry& r)
 
     // Setup default mesh rendering attribute arrays
     r.view<VertexData, MeshRender, MeshGeometry>().each(
-        [&](Entity e, VertexData& glvd, MeshRender& render, const MeshGeometry& geom_entity) {
+        [&](Entity /*e*/, VertexData& glvd, MeshRender& render, const MeshGeometry& geom_entity) {
             if (!r.valid(geom_entity.entity)) return;
             if (!r.has<GLMesh>(geom_entity.entity)) return;
             if (!render.material) return;
@@ -596,9 +596,7 @@ void render_gl_render_queue(Registry& r)
         }
 
 
-        for (auto& it : material.float_values) {
-            shader.uniform(it.first) = it.second;
-        }
+        
 
         for (auto& it : material.mat4_values) {
             shader.uniform(it.first) = it.second;
@@ -616,14 +614,7 @@ void render_gl_render_queue(Registry& r)
             shader.uniform(it.first).set_vectors(it.second.data(), int(it.second.size()));
         }
 
-        for (auto& it : material.color_values) {
-            const auto& prop = shader.color_properties().at(it.first);
-            if (prop.is_attrib) {
-                shader.attrib(it.first) = it.second;
-            } else {
-                shader.uniform(it.first) = it.second;
-            }
-        }
+        
 
 
         for (auto& it : material.texture_values) {
@@ -672,6 +663,19 @@ void render_gl_render_queue(Registry& r)
                         name,
                         material.shader_id());
                 }
+            }
+        }
+
+        for (auto& it : material.float_values) {
+            shader.uniform(it.first) = it.second;
+        }
+
+        for (auto& it : material.color_values) {
+            auto it_prop = shader.color_properties().find(it.first);
+            if (it_prop != shader.color_properties().end() && it_prop->second.is_attrib) {
+                shader.attrib(it.first) = it.second;
+            } else {
+                shader.uniform(it.first) = it.second;
             }
         }
 

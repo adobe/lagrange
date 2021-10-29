@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/Logger.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/types/Texture.h>
@@ -18,6 +19,7 @@
 
 #include <lagrange/io/load_mesh_ext.h>
 
+#include <sstream>
 
 namespace lagrange {
 namespace ui {
@@ -34,7 +36,6 @@ std::shared_ptr<Material>
 convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_t& tinymat);
 
 
-
 /// Loads obj as a single mesh. Creates entity with MeshData component.
 /// Use show_mesh to add it to scene
 template <typename MeshType>
@@ -43,6 +44,11 @@ Entity load_obj(
     const fs::path& path,
     const io::MeshLoaderParams& params = io::MeshLoaderParams())
 {
+    if (path.extension() != ".obj") {
+        lagrange::logger().error("wrong file format '{}' for load_obj", path.extension());
+        return NullEntity;
+    }
+
     // Override to load as one mesh
     auto p = params;
     p.as_one_mesh = true;
@@ -68,6 +74,11 @@ std::pair<Entity, std::vector<std::shared_ptr<Material>>> load_obj_with_material
     const fs::path& path,
     const io::MeshLoaderParams& params = io::MeshLoaderParams())
 {
+    if (path.extension() != ".obj") {
+        lagrange::logger().error("wrong file format '{}' for load_obj", path.extension());
+        return {NullEntity, {}};
+    }
+
     // Override to load as one mesh
     auto p = params;
     p.as_one_mesh = true;

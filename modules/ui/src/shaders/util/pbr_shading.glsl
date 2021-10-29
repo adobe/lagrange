@@ -101,10 +101,5 @@ vec4 pbr(
 
     color += pbr_ibl_color(N, cos_out, lightOut, f_0, metallic, roughness, baseColor);
 
-    color = gamma_correction(color);
-
-
-
-
     return vec4(color, opacity);
 }

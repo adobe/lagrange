@@ -45,6 +45,8 @@
 #include <lagrange/ui/utils/selection.h>
 #include <lagrange/ui/utils/treenode.h>
 #include <lagrange/ui/utils/viewport.h>
+#include <lagrange/ui/utils/lights.h>
+#include <lagrange/ui/utils/colormap.h>
 
 
 // Imgui and related
@@ -388,7 +390,8 @@ Viewer::Viewer(const WindowOptions& window_options)
     // Set up default viewport
     {
         // Create viewport
-        auto main_viewport = add_viewport(registry(), default_camera);
+        auto main_viewport = add_viewport(registry(), default_camera, true);
+        
         registry().emplace_or_replace<Name>(main_viewport, "Default Viewport");
 
         // Set the viewport to default viewport window
@@ -417,8 +420,7 @@ Viewer::Viewer(const WindowOptions& window_options)
                 window_options.default_ibl,
                 window_options.default_ibl_resolution);
             ibl.blur = 2.0f;
-            auto entity = create_scene_node(registry(), "IBL");
-            registry().emplace<IBL>(entity, std::move(ibl));
+            add_ibl(registry(), std::move(ibl));
 
         } catch (const std::exception& ex) {
             lagrange::logger().error("Failed to generate ibl: {}", ex.what());
@@ -1097,6 +1099,62 @@ void Viewer::draw_menu()
         }
 
         ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Lights")) {
+        if (ImGui::MenuItem(ICON_FA_SUN " Add Directional Light")) {
+            ui::add_directional_light(registry());
+        }
+        if (ImGui::MenuItem(ICON_FA_LIGHTBULB " Add Point Light")) {
+            ui::add_point_light(registry());
+        }
+        if (ImGui::MenuItem(ICON_FA_CROSSHAIRS " Add Spot Light")) {
+            ui::add_spot_light(registry());
+        }
+
+         if (ImGui::MenuItem("Clear Lights")) {
+            ui::clear_lights(registry());
+        }
+
+        ImGui::Separator();
+
+        if (ImGui::MenuItem(ICON_FA_IMAGE" Load Image Based Light")) {
+            auto path = ui::load_dialog("");
+            if (!path.empty()){
+                try {
+                    auto ibl = ui::generate_ibl(path);
+                    ui::clear_ibl(registry());
+                    ui::add_ibl(registry(), std::move(ibl));
+                } catch (const std::exception& ex) {
+                    lagrange::logger().error("Failed to load IBL: {}", ex.what());
+                }
+            }
+        }
+
+        if (ImGui::MenuItem("Set White Background")) {
+            ui::clear_ibl(registry());
+            ui::add_ibl(
+                registry(),
+                ui::generate_ibl(
+                    ui::generate_colormap([](float v) { return Color::white(); }),
+                    16));
+        }
+
+        if (ImGui::MenuItem("Set Black Background")) {
+            ui::clear_ibl(registry());
+            ui::add_ibl(
+                registry(),
+                ui::generate_ibl(
+                    ui::generate_colormap([](float v) { return Color::black(); }),
+                    16));
+        }
+
+        if (ImGui::MenuItem("Clear IBL")) {
+            ui::clear_ibl(registry());
+        }
+
+        ImGui::EndMenu();
+
     }
 
     {

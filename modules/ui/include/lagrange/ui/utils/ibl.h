@@ -47,5 +47,11 @@ const IBL* get_ibl(const Registry& registry);
 /// @copydoc
 IBL* get_ibl(Registry& registry);
 
+/// @brief Adds IBL to the scene
+Entity add_ibl(Registry& registry, IBL ibl);
+
+/// @brief Removes all ibls
+void clear_ibl(Registry& registry);
+
 } // namespace ui
 } // namespace lagrange

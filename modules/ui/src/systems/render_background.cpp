@@ -39,7 +39,7 @@ void render_background(Registry& r)
         fbo->bind();
     }
 
-    auto& shaders = r.ctx_or_set<entt::resource_cache<Shader>>();
+    r.ctx_or_set<entt::resource_cache<Shader>>();
     const auto& camera = viewport.computed_camera;
 
     auto shader_res = get_shader(r, DefaultShaders::Skybox);
@@ -78,12 +78,8 @@ void render_background(Registry& r)
             shader["PV"] = (camera.get_perspective() * V).eval();
         }
 
-        if (ibl.blur > 0.0f) {
-            ibl.specular->bind_to(GL_TEXTURE0 + 0);
-            shader["mip_level"] = ibl.blur;
-        } else {
-            ibl.background->bind_to(GL_TEXTURE0 + 0);
-        }
+        shader["mip_level"] = ibl.blur;
+        ibl.background->bind_to(GL_TEXTURE0 + 0);
 
         render_vertex_data(*skybox_data.vertex_data, GL_TRIANGLES, 3);
     });

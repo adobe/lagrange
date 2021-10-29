@@ -16,6 +16,9 @@
 #include <lagrange/ui/types/ShaderLoader.h>
 #include <lagrange/ui/utils/render.h>
 #include <lagrange/utils/utils.h>
+#include <lagrange/ui/utils/treenode.h>
+
+#include <fstream>
 
 namespace lagrange {
 namespace ui {
@@ -94,7 +97,7 @@ std::shared_ptr<Texture> get_bg_texture_ibl_file(const fs::path& ibl_file_path)
     if (values["BGmap"] != "1") return nullptr;
 
     Texture::Params p;
-    p.sRGB = true;
+    p.sRGB = false;
 
     auto bg_file_path = ibl_file_path.parent_path() / fs::path(values["BGfile"]);
 
@@ -112,7 +115,7 @@ IBL generate_ibl(const fs::path& path, size_t resolution)
         bgrecttex = get_bg_texture_ibl_file(path);
     } else {
         Texture::Params p;
-        p.sRGB = true;
+        p.sRGB = false;
         bgrecttex = std::make_shared<Texture>(path, p);
     }
 
@@ -157,20 +160,23 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
     Texture::Params cube_map_params;
     cube_map_params.type = GL_TEXTURE_CUBE_MAP;
     cube_map_params.format = GL_RGB;
-    cube_map_params.internal_format = GL_SRGB;
+    cube_map_params.internal_format = GL_RGB;
     cube_map_params.wrap_s = GL_CLAMP_TO_EDGE;
     cube_map_params.wrap_t = GL_CLAMP_TO_EDGE;
     cube_map_params.mag_filter = GL_LINEAR;
-    cube_map_params.min_filter = GL_LINEAR;
-    cube_map_params.generate_mipmap = false;
+    cube_map_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    cube_map_params.generate_mipmap = true;
 
     auto specular_tex_params = cube_map_params;
     specular_tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
     specular_tex_params.generate_mipmap = true;
     specular_tex_params.internal_format = GL_RGB16F;
 
+    auto diffuse_tex_params = cube_map_params;
+    diffuse_tex_params.min_filter = GL_LINEAR;
+
     auto tex_cube = std::make_shared<Texture>(cube_map_params);
-    auto tex_diffuse = std::make_shared<Texture>(cube_map_params);
+    auto tex_diffuse = std::make_shared<Texture>(diffuse_tex_params);
     auto tex_specular = std::make_shared<Texture>(specular_tex_params);
 
     auto vd = generate_cube_vertex_data();
@@ -236,6 +242,12 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
 
             render_vertex_data(*vd, GL_TRIANGLES, 3);
         }
+        fbo.unbind();
+
+        tex_cube->bind();
+        gl(glGenerateMipmap,tex_cube->get_params().type);
+        
+
     }
 
     // Diffuse (convolution)
@@ -339,6 +351,18 @@ IBL* get_ibl(Registry& registry)
     auto e = get_ibl_entity(registry);
     if (!registry.valid(e)) return nullptr;
     return &registry.get<IBL>(e);
+}
+
+Entity add_ibl(Registry& registry, IBL ibl) {
+    auto entity = create_scene_node(registry, "IBL");
+    registry.emplace<IBL>(entity, std::move(ibl));
+    return entity;
+}
+
+void clear_ibl(Registry& registry)
+{
+    auto v = registry.view<IBL>();
+    registry.destroy(v.begin(), v.end());
 }
 
 } // namespace ui

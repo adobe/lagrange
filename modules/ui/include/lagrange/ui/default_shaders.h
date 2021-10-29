@@ -50,7 +50,13 @@ struct PBRMaterial
     constexpr static const StringID Metallic = "material_metallic"_hs;
     constexpr static const StringID Opacity = "material_opacity"_hs;
 
-    
+    constexpr static const entt::id_type IndexOfRefraction = "material_index_of_refraction"_hs;
+
+    constexpr static const entt::id_type Glow = "material_glow"_hs;
+    constexpr static const entt::id_type Translucence = "material_translucence"_hs;
+
+    constexpr static const entt::id_type InteriorColor = "material_interior_color"_hs;
+    constexpr static const entt::id_type GlowIntensity = "material_glow_intensity"_hs;
 };
 
 void register_default_shaders(Registry& r);

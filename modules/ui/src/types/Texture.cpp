@@ -104,6 +104,14 @@ Texture::~Texture()
 
 void Texture::bind() const
 {
+    LA_ASSERT(
+        ((m_params.internal_format == GL_SRGB8 || m_params.internal_format == GL_SRGB_ALPHA) &&
+         m_params.sRGB) ||
+            (m_params.internal_format != GL_SRGB8 && m_params.internal_format != GL_SRGB_ALPHA &&
+             !m_params.sRGB) ||
+            m_params.internal_format == GL_NONE,
+        "Inconsistent SRGB format");
+
     GL(glBindTexture(m_params.type, m_id));
 }
 
@@ -374,7 +382,7 @@ void Texture::load_data_from_image(const void* image_data, size_t size)
     } else if (n == 4) {
         m_params.format = GL_RGBA;
         if (m_params.internal_format == GL_NONE)
-            m_params.internal_format = (m_params.sRGB) ? GL_SRGB_ALPHA : GL_RGB;
+            m_params.internal_format = (m_params.sRGB) ? GL_SRGB_ALPHA : GL_RGBA;
     }
 
     GL(glTexImage2D(

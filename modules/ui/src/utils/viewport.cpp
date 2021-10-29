@@ -161,7 +161,7 @@ void camera_focus_on(
 }
 
 
-Entity add_viewport(Registry& registry, Entity camera_entity)
+Entity add_viewport(Registry& registry, Entity camera_entity, bool srgb /*= false*/)
 {
     auto e = registry.create();
 
@@ -175,7 +175,14 @@ Entity add_viewport(Registry& registry, Entity camera_entity)
     viewport.height = int(camera.get_window_height());
 
     // Create framebuffer resource
-    auto color_tex = std::make_shared<Texture>(Texture::Params::rgba16f());
+
+    auto cparam = Texture::Params::rgba16f();
+    if (srgb) {
+        cparam.internal_format = GL_SRGB_ALPHA;
+        cparam.sRGB = true;
+    }
+
+    auto color_tex = std::make_shared<Texture>(cparam);
     auto depth_tex = std::make_shared<Texture>(Texture::Params::depth());
 
     auto fbo = std::make_shared<FrameBuffer>();

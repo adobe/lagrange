@@ -26,7 +26,7 @@ namespace ui {
 IBL generate_default_ibl(const std::string& name, size_t resolution)
 {
     Texture::Params p = Texture::Params::rgb();
-
+    p.sRGB = false;
 
     if (name == "studio003")
         return generate_ibl(

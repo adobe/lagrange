@@ -47,5 +47,8 @@ Entity add_spot_light(
 
 std::pair<Eigen::Vector3f, Eigen::Vector3f> get_light_position_and_direction(const Registry & r, Entity e);
 
+
+void clear_lights(Registry &r);
+
 } // namespace ui
 } // namespace lagrange

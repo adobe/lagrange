@@ -18,7 +18,7 @@ namespace lagrange {
 namespace ui {
 
 /// Creates an offscreen viewport with given camera. Create ViewportPanel to show it on screen.
-Entity add_viewport(Registry& registry, Entity camera_entity);
+Entity add_viewport(Registry& registry, Entity camera_entity, bool srgb = false);
 
 void instance_camera_to_viewports(Registry& registry, Entity source_viewport);
 void copy_camera_to_viewports(Registry& registry, Entity source_viewport);

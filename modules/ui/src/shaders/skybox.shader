@@ -43,8 +43,4 @@ void main(){
 
     fragColor = textureLod(texCubemap, p.xyz, mip_level);
 
-    //gamma correction
-    const float gamma = 2.2;
-    fragColor.xyz = pow(fragColor.xyz, vec3(1.0 / gamma));
-
 }
