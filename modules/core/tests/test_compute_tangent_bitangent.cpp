@@ -66,7 +66,7 @@ auto indexed_tangent_bitangent(
 
 } // namespace
 
-TEST_CASE("compute_tangent_bitangent", "[core]")
+TEST_CASE("compute_tangent_bitangent", "[core]" LA_SLOW_DEBUG_FLAG)
 {
     using AttributeArray = lagrange::TriangleMesh3D::AttributeArray;
     using FacetArray = lagrange::TriangleMesh3D::FacetArray;
@@ -158,7 +158,7 @@ TEST_CASE("compute_tangent_bitangent: degenerate", "[core]")
     }
 }
 
-TEST_CASE("compute_tangent_bitangent_bug01", "[core]" LA_CORP_FLAG)
+TEST_CASE("compute_tangent_bitangent_bug01", "[core]" LA_CORP_FLAG LA_SLOW_DEBUG_FLAG)
 {
     using namespace lagrange;
     auto mesh = lagrange::testing::load_mesh<TriangleMesh3D>(

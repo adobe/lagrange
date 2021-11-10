@@ -109,7 +109,7 @@ TEST_CASE("RemoveDuplicateFacetsTest", "[duplicate][cleanup][mesh]")
     }
 }
 
-TEST_CASE("RemoveDuplicateFacetsTest_slow", "[duplicate][cleanup][mesh][.slow]")
+TEST_CASE("RemoveDuplicateFacetsTest_slow", "[duplicate][cleanup][mesh]" LA_SLOW_FLAG)
 {
     using namespace lagrange;
 

@@ -297,7 +297,7 @@ TEST_CASE("ConnectivityInit", "[Mesh][Connectivity]")
     }
 }
 
-TEST_CASE("ConnectivityInit_slow", "[Mesh][Connectivity][.slow]" LA_CORP_FLAG)
+TEST_CASE("ConnectivityInit_slow", "[Mesh][Connectivity]" LA_SLOW_FLAG LA_CORP_FLAG)
 {
     using namespace lagrange;
 

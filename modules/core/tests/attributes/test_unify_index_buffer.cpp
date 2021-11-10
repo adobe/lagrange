@@ -22,7 +22,7 @@
 #include <lagrange/create_mesh.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
 
-TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]")
+TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]" LA_SLOW_DEBUG_FLAG)
 {
     using namespace lagrange;
 

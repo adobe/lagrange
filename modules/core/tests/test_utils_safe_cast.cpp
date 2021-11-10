@@ -45,7 +45,7 @@ TEST_CASE("SafeCast", "[safe_cast]")
     REQUIRE(x8 >= 0.0f);
 }
 
-TEST_CASE("SafeCastStressTest", "[safe_cast][.slow]")
+TEST_CASE("SafeCastStressTest", "[safe_cast]" LA_SLOW_FLAG)
 {
     auto stress_test = [](auto offset) {
         using Scalar = decltype(offset);

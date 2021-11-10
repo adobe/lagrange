@@ -140,7 +140,7 @@ TEST_CASE("chain_edges_into_simple_loops", "[cleanup][close_small_holes]")
     }
 }
 
-TEST_CASE("close_small_holes (simple)", "[cleanup][close_small_holes]")
+TEST_CASE("close_small_holes (simple)", "[cleanup][close_small_holes]" LA_SLOW_DEBUG_FLAG)
 {
     auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/stanford-bunny.obj");
     REQUIRE(mesh);
@@ -200,7 +200,7 @@ TEST_CASE("close_small_holes (with uv)", "[cleanup][close_small_holes]")
     REQUIRE(mesh2->get_uv_indices() == mesh0->get_uv_indices());
 }
 
-TEST_CASE("close_small_holes (with attributes)", "[cleanup][close_small_holes]")
+TEST_CASE("close_small_holes (with attributes)", "[cleanup][close_small_holes]" LA_SLOW_DEBUG_FLAG)
 {
     auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/blub_open.obj");
     REQUIRE(mesh);

@@ -47,3 +47,20 @@ if(LAGRANGE_EXTERNAL_ONLY)
 else()
     target_compile_definitions(lagrange_testing PUBLIC -DLA_CORP_FLAG=\"[corp]\")
 endif()
+
+# CMake option to enable slow unit tests in ctest
+option(LAGRANGE_SLOW_TESTS "Enable slow unit tests" OFF)
+if(LAGRANGE_SLOW_TESTS)
+    target_compile_definitions(lagrange_testing PUBLIC -DLA_SLOW_FLAG=\"[slow]\")
+else()
+    target_compile_definitions(lagrange_testing PUBLIC -DLA_SLOW_FLAG=\"[.slow]\")
+endif()
+
+# When slow tests are disabled, we still hide some tests in Debug only
+if(LAGRANGE_SLOW_TESTS)
+    target_compile_definitions(lagrange_testing PUBLIC -DLA_SLOW_DEBUG_FLAG=\"[slow-debug]\")
+else()
+    target_compile_definitions(lagrange_testing PUBLIC
+        LA_SLOW_DEBUG_FLAG=$<IF:$<CONFIG:Debug>,\"[.slow-debug]\",\"[slow-debug]\">
+    )
+endif()

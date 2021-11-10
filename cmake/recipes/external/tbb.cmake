@@ -140,7 +140,7 @@ endif()
 install(TARGETS tbb_tbb EXPORT TBB)
 
 # Set -fPIC flag and IDE folder name for tbb targets
-foreach(name IN ITEMS tbb_def_files tbb_static tbb tbbmalloc tbbmalloc_static)
+foreach(name IN ITEMS tbb_def_files tbb_static tbb tbbmalloc tbbmalloc_static tbb_tbb)
     if(TARGET ${name})
         set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
         set_target_properties(${name} PROPERTIES FOLDER third_party)

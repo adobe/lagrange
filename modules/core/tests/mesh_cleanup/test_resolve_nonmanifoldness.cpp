@@ -237,7 +237,7 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
     }
 }
 
-TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh][.slow]" LA_CORP_FLAG)
+TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh]" LA_SLOW_FLAG LA_CORP_FLAG)
 {
     using namespace lagrange;
 

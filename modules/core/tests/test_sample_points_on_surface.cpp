@@ -17,7 +17,7 @@
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/sample_points_on_surface.h>
 
-TEST_CASE("SamplePointsOnSurface", "[sample_points_on_surface][triangle_mesh]")
+TEST_CASE("SamplePointsOnSurface", "[sample_points_on_surface][triangle_mesh]" LA_SLOW_DEBUG_FLAG)
 {
     // Set this to true, only if the results need to be visualized.
     // DON'T push to develop with true

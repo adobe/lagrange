@@ -45,7 +45,7 @@ void assert_same_area(MeshType1& mesh1, MeshType2& mesh2)
 
 } // namespace lagrange_test_internal
 
-TEST_CASE("quad_to_tri juicebox", "[mesh][quad_to_tri][juicebox][.slow]")
+TEST_CASE("quad_to_tri juicebox", "[mesh][quad_to_tri][juicebox]" LA_SLOW_FLAG)
 {
     using namespace lagrange;
 
@@ -61,7 +61,7 @@ TEST_CASE("quad_to_tri juicebox", "[mesh][quad_to_tri][juicebox][.slow]")
     lagrange_test_internal::assert_same_area(*mesh, *tri_mesh);
 }
 
-TEST_CASE("quad_to_tri banner_single", "[mesh][quad_to_tri][banner_single][.slow]")
+TEST_CASE("quad_to_tri banner_single", "[mesh][quad_to_tri][banner_single]" LA_SLOW_FLAG)
 {
     using namespace lagrange;
 

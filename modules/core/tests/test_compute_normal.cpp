@@ -21,7 +21,7 @@
 
 
 
-TEST_CASE("compute_normal", "[mesh][attribute][normal]")
+TEST_CASE("compute_normal", "[mesh][attribute][normal]" LA_SLOW_DEBUG_FLAG)
 {
     using namespace lagrange;
 
