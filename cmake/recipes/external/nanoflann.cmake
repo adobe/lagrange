@@ -35,6 +35,11 @@ target_include_directories(nanoflann SYSTEM INTERFACE
     "$<BUILD_INTERFACE:${nanoflann_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
+target_sources(nanoflann PRIVATE
+    "${nanoflann_SOURCE_DIR}/include/nanoflann.hpp"
+)
+
+set_target_properties(nanoflann PROPERTIES FOLDER "third_party")
 
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME nanoflann)

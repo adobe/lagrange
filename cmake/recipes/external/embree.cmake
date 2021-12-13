@@ -30,6 +30,10 @@ option(EMBREE_STATIC_LIB     "Build Embree as a static library."                
 set(EMBREE_TESTING_INTENSITY 0         CACHE STRING "Intensity of testing (0 = no testing, 1 = verify and tutorials, 2 = light testing, 3 = intensive testing.")
 set(EMBREE_TASKING_SYSTEM    "TBB"     CACHE STRING "Selects tasking system")
 
+# The following options are necessary to ensure packed-ray support
+option(EMBREE_RAY_MASK       "Enable the usage of mask for packed ray."         ON)
+option(EMBREE_RAY_PACKETS    "Enable the usage packed ray."                     ON)
+
 if(APPLE)
 set(EMBREE_MAX_ISA           "NEON" CACHE STRING "Selects highest ISA to support.")
 else()

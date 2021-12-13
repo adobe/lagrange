@@ -45,8 +45,7 @@ std::vector<std::unique_ptr<MeshType>> extract_meshes_assimp(const aiScene* scen
 template <typename MeshType>
 std::unique_ptr<MeshType> convert_mesh_assimp(const aiMesh* mesh);
 
-
-std::unique_ptr<aiScene> load_scene_assimp(const lagrange::fs::path& filename)
+inline std::unique_ptr<aiScene> load_scene_assimp(const lagrange::fs::path& filename)
 {
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile(filename.string(), 0);
@@ -58,7 +57,7 @@ std::unique_ptr<aiScene> load_scene_assimp(const lagrange::fs::path& filename)
     return std::unique_ptr<aiScene>(importer.GetOrphanedScene());
 }
 
-std::unique_ptr<aiScene> load_scene_assimp_from_memory(const void* buffer, size_t size)
+inline std::unique_ptr<aiScene> load_scene_assimp_from_memory(const void* buffer, size_t size)
 {
     Assimp::Importer importer;
 

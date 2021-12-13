@@ -23,7 +23,7 @@ target_link_libraries(lagrange_testing PUBLIC
 )
 
 # 3. test-specific properties
-include(lagrange_download_data)
+lagrange_download_data()
 add_dependencies(lagrange_testing lagrange_download_data)
 
 target_compile_definitions(lagrange_testing

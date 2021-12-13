@@ -19,7 +19,9 @@ function(lagrange_include_modules)
         endif()
 
         if(NOT TARGET lagrange::${name})
-            add_subdirectory(${PROJECT_SOURCE_DIR}/modules/${name} ${PROJECT_BINARY_DIR}/modules/lagrange_${name})
+            get_property(lagrange_source_dir GLOBAL PROPERTY __lagrange_source_dir)
+            get_property(lagrange_binary_dir GLOBAL PROPERTY __lagrange_binary_dir)
+            add_subdirectory(${lagrange_source_dir}/modules/${name} ${lagrange_binary_dir}/modules/lagrange_${name})
         endif()
 
         if(NOT TARGET lagrange::${name})

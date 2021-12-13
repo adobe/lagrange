@@ -59,7 +59,7 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.5.0)
+project(Lagrange VERSION 5.6.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -148,15 +148,23 @@ list(PREPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/lagrange/")
 
 # Lagrange folder prefix for IDE
 if(LAGRANGE_TOPLEVEL_PROJECT)
-    set(LAGRANGE_IDE_PREFIX "")
+    set(LAGRANGE_IDE_PREFIX_DEFAULT "")
 else()
-    set(LAGRANGE_IDE_PREFIX "third_party/")
+    set(LAGRANGE_IDE_PREFIX_DEFAULT "third_party/")
 endif()
+set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
+
+# Register project source/binary dir in global properties, so they can be
+# retrieved from Lagrange CMake functions when called by client code.
+set_property(GLOBAL PROPERTY __lagrange_source_dir ${PROJECT_SOURCE_DIR})
+set_property(GLOBAL PROPERTY __lagrange_binary_dir ${PROJECT_BINARY_DIR})
 
 include(lagrange_add_example)
+include(lagrange_add_executable)
 include(lagrange_add_module)
 include(lagrange_add_performance)
 include(lagrange_add_test)
+include(lagrange_download_data)
 include(lagrange_global_flags)
 include(lagrange_include_modules)
 include(lagrange_install)

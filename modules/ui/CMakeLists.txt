@@ -34,9 +34,12 @@ include(nlohmann_json)
 include(lagrange-assets)
 include(entt)
 target_link_libraries(imgui PUBLIC Eigen3::Eigen)
+
+get_property(lagrange_source_dir GLOBAL PROPERTY __lagrange_source_dir)
 target_compile_definitions(imgui PUBLIC
-    IMGUI_USER_CONFIG="${PROJECT_SOURCE_DIR}/modules/ui/include/lagrange/ui/imgui/imconfig.h"
+    IMGUI_USER_CONFIG="${lagrange_source_dir}/modules/ui/include/lagrange/ui/imgui/imconfig.h"
 )
+
 target_link_libraries(lagrange_ui
     PRIVATE
         lagrange::assets
