@@ -36,7 +36,7 @@ void map_facet_attributes(
     static_assert(MeshTrait<MeshType1>::is_mesh(), "Input type is not Mesh");
     static_assert(MeshTrait<MeshType2>::is_mesh(), "Input type is not Mesh");
     using Index = typename MeshType1::Index;
-    LA_ASSERT(facet_map.empty() || safe_cast<Index>(facet_map.size()) == to.get_num_facets());
+    la_runtime_assert(facet_map.empty() || safe_cast<Index>(facet_map.size()) == to.get_num_facets());
 
     const auto& facet_attributes = from.get_facet_attribute_names();
     const auto num_facets = to.get_num_facets();

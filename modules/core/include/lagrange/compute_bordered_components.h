@@ -54,8 +54,8 @@ ComputeBorderedComponentsOutput<typename MeshType::Index> compute_bordered_compo
     using Index = typename MeshType::Index;
 
     // We just check it, since the use must have called it in order to populate is_edge_passable.
-    LA_ASSERT(mesh.is_edge_data_initialized(), "Edge data is not initialized");
-    LA_ASSERT(safe_cast<Index>(is_edge_passable.size()) == mesh.get_num_edges());
+    la_runtime_assert(mesh.is_edge_data_initialized(), "Edge data is not initialized");
+    la_runtime_assert(safe_cast<Index>(is_edge_passable.size()) == mesh.get_num_edges());
 
     std::vector<Index> facet_component_ids(mesh.get_num_facets(), INVALID<Index>());
 
@@ -91,7 +91,7 @@ ComputeBorderedComponentsOutput<typename MeshType::Index> compute_bordered_compo
             ++num_components;
         }
     }
-    LA_ASSERT(
+    la_runtime_assert(
         num_components > 0 || mesh.get_num_facets() == 0,
         "Extracted " + std::to_string(num_components) + " comps out of " +
             std::to_string(mesh.get_num_facets()) + " facets");

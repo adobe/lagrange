@@ -228,19 +228,25 @@ auto load_mesh_ext(
 
     const auto index_cb = [](void* user_data, tinyobj::index_t* indices, int num_indices) {
         Loader& loader = *(reinterpret_cast<Loader*>(user_data));
+        auto num_vertices = loader.vertices.size() / 3;
+        auto num_normals = loader.normals.size() / 3;
+        auto num_uvs = loader.uvs.size() / 2;
         for (auto i = 0; i < num_indices; i++) {
             auto index = indices[i];
             index.vertex_index =
-                fix_index(index.vertex_index, loader.vertices.size(), loader.vertex_offset);
-            if (loader.params.load_normals) {
+                fix_index(index.vertex_index, num_vertices, loader.vertex_offset);
+            assert(index.vertex_index >= 0 && index.vertex_index < num_vertices);
+            if (loader.params.load_normals && num_normals) {
                 index.normal_index =
-                    fix_index(index.normal_index, loader.normals.size(), loader.normal_offset);
+                    fix_index(index.normal_index, num_normals, loader.normal_offset);
+                assert(index.normal_index >= 0 && index.normal_index < num_normals);
             } else {
                 index.normal_index = -1;
             }
-            if (loader.params.load_uvs) {
+            if (loader.params.load_uvs && num_uvs) {
                 index.texcoord_index =
-                    fix_index(index.texcoord_index, loader.uvs.size(), loader.uv_offset);
+                    fix_index(index.texcoord_index, num_uvs, loader.uv_offset);
+                assert(index.texcoord_index >= 0 && index.texcoord_index < num_uvs);
             } else {
                 index.texcoord_index = -1;
             }

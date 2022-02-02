@@ -12,7 +12,7 @@
 #pragma once
 
 #include <lagrange/Mesh.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 
 // clang-format off
@@ -57,8 +57,8 @@ void orient_outward(lagrange::Mesh<VertexArray, FacetArray>& mesh, bool positive
                                         const auto& facets,
                                         const auto& components,
                                         auto& signed_volumes) {
-        LA_ASSERT(vertices.cols() == 3);
-        LA_ASSERT(facets.cols() == 3);
+        la_runtime_assert(vertices.cols() == 3);
+        la_runtime_assert(facets.cols() == 3);
         std::array<RowVector3r, 4> t;
         t[3] = RowVector3r::Zero(vertices.cols());
         signed_volumes.resize(components.maxCoeff() + 1);

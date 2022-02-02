@@ -47,7 +47,7 @@ std::unique_ptr<ArrayBase> create_array(Eigen::PlainObjectBase<Derived>&& matrix
     auto r = std::make_unique<EigenArray<Derived>>(std::move(matrix.derived()));
 #ifndef NDEBUG
     const void* ptr2 = r->data();
-    LA_ASSERT(ptr == ptr2, "Data is copied when it should have been moved.");
+    la_runtime_assert(ptr == ptr2, "Data is copied when it should have been moved.");
 #endif
     return r;
 }

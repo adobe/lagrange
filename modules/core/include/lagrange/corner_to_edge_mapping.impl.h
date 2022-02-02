@@ -14,7 +14,7 @@
 #include <lagrange/corner_to_edge_mapping.h>
 
 #include <lagrange/Logger.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 
 #include <tbb/parallel_sort.h>

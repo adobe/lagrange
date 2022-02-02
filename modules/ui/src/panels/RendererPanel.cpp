@@ -12,17 +12,16 @@
 
 
 #include <lagrange/Logger.h>
-#include <lagrange/fs/file_utils.h>
 #include <lagrange/ui/components/Viewport.h>
 #include <lagrange/ui/imgui/UIWidget.h>
 #include <lagrange/ui/utils/uipanel.h>
+#include <lagrange/ui/utils/file_dialog.h>
 #include <lagrange/ui/panels/RendererPanel.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
 
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <nfd.h>
 #include <stb_image_write.h>
 #include <time.h>
 
@@ -59,12 +58,7 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
     // Pick Ouput folder
     {
         if (ImGui::Button("Browse ...")) {
-            nfdchar_t* path = nullptr;
-            nfdresult_t result = NFD_PickFolder(nullptr, &path);
-            if (result == NFD_OKAY) {
-                opt.folder_path = std::string(path);
-            }
-            free(path);
+            opt.folder_path = open_folder("Select screenshot folder").string();
         }
         ImGui::SameLine();
         ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x / 2.0f);
@@ -135,7 +129,7 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
     }
 
 
-    std::string save_path = "";
+    fs::path save_path;
 
     // Generate timestamp
     if (ImGui::Button("Save to Folder")) {
@@ -145,22 +139,20 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
         time(&rawtime);
         timeinfo = localtime(&rawtime);
         strftime(buffer, 128, "%Y-%m-%d_%H-%M-%S", timeinfo);
-        save_path = opt.folder_path + "/" + std::string(buffer);
+        save_path = fs::path(opt.folder_path) / fs::path(buffer);
     }
     ImGui::SameLine();
 
     // Pick file
     if (ImGui::Button("Save as ...")) {
-        nfdchar_t* path = nullptr;
-        nfdresult_t result = NFD_SaveDialog("png", nullptr, &path);
-        if (result == NFD_OKAY) {
+        auto path = save_file("Save screenshot as", ".", {{"PNG files", "*.png"}});
+        if (!path.empty()) {
             save_path = path;
         }
-        free(path);
     }
 
-    if (save_path.length() > 0) {
-        save_path = fs::get_string_ending_with(save_path, ".png");
+    if (!save_path.empty()) {
+        save_path.replace_extension(".png");
 
         if (opt.mode == RendererPanel::ScreenshotOptions::Mode::ACTIVE_VIEWPORT) {
             auto tex = viewport.fbo->get_color_attachement(0);

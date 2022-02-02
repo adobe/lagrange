@@ -200,8 +200,8 @@ Eigen::Matrix<typename DerivedUV::Scalar, Eigen::Dynamic, 1> compute_uv_area_raw
     using Scalar = typename DerivedUV::Scalar;
     using Index = typename DerivedF::Scalar;
 
-    LA_ASSERT(uv.cols() == 2);
-    LA_ASSERT(triangles.cols() == 3);
+    la_runtime_assert(uv.cols() == 2);
+    la_runtime_assert(triangles.cols() == 3);
     const auto num_triangles = triangles.rows();
 
     auto compute_single_triangle_area = [&uv, &triangles](Index i) {

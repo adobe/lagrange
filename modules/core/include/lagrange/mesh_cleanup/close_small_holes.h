@@ -43,7 +43,7 @@ template <typename MeshType>
 std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    LA_ASSERT(mesh.get_vertex_per_facet() == 3, "This method is only for triangle meshes.");
+    la_runtime_assert(mesh.get_vertex_per_facet() == 3, "This method is only for triangle meshes.");
 
     using Scalar = typename MeshType::Scalar;
     using Index = typename MeshType::Index;
@@ -266,7 +266,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                         const Index f = c / nvpf;
                         assert(f == boundary_corners[e][0] / nvpf);
                         const Index lv = c % nvpf;
-                        LA_ASSERT_DEBUG(mesh.get_facets()(f, (lv + 1) % nvpf) == v0);
+                        la_debug_assert(mesh.get_facets()(f, (lv + 1) % nvpf) == v0);
                         const Index e0 = new_mesh->get_edge(facet_counter, 0);
                         const Index e1 = new_mesh->get_edge(facet_counter, 1);
                         const Index e2 = new_mesh->get_edge(facet_counter, 2);

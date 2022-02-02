@@ -57,7 +57,7 @@ void update_mesh_buffers_system(Registry& r)
             const auto& mr = view.get<MeshRender>(e);
             const auto& mesh_entity = view.get<MeshGeometry>(e).entity;
 
-            LA_ASSERT(r.valid(mesh_entity), "Invalid mesh entity " + ui::get_name(r, e));
+            la_runtime_assert(r.valid(mesh_entity), "Invalid mesh entity " + ui::get_name(r, e));
 
             auto& md = r.get<MeshData>(mesh_entity);
 

@@ -90,16 +90,16 @@ std::unique_ptr<MeshType> load_mesh_ply(const fs::path& filename)
             color.setZero();
             for (size_t i = 0; i < VDheader.size(); ++i) {
                 if (VDheader[i] == "red") {
-                    LA_ASSERT(n >= 1);
+                    la_runtime_assert(n >= 1);
                     color.col(0) = VD.col(i);
                 } else if (VDheader[i] == "green") {
-                    LA_ASSERT(n >= 2);
+                    la_runtime_assert(n >= 2);
                     color.col(1) = VD.col(i);
                 } else if (VDheader[i] == "blue") {
-                    LA_ASSERT(n >= 3);
+                    la_runtime_assert(n >= 3);
                     color.col(2) = VD.col(i);
                 } else if (VDheader[i] == "alpha") {
-                    LA_ASSERT(n >= 4);
+                    la_runtime_assert(n >= 4);
                     color.col(3) = VD.col(i);
                 } else {
                     logger().warn("Unknown vertex attribute: {}", VDheader[i]);

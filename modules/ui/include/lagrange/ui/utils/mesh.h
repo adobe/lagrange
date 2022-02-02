@@ -167,14 +167,14 @@ template <typename V, typename F>
 lagrange::Mesh<V, F>& cast_mesh(MeshData& mesh_data)
 {
     using MeshType = lagrange::Mesh<V, F>;
-    LA_ASSERT("Incorrect mesh type", mesh_data.type == entt::type_id<MeshType>() && mesh_data.mesh);
+    la_runtime_assert(mesh_data.type == entt::type_id<MeshType>() && mesh_data.mesh, "Incorrect mesh type");
     return reinterpret_cast<MeshType&>(*mesh_data.mesh);
 }
 
 template <typename MeshType>
 MeshType& get_mesh(Registry& r, Entity e)
 {
-    LA_ASSERT("No MeshData component", r.has<MeshData>(e));
+    la_runtime_assert(r.has<MeshData>(e), "No MeshData component");
     return cast_mesh<typename MeshType::VertexArray, typename MeshType::FacetArray>(
         r.get<MeshData>(e));
 }

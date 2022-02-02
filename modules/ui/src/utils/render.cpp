@@ -11,7 +11,7 @@
  */
 #include <lagrange/ui/types/Material.h>
 #include <lagrange/ui/utils/render.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 
 // new
@@ -349,11 +349,11 @@ void update_vao(VertexData& vd)
 
         const auto& vbo = buffer->vbo();
 
-        LA_ASSERT(
+        la_runtime_assert(
             vbo.target == GL_ARRAY_BUFFER,
             "Attribute buffer must be bound to GL_ARRAY_BUFFER");
 
-        LA_ASSERT(
+        la_runtime_assert(
             vd.attribute_dimensions[i] > 0 && vd.attribute_dimensions[i] <= 4,
             "Attribute must be of dimension 1,2,3, or 4");
 
@@ -375,7 +375,7 @@ void update_vao(VertexData& vd)
     if (vd.index_buffer) {
         const auto& vbo = vd.index_buffer->vbo();
 
-        LA_ASSERT(
+        la_runtime_assert(
             vbo.target == GL_ELEMENT_ARRAY_BUFFER,
             "Indexing buffer must be bound to GL_ELEMENT_ARRAY_BUFFER");
         GL(glBindBuffer(vbo.target, vbo.id));

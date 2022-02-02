@@ -95,7 +95,7 @@ std::unique_ptr<MeshType> extract_submesh(
 
     MeshIndex count = 0;
     for (auto i : range(num_selected_facets)) {
-        LA_ASSERT(
+        la_runtime_assert(
             selected_facets[i] >= 0 && safe_cast<MeshIndex>(selected_facets[i]) < num_facets,
             "Facet index out of bound for submesh extraction");
         for (auto j : range(vertex_per_facet)) {

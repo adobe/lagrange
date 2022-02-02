@@ -92,6 +92,42 @@ TEST_CASE("MeshLoad Params (open)", "[Mesh][Load]")
 }
 
 
+TEST_CASE("MeshLoad Negative Indices", "[Mesh][Load]")
+{
+    const std::string name = "open/core/dragon.obj";
+    for (bool load_normals : {true, false}) {
+        lagrange::io::MeshLoaderParams params;
+        params.load_normals = load_normals;
+        auto result = lagrange::io::load_mesh_ext<lagrange::TriangleMesh3D>(
+            lagrange::testing::get_data_path(name),
+            params);
+        REQUIRE(result.success);
+        REQUIRE(result.meshes.size() == 1);
+        REQUIRE(result.materials.empty());
+        REQUIRE(result.meshes[0]->get_facets().minCoeff() >= 0);
+        REQUIRE(result.meshes[0]->get_facets().maxCoeff() < result.meshes[0]->get_num_vertices());
+        // make sure the loading is consistent (i.e., doesn't contain garbage data)
+        auto result2 = lagrange::io::load_mesh_ext<lagrange::TriangleMesh3D>(
+            lagrange::testing::get_data_path(name),
+            params);
+        REQUIRE(result2.success);
+        REQUIRE(result2.meshes.size() == 1);
+        REQUIRE(result2.materials.empty());
+        REQUIRE(result2.meshes[0]->get_num_vertices() == result.meshes[0]->get_num_vertices());
+        REQUIRE(result2.meshes[0]->get_num_facets() == result.meshes[0]->get_num_facets());
+        REQUIRE(result2.meshes[0]->get_facets().minCoeff() >= 0);
+        REQUIRE(result2.meshes[0]->get_facets().maxCoeff() < result2.meshes[0]->get_num_vertices());
+        REQUIRE(
+            (result.meshes[0]->get_vertices() - result2.meshes[0]->get_vertices())
+                .lpNorm<Eigen::Infinity>() == 0.0);
+        REQUIRE(
+            (result.meshes[0]->get_facets() - result2.meshes[0]->get_facets())
+                .lpNorm<Eigen::Infinity>() == 0);
+    }
+    // Yay, we didn't crash
+    SUCCEED();
+}
+
 TEST_CASE("MeshLoad", "[Mesh][Load]")
 {
     using namespace lagrange;

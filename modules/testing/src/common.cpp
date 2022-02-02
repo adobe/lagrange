@@ -85,7 +85,7 @@ void setup_mkl_reproducibility()
 #endif
             lagrange::logger().debug("MKL auto cbwr branch: {}", cbwr_branch);
             lagrange::logger().info("Setting MKL reproducibility flag: {}", res);
-            LA_ASSERT(res == MKL_CBWR_SUCCESS);
+            la_runtime_assert(res == MKL_CBWR_SUCCESS);
         }
     };
     MySingleton::instance();

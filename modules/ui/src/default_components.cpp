@@ -51,7 +51,8 @@ bool browse_texture_widget(const std::shared_ptr<Texture>& tex_ptr, int widget_s
 
 std::shared_ptr<Texture> load_texture_dialog(const Texture::Params& default_params)
 {
-    auto path = ui::load_dialog("jpg,png,gif,exr,bmp");
+    auto path =
+        ui::open_file("Load a texture", ".", {{"All Images", "*.jpg *.png *.gif *.exr *.bmp"}});
     if (!path.empty()) {
         try {
             return std::make_shared<Texture>(path, default_params);
@@ -731,7 +732,7 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", shader->name(it.first).c_str());
+                ImGui::Text("%s", it.second.display_name.c_str());
 
                 ImGui::TableSetColumnIndex(1);
                 ImGui::Text("nullptr");
@@ -786,7 +787,7 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", shader->name(it.first).c_str());
+                ImGui::Text("%s", it.second.display_name.c_str());
 
                 auto local_prop = prop;
                 ImGui::TableSetColumnIndex(1);
@@ -817,7 +818,7 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", shader->name(it.first).c_str());
+                ImGui::Text("%s", it.second.display_name.c_str());
 
                 ImGui::TableSetColumnIndex(1);
                 auto col = prop.default_value;
@@ -843,7 +844,7 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", shader->name(it.first).c_str());
+                ImGui::Text("%s", it.second.display_name.c_str());
 
                 ImGui::TableSetColumnIndex(1);
                 auto col = prop.default_value;

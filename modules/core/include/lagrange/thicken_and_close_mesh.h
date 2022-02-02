@@ -63,11 +63,11 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
     using FacetArray = typename MeshType::FacetArray;
     using Vector3s = Eigen::Matrix<Scalar, 3, 1>;
 
-    LA_ASSERT(input_mesh.get_dim() == 3, "This function only supports 3D meshes.");
-    LA_ASSERT(
+    la_runtime_assert(input_mesh.get_dim() == 3, "This function only supports 3D meshes.");
+    la_runtime_assert(
         input_mesh.get_vertex_per_facet() == 3,
         "This function only supports triangle meshes.");
-    LA_ASSERT(
+    la_runtime_assert(
         input_mesh.is_edge_data_initialized(),
         "This function requires the mesh to have edge data pre-initialized.");
 
@@ -103,7 +103,7 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
             input_mesh.get_facets());
         compute_vertex_normal(*copied_mesh);
         copied_mesh->export_vertex_attribute("normal", vertex_normal);
-        LA_ASSERT(vertex_normal.rows() == input_mesh.get_num_vertices());
+        la_runtime_assert(vertex_normal.rows() == input_mesh.get_num_vertices());
     }
     const Index num_input_vertices = input_mesh.get_num_vertices();
     const Index num_input_facets = input_mesh.get_num_facets();

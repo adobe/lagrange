@@ -35,3 +35,14 @@ TEST_CASE("ComputeVertexNormal", "[mesh][triangle][attribute][vertex_normal]")
         REQUIRE(std::abs(vertex_normals(i, 2)) == Approx(1.0 / sqrt(3.0)));
     }
 }
+
+TEST_CASE("ComputeVertexNormal: Waffle", "[core][vertex_normal]" LA_CORP_FLAG)
+{
+    auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3Df>("corp/core/WaffleSkin.obj");
+    lagrange::compute_vertex_normal(*mesh);
+    REQUIRE(mesh->has_vertex_attribute("normal"));
+
+    const auto& vertex_normals = mesh->get_vertex_attribute("normal");
+
+    REQUIRE(vertex_normals.allFinite());
+}

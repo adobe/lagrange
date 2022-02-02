@@ -56,7 +56,7 @@ std::list<std::pair<typename MeshType::Index, typename MeshType::Scalar>> comput
     const Index num_vertices = mesh.get_num_vertices();
     const auto& vertices = mesh.get_vertices();
     const auto& facets = mesh.get_facets();
-    LA_ASSERT(seed_facet_id < num_facets);
+    la_runtime_assert(seed_facet_id < num_facets);
     const FacetType seed_facet = facets.row(seed_facet_id);
     const VertexType seed_point = vertices.row(seed_facet[0]) * bc[0] +
                                   vertices.row(seed_facet[1]) * bc[1] +

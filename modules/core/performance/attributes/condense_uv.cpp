@@ -15,7 +15,7 @@
 #include <lagrange/common.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/timing.h>
 
 int main(int argc, char** argv)

@@ -11,7 +11,7 @@
  */
 #include <lagrange/Logger.h>
 #include <lagrange/ui/types/Texture.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <stb_image.h>
 #include <stb_image_write.h>
 
@@ -89,7 +89,7 @@ Texture::Texture(const Params& params, int width, int height, int depth)
 {
     GL(glGenTextures(1, &m_id));
 
-    LA_ASSERT(params.internal_format != GL_NONE, "Must specify internal format (e.g. GL_RGBA)");
+    la_runtime_assert(params.internal_format != GL_NONE, "Must specify internal format (e.g. GL_RGBA)");
 
     if (width > 0) resize(width, height, depth, true);
 
@@ -104,7 +104,7 @@ Texture::~Texture()
 
 void Texture::bind() const
 {
-    LA_ASSERT(
+    la_runtime_assert(
         ((m_params.internal_format == GL_SRGB8 || m_params.internal_format == GL_SRGB_ALPHA) &&
          m_params.sRGB) ||
             (m_params.internal_format != GL_SRGB8 && m_params.internal_format != GL_SRGB_ALPHA &&
@@ -132,7 +132,7 @@ void Texture::resize(int width, int height /*= 0*/, int depth /*= 0*/, bool forc
     m_depth = depth;
 
     if (m_params.type == GL_TEXTURE_2D) {
-        LA_ASSERT(m_params.format != GL_NONE, "Must specify format (e.g. GL_RGBA)");
+        la_runtime_assert(m_params.format != GL_NONE, "Must specify format (e.g. GL_RGBA)");
         GL(glTexImage2D(
             GL_TEXTURE_2D,
             0,
@@ -152,7 +152,7 @@ void Texture::resize(int width, int height /*= 0*/, int depth /*= 0*/, bool forc
             height,
             GL_TRUE));
     } else if (m_params.type == GL_TEXTURE_CUBE_MAP) {
-        LA_ASSERT(m_params.format != GL_NONE, "Must specify format (e.g. GL_RGBA)");
+        la_runtime_assert(m_params.format != GL_NONE, "Must specify format (e.g. GL_RGBA)");
         for (auto i = 0; i < 6; i++) {
             GL(glTexImage2D(
                 GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
@@ -259,7 +259,7 @@ bool Texture::save_to(
     else if (ext == ".jpg")
         res = stbi_write_jpg(path_string.c_str(), w, h, components, tex_data.data(), quality);
     else {
-        LA_ASSERT(false, "Unsupported format " + ext.string());
+        la_runtime_assert(false, "Unsupported format " + ext.string());
     }
     return res != 0;
 }

@@ -44,8 +44,8 @@ ComputeMeshCentroidOutput<typename MeshType::Scalar> compute_mesh_centroid( //
     const auto& vertices = mesh_ref.get_vertices();
     const auto& facets = mesh_ref.get_facets();
 
-    LA_ASSERT(vertices.cols() == 3, "Currently, only 3 dimensions are supported");
-    LA_ASSERT(facets.cols() == 3, "Currently, only triangles are supported");
+    la_runtime_assert(vertices.cols() == 3, "Currently, only 3 dimensions are supported");
+    la_runtime_assert(facets.cols() == 3, "Currently, only triangles are supported");
 
     Vertex3 centroid = Vertex3::Zero();
     Scalar area = 0;

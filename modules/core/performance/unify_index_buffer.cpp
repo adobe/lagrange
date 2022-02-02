@@ -31,7 +31,7 @@ std::unique_ptr<lagrange::TriangleMesh3D> import_mesh(const std::string& filenam
     }
     {
         lagrange::compute_normal(*mesh, M_PI * 0.5);
-        LA_ASSERT(mesh->has_indexed_attribute("normal"));
+        la_runtime_assert(mesh->has_indexed_attribute("normal"));
         lagrange::logger().info(
             "# normals values: {}",
             std::get<0>(mesh->get_indexed_attribute("normal")).rows());

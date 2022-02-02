@@ -73,7 +73,7 @@ void save_edge_network_vtk(
     }
     fprintf(fl, "LINES %d %d \n", n_total_lines, n_total_lines * 3);
     for (auto i : range(edges.size())) {
-        LA_ASSERT(edges[i].cols() == 2);
+        la_runtime_assert(edges[i].cols() == 2);
         for (auto j : range(edges[i].rows())) {
             fprintf(
                 fl,
@@ -90,7 +90,7 @@ void save_edge_network_vtk(
         fprintf(fl, "SCALARS attrib0 float 1 \n");
         fprintf(fl, "LOOKUP_TABLE default \n");
         for (auto i : range(edge_attributes.size())) {
-            LA_ASSERT(edge_attributes[i].rows() == edges[i].rows());
+            la_runtime_assert(edge_attributes[i].rows() == edges[i].rows());
             for (const auto j : range(edge_attributes[i].size())) {
                 fprintf(fl, "%f \n", (float)edge_attributes[i](j));
             }
@@ -116,7 +116,7 @@ using MarchingTrianglesOutput = ::lagrange::MarchingTrianglesOutput<MeshType>;
 std::unique_ptr<MeshType>
 create_square(const int n, const int m, const Index num_dims, const Scalar delta = 0)
 {
-    LA_ASSERT(num_dims == 2 || num_dims == 3);
+    la_runtime_assert(num_dims == 2 || num_dims == 3);
     const Index num_vertices = n * m;
     const Index num_facets = (n - 1) * (m - 1) * 2;
     VertexArray vertices(num_vertices, num_dims);

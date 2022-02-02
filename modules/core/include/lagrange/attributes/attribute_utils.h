@@ -18,7 +18,7 @@
 #include <lagrange/attributes/condense_indexed_attribute.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_vertex_valence.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
 namespace lagrange {
@@ -28,7 +28,7 @@ void map_vertex_attribute_to_corner_attribute(MeshType& mesh, const std::string&
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using Index = typename MeshType::Index;
-    LA_ASSERT(mesh.has_vertex_attribute(attr_name));
+    la_runtime_assert(mesh.has_vertex_attribute(attr_name));
 
     const Index num_facets = mesh.get_num_facets();
     const Index vertex_per_facet = mesh.get_vertex_per_facet();
@@ -56,7 +56,7 @@ void map_facet_attribute_to_corner_attribute(MeshType& mesh, const std::string& 
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using Index = typename MeshType::Index;
-    LA_ASSERT(mesh.has_facet_attribute(attr_name));
+    la_runtime_assert(mesh.has_facet_attribute(attr_name));
 
     const Index num_facets = mesh.get_num_facets();
     const Index vertex_per_facet = mesh.get_vertex_per_facet();
@@ -81,7 +81,7 @@ void map_corner_attribute_to_vertex_attribute(MeshType& mesh, const std::string&
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using Index = typename MeshType::Index;
-    LA_ASSERT(mesh.has_corner_attribute(attr_name));
+    la_runtime_assert(mesh.has_corner_attribute(attr_name));
 
     const Index num_vertices = mesh.get_num_vertices();
     const Index num_facets = mesh.get_num_facets();
@@ -94,7 +94,7 @@ void map_corner_attribute_to_vertex_attribute(MeshType& mesh, const std::string&
         compute_vertex_valence(mesh);
     }
     const auto& valence = mesh.get_vertex_attribute("valence");
-    LA_ASSERT(valence.rows() == num_vertices);
+    la_runtime_assert(valence.rows() == num_vertices);
 
     std::vector<std::vector<std::pair<Eigen::Index, double>>> weights(num_vertices);
     for (Index i = 0; i < num_facets; i++) {
@@ -122,7 +122,7 @@ void map_corner_attribute_to_facet_attribute(MeshType& mesh, const std::string& 
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using Index = typename MeshType::Index;
-    LA_ASSERT(mesh.has_corner_attribute(attr_name));
+    la_runtime_assert(mesh.has_corner_attribute(attr_name));
 
     const Index num_facets = mesh.get_num_facets();
     const Index vertex_per_facet = mesh.get_vertex_per_facet();
@@ -149,7 +149,7 @@ void map_vertex_attribute_to_indexed_attribute(MeshType& mesh, const std::string
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
-    LA_ASSERT(mesh.has_vertex_attribute(attr_name));
+    la_runtime_assert(mesh.has_vertex_attribute(attr_name));
 
     const auto& attr_values = mesh.get_vertex_attribute(attr_name);
     const auto& attr_indices = mesh.get_facets();
@@ -167,7 +167,7 @@ void map_facet_attribute_to_indexed_attribute(MeshType& mesh, const std::string&
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using IndexArray = typename MeshType::IndexArray;
-    LA_ASSERT(mesh.has_facet_attribute(attr_name));
+    la_runtime_assert(mesh.has_facet_attribute(attr_name));
 
     const auto num_facets = mesh.get_num_facets();
     const auto vertex_per_facet = mesh.get_vertex_per_facet();
@@ -190,7 +190,7 @@ void map_corner_attribute_to_indexed_attribute(MeshType& mesh, const std::string
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using IndexArray = typename MeshType::IndexArray;
-    LA_ASSERT(mesh.has_corner_attribute(attr_name));
+    la_runtime_assert(mesh.has_corner_attribute(attr_name));
 
     const auto num_facets = mesh.get_num_facets();
     const auto vertex_per_facet = mesh.get_vertex_per_facet();
@@ -213,7 +213,7 @@ template <typename MeshType>
 void map_indexed_attribute_to_vertex_attribute(MeshType& mesh, const std::string& attr_name)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
-    LA_ASSERT(mesh.has_indexed_attribute(attr_name));
+    la_runtime_assert(mesh.has_indexed_attribute(attr_name));
 
     using AttributeArray = typename MeshType::AttributeArray;
     using Scalar = typename MeshType::Scalar;
@@ -248,7 +248,7 @@ template <typename MeshType>
 void map_indexed_attribute_to_facet_attribute(MeshType& mesh, const std::string& attr_name)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
-    LA_ASSERT(mesh.has_indexed_attribute(attr_name));
+    la_runtime_assert(mesh.has_indexed_attribute(attr_name));
 
     using AttributeArray = typename MeshType::AttributeArray;
 
@@ -276,7 +276,7 @@ template <typename MeshType>
 void map_indexed_attribute_to_corner_attribute(MeshType& mesh, const std::string& attr_name)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
-    LA_ASSERT(mesh.has_indexed_attribute(attr_name));
+    la_runtime_assert(mesh.has_indexed_attribute(attr_name));
 
     using AttributeArray = typename MeshType::AttributeArray;
     using Index = typename MeshType::Index;

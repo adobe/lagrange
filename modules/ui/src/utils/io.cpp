@@ -248,7 +248,7 @@ Entity detail::load_scene_impl(
     const fs::path& path,
     const std::vector<Entity>& meshes)
 {
-    LA_ASSERT(scene);
+    la_runtime_assert(scene);
 
     std::vector<std::shared_ptr<Material>> materials;
     for (unsigned int i = 0; i < scene->mNumMaterials; i++) {

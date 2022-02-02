@@ -24,10 +24,10 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/common.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/safe_cast.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 #include <lagrange/io/save_mesh_ply.h>
 
@@ -128,10 +128,10 @@ void save_mesh_vtk(
     using AttributeArray = typename MeshType::AttributeArray;
 
     auto write_connectivity = [&](std::ostream& fl) {
-        LA_ASSERT(fl);
+        la_runtime_assert(fl);
         // Not a hard requirement. But since this is just a debugging tool
         // let's just enforce it for now.
-        LA_ASSERT(mesh.get_vertex_per_facet() == 3);
+        la_runtime_assert(mesh.get_vertex_per_facet() == 3);
 
         /*
          * Write the vtk file.
@@ -209,7 +209,7 @@ void save_mesh_vtk(
     fs::ofstream fl(filename, fs::fstream::out);
     fl.precision(12);
     fl.flags(fs::fstream::scientific);
-    LA_ASSERT(fl.is_open());
+    la_runtime_assert(fl.is_open());
 
     // write the connectivity
     write_connectivity(fl);

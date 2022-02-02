@@ -16,7 +16,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/common.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 
@@ -29,7 +29,7 @@ void rename_vertex_attribute(
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using AttributeArray = typename MeshType::AttributeArray;
-    LA_ASSERT(mesh.has_vertex_attribute(old_name));
+    la_runtime_assert(mesh.has_vertex_attribute(old_name));
 
     AttributeArray attr_values;
     mesh.export_vertex_attribute(old_name, attr_values);
@@ -47,7 +47,7 @@ void rename_facet_attribute(
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using AttributeArray = typename MeshType::AttributeArray;
-    LA_ASSERT(mesh.has_facet_attribute(old_name));
+    la_runtime_assert(mesh.has_facet_attribute(old_name));
 
     AttributeArray attr_values;
     mesh.export_facet_attribute(old_name, attr_values);
@@ -65,7 +65,7 @@ void rename_corner_attribute(
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using AttributeArray = typename MeshType::AttributeArray;
-    LA_ASSERT(mesh.has_corner_attribute(old_name));
+    la_runtime_assert(mesh.has_corner_attribute(old_name));
 
     AttributeArray attr_values;
     mesh.export_corner_attribute(old_name, attr_values);
@@ -80,7 +80,7 @@ void rename_edge_attribute(MeshType& mesh, const std::string& old_name, const st
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using AttributeArray = typename MeshType::AttributeArray;
-    LA_ASSERT(mesh.has_edge_attribute(old_name));
+    la_runtime_assert(mesh.has_edge_attribute(old_name));
 
     AttributeArray attr_values;
     mesh.export_edge_attribute(old_name, attr_values);
@@ -99,7 +99,7 @@ void rename_indexed_attribute(
 
     using AttributeArray = typename MeshType::AttributeArray;
     using IndexArray = typename MeshType::IndexArray;
-    LA_ASSERT(mesh.has_indexed_attribute(old_name));
+    la_runtime_assert(mesh.has_indexed_attribute(old_name));
 
     AttributeArray attr_values;
     IndexArray attr_indices;

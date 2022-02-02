@@ -36,7 +36,7 @@ void map_vertex_attributes(
     static_assert(MeshTrait<MeshType1>::is_mesh(), "Input type is not Mesh");
     static_assert(MeshTrait<MeshType2>::is_mesh(), "Input type is not Mesh");
     using Index = typename MeshType1::Index;
-    LA_ASSERT(vertex_map.empty() || safe_cast<Index>(vertex_map.size()) == to.get_num_vertices());
+    la_runtime_assert(vertex_map.empty() || safe_cast<Index>(vertex_map.size()) == to.get_num_vertices());
 
     const auto& vertex_attributes = from.get_vertex_attribute_names();
     const auto num_vertices = to.get_num_vertices();

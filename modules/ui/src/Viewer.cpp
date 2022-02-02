@@ -391,7 +391,7 @@ Viewer::Viewer(const WindowOptions& window_options)
     {
         // Create viewport
         auto main_viewport = add_viewport(registry(), default_camera, true);
-        
+
         registry().emplace_or_replace<Name>(main_viewport, "Default Viewport");
 
         // Set the viewport to default viewport window
@@ -1022,7 +1022,7 @@ void Viewer::draw_menu()
         ImGui::Separator();
 #ifdef LAGRANGE_WITH_ASSIMP
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT " Import Scene")) {
-            auto path = load_dialog("");
+            auto path = open_file("Load a scene");
             if (!path.empty()) {
                 ui::load_scene<TriangleMesh3Df>(r, path);
                 ui::camera_focus_and_fit(r, get_focused_camera_entity(r));
@@ -1037,7 +1037,7 @@ void Viewer::draw_menu()
 #endif
 
         if (ImGui::MenuItem(ICON_FA_FILE_IMPORT " Import Single Mesh")) {
-            auto path = load_dialog("");
+            auto path = open_file("Load a single mesh");
             if (!path.empty()) {
                 auto m = ui::load_obj<TriangleMesh3Df>(r, path);
                 if (m != NullEntity) {
@@ -1119,7 +1119,7 @@ void Viewer::draw_menu()
         ImGui::Separator();
 
         if (ImGui::MenuItem(ICON_FA_IMAGE" Load Image Based Light")) {
-            auto path = ui::load_dialog("");
+            auto path = ui::open_file("Load an IBL");
             if (!path.empty()){
                 try {
                     auto ibl = ui::generate_ibl(path);

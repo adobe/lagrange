@@ -12,7 +12,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/ui/types/FrameBuffer.h>
 #include <lagrange/ui/types/Texture.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 
 namespace lagrange {
@@ -89,7 +89,7 @@ void FrameBuffer::set_color_attachement(
     GLenum target /*= GL_TEXTURE_2D*/,
     int mipmap_level /*= 0*/)
 {
-    if (index > m_color_attachments.size()) LA_ASSERT(false, "Maximum color attachments reached");
+    if (index > m_color_attachments.size()) la_runtime_assert(false, "Maximum color attachments reached");
 
     m_color_attachments[index] = t;
     bind();

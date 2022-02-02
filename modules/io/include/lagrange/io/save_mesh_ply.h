@@ -70,7 +70,7 @@ void save_mesh_ply(const fs::path &filename, const MeshType &mesh, FileEncoding 
         if (VD.cols() > 3) {
             VDheader.push_back("alpha");
         }
-        LA_ASSERT(safe_cast<size_t>(VD.cols()) == VDheader.size());
+        la_runtime_assert(safe_cast<size_t>(VD.cols()) == VDheader.size());
     }
 
     igl::writePLY(

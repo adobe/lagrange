@@ -158,11 +158,11 @@ void accumulate_tangent_bitangent(
     using IndexArray = Eigen::Matrix<Index, Eigen::Dynamic, 1>;
     using RowVector3r = Eigen::Matrix<Scalar, 1, 3>;
 
-    LA_ASSERT(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.")
-    LA_ASSERT(safe_cast<Index>(tangents.rows()) == mesh.get_num_facets() * 3);
-    LA_ASSERT(safe_cast<Index>(bitangents.rows()) == mesh.get_num_facets() * 3);
-    LA_ASSERT(tangents.cols() == bitangents.cols());
-    LA_ASSERT(tangents.cols() == 3 || tangents.cols() == 4);
+    la_runtime_assert(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.");
+    la_runtime_assert(safe_cast<Index>(tangents.rows()) == mesh.get_num_facets() * 3);
+    la_runtime_assert(safe_cast<Index>(bitangents.rows()) == mesh.get_num_facets() * 3);
+    la_runtime_assert(tangents.cols() == bitangents.cols());
+    la_runtime_assert(tangents.cols() == 3 || tangents.cols() == 4);
 
     // Compute edge information
     logger().trace("Corner to edge mapping");
@@ -389,8 +389,8 @@ void corner_tangent_bitangent_raw(
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
 
-    LA_ASSERT(mesh.get_vertices().cols() == 3, "Mesh must be 3D");
-    LA_ASSERT(mesh.is_uv_initialized(), "UVs must be initialized");
+    la_runtime_assert(mesh.get_vertices().cols() == 3, "Mesh must be 3D");
+    la_runtime_assert(mesh.is_uv_initialized(), "UVs must be initialized");
 
     using Scalar = typename MeshType::Scalar;
     using Index = typename MeshType::Index;
@@ -505,8 +505,8 @@ void compute_corner_tangent_bitangent(MeshType& mesh, bool pad_with_sign = false
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
 
-    LA_ASSERT(mesh.get_vertices().cols() == 3, "Mesh must be 3D");
-    LA_ASSERT(mesh.is_uv_initialized(), "UVs must be initialized");
+    la_runtime_assert(mesh.get_vertices().cols() == 3, "Mesh must be 3D");
+    la_runtime_assert(mesh.is_uv_initialized(), "UVs must be initialized");
 
     typename MeshType::AttributeArray T;
     typename MeshType::AttributeArray BT;
@@ -534,10 +534,10 @@ void compute_indexed_tangent_bitangent(MeshType& mesh, bool pad_with_sign = fals
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
 
-    LA_ASSERT(mesh.get_vertices().cols() == 3, "Mesh must be 3D");
-    LA_ASSERT(mesh.is_uv_initialized(), "UVs must be initialized");
-    LA_ASSERT(mesh.get_vertex_per_facet() == 3, "Input must be a triangle mesh");
-    LA_ASSERT(mesh.has_indexed_attribute("normal"), "Mesh must have indexed normals");
+    la_runtime_assert(mesh.get_vertices().cols() == 3, "Mesh must be 3D");
+    la_runtime_assert(mesh.is_uv_initialized(), "UVs must be initialized");
+    la_runtime_assert(mesh.get_vertex_per_facet() == 3, "Input must be a triangle mesh");
+    la_runtime_assert(mesh.has_indexed_attribute("normal"), "Mesh must have indexed normals");
 
     typename MeshType::AttributeArray T;
     typename MeshType::AttributeArray BT;

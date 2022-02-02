@@ -94,7 +94,7 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
 
     // Concatenate original vertices and additional vertices.
     const Index total_num_vertices = num_vertices + safe_cast<Index>(additional_vertices.size());
-    LA_ASSERT(vertex_mapping.size() == additional_vertices.size());
+    la_runtime_assert(vertex_mapping.size() == additional_vertices.size());
     typename MeshType::VertexArray all_vertices(total_num_vertices, dim);
     all_vertices.block(0, 0, num_vertices, dim) = vertices;
     for (Index i = num_vertices; i < total_num_vertices; i++) {
@@ -110,8 +110,8 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
 
         // Copy over inactive facets.
         if (has_active_region && !is_active(i)) {
-            LA_ASSERT(facets.row(i).maxCoeff() < total_num_vertices);
-            LA_ASSERT(facets.row(i).minCoeff() >= 0);
+            la_runtime_assert(facets.row(i).maxCoeff() < total_num_vertices);
+            la_runtime_assert(facets.row(i).minCoeff() >= 0);
             out_facets.push_back(facets.row(i));
             facet_map.push_back(i);
             continue;
@@ -124,13 +124,13 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
             auto itr = splitting_pts.find(e);
             if (itr != splitting_pts.end()) {
                 const auto& pts = itr->second;
-                LA_ASSERT(pts.size() >= 3);
+                la_runtime_assert(pts.size() >= 3);
                 if (pts[0] == e[0]) {
                     auto start = std::next(pts.cbegin());
                     auto end = std::prev(pts.cend());
                     chain.insert(chain.end(), start, end);
                 } else {
-                    LA_ASSERT(pts[0] == e[1]);
+                    la_runtime_assert(pts[0] == e[1]);
                     auto start = std::next(pts.crbegin());
                     auto end = std::prev(pts.crend());
                     chain.insert(chain.end(), start, end);
@@ -139,8 +139,8 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
         }
         if (chain.size() == 3) {
             // No split.
-            LA_ASSERT(facets.row(i).maxCoeff() < total_num_vertices);
-            LA_ASSERT(facets.row(i).minCoeff() >= 0);
+            la_runtime_assert(facets.row(i).maxCoeff() < total_num_vertices);
+            la_runtime_assert(facets.row(i).minCoeff() >= 0);
             out_facets.push_back(facets.row(i));
             facet_map.push_back(i);
             active_facets(i, 0) = 0;
@@ -159,8 +159,8 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
     const Index num_out_facets = safe_cast<Index>(out_facets.size());
     typename MeshType::FacetArray all_facets(num_out_facets, 3);
     for (Index i = 0; i < num_out_facets; i++) {
-        LA_ASSERT(out_facets[i].minCoeff() >= 0);
-        LA_ASSERT(out_facets[i].maxCoeff() < total_num_vertices);
+        la_runtime_assert(out_facets[i].minCoeff() >= 0);
+        la_runtime_assert(out_facets[i].maxCoeff() < total_num_vertices);
         all_facets.row(i) = out_facets[i];
     }
 

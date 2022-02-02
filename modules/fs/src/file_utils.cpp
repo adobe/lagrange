@@ -12,7 +12,7 @@
 #include <lagrange/utils/strings.h>
 #include <lagrange/fs/file_utils.h>
 
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 #ifdef _WIN32
 #include <Windows.h>
@@ -81,7 +81,7 @@ std::string read_file_with_includes(const fs::path& search_dir, const fs::path& 
             fs::path include_file_path = search_dir / include_file_name;
 
             std::string new_src = lagrange::fs::read_file_to_string(include_file_path);
-            LA_ASSERT(new_src.length() > 0, "Couldn't read " + include_file_path.string());
+            la_runtime_assert(new_src.length() > 0, "Couldn't read " + include_file_path.string());
 
             str.replace(i->position(), i->length(), new_src);
             i = std::sregex_iterator(str.begin(), str.end(), rx_include);
@@ -98,7 +98,7 @@ std::string read_file_with_includes(
 {
     auto it = virtual_fs.find(filepath.generic_string());
     if (it == virtual_fs.end())
-        LA_ASSERT(false, filepath.string() + " is not in virtual file system");
+        la_runtime_assert(false, filepath.string() + " is not in virtual file system");
 
     // make a copy
     auto str = (*it).second;
@@ -114,7 +114,7 @@ std::string read_file_with_includes(
 
             auto it_include = virtual_fs.find(include_file_name);
             if (it_include == virtual_fs.end())
-                LA_ASSERT(
+                la_runtime_assert(
                     false, "#include of " + include_file_name + " is not in virtual file system");
 
             const auto& new_src = (*it_include).second;
@@ -160,7 +160,7 @@ path get_executable_path()
     char dest[BUF_SIZE];
     memset(dest, 0, sizeof(dest));
     auto count = readlink("/proc/self/exe", dest, BUF_SIZE);
-    LA_ASSERT(count >= 0);
+    la_runtime_assert(count >= 0);
     result = dest;
 #endif
 
@@ -179,12 +179,12 @@ path get_current_working_directory()
     // Use the A postfix. It would return 8bit Unicode
     char buffer[BUF_SIZE];
     auto ret = GetCurrentDirectoryA(BUF_SIZE, buffer);
-    LA_ASSERT(ret != 0);
+    la_runtime_assert(ret != 0);
     return buffer;
 #elif __APPLE__ || __linux__
     char buffer[BUF_SIZE];
     char* success = getcwd(buffer, BUF_SIZE);
-    LA_ASSERT(success);
+    la_runtime_assert(success);
     return buffer;
 #endif
 }

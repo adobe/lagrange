@@ -43,7 +43,7 @@ void compute_vertex_normal(
 
     if (!mesh.has_facet_attribute("normal") || recompute_facet_normals) {
         compute_triangle_normal(mesh);
-        LA_ASSERT(mesh.has_facet_attribute("normal"));
+        la_runtime_assert(mesh.has_facet_attribute("normal"));
     }
 
     using AttributeArray = typename MeshType::AttributeArray;
@@ -72,6 +72,9 @@ void compute_vertex_normal(
             break;
         default: assert(false && "Unknown weighting type");
         }
+
+        // Weight vector may contain NaNs, so we zero them out
+        weights = weights.array().isFinite().select(weights, Scalar(0));
 
         if (mesh.is_edge_data_initialized()) {
             // Parallel version, iterating over vertices

@@ -17,7 +17,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/common.h>
 #include <lagrange/experimental/Attribute.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/warning.h>
 
 namespace lagrange {
@@ -54,7 +54,7 @@ public:
     void set(const std::string& name, Derived&& values)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist.");
         if (itr->second == nullptr) {
             auto attr = std::make_unique<Attribute>();
             attr->set(std::forward<Derived>(values));
@@ -67,14 +67,14 @@ public:
     Attribute* get(const std::string& name)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist.");
         return itr->second.get();
     }
 
     const Attribute* get(const std::string& name) const
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist.");
         return itr->second.get();
     }
 
@@ -82,7 +82,7 @@ public:
     decltype(auto) get(const std::string& name)
     {
         auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->get<Derived>();
     }
 
@@ -90,7 +90,7 @@ public:
     decltype(auto) get(const std::string& name) const
     {
         const auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->get<Derived>();
     }
 
@@ -98,7 +98,7 @@ public:
     decltype(auto) view(const std::string& name)
     {
         auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->view<Derived>();
     }
 
@@ -106,7 +106,7 @@ public:
     decltype(auto) view(const std::string& name) const
     {
         const auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->view<Derived>();
     }
 
@@ -120,7 +120,7 @@ public:
     void export_data(const std::string& name, Eigen::PlainObjectBase<Derived>& values)
     {
         auto attr = get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is null.");
         auto value_array = attr->get();
 
 #ifndef NDEBUG
@@ -142,7 +142,7 @@ public:
 
 #ifndef NDEBUG
         if (validate) {
-            LA_ASSERT(value_ptr == values.data(), "Export have to fall back to copying.");
+            la_runtime_assert(value_ptr == values.data(), "Export have to fall back to copying.");
         }
 #endif
     }
@@ -150,7 +150,7 @@ public:
     void remove(const std::string& name)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist.");
         m_data.erase(itr);
     }
 

@@ -9,18 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/fs/file_utils.h>
 #include <lagrange/ui/default_keybinds.h>
 #include <lagrange/ui/imgui/UIWidget.h>
 #include <lagrange/ui/imgui/buttons.h>
 #include <lagrange/ui/panels/KeybindsPanel.h>
+#include <lagrange/ui/utils/file_dialog.h>
 #include <lagrange/ui/utils/input.h>
 #include <lagrange/ui/utils/uipanel.h>
 #include <lagrange/utils/safe_cast.h>
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
-#include <nfd.h>
 #include <fstream>
 
 namespace lagrange {
@@ -38,32 +37,25 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
         ImGui::Text("Keybinds");
 
         if (ImGui::Button("Load", ImVec2(w / 3, 0))) {
-            nfdchar_t* path = nullptr;
-            nfdresult_t result = NFD_OpenDialog("json", nullptr, &path);
-            if (result == NFD_OKAY) {
-                auto path_string = std::string(path);
-                std::ifstream f(path_string);
+            auto path = open_file("Load keybinding config", ".", {{"Json files", "*.json"}});
+            if (fs::exists(path)) {
+                fs::ifstream f(path);
                 if (f.good()) {
                     k.load(f);
                 }
-                free(path);
             }
         }
 
         ImGui::SameLine();
 
         if (ImGui::Button("Save", ImVec2(w / 3, 0))) {
-            nfdchar_t* path = nullptr;
-            nfdresult_t result = NFD_SaveDialog("json", nullptr, &path);
-            if (result == NFD_OKAY) {
-                std::string s = fs::get_string_ending_with(path, ".json");
-
-                std::ofstream f(s);
+            auto path = save_file("Save keybinding config", ".", {{"Json files", "*.json"}});
+            if (!path.empty()) {
+                path.replace_extension(".json");
+                fs::ofstream f(path);
                 if (f.good()) {
                     k.save(f);
                 }
-
-                free(path);
             }
         }
 

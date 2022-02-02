@@ -23,7 +23,7 @@ template <typename MeshType>
 void map_indexed_attributes(const MeshType& from, MeshType& to)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    LA_ASSERT(from.get_num_facets() == to.get_num_facets());
+    la_runtime_assert(from.get_num_facets() == to.get_num_facets());
 
     using AttributeArray = typename MeshType::AttributeArray;
     using IndexArray = typename MeshType::IndexArray;

@@ -15,7 +15,7 @@
 #include <vector>
 
 #include <lagrange/MeshGeometry.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 template <typename GeometryType>
@@ -94,7 +94,7 @@ public:
         // Remove self from f2f adjacency.
         for (Index i = 0; i < num_facets; i++) {
             const auto itr = std::find(m_f2f[i].begin(), m_f2f[i].end(), i);
-            LA_ASSERT(itr != m_f2f[i].end());
+            la_runtime_assert(itr != m_f2f[i].end());
             m_f2f[i].erase(itr);
         }
 

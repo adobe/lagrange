@@ -282,7 +282,7 @@ bool select_facets_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const
                       .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, & frustum);
 
     if (!result) {
-        LA_ASSERT(false, "select_facets_in_frustum failed");
+        la_runtime_assert(false, "select_facets_in_frustum failed");
     }
     return result.cast<bool>();
 }
@@ -292,7 +292,7 @@ void select_vertices_in_frustum(MeshData& d, SelectionBehavior sel_behavior, con
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"select_vertices_in_frustum"})
              .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, & frustum)) {
-        LA_ASSERT(false, "select_vertices_in_frustum failed");
+        la_runtime_assert(false, "select_vertices_in_frustum failed");
     }
 }
 
@@ -301,7 +301,7 @@ void select_edges_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const 
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"select_edges_in_frustum"})
              .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, & frustum)) {
-        LA_ASSERT(false, "select_edges_in_frustum failed");
+        la_runtime_assert(false, "select_edges_in_frustum failed");
     }
 }
 
@@ -311,7 +311,7 @@ void propagate_corner_selection(MeshData& d, const std::string& attrib_name)
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"propagate_corner_selection"})
              .invoke({}, (MeshBase*)(d.mesh.get()), attrib_name)) {
-        LA_ASSERT(false, "propagate_corner_selection failed");
+        la_runtime_assert(false, "propagate_corner_selection failed");
     }
 }
 
@@ -320,7 +320,7 @@ void propagate_vertex_selection(MeshData& d, const std::string& attrib_name)
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"propagate_vertex_selection"})
              .invoke({}, (MeshBase*)(d.mesh.get()), attrib_name)) {
-        LA_ASSERT(false, "propagate_vertex_selection failed");
+        la_runtime_assert(false, "propagate_vertex_selection failed");
     }
 }
 
@@ -329,7 +329,7 @@ void propagate_facet_selection(MeshData& d, const std::string& attrib_name)
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"propagate_facet_selection"})
              .invoke({}, (MeshBase*)(d.mesh.get()), attrib_name)) {
-        LA_ASSERT(false, "propagate_facet_selection failed");
+        la_runtime_assert(false, "propagate_facet_selection failed");
     }
 }
 
@@ -338,7 +338,7 @@ void combine_vertex_and_corner_selection(MeshData& d, const std::string& attrib_
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"combine_vertex_and_corner_selection"})
              .invoke({}, (MeshBase*)(d.mesh.get()), attrib_name)) {
-        LA_ASSERT(false, "combine_vertex_and_corner_selection failed");
+        la_runtime_assert(false, "combine_vertex_and_corner_selection failed");
     }
 }
 
@@ -358,7 +358,7 @@ void select_facets_by_color(
                  sel_behavior,
                  color_bytes,
                  colors_byte_size)) {
-        LA_ASSERT(false, "select_facets_by_color failed");
+        la_runtime_assert(false, "select_facets_by_color failed");
     }
 }
 
@@ -378,7 +378,7 @@ void select_edges_by_color(
                  sel_behavior,
                  color_bytes,
                  colors_byte_size)) {
-        LA_ASSERT(false, "select_edges_by_color failed");
+        la_runtime_assert(false, "select_edges_by_color failed");
     }
 }
 
@@ -398,7 +398,7 @@ void select_vertices_by_color(
                  sel_behavior,
                  color_bytes,
                  colors_byte_size)) {
-        LA_ASSERT(false, "select_vertices_by_color failed");
+        la_runtime_assert(false, "select_vertices_by_color failed");
     }
 }
 
@@ -411,7 +411,7 @@ void select_facets(MeshData& d, SelectionBehavior sel_behavior, const std::vecto
                  (MeshBase*)(d.mesh.get()),
                  sel_behavior,
                  &facet_indices)) {
-        LA_ASSERT(false, "select_facets failed");
+        la_runtime_assert(false, "select_facets failed");
     }
 }
 
@@ -425,7 +425,7 @@ void filter_closest_vertex(
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"filter_closest_vertex"})
              .invoke({}, (MeshBase*)(d.mesh.get()), attrib_name, sel_behavior, camera, viewport_pos)) {
-        LA_ASSERT(false, "filter_closest_vertex failed");
+        la_runtime_assert(false, "filter_closest_vertex failed");
     }
 }
 

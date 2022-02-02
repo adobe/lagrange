@@ -15,7 +15,7 @@
 #include <string>
 
 #include <lagrange/GenuineMeshGeometry.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 
@@ -64,7 +64,7 @@ public:
         const Eigen::PlainObjectBase<IndexDerived>& indices)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist");
         itr->second =
             std::make_shared<GenuineMeshGeometry<AttributeArray, IndexArray>>(values, indices);
     }
@@ -72,14 +72,14 @@ public:
     const AttributeData& get_attribute(const std::string& name) const
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist");
         return *itr->second;
     }
 
     AttributeData& get_attribute(const std::string& name)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist");
         return *itr->second;
     }
 
@@ -106,7 +106,7 @@ public:
     void remove_attribute(const std::string& name)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist");
         m_data.erase(itr);
     }
 
@@ -117,7 +117,7 @@ public:
         Eigen::PlainObjectBase<IndexDerived>& indices)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist");
         itr->second->import_vertices(values);
         itr->second->import_facets(indices);
     }
@@ -129,7 +129,7 @@ public:
         Eigen::PlainObjectBase<IndexDerived>& indices)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist");
         itr->second->export_vertices(values);
         itr->second->export_facets(indices);
     }
@@ -137,7 +137,7 @@ public:
     decltype(auto) get_attribute_as_mesh(const std::string& name)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist");
         using MeshType = Mesh<AttributeArray, IndexArray>;
         return std::make_unique<MeshType>(itr->second);
     }

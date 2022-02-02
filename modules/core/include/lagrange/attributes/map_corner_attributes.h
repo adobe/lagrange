@@ -21,7 +21,7 @@ template <typename MeshType>
 void map_corner_attributes(const MeshType& from, MeshType& to)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    LA_ASSERT(from.get_num_facets() == to.get_num_facets());
+    la_runtime_assert(from.get_num_facets() == to.get_num_facets());
 
     auto corner_attributes = from.get_corner_attribute_names();
     for (const auto& name : corner_attributes) {
@@ -47,10 +47,10 @@ void map_corner_attributes(
     using Index = typename MeshType::Index;
 
     const Index dim = from.get_dim();
-    LA_ASSERT(to.get_dim() == dim);
-    LA_ASSERT(from.get_vertex_per_facet() == 3);
-    LA_ASSERT(to.get_vertex_per_facet() == 3);
-    LA_ASSERT(safe_cast<Index>(facet_map.size()) == to.get_num_facets());
+    la_runtime_assert(to.get_dim() == dim);
+    la_runtime_assert(from.get_vertex_per_facet() == 3);
+    la_runtime_assert(to.get_vertex_per_facet() == 3);
+    la_runtime_assert(safe_cast<Index>(facet_map.size()) == to.get_num_facets());
 
     auto corner_map_fn = [&](Eigen::Index i,
                              std::vector<std::pair<Eigen::Index, double>>& weights) {

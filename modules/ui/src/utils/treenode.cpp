@@ -16,7 +16,7 @@
 
 #include <assert.h>
 #include <lagrange/Logger.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 namespace ui {
@@ -154,7 +154,7 @@ void orphan(Registry& registry, Entity child)
 
 void set_parent(Registry& registry, Entity child, Entity new_parent)
 {
-    LA_ASSERT(registry.has<TreeNode>(child), "Child must have Tree component");
+    la_runtime_assert(registry.has<TreeNode>(child), "Child must have Tree component");
     auto& t_child = registry.get<TreeNode>(child);
     auto* t_new_parent = (new_parent == NullEntity) ? nullptr : &registry.get<TreeNode>(new_parent);
 

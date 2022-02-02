@@ -45,7 +45,7 @@ std::vector<Index> invert_mapping(const std::vector<Index>& map, Index target_co
     for (auto i : range((Index)map.size())) {
         Index value = map[i];
         if (value != INVALID<Index>()) {
-            LA_ASSERT(value < target_count);
+            la_runtime_assert(value < target_count);
             ret[value] = i;
         }
     }

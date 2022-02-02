@@ -10,27 +10,26 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-//
-// The following macros allows one to surgically disable specific warnings
-// around a block of code.  E.g.
-//
-// ```
-// #include <lagrange/utils/warning.h>
-//
-// LA_DISABLE_WARNING_BEGIN
-// LA_DISABLE_WARNING_CLANG(-Wdeprecated-declarations)
-// LA_DISABLE_WARNING_GCC(-Wdeprecated-declarations)
-// LA_DISABLE_WARNING_MSVC(4996)
-// ...
-// <code that may cause warning>
-// ...
-// LA_DISABLE_WARNING_END
-// ```
-//
+
+/// @defgroup group-utils-warning Warnings
+/// @ingroup group-utils
+/// Managing compiler warnings.
+///
+/// The following macros allows one to surgically disable specific warnings
+/// around a block of code.  E.g.
+///
+/// ```
+/// #include <lagrange/utils/warning.h>
+///
+/// LA_IGNORE_DEPRECATION_WARNING_BEGIN
+/// <code that may cause warning>
+/// LA_IGNORE_DEPRECATION_WARNING_END
+/// ```
+/// @{
 
 // clang-format off
 
-// Define macros for each compiler
+/// @cond LA_INTERNAL_DOCS
 #if defined(__clang__)
     #define LA_PRAGMA(X) _Pragma(#X)
     #define LA_DISABLE_WARNING_BEGIN LA_PRAGMA(clang diagnostic push)
@@ -58,32 +57,72 @@
     #define LA_DISABLE_WARNING_GCC(warning_name)
     #define LA_DISABLE_WARNING_MSVC(warning_number)
 #endif
+/// @endcond
 
-// Ignore shadow warnings
+/// Ignore shadow warnings
+/// @hideinitializer
 #define LA_IGNORE_SHADOW_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
     LA_DISABLE_WARNING_CLANG(-Wshadow) \
     LA_DISABLE_WARNING_GCC(-Wshadow)
+/// @hideinitializer
 #define LA_IGNORE_SHADOW_WARNING_END LA_DISABLE_WARNING_END
 
-// Ignore deprecation warnings
+/// Ignore deprecation warnings
+/// @hideinitializer
 #define LA_IGNORE_DEPRECATION_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
     LA_DISABLE_WARNING_CLANG(-Wdeprecated-declarations) \
     LA_DISABLE_WARNING_GCC(-Wdeprecated-declarations) \
     LA_DISABLE_WARNING_MSVC(4996)
+/// @hideinitializer
 #define LA_IGNORE_DEPRECATION_WARNING_END LA_DISABLE_WARNING_END
 
-// Ignore unused local typedefs
+/// Ignore unused local typedefs
+/// @hideinitializer
 #define LA_IGNORE_UNUSED_TYPEDEF_BEGIN LA_DISABLE_WARNING_BEGIN \
     LA_DISABLE_WARNING_CLANG(-Wunused-local-typedefs) \
     LA_DISABLE_WARNING_GCC(-Wunused-local-typedefs)
+/// @hideinitializer
 #define LA_IGNORE_UNUSED_TYPEDEF_END LA_DISABLE_WARNING_END
 
-// Ignore x to avoid an unused variable warning
+/// Ignore exit time destructors
+/// @hideinitializer
+#define LA_IGNORE_EXIT_TIME_DTOR_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wexit-time-destructors)
+/// @hideinitializer
+#define LA_IGNORE_EXIT_TIME_DTOR_WARNING_END LA_DISABLE_WARNING_END
+
+/// Ignore documentation errors
+/// @hideinitializer
+#define LA_IGNORE_DOCUMENTATION_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wdocumentation)
+/// @hideinitializer
+#define LA_IGNORE_DOCUMENTATION_WARNING_END LA_DISABLE_WARNING_END
+
+/// Ignore self assign overloaded
+/// @hideinitializer
+#define LA_IGNORE_SELF_ASSIGN_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wself-assign-overloaded)
+/// @hideinitializer
+#define LA_IGNORE_SELF_ASSIGN_WARNING_END LA_DISABLE_WARNING_END
+
+/// Ignore self move
+/// @hideinitializer
+#define LA_IGNORE_SELF_MOVE_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wself-move)
+/// @hideinitializer
+#define LA_IGNORE_SELF_MOVE_WARNING_END LA_DISABLE_WARNING_END
+
+/// Ignore x to avoid an unused variable warning
+/// @hideinitializer
 #define LA_IGNORE(x) (void)x
 
-// Ignore range loop variable may be a copy
+/// Ignore range loop variable may be a copy
+/// @hideinitializer
 #define LA_IGNORE_RANGE_LOOP_ANALYSIS_BEGIN LA_DISABLE_WARNING_BEGIN \
     LA_DISABLE_WARNING_CLANG(-Wrange-loop-analysis)
+/// @hideinitializer
 #define LA_IGNORE_RANGE_LOOP_ANALYSIS_END LA_DISABLE_WARNING_END
 
 // clang-format on
+
+/// @}

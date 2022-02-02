@@ -12,7 +12,7 @@
 #include <imgui.h>
 #include <lagrange/Logger.h>
 #include <lagrange/ui/types/Keybinds.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 #include <nlohmann/json.hpp>
 
@@ -246,7 +246,7 @@ bool Keybinds::is_action_in_state(const std::string& action, KeyState state) con
     if (!m_enabled) return false;
 
     auto it = m_mapping.find(action);
-    LA_ASSERT(it != m_mapping.end(), "Action '" + action + "' keybind not registered");
+    la_runtime_assert(it != m_mapping.end(), "Action '" + action + "' keybind not registered");
 
     for (auto& keybind : it->second) {
         if (keybind.current_state == state) return true;

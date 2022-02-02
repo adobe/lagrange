@@ -104,7 +104,7 @@ void flat_vector_to_eigen(
     size_t cols,
     int row_major_flag = Eigen::RowMajor)
 {
-    LA_ASSERT(rows * cols == from.size(), "Invalid vector size");
+    la_runtime_assert(rows * cols == from.size(), "Invalid vector size");
     to.resize(rows, cols);
     const bool is_row_major = (row_major_flag & Eigen::RowMajor);
     for (Eigen::Index i = 0; i < to.size(); ++i) {

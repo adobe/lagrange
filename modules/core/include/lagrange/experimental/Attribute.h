@@ -51,7 +51,7 @@ public:
     template <typename Derived>
     decltype(auto) get() const
     {
-        LA_ASSERT(m_values != nullptr);
+        la_runtime_assert(m_values != nullptr);
         const auto& values = *m_values;
         return values.get<Derived>();
     }
@@ -59,14 +59,14 @@ public:
     template <typename Derived>
     decltype(auto) get()
     {
-        LA_ASSERT(m_values != nullptr);
+        la_runtime_assert(m_values != nullptr);
         return m_values->get<Derived>();
     }
 
     template <typename Derived>
     decltype(auto) view() const
     {
-        LA_ASSERT(m_values != nullptr);
+        la_runtime_assert(m_values != nullptr);
         const auto& values = *m_values;
         return values.view<Derived>();
     }
@@ -74,7 +74,7 @@ public:
     template <typename Derived>
     decltype(auto) view()
     {
-        LA_ASSERT(m_values != nullptr);
+        la_runtime_assert(m_values != nullptr);
         return m_values->view<Derived>();
     }
 

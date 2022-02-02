@@ -137,7 +137,7 @@ public:
     ///
     Index get_vertex_opposite_edge(const FacetArray& facets, Index e) const
     {
-        LA_ASSERT(m_vertex_per_facet == 3, "This method is only for triangle meshes.");
+        la_runtime_assert(m_vertex_per_facet == 3, "This method is only for triangle meshes.");
         Index c = m_e2c[e];
         if (c == INVALID<Index>()) {
             logger().error("Invalid corner id for edge {}", e);

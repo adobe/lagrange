@@ -17,7 +17,7 @@
 #include <lagrange/ui/systems/update_gizmo.h>
 
 #include <lagrange/Logger.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 ///IMGUIZMO INCLUDE ORDER
 #include <imgui.h>
@@ -125,7 +125,7 @@ void gizmo_system(
 
         // Save initial transforms
         for (auto e : view) {
-            LA_ASSERT(!registry.has<GizmoObjectTransform>(e));
+            la_runtime_assert(!registry.has<GizmoObjectTransform>(e));
 
             GizmoObjectTransform got;
             got.initial_transform = view.get<Transform>(e);

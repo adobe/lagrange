@@ -114,7 +114,7 @@ template <typename MeshType>
 RowMajorMatrixXf
 get_mesh_attribute(const MeshBase* mesh_base, IndexingMode mode, const std::string& name)
 {
-    LA_ASSERT(
+    la_runtime_assert(
         mode != lagrange::ui::IndexingMode::INDEXED,
         "Indexed attribute not supported. Map to corner first.");
 
@@ -151,7 +151,7 @@ get_mesh_attribute_range(const MeshBase* mesh_base, IndexingMode mode, const std
     default: break;
     }
 
-    LA_ASSERT(aa != nullptr);
+    la_runtime_assert(aa != nullptr);
 
     return {
         aa->colwise().minCoeff().transpose().template cast<float>().eval(),
@@ -297,7 +297,7 @@ template <typename MeshType>
 void upload_mesh_triangles(const MeshBase* mesh_base, GPUBuffer* gpu)
 {
     const auto& mesh = reinterpret_cast<const MeshType&>(*mesh_base);
-    LA_ASSERT(mesh.get_facets().cols() == 3, "Triangulate the mesh first");
+    la_runtime_assert(mesh.get_facets().cols() == 3, "Triangulate the mesh first");
 
     auto& facets = mesh.get_facets();
     upload_facets(facets, gpu);
@@ -324,7 +324,7 @@ template <typename MeshType>
 void upload_mesh_vertex_attribute(const MeshBase* d, const RowMajorMatrixXf* data, GPUBuffer* gpu)
 {
     auto& m = reinterpret_cast<const MeshType&>(*d);
-    LA_ASSERT(data->rows() == m.get_num_vertices());
+    la_runtime_assert(data->rows() == m.get_num_vertices());
     RowMajorMatrixXf flattened = RowMajorMatrixXf(m.get_num_facets() * 3, data->cols());
 
     const auto& F = m.get_facets();
@@ -341,7 +341,7 @@ template <typename MeshType>
 void upload_mesh_corner_attribute(const MeshBase* d, const RowMajorMatrixXf* data, GPUBuffer* gpu)
 {
     auto& m = reinterpret_cast<const MeshType&>(*d);
-    LA_ASSERT(data->rows() == m.get_num_facets() * 3);
+    la_runtime_assert(data->rows() == m.get_num_facets() * 3);
     (*gpu).vbo().upload(*data);
 }
 
@@ -349,7 +349,7 @@ template <typename MeshType>
 void upload_mesh_facet_attribute(const MeshBase* d, const RowMajorMatrixXf* data, GPUBuffer* gpu)
 {
     auto& m = reinterpret_cast<const MeshType&>(*d);
-    LA_ASSERT(data->rows() == m.get_num_facets());
+    la_runtime_assert(data->rows() == m.get_num_facets());
 
     RowMajorMatrixXf flattened = RowMajorMatrixXf(m.get_num_facets() * 3, data->cols());
 
@@ -366,8 +366,8 @@ template <typename MeshType>
 void upload_mesh_edge_attribute(const MeshBase* d, const RowMajorMatrixXf* data, GPUBuffer* gpu)
 {
     const auto& m = reinterpret_cast<const MeshType&>(*d);
-    LA_ASSERT(m.is_edge_data_initialized(), "Edge data (new) not initialized");
-    LA_ASSERT(data->rows() == m.get_num_edges());
+    la_runtime_assert(m.is_edge_data_initialized(), "Edge data (new) not initialized");
+    la_runtime_assert(data->rows() == m.get_num_edges());
 
     const auto& F = m.get_facets();
     const auto per_facet = m.get_vertex_per_facet();
@@ -573,7 +573,7 @@ void select_vertices_in_frustum(
         attr = AttributeArray(num_vertices, 1);
     } else {
         mesh.export_vertex_attribute("is_selected", attr);
-        LA_ASSERT(attr.rows() == num_vertices);
+        la_runtime_assert(attr.rows() == num_vertices);
     }
 
 
@@ -604,7 +604,7 @@ void select_edges_in_frustum(
     SelectionBehavior /*sel_behavior*/,
     const Frustum* /*frustum_ptr*/)
 {
-    LA_ASSERT(false, "not implemented yet");
+    la_runtime_assert(false, "not implemented yet");
 }
 
 
@@ -616,7 +616,7 @@ void propagate_corner_selection(MeshBase* mesh_base, const std::string& attrib_n
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using Index = typename MeshType::Index;
-    LA_ASSERT(mesh.has_corner_attribute(attrib_name));
+    la_runtime_assert(mesh.has_corner_attribute(attrib_name));
 
     const Index num_facets = mesh.get_num_facets();
     const Index vertex_per_facet = mesh.get_vertex_per_facet();
@@ -664,8 +664,8 @@ void propagate_vertex_selection(MeshBase* mesh_base, const std::string& attrib_n
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
 
     using Index = typename MeshType::Index;
-    LA_ASSERT(mesh.has_corner_attribute(attrib_name));
-    LA_ASSERT(mesh.has_vertex_attribute(attrib_name));
+    la_runtime_assert(mesh.has_corner_attribute(attrib_name));
+    la_runtime_assert(mesh.has_vertex_attribute(attrib_name));
 
     const Index num_facets = mesh.get_num_facets();
     const Index vertex_per_facet = mesh.get_vertex_per_facet();

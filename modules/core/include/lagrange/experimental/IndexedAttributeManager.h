@@ -17,7 +17,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/common.h>
 #include <lagrange/experimental/IndexedAttribute.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 namespace experimental {
@@ -58,7 +58,7 @@ public:
     void set(const std::string& name, ValueDerived&& values, IndexDerived&& indices)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Indexed attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Indexed attribute " + name + " does not exist.");
         if (itr->second == nullptr) {
             itr->second = std::make_unique<IndexedAttribute>(
                 std::forward<ValueDerived>(values),
@@ -72,14 +72,14 @@ public:
     IndexedAttribute* get(const std::string& name)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Indexed attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Indexed attribute " + name + " does not exist.");
         return itr->second.get();
     }
 
     const IndexedAttribute* get(const std::string& name) const
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Indexed attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Indexed attribute " + name + " does not exist.");
         return itr->second.get();
     }
 
@@ -87,7 +87,7 @@ public:
     decltype(auto) get_values(const std::string& name)
     {
         auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->get_values<Derived>();
     }
 
@@ -95,7 +95,7 @@ public:
     decltype(auto) get_values(const std::string& name) const
     {
         const auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->get_values<Derived>();
     }
 
@@ -103,7 +103,7 @@ public:
     decltype(auto) get_indices(const std::string& name)
     {
         auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->get_indices<Derived>();
     }
 
@@ -111,7 +111,7 @@ public:
     decltype(auto) get_indices(const std::string& name) const
     {
         const auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->get_indices<Derived>();
     }
 
@@ -119,7 +119,7 @@ public:
     decltype(auto) view_values(const std::string& name)
     {
         auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->view_values<Derived>();
     }
 
@@ -127,7 +127,7 @@ public:
     decltype(auto) view_values(const std::string& name) const
     {
         const auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->view_values<Derived>();
     }
 
@@ -135,7 +135,7 @@ public:
     decltype(auto) view_indices(const std::string& name)
     {
         auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->view_indices<Derived>();
     }
 
@@ -143,7 +143,7 @@ public:
     decltype(auto) view_indices(const std::string& name) const
     {
         const auto ptr = get(name);
-        LA_ASSERT(ptr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(ptr != nullptr, "Attribute " + name + " is null.");
         return ptr->view_indices<Derived>();
     }
 
@@ -160,11 +160,11 @@ public:
         Eigen::PlainObjectBase<IndexDerived>& indices)
     {
         auto attr = get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is null.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is null.");
         auto value_array = attr->get_values();
         auto index_array = attr->get_indices();
-        LA_ASSERT(value_array != nullptr);
-        LA_ASSERT(index_array != nullptr);
+        la_runtime_assert(value_array != nullptr);
+        la_runtime_assert(index_array != nullptr);
 
 #ifndef NDEBUG
         bool validate = true;
@@ -189,8 +189,8 @@ public:
 
 #ifndef NDEBUG
         if (validate) {
-            LA_ASSERT(value_ptr == values.data(), "Export values fall back to copying.");
-            LA_ASSERT(index_ptr == indices.data(), "Export indices fall back to copying.");
+            la_runtime_assert(value_ptr == values.data(), "Export values fall back to copying.");
+            la_runtime_assert(index_ptr == indices.data(), "Export indices fall back to copying.");
         }
 #endif
     }
@@ -198,7 +198,7 @@ public:
     void remove(const std::string& name)
     {
         auto itr = m_data.find(name);
-        LA_ASSERT(itr != m_data.end(), "Attribute " + name + " does not exist.");
+        la_runtime_assert(itr != m_data.end(), "Attribute " + name + " does not exist.");
         m_data.erase(itr);
     }
 

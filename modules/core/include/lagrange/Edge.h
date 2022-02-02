@@ -19,7 +19,7 @@
 #include <unordered_set>
 
 #include <lagrange/common.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {
@@ -84,7 +84,7 @@ public:
     {
         if (i == 0) return m_v1;
         if (i == 1) return m_v2;
-        LA_ASSERT(false, "Bad Index: " + std::to_string(i));
+        la_runtime_assert(false, "Bad Index: " + std::to_string(i));
         return m_v1;
     }
 
@@ -127,7 +127,7 @@ public:
     }
     Index get_shared_vertex(const EdgeType<Index>& other) const
     {
-        LA_ASSERT(*this != other, "get_shared_vertex() failed due to identical edges");
+        la_runtime_assert(*this != other, "get_shared_vertex() failed due to identical edges");
         if (m_v1 == other.m_v1) return m_v1;
         if (m_v1 == other.m_v2) return m_v1;
         if (m_v2 == other.m_v1) return m_v2;
@@ -136,7 +136,7 @@ public:
     }
     Index get_other_vertex(Index v) const
     {
-        LA_ASSERT(m_v1 == v || m_v2 == v);
+        la_runtime_assert(m_v1 == v || m_v2 == v);
         if (m_v1 == v) return m_v2;
         return m_v1;
     }

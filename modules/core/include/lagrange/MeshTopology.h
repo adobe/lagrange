@@ -110,7 +110,7 @@ protected:
 
     bool check_vertex_manifold(const MeshType& mesh) const
     {
-        LA_ASSERT(
+        la_runtime_assert(
             mesh.get_vertex_per_facet() == 3,
             "Vertex manifold check only supports triangle mesh for now.");
 

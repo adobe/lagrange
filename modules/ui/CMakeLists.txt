@@ -29,10 +29,10 @@ include(stb)
 include(imgui)
 include(imguizmo)
 include(imgui_fonts)
-include(nativefiledialog)
 include(nlohmann_json)
 include(lagrange-assets)
 include(entt)
+include(portable_file_dialogs)
 target_link_libraries(imgui PUBLIC Eigen3::Eigen)
 
 get_property(lagrange_source_dir GLOBAL PROPERTY __lagrange_source_dir)
@@ -44,6 +44,7 @@ target_link_libraries(lagrange_ui
     PRIVATE
         lagrange::assets
         stb::stb
+        portable_file_dialogs::portable_file_dialogs
     PUBLIC
         lagrange::core
         lagrange::io
@@ -52,7 +53,6 @@ target_link_libraries(lagrange_ui
         imgui::imgui
         imguizmo::imguizmo
         imgui::fonts
-        nativefiledialog::nativefiledialog
         nlohmann_json::nlohmann_json
         EnTT::EnTT
         nanoflann::nanoflann

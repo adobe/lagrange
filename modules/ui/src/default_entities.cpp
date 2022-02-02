@@ -15,7 +15,7 @@
 #include <lagrange/ui/utils/bounds.h>
 #include <lagrange/ui/utils/mesh.h>
 #include <lagrange/ui/utils/treenode.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 namespace ui {
@@ -78,8 +78,10 @@ Entity show_attribute_surface(
 
 void set_colormap(Registry& registry, Entity meshrender_entity, std::shared_ptr<Texture> texture)
 {
-    LA_ASSERT(registry.valid(meshrender_entity), "Invalid entity");
-    LA_ASSERT(registry.has<MeshRender>(meshrender_entity), "Entity must have MeshRender component");
+    la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
+    la_runtime_assert(
+        registry.has<MeshRender>(meshrender_entity),
+        "Entity must have MeshRender component");
 
     auto mat = get_material(registry, meshrender_entity);
     mat->set_texture("colormap", texture);
@@ -92,8 +94,10 @@ void set_colormap_range(
     const Eigen::Vector4f& range_min,
     const Eigen::Vector4f& range_max)
 {
-    LA_ASSERT(registry.valid(meshrender_entity), "Invalid entity");
-    LA_ASSERT(registry.has<MeshRender>(meshrender_entity), "Entity must have MeshRender component");
+    la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
+    la_runtime_assert(
+        registry.has<MeshRender>(meshrender_entity),
+        "Entity must have MeshRender component");
 
     auto& mr = registry.get<MeshRender>(meshrender_entity);
 
@@ -117,8 +121,10 @@ void set_colormap_range(
 
 std::shared_ptr<Material> get_material(Registry& registry, Entity meshrender_entity)
 {
-    LA_ASSERT(registry.valid(meshrender_entity), "Invalid entity");
-    LA_ASSERT(registry.has<MeshRender>(meshrender_entity), "Entity must have MeshRender component");
+    la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
+    la_runtime_assert(
+        registry.has<MeshRender>(meshrender_entity),
+        "Entity must have MeshRender component");
 
     auto& mr = registry.get<MeshRender>(meshrender_entity);
     return mr.material;
@@ -126,8 +132,10 @@ std::shared_ptr<Material> get_material(Registry& registry, Entity meshrender_ent
 
 void set_material(Registry& registry, Entity meshrender_entity, std::shared_ptr<Material> mat)
 {
-    LA_ASSERT(registry.valid(meshrender_entity), "Invalid entity");
-    LA_ASSERT(registry.has<MeshRender>(meshrender_entity), "Entity must have MeshRender component");
+    la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
+    la_runtime_assert(
+        registry.has<MeshRender>(meshrender_entity),
+        "Entity must have MeshRender component");
 
     auto& mr = registry.get<MeshRender>(meshrender_entity);
     mr.material = mat;
@@ -182,9 +190,9 @@ void set_mesh_attribute_dirty(
 
 Entity get_meshdata_entity(Registry& registry, Entity scene_entity)
 {
-    LA_ASSERT(registry.valid(scene_entity) && registry.has<MeshGeometry>(scene_entity));
+    la_runtime_assert(registry.valid(scene_entity) && registry.has<MeshGeometry>(scene_entity));
     auto g = registry.get<MeshGeometry>(scene_entity).entity;
-    LA_ASSERT(registry.valid(g));
+    la_runtime_assert(registry.valid(g));
     return g;
 }
 
@@ -201,9 +209,11 @@ Entity show_vertex_attribute(
     const std::string& attribute,
     Glyph glyph)
 {
-    LA_ASSERT(registry.has<MeshData>(mesh_entity), "mesh_entity must have MeshData component");
+    la_runtime_assert(
+        registry.has<MeshData>(mesh_entity),
+        "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
-    LA_ASSERT(
+    la_runtime_assert(
         md.mesh && has_mesh_vertex_attribute(md, attribute),
         "Mesh must have the specified vertex attribute");
 
@@ -242,9 +252,11 @@ Entity show_facet_attribute(
     const std::string& attribute,
     Glyph glyph)
 {
-    LA_ASSERT(registry.has<MeshData>(mesh_entity), "mesh_entity must have MeshData component");
+    la_runtime_assert(
+        registry.has<MeshData>(mesh_entity),
+        "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
-    LA_ASSERT(
+    la_runtime_assert(
         md.mesh && has_mesh_facet_attribute(md, attribute),
         "Mesh must have the specified facet attribute");
 
@@ -283,9 +295,11 @@ Entity show_corner_attribute(
     const std::string& attribute,
     Glyph glyph)
 {
-    LA_ASSERT(registry.has<MeshData>(mesh_entity), "mesh_entity must have MeshData component");
+    la_runtime_assert(
+        registry.has<MeshData>(mesh_entity),
+        "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
-    LA_ASSERT(
+    la_runtime_assert(
         md.mesh && has_mesh_corner_attribute(md, attribute),
         "Mesh must have the specified corner attribute");
 
@@ -325,9 +339,9 @@ Entity show_indexed_attribute(
     const std::string& attribute,
     Glyph glyph)
 {
-    LA_ASSERT(r.has<MeshData>(mesh_entity), "mesh_entity must have MeshData component");
+    la_runtime_assert(r.has<MeshData>(mesh_entity), "mesh_entity must have MeshData component");
     auto& md = r.get<MeshData>(mesh_entity);
-    LA_ASSERT(
+    la_runtime_assert(
         md.mesh && has_mesh_indexed_attribute(md, attribute),
         "Mesh must have the specified indexed attribute");
 
@@ -368,11 +382,13 @@ Entity show_edge_attribute(
     const std::string& attribute,
     Glyph glyph)
 {
-    LA_ASSERT("mesh_entity must have MeshData component", registry.has<MeshData>(mesh_entity));
+    la_runtime_assert(
+        registry.has<MeshData>(mesh_entity),
+        "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
-    LA_ASSERT(
-        "Mesh must have the specified edge attribute",
-        md.mesh && has_mesh_edge_attribute(md, attribute));
+    la_runtime_assert(
+        md.mesh && has_mesh_edge_attribute(md, attribute),
+        "Mesh must have the specified edge attribute");
 
     Entity e = ui::NullEntity;
 

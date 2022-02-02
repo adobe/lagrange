@@ -16,7 +16,7 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 
@@ -75,7 +75,7 @@ ComputePointcloudPCAOutput<typename Derived1::Scalar> compute_pointcloud_pca(
     using RowVectorXS = Eigen::Matrix<Scalar, 1, Derived1::ColsAtCompileTime>;
 
     // Prechecks
-    LA_ASSERT(points.rows() >= 2, "There must be at least two points");
+    la_runtime_assert(points.rows() >= 2, "There must be at least two points");
 
     // Compute covariance
     MatrixXS covariance;
@@ -101,7 +101,7 @@ ComputePointcloudPCAOutput<typename Derived1::Scalar> compute_pointcloud_pca(
     Eigen::SelfAdjointEigenSolver<MatrixXS> eigs(covariance);
     // Unless something is going wrong, the covariance matrix should
     // be well behaved. Let's double check.
-    LA_ASSERT(eigs.info() == Eigen::Success, "Eigen decomposition failed");
+    la_runtime_assert(eigs.info() == Eigen::Success, "Eigen decomposition failed");
 
     ComputePointcloudPCAOutput<Scalar> output;
     output.center = center.transpose();

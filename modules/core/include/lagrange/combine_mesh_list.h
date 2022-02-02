@@ -292,7 +292,7 @@ void combine_all_edge_attributes(
                 const auto& c = mesh->get_one_corner_around_edge(old_e);
                 const Index f = c / mesh->get_vertex_per_facet();
                 const Index lv = c % mesh->get_vertex_per_facet();
-                LA_ASSERT_DEBUG(mesh->get_edge(f, lv) == old_e);
+                la_debug_assert(mesh->get_edge(f, lv) == old_e);
                 const auto new_e = combined_mesh.get_edge(f + facet_offset, lv);
                 attr.row(new_e) = per_mesh_attr.row(old_e);
 
@@ -301,8 +301,8 @@ void combine_all_edge_attributes(
                 auto new_v = combined_mesh.get_edge_vertices(new_e);
                 std::sort(old_v.begin(), old_v.end());
                 std::sort(new_v.begin(), new_v.end());
-                LA_ASSERT_DEBUG(new_v[0] == old_v[0] + vertex_offset);
-                LA_ASSERT_DEBUG(new_v[1] == old_v[1] + vertex_offset);
+                la_debug_assert(new_v[0] == old_v[0] + vertex_offset);
+                la_debug_assert(new_v[1] == old_v[1] + vertex_offset);
             }
             vertex_offset += mesh->get_num_vertices();
             facet_offset += mesh->get_num_facets();

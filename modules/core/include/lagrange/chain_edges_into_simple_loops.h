@@ -135,7 +135,7 @@ bool chain_edges_into_simple_loops(
 
         if (v_first == v_last) {
             // Path is an ear (simple loop), will be popped next
-            LA_ASSERT_DEBUG(path_is_pending[a] == false);
+            la_debug_assert(path_is_pending[a] == false);
             path_is_pending[a] = true;
             ears.push(a);
         }
@@ -160,12 +160,12 @@ bool chain_edges_into_simple_loops(
                 edge_label[ei] = a;
                 path_to_last_edge[a] = ei;
             }
-            LA_ASSERT_DEBUG(next_edge_along_path[path_to_last_edge[a]] == e);
-            LA_ASSERT_DEBUG(first_vertex_in_path(a) == last_vertex_in_path(a));
+            la_debug_assert(next_edge_along_path[path_to_last_edge[a]] == e);
+            la_debug_assert(first_vertex_in_path(a) == last_vertex_in_path(a));
             next_edge_along_path[path_to_last_edge[a]] = INVALID<Index>();
 
             // Path is an isolated cycle
-            LA_ASSERT_DEBUG(path_is_pending[a] == false);
+            la_debug_assert(path_is_pending[a] == false);
             path_is_pending[a] = true;
             ears.push(a);
         }
@@ -173,7 +173,7 @@ bool chain_edges_into_simple_loops(
 
     // Swap/pop_back trick to remove an element from a std::vector
     auto remove_from_vector = [](std::vector<Index> &vec, size_t idx) {
-        LA_ASSERT_DEBUG(idx < vec.size());
+        la_debug_assert(idx < vec.size());
         std::swap(vec[idx], vec.back());
         vec.pop_back();
     };
@@ -186,16 +186,16 @@ bool chain_edges_into_simple_loops(
     while (!ears.empty()) {
         const Index a = ears.top();
         ears.pop();
-        LA_ASSERT_DEBUG(!path_is_removed[a]);
+        la_debug_assert(!path_is_removed[a]);
         path_is_removed[a] = true;
 
         // path starts and ends on the same vertex, compute corresponding (simple) loop
-        LA_ASSERT_DEBUG(first_vertex_in_path(a) == last_vertex_in_path(a));
-        LA_ASSERT_DEBUG(path_to_first_edge[a] != INVALID<Index>());
+        la_debug_assert(first_vertex_in_path(a) == last_vertex_in_path(a));
+        la_debug_assert(path_to_first_edge[a] != INVALID<Index>());
         std::vector<Index> loop;
         for (Index e = path_to_first_edge[a]; e != INVALID<Index>(); e = next_edge_along_path[e]) {
             loop.push_back(e);
-            LA_ASSERT_DEBUG(edge_is_removed[e] == false);
+            la_debug_assert(edge_is_removed[e] == false);
             edge_is_removed[e] = true;
             ++num_edges_removed;
         }
@@ -203,12 +203,12 @@ bool chain_edges_into_simple_loops(
 
         // Remove current path from the in/out paths of the endpoint vertex v
         const Index v = first_vertex_in_path(a);
-        LA_ASSERT_DEBUG(v == last_vertex_in_path(a));
+        la_debug_assert(v == last_vertex_in_path(a));
         for (size_t i = 0; i < paths_out[v].size();) {
             if (paths_out[v][i] == a) {
                 remove_from_vector(paths_out[v], i);
             } else {
-                LA_ASSERT_DEBUG(!path_is_removed[paths_out[v][i]]);
+                la_debug_assert(!path_is_removed[paths_out[v][i]]);
                 ++i;
             }
         }
@@ -216,7 +216,7 @@ bool chain_edges_into_simple_loops(
             if (paths_in[v][i] == a) {
                 remove_from_vector(paths_in[v], i);
             } else {
-                LA_ASSERT_DEBUG(!path_is_removed[paths_in[v][i]]);
+                la_debug_assert(!path_is_removed[paths_in[v][i]]);
                 ++i;
             }
         }
@@ -225,16 +225,16 @@ bool chain_edges_into_simple_loops(
         if (paths_in[v].size() == 1 && paths_out[v].size() == 1) {
             const Index a_in = paths_in[v].front();
             const Index a_out = paths_out[v].front();
-            LA_ASSERT_DEBUG(last_vertex_in_path(a_in) == v);
-            LA_ASSERT_DEBUG(first_vertex_in_path(a_out) == v);
+            la_debug_assert(last_vertex_in_path(a_in) == v);
+            la_debug_assert(first_vertex_in_path(a_out) == v);
             if (a_in != a_out) {
                 // If the paths are different, then join them
-                LA_ASSERT_DEBUG(path_to_first_edge[a_in] != INVALID<Index>());
-                LA_ASSERT_DEBUG(path_to_last_edge[a_in] != INVALID<Index>());
-                LA_ASSERT_DEBUG(path_to_first_edge[a_out] != INVALID<Index>());
-                LA_ASSERT_DEBUG(path_to_last_edge[a_out] != INVALID<Index>());
-                LA_ASSERT_DEBUG(next_edge_along_path[path_to_last_edge[a_in]] == INVALID<Index>());
-                LA_ASSERT_DEBUG(
+                la_debug_assert(path_to_first_edge[a_in] != INVALID<Index>());
+                la_debug_assert(path_to_last_edge[a_in] != INVALID<Index>());
+                la_debug_assert(path_to_first_edge[a_out] != INVALID<Index>());
+                la_debug_assert(path_to_last_edge[a_out] != INVALID<Index>());
+                la_debug_assert(next_edge_along_path[path_to_last_edge[a_in]] == INVALID<Index>());
+                la_debug_assert(
                     edges(path_to_last_edge[a_in], 1) == edges(path_to_first_edge[a_out], 0));
 
                 // Replace a_out by a_in in last_vertex_in_path(a_out)
@@ -257,7 +257,7 @@ bool chain_edges_into_simple_loops(
             }
             const Index v_first = first_vertex_in_path(a_in);
             const Index v_last = last_vertex_in_path(a_in);
-            LA_ASSERT_DEBUG(!path_is_removed[a_in]);
+            la_debug_assert(!path_is_removed[a_in]);
             if (v_first == v_last && !path_is_pending[a_in]) {
                 path_is_pending[a_in] = true;
                 ears.push(a_in);
@@ -275,11 +275,11 @@ bool chain_edges_into_simple_loops(
                 ++true_num_removed;
             }
         }
-        LA_ASSERT_DEBUG(true_num_removed == num_edges_removed);
+        la_debug_assert(true_num_removed == num_edges_removed);
         remaining_edges.resize(num_edges - num_edges_removed, 2);
         for (Index e = 0, cnt = 0; e < num_edges; ++e) {
             if (!edge_is_removed[e]) {
-                LA_ASSERT_DEBUG(cnt < remaining_edges.rows());
+                la_debug_assert(cnt < remaining_edges.rows());
                 remaining_edges.row(cnt++) = edges.row(e);
             }
         }

@@ -87,7 +87,7 @@ void compute_corner_normal(
                 return fid * vertex_per_facet + i;
             }
         }
-        LA_ASSERT(false, "Facet does not contain this vertex");
+        la_runtime_assert(false, "Facet does not contain this vertex");
         return 0; // To avoid compiler warning.
     };
 
@@ -186,7 +186,7 @@ void compute_corner_normal(
     const std::vector<typename MeshType::Index>& cone_vertices = {})
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    LA_ASSERT(feature_angle_threshold < 4, "This angle is in degrees, must be in radians");
+    la_runtime_assert(feature_angle_threshold < 4, "This angle is in degrees, must be in radians");
     using Index = typename MeshType::Index;
 
     mesh.initialize_edge_data();

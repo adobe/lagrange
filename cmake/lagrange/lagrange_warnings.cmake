@@ -55,15 +55,140 @@ else()
     #
     # The ones we care about are "AppleClang", "Clang", "GNU" and "Intel".
     set(options
-        "-Wall"
-        "-Werror=c++17-extensions"
-        "-Werror=c++2a-extensions"
-        "-Wextra"
-        "-Wmissing-field-initializers"
-        "-Wno-missing-braces"
-        "-Wno-unknown-pragmas"
-        "-Wshadow"
-        "-msse3")
+        -Wall
+        -Werror=c++17-extensions
+        -Werror=c++2a-extensions
+        -Wextra
+        -Wmissing-field-initializers
+        -Wno-missing-braces
+        -Wno-unknown-pragmas
+        -Wshadow
+        -msse3
+    )
+
+    if(LAGRANGE_MORE_WARNINGS)
+    list(APPEND options
+        -pedantic
+
+        -Wconversion
+        -Wunused
+
+        -Wno-long-long
+        -Wpointer-arith
+        -Wformat=2
+        -Wuninitialized
+        -Wcast-qual
+        -Wmissing-noreturn
+        -Wmissing-format-attribute
+        -Wredundant-decls
+
+        -Werror=implicit
+        -Werror=nonnull
+        -Werror=init-self
+        -Werror=main
+        -Werror=sequence-point
+        -Werror=return-type
+        -Werror=trigraphs
+        -Werror=array-bounds
+        -Werror=write-strings
+        -Werror=address
+        -Werror=int-to-pointer-cast
+        -Werror=pointer-to-int-cast
+
+        -Wunused-variable
+        -Wunused-but-set-variable
+        -Wunused-parameter
+
+        -Wold-style-cast
+        -Wsign-conversion
+
+        -Wstrict-null-sentinel
+        -Woverloaded-virtual
+        -Wsign-promo
+        -Wstack-protector
+        -Wstrict-aliasing
+        -Wstrict-aliasing=2
+        -Wswitch
+        -Wswitch-default # incompatible with -Wcovered-switch-default
+        -Wswitch-enum
+        -Wswitch-unreachable
+
+        -Wcast-align
+        -Wdisabled-optimization
+        -Winline # produces warning on default implicit destructor
+        -Winvalid-pch
+        -Wmissing-include-dirs
+        -Wpacked
+        -Wno-padded
+        -Wstrict-overflow
+        -Wstrict-overflow=2
+
+        -Wctor-dtor-privacy
+        -Wlogical-op
+        -Wnoexcept
+        -Woverloaded-virtual
+        -Wundef
+        -Wnoexcept-type
+
+        -Wnon-virtual-dtor
+        -Wdelete-non-virtual-dtor
+        -Werror=non-virtual-dtor
+        -Werror=delete-non-virtual-dtor
+
+        -Wno-sign-compare
+        -Wdouble-promotion
+        -fno-common
+
+        ###########
+        # GCC 6.1 #
+        ###########
+
+        -Wnull-dereference
+        -fdelete-null-pointer-checks
+        -Wduplicated-cond
+        -Wmisleading-indentation
+
+        ###########################
+        # Enabled by -Weverything #
+        ###########################
+
+        -Wdocumentation
+        -Wdocumentation-pedantic
+        -Wdocumentation-html
+        -Wdocumentation-deprecated-sync
+        -Wdocumentation-unknown-command
+        # -Wfloat-equal
+        -fcomment-block-commands=cond
+
+        # I would like to use this flag, but it's better for code coverage to always have a default: case
+        # -Wcovered-switch-default # incompatible with gcc's -Wswitch-default
+
+        -Wglobal-constructors
+        -Wexit-time-destructors
+        -Wmissing-variable-declarations
+        -Wextra-semi
+        -Wweak-vtables
+        -Wno-source-uses-openmp
+        -Wdeprecated
+        -Wnewline-eof
+        -Wmissing-prototypes
+
+        -Wno-c++98-compat
+        -Wno-c++98-compat-pedantic
+
+        ###########################
+        # Need to check if those are still valid today
+        ###########################
+
+        -Wimplicit-atomic-properties
+        -Wmissing-declarations
+        -Wmissing-prototypes
+        -Wstrict-selector-match
+        -Wundeclared-selector
+        -Wunreachable-code
+    )
+    endif()
+
     lagrange_filter_flags(options)
     target_compile_options(lagrange_warnings INTERFACE ${options})
 endif()

@@ -58,7 +58,7 @@ void compute_uv_distortion(MeshType& mesh)
     const auto& facets = mesh.get_facets();
 
     const auto& uv = mesh.get_corner_attribute("uv");
-    LA_ASSERT(safe_cast<Index>(uv.rows()) == num_facets * vertex_per_facet);
+    la_runtime_assert(safe_cast<Index>(uv.rows()) == num_facets * vertex_per_facet);
 
     const Scalar INVALID = std::numeric_limits<Scalar>::max();
 

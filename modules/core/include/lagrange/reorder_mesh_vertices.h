@@ -56,7 +56,7 @@ std::unique_ptr<MeshType> reorder_mesh_vertices(
     const typename MeshType::IndexList& forward_mapping)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    LA_ASSERT(
+    la_runtime_assert(
         mesh.get_vertex_per_facet() == 3,
         std::string("vertex per facet is ") + std::to_string(mesh.get_vertex_per_facet()));
 
@@ -68,7 +68,7 @@ std::unique_ptr<MeshType> reorder_mesh_vertices(
     const auto num_old_vertices = mesh.get_num_vertices();
     const auto& vertices = mesh.get_vertices();
     const auto& facets = mesh.get_facets();
-    LA_ASSERT(num_old_vertices == safe_cast<Index>(forward_mapping.size()));
+    la_runtime_assert(num_old_vertices == safe_cast<Index>(forward_mapping.size()));
 
     auto forward_mapping_no_invalid = [&forward_mapping](const Index io) {
         return forward_mapping[io] == INVALID<Index>() ? io : forward_mapping[io];
@@ -80,7 +80,7 @@ std::unique_ptr<MeshType> reorder_mesh_vertices(
         num_new_vertices = std::max(num_new_vertices, forward_mapping_no_invalid(io));
     }
     num_new_vertices += 1; // num_of_*** = biggest index +  1
-    LA_ASSERT(num_new_vertices <= num_old_vertices, "Number of vertices should not increase");
+    la_runtime_assert(num_new_vertices <= num_old_vertices, "Number of vertices should not increase");
 
 
     // Create the backward mapping and the new vertices
@@ -92,7 +92,7 @@ std::unique_ptr<MeshType> reorder_mesh_vertices(
         vertices_new.row(in) = vertices.row(io);
     }
     // The mapping should be surjective.
-    LA_ASSERT(
+    la_runtime_assert(
         std::find(backward_mapping.begin(), backward_mapping.end(), INVALID<Index>()) ==
             backward_mapping.end(),
         "Forward mapping is not surjective");

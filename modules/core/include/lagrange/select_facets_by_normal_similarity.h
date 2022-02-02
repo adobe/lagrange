@@ -15,7 +15,7 @@
 
 #include <lagrange/common.h>
 #include <lagrange/compute_triangle_normal.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
 namespace lagrange {
@@ -100,7 +100,7 @@ std::vector<bool> select_facets_by_normal_similarity(
         if (parameters.is_facet_selectable.empty()) {
             return true;
         } else {
-            LA_ASSERT(facet_id < mesh.get_num_facets());
+            la_runtime_assert(facet_id < mesh.get_num_facets());
             return parameters.is_facet_selectable[facet_id];
         }
     };

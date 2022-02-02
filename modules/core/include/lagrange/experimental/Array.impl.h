@@ -39,7 +39,7 @@ void ArrayBase::set(const Eigen::MatrixBase<Derived>& data)
         } else {
             // Type is compatible except storage order.
             using TransposedType = std::decay_t<decltype(data.transpose().eval())>;
-            LA_ASSERT(is_compatible<TransposedType>());
+            la_runtime_assert(is_compatible<TransposedType>());
             resize(data.rows(), data.cols());
             view<TransposedType>() = data;
         }
@@ -76,7 +76,7 @@ void ArrayBase::set(Eigen::MatrixBase<Derived>&& data)
         } else {
             // Type is compatible except storage order.
             using TransposedType = std::decay_t<decltype(data.transpose().eval())>;
-            LA_ASSERT(is_compatible<TransposedType>());
+            la_runtime_assert(is_compatible<TransposedType>());
             resize(data.rows(), data.cols());
             view<TransposedType>() = std::move(data);
         }

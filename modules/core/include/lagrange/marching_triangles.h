@@ -21,7 +21,7 @@
 
 #include <lagrange/Edge.h>
 #include <lagrange/MeshTrait.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
 namespace lagrange {
@@ -75,14 +75,14 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
     using MarchingTrianglesOutput = ::lagrange::MarchingTrianglesOutput<MeshType>;
     using Edge = typename MeshType::Edge;
 
-    LA_ASSERT(
+    la_runtime_assert(
         mesh_ref.has_vertex_attribute(vertex_attribute_name),
         "attribute does not exist in the mesh");
-    LA_ASSERT(mesh_ref.get_vertex_per_facet() == 3, "only works for triangle meshes");
+    la_runtime_assert(mesh_ref.get_vertex_per_facet() == 3, "only works for triangle meshes");
     mesh_ref.initialize_edge_data();
 
     const auto& attribute = mesh_ref.get_vertex_attribute(vertex_attribute_name);
-    LA_ASSERT(attribute_col_index < safe_cast<Index>(attribute.cols()), "col_index is invalid");
+    la_runtime_assert(attribute_col_index < safe_cast<Index>(attribute.cols()), "col_index is invalid");
     const auto& facets = mesh_ref.get_facets();
     const auto& vertices = mesh_ref.get_vertices();
 
@@ -117,8 +117,8 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
             assert(a <= 1);
             assert(b >= 0);
             assert(b <= 1);
-            LA_ASSERT(!std::isnan(a));
-            LA_ASSERT(!std::isnan(b));
+            la_runtime_assert(!std::isnan(a));
+            la_runtime_assert(!std::isnan(b));
             const Index vertex_index = safe_cast<Index>(extracted_vertices.size());
             const VertexType pos0 = vertices.row(v0);
             const VertexType pos1 = vertices.row(v1);

@@ -16,7 +16,7 @@
 #ifdef LAGRANGE_UI_USE_MDL
 #include <lagrange/ui/types/Material.h>
 #include <lagrange/ui/types/Texture.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <tuple>
 
 #include <mi/mdl_sdk.h>
@@ -51,13 +51,13 @@ struct MDLImpl
     {
         // Load sdk
         state.sdk = handle_of(load_ineuray());
-        LA_ASSERT(state.sdk, "Failed to load MDL library");
+        la_runtime_assert(state.sdk, "Failed to load MDL library");
 
         // Set up compiler
         state.compiler = handle_of(state.sdk->get_api_component<IMdl_compiler>());
 
         // Load the FreeImage plugin.
-        LA_ASSERT(
+        la_runtime_assert(
             state.compiler->load_plugin_library("nv_freeimage" MI_BASE_DLL_FILE_EXT) == 0,
             "Loading FreeImage");
 

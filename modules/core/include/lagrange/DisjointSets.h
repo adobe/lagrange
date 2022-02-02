@@ -15,7 +15,7 @@
 #include <vector>
 
 #include <lagrange/common.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/safe_cast.h>
 
@@ -40,7 +40,7 @@ public:
 
     IndexType find(IndexType i)
     {
-        LA_ASSERT(i >= 0 && i < safe_cast<IndexType>(m_parent.size()), "Index out of bound!");
+        la_runtime_assert(i >= 0 && i < safe_cast<IndexType>(m_parent.size()), "Index out of bound!");
         while (m_parent[i] != i) {
             m_parent[i] = m_parent[m_parent[i]];
             i = m_parent[i];

@@ -28,7 +28,6 @@ list(PREPEND module_names "ui")
 
 # Always build core library
 add_subdirectory(core)
-set_target_properties(lagrange_core PROPERTIES FOLDER "Lagrange")
 
 # Iterate over each module folder and include it
 foreach(name IN ITEMS ${module_names})

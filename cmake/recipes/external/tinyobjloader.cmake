@@ -17,7 +17,7 @@ message(STATUS "Third-party (external): creating target 'tinyobjloader::tinyobjl
 
 # Tinyobjloader is a big repo for a single header, so we just download the header...
 include(FetchContent)
-set(TINYOBJLOADER_VERSION "b200acfe63c1ccbd67948eea4de7ad8f769561b2")
+set(TINYOBJLOADER_VERSION "8322e00ae685ea623ab6ac5a6cebcfa2d22fbf93")
 set(TINYOBJLOADER_URL "https://raw.githubusercontent.com/tinyobjloader/tinyobjloader/${TINYOBJLOADER_VERSION}/tiny_obj_loader.h")
 set(TINYOBJLOADER_SOURCE_DIR "${FETCHCONTENT_BASE_DIR}/tinyobjloader-src/${TINYOBJLOADER_VERSION}")
 set(TINYOBJLOADER_BINARY_DIR "${FETCHCONTENT_BASE_DIR}/tinyobjloader-build")
@@ -31,7 +31,7 @@ if(NOT EXISTS ${TINYOBJLOADER_FILE})
         DOWNLOAD ${TINYOBJLOADER_URL} ${TINYOBJLOADER_FILE}
         TIMEOUT 60
         TLS_VERIFY ON
-        EXPECTED_MD5 e2e94c5277ce209fb857c578272df507
+        EXPECTED_MD5 fca8189f03970f1dbb9544579b5bda08
     )
 endif()
 

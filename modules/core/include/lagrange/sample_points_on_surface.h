@@ -15,7 +15,7 @@
 
 #include <lagrange/common.h>
 #include <lagrange/compute_facet_area.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
 namespace lagrange {
@@ -82,11 +82,11 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
     using BoundingBox = Eigen::AlignedBox<Scalar, Eigen::Dynamic>;
 
     // Check conditions to be met by input
-    LA_ASSERT(mesh.get_vertex_per_facet() == 3, "only works for triangle meshes");
-    LA_ASSERT(approx_num_points != INVALID<Index>());
-    LA_ASSERT(active_facets.size() <= safe_cast<size_t>(mesh.get_num_facets()));
+    la_runtime_assert(mesh.get_vertex_per_facet() == 3, "only works for triangle meshes");
+    la_runtime_assert(approx_num_points != INVALID<Index>());
+    la_runtime_assert(active_facets.size() <= safe_cast<size_t>(mesh.get_num_facets()));
     for (const auto facet_id : active_facets) {
-        LA_ASSERT(facet_id < mesh.get_num_facets());
+        la_runtime_assert(facet_id < mesh.get_num_facets());
     }
 
 
@@ -110,7 +110,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
     }
 
     // total area of zero is bad
-    LA_ASSERT(total_mesh_area != 0.0);
+    la_runtime_assert(total_mesh_area != 0.0);
 
     // Estimate the sampling length
     // If each point is a disk, what should be the radius of disks to cover  the surface
@@ -150,7 +150,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
             answer = index_nd(2) * grid_dims(1) * grid_dims(0) + index_nd(1) * grid_dims(0) +
                      index_nd(0);
         } else {
-            LA_ASSERT(0, "This dimension is not supported");
+            la_runtime_assert(0, "This dimension is not supported");
         }
         //
         assert(answer >= 0 && answer < grid_dims.prod());

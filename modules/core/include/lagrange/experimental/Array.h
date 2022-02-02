@@ -18,7 +18,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/common.h>
 #include <lagrange/experimental/Scalar.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/strings.h>
 
@@ -40,14 +40,14 @@ public:
     template <typename TargetType>
     Eigen::Map<TargetType> view()
     {
-        LA_ASSERT(is_compatible<TargetType>(), "Target view type is not compatible with the data.");
+        la_runtime_assert(is_compatible<TargetType>(), "Target view type is not compatible with the data.");
         return Eigen::Map<TargetType>(data<typename TargetType::Scalar>(), rows(), cols());
     }
 
     template <typename TargetType>
     Eigen::Map<const TargetType> view() const
     {
-        LA_ASSERT(is_compatible<TargetType>(), "Target view type is not compatible with the data.");
+        la_runtime_assert(is_compatible<TargetType>(), "Target view type is not compatible with the data.");
         return Eigen::Map<const TargetType>(data<typename TargetType::Scalar>(), rows(), cols());
     }
 
@@ -68,14 +68,14 @@ public:
     template <typename Scalar>
     Scalar* data()
     {
-        LA_ASSERT(ScalarToEnum_v<Scalar> == m_scalar_type);
+        la_runtime_assert(ScalarToEnum_v<Scalar> == m_scalar_type);
         return static_cast<Scalar*>(data());
     }
 
     template <typename Scalar>
     const Scalar* data() const
     {
-        LA_ASSERT(ScalarToEnum_v<Scalar> == m_scalar_type);
+        la_runtime_assert(ScalarToEnum_v<Scalar> == m_scalar_type);
         return static_cast<const Scalar*>(data());
     }
 

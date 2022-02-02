@@ -44,6 +44,11 @@ else()
     endif()
 endif()
 
+option(LAGRANGE_ASSERT_DEBUG_BREAK "Assert will break into debugger on failure" OFF)
+if(LAGRANGE_ASSERT_DEBUG_BREAK)
+    target_compile_definitions(lagrange_core PRIVATE -DLA_ENABLE_ASSERT_DEBUG_BREAK)
+endif()
+
 # 2. dependencies
 include(eigen)
 include(libigl)
@@ -97,12 +102,12 @@ if(LAGRANGE_USE_PCH)
 
         # Third party libraries
         <Eigen/Core>
-    
+
         # Lagrange core
         <lagrange/common.h>
         <lagrange/Mesh.h>
         <lagrange/Logger.h>
-        <lagrange/utils/la_assert.h>
+        <lagrange/utils/assert.h>
         <lagrange/utils/range.h>
         <lagrange/utils/safe_cast.h>
     )

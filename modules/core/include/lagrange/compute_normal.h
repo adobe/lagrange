@@ -49,7 +49,7 @@ void compute_normal(
     using IndexArray = Eigen::Matrix<Index, Eigen::Dynamic, 1>;
     using RowVector3r = Eigen::Matrix<Scalar, 1, 3>;
 
-    LA_ASSERT(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.");
+    la_runtime_assert(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.");
     if (!mesh.has_facet_attribute("normal")) {
         compute_triangle_normal(mesh);
     }
@@ -198,7 +198,7 @@ void compute_normal(
     using Scalar = typename MeshType::Scalar;
     using RowVector3r = Eigen::Matrix<Scalar, 1, 3>;
 
-    LA_ASSERT(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.");
+    la_runtime_assert(mesh.get_vertex_per_facet() == 3, "Only triangle meshes are supported for this.");
     if (!mesh.has_facet_attribute("normal")) {
         compute_triangle_normal(mesh);
     }

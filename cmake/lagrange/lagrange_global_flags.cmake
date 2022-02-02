@@ -29,6 +29,15 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # To avoid this problem, we force PDB write to be synchronous with /FS.
     # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
     add_compile_options(/FS)
+else()
+    include(lagrange_filter_flags)
+    set(LAGRANGE_GLOBAL_FLAGS
+        -fdiagnostics-color=always # GCC
+        -fcolor-diagnostics # Clang
+    )
+    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
+    add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 endif()
 
 if(LAGRANGE_WITH_TRACY)

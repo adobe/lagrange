@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 #include <lagrange/utils/warning.h>
 
@@ -98,7 +98,7 @@ std::unique_ptr<T> realize_default(
 {
     LA_IGNORE(dummy);
 
-    LA_ASSERT(
+    la_runtime_assert(
         false,
         lagrange::string_format(
             "Cannot default construct type {}, provide a realization function to ResourceFactory",
@@ -145,7 +145,7 @@ std::shared_ptr<T> realize_forward(
 {
     LA_IGNORE(dummy);
     unused_variadic(std::forward<Args>(args)...);
-    LA_ASSERT(
+    la_runtime_assert(
         false,
         lagrange::string_format(
             "Cannot construct type {} from given arguments {}, provide a realization function to "

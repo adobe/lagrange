@@ -22,7 +22,7 @@
 
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
 namespace lagrange {
@@ -38,7 +38,7 @@ void condense_indexed_attribute(
     const std::string& new_attr_name = "")
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
-    LA_ASSERT(mesh.has_indexed_attribute(attr_name));
+    la_runtime_assert(mesh.has_indexed_attribute(attr_name));
 
     using Index = typename MeshType::Index;
     using AttributeArray = typename MeshType::AttributeArray;

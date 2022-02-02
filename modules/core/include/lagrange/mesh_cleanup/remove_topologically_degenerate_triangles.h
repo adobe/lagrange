@@ -35,7 +35,7 @@ template <typename MeshType>
 std::unique_ptr<MeshType> remove_topologically_degenerate_triangles(const MeshType& mesh)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    LA_ASSERT(mesh.get_vertex_per_facet() == 3);
+    la_runtime_assert(mesh.get_vertex_per_facet() == 3);
 
     lagrange::logger().trace("[remove_topologically_degenerate_triangles]");
 

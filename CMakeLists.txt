@@ -59,7 +59,7 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.6.0)
+project(Lagrange VERSION 5.7.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -82,18 +82,6 @@ if(LAGRANGE_TOPLEVEL_PROJECT AND CMAKE_HOST_SYSTEM_NAME MATCHES Linux)
     option(LAGRANGE_WITH_ONETBB     "Build Lagrange with OneTBB 2021 rather than TBB 2020" OFF)
 endif()
 
-# When building anorigami or deformers module, enable Eigen with MKL
-if(LAGRANGE_ANORIGAMI OR LAGRANGE_DEFORMERS OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
-    option(EIGEN_WITH_MKL       "Use Eigen with MKL"        ON)
-endif()
-
-# When building anorigami module, additionally defaults to MKL-dynamic and TBB-dynamic
-if(LAGRANGE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
-    set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
-    option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
-endif()
-
 # When building Arpack from source, we need to enable Fortran support in the top-level directory
 if(ARPACK_BUILD_FROM_SOURCE)
     enable_language(Fortran)
@@ -110,6 +98,7 @@ option(LAGRANGE_USE_PCH           "Enable precompiled headers"                  
 option(LAGRANGE_WITH_ONETBB       "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange"                     OFF)
 option(LAGRANGE_LIMIT_PARALLELISM "Limit parallelism according to available cpu/memory"  OFF)
+option(LAGRANGE_MORE_WARNINGS     "Increase the level of warnings when compiling"        ${LAGRANGE_TOPLEVEL_PROJECT})
 
 # Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
 # option, targeted at users who wish to have explicit knowledge of which module is implicitly
@@ -154,10 +143,19 @@ else()
 endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
 
+# When building anorigami module, additionally defaults to MKL-dynamic and TBB-dynamic
+if(LAGRANGE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+    set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
+    option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
+    include(mkl)
+endif()
+
 # Register project source/binary dir in global properties, so they can be
 # retrieved from Lagrange CMake functions when called by client code.
 set_property(GLOBAL PROPERTY __lagrange_source_dir ${PROJECT_SOURCE_DIR})
 set_property(GLOBAL PROPERTY __lagrange_binary_dir ${PROJECT_BINARY_DIR})
+set_property(GLOBAL PROPERTY __lagrange_module_path ${CMAKE_MODULE_PATH})
 
 include(lagrange_add_example)
 include(lagrange_add_executable)

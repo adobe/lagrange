@@ -27,6 +27,8 @@ option(OPENVDB_CORE_STATIC "" ON)
 option(OPENVDB_BUILD_CORE "" ON)
 option(OPENVDB_BUILD_BINARIES "" OF)
 option(OPENVDB_ENABLE_RPATH "" OFF)
+
+include(CMakeDependentOption)
 cmake_dependent_option(OPENVDB_INSTALL_CMAKE_MODULES "" OFF "OPENVDB_BUILD_CORE" OFF)
 
 option(USE_BLOSC "" OFF) # maybe later

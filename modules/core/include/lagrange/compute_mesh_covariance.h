@@ -39,8 +39,8 @@ Eigen::Matrix<typename MeshType::Scalar, 3, 3> compute_mesh_covariance( //
     const auto &vertices = mesh_ref.get_vertices();
     const auto &facets = mesh_ref.get_facets();
 
-    LA_ASSERT(vertices.cols() == 3, "Currently, only 3 dimensions are supported");
-    LA_ASSERT(facets.cols() == 3, "Currently, only triangles are supported");
+    la_runtime_assert(vertices.cols() == 3, "Currently, only 3 dimensions are supported");
+    la_runtime_assert(facets.cols() == 3, "Currently, only triangles are supported");
 
     Matrix3 factors;
     factors.row(0) << Scalar(1. / 2), Scalar(1. / 3), Scalar(1. / 6);

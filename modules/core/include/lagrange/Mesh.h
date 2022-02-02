@@ -24,7 +24,7 @@
 #include <lagrange/corner_to_edge_mapping.h>
 #include <lagrange/experimental/AttributeManager.h>
 #include <lagrange/experimental/IndexedAttributeManager.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 
 #include <Eigen/Core>
@@ -111,220 +111,220 @@ public:
 
     Index get_dim() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_geometry->get_dim();
     }
     Index get_num_vertices() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_geometry->get_num_vertices();
     }
     Index get_num_facets() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_geometry->get_num_facets();
     }
     Index get_vertex_per_facet() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_geometry->get_vertex_per_facet();
     }
 
     const VertexArray& get_vertices() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_geometry->get_vertices();
     }
     const FacetArray& get_facets() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_geometry->get_facets();
     }
 
     std::vector<std::string> get_vertex_attribute_names() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_vertex_attributes->get_names();
     }
 
     std::vector<std::string> get_facet_attribute_names() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_facet_attributes->get_names();
     }
 
     std::vector<std::string> get_corner_attribute_names() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_corner_attributes->get_names();
     }
 
     std::vector<std::string> get_edge_attribute_names() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_edge_attributes->get_names();
     }
 
     std::vector<std::string> get_indexed_attribute_names() const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_indexed_attributes->get_names();
     }
 
     bool has_vertex_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_vertex_attributes->has(name);
     }
 
     bool has_facet_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_facet_attributes->has(name);
     }
 
     bool has_corner_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_corner_attributes->has(name);
     }
 
     bool has_edge_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_edge_attributes->has(name);
     }
 
     bool has_indexed_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         return m_indexed_attributes->has(name);
     }
 
     void add_vertex_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_vertex_attributes->add(name);
     }
 
     void add_facet_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_facet_attributes->add(name);
     }
 
     void add_corner_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_corner_attributes->add(name);
     }
 
     void add_edge_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->add(name);
     }
 
     void add_indexed_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_indexed_attributes->add(name);
     }
 
     const AttributeArray& get_vertex_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto* attr = m_vertex_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get()->template get<AttributeArray>();
     }
 
     decltype(auto) get_vertex_attribute_array(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto* attr = m_vertex_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
 
     decltype(auto) get_vertex_attribute_array(const std::string& name)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         auto* attr = m_vertex_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
 
 
     const AttributeArray& get_facet_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto* attr = m_facet_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get()->template get<AttributeArray>();
     }
 
     decltype(auto) get_facet_attribute_array(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto* attr = m_facet_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
 
     decltype(auto) get_facet_attribute_array(const std::string& name)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         auto* attr = m_facet_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
 
     const AttributeArray& get_corner_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto* attr = m_corner_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get()->template get<AttributeArray>();
     }
 
     decltype(auto) get_corner_attribute_array(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto* attr = m_corner_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
 
     decltype(auto) get_corner_attribute_array(const std::string& name)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         auto* attr = m_corner_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
 
     const AttributeArray& get_edge_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         const auto* attr = m_edge_attributes->get(name);
-        LA_ASSERT(attr != nullptr);
+        la_runtime_assert(attr != nullptr);
         return attr->get()->template get<AttributeArray>();
     }
 
     decltype(auto) get_edge_attribute_array(const std::string& name)
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         auto* attr = m_edge_attributes->get(name);
-        LA_ASSERT(attr != nullptr, "Attribute " + name + " is not initialized.");
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
         return attr->get();
     }
 
     auto get_indexed_attribute(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto data = m_indexed_attributes->get(name);
-        LA_ASSERT(data != nullptr);
+        la_runtime_assert(data != nullptr);
         return std::forward_as_tuple(
             data->template get_values<AttributeArray>(),
             data->template get_indices<IndexArray>());
@@ -332,61 +332,61 @@ public:
 
     auto get_indexed_attribute_array(const std::string& name) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         const auto data = m_indexed_attributes->get(name);
-        LA_ASSERT(data != nullptr);
+        la_runtime_assert(data != nullptr);
         return std::make_tuple(data->get_values(), data->get_indices());
     }
 
     void set_vertex_attribute(const std::string& name, const AttributeArray& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_vertex_attributes->set(name, attr);
     }
 
     void set_facet_attribute(const std::string& name, const AttributeArray& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_facet_attributes->set(name, attr);
     }
 
     void set_corner_attribute(const std::string& name, const AttributeArray& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_corner_attributes->set(name, attr);
     }
 
     void set_edge_attribute(const std::string& name, const AttributeArray& attr)
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->set(name, attr);
     }
 
     template <typename Derived>
     void set_vertex_attribute_array(const std::string& name, Derived&& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_vertex_attributes->set(name, std::forward<Derived>(attr));
     }
 
     template <typename Derived>
     void set_facet_attribute_array(const std::string& name, Derived&& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_facet_attributes->set(name, std::forward<Derived>(attr));
     }
 
     template <typename Derived>
     void set_corner_attribute_array(const std::string& name, Derived&& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_corner_attributes->set(name, std::forward<Derived>(attr));
     }
 
     template <typename Derived>
     void set_edge_attribute_array(const std::string& name, Derived&& attr)
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->set(name, std::forward<Derived>(attr));
     }
 
@@ -395,7 +395,7 @@ public:
         const AttributeArray& values,
         const IndexArray& indices)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         auto attr = m_indexed_attributes->get(name);
         attr->set_values(values);
         attr->set_indices(indices);
@@ -403,31 +403,31 @@ public:
 
     void remove_vertex_attribute(const std::string& name)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_vertex_attributes->remove(name);
     }
 
     void remove_facet_attribute(const std::string& name)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_facet_attributes->remove(name);
     }
 
     void remove_corner_attribute(const std::string& name)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_corner_attributes->remove(name);
     }
 
     void remove_edge_attribute(const std::string& name)
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->remove(name);
     }
 
     void remove_indexed_attribute(const std::string& name)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_indexed_attributes->remove(name);
     }
 
@@ -443,42 +443,42 @@ public:
     template <typename Derived>
     void import_vertices(Eigen::PlainObjectBase<Derived>& vertices)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_geometry->import_vertices(vertices);
     }
 
     template <typename Derived>
     void import_facets(Eigen::PlainObjectBase<Derived>& facets)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_geometry->import_facets(facets);
     }
 
     template <typename AttributeDerived>
     void import_vertex_attribute(const std::string& name, AttributeDerived&& attr) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_vertex_attributes->import_data(name, std::forward<AttributeDerived>(attr));
     }
 
     template <typename AttributeDerived>
     void import_facet_attribute(const std::string& name, AttributeDerived&& attr) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_facet_attributes->import_data(name, std::forward<AttributeDerived>(attr));
     }
 
     template <typename AttributeDerived>
     void import_corner_attribute(const std::string& name, AttributeDerived&& attr) const
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_corner_attributes->import_data(name, std::forward<AttributeDerived>(attr));
     }
 
     template <typename AttributeDerived>
     void import_edge_attribute(const std::string& name, AttributeDerived&& attr) const
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->import_data(name, std::forward<AttributeDerived>(attr));
     }
 
@@ -486,7 +486,7 @@ public:
     void
     import_indexed_attribute(const std::string& name, ValueDerived&& values, IndexDerived&& indices)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_indexed_attributes->import_data(
             name,
             std::forward<ValueDerived>(values),
@@ -496,42 +496,42 @@ public:
     template <typename Derived>
     void export_vertices(Eigen::PlainObjectBase<Derived>& vertices)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_geometry->export_vertices(vertices);
     }
 
     template <typename Derived>
     void export_facets(Eigen::PlainObjectBase<Derived>& facets)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_geometry->export_facets(facets);
     }
 
     template <typename Derived>
     void export_vertex_attribute(const std::string& name, Eigen::PlainObjectBase<Derived>& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_vertex_attributes->export_data(name, attr);
     }
 
     template <typename Derived>
     void export_facet_attribute(const std::string& name, Eigen::PlainObjectBase<Derived>& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_facet_attributes->export_data(name, attr);
     }
 
     template <typename Derived>
     void export_corner_attribute(const std::string& name, Eigen::PlainObjectBase<Derived>& attr)
     {
-        LA_ASSERT(is_initialized());
+        la_runtime_assert(is_initialized());
         m_corner_attributes->export_data(name, attr);
     }
 
     template <typename Derived>
     void export_edge_attribute(const std::string& name, Eigen::PlainObjectBase<Derived>& attr)
     {
-        LA_ASSERT(is_initialized() && is_edge_data_initialized());
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
         m_edge_attributes->export_data(name, attr);
     }
 
@@ -551,7 +551,7 @@ public:
 
     void initialize_connectivity()
     {
-        LA_ASSERT(m_connectivity);
+        la_runtime_assert(m_connectivity);
         m_connectivity->initialize(*m_geometry);
     }
 
@@ -562,37 +562,37 @@ public:
 
     const AdjacencyList& get_vertex_vertex_adjacency() const
     {
-        LA_ASSERT(is_connectivity_initialized());
+        la_runtime_assert(is_connectivity_initialized());
         return m_connectivity->get_vertex_vertex_adjacency();
     }
 
     const AdjacencyList& get_vertex_facet_adjacency() const
     {
-        LA_ASSERT(is_connectivity_initialized());
+        la_runtime_assert(is_connectivity_initialized());
         return m_connectivity->get_vertex_facet_adjacency();
     }
 
     const AdjacencyList& get_facet_facet_adjacency() const
     {
-        LA_ASSERT(is_connectivity_initialized());
+        la_runtime_assert(is_connectivity_initialized());
         return m_connectivity->get_facet_facet_adjacency();
     }
 
     const IndexList& get_vertices_adjacent_to_vertex(Index vi) const
     {
-        LA_ASSERT(is_connectivity_initialized());
+        la_runtime_assert(is_connectivity_initialized());
         return m_connectivity->get_vertices_adjacent_to_vertex(vi);
     }
 
     const IndexList& get_facets_adjacent_to_vertex(Index vi) const
     {
-        LA_ASSERT(is_connectivity_initialized());
+        la_runtime_assert(is_connectivity_initialized());
         return m_connectivity->get_facets_adjacent_to_vertex(vi);
     }
 
     const IndexList& get_facets_adjacent_to_facet(Index fi) const
     {
-        LA_ASSERT(is_connectivity_initialized());
+        la_runtime_assert(is_connectivity_initialized());
         return m_connectivity->get_facets_adjacent_to_facet(fi);
     }
 
@@ -621,7 +621,7 @@ public:
     ///
     Index get_num_edges() const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_num_edges();
     }
 
@@ -635,7 +635,7 @@ public:
     ///
     Index get_edge(Index f, Index lv) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_edge(f, lv);
     }
 
@@ -648,7 +648,7 @@ public:
     ///
     Index get_edge_from_corner(Index c) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_edge_from_corner(c);
     }
 
@@ -665,7 +665,7 @@ public:
     ///
     Index find_edge_from_vertices(Index v0, Index v1) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         Index edge_id = INVALID<Index>();
 
         const Index vertex_per_facet = get_vertex_per_facet();
@@ -701,7 +701,7 @@ public:
     ///
     std::array<Index, 2> get_edge_vertices(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_edge_vertices(get_facets(), e);
     }
 
@@ -716,7 +716,7 @@ public:
     ///
     Index get_vertex_opposite_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_vertex_opposite_edge(get_facets(), e);
     }
 
@@ -728,7 +728,7 @@ public:
     ///
     Index get_num_facets_around_vertex(Index v) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_num_facets_around_vertex(v);
     }
 
@@ -740,7 +740,7 @@ public:
     ///
     Index get_num_facets_around_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_num_facets_around_edge(e);
     }
 
@@ -753,7 +753,7 @@ public:
     ///
     Index get_one_facet_around_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_one_facet_around_edge(e);
     }
 
@@ -766,7 +766,7 @@ public:
     ///
     Index get_one_corner_around_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_one_corner_around_edge(e);
     }
 
@@ -779,7 +779,7 @@ public:
     ///
     Index get_one_corner_around_vertex(Index v) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->get_one_corner_around_vertex(v);
     }
 
@@ -792,7 +792,7 @@ public:
     ///
     bool is_boundary_edge(Index e) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->is_boundary_edge(e);
     }
 
@@ -805,7 +805,7 @@ public:
     ///
     bool is_boundary_vertex(Index v) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         return m_navigation->is_boundary_vertex(v);
     }
 
@@ -822,7 +822,7 @@ public:
     template <typename Func>
     void foreach_facets_around_vertex(Index v, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_facets_around_vertex(v, func);
     }
 
@@ -837,7 +837,7 @@ public:
     template <typename Func>
     void foreach_facets_around_edge(Index e, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_facets_around_edge(e, func);
     }
 
@@ -852,7 +852,7 @@ public:
     template <typename Func>
     void foreach_corners_around_vertex(Index v, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_corners_around_vertex(v, func);
     }
 
@@ -867,7 +867,7 @@ public:
     template <typename Func>
     void foreach_corners_around_edge(Index e, Func func) const
     {
-        LA_ASSERT(is_edge_data_initialized(), "Edge data not initialized");
+        la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
         m_navigation->foreach_corners_around_edge(e, func);
     }
 
@@ -878,7 +878,7 @@ public:
 
     void initialize_topology()
     {
-        LA_ASSERT(m_topology);
+        la_runtime_assert(m_topology);
         m_topology->initialize(*this);
     }
 
@@ -886,13 +886,13 @@ public:
 
     bool is_edge_manifold() const
     {
-        LA_ASSERT(m_topology->is_initialized(), "Mesh topology not initialized");
+        la_runtime_assert(m_topology->is_initialized(), "Mesh topology not initialized");
         return m_topology->is_edge_manifold();
     }
 
     bool is_vertex_manifold() const
     {
-        LA_ASSERT(m_topology->is_initialized(), "Mesh topology not initialized");
+        la_runtime_assert(m_topology->is_initialized(), "Mesh topology not initialized");
         return m_topology->is_vertex_manifold();
     }
 
@@ -904,8 +904,8 @@ public:
     //=====================
     void initialize_components()
     {
-        LA_ASSERT(m_components);
-        LA_ASSERT(m_connectivity);
+        la_runtime_assert(m_components);
+        la_runtime_assert(m_connectivity);
         if (!m_connectivity->is_initialized()) {
             initialize_connectivity();
         }
@@ -919,19 +919,19 @@ public:
 
     Index get_num_components() const
     {
-        LA_ASSERT(is_components_initialized());
+        la_runtime_assert(is_components_initialized());
         return m_components->get_num_components();
     }
 
     const std::vector<IndexList>& get_components() const
     {
-        LA_ASSERT(is_components_initialized());
+        la_runtime_assert(is_components_initialized());
         return m_components->get_components();
     }
 
     const IndexList& get_per_facet_component_ids() const
     {
-        LA_ASSERT(is_components_initialized());
+        la_runtime_assert(is_components_initialized());
         return m_components->get_per_facet_component_ids();
     }
 
@@ -963,13 +963,13 @@ public:
 
     decltype(auto) get_uv() const
     {
-        LA_ASSERT(is_uv_initialized());
+        la_runtime_assert(is_uv_initialized());
         return m_indexed_attributes->get_values<UVArray>("uv");
     }
 
     decltype(auto) get_uv_indices() const
     {
-        LA_ASSERT(is_uv_initialized());
+        la_runtime_assert(is_uv_initialized());
         return m_indexed_attributes->get_indices<UVIndices>("uv");
     }
 
@@ -1017,7 +1017,7 @@ public:
             ar("edge_attributes", EDGE_ATTR) & m_edge_attributes;
             ar("indexed_attributes", INDEXED_ATTR) & m_indexed_attributes;
         });
-        LA_ASSERT(version == current_version, "Incompatible version number");
+        la_runtime_assert(version == current_version, "Incompatible version number");
         LA_IGNORE_SHADOW_WARNING_END
 
         // If mesh has edge attributes, we need to initialize edge data too

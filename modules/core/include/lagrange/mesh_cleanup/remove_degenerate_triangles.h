@@ -52,7 +52,7 @@ std::unique_ptr<MeshType> remove_degenerate_triangles(const MeshType& mesh)
     auto out_mesh = remove_short_edges(mesh);
 
     detect_degenerate_triangles(*out_mesh);
-    LA_ASSERT(out_mesh->has_facet_attribute("is_degenerate"));
+    la_runtime_assert(out_mesh->has_facet_attribute("is_degenerate"));
     const auto& is_degenerate = out_mesh->get_facet_attribute("is_degenerate");
     const Index num_degenerate_faces = safe_cast<Index>(is_degenerate.sum());
     if (num_degenerate_faces == 0) {
@@ -64,10 +64,10 @@ std::unique_ptr<MeshType> remove_degenerate_triangles(const MeshType& mesh)
     const Index num_vertices = out_mesh->get_num_vertices();
     const Index num_facets = out_mesh->get_num_facets();
     const Index vertex_per_facet = out_mesh->get_vertex_per_facet();
-    LA_ASSERT(vertex_per_facet == 3);
+    la_runtime_assert(vertex_per_facet == 3);
     const auto& facets = out_mesh->get_facets();
-    LA_ASSERT(facets.minCoeff() >= 0);
-    LA_ASSERT(facets.maxCoeff() < num_vertices);
+    la_runtime_assert(facets.minCoeff() >= 0);
+    la_runtime_assert(facets.maxCoeff() < num_vertices);
 
     auto on_edge = [&vertices, dim](const Edge& edge, const Index pid) {
         for (Index i = 0; i < dim; i++) {
@@ -135,7 +135,7 @@ std::unique_ptr<MeshType> remove_degenerate_triangles(const MeshType& mesh)
             for (Index i = 0; i < vertex_per_facet; i++) {
                 Edge edge{{facets(fid, i), facets(fid, (i + 1) % vertex_per_facet)}};
                 const auto itr = edge_facet_map.find(edge);
-                LA_ASSERT(itr != edge_facet_map.end());
+                la_runtime_assert(itr != edge_facet_map.end());
                 for (const auto next_fid : itr->second) {
                     get_collinear_pts(collinear_pts, involved_edges, next_fid);
                 }
@@ -226,8 +226,8 @@ std::unique_ptr<MeshType> remove_degenerate_triangles(const MeshType& mesh)
     for (auto i : range(num_out_facets)) {
         out_facets.row(i) = splitted_facets[i];
     }
-    LA_ASSERT(num_out_facets == 0 || out_facets.minCoeff() >= 0);
-    LA_ASSERT(num_out_facets == 0 || out_facets.maxCoeff() < num_vertices);
+    la_runtime_assert(num_out_facets == 0 || out_facets.minCoeff() >= 0);
+    la_runtime_assert(num_out_facets == 0 || out_facets.maxCoeff() < num_vertices);
 
     auto out_mesh2 = create_mesh(vertices, out_facets);
 

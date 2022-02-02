@@ -27,7 +27,7 @@ auto quad_to_tri(const MeshType& mesh)
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     const auto& vertices = mesh.get_vertices();
     const auto& facets = mesh.get_facets();
-    LA_ASSERT(facets.cols() == 4);
+    la_runtime_assert(facets.cols() == 4);
 
     using Index = typename MeshType::Index;
     using FacetArray = Eigen::Matrix<Index, Eigen::Dynamic, 3, Eigen::RowMajor>;

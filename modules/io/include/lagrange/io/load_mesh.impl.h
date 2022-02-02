@@ -57,7 +57,7 @@ std::unique_ptr<MeshType> load_obj_mesh(const fs::path& filename)
         return std::move(res[0]);
     } else {
         logger().debug("Combining {} meshes into one.", res.size());
-        return combine_mesh_list(res);
+        return combine_mesh_list(res, true);
     }
 }
 extern template std::unique_ptr<TriangleMesh3D> load_obj_mesh(const fs::path&);

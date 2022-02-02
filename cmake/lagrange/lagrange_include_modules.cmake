@@ -10,6 +10,8 @@
 # governing permissions and limitations under the License.
 #
 function(lagrange_include_modules)
+    get_property(lagrange_module_path GLOBAL PROPERTY __lagrange_module_path)
+    set(CMAKE_MODULE_PATH ${lagrange_module_path})
     foreach(name IN ITEMS ${ARGN})
         if(LAGRANGE_ALLOWLIST AND NOT (${name} IN_LIST LAGRANGE_ALLOWLIST))
             message(FATAL_ERROR "Lagrange module '${name}' is not allowed in this project")

@@ -11,7 +11,7 @@
  */
 #include <lagrange/ui/components/UIPanel.h>
 #include <lagrange/ui/utils/uipanel.h>
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 
 
@@ -87,7 +87,7 @@ void end_panel(UIPanel& window)
 
 Entity add_panel(Registry& r, const std::string& title, const std::function<void(void)>& body_fn)
 {
-    LA_ASSERT(body_fn, "Body function must be set");
+    la_runtime_assert(body_fn, "Body function must be set");
     return add_panel(r, title, [=](Registry&, Entity) { body_fn(); });
 }
 

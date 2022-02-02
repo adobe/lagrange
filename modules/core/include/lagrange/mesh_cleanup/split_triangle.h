@@ -93,15 +93,15 @@ std::vector<Eigen::Matrix<Index, 3, 1>> split_triangle(
             // Select neither candidate from this corner.
             continue;
         }
-        LA_ASSERT(candidate_lengths.row(idx).minCoeff() <= candidate_lengths.minCoeff());
+        la_runtime_assert(candidate_lengths.row(idx).minCoeff() <= candidate_lengths.minCoeff());
 
         Index base_v = candidates(idx, selection * 3);
         Index right_v = candidates(idx, selection * 3 + 1);
         Index left_v = candidates(idx, selection * 3 + 2);
-        LA_ASSERT(base_v >= 0 && base_v < chain_size);
-        LA_ASSERT(right_v >= 0 && right_v < chain_size);
-        LA_ASSERT(left_v >= 0 && left_v < chain_size);
-        LA_ASSERT(visited(base_v, idx) >= 1);
+        la_runtime_assert(base_v >= 0 && base_v < chain_size);
+        la_runtime_assert(right_v >= 0 && right_v < chain_size);
+        la_runtime_assert(left_v >= 0 && left_v < chain_size);
+        la_runtime_assert(visited(base_v, idx) >= 1);
 
         // A special case.
         if (is_corner(base_v) && is_corner(right_v) && is_corner(left_v)) {
@@ -155,12 +155,12 @@ std::vector<Eigen::Matrix<Index, 3, 1>> split_triangle(
         Index count = 0;
         for (Index i = 0; i < chain_size; i++) {
             if (visited_sum[i] > 1) {
-                LA_ASSERT(count < 3);
+                la_runtime_assert(count < 3);
                 f[count] = chain[i];
                 count++;
             }
         }
-        LA_ASSERT(count == 3);
+        la_runtime_assert(count == 3);
         facets.push_back({f[0], f[1], f[2]});
     }
     return facets;

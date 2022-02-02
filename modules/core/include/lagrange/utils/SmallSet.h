@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#include <lagrange/utils/la_assert.h>
+#include <lagrange/utils/assert.h>
 
 #include <algorithm>
 #include <array>
@@ -46,7 +46,7 @@ public:
     SmallSet(std::initializer_list<T> init)
         : m_size(init.size())
     {
-        LA_ASSERT(m_size <= N);
+        la_runtime_assert(m_size <= N);
         auto it = init.begin();
         for (size_t i = 0; i < m_size; ++i) {
             m_array[i] = std::move(*it);
@@ -61,13 +61,13 @@ public:
 
     void resize(const size_t i)
     {
-        LA_ASSERT(i <= m_array.size());
+        la_runtime_assert(i <= m_array.size());
         m_size = i;
     }
 
     std::pair<iterator, bool> insert(const T& v)
     {
-        LA_ASSERT(m_size < m_array.size());
+        la_runtime_assert(m_size < m_array.size());
         for (size_t i = 0; i < m_size; ++i) {
             if (m_array[i] == v) {
                 return {begin() + i, false};
@@ -79,7 +79,7 @@ public:
 
     size_t erase(const T& v)
     {
-        LA_ASSERT(m_size < m_array.size());
+        la_runtime_assert(m_size < m_array.size());
         auto it = find(v);
         if (it != end()) {
             std::swap(*it, *(end() - 1));
@@ -97,25 +97,25 @@ public:
 
     const T& front() const
     {
-        LA_ASSERT(m_size > 0);
+        la_runtime_assert(m_size > 0);
         return m_array.front();
     }
 
     const T& back() const
     {
-        LA_ASSERT(m_size > 0);
+        la_runtime_assert(m_size > 0);
         return m_array.at(m_size - 1);
     }
 
     const T& at(const size_t i) const
     {
-        LA_ASSERT(i < m_size);
+        la_runtime_assert(i < m_size);
         return m_array.at(i);
     }
 
     const T& operator[](const size_t i) const
     {
-        LA_ASSERT(i < m_size);
+        la_runtime_assert(i < m_size);
         return m_array[i];
     }
 
@@ -159,13 +159,13 @@ protected:
 
     T& front()
     {
-        LA_ASSERT(m_size > 0);
+        la_runtime_assert(m_size > 0);
         return m_array.front();
     }
 
     T& back()
     {
-        LA_ASSERT(m_size > 0);
+        la_runtime_assert(m_size > 0);
         return m_array.at(m_size - 1);
     }
 };

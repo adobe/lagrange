@@ -82,7 +82,7 @@ std::unique_ptr<MeshType> remove_duplicate_vertices(
     const std::vector<std::string>& indexed_attribute_names = {})
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    LA_ASSERT(
+    la_runtime_assert(
         mesh.get_vertex_per_facet() == 3,
         std::string("vertex per facet is ") + std::to_string(mesh.get_vertex_per_facet()));
 
@@ -98,11 +98,11 @@ std::unique_ptr<MeshType> remove_duplicate_vertices(
     const Index dim = mesh.get_dim();
     Index num_cols = dim;
     for (const auto& attr_name : vertex_attribute_names) {
-        LA_ASSERT(mesh.has_vertex_attribute(attr_name));
+        la_runtime_assert(mesh.has_vertex_attribute(attr_name));
         num_cols += mesh.get_vertex_attribute(attr_name).cols();
     }
     for (const auto& attr_name : indexed_attribute_names) {
-        LA_ASSERT(mesh.has_indexed_attribute(attr_name));
+        la_runtime_assert(mesh.has_indexed_attribute(attr_name));
         auto attr = mesh.get_indexed_attribute(attr_name);
         num_cols += std::get<0>(attr).cols();
     }
@@ -137,14 +137,14 @@ std::unique_ptr<MeshType> remove_duplicate_vertices(
     Index num_unique_vertices;
     internal::unique_rows(vertices_and_keys, num_unique_vertices, forward_mapping);
 
-    LA_ASSERT(safe_cast<Eigen::Index>(forward_mapping.size()) == vertices.rows());
+    la_runtime_assert(safe_cast<Eigen::Index>(forward_mapping.size()) == vertices.rows());
 
     if (num_unique_vertices < mesh.get_num_vertices()) {
         auto mesh2 = reorder_mesh_vertices(mesh, forward_mapping);
         mesh2 = remove_topologically_degenerate_triangles(*mesh2);
         return mesh2;
     } else {
-        LA_ASSERT(num_unique_vertices == mesh.get_num_vertices());
+        la_runtime_assert(num_unique_vertices == mesh.get_num_vertices());
         auto mesh2 = create_mesh(mesh.get_vertices(), mesh.get_facets());
         map_attributes(mesh, *mesh2);
         return mesh2;
