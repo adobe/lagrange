@@ -50,3 +50,14 @@ if(LAGRANGE_WITH_TRACY)
     message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 endif()
+
+if(EMSCRIPTEN)
+    # Use the "-fexceptions" flag to allow C++ code to catch C++ exceptions after compilation to
+    # WebAssembly. At some point, when more WASM engines support exceptions natively, change
+    # "-fexceptions" to "-fwasm-exceptions". See https://emscripten.org/docs/porting/exceptions.html.
+
+    # Use "-pthread" to allow multi-threading. See https://emscripten.org/docs/porting/pthreads.html.
+
+    add_compile_options(-fexceptions -pthread)
+    add_link_options(-fexceptions -pthread)
+endif()

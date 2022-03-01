@@ -19,8 +19,62 @@
 
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/utils/assert.h>
 
 #include <catch2/catch.hpp>
+
+///
+/// Convenience macro wrapping around Catch2's REQUIRE_THROWS macro. We disable triggering debugger
+/// breakpoint on assert failure when the expected behavior of the expression being called is to
+/// throw an exception.
+///
+/// @param      ...   Expression to test.
+///
+/// @return     A void expression.
+///
+#define LA_REQUIRE_THROWS(...)                                  \
+    do {                                                        \
+        bool __was_enabled = lagrange::is_breakpoint_enabled(); \
+        lagrange::set_breakpoint_enabled(false);                \
+        REQUIRE_THROWS(__VA_ARGS__);                            \
+        lagrange::set_breakpoint_enabled(__was_enabled);        \
+    } while (0)
+
+///
+/// Convenience macro wrapping around Catch2's REQUIRE_THROWS_WITH macro. We disable triggering
+/// debugger breakpoint on assert failure when the expected behavior of the expression being called
+/// is to throw an exception.
+///
+/// @param      x     Expression to test.
+/// @param      y     Exception expected to be thrown.
+///
+/// @return     A void expression.
+///
+#define LA_REQUIRE_THROWS_WITH(x, y)                            \
+    do {                                                        \
+        bool __was_enabled = lagrange::is_breakpoint_enabled(); \
+        lagrange::set_breakpoint_enabled(false);                \
+        REQUIRE_THROWS_WITH(x, y);                              \
+        lagrange::set_breakpoint_enabled(__was_enabled);        \
+    } while (0)
+
+///
+/// Convenience macro wrapping around Catch2's CHECK_THROWS macro. We disable triggering debugger
+/// breakpoint on assert failure when the expected behavior of the expression being called is to
+/// throw an exception.
+///
+/// @param      ...   Expression to test.
+///
+/// @return     A void expression.
+///
+#define LA_CHECK_THROWS(...)                                    \
+    do {                                                        \
+        bool __was_enabled = lagrange::is_breakpoint_enabled(); \
+        lagrange::set_breakpoint_enabled(false);                \
+        CHECK_THROWS(__VA_ARGS__);                              \
+        lagrange::set_breakpoint_enabled(__was_enabled);        \
+    } while (0)
+
 
 namespace lagrange {
 namespace testing {
@@ -33,7 +87,7 @@ namespace testing {
 ///
 /// @return     Absolute path to the file.
 ///
-fs::path get_data_path(const fs::path &relative_path);
+fs::path get_data_path(const fs::path& relative_path);
 
 ///
 /// Loads a mesh from the test data directory.

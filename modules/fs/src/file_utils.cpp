@@ -19,7 +19,7 @@
 #elif __APPLE__
 #include <mach-o/dyld.h>
 #include <unistd.h>
-#elif __linux__
+#elif __linux__ || __EMSCRIPTEN__
 #include <unistd.h>
 #else
 #error Platform not supported
@@ -130,6 +130,8 @@ std::string read_file_with_includes(
     return str;
 }
 
+#if !defined(__EMSCRIPTEN__)
+
 path get_executable_path()
 {
     constexpr short BUF_SIZE = 2048;
@@ -172,6 +174,8 @@ path get_executable_directory()
     return get_executable_path().parent_path();
 }
 
+#endif // !defined(__EMSCRIPTEN__)
+
 path get_current_working_directory()
 {
     constexpr short BUF_SIZE = 2048;
@@ -181,7 +185,7 @@ path get_current_working_directory()
     auto ret = GetCurrentDirectoryA(BUF_SIZE, buffer);
     la_runtime_assert(ret != 0);
     return buffer;
-#elif __APPLE__ || __linux__
+#elif __APPLE__ || __linux__ || __EMSCRIPTEN__
     char buffer[BUF_SIZE];
     char* success = getcwd(buffer, BUF_SIZE);
     la_runtime_assert(success);

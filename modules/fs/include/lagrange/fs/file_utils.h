@@ -34,9 +34,13 @@ std::string read_file_with_includes(const path& search_dir, const path& filepath
 std::string read_file_with_includes(
     const path& filepath, const std::unordered_map<std::string, std::string>& virtual_fs);
 
+// The executable is not present in WebAssembly's virtual file system, so it does not make sense
+// to provide get_executable_path() or get_executable_directory() when building with Emscripten.
+#if !defined(__EMSCRIPTEN__)
 path get_executable_path();
 
 path get_executable_directory();
+#endif
 
 /// cwd
 path get_current_working_directory();

@@ -44,7 +44,9 @@ option(USE_PKGCONFIG "" OFF)
 option(OPENVDB_DISABLE_BOOST_IMPLICIT_LINKING "" OFF)
 option(OPENVDB_ENABLE_UNINSTALL "Adds a CMake uninstall target." OFF)
 
-set(OPENVDB_SIMD AVX CACHE STRING "")
+if(NOT EMSCRIPTEN)
+    set(OPENVDB_SIMD AVX CACHE STRING "")
+endif()
 
 if(NOT CMAKE_MSVC_RUNTIME_LIBRARY)
     # Workaround https://github.com/AcademySoftwareFoundation/openvdb/issues/1131

@@ -148,7 +148,7 @@ TEST_CASE("extract_submesh", "[submesh][mesh]")
         SECTION("Select invalid faces")
         {
             std::vector<int> selected_facets = {3, 0};
-            REQUIRE_THROWS(
+            LA_REQUIRE_THROWS(
                 extract_submesh(*mesh, selected_facets, &vertex_mapping, &facet_mapping));
         }
 

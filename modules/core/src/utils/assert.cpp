@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
- #include <lagrange/utils/assert.h>
+#include <lagrange/utils/assert.h>
 
 #include <lagrange/Logger.h>
 #include <lagrange/utils/Error.h>
@@ -37,6 +37,35 @@ extern void __cdecl __debugbreak(void);
 
 namespace lagrange {
 
+namespace {
+
+bool& get_breakpoint_enabled()
+{
+#ifdef LA_ENABLE_ASSERT_DEBUG_BREAK
+    static bool enabled = true;
+#else
+    static bool enabled = false;
+#endif
+    return enabled;
+}
+
+} // namespace
+
+void set_breakpoint_enabled(bool enabled)
+{
+    get_breakpoint_enabled() = enabled;
+}
+
+bool is_breakpoint_enabled()
+{
+    return get_breakpoint_enabled();
+}
+
+void trigger_breakpoint()
+{
+    LA_ASSERT_DEBUG_BREAK();
+}
+
 bool assertion_failed(
     const char* function,
     const char* file,
@@ -44,10 +73,10 @@ bool assertion_failed(
     const char* condition,
     const std::string& message)
 {
-#ifdef LA_ENABLE_ASSERT_DEBUG_BREAK
     // Insert a breakpoint programmatically to automatically step into the debugger
-    LA_ASSERT_DEBUG_BREAK();
-#endif
+    if (get_breakpoint_enabled()) {
+        LA_ASSERT_DEBUG_BREAK();
+    }
     throw Error(fmt::format(
         "Assertion failed: \"{}\"{}{}\n"
         "\tIn file: {}, line {};\n"

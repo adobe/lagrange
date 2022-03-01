@@ -29,16 +29,36 @@ list(PREPEND module_names "ui")
 # Always build core library
 add_subdirectory(core)
 
+# For subproject builds, check if client has enabled any of the module option,
+# and warn about the behavior. To force new behavior to users, we produce an
+# error if the old approach is detected.
+if(NOT LAGRANGE_TOPLEVEL_PROJECT)
+    if(LAGRANGE_ALL)
+        message(SEND_ERROR "LAGRANGE_ALL is enabled in a subproject build. This behavior is deprecated. "
+                           "Please use the helper function lagrange_include_modules() instead.")
+    endif()
+endif()
+
 # Iterate over each module folder and include it
 foreach(name IN ITEMS ${module_names})
     # Deduct module flag option from lowercase module name
     string(TOUPPER ${name} MODULE_FLAG)
-    set(MODULE_FLAG LAGRANGE_${MODULE_FLAG})
+    set(MODULE_OPTION LAGRANGE_MODULE_${MODULE_FLAG})
 
     # Allows setting the option
-    option(${MODULE_FLAG} "Build module lagrange::${name}" OFF)
+    option(${MODULE_OPTION} "Build module lagrange::${name}" OFF)
 
-    if(${MODULE_FLAG} OR LAGRANGE_ALL)
+    # Warn about old option name and subproject build behavior
+    if(LAGRANGE_${MODULE_FLAG})
+        message(SEND_ERROR "LAGRANGE_${MODULE_FLAG} is the old name to enable the module lagrange::${name}. "
+                           "Use ${MODULE_OPTION} instead, and clear your CMakeCache.txt")
+    endif()
+    if((NOT LAGRANGE_TOPLEVEL_PROJECT) AND ${MODULE_OPTION})
+        message(SEND_ERROR "${MODULE_OPTION} is enabled in a subproject build. This behavior is deprecated. "
+                           "Please use the helper function lagrange_include_modules() instead.")
+    endif()
+
+    if(${MODULE_OPTION} OR LAGRANGE_ALL)
         lagrange_include_modules(${name})
     endif()
 endforeach()

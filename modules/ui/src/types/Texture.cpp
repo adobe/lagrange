@@ -210,7 +210,8 @@ void Texture::set_uv_transform(const Texture::Transform& uv_transform)
 bool Texture::save_to(
     const fs::path& file_path,
     GLenum target /*= GL_TEXTURE_2D*/,
-    int quality /*= 90*/)
+    int quality /*= 90*/,
+    int mip_level)
 {
     auto comp_cnt = [](GLenum gl_type) {
         if (gl_type == GL_RGB) return 3u;
@@ -223,8 +224,14 @@ bool Texture::save_to(
     using elem_type = unsigned char;
     GLenum elem_type_gl = GL_UNSIGNED_BYTE;
 
-    auto w = m_width;
-    auto h = m_height;
+    const int levels = std::log2(std::max(m_width, m_height));
+    if (mip_level >= levels) {
+        lagrange::logger().error("Texture::save_to: mip_level exceeds number of mip levels");
+        return false;
+    }
+
+    auto w = m_width >> mip_level;
+    auto h = m_height >> mip_level;
 
     std::vector<elem_type> tex_data;
     const auto components = comp_cnt(get_params().format);
@@ -244,7 +251,7 @@ bool Texture::save_to(
         }
     }
 
-    glGetTexImage(target, 0, get_params().format, elem_type_gl, tex_data.data());
+    glGetTexImage(target, mip_level, get_params().format, elem_type_gl, tex_data.data());
 
     // stbi wants char (non wchar), so we convert to string to achieve that
     const std::string path_string = file_path.string();

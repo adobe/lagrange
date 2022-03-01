@@ -14,43 +14,21 @@
 #include <lagrange/ui/utils/ibl.h>
 
 
-#include "ibls/studio003.h"
 #include "ibls/studio011.h"
-#include "ibls/studio030.h"
-#include "ibls/studio032.h"
-#include "ibls/studio033.h"
+
 
 namespace lagrange {
 namespace ui {
 
-IBL generate_default_ibl(const std::string& name, size_t resolution)
+IBL generate_default_ibl(size_t resolution)
 {
     Texture::Params p = Texture::Params::rgb();
     p.sRGB = false;
-
-    if (name == "studio003")
-        return generate_ibl(
-            std::make_shared<Texture>(ibl_studio003, ibl_studio003_len, p),
-            resolution);
-    if (name == "studio011")
-        return generate_ibl(
-            std::make_shared<Texture>(ibl_studio011, ibl_studio011_len, p),
-            resolution);
-    if (name == "studio030")
-        return generate_ibl(
-            std::make_shared<Texture>(ibl_studio030, ibl_studio030_len, p),
-            resolution);
-    if (name == "studio032")
-        return generate_ibl(
-            std::make_shared<Texture>(ibl_studio032, ibl_studio032_len, p),
-            resolution);
-    if (name == "studio033")
-        return generate_ibl(
-            std::make_shared<Texture>(ibl_studio033, ibl_studio033_len, p),
-            resolution);
-
-    return IBL{};
+    auto ibl = generate_ibl(std::make_shared<Texture>(ibl_studio011, ibl_studio011_len, p), resolution);
+    ibl.blur = 2.0f;
+    return ibl;
 }
+
 
 } // namespace ui
 } // namespace lagrange

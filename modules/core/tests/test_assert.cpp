@@ -12,14 +12,17 @@
 #include <lagrange/Logger.h>
 #include <lagrange/utils/assert.h>
 
+#include <lagrange/testing/common.h>
+
 #include <catch2/catch.hpp>
 
 TEST_CASE("Assert", "[next]")
 {
     la_runtime_assert(true);
     la_runtime_assert(true, "This is true");
-    REQUIRE_THROWS(la_runtime_assert(false));
-    REQUIRE_THROWS(la_runtime_assert(false, "This is false"));
+    LA_REQUIRE_THROWS(la_runtime_assert(false));
+    LA_REQUIRE_THROWS(la_runtime_assert(false, "This is false"));
+    LA_REQUIRE_THROWS(la_runtime_assert(false, fmt::format("Complex message: {}", 10)));
 
     // We want to prevent the macro from taking 3+ arguments:
     // la_runtime_assert(true, "This should not compile", 0);
@@ -41,8 +44,8 @@ TEST_CASE("Assert", "[next]")
 #ifndef NDEBUG
     // Debug mode, should raise exceptions
     lagrange::logger().info("Debug mode");
-    REQUIRE_THROWS(la_debug_assert(false));
-    REQUIRE_THROWS(la_debug_assert(false, "This is false"));
+    LA_REQUIRE_THROWS(la_debug_assert(false));
+    LA_REQUIRE_THROWS(la_debug_assert(false, "This is false"));
 #else
     // Release mode, no exception should be thrown
     lagrange::logger().info("Release mode");

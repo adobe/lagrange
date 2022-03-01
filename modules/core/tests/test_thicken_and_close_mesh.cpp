@@ -14,7 +14,7 @@
 #include <lagrange/testing/common.h>
 
 
-TEST_CASE("thicken_and_close_mesh wing", "[mesh][thicken_and_close_mesh][wing]")
+TEST_CASE("thicken_and_close_mesh wing", "[mesh][thicken_and_close_mesh][wing]" LA_CORP_FLAG)
 {
     using namespace lagrange;
 

@@ -960,6 +960,15 @@ void show_ibl(Registry* rptr, Entity e)
         }
     }
 
+
+    if (ImGui::Button("Save ...")) {
+        auto path = ui::open_folder("Save IBL to folder");
+        if (!path.empty()) {
+            ui::save_ibl(ibl, path);
+        }
+    }
+
+
     ImGui::Text("Background cube map: ");
     ImGui::SameLine();
     if (ibl.background) {

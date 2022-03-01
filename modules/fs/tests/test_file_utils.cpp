@@ -17,21 +17,26 @@ TEST_CASE("file_utils", "[io]")
 {
     using namespace lagrange;
 
+    // The executable is not present in WebAssembly's virtual file system, so it does not make sense
+    // to call get_executable_path() or get_executable_directory() when building with Emscripten.
+#if !__EMSCRIPTEN__
     const auto exec_path = fs::get_executable_path();
     const auto exec_dir = fs::get_executable_directory();
-    const auto working_dir = fs::get_current_working_directory();
 
     REQUIRE(!exec_dir.empty());
     REQUIRE(!exec_path.empty());
 
     CAPTURE(exec_path, exec_dir);
     REQUIRE(exec_path.parent_path() == exec_dir);
-    REQUIRE(exec_path == fs::path(TEST_APP_PATH));
 
-    // The following test should succeed is the unit test is run by ctest, which calls the
+    REQUIRE(exec_path == fs::path(TEST_APP_PATH));
+#endif
+
+    // The following test should succeed if the unit test is run by ctest, which calls the
     // executable using CMAKE_CURRENT_BINARY_DIR as a working directory by default.
     // Otherwise, calling the unit test executable directly from the command-line will probably
     // fail, unless you are using CMAKE_CURRENT_BINARY_DIR as working directory.
+    const auto working_dir = fs::get_current_working_directory();
     // REQUIRE(working_dir == fs::path(TEST_WORK_DIR));
 
     REQUIRE(fs::get_filename_extension("some_mesh.obj") == ".obj");

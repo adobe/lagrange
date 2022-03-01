@@ -53,5 +53,14 @@ Entity add_ibl(Registry& registry, IBL ibl);
 /// @brief Removes all ibls
 void clear_ibl(Registry& registry);
 
+/// @brief Saves IBL as individual .png files in given folder.
+/// Generated files:
+/// background_rect.png,
+/// background_{00-05}.png,
+/// diffuse_{00-05}.png,
+/// specular_{00-05}_mip_{00-miplevels}.png
+/// Cube maps follow GL_TEXTURE_CUBE_MAP_POSITIVE_X + i pattern.
+bool save_ibl(const IBL& ibl, const fs::path& folder);
+
 } // namespace ui
 } // namespace lagrange

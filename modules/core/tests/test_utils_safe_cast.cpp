@@ -23,8 +23,8 @@ TEST_CASE("SafeCast", "[safe_cast]")
     REQUIRE(x0 == 1);
     int x1 = lagrange::safe_cast<int>(-1.0);
     REQUIRE(x1 == -1);
-    REQUIRE_THROWS(lagrange::safe_cast<size_t>(-1.0));
-    REQUIRE_THROWS(lagrange::safe_cast<size_t>(1.5));
+    LA_REQUIRE_THROWS(lagrange::safe_cast<size_t>(-1.0));
+    LA_REQUIRE_THROWS(lagrange::safe_cast<size_t>(1.5));
     float x2 = lagrange::safe_cast<float>(1.0 / 3.0);
     REQUIRE(Approx(x2 * 3) == 1.0);
     short x3 = lagrange::safe_cast<short>(1);
@@ -32,7 +32,7 @@ TEST_CASE("SafeCast", "[safe_cast]")
     constexpr short max_short = std::numeric_limits<short>::max();
     short x4 = lagrange::safe_cast<short>(max_short);
     REQUIRE(x4 > 0);
-    REQUIRE_THROWS(lagrange::safe_cast<short>(max_short + 1));
+    LA_REQUIRE_THROWS(lagrange::safe_cast<short>(max_short + 1));
 
     const double x5 = 1e2 - std::sqrt(2.0);
     REQUIRE_NOTHROW(lagrange::safe_cast<float>(x5));
@@ -60,24 +60,24 @@ TEST_CASE("SafeCastStressTest", "[safe_cast]" LA_SLOW_FLAG)
                 REQUIRE_NOTHROW(lagrange::safe_cast<float>(value));
                 REQUIRE_NOTHROW(lagrange::safe_cast<float>(-value));
             } else {
-                REQUIRE_THROWS(lagrange::safe_cast<float>(value));
-                REQUIRE_THROWS(lagrange::safe_cast<float>(-value));
+                LA_REQUIRE_THROWS(lagrange::safe_cast<float>(value));
+                LA_REQUIRE_THROWS(lagrange::safe_cast<float>(-value));
             }
 
             if (value <= d_max) {
                 REQUIRE_NOTHROW(lagrange::safe_cast<double>(value));
                 REQUIRE_NOTHROW(lagrange::safe_cast<double>(-value));
             } else {
-                REQUIRE_THROWS(lagrange::safe_cast<double>(value));
-                REQUIRE_THROWS(lagrange::safe_cast<double>(-value));
+                LA_REQUIRE_THROWS(lagrange::safe_cast<double>(value));
+                LA_REQUIRE_THROWS(lagrange::safe_cast<double>(-value));
             }
 
             if (value <= ld_max) {
                 REQUIRE_NOTHROW(lagrange::safe_cast<long double>(value));
                 REQUIRE_NOTHROW(lagrange::safe_cast<long double>(-value));
             } else {
-                REQUIRE_THROWS(lagrange::safe_cast<long double>(value));
-                REQUIRE_THROWS(lagrange::safe_cast<long double>(-value));
+                LA_REQUIRE_THROWS(lagrange::safe_cast<long double>(value));
+                LA_REQUIRE_THROWS(lagrange::safe_cast<long double>(-value));
             }
             base /= 2.0f;
         }
@@ -106,12 +106,12 @@ TEST_CASE("SafeEnumCast", "[safe_cast][enum]")
     // These should fail however.
 
     // This should fail
-    CHECK_THROWS(safe_cast_enum<AnimalEn>(-100.2356f));
-    CHECK_THROWS(safe_cast_enum<AnimalEn>(100.2356f));
-    CHECK_THROWS(safe_cast_enum<AnimalFr>(-100.2356f));
-    CHECK_THROWS(safe_cast_enum<AnimalFr>(100.2356f));
-    CHECK_THROWS(safe_cast_enum<AnimalFa>(-100.2356f));
-    CHECK_THROWS(safe_cast_enum<AnimalFa>(100.2356f));
+    LA_CHECK_THROWS(safe_cast_enum<AnimalEn>(-100.2356f));
+    LA_CHECK_THROWS(safe_cast_enum<AnimalEn>(100.2356f));
+    LA_CHECK_THROWS(safe_cast_enum<AnimalFr>(-100.2356f));
+    LA_CHECK_THROWS(safe_cast_enum<AnimalFr>(100.2356f));
+    LA_CHECK_THROWS(safe_cast_enum<AnimalFa>(-100.2356f));
+    LA_CHECK_THROWS(safe_cast_enum<AnimalFa>(100.2356f));
 
     CHECK(safe_cast_enum<AnimalFr>(1) == AnimalFr::ane);
     CHECK(safe_cast_enum<AnimalFr>(1.) == AnimalFr::ane);

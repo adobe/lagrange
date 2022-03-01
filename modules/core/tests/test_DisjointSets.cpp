@@ -35,8 +35,8 @@ TEST_CASE("DisjointSets", "[disjoint_sets]")
     SECTION("Invalid index")
     {
         data.init(10);
-        REQUIRE_THROWS(data.find(10));
-        REQUIRE_THROWS(data.find(-1));
+        LA_REQUIRE_THROWS(data.find(10));
+        LA_REQUIRE_THROWS(data.find(-1));
     }
 
     SECTION("Cyclic merge")

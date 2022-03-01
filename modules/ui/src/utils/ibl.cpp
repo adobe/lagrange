@@ -15,8 +15,10 @@
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/types/ShaderLoader.h>
 #include <lagrange/ui/utils/render.h>
-#include <lagrange/utils/utils.h>
 #include <lagrange/ui/utils/treenode.h>
+#include <lagrange/utils/strings.h>
+#include <lagrange/utils/utils.h>
+
 
 #include <fstream>
 
@@ -104,6 +106,35 @@ std::shared_ptr<Texture> get_bg_texture_ibl_file(const fs::path& ibl_file_path)
     return std::make_shared<Texture>(bg_file_path, p);
 }
 
+
+Texture::Params tex_params_cube()
+{
+    Texture::Params cube_map_params;
+    cube_map_params.type = GL_TEXTURE_CUBE_MAP;
+    cube_map_params.format = GL_RGB;
+    cube_map_params.internal_format = GL_RGB;
+    cube_map_params.wrap_s = GL_CLAMP_TO_EDGE;
+    cube_map_params.wrap_t = GL_CLAMP_TO_EDGE;
+    cube_map_params.mag_filter = GL_LINEAR;
+    cube_map_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    cube_map_params.generate_mipmap = true;
+    return cube_map_params;
+}
+Texture::Params tex_params_diffuse()
+{
+    auto diffuse_tex_params = tex_params_cube();
+    diffuse_tex_params.min_filter = GL_LINEAR;
+    return diffuse_tex_params;
+}
+Texture::Params tex_params_specular()
+{
+    auto specular_tex_params = tex_params_cube();
+    specular_tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
+    specular_tex_params.generate_mipmap = true;
+    specular_tex_params.internal_format = GL_RGB16F;
+    return specular_tex_params;
+}
+
 } // namespace
 
 
@@ -157,27 +188,10 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
         return d;
     }());
 
-    Texture::Params cube_map_params;
-    cube_map_params.type = GL_TEXTURE_CUBE_MAP;
-    cube_map_params.format = GL_RGB;
-    cube_map_params.internal_format = GL_RGB;
-    cube_map_params.wrap_s = GL_CLAMP_TO_EDGE;
-    cube_map_params.wrap_t = GL_CLAMP_TO_EDGE;
-    cube_map_params.mag_filter = GL_LINEAR;
-    cube_map_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-    cube_map_params.generate_mipmap = true;
 
-    auto specular_tex_params = cube_map_params;
-    specular_tex_params.min_filter = GL_LINEAR_MIPMAP_LINEAR;
-    specular_tex_params.generate_mipmap = true;
-    specular_tex_params.internal_format = GL_RGB16F;
-
-    auto diffuse_tex_params = cube_map_params;
-    diffuse_tex_params.min_filter = GL_LINEAR;
-
-    auto tex_cube = std::make_shared<Texture>(cube_map_params);
-    auto tex_diffuse = std::make_shared<Texture>(diffuse_tex_params);
-    auto tex_specular = std::make_shared<Texture>(specular_tex_params);
+    auto tex_cube = std::make_shared<Texture>(tex_params_cube());
+    auto tex_diffuse = std::make_shared<Texture>(tex_params_specular());
+    auto tex_specular = std::make_shared<Texture>(tex_params_diffuse());
 
     auto vd = generate_cube_vertex_data();
 
@@ -222,10 +236,7 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
             // tmp
 
 
-            fbo.set_color_attachement(
-                0,
-                tex_cube,
-                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
+            fbo.set_color_attachement(0, tex_cube, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
             fbo.resize_attachments(size, size);
             gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
             gl(glClear, GL_COLOR_BUFFER_BIT);
@@ -245,14 +256,12 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
         fbo.unbind();
 
         tex_cube->bind();
-        gl(glGenerateMipmap,tex_cube->get_params().type);
-        
-
+        gl(glGenerateMipmap, tex_cube->get_params().type);
     }
 
     // Diffuse (convolution)
     {
-        const int size = int(resolution) / 2;
+        const int size = int(resolution);
         auto& shader = *get_shader(r, shader_convolve);
 
         fbo.bind();
@@ -263,10 +272,7 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
         shader["NMat"] = M;
 
         for (auto i = 0; i < 6; i++) {
-            fbo.set_color_attachement(
-                0,
-                tex_diffuse,
-                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
+            fbo.set_color_attachement(0, tex_diffuse, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i);
             gl(glViewport, 0, 0, size, size);
             gl(glClearColor, 0.0f, 0.0f, 0.0f, 0.0f);
             gl(glClear, GL_COLOR_BUFFER_BIT);
@@ -282,7 +288,7 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
 
     // Specular
     {
-        const int size = int(resolution) / 2;
+        const int size = int(resolution);
         auto& shader = *get_shader(r, shader_specular);
 
         fbo.bind();
@@ -353,7 +359,8 @@ IBL* get_ibl(Registry& registry)
     return &registry.get<IBL>(e);
 }
 
-Entity add_ibl(Registry& registry, IBL ibl) {
+Entity add_ibl(Registry& registry, IBL ibl)
+{
     auto entity = create_scene_node(registry, "IBL");
     registry.emplace<IBL>(entity, std::move(ibl));
     return entity;
@@ -364,6 +371,38 @@ void clear_ibl(Registry& registry)
     auto v = registry.view<IBL>();
     registry.destroy(v.begin(), v.end());
 }
+
+bool save_ibl(const IBL& ibl, const fs::path& folder)
+{
+    if (!ibl.background_rect || !ibl.background || !ibl.diffuse || !ibl.specular) {
+        lagrange::logger().error("save_ibl: Invalid IBL");
+        return false;
+    }
+
+    if (!fs::exists(folder)) {
+        lagrange::logger().error("save_ibl: Folder {} does not exist", folder);
+        return false;
+    }
+
+    const int levels = static_cast<int>(std::log2(ibl.specular->get_width()));
+
+
+    ibl.background_rect->save_to(folder / "background_rect.png", GL_TEXTURE_2D);
+    for (auto i = 0; i < 6; i++) {
+        const auto cube_target = GL_TEXTURE_CUBE_MAP_POSITIVE_X + i;
+        ibl.background->save_to(folder / string_format("background_{:02d}.png", i), cube_target);
+        ibl.diffuse->save_to(folder / string_format("diffuse_{:02d}.png", i), cube_target);
+        for (auto mip_level = 0; mip_level < levels; mip_level++) {
+            ibl.specular->save_to(
+                folder / string_format("specular_{:02d}_mip_{:02}.png", i, mip_level),
+                cube_target,
+                100,
+                mip_level);
+        }
+    }
+    return true;
+}
+
 
 } // namespace ui
 } // namespace lagrange

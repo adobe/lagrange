@@ -19,27 +19,13 @@ namespace ui {
 ///
 ///    Creates pre-packaged IBL
 ///
-///    Name can be:
-///        studio003
-///
-///        studio011
-///
-///        studio030
-///
-///        studio032
-///
-///        studio033
 ///
 ///    Source:
 ///
 ///        https://www.deviantart.com/zbyg/art/HDRi-Pack-1-97402522
 ///
-///        https://www.deviantart.com/zbyg/art/HDRi-Pack-2-103458406
-///
-///        https://www.deviantart.com/zbyg/art/HDRi-Pack-3-112847728
-///
 ///        CC 3.0 License
-IBL generate_default_ibl(const std::string& name = "studio011", size_t resolution = 1024);
+IBL generate_default_ibl(size_t resolution = 256);
 
 } // namespace ui
 } // namespace lagrange

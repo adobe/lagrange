@@ -184,7 +184,11 @@ public:
 
     void set_uv_transform(const Texture::Transform& uv_transform);
 
-    bool save_to(const fs::path& file_path, GLenum opengl_target = GL_TEXTURE_2D, int quality = 90);
+    bool save_to(
+        const fs::path& file_path,
+        GLenum opengl_target = GL_TEXTURE_2D,
+        int quality = 90,
+        int mip_level = 0);
 
 private:
     void set_common_params();

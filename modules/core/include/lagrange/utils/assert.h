@@ -61,6 +61,27 @@ namespace lagrange {
 /// @{
 
 ///
+/// Sets whether to trigger a debugger breakpoint on assert failure. Use this function in unit test,
+/// around lines that are supposed to throw, to avoid spurious breakpoints when running unit tests.
+///
+/// @param[in]  enabled  True to enable breakpoint debugging, false to disable.
+///
+void set_breakpoint_enabled(bool enabled);
+
+///
+/// Returns whether to trigger a debugger breakpoint on assert failure. Use this function in a unit
+/// test to restore previous behavior when explicitly disabling triggering debugger breakpoint.
+///
+/// @return     True if assert failure triggers a debugger breakpoint, False otherwise.
+///
+bool is_breakpoint_enabled();
+
+///
+/// Call to explicitly trigger a debugger breakpoint.
+///
+void trigger_breakpoint();
+
+///
 /// Called in case of an assertion failure.
 ///
 /// @param[in]  function   Function in which the assertion failed.

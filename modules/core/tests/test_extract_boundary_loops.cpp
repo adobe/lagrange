@@ -71,6 +71,6 @@ TEST_CASE("ExtractBoundaryLoops", "[mesh][boundary]")
         facets << 0, 1, 2, 2, 3, 4;
 
         auto mesh = create_mesh(vertices, facets);
-        REQUIRE_THROWS(extract_boundary_loops(*mesh));
+        LA_REQUIRE_THROWS(extract_boundary_loops(*mesh));
     }
 }

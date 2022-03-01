@@ -107,7 +107,7 @@ TEST_CASE("experimental/Array.h", "[array]")
         check_view<MatrixType>(B_array);
         check_ref<MatrixType>(B_array);
 
-        REQUIRE_THROWS(B_array->view<Eigen::MatrixXd>());
+        LA_REQUIRE_THROWS(B_array->view<Eigen::MatrixXd>());
     }
 
     SECTION("Create array with const Eigen matrix")
@@ -202,7 +202,7 @@ TEST_CASE("experimental/Array.h", "[array]")
 
         auto A_array = experimental::wrap_with_array(A);
         REQUIRE_FALSE(A_array->is_row_major());
-        REQUIRE_THROWS(A_array->get<Eigen::Matrix3d>());
+        LA_REQUIRE_THROWS(A_array->get<Eigen::Matrix3d>());
 
         check_view<Eigen::Matrix3d>(A_array);
         check_ref<Eigen::MatrixXd>(A_array);
@@ -216,7 +216,7 @@ TEST_CASE("experimental/Array.h", "[array]")
 
         auto A_array = experimental::wrap_with_array(A);
         REQUIRE_FALSE(A_array->is_row_major());
-        REQUIRE_THROWS(A_array->get<Eigen::Matrix3d>());
+        LA_REQUIRE_THROWS(A_array->get<Eigen::Matrix3d>());
 
         auto A_view = A_array->template view<const Eigen::MatrixXd>();
         REQUIRE(A_array->data() == A_view.data());
@@ -258,7 +258,7 @@ TEST_CASE("experimental/Array.h", "[array]")
 
         // Resizing RawArray is disabled since it does not own the memory
         // and resizing may invalidate the memory.
-        REQUIRE_THROWS(A_array->resize(4, 4));
+        LA_REQUIRE_THROWS(A_array->resize(4, 4));
     }
 
     SECTION("Wrap const raw array")
@@ -275,7 +275,7 @@ TEST_CASE("experimental/Array.h", "[array]")
 
         //// Resizing RawArray is disabled since it does not own the memory
         //// and resizing may invalidate the memory.
-        // REQUIRE_THROWS(A_array->resize(4, 4));
+        // LA_REQUIRE_THROWS(A_array->resize(4, 4));
     }
 
     SECTION("Wrap Eigen map")
@@ -292,7 +292,7 @@ TEST_CASE("experimental/Array.h", "[array]")
 
         // Resizing wrapped map is disabled since it does not own the memory
         // and resizing may invalidate the memory.
-        REQUIRE_THROWS(A_array->resize(4, 4));
+        LA_REQUIRE_THROWS(A_array->resize(4, 4));
     }
 
     SECTION("Wrap const Eigen map")
@@ -333,7 +333,7 @@ TEST_CASE("experimental/Array.h", "[array]")
         REQUIRE(A_array->data() == A.data());
 
         check_view<Eigen::Matrix<float, 3, 3, Eigen::RowMajor>>(A_array);
-        REQUIRE_THROWS(A_array->resize(4, 4));
+        LA_REQUIRE_THROWS(A_array->resize(4, 4));
     }
 
     SECTION("Interop check with std vector of eigen vectors on vectorizable data")
@@ -355,7 +355,7 @@ TEST_CASE("experimental/Array.h", "[array]")
         REQUIRE(A_array->data() == A.data());
 
         check_view<Eigen::Matrix<float, 4, 4, Eigen::RowMajor>>(A_array);
-        REQUIRE_THROWS(A_array->resize(5, 5));
+        LA_REQUIRE_THROWS(A_array->resize(5, 5));
     }
 
     SECTION("Row slice")

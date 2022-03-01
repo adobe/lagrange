@@ -20,6 +20,10 @@
 #include <mkl.h>
 #endif
 
+#if __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
+
 namespace lagrange {
 namespace testing {
 

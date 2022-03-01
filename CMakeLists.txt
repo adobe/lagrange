@@ -59,7 +59,7 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.7.0)
+project(Lagrange VERSION 5.8.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -71,34 +71,39 @@ endif()
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL               "Build all lagrange modules" OFF)
 
-# Temporary workaround for Linux-related build issues.
-if(LAGRANGE_TOPLEVEL_PROJECT AND CMAKE_HOST_SYSTEM_NAME MATCHES Linux)
-    # Unfortunately, on CentOS 7, the pre-compiled version of libarpack.so provided by
-    # anorigami is somehow incompatible with our built-from-source TBB. Indeed, their
-    # libarpack.so is looking for libtbb.so.2, but our CMake only produces a libtbb.so.
-    # Until we figure this out, we have to build arpack ourselves from source on CentOS.
-    option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
-    # Builds are super slow on Linux VM, so we keep the old TBB for now on Linux...
-    option(LAGRANGE_WITH_ONETBB     "Build Lagrange with OneTBB 2021 rather than TBB 2020" OFF)
+# General CMake options
+option(LAGRANGE_ASSERT_DEBUG_BREAK "Assert will break into debugger on failure"           ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_COPY_RUNTIME_DEPS  "Copy runtime dependencies into executable folders"    ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_DISABLE_FPE        "Disable floating point exception code"                OFF)
+option(LAGRANGE_DOCUMENTATION      "Build Doxygen documentation"                          OFF)
+option(LAGRANGE_EXAMPLES           "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_INSTALL            "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_JENKINS            "Enable specific configs when building on Jenkins"     OFF)
+option(LAGRANGE_LIMIT_PARALLELISM  "Limit parallelism according to available cpu/memory"  OFF)
+option(LAGRANGE_MORE_WARNINGS      "Increase the level of warnings when compiling"        OFF)
+option(LAGRANGE_PERFORMANCE_TESTS  "Build all performance tests"                          OFF)
+option(LAGRANGE_UNIT_TESTS         "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_USE_PCH            "Enable precompiled headers"                           OFF)
+option(LAGRANGE_WITH_ONETBB        "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
+option(LAGRANGE_WITH_TRACY         "Build tracy client with Lagrange"                     OFF)
+
+# Specific override for building on Jenkins
+if(LAGRANGE_JENKINS)
+    if(CMAKE_HOST_SYSTEM_NAME MATCHES Linux)
+        # Unfortunately, on CentOS 7, the pre-compiled version of libarpack.so provided by
+        # anorigami is somehow incompatible with our built-from-source TBB. Indeed, their
+        # libarpack.so is looking for libtbb.so.2, but our CMake only produces a libtbb.so.
+        # Until we figure this out, we have to build arpack ourselves from source on CentOS.
+        option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
+    endif()
+    # IPO is very slow and not needed for CI purposes
+    option(TBB_ENABLE_IPO "Enable Interprocedural Optimization (IPO) during the compilation" OFF)
 endif()
 
 # When building Arpack from source, we need to enable Fortran support in the top-level directory
 if(ARPACK_BUILD_FROM_SOURCE)
     enable_language(Fortran)
 endif()
-
-# General CMake options
-option(LAGRANGE_COPY_RUNTIME_DEPS "Copy runtime dependencies into executable folders"    ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_DOCUMENTATION     "Build Doxygen documentation"                          OFF)
-option(LAGRANGE_EXAMPLES          "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_INSTALL           "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_PERFORMANCE_TESTS "Build all performance tests"                          OFF)
-option(LAGRANGE_UNIT_TESTS        "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_USE_PCH           "Enable precompiled headers"                           OFF)
-option(LAGRANGE_WITH_ONETBB       "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
-option(LAGRANGE_WITH_TRACY        "Build tracy client with Lagrange"                     OFF)
-option(LAGRANGE_LIMIT_PARALLELISM "Limit parallelism according to available cpu/memory"  OFF)
-option(LAGRANGE_MORE_WARNINGS     "Increase the level of warnings when compiling"        ${LAGRANGE_TOPLEVEL_PROJECT})
 
 # Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
 # option, targeted at users who wish to have explicit knowledge of which module is implicitly

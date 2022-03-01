@@ -15,11 +15,17 @@ endif()
 
 message(STATUS "Third-party (external): creating targets 'TBB::tbb'")
 
+# Emscripten sets CMAKE_SYSTEM_PROCESSOR to "x86". Change it to "WASM" to prevent TBB from
+# adding machine-specific "-mrtm" and "-mwaitpkg" compile options.
+if(EMSCRIPTEN)
+    set(CMAKE_SYSTEM_PROCESSOR "WASM")
+endif()
+
 include(FetchContent)
 FetchContent_Declare(
     tbb
     GIT_REPOSITORY https://github.com/oneapi-src/oneTBB.git
-    GIT_TAG v2021.4.0
+    GIT_TAG v2021.6.0-rc1
     GIT_SHALLOW TRUE
 )
 
@@ -56,5 +62,16 @@ foreach(name IN ITEMS tbb tbbmalloc tbbmalloc_proxy)
         # Without this macro, TBB will explicitly link against "tbb12_debug.lib" in Debug configs.
         # This is undesirable, since our pre-compiled version of MKL is linked against "tbb12.dll".
         target_compile_definitions(${name} PUBLIC -D__TBB_NO_IMPLICIT_LINKAGE=1)
+
+        # Disable some features and avoid processor-specific code paths when compiling with
+        # Emscripten for WebAssembly.
+        if(EMSCRIPTEN)
+            target_compile_definitions(${name} PRIVATE
+                ITT_ARCH=-1
+                __TBB_RESUMABLE_TASKS_USE_THREADS=1
+                __TBB_DYNAMIC_LOAD_ENABLED=0
+                __TBB_WEAK_SYMBOLS_PRESENT=0
+            )
+        endif()
     endif()
 endforeach()

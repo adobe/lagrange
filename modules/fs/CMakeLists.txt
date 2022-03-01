@@ -36,7 +36,7 @@ elseif (LAGRANGE_FS_BACKEND STREQUAL "std")
     target_compile_definitions(lagrange_fs PUBLIC LAGRANGE_USE_STD_FS)
 elseif (LAGRANGE_FS_BACKEND STREQUAL "boost")
     # Since boost is not an official dependencies of Lagrange.  We assume
-    # Boost::filesystem target exists.  If not, uncomment the following lines:
+    # Boost::filesystem target exists. If not, uncomment the following lines:
     # find_package(Boost REQUIRED filesystem)
 
     target_compile_definitions(lagrange_fs PUBLIC LAGRANGE_USE_BOOST_FS)

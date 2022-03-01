@@ -413,15 +413,9 @@ Viewer::Viewer(const WindowOptions& window_options)
     /*
         Load default ibl
     */
-    if (window_options.default_ibl != "") {
-        // Todo extract out into public API
+    if (window_options.show_default_ibl) {
         try {
-            auto ibl = ui::generate_default_ibl(
-                window_options.default_ibl,
-                window_options.default_ibl_resolution);
-            ibl.blur = 2.0f;
-            add_ibl(registry(), std::move(ibl));
-
+            add_ibl(registry(), ui::generate_default_ibl(window_options.default_ibl_resolution));
         } catch (const std::exception& ex) {
             lagrange::logger().error("Failed to generate ibl: {}", ex.what());
         }

@@ -45,30 +45,39 @@
 # option(LAGRANGE_ALL             "Build all lagrange modules"             ON)
 
 # Optional modules in alphabetical order.
-# option(LAGRANGE_FS "Build module lagrange::fs" ON)
-# option(LAGRANGE_IO "Build module lagrange::io" ON)
-# option(LAGRANGE_UI "Build module lagrange::ui" ON)
+# option(LAGRANGE_MODULE_FS "Build module lagrange::fs" ON)
+# option(LAGRANGE_MODULE_IO "Build module lagrange::io" ON)
+# option(LAGRANGE_MODULE_UI "Build module lagrange::ui" ON)
 
-# UI
-# option(LAGRANGE_UI_USE_MDL           "Use Material Definition Library"   ON)
-
-# Others
+# General options
 # option(LAGRANGE_DOCUMENTATION      "Build Doxygen documentation"                          ON)
 # option(LAGRANGE_EXAMPLES           "Build all examples"                                   ON)
-# option(LAGRANGE_INSTALL            "Enable installation"                                  OFF)
-# option(LAGRANGE_PERFORMANCE_TESTS  "Build all performance tests"                          ON)
 # option(LAGRANGE_UNIT_TESTS         "Build all unit tests"                                 ON)
+# option(LAGRANGE_PERFORMANCE_TESTS  "Build all performance tests"                          ON)
+# option(LAGRANGE_INSTALL            "Enable installation"                                  OFF)
+
+# Specific options
+# option(LAGRANGE_ASSERT_DEBUG_BREAK "Assert will break into debugger on failure"           OFF)
+# option(LAGRANGE_DISABLE_FPE        "Disable floating point exception code"                OFF)
+# option(LAGRANGE_MORE_WARNINGS      "Increase the level of warnings when compiling"        OFF)
+# option(LAGRANGE_SLOW_TESTS         "Enable slow unit tests"                               ON)
+# option(LAGRANGE_UI_USE_MDL         "Use Material Definition Library"                      ON)
 # option(LAGRANGE_USE_PCH            "Enable precompiled headers"                           ON)
 # option(LAGRANGE_WITH_ASSIMP        "Add assimp functionality to lagrange::io"             ON)
-# option(LAGRANGE_WITH_ONETBB        "Build Lagrange with OneTBB 2021 rather than TBB 2020" OFF)
+# option(LAGRANGE_WITH_ONETBB        "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 # option(LAGRANGE_WITH_TRACY         "Build tracy client with Lagrange"                     ON)
-# option(LAGRANGE_SLOW_TESTS         "Enable slow unit tests"                               ON)
-# option(LAGRANGE_DISABLE_FPE        "Disable floating point exception code"                OFF)
-# option(LAGRANGE_ASSERT_DEBUG_BREAK "Assert will break into debugger on failure"           OFF)
-# set(LAGRANGE_DATA_FOLDER          "path/to/data" CACHE PATH "Where to download or find test data")
+
+# Non-boolean options
+# set(LAGRANGE_DATA_FOLDER "<path/to/data>" CACHE PATH   "Where to download or find test data")
+# set(LAGRANGE_FS_BACKEND  "ghc"            CACHE STRING "Which file system backend to use? Options are 'std', 'ghc' and 'boost'.  Default is 'ghc'")
+
+# Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
+# option, targeted at users who wish to have explicit knowledge of which module is implicitly
+# compiled by Lagrange. By default, an empty list means all modules are allowed.
+# set(LAGRANGE_ALLOWLIST core testing io fs ui CACHE STRING "List of modules allowed in the project (empty: allow everything)" FORCE)
+# set(LAGRANGE_BLOCKLIST io fs ui CACHE STRING "List of modules excluded from the project" FORCE)
 
 # Options for third-party libraries
-# option(EIGEN_WITH_MKL "Use Eigen with MKL" ON)
 # set(MKL_INTERFACE "lp64"   CACHE STRING "Interface layer to use with MKL (lp64 or ilp64)")
 # set(MKL_LINKING   "static" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
 # set(MKL_THREADING "tbb"    CACHE STRING "Threading layer to use with MKL (sequential, tbb or openmp)")

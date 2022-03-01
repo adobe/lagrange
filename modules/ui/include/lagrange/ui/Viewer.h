@@ -100,8 +100,8 @@ public:
         /// For available ibls \see create_default_ibl()
         ///
         /// Set to "" to disable ibl
-        std::string default_ibl = "studio011";
-        size_t default_ibl_resolution = 1024;
+        bool show_default_ibl = true;
+        size_t default_ibl_resolution = 256;
 
         /// Path to imgui .ini file
         /// If not set, the .ini file will be at %APPDATA%/_window_title.ini
@@ -128,9 +128,9 @@ public:
 
     virtual ~Viewer();
 
-    operator ui::Registry &() { return registry(); }
+    operator ui::Registry&() { return registry(); }
 
-    operator const ui::Registry &() const { return registry(); }
+    operator const ui::Registry&() const { return registry(); }
 
     ///
     /// UI action wants the window to close
@@ -268,8 +268,7 @@ private:
     // Used for code interacting with OpenGL context
     std::mutex m_mutex;
     std::queue<std::pair<std::promise<void>, std::function<void(void)>>> m_main_thread_fn;
-    std::atomic_uint m_main_thread_max_func_per_frame =
-        std::numeric_limits<unsigned int>::max();
+    std::atomic_uint m_main_thread_max_func_per_frame = std::numeric_limits<unsigned int>::max();
 };
 
 } // namespace ui

@@ -64,6 +64,6 @@ TEST_CASE("ReorderMeshVertices", "[mesh][reorder_vertices]")
     SECTION("You can create a discontinuous ordering")
     {
         std::vector<Index> forward_mapping = {3, 3, 2, 2};
-        REQUIRE_THROWS(reorder_mesh_vertices(*mesh, forward_mapping));
+        LA_REQUIRE_THROWS(reorder_mesh_vertices(*mesh, forward_mapping));
     }
 }

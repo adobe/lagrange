@@ -20,9 +20,9 @@ TEST_CASE("Edge", "[Edge]")
     Edge e1(0, 1);
     REQUIRE(e1[0] == 0);
     REQUIRE(e1[1] == 1);
-    REQUIRE_THROWS(e1[2]);
+    LA_REQUIRE_THROWS(e1[2]);
     REQUIRE(1 == e1.get_other_vertex(0));
-    REQUIRE_THROWS(e1.get_other_vertex(12));
+    LA_REQUIRE_THROWS(e1.get_other_vertex(12));
 
     size_t count = 0;
     for (auto v : e1) {
@@ -41,7 +41,7 @@ TEST_CASE("Edge", "[Edge]")
     Edge e3(1, 0);
     REQUIRE(e3 == e1);
     REQUIRE(e3.has_shared_vertex(e1));
-    REQUIRE_THROWS(e3.get_shared_vertex(e1));
+    LA_REQUIRE_THROWS(e3.get_shared_vertex(e1));
 
     Edge e4(2, 3);
     REQUIRE(!e3.has_shared_vertex(e4));
