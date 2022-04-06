@@ -11,7 +11,8 @@
  */
 #pragma once
 
-#include <string>
+#include <string_view>
+
 
 /// @defgroup group-utils Utilites
 /// @ingroup module-core
@@ -99,7 +100,7 @@ void trigger_breakpoint();
     const char* file,
     unsigned int line,
     const char* condition,
-    const std::string& message); // TODO: Switch to string_view with C++17
+    std::string_view message);
 
 /// @}
 

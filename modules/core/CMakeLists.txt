@@ -12,7 +12,7 @@
 
 # 1. define module
 lagrange_add_module()
-target_compile_features(lagrange_core PUBLIC cxx_std_14)
+target_compile_features(lagrange_core PUBLIC cxx_std_17)
 
 set_target_properties(lagrange_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
@@ -50,12 +50,14 @@ endif()
 # 2. dependencies
 include(eigen)
 include(libigl)
+include(span-lite)
 include(spdlog)
 include(tbb)
 target_link_libraries(lagrange_core PUBLIC
-    lagrange::warnings
     Eigen3::Eigen
     igl::core
+    lagrange::warnings
+    nonstd::span-lite
     spdlog::spdlog
     TBB::tbb
 )

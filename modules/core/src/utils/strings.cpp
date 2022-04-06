@@ -11,6 +11,8 @@
  */
 #include <lagrange/utils/strings.h>
 
+#include <sstream>
+
 namespace lagrange {
 
 std::vector<std::string> string_split(const std::string& s, char delimiter)
@@ -24,14 +26,16 @@ std::vector<std::string> string_split(const std::string& s, char delimiter)
     return words;
 }
 
-bool ends_with(const std::string& str, const std::string& suffix)
+bool ends_with(std::string_view str, std::string_view suffix)
 {
     if (str.length() < suffix.length()) return false;
     return (0 == str.compare(str.length() - suffix.length(), suffix.length(), suffix));
 }
 
-bool starts_with(const std::string& str, const std::string& prefix)
+
+bool starts_with(std::string_view str, std::string_view prefix)
 {
     return (str.rfind(prefix, 0) == 0);
 }
+
 } // namespace lagrange

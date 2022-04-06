@@ -27,7 +27,12 @@ using fstream = std::fstream;
 
 #elif defined(LAGRANGE_USE_GHC_FS)
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <ghc/fs_fwd.hpp>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
 namespace lagrange {
 namespace fs {
 using namespace ghc::filesystem;
@@ -53,6 +58,6 @@ using boost::filesystem::ofstream;
 
 #else
 
-#error Impossible situation occured. Either LAGRANGE_USE_STD_FS, LAGRANGE_USE_GHC_FS, or LAGRANGE_USE_BOOST_FS should be defined at this point
+#error Impossible situation occurred. Either LAGRANGE_USE_STD_FS, LAGRANGE_USE_GHC_FS, or LAGRANGE_USE_BOOST_FS should be defined at this point
 
 #endif

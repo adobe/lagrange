@@ -11,25 +11,49 @@
  */
 #pragma once
 
-#include <sstream>
-#include <string>
-#include <utility>
-#include <vector>
-
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <spdlog/fmt/fmt.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <string>
+#include <utility>
+#include <vector>
+#include <string_view>
+
 namespace lagrange {
 
 std::vector<std::string> string_split(const std::string& s, char delimiter);
 
-// Can be replaced with the standard library in C++20
-bool ends_with(const std::string& str, const std::string& suffix);
+/// @defgroup group-utils-misc Miscellaneous
+/// @ingroup group-utils
+/// Useful functions that don't have their place anywhere else.
+/// @{
 
-bool starts_with(const std::string& str, const std::string& prefix);
+///
+/// Checks if the string begins with the given prefix.
+///
+/// @param[in]  str     The string.
+/// @param[in]  prefix  The prefix.
+///
+/// @note       Can be replaced with the standard library in C++20
+///
+/// @return     true if the string begins with the provided prefix, false otherwise.
+///
+bool starts_with(std::string_view str, std::string_view prefix);
+
+///
+/// Checks if the string ends with the given suffix.
+///
+/// @param[in]  str     The string.
+/// @param[in]  suffix  The suffix.
+///
+/// @note       Can be replaced with the standard library in C++20
+///
+/// @return     true if the string end with the provided suffix, false otherwise.
+///
+bool ends_with(std::string_view str, std::string_view suffix);
 
 // Can be replaced with std::format in C++20
 template <typename... Args>
@@ -37,5 +61,7 @@ std::string string_format(const std::string& format, Args&&... args)
 {
     return fmt::format(format, std::forward<Args>(args)...);
 }
+
+/// @}
 
 } // namespace lagrange

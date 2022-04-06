@@ -13,14 +13,16 @@
 
 /*
 * This file does not contain function definition because those require other expensive headers
-* and we want to minimize the size of this header, as it's used in almost all tests. 
-* 
-* If you have any issues with a load_mesh function not being defined for your specific 
+* and we want to minimize the size of this header, as it's used in almost all tests.
+*
+* If you have any issues with a load_mesh function not being defined for your specific
 * mesh type, you can #include <lagrange/io/load_mesh.impl.h> instead.
 */
 
+#include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/common.h>
+
 #include <memory>
 #include <vector>
 

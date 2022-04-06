@@ -22,6 +22,7 @@
 
 namespace lagrange {
 
+/// Legacy attribute class.
 template <typename _AttributeArray>
 class Attributes
 {

@@ -47,6 +47,7 @@ __pycache__
 /.vs
 /.idea
 /.clangd
+/.cache
 /3rdparty
 /cmake-build-*
 /build*
@@ -62,3 +63,6 @@ LagrangeOptions.cmake
 
 # CMake user presets
 /CMakeUserPresets.json
+
+# clangd
+compile_commands.json

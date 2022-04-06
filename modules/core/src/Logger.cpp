@@ -11,8 +11,13 @@
  */
 #include <lagrange/Logger.h>
 
-#include <spdlog/sinks/basic_file_sink.h>
+#include <lagrange/utils/warning.h>
+
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <sstream>
 
@@ -21,21 +26,29 @@ namespace lagrange {
 namespace {
 
 // Custom logger instance defined by the user, if any
-std::shared_ptr<spdlog::logger> s_logger;
+std::shared_ptr<spdlog::logger>& get_shared_logger()
+{
+    LA_IGNORE_EXIT_TIME_DTOR_WARNING_BEGIN
+    static std::shared_ptr<spdlog::logger> logger;
+    LA_IGNORE_EXIT_TIME_DTOR_WARNING_END
+    return logger;
+}
 
 } // namespace
 
 // Retrieve current logger
 spdlog::logger& logger()
 {
-    if (s_logger) {
-        return *s_logger;
+    if (get_shared_logger()) {
+        return *get_shared_logger();
     } else {
         // When using factory methods provided by spdlog (_st and _mt functions),
         // names must be unique, since the logger is registered globally.
         // Otherwise, you will need to create the logger manually. See
         // https://github.com/gabime/spdlog/wiki/2.-Creating-loggers
+        LA_IGNORE_EXIT_TIME_DTOR_WARNING_BEGIN
         static auto default_logger = spdlog::stdout_color_mt("lagrange");
+        LA_IGNORE_EXIT_TIME_DTOR_WARNING_END
         return *default_logger;
     }
 }
@@ -43,7 +56,7 @@ spdlog::logger& logger()
 // Use a custom logger
 void set_logger(std::shared_ptr<spdlog::logger> x)
 {
-    s_logger = std::move(x);
+    get_shared_logger() = std::move(x);
 }
 
 ScopedLogLevel::ScopedLogLevel(spdlog::level::level_enum lvl, spdlog::logger& logger_)

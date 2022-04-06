@@ -4,7 +4,7 @@ I/O Module
 @namespace lagrange::io
 @brief Mesh input/output.
 
-@defgroup io
+@defgroup module-io IO Module
 @brief Mesh input/output.
 
 ### Quick links

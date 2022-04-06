@@ -65,7 +65,7 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.9.0)
+project(Lagrange VERSION 6.0.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -123,6 +123,9 @@ option(LAGRANGE_EXTERNAL_ONLY     "Third-party libs: only download from public m
 
 # Artifactory key file
 set(LAGRANGE_ARTIFACTORY_KEYFILE "" CACHE FILEPATH "Path to secret artifactory key.")
+
+# Website repository (extract & check code)
+set(LAGRANGE_WEBSITE_REPO "" CACHE FILEPATH "Path to the website repository for markdown code extraction")
 
 # Set default minimum C++ standard
 if(LAGRANGE_TOPLEVEL_PROJECT)
@@ -228,6 +231,11 @@ add_subdirectory(modules)
 # Build documentation
 if(LAGRANGE_DOCUMENTATION)
     add_subdirectory(docs)
+endif()
+
+# Build code extracted from markdown documentation
+if(LAGRANGE_WEBSITE_REPO)
+    add_subdirectory(docs/code)
 endif()
 
 # Copy shared dependencies for executables created by Lagrange. Clients using Lagrange as a subfolder must use their

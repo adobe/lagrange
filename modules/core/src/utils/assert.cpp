@@ -13,6 +13,7 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/warning.h>
 
 #if !defined(LA_ASSERT_DEBUG_BREAK)
 #if defined(_WIN32)
@@ -63,19 +64,24 @@ bool is_breakpoint_enabled()
 
 void trigger_breakpoint()
 {
+    // LCOV_EXCL_START
     LA_ASSERT_DEBUG_BREAK();
+    // LCOV_EXCL_STOP
 }
 
+LA_IGNORE_NONVOID_NORETURN_WARNING_BEGIN
 bool assertion_failed(
     const char* function,
     const char* file,
     unsigned int line,
     const char* condition,
-    const std::string& message)
+    std::string_view message)
 {
     // Insert a breakpoint programmatically to automatically step into the debugger
     if (get_breakpoint_enabled()) {
-        LA_ASSERT_DEBUG_BREAK();
+        // LCOV_EXCL_START
+        trigger_breakpoint();
+        // LCOV_EXCL_STOP
     }
     throw Error(fmt::format(
         "Assertion failed: \"{}\"{}{}\n"
@@ -88,5 +94,6 @@ bool assertion_failed(
         line,
         function));
 }
+LA_IGNORE_NONVOID_NORETURN_WARNING_END
 
 } // namespace lagrange

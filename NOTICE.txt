@@ -26,6 +26,14 @@ This codebase contains a modified portion of code from Floating-point exception 
     Revised:  30-Sep-09 (comment typo)
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from function_ref which can be obtained at:
+  * SOURCE:
+    * https://github.com/TartanLlama/function_ref
+
+  * LICENSE:
+    * https://github.com/TartanLlama/function_ref/blob/master/COPYING
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from Geogram which can be obtained at:
   * SOURCE:
     * https://github.com/BrunoLevy/geogram
@@ -127,4 +135,12 @@ This codebase contains a modified portion of code from Shewchuk's predicates whi
 
     This file, the paper listed above, and other information are available
       from the Web page http://www.cs.cmu.edu/~quake/robust.html.
+
+-------------------------------------------------------------------------------
+This codebase contains a modified portion of code from valuable which can be obtained at:
+  * SOURCE:
+    * https://github.com/LoopPerfect/valuable
+
+  * LICENSE:
+    * https://github.com/LoopPerfect/valuable/blob/master/LICENSE
 

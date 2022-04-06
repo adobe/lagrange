@@ -16,7 +16,6 @@
 
 #include <lagrange/fs/filesystem.h>
 
-
 namespace lagrange {
 namespace fs {
 

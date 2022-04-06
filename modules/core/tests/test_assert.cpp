@@ -10,11 +10,14 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/Logger.h>
+#include <lagrange/testing/common.h>
 #include <lagrange/utils/assert.h>
 
-#include <lagrange/testing/common.h>
-
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <catch2/catch.hpp>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 TEST_CASE("Assert", "[next]")
 {

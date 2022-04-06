@@ -30,6 +30,7 @@
 #include <lagrange/utils/assert.h>
 
 #include <lagrange/io/save_mesh_ply.h>
+#include <lagrange/io/save_mesh_obj.h>
 
 #include <lagrange/fs/filesystem.h>
 

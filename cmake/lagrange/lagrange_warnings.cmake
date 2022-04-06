@@ -39,8 +39,9 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         # https://docs.microsoft.com/en-us/previous-versions/thxezb7y(v=vs.140)
         "/W3"
 
-        # disabling "Unknown pragma" warnings
-        "/wd4068"
+        "/wd4068" # disable: "Unknown pragma" warnings
+        "/wd26812" # disable: Prefer 'enum class' over 'enum'
+        "/wd26439" # disable: This kind of function may not throw (issues with Catch2)
 
         # Adding /bigobj. This is currently required to build Lagrange on
         # windows with debug info.
@@ -127,7 +128,6 @@ else()
         -Wlogical-op
         -Wnoexcept
         -Woverloaded-virtual
-        -Wundef
         -Wnoexcept-type
 
         -Wnon-virtual-dtor
@@ -152,7 +152,11 @@ else()
         # Enabled by -Weverything #
         ###########################
 
-        -Wdocumentation
+        # Useless until the following false positives are fixed:
+        # https://github.com/llvm/llvm-project/issues/34492
+        # https://github.com/llvm/llvm-project/issues/52977
+        # -Wdocumentation
+
         -Wdocumentation-pedantic
         -Wdocumentation-html
         -Wdocumentation-deprecated-sync
@@ -187,6 +191,14 @@ else()
         -Wundeclared-selector
         -Wunreachable-code
     )
+
+        if(NOT CMAKE_CXX_COMPILER_ID MATCHES "GNU")
+            list(APPEND options
+                # GCC pragma currently cannot silence -Wundef via #pragma, so we only enable this warning for clang
+                # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=53431
+                -Wundef
+            )
+        endif()
     endif()
 
     lagrange_filter_flags(options)

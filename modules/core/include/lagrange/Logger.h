@@ -40,8 +40,8 @@ namespace lagrange {
 /// The Lagrange logger is a plain spdlog logger, with a type-safe
 /// printf formatting syntax provided by fmt. For more details,
 /// please consult these libraries' respective documentations:
-/// - [spdlog documentation](https://github.com/gabime/spdlog/wiki/1.-QuickStart)
-/// - [fmt documentation](https://fmt.dev/latest/index.html)
+/// - [spdlog documentation](https://github.com/gabime/spdlog/wiki/1.-QuickStart).
+/// - [fmt documentation](https://fmt.dev/latest/index.html).
 ///
 /// @{
 

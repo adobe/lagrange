@@ -2,9 +2,8 @@ Filesystem Module
 ============
 
 @namespace lagrange::fs
-@brief Filesystem utilities.
 
-@defgroup fs
+@defgroup module-fs FS Module
 @brief Filesystem utilities.
 
 This module exists as an alias towards one of the following backend:

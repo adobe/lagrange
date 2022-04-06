@@ -19,6 +19,7 @@
 
 namespace lagrange {
 
+/// Legacy indexed attribute class.
 template <typename _AttributeArray, typename _IndexArray>
 class IndexedAttributes
 {
