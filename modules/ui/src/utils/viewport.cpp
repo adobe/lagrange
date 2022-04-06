@@ -9,9 +9,9 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/ui/utils/viewport.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
 #include <lagrange/ui/types/Camera.h>
+#include <lagrange/ui/utils/viewport.h>
 
 #include <lagrange/ui/components/ObjectIDViewport.h>
 #include <lagrange/ui/components/SelectionViewport.h>
@@ -49,7 +49,7 @@ void copy_camera_to_viewports(Registry& registry, Entity source_viewport)
             new_camera,
             registry.get<CameraController>(camera_entity));
 
-        if (registry.has<CameraTurntable>(camera_entity)) {
+        if (registry.all_of<CameraTurntable>(camera_entity)) {
             registry.emplace<CameraTurntable>(
                 new_camera,
                 registry.get<CameraTurntable>(camera_entity));
@@ -59,24 +59,32 @@ void copy_camera_to_viewports(Registry& registry, Entity source_viewport)
     }
 }
 
-ViewportPanel& get_focused_viewport_panel(Registry& registry)
+ViewportPanel* get_focused_viewport_panel(Registry& registry)
 {
-    return registry.get<ViewportPanel>(registry.ctx<FocusedViewportPanel>().viewport_panel);
+    auto e = registry.ctx_or_set<FocusedViewportPanel>(FocusedViewportPanel{}).viewport_panel;
+    if (!registry.valid(e)) return nullptr;
+    return &registry.get<ViewportPanel>(e);
 }
 
 Entity get_focused_viewport_entity(Registry& registry)
 {
-    return get_focused_viewport_panel(registry).viewport;
+    const auto* panel = get_focused_viewport_panel(registry);
+    if (!panel) return NullEntity;
+    return panel->viewport;
 }
 
-ViewportComponent& get_focused_viewport(Registry& registry)
+ViewportComponent* get_focused_viewport(Registry& registry)
 {
-    return registry.get<ViewportComponent>(get_focused_viewport_entity(registry));
+    auto e = get_focused_viewport_entity(registry);
+    if (e == NullEntity) return nullptr;
+    return &registry.get<ViewportComponent>(e);
 }
 
 Entity get_focused_camera_entity(Registry& registry)
 {
-    return get_focused_viewport(registry).camera_reference;
+    auto* viewport = get_focused_viewport(registry);
+    if (!viewport) return NullEntity;
+    return viewport->camera_reference;
 }
 
 
@@ -105,13 +113,15 @@ Camera& get_camera(Registry& registry, Entity e)
     return registry.get<Camera>(e);
 }
 
-Camera& get_focused_camera(Registry& registry)
+Camera* get_focused_camera(Registry& registry)
 {
-    return get_camera(registry, get_focused_camera_entity(registry));
+    auto e = get_focused_camera_entity(registry);
+    if (registry.valid(e)) return &get_camera(registry, e);
+    return nullptr;
 }
 
 
-void camera_focus_and_fit(
+bool camera_focus_and_fit(
     Registry& registry,
     Entity camera,
     bool focus,
@@ -119,13 +129,18 @@ void camera_focus_and_fit(
     float duration_seconds /*= 1.0f*/,
     const std::function<bool(Registry& r, Entity e)>& filter /*= nullptr */)
 {
-    
+    if (!registry.valid(camera)) return false;
     auto& c = registry.emplace_or_replace<CameraFocusAndFit>(camera, CameraFocusAndFit{});
     c.filter = filter;
     c.focus = focus;
     c.fit = fit;
     c.speed =
         duration_seconds > 0.0f ? 1.0f / duration_seconds : std::numeric_limits<float>::infinity();
+    return true;
+}
+
+void camera_focus_and_fit(Registry& registry) {
+    camera_focus_and_fit(registry, ui::get_focused_camera_entity(registry));
 }
 
 Entity get_selection_viewport_entity(const Registry& registry)
@@ -176,9 +191,9 @@ Entity add_viewport(Registry& registry, Entity camera_entity, bool srgb /*= fals
 
     // Create framebuffer resource
 
-    auto cparam = Texture::Params::rgba16f();
+    auto cparam = Texture::Params::rgba();
     if (srgb) {
-        cparam.internal_format = GL_SRGB_ALPHA;
+        cparam.internal_format = GL_SRGB8_ALPHA8;
         cparam.sRGB = true;
     }
 

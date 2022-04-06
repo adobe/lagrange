@@ -24,7 +24,9 @@ if(TARGET imgui::imgui)
 endif()
 
 include(glfw)
-include(gl3w)
+if(NOT EMSCRIPTEN)
+    include(gl3w)
+endif()
 
 message(STATUS "Third-party (external): creating target 'imgui::imgui' ('docking' branch)")
 

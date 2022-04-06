@@ -10,10 +10,10 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/ui/components/Transform.h>
-#include <lagrange/ui/systems/update_transform_hierarchy.h>
-#include <lagrange/ui/utils/treenode.h>
 #include <lagrange/ui/default_events.h>
+#include <lagrange/ui/systems/update_transform_hierarchy.h>
 #include <lagrange/ui/utils/events.h>
+#include <lagrange/ui/utils/treenode.h>
 
 namespace lagrange {
 namespace ui {
@@ -22,12 +22,11 @@ void update_transform_recursive(
     Registry& registry,
     Entity e,
     const Eigen::Affine3f& parent_global_transform,
-    bool check_change = false
-)
+    bool check_change = false)
 {
-    assert(registry.has<TreeNode>(e));
+    assert(registry.all_of<TreeNode>(e));
 
-    if (registry.has<Transform>(e)) {
+    if (registry.all_of<Transform>(e)) {
         auto& transform = registry.get<Transform>(e);
 
         if (check_change) {
@@ -37,11 +36,10 @@ void update_transform_recursive(
             if (is_changed) {
                 ui::publish<TransformChangedEvent>(registry, e);
             }
-        }
-        else {
+        } else {
             transform.global = (parent_global_transform * transform.local);
         }
-        
+
 
         foreach_child(registry, e, [&](Entity e) {
             update_transform_recursive(registry, e, transform.global, check_change);

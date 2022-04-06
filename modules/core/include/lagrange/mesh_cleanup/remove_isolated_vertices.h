@@ -30,7 +30,7 @@ std::unique_ptr<MeshType> remove_isolated_vertices(const MeshType& mesh)
     const Index vertex_per_facet = mesh.get_vertex_per_facet();
 
     // Note: this is a forward mapping (for each element of mesh, index of new element)
-    std::vector<Index> forward_vertex_map(num_vertices, INVALID<Index>());
+    std::vector<Index> forward_vertex_map(num_vertices, invalid<Index>());
 
     const auto& vertices = mesh.get_vertices();
     auto facets = mesh.get_facets(); // copy, we modify this
@@ -38,7 +38,7 @@ std::unique_ptr<MeshType> remove_isolated_vertices(const MeshType& mesh)
     int count = 0;
     for (Index i = 0; i < num_facets; i++) {
         for (Index j = 0; j < vertex_per_facet; j++) {
-            if (forward_vertex_map[facets(i, j)] == INVALID<Index>()) {
+            if (forward_vertex_map[facets(i, j)] == invalid<Index>()) {
                 forward_vertex_map[facets(i, j)] = count;
                 count++;
             }
@@ -49,7 +49,7 @@ std::unique_ptr<MeshType> remove_isolated_vertices(const MeshType& mesh)
     const Index new_num_vertices = count;
     typename MeshType::VertexArray new_vertices(new_num_vertices, dim);
     for (Index i = 0; i < num_vertices; i++) {
-        if (forward_vertex_map[i] == INVALID<Index>()) continue;
+        if (forward_vertex_map[i] == invalid<Index>()) continue;
         new_vertices.row(forward_vertex_map[i]) = vertices.row(i);
     }
 

@@ -122,4 +122,29 @@ TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]")
             REQUIRE(uv_areas.sum() == Approx(1.0));
         }
     }
+
+    SECTION("with normals")
+    {
+        using MeshType = decltype(mesh)::element_type;
+        mesh = testing::load_mesh<MeshType>("open/core/bunny_simple.obj");
+        REQUIRE(mesh->get_num_vertices() == 2503);
+        REQUIRE(mesh->get_num_facets() == 5002);
+        REQUIRE(mesh->has_corner_attribute("normal"));
+        map_corner_attribute_to_indexed_attribute(*mesh, "normal");
+        REQUIRE(mesh->has_indexed_attribute("normal"));
+
+        auto mesh2 = split_long_edges(*mesh, 0.0001, true);
+        REQUIRE(mesh2->has_indexed_attribute("normal"));
+    }
+
+    SECTION("with uv")
+    {
+        using MeshType = decltype(mesh)::element_type;
+        mesh = testing::load_mesh<MeshType>("open/core/blub_open.obj");
+        REQUIRE(mesh->get_num_vertices() == 5857);
+        REQUIRE(mesh->get_num_facets() == 11648);
+        REQUIRE(mesh->is_uv_initialized());
+        auto mesh2 = split_long_edges(*mesh, 0.0001, true);
+        REQUIRE(mesh2->is_uv_initialized());
+    }
 }

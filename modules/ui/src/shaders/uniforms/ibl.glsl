@@ -13,7 +13,9 @@
 uniform samplerCube ibl_diffuse;
 uniform samplerCube ibl_specular;
 uniform sampler2D ibl_brdf_lut;
-uniform bool has_ibl = false;
-uniform int ibl_specular_levels = 1;
+
+
+uniform bool has_ibl; // System property
+#pragma property ibl_specular_levels "IBLSpecularLevels" int(1,1,16)
 
 

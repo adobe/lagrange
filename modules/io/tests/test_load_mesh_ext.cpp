@@ -249,8 +249,8 @@ TEST_CASE("MeshLoad", "[Mesh][Load]")
 
             // Check padding
             auto& F = mesh.get_facets();
-            REQUIRE(F(1, 3) == INVALID<typename Quads::Scalar>());
-            REQUIRE(F(2, 3) == INVALID<typename Quads::Scalar>());
+            REQUIRE(F(1, 3) == invalid<typename Quads::Scalar>());
+            REQUIRE(F(2, 3) == invalid<typename Quads::Scalar>());
         }
     }
 
@@ -272,7 +272,7 @@ TEST_CASE("MeshLoad", "[Mesh][Load]")
             // Check no padding
             auto& F = mesh.get_facets();
             for (auto i = 0; i < F.size(); i++) {
-                REQUIRE(F(i) != INVALID<typename Triangles::Scalar>());
+                REQUIRE(F(i) != invalid<typename Triangles::Scalar>());
             }
         }
     }

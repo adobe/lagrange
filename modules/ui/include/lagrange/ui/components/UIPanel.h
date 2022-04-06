@@ -48,7 +48,7 @@ struct UIPanel
     int child_width = 0;
     int child_height = 0;
 
-    // set to hide the tab bar. Don't read it, it's only true for one frame. 
+    // set to hide the tab bar. Don't read it, it's only true for one frame.
     bool hide_tab_bar = false;
 
     bool static_position_enabled = false;

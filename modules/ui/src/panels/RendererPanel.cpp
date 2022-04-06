@@ -14,10 +14,10 @@
 #include <lagrange/Logger.h>
 #include <lagrange/ui/components/Viewport.h>
 #include <lagrange/ui/imgui/UIWidget.h>
-#include <lagrange/ui/utils/uipanel.h>
-#include <lagrange/ui/utils/file_dialog.h>
 #include <lagrange/ui/panels/RendererPanel.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
+#include <lagrange/ui/utils/file_dialog.h>
+#include <lagrange/ui/utils/uipanel.h>
 
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
@@ -158,9 +158,9 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
             auto tex = viewport.fbo->get_color_attachement(0);
 
             if (tex && tex->save_to(save_path)) {
-                logger().info("Saved viewport screenshot to: {}", save_path);
+                logger().info("Saved viewport screenshot to: {}", save_path.string());
             } else {
-                logger().error("Failed to save viewport screenshot to: {}", save_path);
+                logger().error("Failed to save viewport screenshot to: {}", save_path.string());
             }
         } else if (opt.mode == RendererPanel::ScreenshotOptions::Mode::FBO) {
             auto& fbo = (*opt.selected_fbo);
@@ -168,16 +168,16 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
 
             if (color) {
                 if (color->save_to(save_path)) {
-                    logger().info("Saved color framebuffer screenshot to: {}", save_path);
+                    logger().info("Saved color framebuffer screenshot to: {}", save_path.string());
                 } else {
-                    logger().error("Failed to save color framebuffer screenshot to: {}", save_path);
+                    logger().error("Failed to save color framebuffer screenshot to: {}", save_path.string());
                 }
             } else {
                 auto depth = fbo.get_depth_attachment();
                 if (depth && depth->save_to(save_path)) {
-                    logger().info("Saved depth framebuffer screenshot to: {}", save_path);
+                    logger().info("Saved depth framebuffer screenshot to: {}", save_path.string());
                 } else {
-                    logger().error("Failed to save depth framebuffer screenshot to: {}", save_path);
+                    logger().error("Failed to save depth framebuffer screenshot to: {}", save_path.string());
                 }
             }
         } else if (opt.mode == RendererPanel::ScreenshotOptions::Mode::WINDOW) {

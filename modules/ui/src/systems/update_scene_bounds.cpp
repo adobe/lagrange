@@ -41,15 +41,15 @@ void update_scene_bounds_system(Registry& registry)
     for (auto e : view) {
         // Skip inner
         if (view.get<TreeNode>(e).num_children != 0) {
-            //Clear previous bvh values
-            if (registry.has<Bounds>(e)) {
+            // Clear previous bvh values
+            if (registry.all_of<Bounds>(e)) {
                 registry.get<Bounds>(e).bvh_node = AABB{};
             }
             continue;
         }
 
         // Skip non bounded entities
-        if (!registry.has<Bounds>(e)) continue;
+        if (!registry.all_of<Bounds>(e)) continue;
 
         registry.emplace_or_replace<AABBDirty>(e, AABBDirty{});
 
@@ -77,9 +77,9 @@ void update_scene_bounds_system(Registry& registry)
             AABB bvh_node;
 
 
-            if (registry.has<Bounds>(e)) {
+            if (registry.all_of<Bounds>(e)) {
                 bvh_node = registry.get<Bounds>(e).bvh_node;
-            } else if (registry.has<Transform>(e)) {
+            } else if (registry.all_of<Transform>(e)) {
                 const auto pos =
                     registry.get<Transform>(e).global.matrix().block<3, 1>(0, 3).eval();
                 bvh_node = AABB(pos, pos);
@@ -96,7 +96,7 @@ void update_scene_bounds_system(Registry& registry)
 
 
             // If parent does not have bounds component yet
-            if (!registry.has<Bounds>(parent)) {
+            if (!registry.all_of<Bounds>(parent)) {
                 auto& parent_bounds = registry.emplace<Bounds>(parent);
                 // Empty bounds
                 parent_bounds.local = AABB();

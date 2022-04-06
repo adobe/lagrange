@@ -68,13 +68,13 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
     if (ImGui::CollapsingHeader("Tree View", ImGuiTreeNodeFlags_DefaultOpen)) {
         // Todo via registration mechanism
         auto get_icon = [&](Entity e) -> std::string {
-            if (registry.has<MeshRender>(e)) return ICON_FA_CUBE " ";
-            if (registry.has<CameraController>(e)) return ICON_FA_CAMERA " ";
-            if (registry.has<IBL>(e)) return ICON_FA_SUN " ";
-            if (registry.has<LightComponent>(e)) return ICON_FA_LIGHTBULB " ";
+            if (registry.all_of<MeshRender>(e)) return ICON_FA_CUBE " ";
+            if (registry.all_of<CameraController>(e)) return ICON_FA_CAMERA " ";
+            if (registry.all_of<IBL>(e)) return ICON_FA_SUN " ";
+            if (registry.all_of<LightComponent>(e)) return ICON_FA_LIGHTBULB " ";
 
             // Default
-            if (registry.has<TreeNode>(e)) return ICON_FA_LAYER_GROUP " ";
+            if (registry.all_of<TreeNode>(e)) return ICON_FA_LAYER_GROUP " ";
             return "";
         };
 

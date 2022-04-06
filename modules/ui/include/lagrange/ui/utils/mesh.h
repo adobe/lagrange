@@ -14,9 +14,9 @@
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/components/MeshGeometry.h>
+#include <lagrange/ui/types/AABB.h>
 #include <lagrange/ui/types/Frustum.h>
 #include <lagrange/ui/types/RayFacetHit.h>
-#include <lagrange/ui/types/AABB.h>
 #include <lagrange/ui/utils/math.h>
 #include <optional>
 
@@ -62,6 +62,8 @@ MeshType& get_mesh(Registry& r, Entity e);
 
 MeshData& get_mesh_data(Registry& r, Entity e);
 const MeshData& get_mesh_data(const Registry& r, Entity e);
+
+bool has_mesh_component(const Registry& r, Entity e);
 
 size_t get_num_vertices(const MeshData& d);
 size_t get_num_facets(const MeshData& d);
@@ -117,6 +119,8 @@ bool has_mesh_indexed_attribute(const MeshData& d, const std::string& name);
 //////////////////////////////////////////////////////////////////////////////////////
 // Picking
 //////////////////////////////////////////////////////////////////////////////////////
+
+/// Intersect ray with MeshData
 std::optional<RayFacetHit>
 intersect_ray(const MeshData& d, const Eigen::Vector3f& origin, const Eigen::Vector3f& dir);
 bool select_facets_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const Frustum& frustum);
@@ -147,7 +151,10 @@ void select_vertices_by_color(
     SelectionBehavior sel_behavior,
     const unsigned char* color_bytes,
     size_t colors_byte_size);
-void select_facets(MeshData& d, SelectionBehavior sel_behavior, const std::vector<int> & facet_indices);
+void select_facets(
+    MeshData& d,
+    SelectionBehavior sel_behavior,
+    const std::vector<int>& facet_indices);
 
 void filter_closest_vertex(
     MeshData& d,
@@ -167,21 +174,24 @@ template <typename V, typename F>
 lagrange::Mesh<V, F>& cast_mesh(MeshData& mesh_data)
 {
     using MeshType = lagrange::Mesh<V, F>;
-    la_runtime_assert(mesh_data.type == entt::type_id<MeshType>() && mesh_data.mesh, "Incorrect mesh type");
+    la_runtime_assert(
+        mesh_data.type == entt::type_id<MeshType>() && mesh_data.mesh,
+        "Incorrect mesh type");
     return reinterpret_cast<MeshType&>(*mesh_data.mesh);
 }
 
 template <typename MeshType>
 MeshType& get_mesh(Registry& r, Entity e)
 {
-    la_runtime_assert(r.has<MeshData>(e), "No MeshData component");
+    la_runtime_assert(r.all_of<MeshData>(e), "No MeshData component");
     return cast_mesh<typename MeshType::VertexArray, typename MeshType::FacetArray>(
         r.get<MeshData>(e));
 }
 
-inline Entity get_mesh_entity(Registry& r, Entity e) {
-    if (r.has<MeshData>(e)) return e;
-    if (r.has<MeshGeometry>(e)) return r.get<MeshGeometry>(e).entity;
+inline Entity get_mesh_entity(Registry& r, Entity e)
+{
+    if (r.all_of<MeshData>(e)) return e;
+    if (r.all_of<MeshGeometry>(e)) return r.get<MeshGeometry>(e).entity;
     return NullEntity;
 }
 

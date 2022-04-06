@@ -50,8 +50,9 @@ Eigen::Vector3f linear_to_sRGB(const Eigen::Vector3f& c)
 
 Texture::Texture(const fs::path& file_path, const Params& params)
     : m_params(params)
+    , m_gl_elem_type(GL_NONE)
 {
-    GL(glGenTextures(1, &m_id));
+    LA_GL(glGenTextures(1, &m_id));
 
     // load
     if (params.type == GL_TEXTURE_2D) {
@@ -68,8 +69,9 @@ Texture::Texture(
     size_t size,
     const Texture::Params& params /*= Texture::Params()*/)
     : m_params(params)
+    , m_gl_elem_type(GL_NONE)
 {
-    GL(glGenTextures(1, &m_id));
+    LA_GL(glGenTextures(1, &m_id));
 
     // load
     if (params.type == GL_TEXTURE_2D) {
@@ -86,10 +88,13 @@ Texture::Texture(const Params& params, int width, int height, int depth)
     , m_height(height)
     , m_depth(depth)
     , m_params(params)
+    , m_gl_elem_type(GL_NONE)
 {
-    GL(glGenTextures(1, &m_id));
+    LA_GL(glGenTextures(1, &m_id));
 
-    la_runtime_assert(params.internal_format != GL_NONE, "Must specify internal format (e.g. GL_RGBA)");
+    la_runtime_assert(
+        params.internal_format != GL_NONE,
+        "Must specify internal format (e.g. GL_RGBA8)");
 
     if (width > 0) resize(width, height, depth, true);
 
@@ -105,20 +110,71 @@ Texture::~Texture()
 void Texture::bind() const
 {
     la_runtime_assert(
-        ((m_params.internal_format == GL_SRGB8 || m_params.internal_format == GL_SRGB_ALPHA) &&
+        ((m_params.internal_format == GL_SRGB8 || m_params.internal_format == GL_SRGB8_ALPHA8) &&
          m_params.sRGB) ||
-            (m_params.internal_format != GL_SRGB8 && m_params.internal_format != GL_SRGB_ALPHA &&
+            (m_params.internal_format != GL_SRGB8 && m_params.internal_format != GL_SRGB8_ALPHA8 &&
              !m_params.sRGB) ||
             m_params.internal_format == GL_NONE,
         "Inconsistent SRGB format");
 
-    GL(glBindTexture(m_params.type, m_id));
+    LA_GL(glBindTexture(m_params.type, m_id));
 }
 
 void Texture::bind_to(GLenum texture_unit) const
 {
-    GL(glActiveTexture(texture_unit));
-    GL(glBindTexture(m_params.type, m_id));
+    LA_GL(glActiveTexture(texture_unit));
+    LA_GL(glBindTexture(m_params.type, m_id));
+}
+
+GLenum get_type_from_internal_format(GLenum internal_format)
+{
+    // The type passed to glTexImage2D needs to match the internal format.
+    // See https://www.khronos.org/registry/OpenGL-Refpages/es3.0/html/glTexImage2D.xhtml.
+    switch (internal_format) {
+    case GL_R8_SNORM:
+    case GL_R8I:
+    case GL_RG8_SNORM:
+    case GL_RG8I:
+    case GL_RGB8_SNORM:
+    case GL_RGB8I:
+    case GL_RGBA8_SNORM:
+    case GL_RGBA8I: return GL_BYTE;
+    case GL_R32F:
+    case GL_RG32F:
+    case GL_RGB32F:
+    case GL_RGBA32F:
+    case GL_DEPTH_COMPONENT32F:
+    case GL_RGB16F: // could also be GL_HALF_FLOAT
+    case GL_RGBA16F: // could also be GL_HALF_FLOAT
+    case GL_R16F: // could also be GL_HALF_FLOAT
+    case GL_RG16F: // could also be GL_HALF_FLOAT
+    case GL_R11F_G11F_B10F: // could also be GL_UNSIGNED_INT_10F_11F_11F_REV or GL_HALF_FLOAT
+    case GL_RGB9_E5: // could also be GL_UNSIGNED_INT_5_9_9_9_REV or GL_HALF_FLOAT
+        return GL_FLOAT;
+    case GL_DEPTH32F_STENCIL8: return GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
+    case GL_DEPTH24_STENCIL8: return GL_UNSIGNED_INT_24_8;
+    case GL_R32I:
+    case GL_RG32I:
+    case GL_RGB32I:
+    case GL_RGBA32I: return GL_INT;
+    case GL_R16I:
+    case GL_RG16I:
+    case GL_RGB16I:
+    case GL_RGBA16I: return GL_SHORT;
+    case GL_R32UI:
+    case GL_RG32UI:
+    case GL_RGB32UI:
+    case GL_RGBA32UI:
+    case GL_DEPTH_COMPONENT24: return GL_UNSIGNED_INT;
+    case GL_RGB10_A2:
+    case GL_RGB10_A2UI: return GL_UNSIGNED_INT_2_10_10_10_REV;
+    case GL_R16UI:
+    case GL_RG16UI:
+    case GL_RGB16UI:
+    case GL_RGBA16UI:
+    case GL_DEPTH_COMPONENT16: return GL_UNSIGNED_SHORT;
+    default: return GL_UNSIGNED_BYTE;
+    }
 }
 
 void Texture::resize(int width, int height /*= 0*/, int depth /*= 0*/, bool force /*= false*/)
@@ -131,9 +187,11 @@ void Texture::resize(int width, int height /*= 0*/, int depth /*= 0*/, bool forc
     m_height = height;
     m_depth = depth;
 
+    m_gl_elem_type = get_type_from_internal_format(m_params.internal_format);
+
     if (m_params.type == GL_TEXTURE_2D) {
         la_runtime_assert(m_params.format != GL_NONE, "Must specify format (e.g. GL_RGBA)");
-        GL(glTexImage2D(
+        LA_GL(glTexImage2D(
             GL_TEXTURE_2D,
             0,
             m_params.internal_format,
@@ -141,20 +199,25 @@ void Texture::resize(int width, int height /*= 0*/, int depth /*= 0*/, bool forc
             height,
             0,
             m_params.format,
-            GL_FLOAT,
+            m_gl_elem_type,
             nullptr));
     } else if (m_params.type == GL_TEXTURE_2D_MULTISAMPLE) {
-        GL(glTexImage2DMultisample(
+#if defined(__EMSCRIPTEN__)
+        // TODO WebGL: glTexImage2DMultisample is not supported.
+        logger().error("WebGL does not support glTexImage2DMultisample.");
+#else
+        LA_GL(glTexImage2DMultisample(
             GL_TEXTURE_2D_MULTISAMPLE,
             m_params.multisample_samples,
             m_params.internal_format,
             width,
             height,
             GL_TRUE));
+#endif
     } else if (m_params.type == GL_TEXTURE_CUBE_MAP) {
         la_runtime_assert(m_params.format != GL_NONE, "Must specify format (e.g. GL_RGBA)");
         for (auto i = 0; i < 6; i++) {
-            GL(glTexImage2D(
+            LA_GL(glTexImage2D(
                 GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
                 0,
                 m_params.internal_format,
@@ -162,7 +225,7 @@ void Texture::resize(int width, int height /*= 0*/, int depth /*= 0*/, bool forc
                 height,
                 0,
                 m_params.format,
-                GL_FLOAT,
+                m_gl_elem_type,
                 nullptr));
         }
     }
@@ -173,7 +236,19 @@ void Texture::resize(int width, int height /*= 0*/, int depth /*= 0*/, bool forc
 void Texture::upload(float* data)
 {
     bind();
-    GL(glTexImage2D(
+    m_gl_elem_type = GL_FLOAT;
+
+    if (m_width % 4 != 0) {
+        if (m_width % 2 != 0) {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        } else {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+            glPixelStorei(GL_PACK_ALIGNMENT, 2);
+        }
+    }
+
+    LA_GL(glTexImage2D(
         m_params.type,
         0,
         m_params.internal_format,
@@ -181,7 +256,7 @@ void Texture::upload(float* data)
         m_height,
         0,
         m_params.format,
-        GL_FLOAT,
+        m_gl_elem_type,
         data));
     set_common_params();
 }
@@ -189,7 +264,19 @@ void Texture::upload(float* data)
 void Texture::upload(unsigned char* data)
 {
     bind();
-    GL(glTexImage2D(
+
+    m_gl_elem_type = GL_UNSIGNED_BYTE;
+    if (m_width % 4 != 0) {
+        if (m_width % 2 != 0) {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+            glPixelStorei(GL_PACK_ALIGNMENT, 1);
+        } else {
+            glPixelStorei(GL_UNPACK_ALIGNMENT, 2);
+            glPixelStorei(GL_PACK_ALIGNMENT, 2);
+        }
+    }
+
+    LA_GL(glTexImage2D(
         m_params.type,
         0,
         m_params.internal_format,
@@ -197,7 +284,7 @@ void Texture::upload(unsigned char* data)
         m_height,
         0,
         m_params.format,
-        GL_UNSIGNED_BYTE,
+        m_gl_elem_type,
         data));
     set_common_params();
 }
@@ -207,12 +294,11 @@ void Texture::set_uv_transform(const Texture::Transform& uv_transform)
     m_params.uv_transform = uv_transform;
 }
 
-bool Texture::save_to(
-    const fs::path& file_path,
-    GLenum target /*= GL_TEXTURE_2D*/,
-    int quality /*= 90*/,
-    int mip_level)
+std::optional<Texture::DownloadResult> Texture::download(GLenum target, int mip_level)
 {
+    Texture::DownloadResult result;
+
+    using elem_type = unsigned char;
     auto comp_cnt = [](GLenum gl_type) {
         if (gl_type == GL_RGB) return 3u;
         if (gl_type == GL_RED) return 1u;
@@ -221,23 +307,31 @@ bool Texture::save_to(
         return 0u;
     };
 
-    using elem_type = unsigned char;
+
     GLenum elem_type_gl = GL_UNSIGNED_BYTE;
 
-    const int levels = std::log2(std::max(m_width, m_height));
+    if (m_width == 0 || m_height == 0) {
+        lagrange::logger().error("Texture::download: zero width or height");
+        return {};
+    }
+
+    const int levels = static_cast<int>(std::log2(std::max(m_width, m_height)));
     if (mip_level >= levels) {
-        lagrange::logger().error("Texture::save_to: mip_level exceeds number of mip levels");
-        return false;
+        lagrange::logger().error(
+            "Texture::download: mip_level {} exceeds number of mip levels {}",
+            mip_level,
+            levels);
+        return {};
     }
 
     auto w = m_width >> mip_level;
     auto h = m_height >> mip_level;
 
-    std::vector<elem_type> tex_data;
+
     const auto components = comp_cnt(get_params().format);
     const auto tex_elem_count = w * h * components;
     const auto row_stride = static_cast<int>(w * components * sizeof(elem_type));
-    tex_data.resize(tex_elem_count);
+    result.data.resize(tex_elem_count);
 
     bind();
 
@@ -251,7 +345,34 @@ bool Texture::save_to(
         }
     }
 
-    glGetTexImage(target, mip_level, get_params().format, elem_type_gl, tex_data.data());
+#if defined(__EMSCRIPTEN__)
+    // TODO WebGL: glGetTexImage is not supported.
+    // Consider attaching a texture to a framebuffer and using glReadPixels to get the data.
+    // See https://16892.net/?qa=944852/&show=944853.
+    logger().error("WebGL does not support glGetTexImage.");
+    (void)target;
+    (void)elem_type_gl;
+#else
+    glGetTexImage(target, mip_level, get_params().format, elem_type_gl, result.data.data());
+#endif
+
+
+    result.w = w;
+    result.h = h;
+    result.components = components;
+    result.row_stride = row_stride;
+
+    return result;
+}
+
+bool Texture::save_to(
+    const fs::path& file_path,
+    GLenum target /*= GL_TEXTURE_2D*/,
+    int quality /*= 90*/,
+    int mip_level)
+{
+    auto result = download(target, mip_level);
+    if (!result) return false;
 
     // stbi wants char (non wchar), so we convert to string to achieve that
     const std::string path_string = file_path.string();
@@ -260,22 +381,71 @@ bool Texture::save_to(
     int res = 0;
     stbi_flip_vertically_on_write(1);
     if (ext == ".bmp")
-        res = stbi_write_bmp(path_string.c_str(), w, h, components, tex_data.data());
+        res = stbi_write_bmp(
+            path_string.c_str(),
+            result->w,
+            result->h,
+            result->components,
+            result->data.data());
     else if (ext == ".png")
-        res = stbi_write_png(path_string.c_str(), w, h, components, tex_data.data(), row_stride);
+        res = stbi_write_png(
+            path_string.c_str(),
+            result->w,
+            result->h,
+            result->components,
+            result->data.data(),
+            result->row_stride);
     else if (ext == ".jpg")
-        res = stbi_write_jpg(path_string.c_str(), w, h, components, tex_data.data(), quality);
+        res = stbi_write_jpg(
+            path_string.c_str(),
+            result->w,
+            result->h,
+            result->components,
+            result->data.data(),
+            quality);
     else {
         la_runtime_assert(false, "Unsupported format " + ext.string());
     }
     return res != 0;
 }
 
+bool Texture::is_internal_format_color_renderable(GLenum internal_format)
+{
+#if defined(__EMSCRIPTEN__)
+    // If EXT_color_buffer_float is enabled, other formats are color-renderable
+    //https://github.com/mrdoob/three.js/issues/15493
+
+    //https: //www.khronos.org/registry/OpenGL/specs/es/3.0/es_spec_3.0.pdf
+    // Table 3.13 and 3.3
+    return (
+        internal_format == GL_RED || internal_format == GL_RG || internal_format == GL_RGB ||
+        internal_format == GL_RGBA || internal_format == GL_DEPTH_COMPONENT ||
+        internal_format == GL_DEPTH_STENCIL || internal_format == GL_R8 ||
+        internal_format == GL_RG8 || internal_format == GL_RGB8 || internal_format == GL_RGB565 ||
+        internal_format == GL_RGBA4 || internal_format == GL_RGB5_A1 ||
+        internal_format == GL_RGBA8 || internal_format == GL_RGB10_A2 ||
+        internal_format == GL_SRGB8_ALPHA8);
+#endif
+
+    return true;
+}
+
 void Texture::set_common_params()
 {
     bind();
 
-    if (m_params.generate_mipmap) GL(glGenerateMipmap(m_params.type));
+    if (m_params.generate_mipmap) {
+        if (!is_internal_format_color_renderable(m_params.internal_format)) {
+            logger().error("Texture format not color renderable");
+            logger().error(
+                "generating mipmap for format {},  elem type {}, interal format {},",
+                GLState::get_enum_string(m_params.format),
+                GLState::get_enum_string(m_params.internal_format),
+                GLState::get_enum_string(m_gl_elem_type));
+        } else {
+            LA_GL(glGenerateMipmap(m_params.type));
+        }
+    }
 
     if (!m_params.generate_mipmap && m_params.min_filter == GL_LINEAR_MIPMAP_LINEAR) {
         logger().warn(
@@ -284,22 +454,27 @@ void Texture::set_common_params()
     }
 
     if (m_params.type != GL_TEXTURE_2D_MULTISAMPLE) {
-        GL(glTexParameteri(m_params.type, GL_TEXTURE_WRAP_S, m_params.wrap_s));
-        GL(glTexParameteri(m_params.type, GL_TEXTURE_WRAP_T, m_params.wrap_t));
-        GL(glTexParameteri(m_params.type, GL_TEXTURE_WRAP_R, m_params.wrap_r));
+        LA_GL(glTexParameteri(m_params.type, GL_TEXTURE_WRAP_S, m_params.wrap_s));
+        LA_GL(glTexParameteri(m_params.type, GL_TEXTURE_WRAP_T, m_params.wrap_t));
+        LA_GL(glTexParameteri(m_params.type, GL_TEXTURE_WRAP_R, m_params.wrap_r));
         if (m_params.wrap_s == GL_CLAMP_TO_BORDER || m_params.wrap_t == GL_CLAMP_TO_BORDER ||
             m_params.wrap_r == GL_CLAMP_TO_BORDER) {
-            GL(glTexParameterfv(m_params.type, GL_TEXTURE_BORDER_COLOR, m_params.border_color));
+#if defined(__EMSCRIPTEN__)
+            // TODO WebGL: GL_TEXTURE_BORDER_COLOR is not supported.
+            logger().error("WebGL does not support GL_TEXTURE_BORDER_COLOR.");
+#else
+            LA_GL(glTexParameterfv(m_params.type, GL_TEXTURE_BORDER_COLOR, m_params.border_color));
+#endif
         }
-        GL(glTexParameteri(m_params.type, GL_TEXTURE_MAG_FILTER, m_params.mag_filter));
-        GL(glTexParameteri(m_params.type, GL_TEXTURE_MIN_FILTER, m_params.min_filter));
+        LA_GL(glTexParameteri(m_params.type, GL_TEXTURE_MAG_FILTER, m_params.mag_filter));
+        LA_GL(glTexParameteri(m_params.type, GL_TEXTURE_MIN_FILTER, m_params.min_filter));
     }
 }
 
 void Texture::free()
 {
     if (m_id > 0) {
-        GL(glDeleteTextures(1, &m_id));
+        LA_GL(glDeleteTextures(1, &m_id));
         m_id = 0;
     }
 }
@@ -324,21 +499,22 @@ void Texture::load_data_from_image(const fs::path& file_path)
     m_params.format = GL_NONE;
     if (n == 1) {
         m_params.format = GL_RED;
-        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_RED;
+        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_R8;
     } else if (n == 2) {
         m_params.format = GL_RG;
-        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_RG;
+        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_RG8;
     } else if (n == 3) {
         m_params.format = GL_RGB;
         if (m_params.internal_format == GL_NONE)
-            m_params.internal_format = (m_params.sRGB) ? GL_SRGB : GL_RGB;
+            m_params.internal_format = (m_params.sRGB) ? GL_SRGB8 : GL_RGB8;
     } else if (n == 4) {
         m_params.format = GL_RGBA;
         if (m_params.internal_format == GL_NONE)
-            m_params.internal_format = (m_params.sRGB) ? GL_SRGB_ALPHA : GL_RGBA;
+            m_params.internal_format = (m_params.sRGB) ? GL_SRGB8_ALPHA8 : GL_RGBA8;
     }
 
-    GL(glTexImage2D(
+    m_gl_elem_type = GL_UNSIGNED_BYTE;
+    LA_GL(glTexImage2D(
         m_params.type,
         0,
         m_params.internal_format,
@@ -346,7 +522,7 @@ void Texture::load_data_from_image(const fs::path& file_path)
         m_height,
         0,
         m_params.format,
-        GL_UNSIGNED_BYTE,
+        m_gl_elem_type,
         data));
 
     stbi_image_free(data);
@@ -378,21 +554,23 @@ void Texture::load_data_from_image(const void* image_data, size_t size)
     m_params.format = GL_NONE;
     if (n == 1) {
         m_params.format = GL_RED;
-        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_RED;
+        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_R8;
     } else if (n == 2) {
         m_params.format = GL_RG;
-        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_RG;
+        if (m_params.internal_format == GL_NONE) m_params.internal_format = GL_RG8;
     } else if (n == 3) {
         m_params.format = GL_RGB;
         if (m_params.internal_format == GL_NONE)
-            m_params.internal_format = (m_params.sRGB) ? GL_SRGB : GL_RGB;
+            m_params.internal_format = (m_params.sRGB) ? GL_SRGB8 : GL_RGB8;
     } else if (n == 4) {
         m_params.format = GL_RGBA;
         if (m_params.internal_format == GL_NONE)
-            m_params.internal_format = (m_params.sRGB) ? GL_SRGB_ALPHA : GL_RGBA;
+            m_params.internal_format = (m_params.sRGB) ? GL_SRGB8_ALPHA8 : GL_RGBA8;
     }
 
-    GL(glTexImage2D(
+    m_gl_elem_type = GL_UNSIGNED_BYTE;
+
+    LA_GL(glTexImage2D(
         m_params.type,
         0,
         m_params.internal_format,
@@ -400,8 +578,9 @@ void Texture::load_data_from_image(const void* image_data, size_t size)
         m_height,
         0,
         m_params.format,
-        GL_UNSIGNED_BYTE,
+        m_gl_elem_type,
         data));
+
 
     stbi_image_free(data);
 }

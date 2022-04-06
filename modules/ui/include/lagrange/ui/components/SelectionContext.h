@@ -13,8 +13,8 @@
 
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Selection.h>
-#include <lagrange/ui/types/Frustum.h>
 #include <lagrange/ui/types/Camera.h>
+#include <lagrange/ui/types/Frustum.h>
 #include <Eigen/Eigen>
 
 namespace lagrange {
@@ -23,9 +23,9 @@ namespace ui {
 /// Global component with information about current viewport selection
 struct SelectionContext
 {
-    //Registered element type using register_tool_type
-    entt::id_type element_type; 
-    
+    // Registered element type using register_tool_type
+    entt::id_type element_type;
+
     /// In which viewport is the selection happening
     /// Can be null or invalid if no viewport is hovered
     Entity active_viewport = NullEntity;
@@ -46,7 +46,7 @@ struct SelectionContext
     /// End of selection rectangle (coordinates can be lower than begin)
     Eigen::Vector2f screen_end;
 
-    /// Current selection position 
+    /// Current selection position
     Eigen::Vector2f screen_position;
 
     /*
@@ -62,7 +62,7 @@ struct SelectionContext
     /// Current selection position
     Eigen::Vector2i viewport_position;
 
-    
+
     /// Current mouse position induced ray origin
     Eigen::Vector3f ray_origin;
 
@@ -74,7 +74,7 @@ struct SelectionContext
 
     /// Frustum in a radius
     Frustum neighbourhood_frustum;
-    float neighbourhood_frustum_radius = 10.0f; //px
+    float neighbourhood_frustum_radius = 10.0f; // px
 
     /// Frustum in one pixel diameter
     Frustum onepx_frustum;

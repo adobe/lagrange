@@ -11,7 +11,11 @@
  */
 #pragma once
 
+#if defined(__EMSCRIPTEN__)
+#include <webgl/webgl2.h>
+#else
 #include <GL/gl3w.h>
+#endif
 
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/utils/math.h>
@@ -56,6 +60,7 @@ struct ShaderVectorProperty : public ShaderProperty<Eigen::Vector4f>
 {
 };
 
+
 struct ShaderTextureProperty : public ShaderProperty<ShaderTextureValue>
 {
     int value_dimension = 0;
@@ -71,6 +76,16 @@ struct ShaderFloatProperty : public ShaderProperty<float>
 {
     float min_value = std::numeric_limits<float>::lowest();
     float max_value = std::numeric_limits<float>::max();
+};
+
+struct ShaderBoolProperty : public ShaderProperty<bool>
+{
+};
+
+struct ShaderIntProperty : public ShaderProperty<int>
+{
+    int min_value = std::numeric_limits<int>::lowest();
+    int max_value = std::numeric_limits<int>::max();
 };
 
 //
@@ -257,6 +272,18 @@ public:
         return m_vector_properties;
     }
 
+    const std::unordered_map<StringID, ShaderBoolProperty>& bool_properties() const
+    {
+        return m_bool_properties;
+    }
+
+    const std::unordered_map<StringID, ShaderIntProperty>& int_properties() const
+    {
+        return m_int_properties;
+    }
+
+    void upload_default_values();
+
 private:
     void process_properties(std::string& source);
 
@@ -271,6 +298,8 @@ private:
     std::unordered_map<StringID, ShaderFloatProperty> m_float_properties;
     std::unordered_map<StringID, ShaderColorProperty> m_color_properties;
     std::unordered_map<StringID, ShaderVectorProperty> m_vector_properties;
+    std::unordered_map<StringID, ShaderBoolProperty> m_bool_properties;
+    std::unordered_map<StringID, ShaderIntProperty> m_int_properties;
     std::unordered_map<StringID, std::string> m_names;
 };
 

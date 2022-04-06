@@ -12,8 +12,8 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/common.h>
-#include <lagrange/ui/utils/uipanel.h>
 #include <lagrange/ui/panels/LoggerPanel.h>
+#include <lagrange/ui/utils/uipanel.h>
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -91,7 +91,7 @@ private:
 };
 
 using SpdlogUISinkMt = SpdlogUISink<std::mutex>;
-using SpdlogUISinkSt = SpdlogUISink<spdlog::details::null_mutex>;
+// using SpdlogUISinkSt = SpdlogUISink<spdlog::details::null_mutex>;
 
 
 } // namespace
@@ -151,6 +151,12 @@ Entity add_logger_panel(Registry& r, const std::string& name)
     return e;
 }
 
+
+std::shared_ptr<spdlog::sinks::sink> get_logger_sink(Registry& r)
+{
+    auto& ctx = r.ctx_or_set<LoggerContextData>();
+    return ctx.sink;
+}
 
 } // namespace ui
 } // namespace lagrange

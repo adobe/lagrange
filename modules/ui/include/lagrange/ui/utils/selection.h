@@ -27,12 +27,12 @@ bool dehover_all(Registry& registry);
 
 inline bool is_selected(const Registry& registry, Entity e)
 {
-    return registry.has<Selected>(e);
+    return registry.all_of<Selected>(e);
 }
 
 inline bool is_hovered(const Registry& registry, Entity e)
 {
-    return registry.has<Hovered>(e);
+    return registry.all_of<Hovered>(e);
 }
 
 inline decltype(auto) selected_view(Registry& registry)
@@ -44,6 +44,9 @@ inline decltype(auto) hovered_view(Registry& registry)
 {
     return registry.view<Hovered>();
 }
+
+bool is_child_selected(const Registry& registry, Entity e, bool recursive = true);
+bool is_child_hovered(const Registry& registry, Entity e, bool recursive = true);
 
 
 std::vector<Entity> collect_selected(const Registry& registry);

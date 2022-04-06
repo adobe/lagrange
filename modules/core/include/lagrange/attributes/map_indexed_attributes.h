@@ -61,11 +61,11 @@ void map_indexed_attributes(
         std::tie(attr, from_indices) = from.get_indexed_attribute(name);
         assert(safe_cast<Index>(from_indices.rows()) == from.get_num_facets());
         to_indices.resize(num_out_facets, vertex_per_facet);
-        to_indices.setConstant(INVALID<Index>());
+        to_indices.setConstant(invalid<Index>());
         tbb::parallel_for(Index(0), num_out_facets, [&](Index i) {
             to_indices.row(i) = from_indices.row(facet_map[i]);
         });
-        assert((to_indices.array() != INVALID<Index>()).all());
+        assert((to_indices.array() != invalid<Index>()).all());
         to.add_indexed_attribute(name);
         to.import_indexed_attribute(name, attr, to_indices);
     }

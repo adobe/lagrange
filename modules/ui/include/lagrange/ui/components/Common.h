@@ -28,25 +28,32 @@ struct Name : public std::string
 
 struct GlobalTime
 {
+    /// Time from start in seconds
     double t = 0.0;
+    /// Time from last frame in seconds
     double dt = 0.0;
 };
 
 
 // TODO move to utils:
 
-inline std::string get_name(const Registry &r, Entity e)
+inline std::string get_name(const Registry& r, Entity e)
 {
     if (!r.valid(e)) return lagrange::string_format("Invalid Entity (ID={})", e);
-    if (!r.has<Name>(e)) return lagrange::string_format("Unnamed Entity (ID={})", e);
+    if (!r.all_of<Name>(e)) return lagrange::string_format("Unnamed Entity (ID={})", e);
     return r.get<Name>(e);
 }
 
-inline bool set_name(Registry &r, Entity e, const std::string &name)
+inline bool set_name(Registry& r, Entity e, const std::string& name)
 {
     if (!r.valid(e)) return false;
     r.emplace_or_replace<Name>(e, name);
     return true;
+}
+
+inline const GlobalTime& get_time(const Registry& r)
+{
+    return r.ctx<GlobalTime>();
 }
 
 

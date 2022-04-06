@@ -12,7 +12,7 @@
 
 # 1. define module
 lagrange_add_module()
-target_compile_features(lagrange_core PUBLIC cxx_std_17)
+target_compile_features(lagrange_core PUBLIC cxx_std_14)
 
 set_target_properties(lagrange_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

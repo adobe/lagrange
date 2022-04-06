@@ -11,11 +11,14 @@
  */
 #pragma once
 #include <lagrange/ui/Entity.h>
+#include <spdlog/sinks/sink.h>
 
 namespace lagrange {
 namespace ui {
 
 Entity add_logger_panel(Registry& r, const std::string& name = "Logger");
+
+std::shared_ptr<spdlog::sinks::sink> get_logger_sink(Registry& r);
 
 } // namespace ui
 } // namespace lagrange

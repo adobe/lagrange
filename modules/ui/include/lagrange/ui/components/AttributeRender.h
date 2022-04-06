@@ -20,7 +20,6 @@ enum class Glyph { Surface, Line, Wire, Arrow, Point };
 
 struct AttributeRender
 {
-
     /// Type of the attribute
     IndexingMode attribute_type;
 

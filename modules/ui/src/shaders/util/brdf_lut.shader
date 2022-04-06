@@ -40,8 +40,8 @@ vec2 IntegrateBRDF(float NdotV, float roughness)
 
     vec3 N = vec3(0.0, 0.0, 1.0);
 
-    const uint SAMPLE_COUNT = 128u;
-    for(uint i = 0u; i < SAMPLE_COUNT; ++i)
+    const int SAMPLE_COUNT = 128;
+    for(int i = 0; i < SAMPLE_COUNT; ++i)
     {
         vec2 Xi = hammersley2d(i, SAMPLE_COUNT);
         vec3 H  = GGX_sample_dir(Xi, N, roughness);
@@ -73,7 +73,7 @@ void main(){
 
     vec2 coord = (vposition.xy + vec2(1)) * 0.5; //to [0,1] range
     fragColor.xy = IntegrateBRDF(coord.x,coord.y);
-    fragColor.z = 0;
+    fragColor.z = 0.0;
     fragColor.a = 1.0;
 
 }

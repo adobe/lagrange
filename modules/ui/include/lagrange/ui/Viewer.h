@@ -119,6 +119,15 @@ public:
     ///
     Viewer(const std::string& window_title, int window_width, int window_height);
 
+
+    ///
+    /// Creates a window with filename as title.
+    ///
+    /// @param[in] argc CLI argument count
+    /// @param[in] argv CLI argument array
+    ///
+    Viewer(int argc, char** argv);
+
     ///
     /// Creates a window with given options
     ///
@@ -128,9 +137,9 @@ public:
 
     virtual ~Viewer();
 
-    operator ui::Registry&() { return registry(); }
+    operator ui::Registry &() { return registry(); }
 
-    operator const ui::Registry&() const { return registry(); }
+    operator const ui::Registry &() const { return registry(); }
 
     ///
     /// UI action wants the window to close
@@ -201,6 +210,8 @@ public:
 
 
 private:
+    void render_one_frame(const std::function<bool(Registry& r)>& main_loop);
+
     bool init_glfw(const WindowOptions& options);
     bool init_imgui();
     bool init_imgui_fonts();

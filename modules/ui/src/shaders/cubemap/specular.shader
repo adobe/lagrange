@@ -16,20 +16,11 @@
 
 
 #pragma FRAGMENT
-layout(location = 0) out vec4 fragColor;
-
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec3 tangent;
-    vec3 bitangent;
-} fs_in;
+#include "layout/default_fragment_layout.glsl"
 
 uniform samplerCube texCube;
-uniform uint sampleCount = 4096u;
-uniform float roughness = 0.0;
+uniform int sampleCount;
+uniform float roughness;
 
 #include "util/light.glsl"
 #include "util/pbr.glsl"
@@ -40,20 +31,20 @@ uniform float roughness = 0.0;
 void main(){
 
 
-    vec3 normal = normalize(fs_in.pos);
+    vec3 normal = normalize(vs_out_pos);
     vec3 lightIn = normal;
     vec3 lightOut = lightIn;
 
-    float totalWeight = 0;
-    vec3 color = vec3(0);
-    for (uint i=0u; i < sampleCount; i++){
+    float totalWeight = 0.0;
+    vec3 color = vec3(0.0);
+    for (int i=0; i < sampleCount; i++){
 
         vec2 sampleSpherical = hammersley2d(i,sampleCount);
         vec3 sampleDir = GGX_sample_dir(sampleSpherical, normal, roughness);
         vec3 lightDir = -reflect(lightOut, sampleDir);
 
-        float cosLight = max(0,dot(normal, lightDir));
-        if(cosLight <= 0)
+        float cosLight = max(0.0,dot(normal, lightDir));
+        if(cosLight <= 0.0)
             continue;
         color += texture(texCube, sampleDir).rgb * cosLight;
         totalWeight += cosLight;

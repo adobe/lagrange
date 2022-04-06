@@ -30,5 +30,5 @@ struct Bounds
     AABB bvh_node;
 };
 
-}
+} // namespace ui
 } // namespace lagrange

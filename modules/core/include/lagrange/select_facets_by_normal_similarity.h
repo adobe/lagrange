@@ -38,7 +38,7 @@ struct SelectFacetsByNormalSimilarityParameters
     // This are input and have to be set
     //
     // Increasing this would select a larger region
-    Scalar flood_error_limit = INVALID<Scalar>();
+    Scalar flood_error_limit = invalid<Scalar>();
     // This tries to smooth the selection boundary (reduce ears)
     bool should_smooth_boundary = true;
 
@@ -165,7 +165,7 @@ std::vector<bool> select_facets_by_normal_similarity(
     // for further flood
     //
     while (!search_queue.empty()) {
-        Index fid = INVALID<Index>();
+        Index fid = invalid<Index>();
         if (parameters.search_type == Parameters::SearchType::DFS) {
             fid = search_queue.front();
             search_queue.pop_front();

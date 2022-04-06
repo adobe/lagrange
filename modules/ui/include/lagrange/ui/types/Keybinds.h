@@ -44,7 +44,7 @@ public:
     ///
     struct Keybind
     {
-        Keybind(int btn, const std::vector<int>& modifier_keys);
+        Keybind(int btn, const std::vector<int>& modifier_keys = {});
         int button = -1;
         int modifier_count = 0;
         KeyState previous_state = KeyState::NONE;
@@ -63,12 +63,29 @@ public:
     /// Internal map type
     using MapType = std::map<std::string, std::vector<Keybind>>;
 
-    /// @brief Updates states of keybinds
+    /// @brief Start updating key states
     ///
-    /// Call at the beginning of every frame
+    /// Call at the beginning of every frame,
+    /// update with set_key_state
+    /// call end_update when done updating key states.
     ///
-    /// @param context
-    void update(const std::string& context = "global");
+    void begin_update();
+
+    /// @brief Ends updating key states
+    ///
+    /// Must be called after begin_update
+    ///
+    void end_update();
+
+    /// @brief Changes current context
+    /// @param context context name
+    void push_context(const std::string& context);
+
+    /// @brief Pops the last pushed context
+    /// @param context context name
+    void pop_context();
+
+    void reset_context();
 
 
     /// @brief Adds a key binding for given action
@@ -126,18 +143,30 @@ public:
     /// @return true if pressed
     bool is_pressed(const std::string& action) const;
 
+    /// @brief Returns true if key was just pressed
+    /// @param key_code GLFW key code
+    /// @return true if pressed
+    bool is_pressed(int key_code) const;
+
     /// @brief Returns true if action is held down
-    ///
-    /// Returns true also when action was just pressed
-    ///
     /// @param action string identifier
     /// @return true if down or pressed
     bool is_down(const std::string& action) const;
+
+    /// @brief Returns true if key is held down
+    /// @param key_code GLFW key code
+    /// @return true if down or pressed
+    bool is_down(int key_code) const;
 
     /// @brief Returns true if action was just released
     /// @param action string identifier
     /// @return true if pressed
     bool is_released(const std::string& action) const;
+
+    /// @brief Returns true if key was just released
+    /// @param key_code GLFW key code
+    /// @return true if pressed
+    bool is_released(int key_code) const;
 
     /// @brief Saves to output stream using JSON
     /// @param out any std output stream
@@ -177,14 +206,12 @@ public:
 private:
     MapType m_mapping;
     bool m_enabled = true;
+    bool m_key_map_last[keymap_size];
     bool m_key_map[keymap_size];
-    int m_key_down_num = 0;
+    std::vector<std::string> m_context_stack;
 
     bool is_action_in_state(const std::string& action, KeyState state) const;
 };
-
-
-///TODO serialization here
 
 } // namespace ui
 } // namespace lagrange

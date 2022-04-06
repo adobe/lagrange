@@ -24,7 +24,7 @@ struct MeshRender
 {
     // Either or
     std::shared_ptr<Material> material;
-    //std::unordered_map<int, std::shared_ptr<Material>> multi_material;
+    // std::unordered_map<int, std::shared_ptr<Material>> multi_material;
 
     IndexingMode indexing = IndexingMode::CORNER;
     PrimitiveType primitive = PrimitiveType::TRIANGLES;

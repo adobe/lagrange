@@ -15,3 +15,38 @@ add_subdirectory(ui_dynamic_mesh)
 add_subdirectory(ui_scene)
 add_subdirectory(ui_callbacks)
 add_subdirectory(ui_treenode)
+
+include(cli11)
+
+if(NOT TARGET lagrange_download_data)
+    lagrange_download_data()
+endif()
+
+
+function(lagrange_ui_add_example name)
+    lagrange_add_example(${name} ${name}.cpp)
+    target_link_libraries(${name} lagrange::ui CLI11::CLI11)
+
+    # Folder in IDE
+    set_target_properties(${name} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Examples//UI")
+
+    # Output directory on disk
+    set_target_properties(${name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/examples/UI")
+
+    # Test data needed for examples
+    add_dependencies(${name} lagrange_download_data)
+
+    target_compile_definitions(
+        ${name}
+        PRIVATE
+        LAGRANGE_DATA_FOLDER="${LAGRANGE_DATA_FOLDER}"
+        )
+
+endfunction()
+
+lagrange_ui_add_example(101_Viewer)
+lagrange_ui_add_example(102_MeshFromFile)
+lagrange_ui_add_example(103_MeshFromMemory)
+lagrange_ui_add_example(104_MainLoop)
+lagrange_ui_add_example(105_Keybinds)
+lagrange_ui_add_example(106_Mouse)

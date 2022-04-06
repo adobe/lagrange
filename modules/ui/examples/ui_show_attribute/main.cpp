@@ -67,8 +67,10 @@ int main(int argc, char** argv)
         lagrange::compute_vertex_valence(mesh);
         lagrange::compute_vertex_normal(mesh);
         lagrange::compute_triangle_normal(mesh);
-        lagrange::compute_corner_tangent_bitangent(mesh);
         lagrange::compute_edge_lengths(mesh);
+        if (mesh.is_uv_initialized()) {
+            lagrange::compute_corner_tangent_bitangent(mesh);
+        }
     }
 
 
@@ -110,8 +112,10 @@ int main(int argc, char** argv)
 
     {
         // Show corner attributes tangent and bitangent
-        scene_entities.push_back(ui::show_corner_attribute(r, mesh_entity, "tangent", glyph));
-        scene_entities.push_back(ui::show_corner_attribute(r, mesh_entity, "bitangent", glyph));
+        if (mesh.is_uv_initialized()) {
+            scene_entities.push_back(ui::show_corner_attribute(r, mesh_entity, "tangent", glyph));
+            scene_entities.push_back(ui::show_corner_attribute(r, mesh_entity, "bitangent", glyph));
+        }
     }
 
     {
@@ -135,8 +139,8 @@ int main(int argc, char** argv)
     const int cols = (int(scene_entities.size()) + rows - 1) / rows;
 
     for (size_t i = 0; i < scene_entities.size(); i++) {
-        int row = i % cols;
-        int col = i / cols;
+        int row = (int)i % cols;
+        int col = (int)i / cols;
 
         r.get<ui::Transform>(scene_entities[i]).local =
             Eigen::Translation3f(float(row), 0.0f, float(col)) *

@@ -217,7 +217,8 @@ Eigen::Vector2f Camera::project(const Eigen::Vector3f& pos) const
     return s;
 }
 
-Eigen::Vector3f Camera::project_with_depth(const Eigen::Vector3f& pos) const {
+Eigen::Vector3f Camera::project_with_depth(const Eigen::Vector3f& pos) const
+{
     Eigen::Vector4f v = Eigen::Vector4f(pos.x(), pos.y(), pos.z(), 1.0f);
     // Project
     v = m_P * m_V * v;
@@ -270,7 +271,6 @@ void Camera::rotate_around_lookat(float angleRad)
 
 void Camera::rotate_tumble(float yaw_delta, float pitch_delta)
 {
-
     if (get_up().y() < 0.0f) {
         yaw_delta = -yaw_delta;
     }
@@ -339,7 +339,7 @@ void Camera::rotate_arcball(
     // No change of camera
     if (mouse_start.x() == mouse_current.x() && mouse_start.y() == mouse_current.y()) return;
 
-    
+
     const auto map_to_sphere = [&](const Eigen::Vector2f& pos) -> Eigen::Vector3f {
         Eigen::Vector3f p = Eigen::Vector3f::Zero();
         // Map to fullscreen ellipse
@@ -396,7 +396,6 @@ void Camera::rotate_arcball(
     // Set new camera properties
     set_position(new_pos);
     set_up(up);
-
 }
 
 
@@ -483,7 +482,7 @@ Eigen::Vector4f Camera::get_ortho_viewport() const
 Camera Camera::transformed(const ViewportTransform& vt) const
 {
     Camera cam = *this;
-    
+
     if (vt.clip) {
         Eigen::Vector2f orig = cam.get_window_origin();
         cam.set_window_origin(
@@ -497,7 +496,8 @@ Camera Camera::transformed(const ViewportTransform& vt) const
             cam.get_window_width() * vt.scale.x(),
             cam.get_window_height() * vt.scale.y());
         const Eigen::Translation3f half = Eigen::Translation3f(Eigen::Vector3f(1.0f, 1.0f, 0));
-        const Eigen::Vector2f translate_flip = Eigen::Vector2f(vt.translate.x(), 1.0f - vt.scale.y() - vt.translate.y());
+        const Eigen::Vector2f translate_flip =
+            Eigen::Vector2f(vt.translate.x(), 1.0f - vt.scale.y() - vt.translate.y());
         const Eigen::Vector2f offset = translate_flip * 2.0f - Eigen::Vector2f::Ones();
         const Eigen::Translation3f V_T =
             Eigen::Translation3f(Eigen::Vector3f(offset.x(), offset.y(), 0));

@@ -15,4 +15,6 @@ namespace lagrange {
 
 Error::~Error() = default;
 
+BadCastError::~BadCastError() = default;
+
 } // namespace lagrange

@@ -20,8 +20,8 @@ float radicalInverse_VdC(uint bits) {
      return float(bits) * 2.3283064365386963e-10; // / 0x100000000
  }
 
-vec2 hammersley2d(uint i, uint N) {
-     return vec2(float(i)/float(N), radicalInverse_VdC(i));
+vec2 hammersley2d(int i, int N) {
+     return vec2(float(i)/float(N), radicalInverse_VdC(uint(i)));
 }
 
 
@@ -53,7 +53,9 @@ vec3 GGX_sample_dir(vec2 Xi, vec3 N, float roughness)
     H.z = cosTheta;
 
     // from tangent-space vector to world-space sample vector
-    vec3 up = abs(N.z) < 0.999 ? vec3(0.0, 0.0, 1.0) : vec3(1.0, 0.0, 0.0);
+    vec3 up = vec3(1.0, 0.0, 0.0);
+    if(abs(N.z) < 0.999)
+        up = vec3(0.0, 0.0, 1.0);
     vec3 tangent = normalize(cross(up, N));
     vec3 bitangent = cross(N, tangent);
 
@@ -114,7 +116,7 @@ vec3 pbr_color(
     float G = G_Smith_GGX_Schlick(cos_in, L.cos_out, roughness);
 
     //Denominator
-    float denom = max(4 * cos_in * L.cos_out,0.00001);
+    float denom = max(4.0 * cos_in * L.cos_out, 0.00001);
 
     //Final specular direct light component
     vec3 specular = (F*D*G) / denom;

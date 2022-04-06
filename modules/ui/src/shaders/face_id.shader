@@ -27,7 +27,7 @@ void main()
     vs_out_id.vertex_id = gl_VertexID;
 
     //To clip space
-    gl_Position = PV * vec4(vs_out.pos,1.0);
+    gl_Position = PV * vec4(vs_out_id.pos,1.0);
 }
 
 #pragma GEOMETRY
@@ -96,8 +96,8 @@ vec4 index_to_color(int i){
 #define ELEMENT_EDGE 1
 #define ELEMENT_VERTEX 2
 
-uniform int element_mode = ELEMENT_EDGE;
-uniform bool debug_output = false;
+#pragma property element_mode "ElementMode" int(0,0,1)
+#pragma property debug_output "DebugOutput" bool(false)
 
 void main(){
 

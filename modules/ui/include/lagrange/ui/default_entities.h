@@ -217,6 +217,17 @@ Entity add_camera(Registry& r, const Camera& camera = Camera::default_camera(1, 
 // Clears all user added entities
 void clear_scene(Registry& r);
 
+/// Intersect ray with meshes in root's hierarchy
+/// Returns a pair of intersected entity and the corresponding hit
+/// If root == ui::NullEntity, entire scene is traversed
+std::optional<std::pair<Entity, RayFacetHit>> intersect_ray(
+    Registry& r,
+    const Eigen::Vector3f& origin,
+    const Eigen::Vector3f& dir,
+    ui::Entity root = ui::NullEntity,
+    Layer visible_layers = Layer(true),
+    Layer hidden_layers = Layer(false));
+
 
 } // namespace ui
 } // namespace lagrange

@@ -63,13 +63,13 @@ void foreach_child(
     const Entity parent,
     const std::function<void(Entity)>& fn)
 {
-    if (!registry.has<TreeNode>(parent)) return;
+    if (!registry.all_of<TreeNode>(parent)) return;
     const auto& parent_tree = registry.get<TreeNode>(parent);
     if (parent_tree.num_children == 0) return;
 
     auto e = parent_tree.first_child;
     if (!registry.valid(e)) return;
-    if (!registry.has<TreeNode>(e)) return;
+    if (!registry.all_of<TreeNode>(e)) return;
     auto* t = &registry.get<TreeNode>(e);
 
     fn(e);
@@ -154,7 +154,7 @@ void orphan(Registry& registry, Entity child)
 
 void set_parent(Registry& registry, Entity child, Entity new_parent)
 {
-    la_runtime_assert(registry.has<TreeNode>(child), "Child must have Tree component");
+    la_runtime_assert(registry.all_of<TreeNode>(child), "Child must have Tree component");
     auto& t_child = registry.get<TreeNode>(child);
     auto* t_new_parent = (new_parent == NullEntity) ? nullptr : &registry.get<TreeNode>(new_parent);
 
@@ -266,7 +266,7 @@ Entity ungroup(Registry& registry, Entity parent, bool remove_parent /*= false*/
 
 void orphan_without_subtree(Registry& registry, Entity e)
 {
-    assert(registry.has<TreeNode>(e));
+    assert(registry.all_of<TreeNode>(e));
 
     // Reparent any children of e to e's parent (i.e., move up one level)
     auto p = get_parent(registry, e);

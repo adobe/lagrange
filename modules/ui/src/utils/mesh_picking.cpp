@@ -25,8 +25,8 @@
 #include <lagrange/ui/utils/mesh_picking.h>
 #include <lagrange/ui/utils/objectid_viewport.h>
 #include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/tools.h>
 #include <lagrange/ui/utils/viewport.h>
-
 
 #include <lagrange/ui/default_entities.h>
 
@@ -36,7 +36,7 @@ void update_meshselection_render(Registry& r, Entity selected_entity)
 {
     const auto& sr = r.get<MeshSelectionRender>(selected_entity);
 
-    if (r.has<Layer>(selected_entity)) {
+    if (r.all_of<Layer>(selected_entity)) {
         const auto& layer = r.get<Layer>(selected_entity);
         r.emplace_or_replace<Layer>(sr.facet_render, layer);
         r.emplace_or_replace<Layer>(sr.edge_render, layer);
@@ -46,7 +46,7 @@ void update_meshselection_render(Registry& r, Entity selected_entity)
     // Copy transform from selected entity
     // _render entities are not part of the scene tree
     // and thus require absolute transform
-    if (r.has<Transform>(selected_entity)) {
+    if (r.all_of<Transform>(selected_entity)) {
         const auto& transform = r.get<Transform>(selected_entity);
         r.emplace_or_replace<Transform>(sr.facet_render, transform);
         r.emplace_or_replace<Transform>(sr.edge_render, transform);
@@ -247,7 +247,7 @@ void clear_element_selection_render(Registry& r, bool exclude_selected)
 {
     auto prev_selected = r.view<MeshSelectionRender>();
     for (auto e : prev_selected) {
-        if (exclude_selected && r.has<Selected>(e)) continue;
+        if (exclude_selected && r.all_of<Selected>(e)) continue;
 
         auto& sr = prev_selected.get<MeshSelectionRender>(e);
 
@@ -262,7 +262,7 @@ void clear_element_selection_render(Registry& r, bool exclude_selected)
 
 MeshSelectionRender& ensure_selection_render(Registry& r, Entity e)
 {
-    if (r.has<MeshSelectionRender>(e)) {
+    if (r.all_of<MeshSelectionRender>(e)) {
         update_meshselection_render(r, e);
         return r.get<MeshSelectionRender>(e);
     }
@@ -398,7 +398,7 @@ bool enable_accelerated_picking(Registry& r, Entity in_e)
 
 bool has_accelerated_picking(Registry& r, Entity e)
 {
-    return r.has<AcceleratedPicking>(get_mesh_entity(r, e));
+    return r.all_of<AcceleratedPicking>(get_mesh_entity(r, e));
 }
 
 std::optional<lagrange::ui::RayFacetHit>

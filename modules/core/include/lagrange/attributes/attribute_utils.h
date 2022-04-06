@@ -291,7 +291,7 @@ void map_indexed_attribute_to_corner_attribute(MeshType& mesh, const std::string
     corner_attr.setZero();
     for (auto i : range(num_facets)) {
         for (auto j : range(vertex_per_facet)) {
-            if (attr_indices(i, j) != INVALID<Index>()) {
+            if (attr_indices(i, j) != invalid<Index>()) {
                 corner_attr.row(i * vertex_per_facet + j) = attr_values.row(attr_indices(i, j));
             }
         }

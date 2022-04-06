@@ -24,7 +24,7 @@
 namespace lagrange {
 namespace ui {
 
-lagrange::fs::path resolve_texture_path(const lagrange::fs::path & parent_path, const char* tex_path)
+lagrange::fs::path resolve_texture_path(const lagrange::fs::path& parent_path, const char* tex_path)
 {
     const auto p = lagrange::fs::path(tex_path);
 
@@ -45,7 +45,7 @@ lagrange::fs::path resolve_texture_path(const lagrange::fs::path & parent_path, 
         if (lagrange::fs::exists(tmp_path)) return tmp_path;
     }
 
-    lagrange::logger().warn("{} is an invalid texture path", p);
+    lagrange::logger().warn("{} is an invalid texture path", p.string());
     return fs::path();
 };
 
@@ -85,7 +85,7 @@ std::shared_ptr<Texture> discover_texture(
 
     for (auto& filename : opts) {
         if (fs::exists(filename)) {
-            lagrange::logger().debug("Discovered texture: {}", filename);
+            lagrange::logger().debug("Discovered texture: {}", filename.string());
             return std::make_shared<Texture>(filename, param);
         }
     }
@@ -99,7 +99,7 @@ convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_
     auto mat_ptr = create_material(r, DefaultShaders::PBR);
     auto& m = *mat_ptr;
 
-    
+
     Texture::Params base_param;
     base_param.sRGB = false;
 
@@ -154,7 +154,6 @@ convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_
     }
 
 
-
     m.set_float(PBRMaterial::IndexOfRefraction, float(tinymat.ior));
 
 
@@ -197,8 +196,7 @@ convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_
 
     // Glow intensity
     auto it = tinymat.unknown_parameter.find("adobe_glow");
-    if (it != tinymat.unknown_parameter.end())
-    {
+    if (it != tinymat.unknown_parameter.end()) {
         float emission{};
         std::istringstream iss{it->second};
         iss >> emission;
@@ -207,8 +205,7 @@ convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_
 
     // Translucence
     it = tinymat.unknown_parameter.find("adobe_translucence");
-    if (it != tinymat.unknown_parameter.end())
-    {
+    if (it != tinymat.unknown_parameter.end()) {
         float translucence{};
         std::istringstream iss{it->second};
         iss >> translucence;
@@ -216,8 +213,7 @@ convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_
     }
 
     it = tinymat.unknown_parameter.find("adobe_map_translucence");
-    if (it != tinymat.unknown_parameter.end())
-    {
+    if (it != tinymat.unknown_parameter.end()) {
         std::istringstream iss{it->second};
         std::string tex_name;
         tex_name = iss.str();
@@ -228,8 +224,7 @@ convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_
 
     // Interior Color
     it = tinymat.unknown_parameter.find("adobe_interior_color");
-    if (it != tinymat.unknown_parameter.end())
-    {
+    if (it != tinymat.unknown_parameter.end()) {
         float x{}, y{}, z{};
         std::istringstream iss{it->second};
         iss >> x >> y >> z;
@@ -256,43 +251,49 @@ Entity detail::load_scene_impl(
 
         auto mat = create_material(r, DefaultShaders::PBR);
 
-        const auto try_texture_load =
-            [&](const char* pKey, unsigned int type, unsigned int idx, ui::StringID ui_mat_id, bool srgba = false) {
+        const auto try_texture_load = [&](const char* pKey,
+                                          unsigned int type,
+                                          unsigned int idx,
+                                          ui::StringID ui_mat_id,
+                                          bool srgba = false) {
+            Texture::Params tex_param;
+            tex_param.internal_format = GL_NONE; // Determined based on input
+            if (srgba) {
+                tex_param.sRGB = srgba;
+            }
 
-                Texture::Params tex_param;
-                tex_param.internal_format = GL_NONE; //Determined based on input
-                if (srgba) {
-                    tex_param.sRGB = srgba;
-                }
+            aiString dpath;
+            if (amat->Get(pKey, type, idx, dpath) != aiReturn_SUCCESS) return false;
 
-                aiString dpath;
-                if (amat->Get(pKey, type, idx, dpath) != aiReturn_SUCCESS) return false;
+            if (dpath.length == 0) return false;
 
-                if (dpath.length == 0) return false;
+            auto embedded = scene->GetEmbeddedTexture(dpath.C_Str());
 
-                auto embedded = scene->GetEmbeddedTexture(dpath.C_Str());
-
-                std::shared_ptr<Texture> tex;
-                if (embedded) {
-
-                    //Compressed texture
-                    if (embedded->mHeight == 0) {
-                        try {
-                            tex = std::make_shared<Texture>(
-                                embedded->pcData,
-                                embedded->mWidth,
-                                tex_param);
-                        } catch (const std::runtime_error& ex) {
-                            lagrange::logger().error("Loading compressed texture from memory failed: {}", ex.what());
-                        }
+            std::shared_ptr<Texture> tex;
+            if (embedded) {
+                // Compressed texture
+                if (embedded->mHeight == 0) {
+                    try {
+                        tex = std::make_shared<Texture>(
+                            embedded->pcData,
+                            embedded->mWidth,
+                            tex_param);
+                    } catch (const std::runtime_error& ex) {
+                        lagrange::logger().error(
+                            "Loading compressed texture from memory failed: {}",
+                            ex.what());
+                    }
+                } else {
+                    const auto fmt = std::string(embedded->achFormatHint);
+                    if (fmt == "rgba8888") {
+                        tex_param.format = GL_RGBA;
+                    } else if (fmt == "rgba8880") {
+                        tex_param.format = GL_RGB;
                     } else {
-                        
-                        
                         const auto fmt = std::string(embedded->achFormatHint);
                         if (fmt == "rgba8888") {
                             tex_param.format = GL_RGBA;
-                        }
-                        else if (fmt == "rgba8880") {
+                        } else if (fmt == "rgba8880") {
                             tex_param.format = GL_RGB;
                         } else {
                             tex_param.format = 0;
@@ -307,17 +308,25 @@ Entity detail::load_scene_impl(
                         }
                     }
 
-                } else {
-                    tex = load_texture(
-                        resolve_texture_path(path.parent_path(), dpath.C_Str()),
-                        tex_param);
+                    if (tex_param.format != 0) {
+                        tex = std::make_shared<Texture>(
+                            tex_param,
+                            embedded->mWidth,
+                            embedded->mHeight);
+                    }
                 }
 
-                if (!tex) return false;
+            } else {
+                tex = load_texture(
+                    resolve_texture_path(path.parent_path(), dpath.C_Str()),
+                    tex_param);
+            }
 
-                mat->set_texture(ui_mat_id, tex);
-                return true;
-            };
+            if (!tex) return false;
+
+            mat->set_texture(ui_mat_id, tex);
+            return true;
+        };
 
 
         aiString matname;
@@ -335,22 +344,32 @@ Entity detail::load_scene_impl(
                 c.a() = color.a;
                 mat->set_color(PBRMaterial::BaseColor, c);
 
-                lagrange::logger().trace("Material index {} name {} base color {}",i, matname.C_Str(), c);
+                lagrange::logger().trace(
+                    "Material index {} name {} base color {} {} {} {}",
+                    i,
+                    matname.C_Str(),
+                    c.x(),
+                    c.y(),
+                    c.z(),
+                    c.w());
             }
         }
-        
+
         try_texture_load(AI_MATKEY_TEXTURE_DIFFUSE(0), PBRMaterial::BaseColor, false);
-        try_texture_load(AI_MATKEY_TEXTURE(aiTextureType_BASE_COLOR, 0), PBRMaterial::BaseColor, false);
+        try_texture_load(
+            AI_MATKEY_TEXTURE(aiTextureType_BASE_COLOR, 0),
+            PBRMaterial::BaseColor,
+            false);
         try_texture_load(AI_MATKEY_TEXTURE(aiTextureType_NORMALS, 0), PBRMaterial::Normal);
         try_texture_load(
             AI_MATKEY_TEXTURE(aiTextureType_DIFFUSE_ROUGHNESS, 0),
             PBRMaterial::Roughness);
         try_texture_load(AI_MATKEY_TEXTURE(aiTextureType_METALNESS, 0), PBRMaterial::Metallic);
         try_texture_load(AI_MATKEY_OPACITY, PBRMaterial::Opacity);
-        
 
-        for (size_t i = 0; i < amat->mNumProperties; i++) {
-            auto prop = amat->mProperties[i];
+
+        for (size_t i_prop = 0; i_prop < amat->mNumProperties; i_prop++) {
+            auto prop = amat->mProperties[i_prop];
             lagrange::logger().trace(
                 "key: {} length: {}, type: {:02X}, index: {}",
                 prop->mKey.C_Str(),
@@ -383,24 +402,27 @@ Entity detail::load_scene_impl(
 
 
         for (unsigned int mesh_index = 0; mesh_index < node->mNumMeshes; mesh_index++) {
+            Entity mesh_entity = meshes[node->mMeshes[mesh_index]];
+            Entity scene_node_entity = NullEntity;
+
             // Mesh
-            auto mesh_e = ui::show_mesh(
-                r,
-                meshes[node->mMeshes[mesh_index]],
-                DefaultShaders::PBR); // todo PBRSkeletal if has bones
+            if (mesh_entity != NullEntity) {
+                scene_node_entity = ui::show_mesh(
+                    r,
+                    mesh_entity,
+                    DefaultShaders::PBR); // todo PBRSkeletal if has bones
 
-            lagrange::logger().trace(
-                "Mesh index {}, name parent {}, material index {}",
-                mesh_index,
-                node->mName.C_Str(),
-                scene->mMeshes[node->mMeshes[mesh_index]]->mMaterialIndex);
+                // Material
+                ui::set_material(
+                    r,
+                    scene_node_entity,
+                    materials[scene->mMeshes[node->mMeshes[mesh_index]]->mMaterialIndex]);
 
-            // Material
-            ui::set_material(
-                r,
-                mesh_e,
-                materials[scene->mMeshes[node->mMeshes[mesh_index]]->mMaterialIndex]);
-            ui::set_parent(r, mesh_e, e);
+            } else {
+                scene_node_entity = ui::create_scene_node(r, "Mesh failed to load");
+            }
+
+            ui::set_parent(r, scene_node_entity, e);
         }
 
         for (unsigned int i = 0; i < node->mNumChildren; i++) {

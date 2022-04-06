@@ -108,9 +108,22 @@
 /// Ignore self move
 /// @hideinitializer
 #define LA_IGNORE_SELF_MOVE_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING_CLANG(-Wself-move)
+    LA_DISABLE_WARNING_CLANG(-Wself-move) \
+    LA_DISABLE_WARNING_MSVC(26800)
 /// @hideinitializer
 #define LA_IGNORE_SELF_MOVE_WARNING_END LA_DISABLE_WARNING_END
+
+/// Ignore switch enum
+#define LA_IGNORE_SWITCH_ENUM_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wswitch-enum)
+/// @hideinitializer
+#define LA_IGNORE_SWITCH_ENUM_WARNING_END LA_DISABLE_WARNING_END
+
+/// Ignore warning "function declared with 'noreturn' has non-void return type"
+#define LA_IGNORE_NONVOID_NORETURN_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_MSVC(4646)
+/// @hideinitializer
+#define LA_IGNORE_NONVOID_NORETURN_WARNING_END LA_DISABLE_WARNING_END
 
 /// Ignore x to avoid an unused variable warning
 /// @hideinitializer

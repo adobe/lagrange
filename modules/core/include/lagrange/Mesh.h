@@ -661,12 +661,12 @@ public:
     /// @param[in]  v1  Edge edge point 1.
     ///
     /// @return  The edge index if (v0, v1) is a valid edge;
-    ///          INVALID<Index>() otherwise.
+    ///          invalid<Index>() otherwise.
     ///
     Index find_edge_from_vertices(Index v0, Index v1) const
     {
         la_runtime_assert(is_edge_data_initialized(), "Edge data not initialized");
-        Index edge_id = INVALID<Index>();
+        Index edge_id = invalid<Index>();
 
         const Index vertex_per_facet = get_vertex_per_facet();
         foreach_corners_around_vertex(v0, [&](Index c) {
@@ -676,7 +676,7 @@ public:
                 edge_id = get_edge(fid, lv);
             }
         });
-        if (edge_id != INVALID<Index>()) return edge_id;
+        if (edge_id != invalid<Index>()) return edge_id;
 
         // It is possible that (v0, v1) is a boundary edge, in which case
         // the above code will only find the edge_id if (v0, v1) is oriented

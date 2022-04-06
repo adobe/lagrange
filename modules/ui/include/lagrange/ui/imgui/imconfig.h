@@ -79,7 +79,7 @@
 //#define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
 
 //---- Unless IMGUI_DISABLE_DEFAULT_FORMAT_FUNCTIONS is defined, use the much faster STB sprintf
-//library implementation of vsnprintf instead of the one from the default C library.
+// library implementation of vsnprintf instead of the one from the default C library.
 // Note that stb_sprintf.h is meant to be provided by the user and available in the include path at
 // compile time. Also, the compatibility checks of the arguments and formats done by clang and GCC
 // will be disabled in order to support the extra formats provided by STB sprintf. #define
@@ -107,7 +107,7 @@
 
 
 //---- Use 32-bit vertex indices (default is 16-bit) is one way to allow large meshes with more than
-//64K vertices.
+// 64K vertices.
 // Your renderer back-end will need to support it (most example renderer back-ends support both 16/32-bit indices).
 // Another way to allow large meshes while keeping 16-bit indices is to handle ImDrawCmd::VtxOffset
 // in your renderer. Read about ImGuiBackendFlags_RendererHasVtxOffset for details.
@@ -134,7 +134,7 @@
 //#define IMGUI_DEBUG_PARANOID
 
 //---- Tip: You can add extra functions within the ImGui:: namespace, here or in your own headers
-//files.
+// files.
 /*
 namespace ImGui
 {

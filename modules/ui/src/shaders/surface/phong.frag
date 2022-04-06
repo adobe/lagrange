@@ -17,29 +17,22 @@
 #pragma property material_normal "Normal" Texture2D [normal]
 
 
-uniform bool has_ibl = false;
+
+uniform bool has_ibl; // System property
 uniform samplerCube ibl_diffuse;
 
 void main(){
 
-    vec4 baseColor_ =  material_base_color_texture_bound ?
-        texture(material_base_color, fs_in.uv) : material_base_color_default_value;
+    vec4 baseColor_ = material_base_color_default_value;
+    if(material_base_color_texture_bound)
+        baseColor_ = texture(material_base_color, vs_out_uv);
 
 
     vec3 baseColor = baseColor_.xyz;
 
-    if(has_color_attrib){
-        baseColor = fs_in.color.xyz;
-    }
-    else if(uniform_color.x >= 0.0f){
-        baseColor = uniform_color.xyz;
-    }
-
-
-
     fragColor = vec4(0,0,0,0);
 
-    vec3 N = normalize(fs_in.normal);
+    vec3 N = normalize(vs_out_normal);
 
 
     vec3 ambient_default = vec3(1.0);
@@ -52,12 +45,12 @@ void main(){
 
     //Perturb normal in tangent space
     if(material_normal_texture_bound){
-        vec3 T = normalize(fs_in.tangent);
-        vec3 BT = normalize(fs_in.bitangent);
+        vec3 T = normalize(vs_out_tangent);
+        vec3 BT = normalize(vs_out_bitangent);
         mat3 TBN = mat3(T, BT, N);
         vec3 N_in_TBN = TBN * N;
 
-        vec3 Ntex = texture(material_normal, fs_in.uv).xyz * 2.0f - vec3(1.0f);
+        vec3 Ntex = texture(material_normal, vs_out_uv).xyz * 2.0f - vec3(1.0f);
         vec3 Ntex_in_world = TBN * Ntex;
 
         N = normalize(Ntex_in_world);
@@ -67,7 +60,7 @@ void main(){
 
     vec3 color = vec3(0);
 
-    vec3 lightOut = normalize(cameraPos - fs_in.pos);
+    vec3 lightOut = normalize(cameraPos - vs_out_pos);
     float cos_out = max(0.0, dot(lightOut,N)); //n dot v
 
 
@@ -91,12 +84,12 @@ void main(){
             switch(light_type){
                 case LIGHT_TYPE_SPOT:
                     lightPos = spot_lights[i].position;
-                    lightIn = normalize(lightPos - fs_in.pos);
+                    lightIn = normalize(lightPos - vs_out_pos);
                     intensity = spot_lights[i].intensity;
                     break;
                 case LIGHT_TYPE_POINT:
                     lightPos = point_lights[i].position;
-                    lightIn = normalize(lightPos - fs_in.pos);
+                    lightIn = normalize(lightPos - vs_out_pos);
                     intensity = point_lights[i].intensity;
                     break;
                 case LIGHT_TYPE_DIRECTIONAL:
@@ -107,15 +100,15 @@ void main(){
 
 
             vec3 lightHalf = normalize(lightIn + lightOut);
-            float lightDistance = length(lightPos - fs_in.pos);
+            float lightDistance = length(lightPos - vs_out_pos);
 
             float attenuation = 1.0f;
             float shadow_attenuation = 1.0f;
 
             //Compute attenuation + shadow
-            if(light_type == LIGHT_TYPE_SPOT){
+            /*if(light_type == LIGHT_TYPE_SPOT){
                 shadow_attenuation = getShadowSquare(
-                    fs_in.pos,
+                    vs_out_pos,
                     spot_lights[i].PV,
                     spot_lights[i].shadow_map,
                     spot_lights[i].shadow_near,
@@ -131,7 +124,7 @@ void main(){
             }
             else if(light_type == LIGHT_TYPE_DIRECTIONAL){
                 shadow_attenuation = getShadowSquare(
-                    fs_in.pos,
+                    vs_out_pos,
                     directional_lights[i].PV,
                     directional_lights[i].shadow_map,
                     directional_lights[i].shadow_near,
@@ -140,14 +133,14 @@ void main(){
             }
             else if(light_type == LIGHT_TYPE_POINT){
                 shadow_attenuation = getShadowCube(
-                    fs_in.pos,
+                    vs_out_pos,
                     lightPos,
                     point_lights[i].shadow_map,
                     point_lights[i].shadow_near,
                     point_lights[i].shadow_far
                 );
                 attenuation = 1.0 / (lightDistance*lightDistance);
-            }
+            }*/
 
             vec3 radiance = attenuation * shadow_attenuation * intensity;
 

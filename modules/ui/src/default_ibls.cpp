@@ -24,7 +24,8 @@ IBL generate_default_ibl(size_t resolution)
 {
     Texture::Params p = Texture::Params::rgb();
     p.sRGB = false;
-    auto ibl = generate_ibl(std::make_shared<Texture>(ibl_studio011, ibl_studio011_len, p), resolution);
+    auto ibl =
+        generate_ibl(std::make_shared<Texture>(ibl_studio011, ibl_studio011_len, p), resolution);
     ibl.blur = 2.0f;
     return ibl;
 }

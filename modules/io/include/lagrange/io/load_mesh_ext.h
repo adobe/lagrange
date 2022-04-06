@@ -356,11 +356,11 @@ auto load_mesh_ext(
                 indices_i++;
             }
 
-            // Padding with INVALID<Index> for mixed triangle/quad or arbitrary polygon meshes
+            // Padding with invalid<Index> for mixed triangle/quad or arbitrary polygon meshes
             for (auto pad = size_t(face_size); pad < size_t(max_face_size); pad++) {
-                faces(face_index, pad) = INVALID<typename MeshType::Index>();
+                faces(face_index, pad) = invalid<typename MeshType::Index>();
                 if (!loader.uvs.empty()) {
-                    uv_indices(face_index, pad) = INVALID<typename MeshType::UVIndices::Scalar>();
+                    uv_indices(face_index, pad) = invalid<typename MeshType::UVIndices::Scalar>();
                 }
                 if (!loader.normals.empty()) {
                     corner_normals.row(face_index * max_face_size + pad).setZero();
@@ -459,7 +459,7 @@ MeshLoaderResult<MeshType> load_mesh_ext(
     lagrange::fs::ifstream stream(filename);
     if (!stream.good()) {
         MeshLoaderResult<MeshType> result;
-        logger().error("Cannot open file: \"{}\"", filename);
+        logger().error("Cannot open file: \"{}\"", filename.string());
         result.success = false;
         return result;
     }

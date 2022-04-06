@@ -9,8 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/ui/types/Systems.h>
 #include <lagrange/ui/default_panels.h>
+#include <lagrange/ui/types/Systems.h>
 
 #include <lagrange/ui/panels/ComponentPanel.h>
 #include <lagrange/ui/panels/KeybindsPanel.h>

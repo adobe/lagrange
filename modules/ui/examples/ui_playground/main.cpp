@@ -19,6 +19,13 @@
 #include <lagrange/compute_tangent_bitangent.h>
 #include <lagrange/compute_vertex_normal.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <spdlog/fmt/ostr.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
+
 /*
     This is an experimental example, combining multiple features of the UI.
 */
@@ -103,9 +110,9 @@ int main(int argc, char** argv)
 
     // Test shaders
     {
-        auto & shaders = ui::get_registered_shaders(viewer);
-        for (auto & it : shaders) {
-            //This will invoke shader compilation i
+        auto& shaders = ui::get_registered_shaders(viewer);
+        for (auto& it : shaders) {
+            // This will invoke shader compilation
             auto tmp_mat = ui::create_material(viewer, it.first);
         }
     }
@@ -143,7 +150,6 @@ int main(int argc, char** argv)
         k = 0;
     }
 
-   
 
     lagrange::logger().set_level(spdlog::level::debug);
     auto& registry = viewer.registry();
@@ -270,7 +276,7 @@ int main(int argc, char** argv)
         ImGui::InputInt("y", &s.y);
 
         ImGui::Text("Shared state from other system:");
-        auto pos = ui::get_input(registry).mouse_position;
+        auto pos = ui::get_input(registry).mouse.position;
         ImGui::InputFloat2("Mouse pos:", pos.data());
 
         ImGui::Text("Shared state created and modified by these panels");

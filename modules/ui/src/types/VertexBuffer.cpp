@@ -35,8 +35,15 @@ void VertexBuffer::upload(
         initialize();
     }
     size = size_;
-    GL(glBindBuffer(target, id));
-    GL(glBufferData(target, size, data, GL_DYNAMIC_DRAW));
+    LA_GL(glBindBuffer(target, id));
+#if defined(__EMSCRIPTEN__)
+    //https://github.com/thismarvin/susurrus/issues/5
+    LA_GL(glBufferData(target, size, data, GL_STATIC_DRAW));
+#else
+    LA_GL(glBufferData(target, size, data, GL_DYNAMIC_DRAW));
+#endif
+
+
     this->is_integral = integral;
     this->count = cnt;
     this->glType = gl_type;
@@ -55,19 +62,19 @@ void VertexBuffer::upload(const void* data, size_t byte_size, DataDescription& d
 void VertexBuffer::initialize()
 {
     if (id != 0) assert(false);
-    GL(glGenBuffers(1, &id));
+    LA_GL(glGenBuffers(1, &id));
 }
 
 void VertexBuffer::download(GLuint size_, uint8_t* data) const
 {
-    GL(glBindBuffer(target, id));
-    GL(glGetBufferSubData(target, 0, size_, data));
+    LA_GL(glBindBuffer(target, id));
+    LA_GL(glGetBufferSubData(target, 0, size_, data));
 }
 
 void VertexBuffer::free()
 {
     if (id != 0) {
-        GL(glDeleteBuffers(1, &id));
+        LA_GL(glDeleteBuffers(1, &id));
     }
     id = 0;
 }
@@ -75,13 +82,13 @@ void VertexBuffer::free()
 void VAO::init()
 {
     if (id != 0) assert(false);
-    GL(glGenVertexArrays(1, &id));
+    LA_GL(glGenVertexArrays(1, &id));
 }
 
 void VAO::free()
 {
     if (id != 0) {
-        GL(glDeleteVertexArrays(1, &id));
+        LA_GL(glDeleteVertexArrays(1, &id));
     }
     id = 0;
 }

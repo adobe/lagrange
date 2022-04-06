@@ -525,3 +525,4 @@ private:
 } // namespace lagrange
 
 #include "Array.impl.h"
+#include "Array.serialization.h"

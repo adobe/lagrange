@@ -35,7 +35,7 @@ entt::id_type hash_shader_definition(const ShaderDefinition& def)
 std::shared_ptr<Shader> ShaderLoader::load(
     const std::string& generic_path,
     PathType pathtype,
-    const ShaderDefines & defines /*= {}*/) const
+    const ShaderDefines& defines /*= {}*/) const
 {
     try {
         if (pathtype == PathType::REAL) {
@@ -53,6 +53,45 @@ std::shared_ptr<Shader> ShaderLoader::load(
 #endif
     } catch (const ShaderException& ex) {
         lagrange::logger().error("{}\nin {}", ex.what(), generic_path);
+
+#if defined(__EMSCRIPTEN__)
+
+        static std::string fallback_shader = "#pragma VERTEX"
+                                             "in vec3 in_pos;"
+                                             "uniform mat4 PV;"
+                                             "uniform mat4 M;"
+                                             "void main() {"
+                                             "    gl_Position = PV * M * vec4(in_pos, 1);"
+                                             "}"
+                                             "#pragma FRAGMENT"
+                                             "out vec4 fragColor;"
+                                             "precision mediump float;"
+                                             "void main() {"
+                                             "    fragColor = vec4(1, 0, 0, 1);"
+                                             "}";
+#else
+
+        static std::string fallback_shader = "#pragma VERTEX"
+                                             "in vec3 in_pos;"
+                                             "uniform mat4 PV;"
+                                             "uniform mat4 M;"
+                                             "void main() {"
+                                             "    gl_Position = PV * M * vec4(in_pos, 1);"
+                                             "}"
+                                             "#pragma FRAGMENT"
+                                             "out vec4 fragColor;"
+                                             "void main() {"
+                                             "    fragColor = vec4(1, 0, 0, 1);"
+                                             "}";
+
+
+#endif
+
+        try {
+            return std::make_shared<Shader>(fallback_shader, ShaderDefines{});
+        } catch (const ShaderException& ex) {
+            lagrange::logger().error("Failed to compile fallback shader: {}", ex.what());
+        }
     }
     return nullptr;
 }
@@ -60,13 +99,12 @@ std::shared_ptr<Shader> ShaderLoader::load(
 entt::id_type
 register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines& shader_defines)
 {
-
     if (shader_defines.size() == 0) return id;
 
     auto& registered = r.ctx_or_set<RegisteredShaders>();
     auto def_it = registered.find(id);
     if (def_it == registered.end()) return entt::null;
-    
+
     // Add to existing defines
     ShaderDefinition new_sdef = def_it->second;
     for (auto& define : shader_defines) {
@@ -76,7 +114,6 @@ register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines& shad
     // Caculate alternative cache key
     auto alternate_id = hash_shader_definition(new_sdef);
     return register_shader_as(r, alternate_id, new_sdef);
-
 }
 
 
@@ -86,7 +123,7 @@ ShaderResource get_shader(Registry& registry, entt::id_type id)
 
     if (cache.contains(id)) return cache.handle(id);
 
-    //Shader not registered, return empty handle
+    // Shader not registered, return empty handle
     auto& registered = registry.ctx_or_set<RegisteredShaders>();
     auto def_it = registered.find(id);
     if (def_it == registered.end()) return ShaderResource();
@@ -135,7 +172,7 @@ entt::id_type register_shader_as(Registry& registry, entt::id_type id, const Sha
 
 
 entt::id_type register_shader(Registry& registry, const ShaderDefinition& def)
-{   
+{
     return register_shader_as(registry, hash_shader_definition(def), def);
 }
 

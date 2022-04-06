@@ -17,10 +17,6 @@
 namespace lagrange {
 namespace ui {
 
-class Tools;
-
-
-
 template <typename T>
 entt::id_type register_tool_type(
     const std::string& display_name,
@@ -30,10 +26,11 @@ entt::id_type register_tool_type(
     using namespace entt::literals;
 
     entt::meta<T>().type();
-    entt::meta<T>()
-        .prop("display_name"_hs, display_name)
-        .prop("icon"_hs, icon)
-        .prop("keybind"_hs, keybind);
+
+    entt::meta<T>().props(
+        std::make_pair("display_name"_hs, display_name),
+        std::make_pair("icon"_hs, icon),
+        std::make_pair("keybind"_hs, keybind));
 
     return entt::type_id<T>().hash();
 }
@@ -67,40 +64,22 @@ public:
         m_tool_systems[key<ToolType, ElementType>()](registry);
     }
 
-    void run(entt::id_type tool_type, entt::id_type element_type, Registry& registry)
-    {
-        m_tool_systems[KeyType{tool_type, element_type}](registry);
-    }
-
-    //? store in context maybe?
-    bool run_current(Registry& registry) const
-    {
-        auto it = m_tool_systems.find(m_current_key);
-        if (m_tool_systems.find(m_current_key) == m_tool_systems.end()) return false;
-        it->second(registry);
-        return true;
-    }
+    void run(entt::id_type tool_type, entt::id_type element_type, Registry& registry);
 
 
-    const std::vector<entt::id_type>& get_element_types() const { return m_element_types; }
-
-    const std::vector<entt::id_type>& get_tool_types() const { return m_tool_types; }
-
-    entt::id_type current_tool_type() const { return m_current_key.first; }
-    entt::id_type current_element_type() const { return m_current_key.second; }
-
-    
+    bool run_current(Registry& registry);
 
 
-    void set_current_element_type(entt::id_type element_type)
-    {
-        m_current_key = KeyType{m_current_key.first, element_type};
-    }
+    const std::vector<entt::id_type>& get_element_types() const;
+    const std::vector<entt::id_type>& get_tool_types() const;
 
-    void set_current_tool_type(entt::id_type tool_type)
-    {
-        m_current_key = KeyType{tool_type, m_current_key.second};
-    }
+    entt::id_type get_current_tool_type() const;
+    entt::id_type get_current_element_type() const;
+
+
+    void set_current_element_type(entt::id_type element_type);
+
+    void set_current_tool_type(entt::id_type tool_type);
 
     template <typename T>
     void set_current_element_type()
@@ -126,7 +105,7 @@ private:
     std::vector<entt::id_type> m_tool_types;
     std::vector<entt::id_type> m_element_types;
 
-    KeyType m_current_key;
+    KeyType m_current_key = {0, 0};
 };
 
 

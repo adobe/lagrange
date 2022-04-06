@@ -57,16 +57,16 @@ ComputeBorderedComponentsOutput<typename MeshType::Index> compute_bordered_compo
     la_runtime_assert(mesh.is_edge_data_initialized(), "Edge data is not initialized");
     la_runtime_assert(safe_cast<Index>(is_edge_passable.size()) == mesh.get_num_edges());
 
-    std::vector<Index> facet_component_ids(mesh.get_num_facets(), INVALID<Index>());
+    std::vector<Index> facet_component_ids(mesh.get_num_facets(), invalid<Index>());
 
     auto perform_bfs = [&](const Index seed_id, const Index component_id) {
-        assert(facet_component_ids[seed_id] == INVALID<Index>());
+        assert(facet_component_ids[seed_id] == invalid<Index>());
         std::deque<Index> search_queue;
         search_queue.push_back(seed_id);
         while (!search_queue.empty()) {
             const auto candidate_id = search_queue.back();
             search_queue.pop_back();
-            if (facet_component_ids[candidate_id] == INVALID<Index>()) {
+            if (facet_component_ids[candidate_id] == invalid<Index>()) {
                 facet_component_ids[candidate_id] = component_id;
                 for (Index ci : range(mesh.get_vertex_per_facet())) {
                     const auto edge_id = mesh.get_edge(candidate_id, ci);
@@ -86,7 +86,7 @@ ComputeBorderedComponentsOutput<typename MeshType::Index> compute_bordered_compo
 
     Index num_components = 0;
     for (auto i : range(mesh.get_num_facets())) {
-        if (facet_component_ids[i] == INVALID<Index>()) {
+        if (facet_component_ids[i] == invalid<Index>()) {
             perform_bfs(i, num_components);
             ++num_components;
         }

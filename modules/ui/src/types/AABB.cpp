@@ -32,14 +32,14 @@ Eigen::Affine3f AABB::get_cube_transform() const
            Eigen::Scaling(Eigen::Vector3f::Constant(0.5f));
 }
 
-Eigen::Affine3f AABB::get_normalization_transform(bool preserve_aspect) const {
-
+Eigen::Affine3f AABB::get_normalization_transform(bool preserve_aspect) const
+{
     if (!preserve_aspect)
         return Eigen::Scaling(diagonal().cwiseInverse()) * Eigen::Translation3f(-min() * 0.5f);
 
 
     auto s = 1.0f / diagonal().maxCoeff();
-    return Eigen::Scaling(s,s,s) * Eigen::Translation3f(-min() * 0.5f);
+    return Eigen::Scaling(s, s, s) * Eigen::Translation3f(-min() * 0.5f);
 }
 
 bool AABB::intersects_ray(

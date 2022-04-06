@@ -67,7 +67,11 @@ bool UIWidget::operator()(Color& value)
 
     ImGui::PushID(&value);
 
-    if (ImGui::ColorButton("", ImColor(value.r(), value.g(), value.b(), value.a()), 0, size)) {
+    if (ImGui::ColorButton(
+            m_name.c_str(),
+            ImColor(value.r(), value.g(), value.b(), value.a()),
+            0,
+            size)) {
         ImGui::OpenPopup(m_name.c_str());
     }
 

@@ -26,7 +26,7 @@ in vec3 vposition;
 uniform sampler2D color_tex;
 uniform sampler2D depth_tex;
 
-uniform float exposure = 1.0;
+const float exposure = 1.0;
 const float gamma = 2.2;
 out vec4 fragColor;
 

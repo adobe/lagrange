@@ -28,9 +28,6 @@ struct LightComponent
     float cone_angle = pi() / 4.0f;
 
     Eigen::Vector3f intensity = Eigen::Vector3f(30.0f, 30.0f, 30.0f);
-
-    
-    
 };
 
 

@@ -94,11 +94,11 @@ void update_mesh_buffers_system(Registry& r)
         for (auto e : view) {
             auto& meshdata = view.get<MeshData>(e);
 
-            if (!r.has<GLMesh>(e)) {
+            if (!r.all_of<GLMesh>(e)) {
                 r.emplace<GLMesh>(e);
             } else {
                 // Skip non-dirty mesh entities that already have glmesh
-                if (!r.has<MeshDataDirty>(e)) {
+                if (!r.all_of<MeshDataDirty>(e)) {
                     continue;
                 }
             }
@@ -125,11 +125,11 @@ void update_mesh_buffers_system(Registry& r)
             const static std::vector<std::pair<const char*, entt::id_type>> default_attribs = {
                 {"normal", DefaultShaderAtrribNames::Normal},
                 {"uv", DefaultShaderAtrribNames::UV},
+                {"color", DefaultShaderAtrribNames::Color},
                 {"tangent", DefaultShaderAtrribNames::Tangent},
                 {"bitangent", DefaultShaderAtrribNames::Bitangent},
                 {"bone_ids", DefaultShaderAtrribNames::BoneIDs},
-                {"bone_weights", DefaultShaderAtrribNames::BoneWeights},
-            };
+                {"bone_weights", DefaultShaderAtrribNames::BoneWeights}};
 
             for (const auto& attr : default_attribs) {
                 // Already uploaded

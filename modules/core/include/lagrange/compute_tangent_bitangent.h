@@ -204,8 +204,8 @@ void accumulate_tangent_bitangent(
     // if both corners at (eij, fi) and (eij, fj) share the same uv and normal indices.
     auto is_edge_smooth = [&](Index eij, Index fi, Index fj) {
         std::array<Index, 2> v, n, uv;
-        std::fill(v.begin(), v.end(), INVALID<Index>());
-        for (Index c = e2c[eij]; c != INVALID<Index>(); c = next_corner_around_edge[c]) {
+        std::fill(v.begin(), v.end(), invalid<Index>());
+        for (Index c = e2c[eij]; c != invalid<Index>(); c = next_corner_around_edge[c]) {
             Index f = c / 3;
             Index lv = c % 3;
             if (f == fi || f == fj) {
@@ -215,7 +215,7 @@ void accumulate_tangent_bitangent(
                 Index n1 = normal_indices(f, (lv + 1) % 3);
                 Index uv0 = uv_indices(f, lv);
                 Index uv1 = uv_indices(f, (lv + 1) % 3);
-                if (v[0] == INVALID<Index>()) {
+                if (v[0] == invalid<Index>()) {
                     v[0] = v0;
                     v[1] = v1;
                     n[0] = n0;
@@ -252,7 +252,7 @@ void accumulate_tangent_bitangent(
     logger().trace("Loop to unify corner indices");
     DisjointSets<Index> unified_indices((Index)tangents.rows());
     tbb::parallel_for(Index(0), Index(mesh.get_num_vertices()), [&](Index v) {
-        for (Index ci = v2c[v]; ci != INVALID<Index>(); ci = next_corner_around_vertex[ci]) {
+        for (Index ci = v2c[v]; ci != invalid<Index>(); ci = next_corner_around_vertex[ci]) {
             Index eij = c2e[ci];
             Index fi = ci / 3;
             Index lvi = ci % 3;
@@ -260,7 +260,7 @@ void accumulate_tangent_bitangent(
             if (is_face_degenerate(fi)) continue;
 
             auto si = is_orient_preserving[fi];
-            for (Index cj = e2c[eij]; cj != INVALID<Index>(); cj = next_corner_around_edge[cj]) {
+            for (Index cj = e2c[eij]; cj != invalid<Index>(); cj = next_corner_around_edge[cj]) {
                 Index fj = cj / 3;
                 Index lvj = cj % 3;
                 auto sj = is_orient_preserving[fj];
@@ -283,11 +283,11 @@ void accumulate_tangent_bitangent(
     // STEP 2: Perform averaging and reindex attribute
     logger().trace("Compute new indices");
     const Index num_corners = (Index)tangents.rows();
-    std::vector<Index> repr(num_corners, INVALID<Index>());
+    std::vector<Index> repr(num_corners, invalid<Index>());
     Index num_indices = 0;
     for (Index n = 0; n < num_corners; ++n) {
         Index r = unified_indices.find(n);
-        if (repr[r] == INVALID<Index>()) {
+        if (repr[r] == invalid<Index>()) {
             repr[r] = num_indices++;
         }
         repr[n] = repr[r];
@@ -442,7 +442,7 @@ void corner_tangent_bitangent_raw(
             Eigen::Matrix<Scalar, 2, 3> T_BT;
 
             // Triangle in mixed mesh
-            if (indices(3) == INVALID<typename MeshType::Index>()) {
+            if (indices(3) == invalid<typename MeshType::Index>()) {
                 Eigen::Matrix<Scalar, 3, 3> vertices;
                 vertices.row(0) = V.row(indices(0));
                 vertices.row(1) = V.row(indices(1));
@@ -473,7 +473,7 @@ void corner_tangent_bitangent_raw(
             }
 
             for (Index k = 0; k < per_facet; k++) {
-                if (indices(k) == INVALID<typename MeshType::Index>()) break;
+                if (indices(k) == invalid<typename MeshType::Index>()) break;
                 T.row(i * per_facet + k).template head<3>() = T_BT.row(0);
                 BT.row(i * per_facet + k).template head<3>() = T_BT.row(1);
                 if (pad_with_sign) {

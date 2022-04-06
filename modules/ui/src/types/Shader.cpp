@@ -12,6 +12,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/ui/types/GLContext.h>
 #include <lagrange/ui/types/Shader.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
 
 
@@ -51,6 +52,26 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
     std::string code,
     const ShaderDefines& defines)
 {
+#if defined(__EMSCRIPTEN__) && false
+    // TODO WebGL: Use actual shaders. Using trivial shaders for now.
+    LA_IGNORE(code);
+    LA_IGNORE(defines);
+    const std::unordered_map<GLenum, std::string> shaderSources = {
+        {GL_VERTEX_SHADER,
+         "attribute vec3 in_pos;"
+         "uniform mat4 PV;"
+         "uniform mat4 M;"
+         "void main() {"
+         "    gl_Position = PV * M * vec4(in_pos, 1);"
+         "}"},
+        {GL_FRAGMENT_SHADER,
+         "precision mediump float;"
+         "void main() {"
+         "    gl_FragColor = vec4(1, 0, 0, 1);"
+         "}"},
+    };
+    return shaderSources;
+#else
     const std::unordered_map<GLenum, std::regex> regexes = {
         {GL_VERTEX_SHADER, std::regex("#pragma +VERTEX")},
         {GL_FRAGMENT_SHADER, std::regex("#pragma +FRAGMENT")},
@@ -89,11 +110,20 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
     // Extract common part
     std::string common = GLState::get_glsl_version_string() + "\n";
 
+#if defined(__EMSCRIPTEN__)
+    // WebGL does not have a default precision for floats, so provide a default precision now.
+    // See https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#in_webgl_1_highp_float_support_is_optional_in_fragment_shaders.
+    common += "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
+              "precision highp float;\n"
+              "#else\n"
+              "precision mediump float;\n"
+              "#endif\n";
+#endif
+
     for (auto& define : defines) {
         common += "#define " + define.first + " " + define.second + "\n";
     }
     common += code.substr(0, matches.front().second.position());
-
 
     // Extract individual shader sources
     std::unordered_map<GLenum, std::string> shaderSources;
@@ -113,6 +143,7 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
     }
 
     return shaderSources;
+#endif
 }
 
 std::string annotateLines(const std::string& str)
@@ -140,13 +171,35 @@ void Shader::process_properties(std::string& source)
     std::regex rgx(
         "#pragma +property +(.*) +\\\"(.*)\\\" +((\\S*)(\\((.*)\\))|(\\S*))\\s*(\\[(.*)\\])?");
 
-    auto to_float = [](const std::vector<std::string>& tokens) {
+    const auto to_float = [](const std::vector<std::string>& tokens) {
         std::vector<float> res;
         res.reserve(tokens.size());
         for (auto tok : tokens) {
             res.push_back(std::stof(tok));
         }
         return res;
+    };
+
+    const auto to_int = [](const std::vector<std::string>& tokens) {
+        std::vector<int> res;
+        res.reserve(tokens.size());
+        for (auto tok : tokens) {
+            res.push_back(std::stoi(tok));
+        }
+        return res;
+    };
+
+    const auto to_bool = [](const std::vector<std::string>& tokens) {
+        if (tokens.size() == 0) return false;
+
+        for (auto tok : tokens) {
+            std::transform(tok.begin(), tok.end(), tok.begin(), [](unsigned char c) {
+                return std::tolower(c);
+            });
+
+            if (tok == "1" || tok == "true") return true;
+        }
+        return false;
     };
 
     auto current_head = source.begin();
@@ -162,8 +215,9 @@ void Shader::process_properties(std::string& source)
 
         auto& type = (match[4].matched) ? match[4] : match[7];
 
-        auto params = to_float(lagrange::string_split(match[6], ','));
+
         auto tag_string = lagrange::string_split(match[9], ',');
+
 
         if (type == "float") {
             auto& p = m_float_properties[id];
@@ -171,9 +225,40 @@ void Shader::process_properties(std::string& source)
 
             gencode << "uniform float " << name;
 
+            auto params = to_float(lagrange::string_split(match[6], ','));
             if (params.size() > 0) {
                 p.default_value = params[0];
-                gencode << " = " << p.default_value;
+            }
+            if (params.size() > 1) {
+                p.min_value = params[1];
+            }
+            if (params.size() > 2) {
+                p.max_value = params[2];
+            }
+
+            gencode << ";" << std::endl;
+        }
+
+        if (type == "bool") {
+            auto& p = m_bool_properties[id];
+            p.display_name = display_name;
+
+            gencode << "uniform bool " << name;
+
+            p.default_value = to_bool(lagrange::string_split(match[6], ','));
+
+            gencode << ";" << std::endl;
+        }
+
+        if (type == "int") {
+            auto& p = m_int_properties[id];
+            p.display_name = display_name;
+
+            const auto params = to_int(lagrange::string_split(match[6], ','));
+            gencode << "uniform int " << name;
+
+            if (params.size() > 0) {
+                p.default_value = params[0];
             }
             if (params.size() > 1) {
                 p.min_value = params[1];
@@ -192,6 +277,7 @@ void Shader::process_properties(std::string& source)
             p.is_attrib =
                 std::find(tag_string.begin(), tag_string.end(), "attribute") != tag_string.end();
 
+            auto params = to_float(lagrange::string_split(match[6], ','));
             p.default_value = Color(0, 0, 0, 1);
             for (size_t i = 0; i < params.size(); i++) {
                 p.default_value[i] = params[i];
@@ -199,13 +285,6 @@ void Shader::process_properties(std::string& source)
 
             if (!p.is_attrib) {
                 gencode << "uniform vec4 " << name;
-
-                gencode << " = vec4(";
-                for (size_t i = 0; i < params.size(); i++) {
-                    gencode << params[i];
-                    if (i < params.size() - 1) gencode << ",";
-                }
-                gencode << ")";
                 gencode << ";" << std::endl;
             }
         }
@@ -214,16 +293,12 @@ void Shader::process_properties(std::string& source)
             auto& p = m_vector_properties[id];
             p.display_name = display_name;
             p.default_value = Eigen::Vector4f(0, 0, 0, 0);
+
+            auto params = to_float(lagrange::string_split(match[6], ','));
             for (size_t i = 0; i < params.size(); i++) {
                 p.default_value[i] = params[i];
             }
             gencode << "uniform vec4 " << name;
-            gencode << " = vec4(";
-            for (size_t i = 0; i < params.size(); i++) {
-                gencode << params[i];
-                if (i < params.size() - 1) gencode << ",";
-            }
-            gencode << ")";
             gencode << ";" << std::endl;
         }
 
@@ -231,6 +306,7 @@ void Shader::process_properties(std::string& source)
             auto& p = m_texture_properties[id];
             p.display_name = display_name;
 
+            auto params = to_float(lagrange::string_split(match[6], ','));
             p.value_dimension = int(params.size());
             for (size_t i = 0; i < params.size(); i++) {
                 p.default_value.color[i] = params[i];
@@ -248,7 +324,9 @@ void Shader::process_properties(std::string& source)
 
             p.sampler_type = GL_SAMPLER_2D;
             gencode << "uniform sampler2D " << name << ";" << std::endl;
-            gencode << "uniform bool " << name << "_texture_bound = false;" << std::endl;
+
+            gencode << "uniform bool " << name << "_texture_bound;" << std::endl;
+
 
             if (params.size() > 0) {
                 std::string value_type = "float";
@@ -260,15 +338,7 @@ void Shader::process_properties(std::string& source)
                     value_type = "vec4";
                 }
 
-                gencode << "uniform " << value_type << " " << name << "_default_value"
-                        << " = " << value_type << "(";
-
-                for (size_t i = 0; i < params.size(); i++) {
-                    gencode << params[i];
-                    if (i < params.size() - 1) gencode << ",";
-                }
-
-                gencode << ")";
+                gencode << "uniform " << value_type << " " << name << "_default_value";
                 gencode << ";" << std::endl;
             }
         }
@@ -452,13 +522,13 @@ const ShaderValue& Shader::operator[](const std::string& name)
 
 bool Shader::bind() const
 {
-    GL(glUseProgram(m_id));
+    LA_GL(glUseProgram(m_id));
     return true;
 }
 
 void Shader::unbind()
 {
-    GL(glUseProgram(0));
+    LA_GL(glUseProgram(0));
 }
 
 const std::string& Shader::get_source() const
@@ -477,12 +547,85 @@ const ShaderDefines& Shader::get_defines() const
 }
 
 
+void Shader::upload_default_values()
+{
+    // Must be bound
+    bind();
+
+
+    // Assign all default shader values
+    {
+        const auto& props = float_properties();
+        for (auto it : props) {
+            uniform(it.first) = it.second.default_value;
+        }
+    }
+
+    {
+        const auto& props = int_properties();
+        for (auto it : props) {
+            uniform(it.first) = it.second.default_value;
+        }
+    }
+
+    {
+        const auto& props = bool_properties();
+        for (auto it : props) {
+            uniform(it.first) = it.second.default_value;
+        }
+    }
+
+    {
+        const auto& props = float_properties();
+        for (auto it : props) {
+            uniform(it.first) = it.second.default_value;
+        }
+    }
+
+    {
+        const auto& props = vector_properties();
+        for (auto it : props) {
+            uniform(it.first) = it.second.default_value;
+        }
+    }
+
+    {
+        const auto& props = color_properties();
+        for (auto it : props) {
+            uniform(it.first) = it.second.default_value;
+        }
+    }
+
+    {
+        const auto& props = texture_properties();
+        for (auto it : props) {
+            if (!uniforms().count(it.first)) continue;
+
+            auto& def_value_uniform = uniform(name(it.first) + "_default_value");
+            auto& default_color = it.second.default_value.color;
+
+            if (it.second.value_dimension == 2) {
+                def_value_uniform = Eigen::Vector2f(default_color.x(), default_color.y());
+            } else if (it.second.value_dimension == 3) {
+                def_value_uniform =
+                    Eigen::Vector3f(default_color.x(), default_color.y(), default_color.z());
+            }
+            if (it.second.value_dimension == 4) {
+                def_value_uniform = default_color;
+            }
+
+            auto& tex_bound_uniform = uniform(name(it.first) + "_texture_bound");
+            tex_bound_uniform = false;
+        }
+    }
+}
+
 const ShaderValue& ShaderValue::operator=(const std::vector<Eigen::Vector3f>& arr) const
 {
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform3fv(
+        LA_GL(glUniform3fv(
             location,
             static_cast<int>(arr.size()),
             reinterpret_cast<const GLfloat*>(arr.data())));
@@ -499,7 +642,7 @@ const ShaderValue& ShaderValue::set_array(const float* data, int n) const
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform1fv(location, n, reinterpret_cast<const GLfloat*>(data)));
+        LA_GL(glUniform1fv(location, n, reinterpret_cast<const GLfloat*>(data)));
     } else {
         assert(false);
     }
@@ -512,7 +655,7 @@ const ShaderValue& ShaderValue::set_array(const int* data, int n) const
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform1iv(location, n, reinterpret_cast<const GLint*>(data)));
+        LA_GL(glUniform1iv(location, n, reinterpret_cast<const GLint*>(data)));
     } else {
         assert(false);
     }
@@ -525,7 +668,7 @@ const ShaderValue& ShaderValue::set_array(const unsigned int* data, int n) const
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform1uiv(location, n, reinterpret_cast<const GLuint*>(data)));
+        LA_GL(glUniform1uiv(location, n, reinterpret_cast<const GLuint*>(data)));
     } else {
         assert(false);
     }
@@ -539,7 +682,7 @@ const ShaderValue& ShaderValue::set_vectors(const Eigen::Vector2f* data, int n) 
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform2fv(location, n, reinterpret_cast<const GLfloat*>(data)));
+        LA_GL(glUniform2fv(location, n, reinterpret_cast<const GLfloat*>(data)));
     } else {
         assert(false);
     }
@@ -552,7 +695,7 @@ const ShaderValue& ShaderValue::set_vectors(const Eigen::Vector3f* data, int n) 
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform3fv(location, n, reinterpret_cast<const GLfloat*>(data)));
+        LA_GL(glUniform3fv(location, n, reinterpret_cast<const GLfloat*>(data)));
     } else {
         assert(false);
     }
@@ -564,7 +707,7 @@ const ShaderValue& ShaderValue::set_vectors(const Eigen::Vector4f* data, int n) 
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform4fv(location, n, reinterpret_cast<const GLfloat*>(data)));
+        LA_GL(glUniform4fv(location, n, reinterpret_cast<const GLfloat*>(data)));
     } else {
         assert(false);
     }
@@ -578,7 +721,7 @@ ShaderValue::set_matrices(const Eigen::Matrix2f* data, int n, bool transpose /*=
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniformMatrix2fv(
+        LA_GL(glUniformMatrix2fv(
             location,
             n,
             transpose ? GL_TRUE : GL_FALSE,
@@ -596,7 +739,7 @@ ShaderValue::set_matrices(const Eigen::Matrix3f* data, int n, bool transpose /*=
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniformMatrix3fv(
+        LA_GL(glUniformMatrix3fv(
             location,
             n,
             transpose ? GL_TRUE : GL_FALSE,
@@ -614,7 +757,7 @@ ShaderValue::set_matrices(const Eigen::Matrix4f* data, int n, bool transpose /*=
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniformMatrix4fv(
+        LA_GL(glUniformMatrix4fv(
             location,
             n,
             transpose ? GL_TRUE : GL_FALSE,
@@ -646,9 +789,9 @@ const ShaderValue& ShaderValue::operator=(Eigen::Vector2f val) const
     assert(type == GL_FLOAT_VEC2);
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform2fv(location, 1, val.data()));
+        LA_GL(glUniform2fv(location, 1, val.data()));
     } else {
-        GL(glVertexAttrib2fv(location, val.data()));
+        LA_GL(glVertexAttrib2fv(location, val.data()));
     }
 
     return *this;
@@ -660,9 +803,9 @@ const ShaderValue& ShaderValue::operator=(Eigen::Vector3f val) const
     assert(type == GL_FLOAT_VEC3);
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform3fv(location, 1, val.data()));
+        LA_GL(glUniform3fv(location, 1, val.data()));
     } else {
-        GL(glVertexAttrib3fv(location, val.data()));
+        LA_GL(glVertexAttrib3fv(location, val.data()));
     }
 
     return *this;
@@ -686,9 +829,9 @@ const ShaderValue& ShaderValue::operator=(Eigen::Vector4f val) const
     assert(type == GL_FLOAT_VEC4);
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform4fv(location, 1, val.data()));
+        LA_GL(glUniform4fv(location, 1, val.data()));
     } else {
-        GL(glVertexAttrib4fv(location, val.data()));
+        LA_GL(glVertexAttrib4fv(location, val.data()));
     }
 
     return *this;
@@ -698,7 +841,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Matrix2f val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_MAT2 && shaderInterface == SHADER_INTERFACE_UNIFORM);
-    GL(glUniformMatrix2fv(location, 1, GL_FALSE, val.data()));
+    LA_GL(glUniformMatrix2fv(location, 1, GL_FALSE, val.data()));
     return *this;
 }
 
@@ -706,7 +849,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Matrix3f val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_MAT3 && shaderInterface == SHADER_INTERFACE_UNIFORM);
-    GL(glUniformMatrix3fv(location, 1, GL_FALSE, val.data()));
+    LA_GL(glUniformMatrix3fv(location, 1, GL_FALSE, val.data()));
     return *this;
 }
 
@@ -714,7 +857,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Matrix4f val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_MAT4 && shaderInterface == SHADER_INTERFACE_UNIFORM);
-    GL(glUniformMatrix4fv(location, 1, GL_FALSE, val.data()));
+    LA_GL(glUniformMatrix4fv(location, 1, GL_FALSE, val.data()));
     return *this;
 }
 
@@ -737,9 +880,19 @@ const ShaderValue& ShaderValue::operator=(double val) const
     assert(type == GL_DOUBLE);
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform1d(location, val));
+#if defined(__EMSCRIPTEN__)
+        // Use float rather than double in WebGL.
+        LA_GL(glUniform1f(location, safe_cast<GLfloat>(val)));
+#else
+        LA_GL(glUniform1d(location, val));
+#endif
     } else {
-        GL(glVertexAttrib1d(location, val));
+#if defined(__EMSCRIPTEN__)
+        // Use float rather than double in WebGL.
+        LA_GL(glVertexAttrib1f(location, safe_cast<GLfloat>(val)));
+#else
+        LA_GL(glVertexAttrib1d(location, val));
+#endif
     }
 
     return *this;
@@ -751,9 +904,9 @@ const ShaderValue& ShaderValue::operator=(float val) const
     assert(type == GL_FLOAT);
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform1f(location, val));
+        LA_GL(glUniform1f(location, val));
     } else {
-        GL(glVertexAttrib1f(location, val));
+        LA_GL(glVertexAttrib1f(location, val));
     }
 
     return *this;
@@ -764,9 +917,14 @@ const ShaderValue& ShaderValue::operator=(int val) const
     if (location == -1) return *this;
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform1i(location, val));
+        LA_GL(glUniform1i(location, val));
     } else {
-        GL(glVertexAttribI1i(location, val));
+#if defined(__EMSCRIPTEN__)
+        // TODO WebGL: glVertexAttribI1i is not supported.
+        logger().error("WebGL does not support glVertexAttribI1i.");
+#else
+        LA_GL(glVertexAttribI1i(location, val));
+#endif
     }
 
     return *this;
@@ -778,9 +936,14 @@ const ShaderValue& ShaderValue::operator=(bool val) const
     assert(type == GL_BOOL);
 
     if (shaderInterface == SHADER_INTERFACE_UNIFORM) {
-        GL(glUniform1i(location, val));
+        LA_GL(glUniform1i(location, val));
     } else {
-        GL(glVertexAttribI1i(location, val));
+#if defined(__EMSCRIPTEN__)
+        // TODO WebGL: glVertexAttribI1i is not supported.
+        logger().error("WebGL does not support glVertexAttribI1i.");
+#else
+        LA_GL(glVertexAttribI1i(location, val));
+#endif
     }
 
     return *this;

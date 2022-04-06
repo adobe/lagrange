@@ -18,7 +18,7 @@
 namespace lagrange {
 namespace ui {
 
-/// Singleton component storing materials and temporary entities 
+/// Singleton component storing materials and temporary entities
 /// for selected mesh element visualization
 struct MeshSelectionRender
 {

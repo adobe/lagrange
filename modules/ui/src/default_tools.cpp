@@ -23,6 +23,7 @@
 #include <lagrange/ui/types/Material.h>
 #include <lagrange/ui/utils/input.h>
 #include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/tools.h>
 #include <lagrange/ui/utils/viewport.h>
 
 
@@ -37,8 +38,8 @@ namespace ui {
 
 void transform_tool_impl(Registry& registry, GizmoMode mode)
 {
-    auto& viewport_panel =
-        registry.get<ViewportPanel>(registry.ctx<FocusedViewportPanel>().viewport_panel);
+    if (!get_focused_viewport_panel(registry)) return;
+    auto& viewport_panel = *get_focused_viewport_panel(registry);
     auto& viewport = registry.get<ViewportComponent>(viewport_panel.viewport);
     auto& camera = get_viewport_camera(registry, viewport);
 
@@ -48,7 +49,7 @@ void transform_tool_impl(Registry& registry, GizmoMode mode)
 
     // Fallback to selection
     if (no_guizmo) {
-        registry.ctx<Tools>().run<SelectToolTag, ElementObject>(registry);
+        get_tools(registry).run<SelectToolTag, ElementObject>(registry);
         return;
     }
 }
@@ -57,15 +58,17 @@ void select(Registry& r, const std::function<void(Registry&)>& selection_system)
 {
     const auto& input = get_input(r);
     const auto& keys = *input.keybinds;
-    const auto& panel = get_focused_viewport_panel(r);
+    const auto* panel_ptr = get_focused_viewport_panel(r);
+    if (!panel_ptr) return;
+    const auto& panel = *panel_ptr;
 
-    auto& tools = r.ctx<Tools>();
+    auto& tools = get_tools(r);
 
     auto& sel_ctx = get_selection_context(r);
 
     // Update some members regardless of selection being active
-    sel_ctx.element_type = tools.current_element_type();
-    sel_ctx.screen_position = input.mouse_position;
+    sel_ctx.element_type = tools.get_current_element_type();
+    sel_ctx.screen_position = input.mouse.position;
     sel_ctx.behavior = selection_behavior(keys);
 
 
@@ -211,30 +214,27 @@ void register_default_tools(Tools& tools)
     /*
         Register Element types
     */
-    register_tool_type<ElementObject>("Object", ICON_FA_CUBES, "global.selection_mode.object");
-    register_tool_type<ElementFace>("Face", ICON_FA_CUBE, "global.selection_mode.face");
-    register_tool_type<ElementEdge>("Edge", ICON_FA_ARROWS_ALT_H, "global.selection_mode.edge");
-    register_tool_type<ElementVertex>("Vertex", ICON_FA_CIRCLE, "global.selection_mode.vertex");
+    register_tool_type<ElementObject>("Object", ICON_FA_CUBES, "selection_mode_object");
+    register_tool_type<ElementFace>("Face", ICON_FA_CUBE, "selection_mode_face");
+    register_tool_type<ElementEdge>("Edge", ICON_FA_ARROWS_ALT_H, "selection_mode_edge");
+    register_tool_type<ElementVertex>("Vertex", ICON_FA_CIRCLE, "selection_mode_vertex");
 
     /*
         Register Tool types
     */
-    register_tool_type<SelectToolTag>(
-        "Select",
-        ICON_FA_VECTOR_SQUARE,
-        "global.manipulation_mode.select");
+    register_tool_type<SelectToolTag>("Select", ICON_FA_VECTOR_SQUARE, "manipulation_mode_select");
 
     register_tool_type<TranslateToolTag>(
         "Translate",
         ICON_FA_ARROWS_ALT,
-        "global.manipulation_mode.translate");
+        "manipulation_mode_translate");
 
-    register_tool_type<RotateToolTag>("Rotate", ICON_FA_REDO, "global.manipulation_mode.rotate");
+    register_tool_type<RotateToolTag>("Rotate", ICON_FA_REDO, "manipulation_mode_rotate");
 
     register_tool_type<ScaleToolTag>(
         "Scale",
         ICON_FA_COMPRESS_ARROWS_ALT,
-        "global.manipulation_mode.scale");
+        "manipulation_mode_scale");
 
 
     /*

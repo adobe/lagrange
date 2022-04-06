@@ -28,6 +28,15 @@ struct Error : public std::runtime_error
     ~Error() override;
 };
 
+///
+/// An exception of this type is thrown when a lagrange::safe_cast<> fails.
+///
+struct BadCastError : public Error
+{
+    BadCastError() : Error("bad cast") {}
+    ~BadCastError() override;
+};
+
 /// @}
 
 } // namespace lagrange

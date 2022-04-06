@@ -13,13 +13,26 @@ if(TARGET glfw::glfw)
     return()
 endif()
 
+if(EMSCRIPTEN)
+    # Use the glfw implementation provided by the Emscripten SDK.
+    message(STATUS "Third-party (built-in): creating target 'glfw::glfw'")
+    add_library(glfw INTERFACE)
+    add_library(glfw::glfw ALIAS glfw)
+    target_link_options(glfw INTERFACE
+        "SHELL:-s MAX_WEBGL_VERSION=2"
+        "SHELL:-s USE_GLFW=3"
+        -lglfw
+    )
+    return()
+endif()
+
 message(STATUS "Third-party (external): creating target 'glfw::glfw'")
 
 include(FetchContent)
 FetchContent_Declare(
     glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
-    GIT_TAG tags/3.3
+    GIT_TAG tags/3.3.6
     GIT_SHALLOW TRUE
 )
 

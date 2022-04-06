@@ -34,23 +34,6 @@ struct ElementEdge
 {
 };
 
-/*
-In future / non standard:
-struct ElementCurve
-{
-};
-
-struct ElementPixel
-{
-};
-
-struct ElementPatch
-{
-};
-*/
-
-
-
 struct SelectToolTag
 {
 };
@@ -67,7 +50,6 @@ struct ScaleToolTag
 {
 };
 
-
 // For reflection info
 struct DefaultTools
 {
@@ -75,11 +57,6 @@ struct DefaultTools
     std::vector<entt::id_type> tool_types;
 };
 
-template <typename T>
-bool is_element_type(entt::id_type elem_type)
-{
-    return elem_type == entt::resolve<T>().id();
-}
 
 void register_default_tools(Tools& tools);
 

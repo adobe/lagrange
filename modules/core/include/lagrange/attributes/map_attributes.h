@@ -41,10 +41,10 @@ std::vector<Index> invert_mapping(const std::vector<Index>& map, Index target_co
         return {}; // empty vector
     }
 
-    std::vector<Index> ret(target_count, INVALID<Index>());
+    std::vector<Index> ret(target_count, invalid<Index>());
     for (auto i : range((Index)map.size())) {
         Index value = map[i];
-        if (value != INVALID<Index>()) {
+        if (value != invalid<Index>()) {
             la_runtime_assert(value < target_count);
             ret[value] = i;
         }

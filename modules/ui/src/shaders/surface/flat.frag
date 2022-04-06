@@ -12,10 +12,6 @@
 #include "layout/default_fragment_layout.glsl"
 
 void main(){
-    if(has_color_attrib)
-        fragColor = fs_in.color;
-    else
-        fragColor = uniform_color;
-
+    fragColor = fs_in.color;
     fragColor.a *= alpha_multiplier;
 }

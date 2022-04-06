@@ -45,7 +45,7 @@ Entity load_obj(
     const io::MeshLoaderParams& params = io::MeshLoaderParams())
 {
     if (path.extension() != ".obj") {
-        lagrange::logger().error("wrong file format '{}' for load_obj", path.extension());
+        lagrange::logger().error("wrong file format '{}' for load_obj", path.extension().string());
         return NullEntity;
     }
 
@@ -75,7 +75,7 @@ std::pair<Entity, std::vector<std::shared_ptr<Material>>> load_obj_with_material
     const io::MeshLoaderParams& params = io::MeshLoaderParams())
 {
     if (path.extension() != ".obj") {
-        lagrange::logger().error("wrong file format '{}' for load_obj", path.extension());
+        lagrange::logger().error("wrong file format '{}' for load_obj", path.extension().string());
         return {NullEntity, {}};
     }
 

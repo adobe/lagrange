@@ -39,7 +39,6 @@ void render_background(Registry& r)
         fbo->bind();
     }
 
-    r.ctx_or_set<entt::resource_cache<Shader>>();
     const auto& camera = viewport.computed_camera;
 
     auto shader_res = get_shader(r, DefaultShaders::Skybox);

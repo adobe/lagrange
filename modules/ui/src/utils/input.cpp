@@ -36,5 +36,15 @@ const Keybinds& get_keybinds(const Registry& r)
     return *get_input(r).keybinds;
 }
 
+InputState::Mouse& get_mouse(Registry& r)
+{
+    return get_input(r).mouse;
+}
+
+const InputState::Mouse& get_mouse(const Registry& r)
+{
+    return get_input(r).mouse;
+}
+
 } // namespace ui
 } // namespace lagrange

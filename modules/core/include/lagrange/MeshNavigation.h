@@ -78,7 +78,7 @@ public:
 
     ///
     /// Gets the next corner around the edge associated to a corner. If the corner is the last one
-    /// in the chain, this function returns INVALID<Index>.
+    /// in the chain, this function returns invalid<Index>.
     ///
     /// @param[in]  c     Corner index.
     ///
@@ -97,7 +97,7 @@ public:
 
     ///
     /// Gets the next corner around the vertex associated to a corner. If the corner is the last one
-    /// in the chain, this function returns INVALID<Index>.
+    /// in the chain, this function returns invalid<Index>.
     ///
     /// @param[in]  c     Corner index.
     ///
@@ -116,7 +116,7 @@ public:
     std::array<Index, 2> get_edge_vertices(const FacetArray& facets, Index e) const
     {
         Index c = m_e2c[e];
-        if (c == INVALID<Index>()) {
+        if (c == invalid<Index>()) {
             logger().error("Invalid corner id for edge {}", e);
             throw std::runtime_error("Invalid edge id");
         }
@@ -139,7 +139,7 @@ public:
     {
         la_runtime_assert(m_vertex_per_facet == 3, "This method is only for triangle meshes.");
         Index c = m_e2c[e];
-        if (c == INVALID<Index>()) {
+        if (c == invalid<Index>()) {
             logger().error("Invalid corner id for edge {}", e);
             throw std::runtime_error("Invalid edge id");
         }
@@ -186,10 +186,10 @@ public:
     Index get_one_facet_around_edge(Index e) const
     {
         Index c = m_e2c[e];
-        if (c != INVALID<Index>()) {
+        if (c != invalid<Index>()) {
             return c / m_vertex_per_facet;
         } else {
-            return INVALID<Index>();
+            return invalid<Index>();
         }
     }
 
@@ -229,8 +229,8 @@ public:
     bool is_boundary_edge(Index e) const
     {
         Index c = m_e2c[e];
-        assert(c != INVALID<Index>());
-        return (m_next_corner_around_edge[c] == INVALID<Index>());
+        assert(c != invalid<Index>());
+        return (m_next_corner_around_edge[c] == invalid<Index>());
     }
 
     ///
@@ -255,7 +255,7 @@ public:
     void foreach_facets_around_vertex(Index v, Func func) const
     {
         // Loop over incident facets
-        for (Index c = m_v2c[v]; c != INVALID<Index>(); c = m_next_corner_around_vertex[c]) {
+        for (Index c = m_v2c[v]; c != invalid<Index>(); c = m_next_corner_around_vertex[c]) {
             Index f = c / m_vertex_per_facet;
             func(f);
         }
@@ -273,7 +273,7 @@ public:
     void foreach_facets_around_edge(Index e, Func func) const
     {
         // Loop over incident facets
-        for (Index c = m_e2c[e]; c != INVALID<Index>(); c = m_next_corner_around_edge[c]) {
+        for (Index c = m_e2c[e]; c != invalid<Index>(); c = m_next_corner_around_edge[c]) {
             Index f = c / m_vertex_per_facet;
             func(f);
         }
@@ -291,7 +291,7 @@ public:
     void foreach_corners_around_vertex(Index v, Func func) const
     {
         // Loop over incident facets
-        for (Index c = m_v2c[v]; c != INVALID<Index>(); c = m_next_corner_around_vertex[c]) {
+        for (Index c = m_v2c[v]; c != invalid<Index>(); c = m_next_corner_around_vertex[c]) {
             func(c);
         }
     }
@@ -308,7 +308,7 @@ public:
     void foreach_corners_around_edge(Index e, Func func) const
     {
         // Loop over incident facets
-        for (Index c = m_e2c[e]; c != INVALID<Index>(); c = m_next_corner_around_edge[c]) {
+        for (Index c = m_e2c[e]; c != invalid<Index>(); c = m_next_corner_around_edge[c]) {
             func(c);
         }
     }

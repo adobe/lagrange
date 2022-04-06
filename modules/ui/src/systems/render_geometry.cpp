@@ -39,96 +39,99 @@ void setup_vertex_data(Registry& r)
     // rendering
     r.view<MeshRender>().each([&](Entity e, const MeshRender& render) {
         if (!render.material) return;
-        if (!r.has<VertexData>(e)) r.emplace<VertexData>(e);
+        if (!r.all_of<VertexData>(e)) r.emplace<VertexData>(e);
     });
 
 
     // Setup attribute renders
-    r.view<VertexData, MeshRender, AttributeRender, MeshGeometry>().each(
-        [&](Entity /*e*/, VertexData& glvd, MeshRender& render, AttributeRender& ar, MeshGeometry& mg) {
-            if (!r.valid(mg.entity)) return;
+    r.view<VertexData, MeshRender, AttributeRender, MeshGeometry>().each([&](Entity /*e*/,
+                                                                             VertexData& glvd,
+                                                                             MeshRender& render,
+                                                                             AttributeRender& ar,
+                                                                             MeshGeometry& mg) {
+        if (!r.valid(mg.entity)) return;
 
-            auto& md = r.get<MeshData>(mg.entity);
+        auto& md = r.get<MeshData>(mg.entity);
 
-            auto shader_handle = ui::get_shader(r, render.material->shader_id());
-            if (!shader_handle) return;
+        auto shader_handle = ui::get_shader(r, render.material->shader_id());
+        if (!shader_handle) return;
 
-            auto& shader = *shader_handle;
+        auto& shader = *shader_handle;
 
-            auto it = shader.attribs().find(DefaultShaderAtrribNames::Value);
-            if (it == shader.attribs().end()) return;
+        auto it = shader.attribs().find(DefaultShaderAtrribNames::Value);
+        if (it == shader.attribs().end()) return;
 
 
-            // Up to date, skip
-            if (!ar.dirty && glvd.attribute_buffers[it->second.location]) return;
+        // Up to date, skip
+        if (!ar.dirty && glvd.attribute_buffers[it->second.location]) return;
 
-            // Check if attribute exists
-            if (ar.attribute_type == IndexingMode::CORNER &&
-                !has_mesh_corner_attribute(md, ar.source_attribute)) {
-                lagrange::logger().warn("Missing corner attribute {}", ar.source_attribute);
-                return;
-            } else if (
-                ar.attribute_type == IndexingMode::FACE &&
-                !has_mesh_facet_attribute(md, ar.source_attribute)) {
-                lagrange::logger().warn("Missing facet attribute {}", ar.source_attribute);
-                return;
-            } else if (
-                ar.attribute_type == IndexingMode::EDGE &&
-                !has_mesh_edge_attribute(md, ar.source_attribute)) {
-                lagrange::logger().warn("Missing edge attribute {}", ar.source_attribute);
-                return;
-            } else if (
-                ar.attribute_type == IndexingMode::VERTEX &&
-                !has_mesh_vertex_attribute(md, ar.source_attribute)) {
-                lagrange::logger().warn("Missing vertex attribute {}", ar.source_attribute);
-                return;
-            } else if (
-                ar.attribute_type == IndexingMode::INDEXED &&
-                !has_mesh_indexed_attribute(md, ar.source_attribute)) {
-                lagrange::logger().warn("Missing indexed attribute {}", ar.source_attribute);
-                return;
-            }
+        // Check if attribute exists
+        if (ar.attribute_type == IndexingMode::CORNER &&
+            !has_mesh_corner_attribute(md, ar.source_attribute)) {
+            lagrange::logger().warn("Missing corner attribute {}", ar.source_attribute);
+            return;
+        } else if (
+            ar.attribute_type == IndexingMode::FACE &&
+            !has_mesh_facet_attribute(md, ar.source_attribute)) {
+            lagrange::logger().warn("Missing facet attribute {}", ar.source_attribute);
+            return;
+        } else if (
+            ar.attribute_type == IndexingMode::EDGE &&
+            !has_mesh_edge_attribute(md, ar.source_attribute)) {
+            lagrange::logger().warn("Missing edge attribute {}", ar.source_attribute);
+            return;
+        } else if (
+            ar.attribute_type == IndexingMode::VERTEX &&
+            !has_mesh_vertex_attribute(md, ar.source_attribute)) {
+            lagrange::logger().warn("Missing vertex attribute {}", ar.source_attribute);
+            return;
+        } else if (
+            ar.attribute_type == IndexingMode::INDEXED &&
+            !has_mesh_indexed_attribute(md, ar.source_attribute)) {
+            lagrange::logger().warn("Missing indexed attribute {}", ar.source_attribute);
+            return;
+        }
 
-            // Get or create gpu buffer
-            auto& buf_ptr = glvd.attribute_buffers[it->second.location];
-            if (!buf_ptr) {
-                buf_ptr = std::make_shared<GPUBuffer>();
-            }
+        // Get or create gpu buffer
+        auto& buf_ptr = glvd.attribute_buffers[it->second.location];
+        if (!buf_ptr) {
+            buf_ptr = std::make_shared<GPUBuffer>();
+        }
 
-            // Retrieve from mesh (and convert to float)
-            auto data = get_mesh_attribute(md, ar.attribute_type, ar.source_attribute);
+        // Retrieve from mesh (and convert to float)
+        auto data = get_mesh_attribute(md, ar.attribute_type, ar.source_attribute);
 
-            // Upload to GPU
-            switch (ar.attribute_type) {
-            case IndexingMode::VERTEX: upload_mesh_vertex_attribute(md, data, *buf_ptr); break;
-            case IndexingMode::EDGE: upload_mesh_edge_attribute(md, data, *buf_ptr); break;
-            case IndexingMode::FACE: upload_mesh_facet_attribute(md, data, *buf_ptr); break;
-            case IndexingMode::CORNER: upload_mesh_corner_attribute(md, data, *buf_ptr); break;
-            default: break;
-            }
+        // Upload to GPU
+        switch (ar.attribute_type) {
+        case IndexingMode::VERTEX: upload_mesh_vertex_attribute(md, data, *buf_ptr); break;
+        case IndexingMode::EDGE: upload_mesh_edge_attribute(md, data, *buf_ptr); break;
+        case IndexingMode::FACE: upload_mesh_facet_attribute(md, data, *buf_ptr); break;
+        case IndexingMode::CORNER: upload_mesh_corner_attribute(md, data, *buf_ptr); break;
+        default: break;
+        }
 
-            const int element_size = std::max(1, std::min(4, int(data.cols())));
-            glvd.attribute_dimensions[it->second.location] = element_size;
+        const int element_size = std::max(1, std::min(4, int(data.cols())));
+        glvd.attribute_dimensions[it->second.location] = element_size;
 
-            // Mark up to date
-            ar.dirty = false;
+        // Mark up to date
+        ar.dirty = false;
 
-            lagrange::logger().trace(
-                "Retrieving and uploading attribute '{}', binding to shader location: {}. "
-                "Size: {} x {} -> {} x {}",
-                ar.source_attribute,
-                it->second.location,
-                data.rows(),
-                data.cols(),
-                data.rows(),
-                element_size);
-        });
+        lagrange::logger().trace(
+            "Retrieving and uploading attribute '{}', binding to shader location: {}. "
+            "Size: {} x {} -> {} x {}",
+            ar.source_attribute,
+            it->second.location,
+            data.rows(),
+            data.cols(),
+            data.rows(),
+            element_size);
+    });
 
     // Setup default mesh rendering attribute arrays
     r.view<VertexData, MeshRender, MeshGeometry>().each(
         [&](Entity /*e*/, VertexData& glvd, MeshRender& render, const MeshGeometry& geom_entity) {
             if (!r.valid(geom_entity.entity)) return;
-            if (!r.has<GLMesh>(geom_entity.entity)) return;
+            if (!r.all_of<GLMesh>(geom_entity.entity)) return;
             if (!render.material) return;
 
             auto shader_handle = ui::get_shader(r, render.material->shader_id());
@@ -138,6 +141,17 @@ void setup_vertex_data(Registry& r)
             auto& shader = *shader_handle;
 
             update_vertex_data(glmesh, shader, glvd, render.indexing, geom_entity.submesh_index);
+        });
+
+    r.view<VertexData, MeshRender, GLMesh>().each(
+        [&](Entity e, VertexData& glvd, MeshRender& render, GLMesh& glmesh) {
+            if (r.all_of<MeshGeometry>(e)) {
+                return;
+            }
+            if (!render.material) return;
+            auto shader_handle = ui::get_shader(r, render.material->shader_id());
+            if (!shader_handle) return;
+            update_vertex_data(glmesh, *shader_handle, glvd, render.indexing, entt::null);
         });
 }
 
@@ -156,13 +170,16 @@ std::shared_ptr<Texture> get_brdflut(Registry& r)
     auto shader = ShaderLoader{}.load("util/brdf_lut.shader", ShaderLoader::PathType::VIRTUAL);
     FrameBuffer temp_fbo;
 
-    auto tex = std::make_shared<Texture>(Texture::Params::rgb16f());
+    auto tex = std::make_shared<Texture>(Texture::Params::rgb());
     temp_fbo.bind();
     temp_fbo.set_color_attachement(0, tex);
     temp_fbo.resize_attachments(512, 512);
 
     GLScope gl;
+#if !defined(__EMSCRIPTEN__)
+    // TODO WebGL: GL_MULTISAMPLE is not supported.
     gl(glDisable, GL_MULTISAMPLE);
+#endif
     gl(glDisable, GL_DEPTH_TEST);
     gl(glDisable, GL_BLEND);
     gl(glDisable, GL_CULL_FACE);
@@ -197,10 +214,13 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
         shader.uniform(it.first) = it.second;
     }
 
-    auto& viewport = r.get<ViewportComponent>(rctx.viewport);
+    // Upload all default values specified by shader *properties*
+    shader.upload_default_values();
+
 
     // Set IBL
     auto ibls = r.view<IBL>();
+    auto& viewport = r.get<ViewportComponent>(rctx.viewport);
     if (ibls.size() > 0 &&
         ui::is_visible_in(r, ibls.front(), viewport.visible_layers, viewport.hidden_layers)) {
         auto& ibl = r.get<IBL>(ibls.front());
@@ -233,6 +253,7 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
     // Hard coded for now
     const int max_spot = 2;
     const int max_dir = 2;
+    const int max_point = 1;
     int num_spot = 0;
     int num_point = 0;
     int num_dir = 0;
@@ -249,10 +270,15 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
 
 
         std::string prefix = "";
+        std::string prefix_name_only = "";
+        int num = 0;
+
 
         if (light.type == LightComponent::Type::POINT) {
-            if (num_point == max_spot) continue;
+            if (num_point == max_point) continue;
+            num = num_point;
             prefix = string_format("point_lights[{}].", num_point);
+            prefix_name_only = "point_lights";
             shader[prefix + "position"] = pos;
 
 
@@ -260,6 +286,8 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
         } else if (light.type == LightComponent::Type::DIRECTIONAL) {
             if (num_dir == max_dir) continue;
             prefix = string_format("directional_lights[{}].", num_dir);
+            prefix_name_only = "directional_lights";
+            num = num_dir;
 
             if (shadow_map) {
                 shader[prefix + "PV"] = shadow_map->PV;
@@ -271,6 +299,8 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
         } else if (light.type == LightComponent::Type::SPOT) {
             if (num_spot == max_spot) continue;
             prefix = string_format("spot_lights[{}].", num_spot);
+            prefix_name_only = "spot_lights";
+            num = num_spot;
 
             shader[prefix + "position"] = pos;
             shader[prefix + "direction"] = dir;
@@ -287,7 +317,9 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
 
         shader[prefix + "intensity"] = light.intensity;
         if (shadow_map) {
-            auto it = sampler_indices.find(string_id(prefix + "shadow_map"));
+            auto sampler_uniform_identifier =
+                string_format("{}_shadow_maps_{}", prefix_name_only, num);
+            auto it = sampler_indices.find(string_id(sampler_uniform_identifier));
             if (it != sampler_indices.end()) {
                 shadow_map->texture->bind_to(GL_TEXTURE0 + it->second);
             }
@@ -295,6 +327,14 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
             shader[prefix + "shadow_far"] = shadow_map->far_plane;
         }
     }
+
+#if defined(__EMSCRIPTEN__)
+    static bool err_nonce = false;
+    if (num_point > 0 && !err_nonce) {
+        lagrange::logger().error("Point lights are currently not implemented for Emscripten/WebGL");
+        err_nonce = true;
+    }
+#endif
 
     shader["spot_lights_count"] = num_spot;
     shader["point_lights_count"] = num_point;
@@ -371,7 +411,7 @@ void meshrender_to_render_queue(Registry& r)
             item.primitive = mr.primitive;
             item.entity = e;
 
-            if (r.has<Bounds>(e)) {
+            if (r.all_of<Bounds>(e)) {
                 item.camera_distance = (r.get<Bounds>(e).global.center() - cam_pos).norm();
             }
 
@@ -398,7 +438,6 @@ void sort_gl_render_queue(Registry& r)
                    std::tie(b.pass, b.shader, b_cam_dist_inverse, b.material, b.glvd);
         });
 }
-
 
 void render_gl_render_queue(Registry& r)
 {
@@ -450,7 +489,7 @@ void render_gl_render_queue(Registry& r)
         // Skip items that are not applicable to the material query
         if (query_type != GL_NONE) {
             if (!r.valid(qitem.entity)) continue;
-            if (!r.has<GLQuery>(qitem.entity)) continue;
+            if (!r.all_of<GLQuery>(qitem.entity)) continue;
             const auto& q = r.get<GLQuery>(qitem.entity);
             if (q.type != query_type) continue;
             query_id = q.id;
@@ -478,7 +517,7 @@ void render_gl_render_queue(Registry& r)
         shader["screen_size"] = screen_size;
         shader["object_id"] = int(entity);
 
-        if (r.has<Camera::ViewportTransform>(entity)) {
+        if (r.all_of<Camera::ViewportTransform>(entity)) {
             auto obj_cam =
                 viewport.computed_camera.transformed(r.get<Camera::ViewportTransform>(entity));
             gl(glViewport,
@@ -492,7 +531,7 @@ void render_gl_render_queue(Registry& r)
             shader["screen_size"] = obj_cam.get_window_size();
         }
 
-        if (r.has<Transform>(entity)) {
+        if (r.all_of<Transform>(entity)) {
             auto& t = r.get<Transform>(entity);
             shader["M"] = t.global;
 #ifdef LAGRANGE_UI_PRECISE_NORMAL_MAT
@@ -508,12 +547,9 @@ void render_gl_render_queue(Registry& r)
             shader["NMat"] = Eigen::Affine3f::Identity();
         }
 
-        // TODO remove
-        /****************************/
-        shader["has_color_attrib"] = false;
-        shader["uniform_color"] = Eigen::Vector4f(-1, -1, -1, -1);
-        /****************************/
+        shader["alpha_multiplier"] = 1.0f;
 
+        static bool draw_buffer_error_once = false;
 
         for (auto& it : material.int_values) {
             // Set uniform if exists
@@ -534,7 +570,18 @@ void render_gl_render_queue(Registry& r)
                     gl(glEnable, GL_CULL_FACE);
                 break;
             case RasterizerOptions::BlendEquation: gl(glBlendEquation, it.second); break;
-            case RasterizerOptions::DrawBuffer: gl(glDrawBuffer, it.second); break;
+            case RasterizerOptions::DrawBuffer:
+#if defined(__EMSCRIPTEN__)
+                // TODO WebGL: glDrawBuffer is not supported.
+                // Consider using glDrawBuffers instead.
+                if (!draw_buffer_error_once) {
+                    logger().error("WebGL does not support glDrawBuffer.");
+                    draw_buffer_error_once = true;
+                }
+#else
+                gl(glDrawBuffer, it.second);
+#endif
+                break;
             case RasterizerOptions::ReadBuffer: gl(glReadBuffer, it.second); break;
             case RasterizerOptions::CullFace: gl(glCullFace, it.second); break;
             case RasterizerOptions::DepthMask: gl(glDepthMask, it.second); break;
@@ -581,22 +628,35 @@ void render_gl_render_queue(Registry& r)
 
 
         if (material.int_values.count(RasterizerOptions::PolygonMode)) {
+#if defined(__EMSCRIPTEN__)
+            // TODO WebGL: glPolygonMode is not supported.
+            logger().error("WebGL does not support glPolygonMode.");
+#else
             const int mode = material.int_values.at(RasterizerOptions::PolygonMode);
             gl(glPolygonMode, GL_FRONT_AND_BACK, mode);
+#endif
         }
 
         if (material.float_values.count(RasterizerOptions::PointSize)) {
+#if defined(__EMSCRIPTEN__)
+            // TODO WebGL: glPointSize is not supported.
+            logger().error("WebGL does not support glPointSize.");
+#else
             gl(glPointSize, material.float_values.at(RasterizerOptions::PointSize));
+#endif
         } else if (material.int_values.count(RasterizerOptions::PointSize)) {
+#if defined(__EMSCRIPTEN__)
+            // TODO WebGL: glPointSize is not supported.
+            logger().error("WebGL does not support glPointSize.");
+#else
             gl(glPointSize, float(material.int_values.at(RasterizerOptions::PointSize)));
+#endif
         }
 
         if (material.int_values.count(RasterizerOptions::DepthFunc)) {
             gl(glDepthFunc, material.int_values.at(RasterizerOptions::DepthFunc));
         }
 
-
-        
 
         for (auto& it : material.mat4_values) {
             shader.uniform(it.first) = it.second;
@@ -614,8 +674,6 @@ void render_gl_render_queue(Registry& r)
             shader.uniform(it.first).set_vectors(it.second.data(), int(it.second.size()));
         }
 
-        
-
 
         for (auto& it : material.texture_values) {
             const auto& tex_val = it.second;
@@ -632,15 +690,17 @@ void render_gl_render_queue(Registry& r)
 
             const auto& name = shader.name(it.first);
 
+            const bool sampler_exists = it_samplers != shader.sampler_indices().end();
+
             // If texture is set and sampler exists in shader
-            if (tex_val.texture && it_samplers != shader.sampler_indices().end()) {
+            if (tex_val.texture && sampler_exists) {
                 // Bind the texture to predefined tex unit
                 tex_val.texture->bind_to(GL_TEXTURE0 + it_samplers->second);
                 shader.uniform(name + "_texture_bound") = true;
-            } else {
+            } else if (sampler_exists) {
                 shader.uniform(name + "_texture_bound") = false;
                 const auto it_prop = shader.texture_properties().find(it.first);
-
+                // Set default value if there is a texture property defined
                 if (it_prop != shader.texture_properties().end()) {
                     const auto& prop = it_prop->second;
                     // Set default color if there's no texture
@@ -657,12 +717,12 @@ void render_gl_render_queue(Registry& r)
                     } else if (prop.value_dimension == 4) {
                         shader.uniform(name + "_default_value") = it.second.color;
                     }
-                } else {
-                    lagrange::logger().warn(
-                        "There is no texture sampler for {} in the shader (Shader ID {})",
-                        name,
-                        material.shader_id());
                 }
+            } else {
+                lagrange::logger().warn(
+                    "There is no texture sampler for {} in the shader (Shader ID {})",
+                    name,
+                    material.shader_id());
             }
         }
 
@@ -712,7 +772,7 @@ void render_gl_render_queue(Registry& r)
         // Skip items that are not applicable to the material query
         if (query_type != GL_NONE) {
             if (!r.valid(qitem.entity)) continue;
-            if (!r.has<GLQuery>(qitem.entity)) continue;
+            if (!r.all_of<GLQuery>(qitem.entity)) continue;
             const auto& q = r.get<GLQuery>(qitem.entity);
             if (q.type != query_type) continue;
             query_id = q.id;
@@ -720,7 +780,14 @@ void render_gl_render_queue(Registry& r)
 
 
         if (query_type != GL_NONE) {
+#if defined(__EMSCRIPTEN__)
+            // Signed integer queries are not supported in WebGL. Use an unsigned integer and cast.
+            GLuint result;
+            glGetQueryObjectuiv(query_id, GL_QUERY_RESULT, &result);
+            r.get<GLQuery>(qitem.entity).result = safe_cast<GLint>(result);
+#else
             glGetQueryObjectiv(query_id, GL_QUERY_RESULT, &r.get<GLQuery>(qitem.entity).result);
+#endif
         }
     }
 }
@@ -782,7 +849,10 @@ void render_post_process(Registry& r)
         for (auto& tex : mat->texture_values) {
             if (tex.second.texture && tex.second.texture->get_params().type == GL_TEXTURE_2D) {
                 tex.second.texture->bind();
-                glGenerateMipmap(GL_TEXTURE_2D);
+
+                if (tex.second.texture->get_params().generate_mipmap) {
+                    glGenerateMipmap(GL_TEXTURE_2D);
+                }
             }
         }
 

@@ -12,12 +12,14 @@
 #pragma once
 
 
+#include <lagrange/ui/components/AcceleratedPicking.h>
 #include <lagrange/ui/components/AttributeRender.h>
 #include <lagrange/ui/components/Bounds.h>
 #include <lagrange/ui/components/CameraComponents.h>
 #include <lagrange/ui/components/Common.h>
+#include <lagrange/ui/components/ElementSelection.h>
+#include <lagrange/ui/components/EventEmitter.h>
 #include <lagrange/ui/components/GLMesh.h>
-#include <lagrange/ui/components/VertexData.h>
 #include <lagrange/ui/components/IBL.h>
 #include <lagrange/ui/components/Input.h>
 #include <lagrange/ui/components/Layer.h>
@@ -25,14 +27,23 @@
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/components/MeshGeometry.h>
 #include <lagrange/ui/components/MeshRender.h>
+#include <lagrange/ui/components/MeshSelectionRender.h>
+#include <lagrange/ui/components/ObjectIDViewport.h>
+#include <lagrange/ui/components/RenderContext.h>
+#include <lagrange/ui/components/Selection.h>
+#include <lagrange/ui/components/SelectionContext.h>
+#include <lagrange/ui/components/SelectionViewport.h>
+#include <lagrange/ui/components/ShadowMap.h>
 #include <lagrange/ui/components/Transform.h>
 #include <lagrange/ui/components/TreeNode.h>
 #include <lagrange/ui/components/UIPanel.h>
+#include <lagrange/ui/components/VertexData.h>
 #include <lagrange/ui/components/Viewport.h>
 
 
 namespace lagrange {
 namespace ui {
+
 
 /*
     Register UI widgets for all the default components

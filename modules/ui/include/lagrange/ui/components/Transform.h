@@ -20,7 +20,7 @@ namespace ui {
 
 /// Affine transformation
 struct Transform
-{   
+{
     /// Transformation in entity's space (model transform)
     Eigen::Affine3f local = Eigen::Affine3f::Identity();
 

@@ -16,22 +16,13 @@
 
 
 #pragma FRAGMENT
-layout(location = 0) out vec4 fragColor;
-
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec3 tangent;
-    vec3 bitangent;
-} fs_in;
+#include "layout/default_fragment_layout.glsl"
 
 uniform sampler2D texRectangular;
 
 void main(){
 
-    vec3 p = normalize(fs_in.pos);
+    vec3 p = normalize(vs_out_pos);
 
     vec2 UV = vec2(atan(p.z,p.x),asin(p.y));
     UV *= vec2(0.1591,0.3183);

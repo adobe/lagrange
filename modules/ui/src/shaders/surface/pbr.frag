@@ -14,6 +14,6 @@
 #include "util/pbr_shading.glsl"
 
 void main(){
-    fragColor = pbr(fs_in.pos, fs_in.normal, fs_in.uv, fs_in.color, fs_in.tangent, fs_in.bitangent);
+    fragColor = pbr(vs_out_pos, vs_out_normal, vs_out_uv, vs_out_color, vs_out_tangent, vs_out_bitangent);
     fragColor.a *= alpha_multiplier;
 }

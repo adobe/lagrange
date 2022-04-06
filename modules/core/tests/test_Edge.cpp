@@ -45,7 +45,7 @@ TEST_CASE("Edge", "[Edge]")
 
     Edge e4(2, 3);
     REQUIRE(!e3.has_shared_vertex(e4));
-    REQUIRE(e3.get_shared_vertex(e4) == lagrange::INVALID<size_t>());
+    REQUIRE(e3.get_shared_vertex(e4) == lagrange::invalid<size_t>());
 
     Edge e5{10, 10};
     REQUIRE(e5.has_shared_vertex(e5));

@@ -10,28 +10,15 @@
  * governing permissions and limitations under the License.
  */
 
-#include "uniforms/common.glsl"
+#include <lagrange/ui/UI.h>
+namespace ui = lagrange::ui;
 
+int main(int argc, char** argv)
+{
+    // Instantiate viewer
+    ui::Viewer viewer(argc, argv);
 
-#pragma VERTEX
-#include "util/default.vertex"
-
-#pragma GEOMETRY
-#include "util/split_by_edge.geom"
-
-#pragma FRAGMENT
-
-#ifdef SHADING_FLAT
-#include "surface/flat.frag"
-#endif
-
-#ifdef SHADING_PHONG
-#include "surface/phong.frag"
-#endif
-
-#ifdef SHADING_PBR
-#include "surface/pbr.frag"
-#endif
-
-
-
+    // Run the viewer until user exits
+    viewer.run();
+    return 0;
+}

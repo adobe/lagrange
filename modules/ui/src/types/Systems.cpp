@@ -48,7 +48,8 @@ StringID Systems::add(Stage stage, const System& system, StringID id /*= 0*/)
     return id_final;
 }
 
-bool Systems::enable(StringID id, bool value) {
+bool Systems::enable(StringID id, bool value)
+{
     auto it = std::find_if(m_items.begin(), m_items.end(), [&](const SystemItem& item) {
         return item.id == id;
     });
@@ -86,8 +87,8 @@ bool Systems::succeeds(StringID system, StringID after)
     return true;
 }
 
-bool Systems::remove(StringID id) {
-
+bool Systems::remove(StringID id)
+{
     auto it = std::find_if(m_items.begin(), m_items.end(), [&](const SystemItem& item) {
         return item.id == id;
     });

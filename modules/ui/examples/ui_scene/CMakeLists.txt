@@ -12,7 +12,7 @@
 include(cli11)
 lagrange_include_modules(io)
 
-lagrange_add_example(ui_scene
+lagrange_add_example(ui_scene WITH_UI
     main.cpp
 )
 

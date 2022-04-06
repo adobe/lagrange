@@ -151,7 +151,7 @@ void camera_focusfit_system(Registry& registry)
 
     for (auto cam_e : cameras) {
         // Stop focus/fit if the camera is being used in viewport
-        if (registry.has<CameraController>(cam_e) &&
+        if (registry.all_of<CameraController>(cam_e) &&
             registry.get<CameraController>(cam_e).any_control_active) {
             registry.remove<CameraFocusAndFit>(cam_e);
             continue;
@@ -191,7 +191,7 @@ void camera_focusfit_system(Registry& registry)
 
         if (ff.fit) {
             if (cam.get_type() == Camera::Type::PERSPECTIVE) {
-                if (registry.has<CameraController>(cam_e) &&
+                if (registry.all_of<CameraController>(cam_e) &&
                     registry.get<CameraController>(cam_e).fov_zoom) {
                     const float dist = (focus_bb.center() - cam.get_position()).norm();
                     if (dist > eps) {

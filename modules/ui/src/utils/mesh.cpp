@@ -9,8 +9,9 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/ui/utils/mesh.h>
 #include <lagrange/ui/types/Camera.h>
+#include <lagrange/ui/types/VertexBuffer.h>
+#include <lagrange/ui/utils/mesh.h>
 
 
 namespace lagrange {
@@ -18,14 +19,19 @@ namespace ui {
 
 MeshData& get_mesh_data(Registry& r, Entity e)
 {
-    if (r.has<MeshData>(e)) return r.get<MeshData>(e);
+    if (r.all_of<MeshData>(e)) return r.get<MeshData>(e);
     return r.get<MeshData>(r.get<MeshGeometry>(e).entity);
 }
 
 const MeshData& get_mesh_data(const Registry& r, Entity e)
 {
-    if (r.has<MeshData>(e)) return r.get<MeshData>(e);
+    if (r.all_of<MeshData>(e)) return r.get<MeshData>(e);
     return r.get<MeshData>(r.get<MeshGeometry>(e).entity);
+}
+
+bool has_mesh_component(const Registry& r, Entity e)
+{
+    return (r.all_of<MeshGeometry>(e));
 }
 
 size_t get_num_vertices(const MeshData& d)
@@ -54,11 +60,10 @@ size_t get_num_edges(const MeshData& d)
 
 RowMajorMatrixXf get_mesh_vertices(const MeshData& d)
 {
-    const MeshBase* base = d.mesh.get();
-    auto fn = entt::resolve(d.type).func(entt::hashed_string{"get_mesh_vertices"});
-    auto result = fn.invoke({}, base);
-    auto conversion_result = entt::resolve<RowMajorMatrixXf>().construct(result);
-    return conversion_result.cast<RowMajorMatrixXf>();
+    return entt::resolve(d.type)
+        .func(entt::hashed_string{"get_mesh_vertices"})
+        .invoke({}, (const MeshBase*)(d.mesh.get()))
+        .cast<RowMajorMatrixXf>();
 }
 
 RowMajorMatrixXi get_mesh_facets(const MeshData& d)
@@ -117,7 +122,8 @@ get_mesh_attribute_range(const MeshData& d, IndexingMode mode, const std::string
         .cast<std::pair<Eigen::VectorXf, Eigen::VectorXf>>();
 }
 
-ui::AABB get_mesh_bounds(const MeshData& d) {
+ui::AABB get_mesh_bounds(const MeshData& d)
+{
     return entt::resolve(d.type)
         .func(entt::hashed_string{"get_mesh_bounds"})
         .invoke({}, (const MeshBase*)(d.mesh.get()))
@@ -145,19 +151,22 @@ void ensure_tangent_bitangent(MeshData& d)
         .invoke({}, (MeshBase*)(d.mesh.get()));
 }
 
-void ensure_is_selected_attribute(MeshData& d) {
+void ensure_is_selected_attribute(MeshData& d)
+{
     entt::resolve(d.type)
         .func(entt::hashed_string{"ensure_is_selected_attribute"})
         .invoke({}, (MeshBase*)(d.mesh.get()));
 }
 
-void map_indexed_attribute_to_corner_attribute(MeshData& d, const std::string& name) {
+void map_indexed_attribute_to_corner_attribute(MeshData& d, const std::string& name)
+{
     entt::resolve(d.type)
         .func(entt::hashed_string{"map_indexed_attribute_to_corner_attribute"})
         .invoke({}, (MeshBase*)(d.mesh.get()), name);
 }
 
-void map_corner_attribute_to_vertex_attribute(MeshData& d, const std::string& name) {
+void map_corner_attribute_to_vertex_attribute(MeshData& d, const std::string& name)
+{
     entt::resolve(d.type)
         .func(entt::hashed_string{"map_corner_attribute_to_vertex_attribute"})
         .invoke({}, (MeshBase*)(d.mesh.get()), name);
@@ -196,7 +205,8 @@ bool has_mesh_edge_attribute(const MeshData& d, const std::string& name)
 }
 
 
-bool has_mesh_indexed_attribute(const MeshData& d, const std::string& name) {
+bool has_mesh_indexed_attribute(const MeshData& d, const std::string& name)
+{
     return entt::resolve(d.type)
         .func(entt::hashed_string{"has_mesh_indexed_attribute"})
         .invoke({}, (const MeshBase*)(d.mesh.get()), name)
@@ -251,8 +261,8 @@ std::unordered_map<entt::id_type, std::shared_ptr<lagrange::ui::GPUBuffer>> uplo
     const std::string& facet_attrib_name)
 {
     auto res = entt::resolve(d.type)
-        .func(entt::hashed_string{"upload_submesh_indices"})
-        .invoke({}, (const MeshBase*)(d.mesh.get()), facet_attrib_name);
+                   .func(entt::hashed_string{"upload_submesh_indices"})
+                   .invoke({}, (const MeshBase*)(d.mesh.get()), facet_attrib_name);
 
     return res.cast<std::unordered_map<entt::id_type, std::shared_ptr<GPUBuffer>>>();
 }
@@ -279,7 +289,7 @@ bool select_facets_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const
 {
     auto result = entt::resolve(d.type)
                       .func(entt::hashed_string{"select_facets_in_frustum"})
-                      .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, & frustum);
+                      .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, &frustum);
 
     if (!result) {
         la_runtime_assert(false, "select_facets_in_frustum failed");
@@ -291,7 +301,7 @@ void select_vertices_in_frustum(MeshData& d, SelectionBehavior sel_behavior, con
 {
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"select_vertices_in_frustum"})
-             .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, & frustum)) {
+             .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, &frustum)) {
         la_runtime_assert(false, "select_vertices_in_frustum failed");
     }
 }
@@ -300,7 +310,7 @@ void select_edges_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const 
 {
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"select_edges_in_frustum"})
-             .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, & frustum)) {
+             .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, &frustum)) {
         la_runtime_assert(false, "select_edges_in_frustum failed");
     }
 }
@@ -345,7 +355,7 @@ void combine_vertex_and_corner_selection(MeshData& d, const std::string& attrib_
 void select_facets_by_color(
     MeshData& d,
     const std::string& attrib_name,
-    SelectionBehavior sel_behavior, 
+    SelectionBehavior sel_behavior,
     const unsigned char* color_bytes,
     size_t colors_byte_size)
 {
@@ -365,7 +375,7 @@ void select_facets_by_color(
 void select_edges_by_color(
     MeshData& d,
     const std::string& attrib_name,
-    SelectionBehavior sel_behavior, 
+    SelectionBehavior sel_behavior,
     const unsigned char* color_bytes,
     size_t colors_byte_size)
 {
@@ -385,7 +395,7 @@ void select_edges_by_color(
 void select_vertices_by_color(
     MeshData& d,
     const std::string& attrib_name,
-    SelectionBehavior sel_behavior, 
+    SelectionBehavior sel_behavior,
     const unsigned char* color_bytes,
     size_t colors_byte_size)
 {
@@ -403,14 +413,14 @@ void select_vertices_by_color(
 }
 
 
-void select_facets(MeshData& d, SelectionBehavior sel_behavior, const std::vector<int> & facet_indices) {
+void select_facets(
+    MeshData& d,
+    SelectionBehavior sel_behavior,
+    const std::vector<int>& facet_indices)
+{
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"select_facets"})
-             .invoke(
-                 {},
-                 (MeshBase*)(d.mesh.get()),
-                 sel_behavior,
-                 &facet_indices)) {
+             .invoke({}, (MeshBase*)(d.mesh.get()), sel_behavior, &facet_indices)) {
         la_runtime_assert(false, "select_facets failed");
     }
 }
@@ -424,7 +434,13 @@ void filter_closest_vertex(
 {
     if (!entt::resolve(d.type)
              .func(entt::hashed_string{"filter_closest_vertex"})
-             .invoke({}, (MeshBase*)(d.mesh.get()), attrib_name, sel_behavior, camera, viewport_pos)) {
+             .invoke(
+                 {},
+                 (MeshBase*)(d.mesh.get()),
+                 attrib_name,
+                 sel_behavior,
+                 camera,
+                 viewport_pos)) {
         la_runtime_assert(false, "filter_closest_vertex failed");
     }
 }

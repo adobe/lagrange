@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/utils/invalid.h>
+
 #include <limits>
 #include <memory>
 
@@ -95,24 +97,5 @@ struct StaticAssertableBool
     constexpr static bool False = false;
     constexpr static bool True = true;
 };
-
-///
-/// You can use INVALID<T>() to get a value that can represent "invalid" values, such as indices.
-/// INVALID<T> is guaranteed to always be the same value for a given type T.
-///
-/// This is supported for arithmetic types, and returns `numeric_limits<T>::max()`.
-///
-/// You can overload this function for your type if it makes sense:
-///     template <> constexpr T INVALID<T>() { return ... }
-///
-template <typename Index>
-constexpr Index INVALID()
-{
-    static_assert(!std::is_same<Index, bool>::value, "Do not use INVALID<bool>() !");
-    static_assert(
-        std::is_arithmetic<Index>::value,
-        "INVALID<T> is only supported for arithmetic types");
-    return std::numeric_limits<Index>::max();
-}
 
 } // namespace lagrange

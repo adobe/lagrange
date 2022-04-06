@@ -36,17 +36,19 @@
 #include <lagrange/ui/systems/update_transform_hierarchy.h>
 #include <lagrange/ui/types/GLContext.h>
 #include <lagrange/ui/utils/bounds.h>
+#include <lagrange/ui/utils/colormap.h>
 #include <lagrange/ui/utils/events.h>
 #include <lagrange/ui/utils/file_dialog.h>
 #include <lagrange/ui/utils/ibl.h>
+#include <lagrange/ui/utils/immediate.h>
 #include <lagrange/ui/utils/io.h>
+#include <lagrange/ui/utils/lights.h>
 #include <lagrange/ui/utils/mesh.h>
 #include <lagrange/ui/utils/mesh.impl.h>
 #include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/tools.h>
 #include <lagrange/ui/utils/treenode.h>
 #include <lagrange/ui/utils/viewport.h>
-#include <lagrange/ui/utils/lights.h>
-#include <lagrange/ui/utils/colormap.h>
 
 
 // Imgui and related
@@ -61,6 +63,9 @@
 #include <stdio.h>
 #include <fstream>
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
 
 #define MODAL_NAME_SHADER_ERROR "Shader Error"
 
@@ -102,6 +107,10 @@ Viewer::Viewer(const std::string& window_title, int window_width, int window_hei
     : Viewer(WindowOptions{window_title, -1, -1, window_width, window_height})
 {}
 
+Viewer::Viewer(int argc, char** argv)
+    : Viewer(lagrange::fs::path(argv[0]).stem().string(), 1024, 768)
+{}
+
 Viewer::Viewer(const WindowOptions& window_options)
     : m_initial_window_options(window_options)
 {
@@ -115,7 +124,9 @@ Viewer::Viewer(const WindowOptions& window_options)
         lagrange::fs::path folder = lagrange::fs::path(m_imgui_ini_path).parent_path();
         if (!lagrange::fs::exists(folder)) {
             if (!lagrange::fs::create_directories(folder)) {
-                lagrange::logger().error("Cannot create folder {} for UI settings", folder);
+                lagrange::logger().error(
+                    "Cannot create folder {} for UI settings",
+                    folder.string());
             }
         }
     }
@@ -146,8 +157,19 @@ Viewer::Viewer(const WindowOptions& window_options)
         std::bind(&Viewer::make_current, this),
         DS::MakeContextCurrent);
 
+
     m_systems.add(Systems::Stage::Init, std::bind(&Viewer::update_time, this), DS::UpdateTime);
+    // m_systems.add(Systems::Stage::Init, [](Registry& r) { ui::get_keybinds(r).reset_context();
+    // });
     m_systems.add(Systems::Stage::Init, std::bind(&Viewer::process_input, this), DS::ProcessInput);
+
+    m_systems.add(Systems::Stage::Post, [&](ui::Registry&) {
+        // Reset input at the end of frame
+        auto& input = get_input();
+        input.mouse.delta = Eigen::Vector2f::Zero();
+        input.mouse.wheel = 0.0f;
+        input.mouse.wheel_horizontal = 0.0f;
+    });
 
 
     // Make sure that selection/outline and objectid viewports have correct size and post process effects
@@ -156,6 +178,9 @@ Viewer::Viewer(const WindowOptions& window_options)
         [](Registry& r) {
             auto focused_viewport_entity = ui::get_focused_viewport_entity(r);
             auto selection_viewport_entity = ui::get_selection_viewport_entity(r);
+
+            //Skip if there's no focused/selection viewports
+            if (!r.valid(focused_viewport_entity) || !r.valid(selection_viewport_entity)) return;
 
             auto& focused = r.get<ViewportComponent>(focused_viewport_entity);
             auto& selection = r.get<ViewportComponent>(selection_viewport_entity);
@@ -223,7 +248,7 @@ Viewer::Viewer(const WindowOptions& window_options)
             toggle_component_event<Hovered, HoveredEvent, DehoveredEvent>(r);
 
             // Reload shader, etc.
-            if (lagrange::ui::get_keybinds(r).is_released("global.reload")) {
+            if (lagrange::ui::get_keybinds(r).is_released("reload")) {
                 get_shader_cache(r).clear();
                 lagrange::logger().info("Cleared shader cache.");
             }
@@ -273,8 +298,9 @@ Viewer::Viewer(const WindowOptions& window_options)
 
     m_systems.add(
         Systems::Stage::Interface,
-        [=](Registry& r) { r.ctx<Tools>().run_current(r); },
+        [](Registry& r) { run_current_tool(r); },
         DS::RunCurrentTool);
+    m_systems.add(Systems::Stage::Init, [](Registry& r) { update_previous_tool(r); });
 
     m_systems.add(Systems::Stage::Interface, &update_lights_system, DS::UpdateLights);
 
@@ -299,6 +325,7 @@ Viewer::Viewer(const WindowOptions& window_options)
         DS::UpdateAcceleratedPicking);
     m_systems.add(Systems::Stage::Render, &update_mesh_buffers_system, DS::UpdateMeshBuffers);
     m_systems.add(Systems::Stage::Render, &setup_vertex_data, DS::SetupVertexData);
+    m_systems.add(Systems::Stage::Render, &upload_immediate_system);
     m_systems.add(Systems::Stage::Render, &render_shadowmaps, DS::RenderShadowMaps);
     m_systems.add(Systems::Stage::Render, &render_viewports, DS::RenderViewports);
 
@@ -324,6 +351,8 @@ Viewer::Viewer(const WindowOptions& window_options)
         registry().set<InputState>(std::move(input));
     }
 
+    // Initialize time context variable
+    m_registry.set<GlobalTime>(GlobalTime{});
 
     // Layer names
     register_default_layer_names(registry());
@@ -331,7 +360,7 @@ Viewer::Viewer(const WindowOptions& window_options)
     registry().set<WindowSize>(WindowSize{window_options.width, window_options.height});
 
     // Tool context
-    auto& tools = registry().set<Tools>(Tools{});
+    auto& tools = initialize_tools(registry());
     register_default_tools(tools);
 
     // Shaders
@@ -340,7 +369,8 @@ Viewer::Viewer(const WindowOptions& window_options)
     // Scene bounds
     registry().set<Bounds>(Bounds());
 
-    registry().create(); // Create zero'th entity
+    auto zeroth = registry().create(); // Create zero'th entity
+    (void)(zeroth); // handle nodiscard
 
     // UI windows - create and set as context variable
     auto& windows = m_registry.set<DefaultPanels>(add_default_panels(registry()));
@@ -423,107 +453,139 @@ Viewer::Viewer(const WindowOptions& window_options)
 }
 
 
+void Viewer::render_one_frame(const std::function<bool(Registry&)>& main_loop)
+{
+    for (unsigned int fn_counter = 0; fn_counter < m_main_thread_max_func_per_frame; fn_counter++) {
+        std::pair<std::promise<void>, std::function<void(void)>> item;
+        {
+            // Consume queue item
+            std::lock_guard<std::mutex> lock(m_mutex);
+            if (m_main_thread_fn.empty()) break;
+            item = std::move(m_main_thread_fn.front());
+            m_main_thread_fn.pop();
+        }
+        // Run function
+        item.second();
+        // Set promise value
+        item.first.set_value();
+    }
+
+    {
+        /*
+            Initialization systems
+        */
+        m_systems.run(Systems::Stage::Init, registry());
+
+
+        start_imgui_frame();
+
+
+        draw_menu();
+        // Dock space
+        {
+            start_dockspace();
+            if (m_show_imgui_demo) {
+                ImGui::ShowDemoWindow(&m_show_imgui_demo);
+            }
+
+            if (m_show_imgui_style) {
+                ImGui::Begin("Style Editor", &m_show_imgui_style);
+                ImGui::ShowStyleEditor();
+                ImGui::End();
+            }
+
+            m_systems.run(Systems::Stage::Interface, registry());
+
+#if !defined(__EMSCRIPTEN__)
+            // TODO WebGL: using main_loop is causing out-of-bounds memory access exceptions.
+            if (main_loop) {
+                if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
+            }
+#endif
+
+            show_last_shader_error();
+            end_dockspace();
+        }
+
+        end_imgui_frame();
+
+        m_systems.run(Systems::Stage::Simulation, registry());
+
+
+        // All rendering goes here
+        {
+            /*
+                Render to texture
+            */
+            try {
+                m_last_shader_error = "";
+                m_last_shader_error_desc = "";
+
+                m_systems.run(Systems::Stage::Render, registry());
+
+            } catch (ShaderException& ex) {
+                m_last_shader_error = ex.what();
+                m_last_shader_error_desc = ex.get_desc();
+                lagrange::logger().error("{}", m_last_shader_error);
+            }
+
+            /*
+                Clear default framebuffer
+            */
+            GLScope gl;
+            {
+                gl(glBindFramebuffer, GL_FRAMEBUFFER, 0);
+                gl(glViewport, 0, 0, m_width, m_height);
+                Color bgcolor = Color(0, 0, 0, 0);
+                gl(glClearColor, bgcolor.x(), bgcolor.y(), bgcolor.z(), bgcolor.a());
+                gl(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            }
+
+
+            ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); // render to screen buffer
+        }
+
+
+        glfwSwapBuffers(m_window);
+    }
+
+
+    m_systems.run(Systems::Stage::Post, registry());
+}
+
 bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
 {
     if (!is_initialized()) return false;
 
-    while (!should_close()) {
-        for (unsigned int fn_counter = 0; fn_counter < m_main_thread_max_func_per_frame; fn_counter++) {
-            std::pair<std::promise<void>, std::function<void(void)>> item;
-            {
-                // Consume queue item
-                std::lock_guard<std::mutex> lock(m_mutex);
-                if (m_main_thread_fn.empty()) break;
-                item = std::move(m_main_thread_fn.front());
-                m_main_thread_fn.pop();
-            }
-            // Run function
-            item.second();
-            // Set promise value
-            item.first.set_value();
-        }
+#if defined(__EMSCRIPTEN__)
+    // Create a pair holding this viewer instance and the main_loop function.
+    // We need a pointer to the pair stored in heap memory.
+    using RunData = std::pair<Viewer*, const std::function<bool(Registry&)>&>;
+    auto run_data = std::make_unique<RunData>(this, main_loop);
 
+    // Make a C-style function pointer out of a non-capturing lambda. This lambda receives a pointer
+    // to the RunData pair and uses it to call the viewer's render_one_frame method.
+    void (*function_ptr)(void*) = [](void* data) {
+        auto run_data = reinterpret_cast<RunData*>(data);
+        auto viewer = run_data->first;
+        const auto& main_loop = run_data->second;
+        viewer->render_one_frame(main_loop);
+    };
 
-        {
-            /*
-                Initialization systems
-            */
-            m_systems.run(Systems::Stage::Init, registry());
-
-
-            start_imgui_frame();
-
-
-            draw_menu();
-            // Dock space
-            {
-                start_dockspace();
-                if (m_show_imgui_demo) {
-                    ImGui::ShowDemoWindow(&m_show_imgui_demo);
-                }
-
-                if (m_show_imgui_style) {
-                    ImGui::Begin("Style Editor", &m_show_imgui_style);
-                    ImGui::ShowStyleEditor();
-                    ImGui::End();
-                }
-
-                m_systems.run(Systems::Stage::Interface, registry());
-
-                if (main_loop) {
-                    if (!main_loop(registry())) glfwSetWindowShouldClose(m_window, true);
-                }
-
-                show_last_shader_error();
-                end_dockspace();
-            }
-
-            end_imgui_frame();
-
-
-            m_systems.run(Systems::Stage::Simulation, registry());
-
-
-            // All rendering goes here
-            {
-                /*
-                    Render to texture
-                */
-                try {
-                    m_last_shader_error = "";
-                    m_last_shader_error_desc = "";
-
-                    m_systems.run(Systems::Stage::Render, registry());
-
-                } catch (ShaderException& ex) {
-                    m_last_shader_error = ex.what();
-                    m_last_shader_error_desc = ex.get_desc();
-                    lagrange::logger().error("{}", m_last_shader_error);
-                }
-
-                /*
-                    Clear default framebuffer
-                */
-                GLScope gl;
-                {
-                    gl(glBindFramebuffer, GL_FRAMEBUFFER, 0);
-                    gl(glViewport, 0, 0, m_width, m_height);
-                    Color bgcolor = Color(0, 0, 0, 0);
-                    gl(glClearColor, bgcolor.x(), bgcolor.y(), bgcolor.z(), bgcolor.a());
-                    gl(glClear, GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-                }
-
-
-                ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData()); // render to screen buffer
-            }
-
-
-            glfwSwapBuffers(m_window);
-        }
-
-
-        m_systems.run(Systems::Stage::Post, registry());
+    // Pass the function pointer to Emscripten's main loop. See
+    // https://emscripten.org/docs/api_reference/emscripten.h.html#c.emscripten_set_main_loop.
+    try {
+        const int fps = 0; // use browser's requestAnimationFrame()
+        const bool simulate_infinite_loop = true; // execute main loop immediately
+        emscripten_set_main_loop_arg(function_ptr, run_data.get(), fps, simulate_infinite_loop);
+    } catch (std::exception e) {
+        // Ignore exceptions.
     }
+#else
+    while (!should_close()) {
+        render_one_frame(main_loop);
+    }
+#endif
 
     return true;
 }
@@ -638,7 +700,7 @@ bool Viewer::init_glfw(const WindowOptions& options)
         width,
         height,
         options.window_title.c_str(),
-        (options.fullscreen) ? monitors[options.monitor_index] : nullptr,
+        (options.fullscreen) ? monitors[monitor_index] : nullptr,
         nullptr);
 
     if (!m_window) {
@@ -646,6 +708,8 @@ bool Viewer::init_glfw(const WindowOptions& options)
         return false;
     }
 
+#if !defined(__EMSCRIPTEN__)
+    // Window position doesn't make sense when running in the browser.
     int xpos, ypos;
     glfwGetMonitorPos(monitors[monitor_index], &xpos, &ypos);
 
@@ -668,19 +732,27 @@ bool Viewer::init_glfw(const WindowOptions& options)
         ypos += user_y_pos;
         glfwSetWindowPos(m_window, xpos, ypos);
     }
-
+#endif
 
     assert(m_window);
     glfwMakeContextCurrent(m_window);
     assert(m_window);
 
+#if defined(__EMSCRIPTEN__)
+    glfwInit();
+#else
     gl3wInit();
+#endif
 
     glfwSwapInterval(options.vsync ? 1 : 0);
 
     {
         float xscale, yscale;
+#if defined(__EMSCRIPTEN__)
+        xscale = yscale = 1;
+#else
         glfwGetWindowContentScale(m_window, &xscale, &yscale);
+#endif
 
         int client_api = glfwGetWindowAttrib(m_window, GLFW_CLIENT_API);
         int creation_api = glfwGetWindowAttrib(m_window, GLFW_CONTEXT_CREATION_API);
@@ -696,7 +768,9 @@ bool Viewer::init_glfw(const WindowOptions& options)
 
         std::string creation_api_s = "GLFW_NATIVE_CONTEXT_API";
         if (creation_api == GLFW_EGL_CONTEXT_API) creation_api_s = "GLFW_EGL_CONTEXT_API";
+#if !defined(__EMSCRIPTEN__)
         if (creation_api == GLFW_OSMESA_CONTEXT_API) creation_api_s = "GLFW_OSMESA_CONTEXT_API";
+#endif
 
         std::string opengl_profile_s = "GLFW_OPENGL_CORE_PROFILE";
         if (gl_profile == GLFW_OPENGL_COMPAT_PROFILE)
@@ -736,7 +810,7 @@ bool Viewer::init_glfw(const WindowOptions& options)
     });
 
     glfwSetWindowPosCallback(m_window, [](GLFWwindow* window, int x, int y) {
-        static_cast<Viewer*>(glfwGetWindowUserPointer(window))->resize(x, y);
+        static_cast<Viewer*>(glfwGetWindowUserPointer(window))->move(x, y);
     });
 
 
@@ -748,8 +822,8 @@ bool Viewer::init_glfw(const WindowOptions& options)
         const Eigen::Vector2f new_pos = Eigen::Vector2f(x, y);
 
         auto& input = static_cast<Viewer*>(glfwGetWindowUserPointer(window))->get_input();
-        input.mouse_delta += new_pos - input.mouse_position;
-        input.mouse_position = new_pos;
+        input.mouse.delta += new_pos - input.mouse.position;
+        input.mouse.position = new_pos;
     });
 
     glfwSetKeyCallback(
@@ -765,8 +839,13 @@ bool Viewer::init_glfw(const WindowOptions& options)
 
     glfwSetScrollCallback(m_window, [](GLFWwindow* window, double x, double y) {
         auto& input = static_cast<Viewer*>(glfwGetWindowUserPointer(window))->get_input();
-        input.mouse_wheel = float(y);
-        input.mouse_wheel_horizontal = float(x);
+        input.mouse.wheel = float(y);
+        input.mouse.wheel_horizontal = float(x);
+
+#if defined(__EMSCRIPTEN__)
+        input.mouse_wheel /= -100.0f;
+        input.mouse_wheel_horizontal /= -100.0f;
+#endif
     });
 
 
@@ -834,12 +913,7 @@ void Viewer::resize(int window_width, int window_height)
         return;
     }
 
-    int fwidth, fheight, wwidth, wheight;
-    glfwGetFramebufferSize(m_window, &fwidth, &fheight);
-    glfwGetWindowSize(m_window, &wwidth, &wheight);
-
     update_scale();
-
 
     registry().set<WindowSize>(WindowSize{window_width, window_height});
 
@@ -859,7 +933,9 @@ void Viewer::move(int x, int y)
 void Viewer::update_scale()
 {
     Eigen::Vector2f content_scale = Eigen::Vector2f::Ones();
+#if !defined(__EMSCRIPTEN__)
     glfwGetWindowContentScale(m_window, &content_scale.x(), &content_scale.y());
+#endif
 
     int fwidth, fheight, wwidth, wheight;
     glfwGetFramebufferSize(m_window, &fwidth, &fheight);
@@ -889,19 +965,21 @@ std::string Viewer::get_config_folder()
 void Viewer::process_input()
 {
     // Reset input before polling events
-    get_input().mouse_wheel = 0.0f;
-    get_input().mouse_wheel_horizontal = 0.0f;
-    get_input().mouse_delta = Eigen::Vector2f(0, 0);
+    get_input().mouse.wheel = 0.0f;
+    get_input().mouse.wheel_horizontal = 0.0f;
+    get_input().mouse.delta = Eigen::Vector2f(0, 0);
 
     glfwPollEvents();
 
+    auto& keybinds = get_keybinds();
+    keybinds.begin_update();
 
     /*
         Process one keyboard event at a time
     */
     if (!m_key_queue.empty()) {
         auto event = m_key_queue.front();
-        get_keybinds().set_key_state(event.first, event.second);
+        keybinds.set_key_state(event.first, event.second);
         m_key_queue.pop();
     }
 
@@ -910,22 +988,30 @@ void Viewer::process_input()
     */
     if (!m_mouse_key_queue.empty()) {
         auto event = m_mouse_key_queue.front();
-        get_keybinds().set_key_state(event.first, event.second);
+        keybinds.set_key_state(event.first, event.second);
         m_mouse_key_queue.pop();
     }
 
-    // Set keybind context
-    std::string keybind_context = "global";
-
     // If any viewport hovered, set context to "viewport"
-    bool any_viewport_hovered = false;
-    registry().view<const ViewportPanel>().each(
-        [&](const ViewportPanel& v) { any_viewport_hovered |= v.hovered; });
-    if (any_viewport_hovered) {
-        keybind_context = "viewport";
-    }
+    struct AnyViewportHovered
+    {
+        bool previous = false;
+        bool current = false;
+    };
+    auto& vh = registry().ctx_or_set<AnyViewportHovered>(AnyViewportHovered{});
 
-    get_input().keybinds->update(keybind_context);
+    vh.current = false;
+    registry().view<const ViewportPanel>().each(
+        [&](const ViewportPanel& v) { vh.current |= v.hovered; });
+
+    if (!vh.previous && vh.current) {
+        keybinds.push_context("viewport");
+    } else if (vh.previous && !vh.current) {
+        keybinds.pop_context();
+    }
+    vh.previous = vh.current;
+
+    keybinds.end_update();
 }
 
 void Viewer::update_time()
@@ -1106,15 +1192,15 @@ void Viewer::draw_menu()
             ui::add_spot_light(registry());
         }
 
-         if (ImGui::MenuItem("Clear Lights")) {
+        if (ImGui::MenuItem("Clear Lights")) {
             ui::clear_lights(registry());
         }
 
         ImGui::Separator();
 
-        if (ImGui::MenuItem(ICON_FA_IMAGE" Load Image Based Light")) {
+        if (ImGui::MenuItem(ICON_FA_IMAGE " Load Image Based Light")) {
             auto path = ui::open_file("Load an IBL");
-            if (!path.empty()){
+            if (!path.empty()) {
                 try {
                     auto ibl = ui::generate_ibl(path);
                     ui::clear_ibl(registry());
@@ -1129,18 +1215,14 @@ void Viewer::draw_menu()
             ui::clear_ibl(registry());
             ui::add_ibl(
                 registry(),
-                ui::generate_ibl(
-                    ui::generate_colormap([](float v) { return Color::white(); }),
-                    16));
+                ui::generate_ibl(ui::generate_colormap([](float) { return Color::white(); }), 16));
         }
 
         if (ImGui::MenuItem("Set Black Background")) {
             ui::clear_ibl(registry());
             ui::add_ibl(
                 registry(),
-                ui::generate_ibl(
-                    ui::generate_colormap([](float v) { return Color::black(); }),
-                    16));
+                ui::generate_ibl(ui::generate_colormap([](float) { return Color::black(); }), 16));
         }
 
         if (ImGui::MenuItem("Clear IBL")) {
@@ -1148,7 +1230,6 @@ void Viewer::draw_menu()
         }
 
         ImGui::EndMenu();
-
     }
 
     {

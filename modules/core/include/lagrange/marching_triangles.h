@@ -92,7 +92,7 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
     std::vector<Scalar> extracted_vertices_parent_param;
     std::vector<Index> parent_edge_to_extracted_vertex(
         mesh_ref.get_num_edges(),
-        INVALID<Index>());
+        invalid<Index>());
 
     //
     // Find the point that attains a zero value on an edge
@@ -100,7 +100,7 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
     // Returns the index of this vertex
     //
     auto find_zero = [&](Index parent_edge_id, Index v0, Index v1, Scalar p0, Scalar p1) -> Index {
-        if (parent_edge_to_extracted_vertex[parent_edge_id] != INVALID<Index>()) {
+        if (parent_edge_to_extracted_vertex[parent_edge_id] != invalid<Index>()) {
             return parent_edge_to_extracted_vertex[parent_edge_id];
         } else {
             // Get the edge and see if the order of v0 v1 and the edge values are the same.

@@ -165,8 +165,5 @@ private:
 };
 
 
-
-
-
 } // namespace ui
 } // namespace lagrange

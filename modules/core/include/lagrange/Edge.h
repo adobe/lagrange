@@ -46,7 +46,7 @@ public:
     {}
 
     // Invalid() can be useful for EdgeType temporary variables
-    static EdgeType Invalid() { return EdgeType(INVALID<Index>(), INVALID<Index>()); }
+    static EdgeType Invalid() { return EdgeType(invalid<Index>(), invalid<Index>()); }
 
     // Alternate constructor for backward compatibility,
     // allowing `EdgeType e = {0, 1}`
@@ -57,7 +57,7 @@ public:
 
     inline Index v1() const { return m_v1; }
     inline Index v2() const { return m_v2; }
-    inline bool is_valid() const { return m_v1 != INVALID<Index>() && m_v2 != INVALID<Index>(); }
+    inline bool is_valid() const { return m_v1 != invalid<Index>() && m_v2 != invalid<Index>(); }
 
     EdgeType<Index>& operator=(const EdgeType<Index>& other)
     {
@@ -132,7 +132,7 @@ public:
         if (m_v1 == other.m_v2) return m_v1;
         if (m_v2 == other.m_v1) return m_v2;
         if (m_v2 == other.m_v2) return m_v2;
-        return INVALID<Index>();
+        return invalid<Index>();
     }
     Index get_other_vertex(Index v) const
     {

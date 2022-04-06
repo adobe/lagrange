@@ -15,8 +15,8 @@ layout (location = 0) in vec3 in_pos;
 layout (location = 2) in vec2 in_uv;
 out vec3 vertex_uv;
 
-uniform mat4 PV = mat4(1.0);
-uniform mat4 M = mat4(1.0);
+uniform mat4 PV;
+uniform mat4 M;
 
 void main() {
     gl_Position = PV * M * vec4(in_pos,1);
@@ -26,33 +26,32 @@ void main() {
 #pragma FRAGMENT
 
 in vec3 vertex_uv;
+out vec4 fragColor;
 
 #pragma property tex "Texture" Texture2D(1.0,0.0,0.0,1)
 #pragma property tex_cube "Cubemap" TextureCube
 #pragma property tex_opacity "Opacity" Texture2D(1.0)
 #pragma property bias "Bias" float(1)
 
+#pragma property cubemap_face "Cubemap Face" int(0,0,5)
+#pragma property is_cubemap "Is Cubemap" bool(false)
 
-uniform int cubemap_face = 0;
-uniform bool is_cubemap = false;
-uniform bool useTextureAlpha = true;
+#pragma property useTextureAlpha "Use Texture Alpha" bool(true)
+#pragma property useTextureLod "Use Texture LoD" bool(false)
+#pragma property textureLevel "Texture LoD Level" float(0,0,16)
+#pragma property singleChannel "Is Single Channel" bool(false)
 
-uniform bool useTextureLod = false;
-uniform float textureLevel = 0.0;
-uniform bool singleChannel = false;
+#pragma property showOnlyAlpha "Show Only Alpha" bool(false)
+#pragma property zeroIsTransparent "Zero Is Transparent" bool(false)
 
-uniform bool showOnlyAlpha = false;
-uniform bool zeroIsTransparent = false;
+#pragma property normalize_values "Normalize Values" bool(false)
+#pragma property normalize_min "Normalize Min" float(0)
+#pragma property normalize_range "Normalize Range" float(1)
 
-out vec4 fragColor;
 
-uniform bool normalize_values = false;
-uniform float normalize_min = 0.0f;
-uniform float normalize_range = 1.0f;
-
-uniform bool is_depth = false;
-uniform float depth_near = 1.0f;
-uniform float depth_far = 32.0f;
+#pragma property is_depth "Is Depth" bool(false)
+#pragma property depth_near "Depth Near" float(1)
+#pragma property depth_far "Depth Far" float(32)
 
 float linearize_depth(float depth, float near, float far)
 {
@@ -122,7 +121,10 @@ void main(){
     else if(singleChannel){
 
         if(zeroIsTransparent){
-            fragColor = vec4(vec3(t.x,0,0),(t.x > 0) ? 0.4f : 0.0f);
+            if(t.x > 0)
+                fragColor = vec4(vec3(t.x,0,0),0.4f);
+            else
+                fragColor = vec4(vec3(t.x,0,0),0.0f);
         }
         else{
             fragColor = vec4(vec3(t.x*bias),opacity);

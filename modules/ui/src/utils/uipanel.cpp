@@ -50,6 +50,7 @@ bool begin_panel(UIPanel& window)
         ImGui::SetNextWindowClass(&cls);
     }
 
+    ImGui::SetWindowSize(ImVec2(100, 100), ImGuiCond_FirstUseEver);
 
     bool is_expanded = ImGui::Begin(window.title.c_str(), &window.visible, window.imgui_flags);
 
@@ -125,7 +126,7 @@ Entity add_panel(
     const std::string& title,
     const std::function<void(Registry&, Entity)>& body_fn,
     const std::function<void(Registry&, Entity)>& before_fn /*= nullptr*/,
-    const std::function<void(Registry&, Entity)>& after_fn /*= nullptr*/, 
+    const std::function<void(Registry&, Entity)>& after_fn /*= nullptr*/,
     const std::function<void(Registry&, Entity)>& menubar_fn /*= nullptr*/)
 {
     auto e = r.create();

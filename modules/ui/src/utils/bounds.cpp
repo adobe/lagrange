@@ -104,7 +104,7 @@ AABB get_selection_bounding_box(const Registry& registry)
 
 AABB get_bounding_box(const Registry& registry, Entity e)
 {
-    if (registry.has<Bounds>(e)) {
+    if (registry.all_of<Bounds>(e)) {
         return registry.get<Bounds>(e).global;
     }
 
@@ -113,7 +113,7 @@ AABB get_bounding_box(const Registry& registry, Entity e)
 
 AABB get_bounding_box_local(const Registry& registry, Entity e)
 {
-    if (registry.has<Bounds>(e)) {
+    if (registry.all_of<Bounds>(e)) {
         return registry.get<Bounds>(e).local;
     }
 

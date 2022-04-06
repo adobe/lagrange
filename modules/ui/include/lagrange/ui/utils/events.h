@@ -20,7 +20,8 @@
 namespace lagrange {
 namespace ui {
 
-inline EventEmitter& get_event_emitter(Registry& r) {
+inline EventEmitter& get_event_emitter(Registry& r)
+{
     return r.ctx_or_set<EventEmitter>(EventEmitter());
 }
 
@@ -49,7 +50,7 @@ EventEmitter::connection<Event> on(Registry& r, std::function<void(Event&)> list
 /// @param r Registry instance
 /// @param ...args Arguments to construct Event
 template <typename Event, typename... Args>
-void publish(Registry &r, Args&&... args)
+void publish(Registry& r, Args&&... args)
 {
     get_event_emitter(r).publish<Event>(std::forward<Args>(args)...);
 }
@@ -79,5 +80,5 @@ void toggle_component_event(Registry& r)
     }
 }
 
-}
-}
+} // namespace ui
+} // namespace lagrange

@@ -98,7 +98,7 @@ void compute_normal(
     logger().trace("Loop to unify corner indices");
     DisjointSets<Index> unified_indices(num_corners);
     tbb::parallel_for(Index(0), num_vertices, [&](Index v) {
-        for (Index ci = v2c[v]; ci != INVALID<Index>(); ci = next_corner_around_vertex[ci]) {
+        for (Index ci = v2c[v]; ci != invalid<Index>(); ci = next_corner_around_vertex[ci]) {
             Index eij = c2e[ci];
             Index fi = ci / nvpf;
             Index lvi = ci % nvpf;
@@ -107,7 +107,7 @@ void compute_normal(
             if (is_cone_vertex[vi]) continue;
             if (is_face_degenerate(fi)) continue;
 
-            for (Index cj = e2c[eij]; cj != INVALID<Index>(); cj = next_corner_around_edge[cj]) {
+            for (Index cj = e2c[eij]; cj != invalid<Index>(); cj = next_corner_around_edge[cj]) {
                 Index fj = cj / nvpf;
                 Index lvj = cj % nvpf;
                 if (fi == fj) continue;
@@ -127,11 +127,11 @@ void compute_normal(
 
     // STEP 2: Perform averaging and reindex attribute
     logger().trace("Compute new indices");
-    std::vector<Index> repr(num_corners, INVALID<Index>());
+    std::vector<Index> repr(num_corners, invalid<Index>());
     Index num_indices = 0;
     for (Index n = 0; n < num_corners; ++n) {
         Index r = unified_indices.find(n);
-        if (repr[r] == INVALID<Index>()) {
+        if (repr[r] == invalid<Index>()) {
             repr[r] = num_indices++;
         }
         repr[n] = repr[r];

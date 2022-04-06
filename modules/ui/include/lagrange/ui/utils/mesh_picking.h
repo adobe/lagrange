@@ -90,7 +90,5 @@ bool enable_accelerated_picking(Registry& r, Entity e);
 bool has_accelerated_picking(Registry& r, Entity e);
 
 
-
-
 } // namespace ui
 } // namespace lagrange

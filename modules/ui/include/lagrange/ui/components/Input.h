@@ -14,17 +14,27 @@
 #include <lagrange/ui/types/Keybinds.h>
 #include <Eigen/Eigen>
 
-
 namespace lagrange {
 namespace ui {
 
 struct InputState
 {
     std::shared_ptr<Keybinds> keybinds;
-    Eigen::Vector2f mouse_position = Eigen::Vector2f(0, 0);
-    Eigen::Vector2f mouse_delta = Eigen::Vector2f(0, 0); // Delta from last frame
-    float mouse_wheel = 0.0f;
-    float mouse_wheel_horizontal = 0.0f;
+
+    struct Mouse
+    {
+        /// Position in pixels from top-left of the viewer window
+        Eigen::Vector2f position = Eigen::Vector2f(0, 0);
+
+        /// Change in mouse pixel position from last frame
+        Eigen::Vector2f delta = Eigen::Vector2f(0, 0);
+
+        /// Vertical wheel change during this frame
+        float wheel = 0.0f;
+
+        /// Horizontal wheel change during this frame
+        float wheel_horizontal = 0.0f;
+    } mouse;
 };
 
 } // namespace ui

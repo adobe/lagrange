@@ -28,5 +28,7 @@
 #include <lagrange/ui/utils/lights.h>
 #include <lagrange/ui/utils/mesh.h>
 #include <lagrange/ui/utils/mesh_picking.h>
+#include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/tools.h>
 #include <lagrange/ui/utils/treenode.h>
 #include <lagrange/ui/utils/viewport.h>

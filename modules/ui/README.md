@@ -548,7 +548,7 @@ MyComponent & c = registry.get<MyComponent>(entity);
 // If you're not sure it exists
 MyComponent * c = registry.try_get<MyComponent>(entity);
 //or 
-if(registry.has<MyComponent>()){
+if(registry.all_of<MyComponent>()){
     MyComponent& c = registry.get<MyComponent>(entity);
 }
 ```
@@ -592,8 +592,8 @@ Systems **do not have data**. However, it's often useful to have some state asso
 ```c++
 void update_input_system(Registry & registry){
     InputState & input_state =  registry.ctx_or_set<InputState>();
-    input_state.mouse_pos = ...
-    input_state.mouse_delta = ...
+    input_state.mouse.position = ...
+    input_state.mouse.delta = ...
     input_state.keybinds.update(...);
 }
 ```

@@ -345,7 +345,6 @@ protected:
     Eigen::Vector4f m_ortho_viewport = Eigen::Vector4f(0.0f, 1.0f, 1.0f, 0.0f);
 
     RotationMode m_rotation_mode = RotationMode::TUMBLE;
-
 };
 } // namespace ui
 } // namespace lagrange

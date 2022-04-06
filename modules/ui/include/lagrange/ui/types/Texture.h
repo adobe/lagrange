@@ -11,15 +11,14 @@
  */
 #pragma once
 
-#include <memory>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
-
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/ui/types/GLContext.h>
 #include <lagrange/ui/utils/math.h>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
 
 namespace lagrange {
@@ -109,6 +108,7 @@ public:
             return p;
         }
 
+
         static Params rgba16f()
         {
             Params p = rgb16f();
@@ -122,7 +122,7 @@ public:
             Texture::Params p;
             p.type = GL_TEXTURE_2D;
             p.format = GL_RED;
-            p.internal_format = GL_R8;
+            p.internal_format = GL_RED;
             p.wrap_s = GL_CLAMP_TO_EDGE;
             p.wrap_t = GL_CLAMP_TO_EDGE;
             p.mag_filter = GL_LINEAR;
@@ -145,9 +145,17 @@ public:
             return p;
         }
 
+        static Params rgba()
+        {
+            Params p = rgb();
+            p.format = GL_RGBA;
+            p.internal_format = GL_RGBA;
+            return p;
+        }
+
         static Params depth()
         {
-            Params p = rgb16f();
+            Params p = rgb();
             p.format = GL_DEPTH_COMPONENT;
             p.internal_format = GL_DEPTH_COMPONENT24;
             return p;
@@ -184,11 +192,28 @@ public:
 
     void set_uv_transform(const Texture::Transform& uv_transform);
 
+    struct DownloadResult
+    {
+        std::vector<unsigned char> data;
+        int w, h, components;
+        int row_stride;
+    };
+
+    std::optional<Texture::DownloadResult> download(
+        GLenum target = GL_TEXTURE_2D,
+        int mip_level = 0);
+
     bool save_to(
         const fs::path& file_path,
         GLenum opengl_target = GL_TEXTURE_2D,
         int quality = 90,
         int mip_level = 0);
+
+
+    static bool is_internal_format_color_renderable(GLenum internal_format);
+
+    // Get element type used to allocate the texture memory (e.g. GL_UNSIGNED_BYTE, GL_FLOAT, ...)
+    GLenum get_gl_element_type() const { return m_gl_elem_type; }
 
 private:
     void set_common_params();
@@ -202,6 +227,7 @@ private:
     GLuint m_id;
 
     Params m_params;
+    GLenum m_gl_elem_type;
 };
 
 } // namespace ui

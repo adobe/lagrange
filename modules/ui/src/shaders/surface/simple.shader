@@ -21,6 +21,6 @@
 
 void main(){
 
-    fragColor = fs_in.color;
+    fragColor = vs_out_color;
     fragColor.a *= opacity;
 }

@@ -19,26 +19,26 @@ namespace ui {
 using LayerNames = std::array<std::string, get_max_layers()>;
 
 
-LayerIndex
-register_layer_name(Registry& registry, const std::string& name, LayerIndex index)
+LayerIndex register_layer_name(Registry& registry, const std::string& name, LayerIndex index)
 {
     auto& names = registry.ctx_or_set<LayerNames>();
     names[index] = name;
     return index;
 }
 
-LayerIndex register_layer_name(Registry& registry, const std::string& name) {
+LayerIndex register_layer_name(Registry& registry, const std::string& name)
+{
     auto index = get_next_available_layer_index(registry);
     return register_layer_name(registry, name, index);
 }
 
-const std::string &get_layer_name(Registry &registry, LayerIndex index)
+const std::string& get_layer_name(Registry& registry, LayerIndex index)
 {
-    auto &names = registry.ctx_or_set<LayerNames>();
+    auto& names = registry.ctx_or_set<LayerNames>();
     return names[index];
 }
 
-void register_default_layer_names(Registry &registry)
+void register_default_layer_names(Registry& registry)
 {
     register_layer_name(registry, "Default", DefaultLayers::Default);
     register_layer_name(registry, "Selection", DefaultLayers::Selection);
@@ -47,25 +47,26 @@ void register_default_layer_names(Registry &registry)
 }
 
 
-void add_to_layer(Registry &registry, Entity e, LayerIndex index)
+void add_to_layer(Registry& registry, Entity e, LayerIndex index)
 {
-    auto &c = registry.get_or_emplace<Layer>(e);
+    auto& c = registry.get_or_emplace<Layer>(e);
     c.set(size_t(index), true);
 }
 
-void remove_from_layer(Registry &registry, Entity e, LayerIndex index)
+void remove_from_layer(Registry& registry, Entity e, LayerIndex index)
 {
-    auto &c = registry.get_or_emplace<Layer>(e);
+    auto& c = registry.get_or_emplace<Layer>(e);
     c.set(size_t(index), false);
 }
 
-bool is_in_layer(Registry &registry, Entity e, LayerIndex index)
+bool is_in_layer(Registry& registry, Entity e, LayerIndex index)
 {
-    auto &c = registry.get_or_emplace<Layer>(e);
+    auto& c = registry.get_or_emplace<Layer>(e);
     return c.test(index);
 }
 
-bool is_in_any_layers(Registry& registry, Entity e, Layer layers_bitset) {
+bool is_in_any_layers(Registry& registry, Entity e, Layer layers_bitset)
+{
     auto& c = registry.get_or_emplace<Layer>(e);
     return (c & layers_bitset).any();
 }
@@ -73,12 +74,12 @@ bool is_in_any_layers(Registry& registry, Entity e, Layer layers_bitset) {
 
 bool is_visible_in(
     const Registry& registry,
-    Entity e, 
+    Entity e,
     const Layer& visible_layers,
     const Layer& hidden_layers)
 {
     // If is in any visible layer and not in any hidden layer
-    if (registry.has<Layer>(e)) {
+    if (registry.all_of<Layer>(e)) {
         const auto& layer = registry.get<Layer>(e);
 
         if (!(layer & visible_layers).any()) return false;
@@ -96,7 +97,8 @@ bool is_visible_in(
     return true;
 }
 
-LayerIndex get_next_available_layer_index(Registry& r) {
+LayerIndex get_next_available_layer_index(Registry& r)
+{
     const auto& names = r.ctx<LayerNames>();
     for (size_t i = 0; i < names.size(); i++) {
         if (names[i].length() == 0) return LayerIndex(i);

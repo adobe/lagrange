@@ -14,6 +14,7 @@
 #include <lagrange/ui/components/CameraComponents.h>
 #include <lagrange/ui/components/Common.h>
 #include <lagrange/ui/components/Viewport.h>
+#include <lagrange/ui/default_events.h>
 #include <lagrange/ui/imgui/UIWidget.h>
 #include <lagrange/ui/imgui/buttons.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
@@ -23,13 +24,12 @@
 #include <lagrange/ui/types/Camera.h>
 #include <lagrange/ui/types/Systems.h>
 #include <lagrange/ui/utils/bounds.h>
+#include <lagrange/ui/utils/events.h>
 #include <lagrange/ui/utils/input.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/selection.h>
 #include <lagrange/ui/utils/uipanel.h>
 #include <lagrange/ui/utils/viewport.h>
-#include <lagrange/ui/default_events.h>
-#include <lagrange/ui/utils/events.h>
 
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
@@ -119,10 +119,9 @@ void draw_texture_widget(Texture& tex)
         ImGui::SameLine();
         switch (p.internal_format) {
         case GL_R8: ImGui::Text("GL_R8"); break;
-        case GL_RGB: ImGui::Text("GL_RGB"); break;
-        case GL_RGBA: ImGui::Text("GL_RGBA"); break;
-        case GL_SRGB_ALPHA: ImGui::Text("GL_SRGB_ALPHA"); break;
-        case GL_SRGB: ImGui::Text("GL_SRGB"); break;
+        case GL_RGB8: ImGui::Text("GL_RGB8"); break;
+        case GL_RGBA8: ImGui::Text("GL_RGBA8"); break;
+        case GL_SRGB8_ALPHA8: ImGui::Text("GL_SRGB8_ALPHA8"); break;
         case GL_SRGB8: ImGui::Text("GL_SRGB8"); break;
         case GL_DEPTH_COMPONENT24: ImGui::Text("GL_DEPTH_COMPONENT24"); break;
         case GL_RGB16F: ImGui::Text("GL_RGB16F"); break;
@@ -460,7 +459,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
         Camera
     */
     if (registry.valid(viewport.camera_reference) &&
-        registry.has<CameraController>(viewport.camera_reference)) {
+        registry.all_of<CameraController>(viewport.camera_reference)) {
         auto& controller = registry.get<CameraController>(viewport.camera_reference);
 
         bool changed = false;
@@ -556,8 +555,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
         auto view = registry.view<CameraController, Camera>();
 
         for (auto e : view) {
-            if (changed)
-                ui::publish<CameraChangedEvent>(registry, e);
+            if (changed) ui::publish<CameraChangedEvent>(registry, e);
         }
 
 
@@ -582,7 +580,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     false,
                     ICON_FA_COMPRESS_ARROWS_ALT,
                     "Focus On Selection",
-                    "global.camera.center_on_selection",
+                    "camera_center_on_selection",
                     &keys)) {
                 focus = true;
             }
@@ -592,7 +590,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     false,
                     ICON_FA_EXPAND,
                     "Zoom To Fit Selection",
-                    "global.camera.zoom_to_fit",
+                    "camera_zoom_to_fit",
                     &keys)) {
                 fit = true;
                 focus = true;
@@ -698,7 +696,7 @@ void viewport_panel_system(Registry& registry, Entity e)
 {
     ViewportPanel& data = registry.get<ViewportPanel>(e);
     auto& input = get_input(registry);
-    if (!registry.valid(data.viewport) || !registry.has<ViewportComponent>(data.viewport)) {
+    if (!registry.valid(data.viewport) || !registry.all_of<ViewportComponent>(data.viewport)) {
         ImGui::Text("Invalid viewport");
         return;
     }
@@ -744,12 +742,12 @@ void viewport_panel_system(Registry& registry, Entity e)
 
     // Compute mouse state
     data.hovered = ImGui::IsWindowHovered(ImGuiHoveredFlags_RootWindow) &&
-                   data.is_over_viewport(input.mouse_position);
-    data.mouse_in_canvas = data.screen_to_viewport(input.mouse_position);
+                   data.is_over_viewport(input.mouse.position);
+    data.mouse_in_canvas = data.screen_to_viewport(input.mouse.position);
 
 
     if (!registry.valid(viewport.camera_reference) ||
-        !registry.has<CameraController>(viewport.camera_reference)) {
+        !registry.all_of<CameraController>(viewport.camera_reference)) {
         ImGui::PopID();
         return;
     }
@@ -766,7 +764,7 @@ void viewport_panel_system(Registry& registry, Entity e)
     bool hovered_no_gizmo = data.hovered && !gizmo_system_is_using() && !gizmo_system_is_over();
 
     if (hovered_no_gizmo) {
-        if (keys.is_pressed("viewport.camera.rotate")) {
+        if (keys.is_pressed("viewport.camera_rotate")) {
             if (!controller.rotation_active) {
                 controller.rotation_mouse_start = data.mouse_in_canvas;
                 controller.rotation_camera_pos_start = cam.get_position();
@@ -776,42 +774,42 @@ void viewport_panel_system(Registry& registry, Entity e)
         }
 
         // Zoom using mousewheel
-        if (input.mouse_wheel != 0.0f) {
+        if (input.mouse.wheel != 0.0f) {
             controller.dolly_active = true;
-            controller.dolly_delta = static_cast<float>(0.15f * input.mouse_wheel);
+            controller.dolly_delta = static_cast<float>(0.15f * input.mouse.wheel);
         } else {
             controller.dolly_active = false;
         }
 
 
         // Zoom using dolly keybind
-        if (keys.is_down("viewport.camera.dolly")) {
+        if (keys.is_down("viewport.camera_dolly")) {
             controller.dolly_active = true;
-            controller.dolly_delta = float(input.mouse_delta.x()) / cam.get_window_width();
+            controller.dolly_delta = float(input.mouse.delta.x()) / cam.get_window_width();
         }
 
 
-        if (keys.is_down("viewport.camera.pan")) {
+        if (keys.is_down("viewport.camera_pan")) {
             controller.pan_active = true;
         }
     }
 
 
-    if (keys.is_released("viewport.camera.rotate")) {
+    if (keys.is_released("viewport.camera_rotate")) {
         controller.rotation_active = false;
     }
 
-    if (keys.is_released("viewport.camera.dolly")) {
+    if (keys.is_released("viewport.camera_dolly")) {
         controller.dolly_active = false;
     }
 
 
-    if (keys.is_released("viewport.camera.pan")) {
+    if (keys.is_released("viewport.camera_pan")) {
         controller.pan_active = false;
     }
 
     controller.mouse_current = data.mouse_in_canvas;
-    controller.mouse_delta = input.mouse_delta;
+    controller.mouse_delta = input.mouse.delta;
 
 
     ImGui::PopID();

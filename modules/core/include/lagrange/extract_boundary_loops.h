@@ -42,13 +42,13 @@ std::vector<std::vector<typename MeshType::Index>> extract_boundary_loops(MeshTy
     const Index num_vertices = mesh.get_num_vertices();
 
     mesh.initialize_edge_data();
-    std::vector<Index> boundary_next(num_vertices, INVALID<Index>());
+    std::vector<Index> boundary_next(num_vertices, invalid<Index>());
 
     const Index num_edges = mesh.get_num_edges();
     for (auto ei : range(num_edges)) {
         if (mesh.is_boundary_edge(ei)) {
             const auto edge = mesh.get_edge_vertices(ei);
-            if (boundary_next[edge[0]] != INVALID<Index>() && boundary_next[edge[0]] != edge[1]) {
+            if (boundary_next[edge[0]] != invalid<Index>() && boundary_next[edge[0]] != edge[1]) {
                 throw std::runtime_error("The boundary loops are not simple.");
             }
             boundary_next[edge[0]] = edge[1];
@@ -58,15 +58,15 @@ std::vector<std::vector<typename MeshType::Index>> extract_boundary_loops(MeshTy
     std::vector<std::vector<Index>> bd_loops;
     bd_loops.reserve(4);
     for (Index i = 0; i < num_vertices; i++) {
-        if (boundary_next[i] != INVALID<Index>()) {
+        if (boundary_next[i] != invalid<Index>()) {
             bd_loops.emplace_back();
             auto& loop = bd_loops.back();
 
             Index curr_idx = i;
             loop.push_back(curr_idx);
-            while (boundary_next[curr_idx] != INVALID<Index>()) {
+            while (boundary_next[curr_idx] != invalid<Index>()) {
                 loop.push_back(boundary_next[curr_idx]);
-                boundary_next[curr_idx] = INVALID<Index>();
+                boundary_next[curr_idx] = invalid<Index>();
                 curr_idx = loop.back();
             }
             assert(!loop.empty());

@@ -71,7 +71,7 @@ std::unique_ptr<MeshType> reorder_mesh_vertices(
     la_runtime_assert(num_old_vertices == safe_cast<Index>(forward_mapping.size()));
 
     auto forward_mapping_no_invalid = [&forward_mapping](const Index io) {
-        return forward_mapping[io] == INVALID<Index>() ? io : forward_mapping[io];
+        return forward_mapping[io] == invalid<Index>() ? io : forward_mapping[io];
     };
 
     // Cound the number of new vertices
@@ -84,7 +84,7 @@ std::unique_ptr<MeshType> reorder_mesh_vertices(
 
 
     // Create the backward mapping and the new vertices
-    IndexList backward_mapping(num_new_vertices, INVALID<Index>());
+    IndexList backward_mapping(num_new_vertices, invalid<Index>());
     VertexArray vertices_new(num_new_vertices, mesh.get_dim());
     for (const auto io : range(num_old_vertices)) {
         const auto in = forward_mapping_no_invalid(io);
@@ -93,7 +93,7 @@ std::unique_ptr<MeshType> reorder_mesh_vertices(
     }
     // The mapping should be surjective.
     la_runtime_assert(
-        std::find(backward_mapping.begin(), backward_mapping.end(), INVALID<Index>()) ==
+        std::find(backward_mapping.begin(), backward_mapping.end(), invalid<Index>()) ==
             backward_mapping.end(),
         "Forward mapping is not surjective");
 

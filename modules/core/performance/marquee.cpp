@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     app.add_option("input", input_file, "Input mesh file.")->required()->check(CLI::ExistingFile);
     CLI11_PARSE(app, argc, argv);
 
-    lagrange::logger().info("input filename: {}", input_file);
+    lagrange::logger().info("input filename: {}", input_file.string());
     lagrange::logger().info("greedy: {}", greedy);
     lagrange::logger().info("N: {}", N);
 

@@ -13,33 +13,30 @@
 
 layout (location = 0) in vec3 in_pos;
 
-out VARYING {
-    vec3 pos;
-} vs_out;
+
+out vec3 vs_out_pos;
 
 uniform mat4 PV;
 
 
 void main()
 {
-    vs_out.pos = in_pos;
-    gl_Position = (PV * vec4(vs_out.pos,1.0)).xyww;
+    vs_out_pos = in_pos;
+    gl_Position = (PV * vec4(vs_out_pos,1.0)).xyww;
 }
 
 #pragma FRAGMENT
-layout(location = 0) out vec4 fragColor;
+out vec4 fragColor;
 
-in VARYING {
-    vec3 pos;
-} fs_in;
+in vec3 vs_out_pos;
 
 
 uniform samplerCube texCubemap;
-uniform float mip_level = 0.0f;
+#pragma property mip_level "MipLevel" float(1,0,16)
 
 void main(){
 
-    vec3 p = normalize(fs_in.pos);
+    vec3 p = normalize(vs_out_pos);
 
     fragColor = textureLod(texCubemap, p.xyz, mip_level);
 

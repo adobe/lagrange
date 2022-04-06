@@ -22,10 +22,10 @@ TEST_CASE("INVALID", "")
     using Mesh = TriangleMesh3D;
     using Index = Mesh::Index; // should be 'int'. If this changes this test might require changing.
 
-    REQUIRE(INVALID<Index>() == std::numeric_limits<Index>::max());
-    REQUIRE(INVALID<Index>() == std::numeric_limits<int>::max());
+    REQUIRE(invalid<Index>() == std::numeric_limits<Index>::max());
+    REQUIRE(invalid<Index>() == std::numeric_limits<int>::max());
     REQUIRE(
-        INVALID<Index>() != std::numeric_limits<unsigned int>::max()); // different types can have
+        invalid<Index>() != std::numeric_limits<unsigned int>::max()); // different types can have
                                                                        // different INVALID values.
     REQUIRE(std::is_arithmetic<Index>::value);
 }

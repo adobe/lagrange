@@ -12,7 +12,7 @@
 include(cli11)
 lagrange_include_modules(io)
 
-lagrange_add_example(ui_treenode
+lagrange_add_example(ui_treenode WITH_UI
     main.cpp
 )
 

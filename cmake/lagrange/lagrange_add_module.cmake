@@ -45,6 +45,12 @@ function(lagrange_add_module)
     target_sources(lagrange_${module_name} PRIVATE ${INC_FILES} ${SRC_FILES})
 
     # Target folder for IDE
-    set_target_properties(lagrange_${module_name} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange")
+    set_target_properties(lagrange_${module_name} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules")
+
+    # Enable code coverage for non-interface targets
+    if(NOT OPTIONS_INTERFACE)
+        include(FetchContent)
+        target_code_coverage(lagrange_${module_name} ${module_scope} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
+    endif()
 
 endfunction()

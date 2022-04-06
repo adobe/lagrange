@@ -21,5 +21,5 @@ struct RayFacetHit
 };
 
 
-}
-}
+} // namespace ui
+} // namespace lagrange

@@ -13,6 +13,7 @@
 #include <lagrange/ui/default_entities.h>
 #include <lagrange/ui/default_shaders.h>
 #include <lagrange/ui/utils/bounds.h>
+#include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/mesh.h>
 #include <lagrange/ui/utils/treenode.h>
 #include <lagrange/utils/assert.h>
@@ -80,7 +81,7 @@ void set_colormap(Registry& registry, Entity meshrender_entity, std::shared_ptr<
 {
     la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
     la_runtime_assert(
-        registry.has<MeshRender>(meshrender_entity),
+        registry.all_of<MeshRender>(meshrender_entity),
         "Entity must have MeshRender component");
 
     auto mat = get_material(registry, meshrender_entity);
@@ -96,7 +97,7 @@ void set_colormap_range(
 {
     la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
     la_runtime_assert(
-        registry.has<MeshRender>(meshrender_entity),
+        registry.all_of<MeshRender>(meshrender_entity),
         "Entity must have MeshRender component");
 
     auto& mr = registry.get<MeshRender>(meshrender_entity);
@@ -123,7 +124,7 @@ std::shared_ptr<Material> get_material(Registry& registry, Entity meshrender_ent
 {
     la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
     la_runtime_assert(
-        registry.has<MeshRender>(meshrender_entity),
+        registry.all_of<MeshRender>(meshrender_entity),
         "Entity must have MeshRender component");
 
     auto& mr = registry.get<MeshRender>(meshrender_entity);
@@ -134,7 +135,7 @@ void set_material(Registry& registry, Entity meshrender_entity, std::shared_ptr<
 {
     la_runtime_assert(registry.valid(meshrender_entity), "Invalid entity");
     la_runtime_assert(
-        registry.has<MeshRender>(meshrender_entity),
+        registry.all_of<MeshRender>(meshrender_entity),
         "Entity must have MeshRender component");
 
     auto& mr = registry.get<MeshRender>(meshrender_entity);
@@ -162,7 +163,7 @@ void set_show_attribute_dirty(Registry& registry, Entity scene_entity)
     ar.dirty = true;
 
     // Update colormap if applicable
-    if (registry.has<MeshRender>(scene_entity)) {
+    if (registry.all_of<MeshRender>(scene_entity)) {
         ui::set_colormap_range(
             registry,
             scene_entity,
@@ -190,7 +191,7 @@ void set_mesh_attribute_dirty(
 
 Entity get_meshdata_entity(Registry& registry, Entity scene_entity)
 {
-    la_runtime_assert(registry.valid(scene_entity) && registry.has<MeshGeometry>(scene_entity));
+    la_runtime_assert(registry.valid(scene_entity) && registry.all_of<MeshGeometry>(scene_entity));
     auto g = registry.get<MeshGeometry>(scene_entity).entity;
     la_runtime_assert(registry.valid(g));
     return g;
@@ -198,7 +199,7 @@ Entity get_meshdata_entity(Registry& registry, Entity scene_entity)
 
 MeshData& get_meshdata(Registry& registry, Entity scene_or_mesh_entity)
 {
-    if (registry.has<MeshData>(scene_or_mesh_entity))
+    if (registry.all_of<MeshData>(scene_or_mesh_entity))
         return registry.get<MeshData>(scene_or_mesh_entity);
     return registry.get<MeshData>(get_meshdata_entity(registry, scene_or_mesh_entity));
 }
@@ -210,7 +211,7 @@ Entity show_vertex_attribute(
     Glyph glyph)
 {
     la_runtime_assert(
-        registry.has<MeshData>(mesh_entity),
+        registry.all_of<MeshData>(mesh_entity),
         "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
     la_runtime_assert(
@@ -253,7 +254,7 @@ Entity show_facet_attribute(
     Glyph glyph)
 {
     la_runtime_assert(
-        registry.has<MeshData>(mesh_entity),
+        registry.all_of<MeshData>(mesh_entity),
         "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
     la_runtime_assert(
@@ -296,7 +297,7 @@ Entity show_corner_attribute(
     Glyph glyph)
 {
     la_runtime_assert(
-        registry.has<MeshData>(mesh_entity),
+        registry.all_of<MeshData>(mesh_entity),
         "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
     la_runtime_assert(
@@ -339,7 +340,7 @@ Entity show_indexed_attribute(
     const std::string& attribute,
     Glyph glyph)
 {
-    la_runtime_assert(r.has<MeshData>(mesh_entity), "mesh_entity must have MeshData component");
+    la_runtime_assert(r.all_of<MeshData>(mesh_entity), "mesh_entity must have MeshData component");
     auto& md = r.get<MeshData>(mesh_entity);
     la_runtime_assert(
         md.mesh && has_mesh_indexed_attribute(md, attribute),
@@ -383,7 +384,7 @@ Entity show_edge_attribute(
     Glyph glyph)
 {
     la_runtime_assert(
-        registry.has<MeshData>(mesh_entity),
+        registry.all_of<MeshData>(mesh_entity),
         "mesh_entity must have MeshData component");
     auto& md = registry.get<MeshData>(mesh_entity);
     la_runtime_assert(
@@ -445,6 +446,7 @@ void clear_scene(Registry& r)
     });
 }
 
+
 Entity show_mesh(
     Registry& registry,
     const Entity& mesh_entity,
@@ -495,6 +497,68 @@ Entity show_mesh(
     r.emplace<MeshRender>(scene_node_entity, std::move(mr));
 
     return scene_node_entity;
+}
+
+std::optional<std::pair<Entity, RayFacetHit>> intersect_ray(
+    Registry& r,
+    const Eigen::Vector3f& origin,
+    const Eigen::Vector3f& dir,
+    ui::Entity root,
+    Layer visible_layers,
+    Layer hidden_layers)
+{
+    RayFacetHit min_hit;
+    min_hit.t = std::numeric_limits<float>::max();
+    Entity min_e;
+
+    auto test_fn = [&](Entity e) {
+        if (!has_mesh_component(r, e)) return;
+        if (!is_visible_in(r, e, visible_layers, hidden_layers)) return;
+
+        auto& md = get_mesh_data(r, e);
+
+        const auto& T = get_transform(r, e);
+
+        // Transform to model space
+        const auto Tinv = T.global.inverse();
+        const Eigen::Vector3f orig_t = Tinv * origin;
+        const Eigen::Vector3f dir_t = (Tinv.linear() * dir).normalized();
+
+        // Intersect mesh
+        auto isect = intersect_ray(md, orig_t, dir_t);
+        if (isect) {
+            // Transform back to global space
+            const Eigen::Vector3f pt_t = orig_t + dir_t * isect->t;
+            const Eigen::Vector3f pt = T.global * pt_t;
+            const float t = (pt - origin).norm();
+
+            // Check if it's the closest
+            if (t < min_hit.t) {
+                min_hit.t = t;
+                min_hit.barycentric = isect->barycentric;
+                min_hit.facet_id = isect->facet_id;
+                min_e = e;
+            }
+        }
+    };
+
+    if (root == ui::NullEntity) {
+        // Top level nodes
+        auto v = r.view<TreeNode>();
+        for (auto e : v) {
+            if (is_orphan(r, e)) {
+                test_fn(e);
+                foreach_child_recursive(r, root, test_fn);
+            }
+        }
+    } else {
+        test_fn(root);
+        foreach_child_recursive(r, root, test_fn);
+    }
+
+    if (min_hit.t == std::numeric_limits<float>::max()) return {};
+
+    return {{min_e, min_hit}};
 }
 
 

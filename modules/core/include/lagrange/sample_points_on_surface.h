@@ -83,7 +83,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
 
     // Check conditions to be met by input
     la_runtime_assert(mesh.get_vertex_per_facet() == 3, "only works for triangle meshes");
-    la_runtime_assert(approx_num_points != INVALID<Index>());
+    la_runtime_assert(approx_num_points != invalid<Index>());
     la_runtime_assert(active_facets.size() <= safe_cast<size_t>(mesh.get_num_facets()));
     for (const auto facet_id : active_facets) {
         la_runtime_assert(facet_id < mesh.get_num_facets());
@@ -142,7 +142,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
         assert(index_nd.minCoeff() >= 0);
         assert((index_nd.array() < grid_dims.array()).all());
         //
-        Index answer = INVALID<Index>();
+        Index answer = invalid<Index>();
         //
         if (n_dims == 2) {
             answer = index_nd(1) * grid_dims(0) + index_nd(0);
@@ -248,7 +248,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
 
             // Find the longest edge in the triangle
             Scalar longest_edge_length = -std::numeric_limits<Scalar>::max();
-            Index longest_edge_offset = INVALID<Index>();
+            Index longest_edge_offset = invalid<Index>();
             for (auto edge_offset : range(3)) {
                 const auto edge_offset_p1 = (edge_offset + 1) % 3;
                 const Scalar edge_length = (get_triangle_pos(current_facet, edge_offset) //

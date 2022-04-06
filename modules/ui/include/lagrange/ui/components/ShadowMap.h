@@ -24,7 +24,12 @@ struct ShadowMap
 {
     int resolution = 1024;
     std::shared_ptr<Texture> texture = nullptr;
+    std::shared_ptr<Material> material = nullptr;
+
     Eigen::Matrix4f PV = Eigen::Matrix4f::Identity();
+    std::array<Eigen::Matrix4f, 6> PVCube;
+
+    Eigen::Vector3f pos = Eigen::Vector3f::Zero();
     float near_plane = 0.01f;
     float far_plane = 32.0f;
 };

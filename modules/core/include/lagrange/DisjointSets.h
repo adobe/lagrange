@@ -75,7 +75,7 @@ public:
     IndexType extract_disjoint_set_indices(std::vector<IndexType>& index_map)
     {
         const IndexType num_entries = size();
-        index_map.resize(num_entries, INVALID<IndexType>());
+        index_map.resize(num_entries, invalid<IndexType>());
         IndexType counter = 0;
 
         // Assign each roots a unique index.
@@ -90,7 +90,7 @@ public:
         // Assign all members the same index as their root.
         for (auto i : range(num_entries)) {
             const auto root = find(i);
-            assert(index_map[root] != INVALID<IndexType>());
+            assert(index_map[root] != invalid<IndexType>());
             index_map[i] = index_map[root];
         }
 

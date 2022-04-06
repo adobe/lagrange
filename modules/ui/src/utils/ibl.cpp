@@ -209,7 +209,10 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
 
     GLScope gl;
 
+#if !defined(__EMSCRIPTEN__)
+    // TODO WebGL: GL_TEXTURE_CUBE_MAP_SEAMLESS is not supported.
     gl(glEnable, GL_TEXTURE_CUBE_MAP_SEAMLESS);
+#endif
 
     FrameBuffer fbo;
 
@@ -223,7 +226,10 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
         shader.bind();
         tex_cube->resize(size, size);
 
+#if !defined(__EMSCRIPTEN__)
+        // TODO WebGL: GL_MULTISAMPLE is not supported.
         gl(glDisable, GL_MULTISAMPLE);
+#endif
         gl(glDisable, GL_DEPTH_TEST);
         gl(glDisable, GL_BLEND);
         gl(glDisable, GL_CULL_FACE);
@@ -242,7 +248,10 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
             gl(glClear, GL_COLOR_BUFFER_BIT);
 
             if (fbo.is_srgb()) {
+#if !defined(__EMSCRIPTEN__)
+                // TODO WebGL: GL_FRAMEBUFFER_SRGB is not supported.
                 gl(glEnable, GL_FRAMEBUFFER_SRGB);
+#endif
             }
 
             background_texture->bind_to(GL_TEXTURE0 + 0);
@@ -284,6 +293,9 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
             shader["texCube"] = 0;
             render_vertex_data(*vd, GL_TRIANGLES, 3);
         }
+
+        tex_diffuse->bind();
+        gl(glGenerateMipmap, tex_diffuse->get_params().type);
     }
 
     // Specular
@@ -299,6 +311,8 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
 
         shader["M"] = M;
         shader["NMat"] = M;
+        shader["sampleCount"] = int(4096);
+        shader["roughness"] = 0.0f;
 
         const int levels = static_cast<int>(std::log2(size));
         int mip_size = size;
@@ -307,6 +321,7 @@ IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t reso
             gl(glViewport, 0, 0, mip_size, mip_size);
 
             // Roughness increases with mip level
+
             shader["roughness"] = 0.0f + mip_level / float(levels - 1);
             for (auto i = 0; i < 6; i++) {
                 fbo.set_color_attachement(
@@ -380,7 +395,7 @@ bool save_ibl(const IBL& ibl, const fs::path& folder)
     }
 
     if (!fs::exists(folder)) {
-        lagrange::logger().error("save_ibl: Folder {} does not exist", folder);
+        lagrange::logger().error("save_ibl: Folder {} does not exist", folder.string());
         return false;
     }
 

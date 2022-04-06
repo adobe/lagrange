@@ -17,7 +17,7 @@ out vec2 uv;
 
 uniform vec2 RCPFrame;
 
-uniform float FXAA_SUBPIX_SHIFT = 0;//1.0/4.0;
+const float FXAA_SUBPIX_SHIFT = 0;//1.0/4.0;
 void main(void)
 {
     gl_Position = vec4(position,1);
@@ -30,8 +30,8 @@ void main(void)
 uniform sampler2D tex0; // 0
 uniform float vx_offset;
 uniform vec2 RCPFrame;
-uniform float FXAA_SPAN_MAX = 8.0;
-uniform float FXAA_REDUCE_MUL = 0;//1.0/8.0;
+const float FXAA_SPAN_MAX = 8.0;
+const float FXAA_REDUCE_MUL = 0;//1.0/8.0;
 in vec4 posPos;
 in vec2 uv;
 

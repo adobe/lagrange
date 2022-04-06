@@ -60,13 +60,13 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
     const Index num_facets = mesh.get_num_facets();
     const Index nvpf = mesh.get_vertex_per_facet();
     const Index dim = mesh.get_dim();
-    std::vector<Index> vertex_to_reduced(num_vertices, INVALID<Index>());
+    std::vector<Index> vertex_to_reduced(num_vertices, invalid<Index>());
     std::vector<Index> reduced_to_vertex;
     std::vector<std::array<Index, 2>> boundary_edges;
     std::vector<std::array<Index, 2>> boundary_corners;
 
     auto get_reduced_index = [&](Index v) {
-        if (vertex_to_reduced[v] == INVALID<Index>()) {
+        if (vertex_to_reduced[v] == invalid<Index>()) {
             vertex_to_reduced[v] = static_cast<Index>(reduced_to_vertex.size());
             reduced_to_vertex.push_back(v);
         }
@@ -75,7 +75,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
 
     for (Index e = 0; e < mesh.get_num_edges(); ++e) {
         const Index c = mesh.get_one_corner_around_edge(e);
-        assert(c != INVALID<Index>());
+        assert(c != invalid<Index>());
         if (mesh.is_boundary_edge(e)) {
             const Index f = c / nvpf;
             const Index lv = c % nvpf;

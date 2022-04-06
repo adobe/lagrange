@@ -13,9 +13,10 @@
 #define LIGHT_TYPE_POINT 1
 #define LIGHT_TYPE_DIRECTIONAL 2
 
-uniform float shadow_square_samples = 8;
-uniform float shadow_square_radius = 1.0;
-uniform float shadow_cube_samples = 4.0;
+
+#pragma property shadow_square_samples "ShadowSquareSamples" float(8,0,512)
+#pragma property shadow_square_radius "ShadowSquareRadius" float(1,0,128)
+#pragma property shadow_cube_samples "ShadowCubeSamples" float(4,0,512)
 
 struct SpotLight {
     vec3 position;
@@ -23,7 +24,7 @@ struct SpotLight {
     vec3 direction;
     float cone_angle;
     mat4 PV;
-    sampler2D shadow_map;
+    //sampler2D shadow_map;
     float shadow_near;
     float shadow_far;
 };
@@ -32,7 +33,7 @@ struct SpotLight {
 struct PointLight {
     vec3 position;
     vec3 intensity;
-    samplerCube shadow_map;
+    //samplerCube shadow_map;
     float shadow_near;
     float shadow_far;
 };
@@ -42,7 +43,7 @@ struct DirectionalLight {
     vec3 intensity;
     vec3 sampling_pos;
     mat4 PV;
-    sampler2D shadow_map;
+    //sampler2D shadow_map;
     float shadow_near;
     float shadow_far;
 };
@@ -89,8 +90,8 @@ float getShadowSquare(vec3 pos, mat4 PV, sampler2D shadowMap, float near, float 
     coords = coords * 0.5 + 0.5;
 
     //Clamp light space z position
-    coords.z = min(1, coords.z);
-    coords.z = max(0, coords.z);
+    coords.z = min(1.0, coords.z);
+    coords.z = max(0.0, coords.z);
 
     float currentDepth = coords.z;
 
@@ -98,9 +99,9 @@ float getShadowSquare(vec3 pos, mat4 PV, sampler2D shadowMap, float near, float 
     float shadow = 0.0;
 
     //TODO add step size
-
+    ivec2 tex_size = textureSize(shadowMap,0);
     float samples = shadow_square_samples;
-    vec2 texelSize = 2.0 / textureSize(shadowMap,0);
+    vec2 texelSize = 2.0 / vec2(float(tex_size.x), float(tex_size.y));
     int sample_count = 0;
 
     for(float x = -texelSize.x; x < texelSize.x; x += texelSize.x / (samples * 0.5))
@@ -113,7 +114,7 @@ float getShadowSquare(vec3 pos, mat4 PV, sampler2D shadowMap, float near, float 
                     shadow += 1.0;
         }
     }
-    shadow /= sample_count;
+    shadow /= float(sample_count);
 
     return 1.0 - shadow;
 }
@@ -148,7 +149,7 @@ float getShadowCube(
                 total_samples++;
 
                 //Surfaces beyond far value should be lit
-                if(map_value >= 1){
+                if(map_value >= 1.0){
                     continue;
                 }
 
@@ -159,7 +160,7 @@ float getShadowCube(
         }
     }
 
-    shadow /= total_samples;;
+    shadow /= float(total_samples);
 
-    return 1.0f - shadow;
+    return 1.0 - shadow;
 }

@@ -46,7 +46,6 @@ std::pair<Eigen::Vector3f, Eigen::Vector3f> compute_perpendicular_plane(Eigen::V
 
 Eigen::Matrix4f offset_depth(const Eigen::Projective3f& perspective, int layer_index)
 {
-
     const float offset_eps = 4.8e-7f;
     Eigen::Matrix4f offset_P = perspective.matrix();
     const float total_offset = layer_index * offset_eps;
@@ -56,16 +55,23 @@ Eigen::Matrix4f offset_depth(const Eigen::Projective3f& perspective, int layer_i
 
 void set_render_pass_defaults(GLScope& scope)
 {
+#if !defined(__EMSCRIPTEN__)
+    // TODO WebGL: GL_DEPTH_CLAMP is not supported.
     scope(glEnable, GL_DEPTH_CLAMP);
+#endif
     scope(glDepthFunc, GL_LEQUAL);
 
     scope(glEnable, GL_BLEND);
     scope(glBlendFuncSeparate, GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE);
     scope(glBlendEquation, GL_FUNC_ADD);
 
+#if !defined(__EMSCRIPTEN__)
+    // TODO WebGL: GL_MULTISAMPLE is not supported.
     scope(glDisable, GL_MULTISAMPLE);
 
+    // TODO WebGL: GL_TEXTURE_CUBE_MAP_SEAMLESS is not supported.
     scope(glEnable, GL_TEXTURE_CUBE_MAP_SEAMLESS);
+#endif
 }
 
 } // namespace render
@@ -106,10 +112,10 @@ void render_vertex_data(const VertexData& vd, GLenum primitive, GLsizei per_elem
     if (!vd.index_buffer) {
         // No index buffer, first attribute is driver
         auto& pos_buf = vd.attribute_buffers.front()->vbo();
-        GL(glDrawArrays(primitive, 0, per_element_size * pos_buf.count));
+        LA_GL(glDrawArrays(primitive, 0, pos_buf.count));
     } else {
         auto& indices = vd.index_buffer->vbo();
-        GL(glDrawElements(primitive, per_element_size * indices.count, indices.glType, 0));
+        LA_GL(glDrawElements(primitive, per_element_size * indices.count, indices.glType, 0));
     }
     glBindVertexArray(0);
 }
@@ -337,13 +343,13 @@ void update_vao(VertexData& vd)
         vd.vao->init();
         // TODO RAII
     }
-    GL(glBindVertexArray(vd.vao->id));
+    LA_GL(glBindVertexArray(vd.vao->id));
 
     for (size_t i = 0; i < vd.attribute_buffers.size(); i++) {
         auto& buffer = vd.attribute_buffers[i];
 
         if (!buffer) {
-            GL(glDisableVertexAttribArray(GLuint(i)));
+            LA_GL(glDisableVertexAttribArray(GLuint(i)));
             continue;
         }
 
@@ -357,9 +363,15 @@ void update_vao(VertexData& vd)
             vd.attribute_dimensions[i] > 0 && vd.attribute_dimensions[i] <= 4,
             "Attribute must be of dimension 1,2,3, or 4");
 
-        GL(glBindBuffer(vbo.target, vbo.id));
-        GL(glVertexAttribPointer(GLuint(i), vd.attribute_dimensions[i], vbo.glType, GL_FALSE, 0, 0));
-        GL(glEnableVertexAttribArray(GLuint(i)));
+        LA_GL(glBindBuffer(vbo.target, vbo.id));
+        LA_GL(glVertexAttribPointer(
+            GLuint(i),
+            vd.attribute_dimensions[i],
+            vbo.glType,
+            GL_FALSE,
+            0,
+            0));
+        LA_GL(glEnableVertexAttribArray(GLuint(i)));
 
 #ifdef LAGRANGE_TRACE_BUFFERS
         lagrange::logger().trace(
@@ -378,10 +390,10 @@ void update_vao(VertexData& vd)
         la_runtime_assert(
             vbo.target == GL_ELEMENT_ARRAY_BUFFER,
             "Indexing buffer must be bound to GL_ELEMENT_ARRAY_BUFFER");
-        GL(glBindBuffer(vbo.target, vbo.id));
+        LA_GL(glBindBuffer(vbo.target, vbo.id));
     }
 
-    GL(glBindVertexArray(0));
+    LA_GL(glBindVertexArray(0));
 }
 
 entt::resource_handle<Shader> get_or_load_shader(

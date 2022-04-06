@@ -21,12 +21,13 @@ namespace ui {
 class Material
 {
 public:
-    Material(Registry& r, StringID shader_id, const ShaderDefines & shader_defines = {});
+    Material(Registry& r, StringID shader_id, const ShaderDefines& shader_defines = {});
 
     StringID shader_id() const;
 
     std::unordered_map<StringID, int> int_values;
     std::unordered_map<StringID, float> float_values;
+    std::unordered_map<StringID, bool> bool_values;
     std::unordered_map<StringID, Color> color_values;
     std::unordered_map<StringID, ShaderTextureValue> texture_values;
     std::unordered_map<StringID, Eigen::Matrix4f> mat4_values;
@@ -60,8 +61,10 @@ public:
 
     void set_int(const std::string& name, int value);
     void set_int(StringID id, int value);
-    
-    
+
+    void set_bool(const std::string& name, bool value);
+    void set_bool(StringID id, bool value);
+
 
 private:
     StringID m_shader_id;

@@ -9,9 +9,9 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/ui/types/ShaderLoader.h>
 #include <lagrange/ui/components/Input.h>
 #include <lagrange/ui/default_shaders.h>
+#include <lagrange/ui/types/ShaderLoader.h>
 
 
 namespace lagrange {
@@ -123,7 +123,7 @@ void register_default_shaders(Registry& r)
     }
 
 
-     {
+    {
         ShaderDefinition d;
         d.path = "face_id.shader";
         d.path_type = ShaderLoader::PathType::VIRTUAL;
@@ -131,12 +131,20 @@ void register_default_shaders(Registry& r)
         register_shader_as(r, DefaultShaders::MeshElementID, d);
     }
 
-     {
+    {
         ShaderDefinition d;
         d.path = "skybox.shader";
         d.path_type = ShaderLoader::PathType::VIRTUAL;
         d.display_name = "Skybox";
         register_shader_as(r, DefaultShaders::Skybox, d);
+    }
+
+    {
+        ShaderDefinition d;
+        d.path = "lines/edge_to_line.shader";
+        d.path_type = ShaderLoader::PathType::VIRTUAL;
+        d.display_name = "Edges To Lines";
+        register_shader_as(r, DefaultShaders::EdgesToLines, d);
     }
 }
 

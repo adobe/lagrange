@@ -27,7 +27,7 @@ void update_mesh_bounds_system(Registry& r)
         // Dirty view, reset bounds
         auto dview = r.view<MeshDataDirty, MeshData>();
         for (auto e : dview) {
-            if (!r.has<Bounds>(e)) continue;
+            if (!r.all_of<Bounds>(e)) continue;
             r.remove<Bounds>(e);
         }
     }
@@ -36,7 +36,7 @@ void update_mesh_bounds_system(Registry& r)
         // Compute bounds
         auto md_view = r.view<MeshData>();
         for (auto e : md_view) {
-            if (r.has<Bounds>(e)) continue;
+            if (r.all_of<Bounds>(e)) continue;
 
             auto bb = get_mesh_bounds(r.get<MeshData>(e));
 
@@ -52,7 +52,7 @@ void update_mesh_bounds_system(Registry& r)
     for (auto e : view) {
         // Get the geometry entity
         const auto g = view.get<const MeshGeometry>(e).entity;
-        if (!r.valid(g) || !r.has<Bounds>(g)) continue;
+        if (!r.valid(g) || !r.all_of<Bounds>(g)) continue;
 
         const auto mesh_bb = r.get<Bounds>(g).global;
         Bounds bounds;

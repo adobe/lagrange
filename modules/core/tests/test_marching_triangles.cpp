@@ -163,7 +163,7 @@ void verify_vertex_positions(const MeshType& m, const MarchingTrianglesOutput& o
 
 TEST_CASE("MarchingTriangles_Stress", "[marching_triangles]")
 {
-    Index num_dims = INVALID<Index>();
+    Index num_dims = invalid<Index>();
     Index n = 20;
     Index m = 35;
     Scalar delta = 0.2f;
@@ -191,7 +191,7 @@ TEST_CASE("MarchingTriangles_PerimeterOfEllipse", "[marching_triangles]")
 {
     const bool should_dump_meshes = false;
 
-    Index num_dims = INVALID<Index>();
+    Index num_dims = invalid<Index>();
     Index n = 19;
     Index m = 27;
     Scalar delta = 0.3f;

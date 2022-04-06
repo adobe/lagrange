@@ -35,7 +35,7 @@ TEST_CASE("ReorderMeshVertices", "[mesh][reorder_vertices]")
     SECTION("All collpse to one")
     {
         // All vertices should now be zero!
-        auto mesh2 = reorder_mesh_vertices(*mesh, {INVALID<Index>(), 0, 0, 0});
+        auto mesh2 = reorder_mesh_vertices(*mesh, {invalid<Index>(), 0, 0, 0});
         CHECK(mesh2->get_num_vertices() == 1);
         CHECK(mesh2->get_num_facets() == mesh->get_num_facets());
         CHECK(mesh2->get_facets().maxCoeff() == 0);
@@ -45,7 +45,7 @@ TEST_CASE("ReorderMeshVertices", "[mesh][reorder_vertices]")
     SECTION("Nothing should happen")
     {
         // Invalid means keep the index
-        std::vector<Index> forward_mapping = {INVALID<Index>(), INVALID<Index>(), 2, 3};
+        std::vector<Index> forward_mapping = {invalid<Index>(), invalid<Index>(), 2, 3};
         auto mesh2 = reorder_mesh_vertices(*mesh, forward_mapping);
         REQUIRE(mesh2->get_num_vertices() == mesh->get_num_vertices());
         REQUIRE(mesh2->get_num_facets() == mesh->get_num_facets());

@@ -20,7 +20,7 @@ namespace ui {
 struct MeshData
 {
     std::shared_ptr<lagrange::MeshBase> mesh;
-    entt::type_info type;
+    entt::type_info type = entt::type_id<void>();
 };
 
 struct MeshDataDirty

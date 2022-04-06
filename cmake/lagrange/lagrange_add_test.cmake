@@ -28,6 +28,10 @@ function(lagrange_add_test)
         lagrange::testing
     )
 
+    # Enable code coverage
+    include(FetchContent)
+    target_code_coverage(${test_target} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
+
     # Output directory
     set_target_properties(${test_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 

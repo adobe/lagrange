@@ -35,7 +35,7 @@ struct DefaultSystems
     constexpr static const StringID UpdateMeshHovered = "UpdateMeshHovered"_hs;
     constexpr static const StringID UpdateMeshElementsHovered = "UpdateMeshElementsHovered"_hs;
     constexpr static const StringID RunCurrentTool = "RunCurrentTool"_hs;
-    constexpr static const StringID UpdateLights= "UpdateLights"_hs;
+    constexpr static const StringID UpdateLights = "UpdateLights"_hs;
 
     // Stage: Simulation
     constexpr static const StringID UpdateTransformHierarchy = "UpdateTransformHierarchy"_hs;

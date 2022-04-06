@@ -14,8 +14,6 @@
 #include <lagrange/ui/types/Tools.h>
 #include <lagrange/ui/utils/objectid_viewport.h>
 
-#include <lagrange/ui/types/Material.h>
-#include <lagrange/ui/types/Shader.h>
 #include <lagrange/ui/components/Bounds.h>
 #include <lagrange/ui/components/MeshGeometry.h>
 #include <lagrange/ui/components/MeshRender.h>
@@ -23,12 +21,14 @@
 #include <lagrange/ui/components/Transform.h>
 #include <lagrange/ui/default_shaders.h>
 #include <lagrange/ui/default_tools.h>
+#include <lagrange/ui/panels/ViewportPanel.h>
 #include <lagrange/ui/systems/render_viewports.h>
 #include <lagrange/ui/systems/update_mesh_hovered.h>
+#include <lagrange/ui/types/Material.h>
+#include <lagrange/ui/types/Shader.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/selection.h>
 #include <lagrange/ui/utils/viewport.h>
-#include <lagrange/ui/panels/ViewportPanel.h>
 
 
 namespace lagrange {
@@ -39,9 +39,8 @@ struct HoveredTemp
     bool _dummy;
 };
 
-void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
+void update_mesh_hovered_GL(Registry& r, const SelectionContext& sel_ctx)
 {
-
     if (!r.valid(sel_ctx.active_viewport)) {
         return;
     }
@@ -83,7 +82,6 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
 
 
     } else {
-
         const auto& frustum = sel_ctx.frustum;
 
         offscreen_viewport.material_override->set_int(RasterizerOptions::Query, GL_SAMPLES_PASSED);
@@ -95,7 +93,6 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
 
         // Add GLQuery component to all bounded entities
         for (auto e : r.view<Bounds, MeshRender>()) {
-
             // Layer visibility test
             if (!ui::is_visible_in(
                     r,
@@ -105,8 +102,7 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
                 continue;
             }
 
-            if (!r.get<MeshRender>(e).material)
-                continue;
+            if (!r.get<MeshRender>(e).material) continue;
 
             const auto& bb = r.get<Bounds>(e).global;
 
@@ -149,7 +145,7 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext & sel_ctx)
 /// Updates <Hovered> component based on current selection context
 void update_mesh_hovered(Registry& r)
 {
-    //Copy selection context
+    // Copy selection context
     SelectionContext sel_ctx = get_selection_context(r);
 
     if (!r.valid(sel_ctx.active_viewport)) return;
@@ -166,7 +162,7 @@ void update_mesh_hovered(Registry& r)
 
     auto not_hovered_anymore = r.view<Hovered>(entt::exclude<HoveredTemp>);
     r.remove<Hovered>(not_hovered_anymore.begin(), not_hovered_anymore.end());
-    
+
     auto v = r.view<HoveredTemp>();
     for (auto e : v) {
         ui::set_hovered(r, e, SelectionBehavior::ADD);

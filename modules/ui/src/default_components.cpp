@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+
 #include <lagrange/ui/default_components.h>
 #include <lagrange/ui/default_events.h>
 #include <lagrange/ui/default_shaders.h>
@@ -58,7 +59,7 @@ std::shared_ptr<Texture> load_texture_dialog(const Texture::Params& default_para
             return std::make_shared<Texture>(path, default_params);
 
         } catch (const std::exception& ex) {
-            lagrange::logger().error("Failed to load texture '{}' : {}", path, ex.what());
+            lagrange::logger().error("Failed to load texture '{}' : {}", path.string(), ex.what());
         }
     }
     return nullptr;
@@ -71,6 +72,7 @@ void show_mesh_geometry(Registry* rptr, Entity orig_e)
     auto& m = r.get<MeshGeometry>(orig_e);
 
     auto& mesh_data = r.get<MeshData>(m.entity);
+    la_debug_assert(mesh_data.type != entt::type_id<void>(), "Type must be assigned");
     auto& typeinfo = mesh_data.type;
 
     ImGui::Text("Entity ID: %d", int(m.entity));
@@ -191,7 +193,7 @@ void show_camera_turntable(Registry* rptr, Entity e)
 {
     auto& turntable = rptr->get<CameraTurntable>(e);
 
-    if (!rptr->has<Camera>(e)) {
+    if (!rptr->all_of<Camera>(e)) {
         ImGui::Text("Warning: this entity does not have Camera component");
         return;
     }
@@ -583,7 +585,6 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                 auto& val = it.second;
                 auto prop_it = shader->float_properties().find(ID);
 
-
                 if (prop_it != shader->float_properties().end()) {
                     const auto& prop = prop_it->second;
 
@@ -604,6 +605,72 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                 ImGui::PopID();
             }
         }
+
+        // Int values
+        {
+            auto& values = mat.int_values;
+            for (auto& it : values) {
+                ImGui::TableNextRow();
+                ImGui::PushID(it.first);
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::InvisibleButton("##_", ImVec2(1, float(tex_size))); // padding
+
+                ImGui::TableSetColumnIndex(1);
+
+
+                const auto& ID = it.first;
+                auto& val = it.second;
+                auto prop_it = shader->int_properties().find(ID);
+
+                if (prop_it != shader->int_properties().end()) {
+                    const auto& prop = prop_it->second;
+
+                    ImGui::Text("%s", prop.display_name.c_str());
+                    if (prop.min_value != std::numeric_limits<int>::lowest() &&
+                        prop.min_value != std::numeric_limits<int>::max()) {
+                        ImGui::SliderInt("##value", &val, prop.min_value, prop.max_value);
+                        if (ImGui::IsItemDeactivatedAfterEdit()) changed = true;
+                    } else {
+                        if (ImGui::InputInt("##value", &val)) changed = true;
+                    }
+                } else {
+                    ImGui::Text("Unknown int uniform %d", ID);
+                    ImGui::InputInt("##value", &val);
+                }
+                ImGui::PopID();
+            }
+        }
+
+        // Bool values
+        {
+            auto& values = mat.bool_values;
+            for (auto& it : values) {
+                ImGui::TableNextRow();
+                ImGui::PushID(it.first);
+
+                ImGui::TableSetColumnIndex(0);
+                ImGui::InvisibleButton("##_", ImVec2(1, float(tex_size))); // padding
+
+                ImGui::TableSetColumnIndex(1);
+
+                const auto& ID = it.first;
+                auto& val = it.second;
+                auto prop_it = shader->bool_properties().find(ID);
+
+                if (prop_it != shader->bool_properties().end()) {
+                    const auto& prop = prop_it->second;
+
+                    ImGui::Text("%s", prop.display_name.c_str());
+                    changed = ImGui::Checkbox("##value", &val);
+                } else {
+                    ImGui::Text("Unknown bool uniform %d", ID);
+                    changed = ImGui::Checkbox("##value", &val);
+                }
+                ImGui::PopID();
+            }
+        }
+
 
         // Color values
         {
@@ -818,7 +885,14 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                 ImGui::TableNextRow();
 
                 ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", it.second.display_name.c_str());
+
+                auto name_it = shader->names().find(it.first);
+                if (name_it == shader->names().end()) {
+                    ImGui::Text("Unused");
+                } else {
+                    ImGui::Text("%s", name_it->second.c_str());
+                }
+
 
                 ImGui::TableSetColumnIndex(1);
                 auto col = prop.default_value;
@@ -858,50 +932,89 @@ void show_material(Registry* rptr, Entity e, Material& mat)
 
 
     if (shader && ImGui::CollapsingHeader("Rasterizer Options")) {
-        ImGui::Text("Polygon Mode");
-        ImGui::SameLine();
-        if (mat.int_values.count(RasterizerOptions::PolygonMode)) {
-            auto& val = mat.int_values[RasterizerOptions::PolygonMode];
-
-            if (ImGui::RadioButton("GL_FILL", val == GL_FILL)) {
-                val = GL_FILL;
-            }
+        auto option_bool = [](Material& mat, const StringID& id, const std::string& name) {
+            ImGui::PushID(id);
+            ImGui::Text("%s", name.c_str());
             ImGui::SameLine();
-            if (ImGui::RadioButton("GL_LINE", val == GL_LINE)) {
-                val = GL_LINE;
+            if (mat.int_values.count(id)) {
+                auto& val = mat.int_values[id];
+                bool toggle = val == GL_TRUE;
+                if (ImGui::Checkbox("##", &toggle)) {
+                    if (toggle)
+                        val = GL_TRUE;
+                    else
+                        val = GL_FALSE;
+                }
+
+            } else {
+                if (ImGui::SmallButton("Set")) {
+                    mat.int_values[id] = GL_TRUE;
+                }
             }
+            ImGui::PopID();
+        };
+
+
+        {
+            ImGui::PushID(RasterizerOptions::PolygonMode);
+            ImGui::Text("Polygon Mode");
             ImGui::SameLine();
-            if (ImGui::RadioButton("GL_POINT", val == GL_POINT)) {
-                val = GL_POINT;
+            if (mat.int_values.count(RasterizerOptions::PolygonMode)) {
+                auto& val = mat.int_values[RasterizerOptions::PolygonMode];
+
+                if (ImGui::RadioButton("GL_FILL", val == GL_FILL)) {
+                    val = GL_FILL;
+                }
+                ImGui::SameLine();
+                if (ImGui::RadioButton("GL_LINE", val == GL_LINE)) {
+                    val = GL_LINE;
+                }
+                ImGui::SameLine();
+                if (ImGui::RadioButton("GL_POINT", val == GL_POINT)) {
+                    val = GL_POINT;
+                }
+            } else {
+                if (ImGui::SmallButton("Set")) {
+                    mat.int_values[RasterizerOptions::PolygonMode] = GL_FILL;
+                }
             }
-        } else {
-            if (ImGui::SmallButton("Set")) {
-                mat.int_values[RasterizerOptions::PolygonMode] = GL_FILL;
-            }
+            ImGui::PopID();
         }
 
-        ImGui::Text("Pass / Depth Offset Layer");
-        ImGui::SameLine();
-        if (mat.int_values.count(RasterizerOptions::Pass)) {
-            auto& val = mat.int_values[RasterizerOptions::Pass];
-            ImGui::InputInt("##pass", &val);
-        } else {
-            if (ImGui::SmallButton("Set")) {
-                mat.set_int(RasterizerOptions::Pass, 0);
+        {
+            ImGui::PushID(RasterizerOptions::Pass);
+            ImGui::Text("Pass / Depth Offset Layer");
+            ImGui::SameLine();
+            if (mat.int_values.count(RasterizerOptions::Pass)) {
+                auto& val = mat.int_values[RasterizerOptions::Pass];
+                ImGui::InputInt("##pass", &val);
+            } else {
+                if (ImGui::SmallButton("Set")) {
+                    mat.set_int(RasterizerOptions::Pass, 0);
+                }
             }
+            ImGui::PopID();
         }
 
 
-        ImGui::Text("Point Size");
-        ImGui::SameLine();
-        if (mat.int_values.count(RasterizerOptions::PointSize)) {
-            auto& val = mat.int_values[RasterizerOptions::PointSize];
-            ImGui::InputInt("##pointsize", &val);
-        } else {
-            if (ImGui::SmallButton("Set")) {
-                mat.int_values[RasterizerOptions::PointSize] = 1;
+        {
+            ImGui::PushID(RasterizerOptions::PointSize);
+            ImGui::Text("Point Size");
+            ImGui::SameLine();
+            if (mat.int_values.count(RasterizerOptions::PointSize)) {
+                auto& val = mat.int_values[RasterizerOptions::PointSize];
+                ImGui::InputInt("##pointsize", &val);
+            } else {
+                if (ImGui::SmallButton("Set")) {
+                    mat.int_values[RasterizerOptions::PointSize] = 1;
+                }
             }
+            ImGui::PopID();
         }
+
+        option_bool(mat, RasterizerOptions::CullFaceEnabled, "Cull Face Enabled");
+        option_bool(mat, RasterizerOptions::ScissorTest, "Scissor Test");
+        option_bool(mat, RasterizerOptions::DepthTest, "Depth Test");
     }
 
 

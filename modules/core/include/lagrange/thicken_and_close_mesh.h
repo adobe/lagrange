@@ -286,7 +286,7 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
             if (input_mesh.is_boundary_edge(e)) {
                 // Find first and only face on this edge
                 const Index f = input_mesh.get_one_facet_around_edge(e);
-                assert(f != lagrange::INVALID<Index>());
+                assert(f != lagrange::invalid<Index>());
                 const auto& facet = input_mesh.get_facets().row(f);
                 assert((facet.array() < num_input_vertices).all());
                 const auto& uv_facet = input_uv_indices.row(f);
@@ -294,8 +294,8 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
                 // Find vertices on this edge
                 auto edge_vertices = input_mesh.get_edge_vertices(e);
                 // Now find corresponding uvs on this edge
-                Index uv_index_0 = lagrange::INVALID<Index>();
-                Index uv_index_1 = lagrange::INVALID<Index>();
+                Index uv_index_0 = lagrange::invalid<Index>();
+                Index uv_index_1 = lagrange::invalid<Index>();
                 for (Index i = 0; i < 3; ++i) {
                     Index vtx_index = facet[i];
                     Index uv_index = uv_facet[i];
@@ -305,8 +305,8 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
                         uv_index_1 = uv_index;
                     }
                 }
-                assert(uv_index_0 != lagrange::INVALID<Index>());
-                assert(uv_index_1 != lagrange::INVALID<Index>());
+                assert(uv_index_0 != lagrange::invalid<Index>());
+                assert(uv_index_1 != lagrange::invalid<Index>());
 
                 assert(boundary_vertices.find(edge_vertices[0]) != boundary_vertices.end());
                 assert(boundary_vertices.find(edge_vertices[1]) != boundary_vertices.end());

@@ -12,7 +12,7 @@
 include(cli11)
 lagrange_include_modules(io)
 
-lagrange_add_example(ui_dynamic_mesh
+lagrange_add_example(ui_dynamic_mesh WITH_UI
     main.cpp
 )
 

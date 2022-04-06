@@ -42,7 +42,7 @@ Entity add_panel(
     const std::string& title,
     const std::function<void(Registry&, Entity)>& body_fn,
     const std::function<void(Registry&, Entity)>& before_fn = nullptr,
-    const std::function<void(Registry&, Entity)>& after_fn = nullptr, 
+    const std::function<void(Registry&, Entity)>& after_fn = nullptr,
     const std::function<void(Registry&, Entity)>& menubar_fn = nullptr);
 
 

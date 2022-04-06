@@ -29,7 +29,19 @@ namespace testing {
 
 fs::path get_data_dir()
 {
+#if __EMSCRIPTEN__
+    // Mount the test data directory within the Node.js filesystem.
+    static std::once_flag once_flag;
+    std::call_once(once_flag, []() {
+        EM_ASM({
+            FS.mkdir('/test_data');
+            FS.mount(NODEFS, { root: UTF8ToString($0) }, '/test_data');
+        }, TEST_DATA_DIR);
+    });
+    return fs::path("/test_data");
+#else
     return fs::path(TEST_DATA_DIR);
+#endif
 }
 
 // A nice thing about this function is that we don't have to rebuild "everything"
@@ -37,7 +49,7 @@ fs::path get_data_dir()
 fs::path get_data_path(const fs::path& relative_path)
 {
     if (relative_path.is_absolute()) {
-        logger().error("Expected relative path, got absolute path: {}", relative_path);
+        logger().error("Expected relative path, got absolute path: {}", relative_path.string());
     }
     REQUIRE(relative_path.is_relative());
 

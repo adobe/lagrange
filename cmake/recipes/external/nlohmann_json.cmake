@@ -35,10 +35,6 @@ target_include_directories(nlohmann_json INTERFACE
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-# Let the code know that we have nlohmann json
-# TODO: This shouldn't be here (should be set by the caller)
-target_compile_definitions(nlohmann_json INTERFACE -DLA_WITH_NLOHMANNJSON)
-
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME nlohmann_json)
 install(DIRECTORY ${nlohmann_json_SOURCE_DIR}/include/nlohmann DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

@@ -13,49 +13,55 @@
 
 #define MAX_LIGHTS_SPOT 2
 uniform SpotLight spot_lights[MAX_LIGHTS_SPOT];
-uniform int spot_lights_count = 0;
+uniform sampler2D spot_lights_shadow_maps_0;
+uniform sampler2D spot_lights_shadow_maps_1;
+uniform int spot_lights_count;
 
 #define MAX_LIGHTS_POINT 1
 uniform PointLight point_lights[MAX_LIGHTS_POINT];
-uniform int point_lights_count = 0;
+uniform samplerCube point_lights_shadow_maps_0;
+uniform int point_lights_count;
 
 #define MAX_LIGHTS_DIRECTIONAL 2
 uniform DirectionalLight directional_lights[MAX_LIGHTS_DIRECTIONAL];
-uniform int directional_lights_count = 0;
+uniform sampler2D directional_lights_shadow_maps_0;
+uniform sampler2D directional_lights_shadow_maps_1;
+uniform int directional_lights_count;
 
-float get_shadow_at(vec3 surface_pos, SpotLight L){
+float get_shadow_at(vec3 surface_pos, SpotLight L, sampler2D shadow_map){
     return getShadowSquare(
         surface_pos,
         L.PV,
-        L.shadow_map,
+        shadow_map,
         L.shadow_near,
         L.shadow_far
-    );;
+    );
 }
 
-float get_shadow_at(vec3 surface_pos, DirectionalLight L){
+float get_shadow_at(vec3 surface_pos, DirectionalLight L, sampler2D shadow_map){
     return getShadowSquare(
         surface_pos,
         L.PV,
-        L.shadow_map,
+        shadow_map,
         L.shadow_near,
         L.shadow_far
-    );;
+    );
 }
 
-float get_shadow_at(vec3 surface_pos, PointLight L){
+float get_shadow_at(vec3 surface_pos, PointLight L, samplerCube shadow_map){
     return getShadowCube(
         surface_pos,
         L.position,
-        L.shadow_map,
+        shadow_map,
         L.shadow_near,
         L.shadow_far
-    );;
+    );
 }
 
 
 LightAtSurface get_light_at_surface(
     SpotLight spot,
+    sampler2D shadow_map,
     vec3 surface_pos,
     vec3 lightOut,
     float cos_out
@@ -72,7 +78,7 @@ LightAtSurface get_light_at_surface(
     L.lightHalf = normalize(L.lightIn + L.lightOut);
 
 
-    L.shadow_attenuation = get_shadow_at(surface_pos, spot);
+    L.shadow_attenuation = get_shadow_at(surface_pos, spot, shadow_map);
     L.attenuation = max(1.0 / (lightDistance*lightDistance),1.0);
     //Apply spot factor
     L.attenuation *= calculate_spot_factor(
@@ -90,6 +96,7 @@ LightAtSurface get_light_at_surface(
 
 LightAtSurface get_light_at_surface(
     DirectionalLight dir,
+    sampler2D shadow_map,
     vec3 surface_pos,
     vec3 lightOut,
     float cos_out
@@ -106,7 +113,7 @@ LightAtSurface get_light_at_surface(
     L.lightHalf = normalize(L.lightIn + L.lightOut);
 
     L.attenuation = 1.0;
-    L.shadow_attenuation = get_shadow_at(surface_pos, dir);
+    L.shadow_attenuation = get_shadow_at(surface_pos, dir, shadow_map);
     L.radiance = L.shadow_attenuation * intensity;
 
     return L;
@@ -115,6 +122,7 @@ LightAtSurface get_light_at_surface(
 
 LightAtSurface get_light_at_surface(
     PointLight point,
+    samplerCube shadow_map,
     vec3 surface_pos,
     vec3 lightOut,
     float cos_out
@@ -130,7 +138,7 @@ LightAtSurface get_light_at_surface(
     L.lightIn = normalize(lightPos - surface_pos);
     L.lightHalf = normalize(L.lightIn + L.lightOut);
 
-    L.shadow_attenuation = get_shadow_at(surface_pos, point);
+    L.shadow_attenuation = get_shadow_at(surface_pos, point, shadow_map);
     L.attenuation = max(1.0 / (lightDistance*lightDistance), 1.0);
 
     L.radiance = L.attenuation * L.shadow_attenuation * intensity;

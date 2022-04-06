@@ -31,12 +31,18 @@ endif()
 
 cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
 
 # Include user-provided default options if available. We do that before the main
 # `project()` so that we can define the C/C++ compilers from the option file.
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
-    message(STATUS "Using local options file: ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake")
-    include(${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
+    if(LAGRANGE_TOPLEVEL_PROJECT)
+        message(STATUS "Using local options file: ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake")
+        include(${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
+    else()
+        message(WARNING "Ignoring local options file for non-top-level build: "
+                        "${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake")
+    endif()
 endif()
 
 # Enable ccache if available
@@ -59,7 +65,7 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 5.8.0)
+project(Lagrange VERSION 5.9.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -149,11 +155,20 @@ endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
 
 # When building anorigami module, additionally defaults to MKL-dynamic and TBB-dynamic
-if(LAGRANGE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+if(LAGRANGE_MODULE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
     option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
     include(mkl)
+endif()
+
+# On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
+# we need to use the MSVC runtime library flag globally for the whole project.
+if(LAGRANGE_TOPLEVEL_PROJECT AND NOT APPLE)
+    if(LAGRANGE_ALL OR LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_DEFORMERS)
+        # Set MSVC runtime library globally for all targets
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL" CACHE STRING "Select the MSVC runtime library")
+    endif()
 endif()
 
 # Register project source/binary dir in global properties, so they can be
@@ -174,6 +189,7 @@ include(lagrange_install)
 include(lagrange_warnings)
 include(lagrange_limit_parallelism)
 include(sanitizers)
+include(code-coverage)
 
 set(CMAKE_MACOSX_RPATH 1) # Set rpath for mac
 
@@ -186,7 +202,7 @@ endif()
 find_package(Threads REQUIRED)
 
 # Include OneTBB early to provide TBB::tbb target
-if(LAGRANGE_WITH_ONETBB AND NOT (LAGRANGE_ALL OR LAGRANGE_LANTERN))
+if(LAGRANGE_WITH_ONETBB AND NOT (LAGRANGE_ALL OR LAGRANGE_MODULE_LANTERN))
     set(MKL_VERSION 2021.3.0 CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
     include(onetbb)
 endif()
@@ -199,6 +215,11 @@ if(LAGRANGE_UNIT_TESTS)
     include(catch2)
     FetchContent_GetProperties(catch2)
     include("${catch2_SOURCE_DIR}/contrib/Catch.cmake")
+
+    # Global target for code coverage
+    if(LAGRANGE_TOPLEVEL_PROJECT)
+        add_code_coverage_all_targets()
+    endif()
 endif()
 
 # Build modules

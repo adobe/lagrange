@@ -38,7 +38,7 @@ function(lagrange_download_data)
 
         # Create a dummy target for convenience
         add_custom_target(lagrange_download_data)
-        set_target_properties(lagrange_download_data PROPERTIES FOLDER "Lagrange//Utils")
+        set_target_properties(lagrange_download_data PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Utils")
     else()
         # Corp version, we automatically download test data via Artifactory
         file(STRINGS "${lagrange_source_dir}/scripts/manifest.txt" FILE_LIST)
@@ -75,7 +75,7 @@ function(lagrange_download_data)
             lagrange_download_data
             DEPENDS ${DATA_DEPENDS}
         )
-        set_target_properties(lagrange_download_data PROPERTIES FOLDER "Lagrange//Utils")
+        set_target_properties(lagrange_download_data PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Utils")
 
         # Tell the build system to re-run CMake when those files are updated
         set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS

@@ -13,6 +13,11 @@
 #include <lagrange/ui/UI.h>
 #include <CLI/CLI.hpp>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <spdlog/fmt/ostr.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace ui = lagrange::ui;
 

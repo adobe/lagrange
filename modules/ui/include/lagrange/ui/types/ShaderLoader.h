@@ -21,8 +21,10 @@ struct ShaderLoader : entt::resource_loader<ShaderLoader, Shader>
 {
     enum class PathType { REAL, VIRTUAL };
 
-    std::shared_ptr<Shader>
-    load(const std::string& generic_path, PathType pathtype, const ShaderDefines & defines = {}) const;
+    std::shared_ptr<Shader> load(
+        const std::string& generic_path,
+        PathType pathtype,
+        const ShaderDefines& defines = {}) const;
 };
 using ShaderCache = entt::resource_cache<Shader>;
 using ShaderResource = entt::resource_handle<Shader>;
@@ -46,10 +48,10 @@ entt::id_type register_shader(Registry& r, const ShaderDefinition& def);
 entt::id_type
 register_shader(Registry& r, const std::string& path, const std::string& display_name);
 
-entt::id_type register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines & shader_defines);
+entt::id_type
+register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines& shader_defines);
 
 ShaderResource get_shader(Registry& r, entt::id_type id);
-
 
 
 RegisteredShaders& get_registered_shaders(Registry& r);

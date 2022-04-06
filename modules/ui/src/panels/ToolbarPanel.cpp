@@ -17,6 +17,7 @@
 #include <lagrange/ui/types/Tools.h>
 #include <lagrange/ui/utils/input.h>
 #include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/tools.h>
 #include <lagrange/ui/utils/uipanel.h>
 
 #include <IconsFontAwesome5.h>
@@ -30,13 +31,13 @@ namespace {
 void toolbar_panel_system(Registry& registry, Entity /*e*/)
 {
     auto* keybinds = &get_keybinds(registry);
-    auto& tools = registry.ctx<Tools>();
+    auto& tools = get_tools(registry);
 
 
     ImGui::PushID(42);
 
     {
-        auto current_tool_type = tools.current_tool_type();
+        auto current_tool_type = tools.get_current_tool_type();
         for (auto tool_type : tools.get_tool_types()) {
             using namespace entt::literals;
             auto type = entt::resolve(tool_type);
@@ -56,7 +57,7 @@ void toolbar_panel_system(Registry& registry, Entity /*e*/)
     ImGui::Separator();
 
     {
-        auto current_element_type = tools.current_element_type();
+        auto current_element_type = tools.get_current_element_type();
         for (auto elem_type : tools.get_element_types()) {
             using namespace entt::literals;
             auto type = entt::resolve(elem_type);
@@ -78,7 +79,7 @@ void toolbar_panel_system(Registry& registry, Entity /*e*/)
                 sel_ctx.select_backfacing,
                 ICON_FA_STEP_BACKWARD,
                 "Select Backfaces",
-                "global.selection_mode.select_backfaces",
+                "selection_mode_select_backfaces",
                 keybinds,
                 true)) {
             sel_ctx.select_backfacing = !sel_ctx.select_backfacing;

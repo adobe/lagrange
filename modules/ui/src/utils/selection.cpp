@@ -13,6 +13,7 @@
 #include <lagrange/ui/types/Keybinds.h>
 #include <lagrange/ui/utils/input.h>
 #include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/treenode.h>
 
 namespace lagrange {
 namespace ui {
@@ -46,7 +47,7 @@ bool set_selection_component_impl(Registry& r, Entity e, SelectionBehavior behav
         result |= deselect_all_impl<Component>(r);
     }
 
-    if (r.has<Component>(e)) {
+    if (r.all_of<Component>(e)) {
         if (behavior == SelectionBehavior::ERASE) {
             r.remove<Component>(e);
             result = true;
@@ -74,6 +75,34 @@ bool dehover_all(Registry& r)
     return deselect_all_impl<Hovered>(r);
 }
 
+
+bool is_child_selected(const Registry& registry, Entity e, bool recursive /*= true*/)
+{
+    bool any_selected = false;
+    auto fn = [&](Entity e) { any_selected |= ui::is_selected(registry, e); };
+
+    if (recursive) {
+        foreach_child(registry, e, fn);
+    } else {
+        foreach_child_recursive(registry, e, fn);
+    }
+
+    return any_selected;
+}
+
+bool is_child_hovered(const Registry& registry, Entity e, bool recursive /*= true*/)
+{
+    bool any_selected = false;
+    auto fn = [&](Entity e) { any_selected |= ui::is_hovered(registry, e); };
+
+    if (recursive) {
+        foreach_child(registry, e, fn);
+    } else {
+        foreach_child_recursive(registry, e, fn);
+    }
+
+    return any_selected;
+}
 
 std::vector<Entity> collect_selected(const Registry& r)
 {
@@ -113,12 +142,12 @@ const SelectionContext& get_selection_context(const Registry& r)
 SelectionBehavior selection_behavior(const Keybinds& keybinds)
 {
     SelectionBehavior sel_behavior = SelectionBehavior::SET;
-    if (keybinds.is_down("viewport.selection.select.erase") ||
-        keybinds.is_released("viewport.selection.select.erase")) {
+    if (keybinds.is_down("viewport.selection_select_erase") ||
+        keybinds.is_released("viewport.selection_select_erase")) {
         sel_behavior = SelectionBehavior::ERASE;
     } else if (
-        keybinds.is_down("viewport.selection.select.add") ||
-        keybinds.is_released("viewport.selection.select.add")) {
+        keybinds.is_down("viewport.selection_select_add") ||
+        keybinds.is_released("viewport.selection_select_add")) {
         sel_behavior = SelectionBehavior::ADD;
     }
     return sel_behavior;
@@ -126,21 +155,21 @@ SelectionBehavior selection_behavior(const Keybinds& keybinds)
 
 bool are_selection_keys_down(const Keybinds& keybinds)
 {
-    return keybinds.is_down("viewport.selection.select.set") ||
-           keybinds.is_down("viewport.selection.select.add") ||
-           keybinds.is_down("viewport.selection.select.erase");
+    return keybinds.is_down("viewport.selection_select_set") ||
+           keybinds.is_down("viewport.selection_select_add") ||
+           keybinds.is_down("viewport.selection_select_erase");
 }
 
 bool are_selection_keys_pressed(const Keybinds& keybinds)
 {
-    return keybinds.is_pressed("viewport.selection.select.set") ||
-           keybinds.is_pressed("viewport.selection.select.add") ||
-           keybinds.is_pressed("viewport.selection.select.erase");
+    return keybinds.is_pressed("viewport.selection_select_set") ||
+           keybinds.is_pressed("viewport.selection_select_add") ||
+           keybinds.is_pressed("viewport.selection_select_erase");
 }
 
 bool are_selection_keys_released(const Keybinds& keybinds)
 {
-    return keybinds.is_released("viewport.selection.select.set");
+    return keybinds.is_released("viewport.selection_select_set");
 }
 
 SelectionBehavior selection_behavior(const Registry& r)

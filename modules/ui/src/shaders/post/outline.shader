@@ -47,8 +47,8 @@ void main(){
 
 
     ivec2 screen_size = textureSize(color_tex,0);
-    vec2 dx = vec2(1.0 / screen_size.x, 0) * dpos;
-    vec2 dy = vec2(0, 1.0 / screen_size.y) * dpos;
+    vec2 dx = vec2(1.0 / float(screen_size.x), 0.0) * dpos;
+    vec2 dy = vec2(0.0, 1.0 / float(screen_size.y)) * dpos;
     vec3 t = texture(color_tex,coord).rgb;
     vec3 tup = texture(color_tex,coord -dy).rgb;
     vec3 tdown = texture(color_tex,coord + dy ).rgb;
@@ -62,7 +62,7 @@ void main(){
 
     if(has_diff){
         fragColor = vcolor;
-        fragColor.a = 1;
+        fragColor.a = 1.0;
     }
     else{
         discard;

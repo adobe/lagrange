@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     portable_file_dialogs
     GIT_REPOSITORY https://github.com/samhocevar/portable-file-dialogs.git
-    GIT_TAG 7a7a9f5fa800b28331672742c0e774d46186e34f
+    GIT_TAG 67e7b0945aac80efa2ec5c72de98b47f7552735c
 )
 FetchContent_GetProperties(portable_file_dialogs)
 if(portable_file_dialogs_POPULATED)

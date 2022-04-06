@@ -10,13 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/ui/utils/viewport.h>
+#include <lagrange/ui/components/ObjectIDViewport.h>
+#include <lagrange/ui/components/SelectionContext.h>
+#include <lagrange/ui/components/Viewport.h>
 #include <lagrange/ui/default_shaders.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
 #include <lagrange/ui/types/Material.h>
-#include <lagrange/ui/components/ObjectIDViewport.h>
-#include <lagrange/ui/components/Viewport.h>
-#include <lagrange/ui/components/SelectionContext.h>
+#include <lagrange/ui/utils/viewport.h>
 
 namespace lagrange {
 namespace ui {
@@ -27,7 +27,7 @@ struct GLColorTempBuffer
 {
     std::vector<unsigned char> buffer;
 };
-}
+} // namespace
 
 int color_to_id(unsigned char r, unsigned char g, unsigned char b)
 {
@@ -84,8 +84,10 @@ ViewportComponent& setup_offscreen_viewport(
 }
 
 
-std::tuple<int, int, int, int>
-setup_scissor(Registry& /*r*/, ViewportComponent& offscreen_viewport, const SelectionContext &sel_ctx)
+std::tuple<int, int, int, int> setup_scissor(
+    Registry& /*r*/,
+    ViewportComponent& offscreen_viewport,
+    const SelectionContext& sel_ctx)
 {
     // Calculate in-viewport coordinates
     const int x = int(sel_ctx.viewport_min.x());

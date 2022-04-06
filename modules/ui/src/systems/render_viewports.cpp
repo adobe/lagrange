@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/ui/components/RenderContext.h>
+#include <lagrange/ui/components/ShadowMap.h>
 #include <lagrange/ui/systems/render_background.h>
 #include <lagrange/ui/systems/render_geometry.h>
 #include <lagrange/ui/systems/render_shadowmaps.h>
@@ -31,8 +32,8 @@ void adjust_camera(Registry& registry, ViewportComponent& viewport, Camera& cam)
     const AABB bb = get_scene_bounds(registry).global;
 
     // Skip for empty scene
-    if (bb.isEmpty()) return; 
-    
+    if (bb.isEmpty()) return;
+
     float nearest = get_nearest_bounds_distance(
         registry,
         cam.get_position(),
@@ -92,7 +93,14 @@ void render_viewport(Registry& r, Entity e)
             int(viewport.computed_camera.get_window_height()));
 
         if (fbo_ptr->get_color_attachement(0) && fbo_ptr->is_srgb()) {
+#if defined(__EMSCRIPTEN__)
+            // TODO WebGL: GL_FRAMEBUFFER_SRGB is not supported.
+            // See https://developer.mozilla.org/en-US/docs/Web/API/EXT_sRGB and
+            // https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/getFramebufferAttachmentParameter.
+            // logger().warn("GL_FRAMEBUFFER_SRGB is not supported in WebGL.");
+#else
             gl(glEnable, GL_FRAMEBUFFER_SRGB);
+#endif
         }
 
         gl(glViewport,
@@ -100,7 +108,7 @@ void render_viewport(Registry& r, Entity e)
            0,
            int(viewport.computed_camera.get_window_width()),
            int(viewport.computed_camera.get_window_height()));
-        
+
 
         if (viewport.clear_bits != 0) {
             gl(glClearColor,
@@ -118,13 +126,20 @@ void render_viewport(Registry& r, Entity e)
 
     render_geometry(r);
 
-    // TODO as post process entity?
     render_post_process(r);
 }
 
 void render_viewports(Registry& registry)
 {
+    // Sort viewports, ShadowMaps should always precede other viewport
+    registry.sort<ViewportComponent>([&](Entity a, Entity b) {
+        const bool is_shadowmap_a = registry.all_of<ShadowMap>(a);
+        const bool is_shadowmap_b = registry.all_of<ShadowMap>(b);
+        return is_shadowmap_a > is_shadowmap_b;
+    });
+
     auto view = registry.view<ViewportComponent>();
+
     // Render
     for (auto e : view) {
         auto& viewport = view.get<ViewportComponent>(e);

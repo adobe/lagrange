@@ -33,13 +33,13 @@ void main()
 
 
     //Pos and normal to world space
-    vs_out.pos = (M * model_pos).xyz;
-    vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
-    vs_out.uv = in_uv;
-    vs_out.color = in_color;  
-    vs_out.tangent = (NMat * vec4(in_tangent,0.0)).xyz;;
-    vs_out.bitangent = (NMat * vec4(in_bitangent,0.0)).xyz;;
+    vs_out_pos = (M * model_pos).xyz;
+    vs_out_normal = (NMat * vec4(in_normal,0.0)).xyz;
+    vs_out_uv = in_uv;
+    vs_out_color = in_color;  
+    vs_out_tangent = (NMat * vec4(in_tangent,0.0)).xyz;;
+    vs_out_bitangent = (NMat * vec4(in_bitangent,0.0)).xyz;;
 
     //To clip space
-    gl_Position = PV * vec4(vs_out.pos,1.0);
+    gl_Position = PV * vec4(vs_out_pos,1.0);
 }

@@ -210,11 +210,13 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
     // Port corner attributes
     map_corner_attributes(mesh, *out_mesh, facet_map);
 
-    // Port UV
-    if (mesh.is_uv_initialized()) {
-        const auto& uv = mesh.get_uv();
-        const auto& uv_indices = mesh.get_uv_indices();
-        assert(uv_indices.rows() == facets.rows());
+    // Port indexed attributes.
+    const auto& indexed_attr_names = mesh.get_indexed_attribute_names();
+    typename MeshType::AttributeArray attr;
+    typename MeshType::IndexArray indices;
+    for (const auto& attr_name : indexed_attr_names) {
+        std::tie(attr, indices) = mesh.get_indexed_attribute(attr_name);
+        assert(indices.rows() == facets.rows());
 
         auto get_vertex_index_in_facet = [&facets](Index fid, Index vid) -> Index {
             if (vid == facets(fid, 0))
@@ -227,7 +229,7 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
             }
         };
 
-        typename MeshType::AttributeArray out_uv(num_out_facets * 3, 2);
+        typename MeshType::AttributeArray out_attr(num_out_facets * 3, attr.cols());
         for (auto i : range(num_out_facets)) {
             const auto old_fid = facet_map[i];
             assert(old_fid < facets.rows());
@@ -237,7 +239,7 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
                 if (vid < num_vertices) {
                     const auto old_j = get_vertex_index_in_facet(old_fid, vid);
                     // Vertex is part of the input vertices.
-                    out_uv.row(i * 3 + j) = uv.row(uv_indices(old_fid, old_j));
+                    out_attr.row(i * 3 + j) = attr.row(indices(old_fid, old_j));
                 } else {
                     const auto& record = vertex_mapping[vid - num_vertices];
                     Index v0 = std::get<0>(record);
@@ -246,18 +248,24 @@ split_long_edges(MeshType& mesh, typename MeshType::Scalar sq_tol, bool recursiv
                     Index old_j0 = get_vertex_index_in_facet(old_fid, v0);
                     Index old_j1 = get_vertex_index_in_facet(old_fid, v1);
 
-                    out_uv.row(i * 3 + j) = uv.row(uv_indices(old_fid, old_j0)) * ratio +
-                                            uv.row(uv_indices(old_fid, old_j1)) * (1.0f - ratio);
+                    out_attr.row(i * 3 + j) = attr.row(indices(old_fid, old_j0)) * ratio +
+                                            attr.row(indices(old_fid, old_j1)) * (1.0f - ratio);
                 }
             }
         }
 
-        out_mesh->add_corner_attribute("tmp_uv");
-        out_mesh->import_corner_attribute("tmp_uv", out_uv);
-        map_corner_attribute_to_indexed_attribute(*out_mesh, "tmp_uv");
-        rename_indexed_attribute(*out_mesh, "tmp_uv", "uv");
-        out_mesh->remove_corner_attribute("tmp_uv");
-        assert(out_mesh->is_uv_initialized());
+        if (attr_name == "normal") {
+            for (auto i : range(num_out_facets * 3)) {
+                out_attr.row(i).stableNormalize();
+            }
+        }
+
+        const std::string tmp_name = "__" + attr_name;
+        out_mesh->add_corner_attribute(tmp_name);
+        out_mesh->import_corner_attribute(tmp_name, out_attr);
+        map_corner_attribute_to_indexed_attribute(*out_mesh, tmp_name);
+        rename_indexed_attribute(*out_mesh, tmp_name, attr_name);
+        out_mesh->remove_corner_attribute(tmp_name);
     }
 
     if (recursive && total_num_vertices > num_vertices) {

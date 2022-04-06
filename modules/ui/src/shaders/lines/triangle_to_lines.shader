@@ -19,20 +19,18 @@
 #pragma property in_color "Default Color" Color(0,0,0,0)
 
 
-out VARYING_SCREEN{
-    vec2 screen_pos;
-} screen_out;
+out vec2 screen_out;
 
 void main()
 {
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
-    vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
-    vs_out.uv = in_uv;
-    vs_out.color = in_color;
+    vs_out_pos = (M * vec4(in_pos, 1.0)).xyz;
+    vs_out_normal = (NMat * vec4(in_normal,0.0)).xyz;
+    vs_out_uv = in_uv;
+    vs_out_color = in_color;
 
-    vec4 clip_space = PV * vec4(vs_out.pos,1.0);
-    screen_out.screen_pos = screen_size * 0.5f * (clip_space.xy / clip_space.w);
+    vec4 clip_space = PV * vec4(vs_out_pos,1.0);
+    screen_out = screen_size * 0.5f * (clip_space.xy / clip_space.w);
 
     //To clip space
     gl_Position = clip_space;
@@ -43,19 +41,28 @@ void main()
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec3 tangent;
-    vec3 bitangent;
+//in VARYING 
+in vec3 vs_out_pos[3];
+in vec3 vs_out_normal[3];
+in vec2 vs_out_uv[3];
+in vec4 vs_out_color[3];
+in vec3 vs_out_tangent[3];
+in vec3 vs_out_bitangent[3];
 
-} gs_in[];
+in vec2 screen_out[3];
 
-in VARYING_SCREEN {
-    vec2 screen_pos;
-} gs_screen_in[];
+// in VARYING {
+//     vec3 pos;
+//     vec3 normal;
+//     vec2 uv;
+//     vec4 color;
+//     vec3 tangent;
+//     vec3 bitangent;
+// } gs_in[];
+
+// in VARYING_SCREEN {
+//     vec2 screen_pos;
+// } gs_screen_in[];
 
 
 out VARYING_GEOM {
@@ -70,20 +77,20 @@ out VARYING_GEOM {
 void main() {
 
     for(int k = 0; k < 3; k++){
-        vec2 u = gs_screen_in[(k+1) % 3].screen_pos - gs_screen_in[k].screen_pos;
-        vec2 v = gs_screen_in[(k+2) % 3].screen_pos - gs_screen_in[k].screen_pos;
+        vec2 u = screen_out[(k+1) % 3] - screen_out[k];
+        vec2 v = screen_out[(k+2) % 3] - screen_out[k];
         float area_squared = abs(u.x*v.y - u.y*v.x);
         float h = area_squared / length(u-v);
 
-        gs_out.color = gs_in[k].color;
-        gs_out.normal = gs_in[k].normal;
+        gs_out.color = vs_out_color[k];
+        gs_out.normal = vs_out_normal[k];
         gs_out.color.a *= alpha_multiplier;
 
-        gs_out.pos = gs_in[k].pos;
+        gs_out.pos = vs_out_pos[k];
         gl_Position = PV * vec4(gs_out.pos,1);
 
         h *= gl_Position.w;
-        gs_out.edge_dist = vec3(0);
+        gs_out.edge_dist = vec3(0,0,0);
         gs_out.edge_dist[k] = abs(h); // absolute value is needed when vertex is behind camera
 
         EmitVertex();

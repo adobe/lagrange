@@ -27,8 +27,7 @@ TEST_CASE("Assert", "[next]")
     // We want to prevent the macro from taking 3+ arguments:
     // la_runtime_assert(true, "This should not compile", 0);
 
-    std::string_view name = "world";
-    la_runtime_assert(true, fmt::format("Hello {}", name));
+    la_runtime_assert(true, fmt::format("Hello {}", "world"));
 
     // The assert macro can be used in an expression:
     int a = 2;

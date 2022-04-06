@@ -16,16 +16,7 @@
 
 
 #pragma FRAGMENT
-layout(location = 0) out vec4 fragColor;
-
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec3 tangent;
-    vec3 bitangent;
-} fs_in;
+#include "layout/default_fragment_layout.glsl"
 
 uniform samplerCube texCube;
 
@@ -37,14 +28,14 @@ void main(){
 
     vec3 irradiance = vec3(0);
 
-    vec3 basis_Z = normalize(fs_in.pos);
+    vec3 basis_Z = normalize(vs_out_pos);
     vec3 basis_X = cross(vec3(0,1,0), basis_Z);
     vec3 basis_Y = cross(basis_Z, basis_X);
 
-    float angleStep = 0.025f;
+    float angleStep = 0.025;
     int sample_num = 0;
-    for(float alpha = 0; alpha < 2 * M_PI; alpha += angleStep){
-        for(float beta = 0; beta < M_PI / 2; beta += angleStep){
+    for(float alpha = 0.0; alpha < 2.0 * M_PI; alpha += angleStep){
+        for(float beta = 0.0; beta < M_PI / 2.0; beta += angleStep){
 
 
             vec3 cartesian = vec3(sin(beta)*cos(alpha), sin(beta)*sin(alpha), cos(beta));
@@ -56,7 +47,7 @@ void main(){
         }
     }
 
-    fragColor.xyz = M_PI * irradiance * (1.0 / sample_num);
+    fragColor.xyz = M_PI * irradiance * (1.0 / float(sample_num));
     fragColor.a = 1.0;
 
 }

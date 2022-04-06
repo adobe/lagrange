@@ -65,9 +65,9 @@ size_t get_num_edges(const MeshBase* mesh_base)
 }
 
 template <typename MeshType>
-const typename MeshType::VertexArray& get_mesh_vertices(const MeshBase* mesh_base)
+RowMajorMatrixXf get_mesh_vertices(const MeshBase* mesh_base)
 {
-    return reinterpret_cast<const MeshType&>(*mesh_base).get_vertices();
+    return reinterpret_cast<const MeshType&>(*mesh_base).get_vertices().template cast<float>();
 }
 
 
@@ -251,9 +251,7 @@ void ensure_is_selected_attribute(MeshBase* d)
 
     if (mesh.is_edge_data_initialized() && !mesh.has_edge_attribute(attrib_name)) {
         mesh.add_edge_attribute(attrib_name);
-        mesh.import_edge_attribute(
-            attrib_name,
-            AttributeArray::Zero(mesh.get_num_edges(), 1));
+        mesh.import_edge_attribute(attrib_name, AttributeArray::Zero(mesh.get_num_edges(), 1));
     }
 
     if (!mesh.has_vertex_attribute(attrib_name)) {
@@ -927,7 +925,7 @@ void filter_closest_vertex(
     {
         int screen_diff = std::numeric_limits<int>::max();
         float min_depth = std::numeric_limits<float>::max();
-        Index min_vi = lagrange::INVALID<Index>();
+        Index min_vi = lagrange::invalid<Index>();
         std::vector<Index> equivalence = {};
     };
 
@@ -969,7 +967,7 @@ void filter_closest_vertex(
     {
         LocalBuffer final_buffer;
         for (auto& var : temp_vars) {
-            if (var.min_vi == lagrange::INVALID<Index>()) continue;
+            if (var.min_vi == lagrange::invalid<Index>()) continue;
 
             if (var.screen_diff == final_buffer.screen_diff &&
                 var.min_depth == final_buffer.min_depth) {
@@ -994,7 +992,7 @@ void filter_closest_vertex(
 
         const auto value = (sel_behavior != SelectionBehavior::ERASE) ? Scalar(1) : Scalar(0);
 
-        if (final_buffer.min_vi != lagrange::INVALID<Index>()) {
+        if (final_buffer.min_vi != lagrange::invalid<Index>()) {
             vertex_attrib(final_buffer.min_vi, 0) = value;
             for (auto equiv_vi : final_buffer.equivalence) {
                 vertex_attrib(equiv_vi, 0) = value;
@@ -1011,7 +1009,8 @@ void filter_closest_vertex(
 
 
 template <typename MeshType>
-void register_mesh_type([[maybe_unused]] const std::string& display_name = entt::type_id<MeshType>().name().data())
+void register_mesh_type(
+    [[maybe_unused]] const std::string& display_name = entt::type_id<MeshType>().name().data())
 {
     using namespace entt::literals;
 

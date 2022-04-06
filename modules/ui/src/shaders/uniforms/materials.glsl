@@ -36,34 +36,24 @@ void read_material(
     out float opacity
 ){
 
-    vec4 baseColor_a = material_base_color_texture_bound ?
-        texture(material_base_color, uv) : material_base_color_default_value;
+    vec4 baseColor_ = material_base_color_default_value;
+    if(material_base_color_texture_bound)
+        baseColor_ = texture(material_base_color, vs_out_uv);
 
-    baseColor = baseColor_a.xyz;
+    baseColor = baseColor_.xyz;
 
-    metallic =  material_metallic_texture_bound ?
-        texture(material_metallic, uv).x : material_metallic_default_value;
+    
+    if(material_metallic_texture_bound)
+        metallic = texture(material_metallic, vs_out_uv).x;
+    else
+        metallic = material_metallic_default_value;
 
-    roughness =  material_roughness_texture_bound ?
-        texture(material_roughness, uv).x : material_roughness_default_value;
+    if(material_roughness_texture_bound)
+        roughness = texture(material_roughness, vs_out_uv).x;
+    else
+        roughness = material_roughness_default_value;
 
-    opacity = baseColor_a.a * material_opacity;
-}
-
-// Will decide which color to use
-// By default, the base color is unchanged
-// If "has_color_attrib" is set, it will return fragment color
-// If "uniform_color" is not negative, it will return uniform color
-vec3 adjust_color(
-    in bool has_color_attrib, in vec4 fragment_color, in vec4 uniform_color, vec3 baseColor){
-
-    if(has_color_attrib){
-        baseColor = fragment_color.xyz;
-    }
-    else if(uniform_color.x >= 0.0f){
-        baseColor = uniform_color.xyz;
-    }
-    return baseColor;
+    opacity = baseColor_.a * material_opacity;
 }
 
 // If normal texture is set, the normal will be adjusted

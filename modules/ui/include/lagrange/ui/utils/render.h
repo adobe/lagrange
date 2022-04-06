@@ -11,11 +11,11 @@
  */
 #pragma once
 
+#include <lagrange/ui/components/GLMesh.h>
+#include <lagrange/ui/components/VertexData.h>
 #include <lagrange/ui/types/Camera.h>
 #include <lagrange/ui/types/FrameBuffer.h>
 #include <lagrange/ui/types/Shader.h>
-#include <lagrange/ui/components/GLMesh.h>
-#include <lagrange/ui/components/VertexData.h>
 #include <tuple>
 
 
@@ -28,10 +28,10 @@ namespace utils {
 namespace render {
 
 /// Adds a depth offset to the perspective `projection` matrix
-/// 
+///
 /// `layer_index` specifies how many discrete offsets are applied
 /// Returns Eigen::Matrix4f perspective matrix with depth offset
-/// 
+///
 /// Based on http://www.terathon.com/gdc07_lengyel.pdf (slide 18)
 Eigen::Matrix4f offset_depth(const Eigen::Projective3f& perspective, int layer_index);
 
@@ -133,8 +133,7 @@ void update_vertex_data(
     const Shader& shader,
     VertexData& glvd,
     IndexingMode indexing,
-    entt::id_type submesh_index
-);
+    entt::id_type submesh_index);
 
 } // namespace ui
 } // namespace lagrange

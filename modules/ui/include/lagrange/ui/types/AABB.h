@@ -33,7 +33,7 @@ public:
 
     /// Normalizes point to [0.0f,1.0f]^3 in AABB's bounds
     template <typename Derived>
-    Eigen::Vector3f normalize_point(const Eigen::MatrixBase<Derived> &pt) const
+    Eigen::Vector3f normalize_point(const Eigen::MatrixBase<Derived>& pt) const
     {
         const auto d = diagonal();
         return Eigen::Vector3f(
@@ -44,7 +44,7 @@ public:
 
     /// Overload for 2D mesh
     template <typename Scalar>
-    Eigen::Vector3f normalize_point(const Eigen::Matrix<Scalar, 2, 1> &pt) const
+    Eigen::Vector3f normalize_point(const Eigen::Matrix<Scalar, 2, 1>& pt) const
     {
         const auto d = diagonal();
         return Eigen::Vector3f(
@@ -57,15 +57,15 @@ public:
 
     Eigen::Affine3f get_normalization_transform(bool preserve_aspect = true) const;
 
-    AABB transformed(const Eigen::Affine3f &transform) const;
+    AABB transformed(const Eigen::Affine3f& transform) const;
 
     bool intersects_ray(
         Eigen::Vector3f origin,
         Eigen::Vector3f dir,
-        float *tmin_out = nullptr,
-        float *tmax_out = nullptr) const;
+        float* tmin_out = nullptr,
+        float* tmax_out = nullptr) const;
 
-    bool intersects_frustum(const Frustum &f) const;
+    bool intersects_frustum(const Frustum& f) const;
 };
 
 } // namespace ui

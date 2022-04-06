@@ -50,9 +50,9 @@ void chain_corners_around_vertices(
 
     // Chain corners around vertices and edges
     vertex_to_corner.resize(num_vertices);
-    vertex_to_corner.setConstant(INVALID<Index>());
+    vertex_to_corner.setConstant(invalid<Index>());
     next_corner_around_vertex.resize(num_corners);
-    next_corner_around_vertex.setConstant(INVALID<Index>());
+    next_corner_around_vertex.setConstant(invalid<Index>());
     for (auto f : range(facets.rows())) {
         for (auto lv : range(facets.cols())) {
             Index c = (Index)(f * facets.cols() + lv);

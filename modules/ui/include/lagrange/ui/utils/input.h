@@ -24,5 +24,8 @@ const InputState& get_input(const Registry& r);
 Keybinds& get_keybinds(Registry& r);
 const Keybinds& get_keybinds(const Registry& r);
 
+InputState::Mouse& get_mouse(Registry& r);
+const InputState::Mouse& get_mouse(const Registry& r);
+
 } // namespace ui
 } // namespace lagrange

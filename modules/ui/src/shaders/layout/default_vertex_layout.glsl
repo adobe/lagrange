@@ -20,11 +20,18 @@ layout (location = 5) in vec4 in_bone_ids;
 layout (location = 6) in vec4 in_bone_weights;
 #endif
 
-out VARYING {
+/*out VARYING {
     vec3 pos;
     vec3 normal;
     vec2 uv;
     vec4 color;
     vec3 tangent;
     vec3 bitangent;
-} vs_out;
+} vs_out;*/
+
+out vec3 vs_out_pos;
+out vec3 vs_out_normal;
+out vec2 vs_out_uv;
+out vec4 vs_out_color;
+out vec3 vs_out_tangent;
+out vec3 vs_out_bitangent;

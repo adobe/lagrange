@@ -21,7 +21,7 @@ vec4 index_to_color(int i){
     int r = (i & 0x000000FF);
     int g = (i & 0x0000FF00) >> 8;
     int b = (i & 0x00FF0000) >> 16;
-    return vec4(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
+    return vec4(float(r) / 255.0, float(g) / 255.0, float(b) / 255.0, 1.0);
 }
 
 void main(){

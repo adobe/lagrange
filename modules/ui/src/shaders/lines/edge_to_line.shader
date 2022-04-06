@@ -12,27 +12,25 @@
 #include "uniforms/common.glsl"
 
 #pragma VERTEX
+
 #include "layout/default_vertex_layout.glsl"
 
+//Default color when attribute is not set
+#pragma property in_color "Default Color" Color(0,0,0,0)
 
-out VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec2 screen_pos;
-} vs_out;
+
+out vec2 screen_out;
 
 void main()
 {
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
-    vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
-    vs_out.uv = in_uv;
-    vs_out.color = has_color_attrib ? in_color : uniform_color;
+    vs_out_pos = (M * vec4(in_pos, 1.0)).xyz;
+    vs_out_normal = (NMat * vec4(in_normal,0.0)).xyz;
+    vs_out_uv = in_uv;
+    vs_out_color = in_color;
 
-    vec4 clip_space = PV * vec4(vs_out.pos,1.0);
-    vs_out.screen_pos = screen_size * 0.5f * (clip_space.xy / clip_space.w);
+    vec4 clip_space = PV * vec4(vs_out_pos,1.0);
+    screen_out = screen_size * 0.5f * (clip_space.xy / clip_space.w);
 
     //To clip space
     gl_Position = clip_space;
@@ -45,13 +43,14 @@ void main()
 layout(lines) in;
 layout(triangle_strip, max_vertices = 4) out;
 
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec2 uv;
-    vec4 color;
-    vec2 screen_pos;
-} gs_in[];
+in vec3 vs_out_pos[2];
+in vec3 vs_out_normal[2];
+in vec2 vs_out_uv[2];
+in vec4 vs_out_color[2];
+in vec3 vs_out_tangent[2];
+in vec3 vs_out_bitangent[2];
+
+in vec2 screen_out[2];
 
 out VARYING_GEOM {
     vec3 pos;
@@ -100,8 +99,8 @@ vec4 screen_to_clip(vec3 screen, float w){
 void main() {
 
 
-    vec4 p1 = vec4(gs_in[0].pos.xyz,1);
-    vec4 p2 = vec4(gs_in[1].pos.xyz,1);
+    vec4 p1 = vec4(vs_out_pos[0].xyz,1);
+    vec4 p2 = vec4(vs_out_pos[1].xyz,1);
 
     //To clip space
     vec4 p1c = world_to_clip(p1);
@@ -130,7 +129,7 @@ void main() {
     dist[2] = 1;
     dist[3] = -1;
 
-    gs_out.color = gs_in[0].color;
+    gs_out.color = vs_out_color[0];
 
     gs_out.edge_dist = dist[0];
     gl_Position = P[0];
@@ -156,10 +155,7 @@ void main() {
 
 #pragma FRAGMENT
 
-
-
 layout(location = 0) out vec4 fragColor;
-
 
 in VARYING_GEOM {
     vec3 pos;
@@ -192,4 +188,3 @@ void main(){
 
 
 }
-

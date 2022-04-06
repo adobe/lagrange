@@ -84,14 +84,21 @@
 # option(TBB_PREFER_STATIC        "Use the static version of TBB for the alias target" ON)
 
 ################################################################################
-# Sanitizer Options
+# Tools Options
 ################################################################################
 
+# Sanitizers
 # set(USE_SANITIZER
-#     ""
+#     "Address;Undefined"
 #     CACHE STRING
 #     "Compile with a sanitizer. Options are: Address, Memory, MemoryWithOrigins, Undefined, Thread, Leak, 'Address;Undefined'"
 # )
+
+# Code coverage.
+# 1. Compile & run unit tests as usual.
+# 2. Run the target `ccov-all` to produce coverage results (`make ccov-all`)
+# 3. Open result page `<build>/ccov/all-merged/index.html`
+# option(CODE_COVERAGE "Builds targets with code coverage instrumentation. (Requires GCC or Clang)" ON)
 
 ################################################################################
 # FetchContent Options

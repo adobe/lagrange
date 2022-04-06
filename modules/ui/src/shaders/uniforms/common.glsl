@@ -23,7 +23,7 @@ uniform mat4 PVinv;
 uniform mat4 M;
 uniform mat4 NMat;
 
-uniform int object_id = 0;
+uniform int object_id;
 
 
 /*
@@ -32,13 +32,6 @@ uniform int object_id = 0;
 uniform vec2 screen_size;
 
 /*
-    Uniform color
-*/
-uniform bool has_color_attrib = false;
-uniform vec4 uniform_color = vec4(1,0,0,1);
-
-/*
     Compositing
 */
-uniform float alpha_multiplier = 1.0f;
-uniform bool cull_backface = true;
+uniform float alpha_multiplier;

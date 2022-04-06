@@ -77,10 +77,10 @@ bool chain_edges_into_simple_loops(
     std::vector<Index> path_to_first_edge;
 
     // vertex -> single outgoing edge along path (or INVALID if degree_out is > 1)
-    std::vector<Index> vertex_to_outgoing_edge(num_vertices, INVALID<Index>());
+    std::vector<Index> vertex_to_outgoing_edge(num_vertices, invalid<Index>());
 
     // edge -> next edge along path (or INVALID if last edge along path)
-    std::vector<Index> next_edge_along_path(num_edges, INVALID<Index>());
+    std::vector<Index> next_edge_along_path(num_edges, invalid<Index>());
 
     // Chain edges into paths
     for (Index e = 0; e < num_edges; ++e) {
@@ -102,7 +102,7 @@ bool chain_edges_into_simple_loops(
     }
 
     // Follow each path until we reach the last edge
-    std::vector<Index> edge_label(num_edges, INVALID<Index>());
+    std::vector<Index> edge_label(num_edges, invalid<Index>());
     std::vector<Index> path_to_last_edge(path_to_first_edge.size());
     std::stack<Index> ears;
     std::vector<std::vector<Index>> paths_in(num_vertices);
@@ -120,7 +120,7 @@ bool chain_edges_into_simple_loops(
     for (Index a = 0; a < (Index)path_to_first_edge.size(); ++a) {
         // Follow edges along the path and label them as belonging to the path
         for (Index e = path_to_first_edge[a];
-             e != INVALID<Index>() && edge_label[e] == INVALID<Index>();
+             e != invalid<Index>() && edge_label[e] == invalid<Index>();
              e = next_edge_along_path[e]) {
             edge_label[e] = a;
             path_to_last_edge[a] = e;
@@ -145,7 +145,7 @@ bool chain_edges_into_simple_loops(
     // degree 2). We do an additional pass on each edge and start a new path for each unlabeled
     // edge.
     for (Index e = 0; e < num_edges; ++e) {
-        if (edge_label[e] == INVALID<Index>()) {
+        if (edge_label[e] == invalid<Index>()) {
             // Add a new path starting here
             const Index a = (Index)path_to_first_edge.size();
             path_to_first_edge.emplace_back(e);
@@ -155,14 +155,14 @@ bool chain_edges_into_simple_loops(
             // Follow edges along the path and record the last edge on the path
             edge_label[e] = a;
             for (Index ei = next_edge_along_path[e];
-                 ei != INVALID<Index>() && edge_label[ei] == INVALID<Index>();
+                 ei != invalid<Index>() && edge_label[ei] == invalid<Index>();
                  ei = next_edge_along_path[ei]) {
                 edge_label[ei] = a;
                 path_to_last_edge[a] = ei;
             }
             la_debug_assert(next_edge_along_path[path_to_last_edge[a]] == e);
             la_debug_assert(first_vertex_in_path(a) == last_vertex_in_path(a));
-            next_edge_along_path[path_to_last_edge[a]] = INVALID<Index>();
+            next_edge_along_path[path_to_last_edge[a]] = invalid<Index>();
 
             // Path is an isolated cycle
             la_debug_assert(path_is_pending[a] == false);
@@ -191,9 +191,9 @@ bool chain_edges_into_simple_loops(
 
         // path starts and ends on the same vertex, compute corresponding (simple) loop
         la_debug_assert(first_vertex_in_path(a) == last_vertex_in_path(a));
-        la_debug_assert(path_to_first_edge[a] != INVALID<Index>());
+        la_debug_assert(path_to_first_edge[a] != invalid<Index>());
         std::vector<Index> loop;
-        for (Index e = path_to_first_edge[a]; e != INVALID<Index>(); e = next_edge_along_path[e]) {
+        for (Index e = path_to_first_edge[a]; e != invalid<Index>(); e = next_edge_along_path[e]) {
             loop.push_back(e);
             la_debug_assert(edge_is_removed[e] == false);
             edge_is_removed[e] = true;
@@ -229,11 +229,11 @@ bool chain_edges_into_simple_loops(
             la_debug_assert(first_vertex_in_path(a_out) == v);
             if (a_in != a_out) {
                 // If the paths are different, then join them
-                la_debug_assert(path_to_first_edge[a_in] != INVALID<Index>());
-                la_debug_assert(path_to_last_edge[a_in] != INVALID<Index>());
-                la_debug_assert(path_to_first_edge[a_out] != INVALID<Index>());
-                la_debug_assert(path_to_last_edge[a_out] != INVALID<Index>());
-                la_debug_assert(next_edge_along_path[path_to_last_edge[a_in]] == INVALID<Index>());
+                la_debug_assert(path_to_first_edge[a_in] != invalid<Index>());
+                la_debug_assert(path_to_last_edge[a_in] != invalid<Index>());
+                la_debug_assert(path_to_first_edge[a_out] != invalid<Index>());
+                la_debug_assert(path_to_last_edge[a_out] != invalid<Index>());
+                la_debug_assert(next_edge_along_path[path_to_last_edge[a_in]] == invalid<Index>());
                 la_debug_assert(
                     edges(path_to_last_edge[a_in], 1) == edges(path_to_first_edge[a_out], 0));
 
@@ -249,8 +249,8 @@ bool chain_edges_into_simple_loops(
                 path_to_last_edge[a_in] = path_to_last_edge[a_out];
 
                 // Cleaning up
-                path_to_first_edge[a_out] = INVALID<Index>();
-                path_to_last_edge[a_out] = INVALID<Index>();
+                path_to_first_edge[a_out] = invalid<Index>();
+                path_to_last_edge[a_out] = invalid<Index>();
                 path_is_removed[a_out] = true;
                 paths_in[v].clear();
                 paths_out[v].clear();

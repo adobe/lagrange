@@ -25,6 +25,12 @@
 #include <lagrange/create_mesh.h>
 #include <lagrange/get_opposite_edge.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <spdlog/fmt/ostr.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
 namespace lagrange {
 
 /**
@@ -108,7 +114,7 @@ std::unique_ptr<MeshType> resolve_vertex_nonmanifoldness(MeshType& mesh)
                             const Index new_vertex_index = vertex_count + comp_id - 1;
                             out_facets(fid, j) = new_vertex_index;
                             if (safe_cast<Index>(backward_vertex_map.size()) <= new_vertex_index) {
-                                backward_vertex_map.resize(new_vertex_index + 1, INVALID<Index>());
+                                backward_vertex_map.resize(new_vertex_index + 1, invalid<Index>());
                             }
                             backward_vertex_map[new_vertex_index] = i;
                         }

@@ -12,7 +12,11 @@
 #pragma once
 
 // GLEW must come before GLFW
+#if defined(__EMSCRIPTEN__)
+#include <webgl/webgl2.h>
+#else
 #include <GL/gl3w.h>
+#endif
 // Do not change the order
 #include <GLFW/glfw3.h>
 
@@ -20,10 +24,12 @@
 #include <memory>
 #include <stack>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <unordered_map>
 
 #ifdef _DEBUG
+#include <lagrange/utils/assert.h>
 #include <cassert>
 #endif
 
@@ -37,25 +43,18 @@ namespace ui {
 
 #ifdef _DEBUG
 
-#ifdef _WIN32
-#define THIS_FUNCTION __FUNCTION__
-#else
-#define THIS_FUNCTION __PRETTY_FUNCTION__
-#endif
-
-#define S1(x) #x
-#define S2(x) S1(x)
-#define THIS_LINE __FILE__ " : " S2(__LINE__)
-
 bool checkGLError(const char* label);
-#define GL(x) \
-    x;        \
-    checkGLError(THIS_LINE);
-
+#define LA_GL(x)                          \
+    do {                                  \
+        x;                                \
+        checkGLError(LA_ASSERT_FUNCTION); \
+    } while (0)
 #else
 
-#define GL(x) x;
-
+#define LA_GL(x) \
+    do {         \
+        x;       \
+    } while (0)
 #endif
 
 struct GLState
@@ -83,11 +82,11 @@ struct GLState
                 assert(values[func_void_ptr].size() > 0);
 #endif
 
-                values[func_void_ptr].top() = [=]() { GL(func(args...)); };
+                values[func_void_ptr].top() = [=]() { LA_GL(func(args...)); };
             }
         }
         // Run
-        GL(func(args...));
+        LA_GL(func(args...));
     }
 
     static GLState& get();
@@ -97,6 +96,8 @@ struct GLState
     static std::string get_glsl_version_string();
 
     static bool on_opengl_thread();
+
+    static std::string_view get_enum_string(GLenum value);
 
 private:
     // Discard

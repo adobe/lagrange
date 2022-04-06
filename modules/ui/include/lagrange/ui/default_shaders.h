@@ -34,6 +34,7 @@ struct DefaultShaders
     constexpr static const StringID ObjectID = "ObjectID"_hs;
     constexpr static const StringID MeshElementID = "MeshElementID"_hs;
     constexpr static const StringID Skybox = "Skybox"_hs;
+    constexpr static const StringID EdgesToLines = "EdgesToLines"_hs;
 };
 
 struct ColormapShaderMode

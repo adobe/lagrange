@@ -41,6 +41,12 @@ Material::Material(Registry& r, StringID shader_id, const ShaderDefines& shader_
     for (const auto& it : shader->vector_properties()) {
         vec4_values[it.first] = it.second.default_value;
     }
+    for (const auto& it : shader->int_properties()) {
+        int_values[it.first] = it.second.default_value;
+    }
+    for (const auto& it : shader->bool_properties()) {
+        bool_values[it.first] = it.second.default_value;
+    }
 }
 
 StringID Material::shader_id() const
@@ -133,7 +139,7 @@ void Material::set_texture(StringID id, std::shared_ptr<Texture> texture)
 {
     auto it_tex = texture_values.find(id);
     if (it_tex == texture_values.end()) {
-        //Create new even though it's not exposed
+        // Create new even though it's not exposed
         texture_values[id].texture = std::move(texture);
     } else {
         it_tex->second.texture = std::move(texture);
@@ -165,7 +171,7 @@ void Material::set_float(StringID id, float value)
         // If not found, try to find texture property and set its fallback red value
         auto it_tex = texture_values.find(id);
         if (it_tex == texture_values.end()) {
-            //Set as is, for user uniforms
+            // Set as is, for user uniforms
             float_values[id] = value;
             return;
         }
@@ -187,8 +193,8 @@ float Material::get_float(StringID id)
         // If not found, try to find texture property and get its fallback red value
         auto it_tex = texture_values.find(id);
         if (it_tex == texture_values.end()) {
-            //Get as is, for user uniforms
-            // TODO: decide what is the desired behavior here
+            // Get as is, for user uniforms
+            //  TODO: decide what is the desired behavior here
             return float_values[id];
         }
         return it_tex->second.color.x();
@@ -209,6 +215,16 @@ void Material::set_int(StringID id, int value)
 void Material::set_int(const std::string& name, int value)
 {
     set_int(string_id(name), value);
+}
+
+void Material::set_bool(StringID id, bool value)
+{
+    bool_values[id] = value;
+}
+
+void Material::set_bool(const std::string& name, bool value)
+{
+    set_bool(string_id(name), value);
 }
 
 } // namespace ui

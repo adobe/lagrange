@@ -20,10 +20,11 @@ namespace ui {
 
 struct ScenePanel
 {
-    ScenePanel() { 
+    ScenePanel()
+    {
         mesh_params.normalize = true;
-        
-        //Set visible layers to every layer
+
+        // Set visible layers to every layer
         visible_layers.reset();
         visible_layers.flip();
     }

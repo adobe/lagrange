@@ -21,7 +21,7 @@ namespace ui {
 FrameBuffer::FrameBuffer()
     : m_managed(true)
 {
-    GL(glGenFramebuffers(1, &m_id));
+    LA_GL(glGenFramebuffers(1, &m_id));
 
     int max_colors;
     glGetIntegerv(GL_MAX_COLOR_ATTACHMENTS, &max_colors);
@@ -40,7 +40,7 @@ FrameBuffer::FrameBuffer(GLuint custom_id)
 FrameBuffer::~FrameBuffer()
 {
     if (m_managed) {
-        GL(glDeleteFramebuffers(1, &m_id));
+        LA_GL(glDeleteFramebuffers(1, &m_id));
     }
 }
 
@@ -59,12 +59,12 @@ void FrameBuffer::bind()
 #ifdef DEBUG
     check_status();
 #endif
-    GL(glBindFramebuffer(GL_FRAMEBUFFER, m_id));
+    LA_GL(glBindFramebuffer(GL_FRAMEBUFFER, m_id));
 }
 
 void FrameBuffer::unbind()
 {
-    GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
+    LA_GL(glBindFramebuffer(GL_FRAMEBUFFER, 0));
 }
 
 void FrameBuffer::set_depth_attachement(
@@ -77,9 +77,14 @@ void FrameBuffer::set_depth_attachement(
     auto id = t ? t->get_id() : 0;
     t->bind();
     if (target == GL_TEXTURE_2D) {
-        GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, id, mipmap_level));
+        LA_GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, id, mipmap_level));
     } else {
-        GL(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, t->get_id(), mipmap_level));
+#if defined(__EMSCRIPTEN__)
+        // TODO WebGL: glFramebufferTexture is not supported.
+        logger().error("WebGL does not support glFramebufferTexture.");
+#else
+        LA_GL(glFramebufferTexture(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, t->get_id(), mipmap_level));
+#endif
     }
 }
 
@@ -89,14 +94,30 @@ void FrameBuffer::set_color_attachement(
     GLenum target /*= GL_TEXTURE_2D*/,
     int mipmap_level /*= 0*/)
 {
-    if (index > m_color_attachments.size()) la_runtime_assert(false, "Maximum color attachments reached");
+    if (index > m_color_attachments.size())
+        la_runtime_assert(false, "Maximum color attachments reached");
+
+#if defined(__EMSCRIPTEN__)
+    if (t) {
+        const auto& p = t->get_params();
+        if (!Texture::is_internal_format_color_renderable(p.internal_format)) {
+            logger().error(
+                "Color attachment not renderable, texture format {},  elem type {}, internal "
+                "format "
+                "{}.",
+                GLState::get_enum_string(p.format),
+                GLState::get_enum_string(t->get_gl_element_type()),
+                GLState::get_enum_string(p.internal_format));
+        }
+    }
+#endif
 
     m_color_attachments[index] = t;
     bind();
 
     t->bind();
     auto id = t ? t->get_id() : 0;
-    GL(glFramebufferTexture2D(
+    LA_GL(glFramebufferTexture2D(
         GL_FRAMEBUFFER,
         GL_COLOR_ATTACHMENT0 + index,
         target,
@@ -166,8 +187,7 @@ bool FrameBuffer::is_srgb() const
 
     auto format = m_color_attachments.front()->get_params().internal_format;
 
-    return format == GL_SRGB_ALPHA || format == GL_SRGB || format == GL_SRGB8 ||
-           format == GL_SRGB8_ALPHA8 || format == GL_COMPRESSED_SRGB ||
+    return format == GL_SRGB8 || format == GL_SRGB8_ALPHA8 || format == GL_COMPRESSED_SRGB ||
            format == GL_COMPRESSED_SRGB_ALPHA;
 }
 

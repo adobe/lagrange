@@ -21,6 +21,7 @@
 #include <lagrange/ui/systems/render_geometry.h>
 #include <lagrange/ui/types/Material.h>
 #include <lagrange/ui/utils/bounds.h>
+#include <lagrange/ui/utils/immediate.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/lights.h>
 #include <lagrange/ui/utils/render.h>
@@ -52,9 +53,9 @@ void update_shadowmap_texture_2D(ShadowMap& shadowmap)
 {
     if (!shadowmap.texture) {
         auto params = Texture::Params::depth();
-        params.wrap_r = GL_CLAMP_TO_BORDER;
-        params.wrap_s = GL_CLAMP_TO_BORDER;
-        params.wrap_t = GL_CLAMP_TO_BORDER;
+        params.wrap_r = GL_CLAMP_TO_EDGE;
+        params.wrap_s = GL_CLAMP_TO_EDGE;
+        params.wrap_t = GL_CLAMP_TO_EDGE;
         params.border_color[0] = 1.0f;
         params.border_color[1] = 1.0f;
         params.border_color[2] = 1.0f;
@@ -66,53 +67,36 @@ void update_shadowmap_texture_2D(ShadowMap& shadowmap)
 
 void render_shadowmaps(Registry& r)
 {
-    // Add viewport and shadowmap to lights if do not exist
+    // Add shadowmap to lights if do not exist
     r.view<LightComponent>().each([&](Entity e, LightComponent& light) {
         if (light.casts_shadow) {
-            if (!r.has<ShadowMap>(e)) r.emplace<ShadowMap>(e);
-            if (!r.has<ViewportComponent>(e)) r.emplace<ViewportComponent>(e);
+            if (!r.all_of<ShadowMap>(e)) r.emplace<ShadowMap>(e);
         } else {
-            if (r.has<ShadowMap>(e)) r.remove<ShadowMap>(e);
-            if (r.has<ViewportComponent>(e)) r.remove<ViewportComponent>(e);
+            if (r.all_of<ShadowMap>(e)) r.remove<ShadowMap>(e);
         }
     });
 
-    r.view<LightComponent, ShadowMap, ViewportComponent>().each([&](Entity e,
-                                                                    const LightComponent& light,
-                                                                    ShadowMap& shadowmap,
-                                                                    ViewportComponent& viewport) {
-        // Update shadowmap viewport size
-        viewport.width = shadowmap.resolution;
-        viewport.height = shadowmap.resolution;
 
-        // Don't render objects in NoShadow layer
-        viewport.hidden_layers.set(DefaultLayers::NoShadow, true);
-
-
-        // Setup material override
-        //TODO: special case for dynamic geometry (e.g. skinned/animated meshes)
-
-        auto [pos, dir] = get_light_position_and_direction(r, e);
-
+    // Create ShadowMap from LightComponent
+    r.view<LightComponent, ShadowMap>().each([&](Entity e,
+                                                 LightComponent& light,
+                                                 ShadowMap& shadowmap) {
+        // Create texture if doesn't exist
         if (light.type == LightComponent::Type::POINT) {
-            if (!viewport.material_override) {
-                viewport.material_override =
-                    std::make_shared<Material>(r, DefaultShaders::ShadowCubemap);
+            if (!shadowmap.material) {
+                shadowmap.material = std::make_shared<Material>(r, DefaultShaders::ShadowCubemap);
             }
             update_shadowmap_texture_cube(shadowmap);
         } else {
-            if (!viewport.material_override) {
-                viewport.material_override =
-                    std::make_shared<Material>(r, DefaultShaders::ShadowDepth);
+            if (!shadowmap.material) {
+                shadowmap.material = std::make_shared<Material>(r, DefaultShaders::ShadowDepth);
             }
             update_shadowmap_texture_2D(shadowmap);
         }
 
-        viewport.material_override->set_float("near", shadowmap.near_plane);
-        viewport.material_override->set_float("far", shadowmap.far_plane);
+        auto [pos, dir] = get_light_position_and_direction(r, e);
 
 
-        // Shader uniforms
         if (light.type == LightComponent::Type::POINT) {
             const auto aspect_ratio = 1.0f;
             auto P = perspective(
@@ -121,22 +105,17 @@ void render_shadowmaps(Registry& r)
                 shadowmap.near_plane,
                 shadowmap.far_plane);
 
+            shadowmap.PV = Eigen::Matrix4f::Identity();
+            shadowmap.pos = pos;
             // clang-format off
-                    Eigen::Matrix4f PV[6];
-                    PV[0] = P * look_at(pos, pos + Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0,-1, 0)); 
-                    PV[1] = P * look_at(pos, pos + Eigen::Vector3f(-1, 0, 0), Eigen::Vector3f(0, -1, 0));
-                    PV[2] = P * look_at(pos, pos + Eigen::Vector3f(0, 1, 0), Eigen::Vector3f(0, 0, 1)); 
-                    PV[3] = P * look_at(pos, pos + Eigen::Vector3f(0, -1, 0), Eigen::Vector3f(0, 0, -1));
-                    PV[4] = P * look_at(pos, pos + Eigen::Vector3f(0, 0, 1), Eigen::Vector3f(0, -1, 0)); 
-                    PV[5] = P * look_at(pos, pos + Eigen::Vector3f(0, 0, -1), Eigen::Vector3f(0, -1, 0));
+                    
+                    shadowmap.PVCube[0] = P * look_at(pos, pos + Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0,-1, 0)); 
+                    shadowmap.PVCube[1] = P * look_at(pos, pos + Eigen::Vector3f(-1, 0, 0), Eigen::Vector3f(0, -1, 0));
+                    shadowmap.PVCube[2] = P * look_at(pos, pos + Eigen::Vector3f(0, 1, 0), Eigen::Vector3f(0, 0, 1)); 
+                    shadowmap.PVCube[3] = P * look_at(pos, pos + Eigen::Vector3f(0, -1, 0), Eigen::Vector3f(0, 0, -1));
+                    shadowmap.PVCube[4] = P * look_at(pos, pos + Eigen::Vector3f(0, 0, 1), Eigen::Vector3f(0, -1, 0)); 
+                    shadowmap.PVCube[5] = P * look_at(pos, pos + Eigen::Vector3f(0, 0, -1), Eigen::Vector3f(0, -1, 0));
             // clang-format on
-
-            viewport.material_override->set_mat4("PV", Eigen::Matrix4f::Identity());
-            viewport.material_override->set_mat4_array("shadowPV", PV, 6);
-            viewport.material_override->set_vec4(
-                "originPos",
-                Eigen::Vector4f(pos.x(), pos.y(), pos.z(), 1.0f));
-
         } else if (light.type == LightComponent::Type::DIRECTIONAL) {
             Eigen::Matrix4f PV;
 
@@ -148,6 +127,7 @@ void render_shadowmaps(Registry& r)
                 dir_proj.col(0) = plane.first;
                 dir_proj.col(1) = plane.second;
                 dir_proj.col(2) = dir;
+                dir_proj = dir_proj.inverse().eval();
 
                 // Transform shadow box to light space and find its AABB
                 AABB proj_bbox;
@@ -183,10 +163,9 @@ void render_shadowmaps(Registry& r)
                 shadowmap.PV = PV;
             }
 
-            viewport.material_override->set_mat4("PV", PV);
-            viewport.material_override->set_vec4(
-                "originPos",
-                Eigen::Vector4f(pos.x(), pos.y(), pos.z(), 1.0f));
+            shadowmap.PV = PV;
+            shadowmap.pos = pos;
+
 
         } else if (light.type == LightComponent::Type::SPOT) {
             Eigen::Matrix4f PV;
@@ -196,23 +175,52 @@ void render_shadowmaps(Registry& r)
                 const auto plane = utils::render::compute_perpendicular_plane(dir);
                 const auto V = look_at(pos, pos + dir, plane.first);
                 PV = P * V;
-                shadowmap.PV = PV;
             }
-            viewport.material_override->set_mat4("PV", PV);
+            shadowmap.PV = PV;
+            shadowmap.pos = pos;
         }
-
-        if (!viewport.fbo) {
-            viewport.fbo = std::make_shared<FrameBuffer>();
-        }
-
-        auto& fbo = *viewport.fbo;
-        fbo.set_depth_attachement(shadowmap.texture, shadowmap.texture->get_params().type);
-        fbo.resize_attachments(shadowmap.texture->get_width(), shadowmap.texture->get_height());
-        viewport.material_override->set_int(RasterizerOptions::DrawBuffer, GL_NONE);
-        viewport.material_override->set_int(RasterizerOptions::ReadBuffer, GL_NONE);
-        viewport.material_override->set_int(RasterizerOptions::CullFace, GL_FRONT);
-        viewport.material_override->set_int(RasterizerOptions::CullFaceEnabled, GL_TRUE);
     });
+
+
+    // Add viewport to shadowmaps
+    r.view<ShadowMap>().each([&](Entity e, ShadowMap& /*light*/) {
+        if (!r.all_of<ViewportComponent>(e)) r.emplace<ViewportComponent>(e);
+    });
+
+
+    r.view<ShadowMap, ViewportComponent>().each(
+        [&](Entity /*e*/, ShadowMap& shadowmap, ViewportComponent& viewport) {
+            // Update shadowmap viewport size
+            viewport.width = shadowmap.resolution;
+            viewport.height = shadowmap.resolution;
+
+            // Don't render objects in NoShadow layer
+            viewport.hidden_layers.set(DefaultLayers::NoShadow, true);
+
+
+            viewport.material_override = shadowmap.material;
+
+            viewport.material_override->set_float("near", shadowmap.near_plane);
+            viewport.material_override->set_float("far", shadowmap.far_plane);
+
+            viewport.material_override->set_mat4("PV", shadowmap.PV);
+            viewport.material_override->set_mat4_array("shadowPV", shadowmap.PVCube.data(), 6);
+            viewport.material_override->set_vec4(
+                "originPos",
+                Eigen::Vector4f(shadowmap.pos.x(), shadowmap.pos.y(), shadowmap.pos.z(), 1.0f));
+
+            if (!viewport.fbo) {
+                viewport.fbo = std::make_shared<FrameBuffer>();
+            }
+
+            auto& fbo = *viewport.fbo;
+            fbo.set_depth_attachement(shadowmap.texture, shadowmap.texture->get_params().type);
+            fbo.resize_attachments(shadowmap.texture->get_width(), shadowmap.texture->get_height());
+            viewport.material_override->set_int(RasterizerOptions::DrawBuffer, GL_NONE);
+            viewport.material_override->set_int(RasterizerOptions::ReadBuffer, GL_NONE);
+            viewport.material_override->set_int(RasterizerOptions::CullFace, GL_FRONT);
+            viewport.material_override->set_int(RasterizerOptions::CullFaceEnabled, GL_TRUE);
+        });
 }
 
 } // namespace ui

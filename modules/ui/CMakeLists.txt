@@ -23,7 +23,9 @@ target_compile_features(lagrange_ui PUBLIC cxx_std_17)
 # 2. dependencies
 lagrange_include_modules(io)
 include(nanoflann)
-include(gl3w)
+if(NOT EMSCRIPTEN)
+    include(gl3w)
+endif()
 include(glfw)
 include(stb)
 include(imgui)
@@ -48,7 +50,6 @@ target_link_libraries(lagrange_ui
     PUBLIC
         lagrange::core
         lagrange::io
-        gl3w::gl3w
         glfw::glfw
         imgui::imgui
         imguizmo::imguizmo
@@ -58,10 +59,21 @@ target_link_libraries(lagrange_ui
         nanoflann::nanoflann
 )
 
+if(NOT EMSCRIPTEN)
+    target_link_libraries(lagrange_ui PUBLIC gl3w::gl3w)
+endif()
 
 find_package(OpenGL REQUIRED OPTIONAL_COMPONENTS OpenGL)
 if(TARGET OpenGL::OpenGL)
     target_link_libraries(lagrange_ui PUBLIC OpenGL::OpenGL)
+elseif(EMSCRIPTEN)
+    target_link_libraries(lagrange_ui PUBLIC GL)
+    target_link_options(lagrange_ui PUBLIC
+        "SHELL:-s MIN_WEBGL_VERSION=2"
+        "SHELL:-s MAX_WEBGL_VERSION=2"
+        "SHELL:-s GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS=1"
+        "SHELL:-s GL_SUPPORT_SIMPLE_ENABLE_EXTENSIONS=1"
+    )
 else()
     target_link_libraries(lagrange_ui PUBLIC OpenGL::GL)
 endif()
@@ -87,7 +99,7 @@ add_custom_target(lagrange_ui_generate_shaders
     -DGENERATED_DIR="${generated_dir}"
     -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/lagrange_ui_generate_shaders.cmake"
 )
-set_target_properties(lagrange_ui_generate_shaders PROPERTIES FOLDER "Lagrange")
+set_target_properties(lagrange_ui_generate_shaders PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Utils")
 
 add_dependencies(lagrange_ui lagrange_ui_generate_shaders)
 

@@ -13,6 +13,8 @@
 #include <lagrange/ui/UI.h>
 #include <CLI/CLI.hpp>
 
+#include <lagrange/create_mesh.h>
+
 namespace ui = lagrange::ui;
 
 int main()
@@ -36,6 +38,14 @@ int main()
     // ui::ungroup(v, group, true);
 
 
+    auto me = ui::register_mesh(v, lagrange::create_sphere());
+    auto m0 = ui::show_mesh(v, me, ui::DefaultShaders::PBR);
+    auto m1 = ui::show_mesh(v, me, ui::DefaultShaders::PBR);
+    ui::set_parent(v, m0, group);
+    ui::set_parent(v, m1, group);
+    ui::set_transform(v, m1, Eigen::Scaling(0.5f, 0.5f, 0.5f));
+
+
     {
         auto top_level = ui::create_scene_node(v, "Top level");
 
@@ -48,7 +58,6 @@ int main()
         // Remove recursively
         ui::remove(v, top_level, true);
     }
-
 
     v.run();
 

@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     assimp
     GIT_REPOSITORY https://github.com/assimp/assimp.git
-    GIT_TAG b1c83f437fc3d54ec9efd6a7a1ab388a1e01bef0
+    GIT_TAG ed8612ea356021080898ea2378f0b545431ccae3
 )
 
 option(BUILD_SHARED_LIBS "Build package with shared libraries." OFF)

@@ -18,25 +18,31 @@ layout (location = 0) in vec3 in_pos;
 layout (location = 1) in vec4 in_value;
 layout (location = 2) in vec3 in_normal;
 
-out VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec4 value;
-    vec2 screen_pos;
-} vs_out;
+// out VARYING {
+//     vec3 pos;
+//     vec3 normal;
+//     vec4 value;
+//     vec2 screen_pos;
+// } vs_out;
+
+out vec3 vs_out_pos;
+out vec3 vs_out_normal;
+out vec4 vs_out_value;
+out vec2 vs_out_screen_pos;
+
 
 void main()
 {
     //Pos and normal to world space
-    vs_out.pos = (M * vec4(in_pos, 1.0)).xyz;
-    vs_out.value = in_value;
-    vs_out.normal = (NMat * vec4(in_normal,0.0)).xyz;
+    vs_out_pos = (M * vec4(in_pos, 1.0)).xyz;
+    vs_out_value = in_value;
+    vs_out_normal = (NMat * vec4(in_normal,0.0)).xyz;
 
-    vec4 clip_space = PV * vec4(vs_out.pos,1.0);
-    vs_out.screen_pos = screen_size * 0.5f * (clip_space.xy / clip_space.w);
+    vec4 clip_space = PV * vec4(vs_out_pos,1.0);
+    vs_out_screen_pos = screen_size * 0.5f * (clip_space.xy / clip_space.w);
 
     //To clip space
-    gl_Position = PV * vec4(vs_out.pos,1.0);
+    gl_Position = PV * vec4(vs_out_pos,1.0);
 }
 
 #pragma GEOMETRY
@@ -44,13 +50,17 @@ void main()
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 4) out;
 
-in VARYING {
-    vec3 pos;
-    vec3 normal;
-    vec4 value;
-    vec2 screen_pos;
-} gs_in[];
+// in VARYING {
+//     vec3 pos;
+//     vec3 normal;
+//     vec4 value;
+//     vec2 screen_pos;
+// } gs_in[];
 
+in vec3 vs_out_pos[3];
+in vec3 vs_out_normal[3];
+in vec4 vs_out_value[3];
+in vec2 vs_out_screen_pos[3];
 
 out VARYING_GEOM {
     vec3 pos;
@@ -64,19 +74,19 @@ out VARYING_GEOM {
 void main() {
 
     for(int k = 0; k < 3; k++){
-        vec2 u = gs_in[(k+1) % 3].screen_pos - gs_in[k].screen_pos;
-        vec2 v = gs_in[(k+2) % 3].screen_pos - gs_in[k].screen_pos;
+        vec2 u = vs_out_screen_pos[(k+1) % 3] - vs_out_screen_pos[k];
+        vec2 v = vs_out_screen_pos[(k+2) % 3] - vs_out_screen_pos[k];
         float area_squared = abs(u.x*v.y - u.y*v.x);
         float h = area_squared / length(u-v);
 
-        gs_out.value = gs_in[k].value;
-        gs_out.normal = gs_in[k].normal;
+        gs_out.value = vs_out_value[k];
+        gs_out.normal = vs_out_normal[k];
 
-        gs_out.pos = gs_in[k].pos;
+        gs_out.pos = vs_out_pos[k];
         gl_Position = PV * vec4(gs_out.pos,1);
 
         h *= gl_Position.w;
-        gs_out.edge_dist = vec3(0);
+        gs_out.edge_dist = vec3(0,0,0);
         gs_out.edge_dist[k] = h;
 
         EmitVertex();

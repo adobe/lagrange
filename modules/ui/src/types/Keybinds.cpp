@@ -26,16 +26,56 @@ Keybinds::Keybinds()
 {
     for (auto i = 0; i < Keybinds::keymap_size; i++) {
         m_key_map[i] = false;
+        m_key_map_last[i] = false;
     }
 }
 
-void Keybinds::update(const std::string& context)
+void Keybinds::end_update()
 {
-    std::vector<Keybind*> active;
+    const auto in_context = [&](const std::string& name) -> std::pair<bool, int> {
+        int cur = static_cast<int>(name.length()) - 1;
+        int end = static_cast<int>(name.length());
+        int stack_pos = static_cast<int>(m_context_stack.size()) - 1;
+        int token = 0;
 
-    const auto in_context = [&](const std::string& name) {
-        return starts_with(name, context) || starts_with(name, "global");
+        if (name.length() == 0) return {false, stack_pos};
+        if (name.back() == '.') return {false, stack_pos};
+
+        while (cur >= -1) {
+            // Token encountered, check against top of stack
+            if (cur == -1 || name[cur] == '.') {
+                if (token == 0) {
+                    end = cur;
+                    cur--;
+                    token++;
+                    continue;
+                }
+
+                if (stack_pos < 0) {
+                    // Ran out of stack
+                    return {false, stack_pos};
+                }
+
+                const auto& ctx_name = m_context_stack[stack_pos];
+                const auto sub = name.substr(cur + 1, end - (cur + 1));
+                if (ctx_name != sub) {
+                    return {false, stack_pos};
+                }
+
+                end = cur;
+                stack_pos--;
+            } else {
+                // do nothing
+            }
+            cur--;
+        }
+
+        return {true, stack_pos};
     };
+
+    std::vector<Keybind*> active_keybinds;
+    // Keybind* active = nullptr;
+    int active_stack_pos = std::numeric_limits<int>::max();
 
     // Perform state transition
     // and collect currently active (pressed or down) keybinds
@@ -46,20 +86,27 @@ void Keybinds::update(const std::string& context)
                 is_down &= m_key_map[keybind.modifiers[i]];
             }
 
-            // Transition from none to pressed (and down)
-            // Only if is in context
-            if (keybind.current_state == KeyState::NONE && is_down && in_context(it.first)) {
-                keybind.previous_state = keybind.current_state;
-                keybind.current_state = KeyState::PRESSED;
+            bool is_in_context = false;
+            int context_stack_pos = std::numeric_limits<int>::max();
+            if (is_down) {
+                auto res = in_context(it.first);
+                is_in_context = res.first;
+                context_stack_pos = res.second;
             }
-            // Transition from pressed to only down
-            else if (keybind.current_state == KeyState::PRESSED && is_down) {
-                keybind.previous_state = keybind.current_state;
-                keybind.current_state = KeyState::DOWN;
+
+            // Find an actively pressed keybind that matches the current context the most (lower
+            // context stack pos)
+            if (is_down && is_in_context && context_stack_pos <= active_stack_pos) {
+                // Reset active keybinds if in lower context
+                if (context_stack_pos < active_stack_pos) {
+                    active_keybinds.clear();
+                    active_stack_pos = context_stack_pos;
+                }
+                active_keybinds.push_back(&keybind);
             }
+
             //Transition form pressed/down to released
-            else if (
-                (keybind.current_state == KeyState::DOWN ||
+            if ((keybind.current_state == KeyState::DOWN ||
                  keybind.current_state == KeyState::PRESSED) &&
                 !is_down) {
                 keybind.previous_state = keybind.current_state;
@@ -72,6 +119,33 @@ void Keybinds::update(const std::string& context)
             }
         }
     }
+
+    // Transition active keybind (none->pressed or pressed->down)
+    for (auto active : active_keybinds) {
+        auto& keybind = *active;
+        if (keybind.current_state == KeyState::NONE) {
+            keybind.previous_state = keybind.current_state;
+            keybind.current_state = KeyState::PRESSED;
+        } else if (keybind.current_state == KeyState::PRESSED) {
+            keybind.previous_state = keybind.current_state;
+            keybind.current_state = KeyState::DOWN;
+        }
+    }
+}
+
+void Keybinds::push_context(const std::string& context)
+{
+    m_context_stack.push_back(context);
+}
+
+void Keybinds::pop_context()
+{
+    m_context_stack.pop_back();
+}
+
+void Keybinds::reset_context()
+{
+    m_context_stack.clear();
 }
 
 void Keybinds::add(
@@ -144,15 +218,35 @@ bool Keybinds::is_pressed(const std::string& action) const
     return is_action_in_state(action, KeyState::PRESSED);
 }
 
+bool Keybinds::is_pressed(int key_code) const
+{
+    if (key_code < 0 || key_code >= keymap_size) return false;
+    return !m_key_map_last[key_code] && m_key_map[key_code];
+}
+
 bool Keybinds::is_down(const std::string& action) const
 {
     return is_action_in_state(action, KeyState::DOWN) ||
            is_action_in_state(action, KeyState::PRESSED);
 }
 
+bool Keybinds::is_down(int key_code) const
+{
+    if (key_code < 0 || key_code >= keymap_size) return false;
+    return m_key_map[key_code];
+}
+
+
 bool Keybinds::is_released(const std::string& action) const
 {
     return is_action_in_state(action, KeyState::RELEASED);
+}
+
+
+bool Keybinds::is_released(int key_code) const
+{
+    if (key_code < 0 || key_code >= keymap_size) return false;
+    return m_key_map_last[key_code] && !m_key_map[key_code];
 }
 
 
@@ -331,14 +425,18 @@ std::string Keybinds::to_string(const std::string& action, int limit /*= 1*/) co
 
 void Keybinds::set_key_state(int key, int action)
 {
+    if (key < 0 || key >= keymap_size) return;
     if (action == GLFW_REPEAT) return;
     if (key == GLFW_KEY_UNKNOWN) return;
 
     bool is_down = (action == GLFW_PRESS);
+    m_key_map[key] = is_down;
+}
 
-    if (m_key_map[key] != is_down) {
-        m_key_down_num += (is_down) ? 1 : -1;
-        m_key_map[key] = is_down;
+void Keybinds::begin_update()
+{
+    for (auto i = 0; i < Keybinds::keymap_size; i++) {
+        m_key_map_last[i] = m_key_map[i];
     }
 }
 

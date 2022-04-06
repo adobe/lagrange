@@ -43,7 +43,8 @@ struct WindowDropEvent
 /// Only monitors global transform (not local)
 /// Note: this check is only performed when at least one listener is registered. When enabled,
 /// it is checked for all entities with Transform component.
-struct TransformChangedEvent {
+struct TransformChangedEvent
+{
     Entity entity;
 };
 

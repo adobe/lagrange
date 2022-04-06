@@ -28,7 +28,6 @@ struct VertexData
         index_buffer = nullptr;
     }
 
-    
 
     constexpr static int max_attributes =
         16; // Minimum is 16 per OpenGL spec (GL_MAX_VERTEX_ATTRIBS)

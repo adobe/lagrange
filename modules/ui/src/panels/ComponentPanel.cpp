@@ -10,9 +10,9 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/ui/panels/ComponentPanel.h>
 #include <lagrange/ui/utils/selection.h>
 #include <lagrange/ui/utils/uipanel.h>
-#include <lagrange/ui/panels/ComponentPanel.h>
 #include <lagrange/utils/strings.h>
 
 
@@ -57,7 +57,8 @@ void component_panel_system(Registry& registry, Entity window_entity)
         Combo box listing all registered components
     */
     if (ImGui::BeginCombo("##Component", get_pretty_name(panel.selected_type).c_str())) {
-        registry.visit([&](const entt::type_info& component_type) {
+        for (auto it : registry.storage()) {
+            const auto& component_type = it.second.type();
             // Only show registered components here
             auto type = entt::resolve(component_type);
             if (!type) {
@@ -74,7 +75,8 @@ void component_panel_system(Registry& registry, Entity window_entity)
             if (is_selected) {
                 ImGui::SetItemDefaultFocus();
             }
-        });
+        }
+
         ImGui::EndCombo();
     }
 
@@ -85,7 +87,7 @@ void component_panel_system(Registry& registry, Entity window_entity)
     if (ImGui::Button("Add")) {
         add_selected_component = true;
     }
-    
+
     ImGui::Checkbox("Show unregistered components", &panel.show_unregistered);
 
 
@@ -110,25 +112,28 @@ void component_panel_system(Registry& registry, Entity window_entity)
 
         ImGui::PushID(int(e));
 
-        registry.visit(e, [&](const entt::type_info& component_type) {
+        for (auto it : registry.storage()) {
+            if (!it.second.contains(e)) continue;
+
+            const auto& component_type = it.second.type();
             auto type = entt::resolve(component_type);
             if (!type) {
-
                 if (panel.show_unregistered) {
                     ImGui::Text(
                         "%s",
                         lagrange::string_format("{} (Not Registered)", component_type.name())
                             .c_str());
                 }
-                    
-                return;
+
+                continue;
             }
+
 
             auto dname_prop = type.prop("display_name"_hs);
             if (dname_prop) {
                 auto display_name = dname_prop.value().cast<std::string>();
                 if (!ImGui::CollapsingHeader(display_name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
-                    return;
+                    continue;
             }
 
 
@@ -143,7 +148,8 @@ void component_panel_system(Registry& registry, Entity window_entity)
             }
 
             show_widget(registry, e, type);
-        });
+        }
+
         ImGui::PopID();
     }
 }

@@ -25,7 +25,9 @@
 #include <lagrange/ui/utils/mesh.h>
 #include <lagrange/ui/utils/mesh_picking.h>
 #include <lagrange/ui/utils/selection.h>
+#include <lagrange/ui/utils/tools.h>
 #include <lagrange/ui/utils/viewport.h>
+
 
 namespace lagrange {
 namespace ui {
@@ -77,7 +79,7 @@ void update_mesh_elements_hovered(Registry& r)
     if (!r.valid(sel_ctx.active_viewport)) return;
     if (!are_selection_keys_released(r)) return;
 
-    
+
     const auto& transform = r.get<Transform>(e).global;
     const auto invT = transform.inverse();
 
@@ -108,7 +110,6 @@ void update_mesh_elements_hovered(Registry& r)
                 local_frustum);
         }
     } else {
-        
         const auto attrib_name = "is_selected";
 
         const Camera::Ray local_ray = {invT * sel_ctx.ray_origin, invT.linear() * sel_ctx.ray_dir};

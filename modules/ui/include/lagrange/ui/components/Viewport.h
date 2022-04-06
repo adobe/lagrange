@@ -11,11 +11,11 @@
  */
 #pragma once
 
+#include <lagrange/ui/Entity.h>
+#include <lagrange/ui/components/Layer.h>
 #include <lagrange/ui/types/Camera.h>
 #include <lagrange/ui/types/Color.h>
-#include <lagrange/ui/Entity.h>
 #include <lagrange/ui/types/FrameBuffer.h>
-#include <lagrange/ui/components/Layer.h>
 #include <unordered_map>
 
 namespace lagrange {
@@ -75,13 +75,13 @@ inline const Camera& get_viewport_camera(const Registry& r, const ViewportCompon
 
 inline Camera& get_viewport_camera(Registry& r, Entity e)
 {
-    assert(r.has<ViewportComponent>(e));
+    assert(r.all_of<ViewportComponent>(e));
     return get_viewport_camera(r, r.get<ViewportComponent>(e));
 }
 
 inline const Camera& get_viewport_camera(const Registry& r, Entity e)
 {
-    assert(r.has<ViewportComponent>(e));
+    assert(r.all_of<ViewportComponent>(e));
     return get_viewport_camera(r, r.get<ViewportComponent>(e));
 }
 

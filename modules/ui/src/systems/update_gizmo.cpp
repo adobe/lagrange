@@ -125,7 +125,7 @@ void gizmo_system(
 
         // Save initial transforms
         for (auto e : view) {
-            la_runtime_assert(!registry.has<GizmoObjectTransform>(e));
+            la_runtime_assert(!registry.all_of<GizmoObjectTransform>(e));
 
             GizmoObjectTransform got;
             got.initial_transform = view.get<Transform>(e);

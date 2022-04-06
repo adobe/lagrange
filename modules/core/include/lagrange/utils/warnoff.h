@@ -50,6 +50,16 @@
 #pragma GCC diagnostic ignored "-Wcast-function-type"
 #pragma GCC diagnostic ignored "-Wstrict-aliasing"
 #pragma GCC diagnostic ignored "-Wignored-qualifiers"
+#pragma GCC diagnostic ignored "-Wsign-conversion"
+#pragma GCC diagnostic ignored "-Wmissing-noreturn"
+#pragma GCC diagnostic ignored "-Wdeprecated"
+#pragma GCC diagnostic ignored "-Wextra-semi"
+#pragma GCC diagnostic ignored "-Wconversion"
+#pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+#pragma GCC diagnostic ignored "-Wswitch-default"
+#pragma GCC diagnostic ignored "-Wundef"
+#pragma GCC diagnostic ignored "-Wold-style-cast"
+#pragma GCC diagnostic ignored "-Wredundant-decls"
 #elif defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4005) // macro redefintion.
@@ -60,4 +70,9 @@
 #pragma warning(disable : 4477) // mismatch in printf argument types.
 #pragma warning(disable : 4828) // File contain illegal character.
 #pragma warning(disable : 4996) // Using deprecated methods.
+#pragma warning(disable : 26812) // Prefer 'enum class' over 'enum'.
+#pragma warning(disable : 26451) // Arithmetic overflow.
+#pragma warning(disable : 26495) // Variable '%variable%' is uninitialized.
+#pragma warning(disable : 26439) // This kind of function may not throw. Declare it 'noexcept'
 #endif
+

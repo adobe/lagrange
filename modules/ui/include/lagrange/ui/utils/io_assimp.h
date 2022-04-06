@@ -11,11 +11,11 @@
  */
 #pragma once
 
+#include <lagrange/create_mesh.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/types/Texture.h>
 #include <lagrange/ui/utils/mesh.h>
-#include <lagrange/create_mesh.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
@@ -38,86 +38,92 @@ std::vector<Entity> load_meshes(Registry& r, const aiScene* scene)
     using VertexArray = typename MeshType::VertexArray;
     using FacetArray = typename MeshType::FacetArray;
     using AttribArray = typename MeshType::AttributeArray;
+
     std::vector<Entity> meshes;
 
     for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
         const auto* amesh = scene->mMeshes[i];
 
-        VertexArray vertices(amesh->mNumVertices, 3); // Triangulated input
-        FacetArray faces(amesh->mNumFaces, 3);
-
-        for (unsigned int j = 0; j < amesh->mNumVertices; ++j) {
-            const aiVector3D& vec = amesh->mVertices[j];
-            vertices(j, 0) = vec.x;
-            vertices(j, 1) = vec.y;
-            vertices(j, 2) = vec.z;
-        }
-        for (unsigned int j = 0; j < amesh->mNumFaces; ++j) {
-            const aiFace& face = amesh->mFaces[j];
-            assert(face.mNumIndices == 3);
-            for (unsigned int k = 0; k < face.mNumIndices; ++k) {
-                faces(j, k) = face.mIndices[k];
-            }
-        }
-
-        auto lgmesh = lagrange::create_mesh(std::move(vertices), std::move(faces));
-
-        if (amesh->HasTextureCoords(0)) {
-            typename MeshType::UVArray uvs(amesh->mNumVertices, 2);
-            typename MeshType::UVIndices uv_indices = lgmesh->get_facets();
-
-            assert(amesh->GetNumUVChannels() == 1); // assume one UV channel
-            //assert(amesh->mNumUVComponents[0] == 2); // assume two components (uv), not 3d uvw
-            for (unsigned int j = 0; j < amesh->mNumVertices; ++j) {
-                const aiVector3D& vec = amesh->mTextureCoords[0][j];
-                uvs(j, 0) = vec.x;
-                uvs(j, 1) = vec.y;
-            }
-
-            // uv indices are the same as facets
-            lgmesh->initialize_uv(std::move(uvs), std::move(uv_indices));
-            map_indexed_attribute_to_corner_attribute(*lgmesh, "uv");
-        }
-
-
-        // TODO bones
-        if (amesh->HasBones()) {
-        }
-
-        if (amesh->HasTangentsAndBitangents()) {
-            AttribArray tangents(amesh->mNumVertices, 3);
-            AttribArray bitangents(amesh->mNumVertices, 3);
+        if (amesh->mPrimitiveTypes & aiPrimitiveType_TRIANGLE) {
+            VertexArray vertices(amesh->mNumVertices, 3); // Triangulated input
+            FacetArray faces(amesh->mNumFaces, 3);
 
             for (unsigned int j = 0; j < amesh->mNumVertices; ++j) {
-                const aiVector3D& t = amesh->mTangents[j];
-                tangents(j, 0) = t.x;
-                tangents(j, 1) = t.y;
-                tangents(j, 2) = t.z;
-
-                const aiVector3D& bt = amesh->mBitangents[j];
-                bitangents(j, 0) = bt.x;
-                bitangents(j, 1) = bt.y;
-                bitangents(j, 2) = bt.z;
+                const aiVector3D& vec = amesh->mVertices[j];
+                vertices(j, 0) = vec.x;
+                vertices(j, 1) = vec.y;
+                vertices(j, 2) = vec.z;
+            }
+            for (unsigned int j = 0; j < amesh->mNumFaces; ++j) {
+                const aiFace& face = amesh->mFaces[j];
+                assert(face.mNumIndices == 3);
+                for (unsigned int k = 0; k < face.mNumIndices; ++k) {
+                    faces(j, k) = face.mIndices[k];
+                }
             }
 
-            lgmesh->add_vertex_attribute("tangent");
-            lgmesh->add_vertex_attribute("bitangent");
-            lgmesh->import_vertex_attribute("tangent", tangents);
-            lgmesh->import_vertex_attribute("bitangent", bitangents);
-        }
+            auto lgmesh = lagrange::create_mesh(std::move(vertices), std::move(faces));
 
-        if (amesh->HasNormals()) {
-            AttribArray normals(amesh->mNumVertices, 3);
-            for (unsigned int j = 0; j < amesh->mNumVertices; ++j) {
-                const aiVector3D& t = amesh->mNormals[j];
-                normals(j, 0) = t.x;
-                normals(j, 1) = t.y;
-                normals(j, 2) = t.z;
+            if (amesh->HasTextureCoords(0)) {
+                typename MeshType::UVArray uvs(amesh->mNumVertices, 2);
+                typename MeshType::UVIndices uv_indices = lgmesh->get_facets();
+
+                assert(amesh->GetNumUVChannels() == 1); // assume one UV channel
+                //assert(amesh->mNumUVComponents[0] == 2); // assume two components (uv), not 3d uvw
+                for (unsigned int j = 0; j < amesh->mNumVertices; ++j) {
+                    const aiVector3D& vec = amesh->mTextureCoords[0][j];
+                    uvs(j, 0) = vec.x;
+                    uvs(j, 1) = vec.y;
+                }
+
+                // uv indices are the same as facets
+                lgmesh->initialize_uv(std::move(uvs), std::move(uv_indices));
+                map_indexed_attribute_to_corner_attribute(*lgmesh, "uv");
             }
-            lgmesh->add_vertex_attribute("normal");
-            lgmesh->import_vertex_attribute("normal", normals);
+
+
+            // TODO bones
+            if (amesh->HasBones()) {
+            }
+
+            if (amesh->HasTangentsAndBitangents()) {
+                AttribArray tangents(amesh->mNumVertices, 3);
+                AttribArray bitangents(amesh->mNumVertices, 3);
+
+                for (unsigned int j = 0; j < amesh->mNumVertices; ++j) {
+                    const aiVector3D& t = amesh->mTangents[j];
+                    tangents(j, 0) = t.x;
+                    tangents(j, 1) = t.y;
+                    tangents(j, 2) = t.z;
+
+                    const aiVector3D& bt = amesh->mBitangents[j];
+                    bitangents(j, 0) = bt.x;
+                    bitangents(j, 1) = bt.y;
+                    bitangents(j, 2) = bt.z;
+                }
+
+                lgmesh->add_vertex_attribute("tangent");
+                lgmesh->add_vertex_attribute("bitangent");
+                lgmesh->import_vertex_attribute("tangent", tangents);
+                lgmesh->import_vertex_attribute("bitangent", bitangents);
+            }
+
+            if (amesh->HasNormals()) {
+                AttribArray normals(amesh->mNumVertices, 3);
+                for (unsigned int j = 0; j < amesh->mNumVertices; ++j) {
+                    const aiVector3D& t = amesh->mNormals[j];
+                    normals(j, 0) = t.x;
+                    normals(j, 1) = t.y;
+                    normals(j, 2) = t.z;
+                }
+                lgmesh->add_vertex_attribute("normal");
+                lgmesh->import_vertex_attribute("normal", normals);
+            }
+            meshes.push_back(register_mesh(r, std::move(lgmesh)));
+        } else if (amesh->mPrimitiveTypes & aiPrimitiveType_POINT) {
+            lagrange::logger().error("Point clouds not supported yet!");
+            meshes.push_back(NullEntity);
         }
-        meshes.push_back(register_mesh(r, std::move(lgmesh)));
     }
 
     return meshes;
@@ -140,14 +146,20 @@ Entity load_scene(
                                 aiProcess_Triangulate | aiProcess_GenUVCoords)
 {
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile(
-        path.string(),
-        assimp_flags | aiProcess_Triangulate // Always triangulate
-    );
 
+    try {
+        const aiScene* scene = importer.ReadFile(
+            path.string(),
+            assimp_flags | aiProcess_Triangulate // Always triangulate
+        );
 
-    if (!scene) {
-        logger().error("Error loading scene: {}", importer.GetErrorString());
+        if (!scene) {
+            logger().error("Error loading scene: {}", importer.GetErrorString());
+            return NullEntity;
+        }
+
+    } catch (const std::exception& ex) {
+        lagrange::logger().error("Exception in load_scene: {}", ex.what());
         return NullEntity;
     }
 

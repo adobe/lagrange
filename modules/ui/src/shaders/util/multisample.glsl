@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-uniform int num_samples = 4;
+#pragma property num_samples "MultisampleNumSamples" int(4,1,32)
 
 vec4 multisample(sampler2DMS s, vec2 uv)
 {
