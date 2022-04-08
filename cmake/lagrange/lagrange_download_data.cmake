@@ -29,7 +29,7 @@ function(lagrange_download_data)
             PREFIX "${FETCHCONTENT_BASE_DIR}/lagrange-test-data"
             SOURCE_DIR ${LAGRANGE_DATA_FOLDER}
             GIT_REPOSITORY https://github.com/adobe/lagrange-test-data.git
-            GIT_TAG 5d2f3ac3ee84fe7ab044a3a7fb0120e6ee6d3aa4
+            GIT_TAG 3b6d5e1b000a68c0c06cce10f73c60fcdb64dbcf
             CONFIGURE_COMMAND ""
             BUILD_COMMAND ""
             INSTALL_COMMAND ""
