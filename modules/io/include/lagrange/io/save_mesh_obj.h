@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/fs/filesystem.h>
 
 #include <ostream>
 #include <vector>
@@ -26,11 +27,24 @@ namespace io {
 /// @param[in,out] output_stream  Output stream to write to.
 /// @param[in]     mesh           Mesh to write as an obj.
 ///
-/// @tparam        S              Mesh scalar type.
-/// @tparam        I              Mesh index type.
+/// @tparam        Scalar         Mesh scalar type.
+/// @tparam        Index          Mesh index type.
 ///
-template <typename S, typename I>
-void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<S, I>& mesh);
+template <typename Scalar, typename Index>
+void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>& mesh);
+
+///
+/// Saves a .obj mesh to a file. If the mesh cannot be saved, an exception is raised (e.g., invalid
+/// output stream, incorrect mesh dimension, or facet size < 3).
+///
+/// @param[in]  filename  Output filename to write to.
+/// @param[in]  mesh      Mesh to write as an obj.
+///
+/// @tparam     Scalar    Mesh scalar type.
+/// @tparam     Index     Mesh index type.
+///
+template <typename Scalar, typename Index>
+void save_mesh_obj(const fs::path& filename, const SurfaceMesh<Scalar, Index>& mesh);
 
 } // namespace io
 } // namespace lagrange

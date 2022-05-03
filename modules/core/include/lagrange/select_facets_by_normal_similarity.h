@@ -63,7 +63,7 @@ struct SelectFacetsByNormalSimilarityParameters
             is_facet_selectable.clear();
         } else {
             is_facet_selectable.resize(mesh_ref.get_num_facets(), false);
-            for (auto facet_id : range_facets(mesh_ref, selectable_facets)) {
+            for (auto facet_id : range_sparse(mesh_ref.get_num_facets(), selectable_facets)) {
                 is_facet_selectable[facet_id] = true;
             }
         }

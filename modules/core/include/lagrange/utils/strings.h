@@ -24,12 +24,20 @@
 
 namespace lagrange {
 
-std::vector<std::string> string_split(const std::string& s, char delimiter);
-
 /// @defgroup group-utils-misc Miscellaneous
 /// @ingroup group-utils
 /// Useful functions that don't have their place anywhere else.
 /// @{
+
+///
+/// Split a std::string using a prescribed delimiter.
+///
+/// @param[in]  str        String to split.
+/// @param[in]  delimiter  Delimiter.
+///
+/// @return     An array of strings obtained after splitting.
+///
+std::vector<std::string> string_split(const std::string& str, char delimiter);
 
 ///
 /// Checks if the string begins with the given prefix.

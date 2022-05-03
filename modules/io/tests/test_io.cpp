@@ -12,15 +12,14 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/fs/filesystem.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
-#include <lagrange/utils/safe_cast.h>
-
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/safe_cast.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
-#include <lagrange/fs/filesystem.h>
 #include <spdlog/fmt/fmt.h>
 #include <catch2/catch.hpp>
 #include <lagrange/utils/warnon.h>
@@ -57,10 +56,7 @@ void test_load_save()
         for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
             mesh.ref_position(v)[2] = dist(gen);
         }
-        {
-            fs::ofstream output_stream(filename);
-            io::save_mesh_obj(output_stream, mesh);
-        }
+        io::save_mesh_obj(filename, mesh);
     }
 
     std::array<std::pair<std::string, int>, 3> test_cases = {
@@ -80,10 +76,7 @@ void test_load_save()
         for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
             mesh.ref_position(v)[2] = dist(gen);
         }
-        {
-            fs::ofstream output_stream(filename);
-            io::save_mesh_obj(output_stream, mesh);
-        }
+        io::save_mesh_obj(filename, mesh);
     }
 }
 
@@ -106,10 +99,7 @@ void test_benchmark_tiles()
             auto mesh = std::move(output.mesh);
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_hybrid());
-            {
-                fs::ofstream output_stream(filename);
-                io::save_mesh_obj(output_stream, mesh);
-            }
+            io::save_mesh_obj(filename, mesh);
         }
 
         std::array<std::pair<std::string, int>, 3> test_cases = {
@@ -123,10 +113,7 @@ void test_benchmark_tiles()
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_regular());
             REQUIRE(mesh.get_vertex_per_facet() == safe_cast<Index>(kv.second));
-            {
-                fs::ofstream output_stream(filename);
-                io::save_mesh_obj(output_stream, mesh);
-            }
+            io::save_mesh_obj(filename, mesh);
         }
 
         return n;
@@ -145,8 +132,7 @@ void test_io_blub()
     auto res = io::load_mesh_obj<MeshType>(path.string());
     REQUIRE(res.success);
     auto mesh = std::move(res.mesh);
-    fs::ofstream output_stream("blub.obj");
-    io::save_mesh_obj(output_stream, mesh);
+    io::save_mesh_obj("blub.obj", mesh);
 
     logger().info("Mesh #v {}, #f {}", mesh.get_num_vertices(), mesh.get_num_facets());
     auto& uv_attr = mesh.template get_indexed_attribute<Scalar>("uv");
@@ -167,7 +153,7 @@ void test_benchmark_large()
         auto mesh = std::move(io::load_mesh_obj<MeshType>(path.string()).mesh);
         logger().info("Mesh #v {}, #f {}", mesh.get_num_vertices(), mesh.get_num_facets());
         return mesh.get_num_vertices();
-        // Uncomment to save the obj as well
+        // Uncomment to time obj save as well
         // fs::ofstream output_stream("out.obj");
         // io::save_mesh_obj(output_stream, mesh);
     };

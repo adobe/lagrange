@@ -105,7 +105,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
     // Otherwise we could have just used total_mesh_area = facet_area.sum().
     // In the new version of eigen, we can also use facet_area( active_facets ).sum()
     Scalar total_mesh_area = 0;
-    for (auto facet_id : range_facets(mesh, active_facets)) {
+    for (auto facet_id : range_sparse(mesh.get_num_facets(), active_facets)) {
         total_mesh_area += facet_area(facet_id);
     }
 
@@ -120,7 +120,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
 
     // Find the bounding box of the active facets on the mesh
     BoundingBox bounding_box(n_dims);
-    for (auto facet_id : range_facets(mesh, active_facets)) {
+    for (auto facet_id : range_sparse(mesh.get_num_facets(), active_facets)) {
         for (auto vertex_offset : range(mesh.get_vertex_per_facet())) {
             const Index vertex_id = facets(facet_id, vertex_offset);
             // bbox needs a column vector . Hence the transpose(). Arg...
@@ -219,7 +219,7 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
     // than sampling length. Then get the midpoint of that triangle if
     // its corresponding grid cell is not marked already.
     //
-    for (auto facet_id : range_facets(mesh, active_facets)) {
+    for (auto facet_id : range_sparse(mesh.get_num_facets(), active_facets)) {
         //
         // Splitting code follows.
         // This is done rather inefficiently using a queue. There is no need for that.

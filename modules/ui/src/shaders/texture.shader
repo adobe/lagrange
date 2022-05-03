@@ -121,10 +121,10 @@ void main(){
     else if(singleChannel){
 
         if(zeroIsTransparent){
-            if(t.x > 0)
-                fragColor = vec4(vec3(t.x,0,0),0.4f);
+            if(t.x > 0.0)
+                fragColor = vec4(vec3(t.x,0.0,0.0),0.4);
             else
-                fragColor = vec4(vec3(t.x,0,0),0.0f);
+                fragColor = vec4(vec3(t.x,0.0,0.0),0.0);
         }
         else{
             fragColor = vec4(vec3(t.x*bias),opacity);

@@ -12,9 +12,9 @@
 #include <lagrange/io/save_mesh.h>
 
 #include <lagrange/Attribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
-#include <lagrange/Logger.h>
 #include <lagrange/utils/assert.h>
 
 // clang-format off
@@ -55,6 +55,7 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
         num_facets);
 
     // TODO: Could we refactor all 3 write_xxx into a single function?
+    // TODO: How to pass material names and save this information with the mesh?
 
     // Write positions
     for (Index v = 0; v < num_vertices; ++v) {
@@ -121,7 +122,7 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
     // Write facets
     for (Index f = 0; f < num_facets; ++f) {
         const Index first_corner = mesh.get_facet_corner_begin(f);
-        const auto vtx_indices = mesh.get_facet(f);
+        const auto vtx_indices = mesh.get_facet_vertices(f);
         la_runtime_assert(
             vtx_indices.size() >= 3,
             fmt::format("Mesh facet {} should have >= 3 vertices", f));
@@ -147,8 +148,18 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
     // TODO: Write edges
 }
 
-#define LA_X_save_mesh(_, S, I) \
-    template void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<S, I>& mesh);
+template <typename Scalar, typename Index>
+void save_mesh_obj(const fs::path& filename, const SurfaceMesh<Scalar, Index>& mesh)
+{
+    fs::ofstream output_stream(filename);
+    save_mesh_obj(output_stream, mesh);
+}
+
+#define LA_X_save_mesh(_, Scalar, Index)         \
+    template void save_mesh_obj(                 \
+        std::ostream& output_stream,             \
+        const SurfaceMesh<Scalar, Index>& mesh); \
+    template void save_mesh_obj(const fs::path& filename, const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(save_mesh, 0)
 
 } // namespace io

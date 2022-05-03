@@ -453,7 +453,7 @@ void test_mesh_construction()
         REQUIRE(mesh.is_triangle_mesh());
         check_valid(mesh);
         {
-            auto f = mesh.get_facet(0);
+            auto f = mesh.get_facet_vertices(0);
             REQUIRE(f.size() == 3);
             REQUIRE(f[0] == 0);
             REQUIRE(f[1] == 1);
@@ -467,7 +467,7 @@ void test_mesh_construction()
         REQUIRE(mesh.is_hybrid());
         check_valid(mesh);
         {
-            auto f = mesh.get_facet(1);
+            auto f = mesh.get_facet_vertices(1);
             REQUIRE(f.size() == 4);
             REQUIRE(f[0] == 0);
             REQUIRE(f[1] == 1);
@@ -479,7 +479,7 @@ void test_mesh_construction()
         check_valid(mesh);
         REQUIRE(mesh.get_num_facets() == 3);
         {
-            auto f = mesh.get_facet(2);
+            auto f = mesh.get_facet_vertices(2);
             REQUIRE(f.size() == 5);
             for (Index v : f) {
                 REQUIRE(v == 0);
@@ -490,7 +490,7 @@ void test_mesh_construction()
         mesh.add_polygon(poly);
         check_valid(mesh);
         {
-            auto f = mesh.get_facet(3);
+            auto f = mesh.get_facet_vertices(3);
             REQUIRE(f.size() == 5);
             for (Index k = 0; k < 5; ++k) {
                 REQUIRE(f[k] == poly[k]);
@@ -504,7 +504,7 @@ void test_mesh_construction()
         });
         check_valid(mesh);
         {
-            auto f = mesh.get_facet(4);
+            auto f = mesh.get_facet_vertices(4);
             REQUIRE(f.size() == 5);
             for (Index k = 0; k < 5; ++k) {
                 REQUIRE(f[k] == k + 2);
@@ -520,7 +520,7 @@ void test_mesh_construction()
         mesh.add_triangles(3);
         check_valid(mesh);
         for (Index i = 0; i < mesh.get_num_facets(); ++i) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 3);
             for (Index v : f) {
                 REQUIRE(v == 0);
@@ -531,7 +531,7 @@ void test_mesh_construction()
         mesh.add_triangles(3, tri);
         check_valid(mesh);
         for (Index i = 3, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 3);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == tri[3 * j + k]);
@@ -547,7 +547,7 @@ void test_mesh_construction()
         });
         check_valid(mesh);
         for (Index i = 6; i < mesh.get_num_facets(); ++i) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 3);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == k);
@@ -562,7 +562,7 @@ void test_mesh_construction()
         mesh.add_quads(3);
         check_valid(mesh);
         for (Index i = 0; i < mesh.get_num_facets(); ++i) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 4);
             for (Index v : f) {
                 REQUIRE(v == 0);
@@ -573,7 +573,7 @@ void test_mesh_construction()
         mesh.add_quads(2, quad);
         check_valid(mesh);
         for (Index i = 3, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 4);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == quad[4 * j + k]);
@@ -589,7 +589,7 @@ void test_mesh_construction()
         });
         check_valid(mesh);
         for (Index i = 5; i < mesh.get_num_facets(); ++i) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 4);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == k);
@@ -604,7 +604,7 @@ void test_mesh_construction()
         mesh.add_polygons(3, 5);
         check_valid(mesh);
         for (Index i = 0; i < mesh.get_num_facets(); ++i) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 5);
             for (Index v : f) {
                 REQUIRE(v == 0);
@@ -615,7 +615,7 @@ void test_mesh_construction()
         mesh.add_polygons(2, 5, poly);
         check_valid(mesh);
         for (Index i = 3, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 5);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == poly[5 * j + k]);
@@ -631,7 +631,7 @@ void test_mesh_construction()
         });
         check_valid(mesh);
         for (Index i = 5; i < mesh.get_num_facets(); ++i) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 5);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == k);
@@ -648,7 +648,7 @@ void test_mesh_construction()
         mesh.add_hybrid(sizes);
         check_valid(mesh);
         for (Index i = 0, o = 0; i < mesh.get_num_facets(); ++i) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == sizes[i]);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == 0);
@@ -659,7 +659,7 @@ void test_mesh_construction()
         mesh.add_hybrid(sizes, indices);
         check_valid(mesh);
         for (Index i = 2, j = 0, o = 0; i < mesh.get_num_facets(); ++i, ++j) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == sizes[j]);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == indices[o + k]);
@@ -684,7 +684,7 @@ void test_mesh_construction()
             });
         check_valid(mesh);
         for (Index i = 4, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
-            auto f = mesh.get_facet(i);
+            auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == j + 3);
             for (Index k = 0; k < f.size(); ++k) {
                 REQUIRE(f[k] == k);
@@ -1423,6 +1423,14 @@ void test_mesh_attribute()
     REQUIRE(id_e == mesh.get_attribute_id("normals_e"));
     LA_REQUIRE_THROWS(mesh.get_attribute_id("bogus_name"));
 
+    // Get name
+    REQUIRE("normals_v0" == mesh.get_attribute_name(id_v0));
+    REQUIRE("normals_v1" == mesh.get_attribute_name(id_v1));
+    REQUIRE("normals_f" == mesh.get_attribute_name(id_f));
+    REQUIRE("normals_c" == mesh.get_attribute_name(id_c));
+    REQUIRE("normals_e" == mesh.get_attribute_name(id_e));
+    LA_REQUIRE_THROWS(mesh.get_attribute_name(invalid_attribute_id()));
+
     // Delete attr
     LA_REQUIRE_THROWS(mesh.delete_attribute(mesh.attr_name_vertex_to_position()));
     LA_REQUIRE_THROWS(mesh.delete_attribute("bogus_name"));
@@ -1644,7 +1652,7 @@ void test_wrap_attribute_special()
         mesh.wrap_as_const_facets(corner_to_vertex, num_facets, nvpf);
         REQUIRE(mesh.get_num_facets() == num_facets);
         REQUIRE(mesh.is_triangle_mesh());
-        LA_REQUIRE_THROWS(mesh.ref_facet(0));
+        LA_REQUIRE_THROWS(mesh.ref_facet_vertices(0));
         check_valid(mesh);
     }
 
@@ -1671,7 +1679,7 @@ void test_wrap_attribute_special()
         mesh.wrap_as_const_facets(offsets, num_facets, corner_to_vertex, num_corners);
         REQUIRE(mesh.get_num_facets() == num_facets);
         REQUIRE(mesh.is_hybrid());
-        LA_REQUIRE_THROWS(mesh.ref_facet(0));
+        LA_REQUIRE_THROWS(mesh.ref_facet_vertices(0));
         check_valid(mesh);
     }
 }
@@ -1889,6 +1897,21 @@ void test_export_attribute()
                 AttributeExportPolicy::ErrorIfExternal));
             mesh.delete_attribute("normals");
         }
+
+        // Invalid export policy
+        {
+            mesh.template wrap_as_attribute<ValueType>(
+                "normals",
+                elem,
+                usage,
+                num_channels,
+                buffer);
+            LA_REQUIRE_THROWS(mesh.template delete_and_export_const_attribute<ValueType>(
+                "normals",
+                AttributeDeletePolicy::ErrorIfReserved,
+                invalid_enum<AttributeExportPolicy>()));
+            mesh.delete_attribute("normals");
+        }
     }
 }
 
@@ -2055,7 +2078,7 @@ void test_edit_facets_with_edges()
 
     {
         // Throwing methods (no initial value provided by user)
-        LA_REQUIRE_THROWS(mesh.ref_facet(0));
+        LA_REQUIRE_THROWS(mesh.ref_facet_vertices(0));
         LA_REQUIRE_THROWS(mesh.ref_corner_to_vertex());
         LA_REQUIRE_THROWS(mesh.add_triangles(1));
         LA_REQUIRE_THROWS(mesh.add_quads(1));
@@ -2680,6 +2703,22 @@ void test_resize_attribute_type()
 {
     using namespace lagrange;
 
+    auto check_attr = [](const SurfaceMesh<Scalar, Index>& mesh,
+                         AttributeId id,
+                         const std::vector<ValueType>& gt) {
+        auto attr = mesh.template get_attribute<ValueType>(id).get_all();
+        REQUIRE(attr.size() == gt.size());
+        REQUIRE(std::equal(gt.begin(), gt.end(), attr.begin()));
+    };
+
+    auto check_indexed_attr = [](const SurfaceMesh<Scalar, Index>& mesh,
+                                 AttributeId id,
+                                 const std::vector<ValueType>& gt) {
+        auto attr = mesh.template get_indexed_attribute<ValueType>(id).indices().get_all();
+        REQUIRE(attr.size() == gt.size());
+        REQUIRE(std::equal(gt.begin(), gt.end(), attr.begin()));
+    };
+
     {
         // Regular mesh
         SurfaceMesh<Scalar, Index> mesh;
@@ -2700,6 +2739,13 @@ void test_resize_attribute_type()
         auto xid = mesh.template create_attribute<ValueType>("xid", AttributeElement::Value);
         check_valid(mesh);
 
+        // Ground truth copy of each attributes
+        std::vector<ValueType> vgt;
+        std::vector<ValueType> fgt;
+        std::vector<ValueType> cgt;
+        std::vector<ValueType> egt;
+        std::vector<ValueType> igt;
+
         // Initialize attribute values
         {
             auto vattr = mesh.template ref_attribute<ValueType>(vid).ref_all();
@@ -2710,20 +2756,77 @@ void test_resize_attribute_type()
             std::iota(cattr.begin(), cattr.end(), ValueType(0));
             auto eattr = mesh.template ref_attribute<ValueType>(eid).ref_all();
             std::iota(eattr.begin(), eattr.end(), ValueType(0));
-            auto iattr = mesh.template ref_indexed_attribute<ValueType>(iid).values().ref_all();
-            std::iota(iattr.begin(), iattr.end(), ValueType(0));
             auto xattr = mesh.template ref_attribute<ValueType>(xid).ref_all();
             std::iota(xattr.begin(), xattr.end(), ValueType(0));
+
+            // For the indexed attribute, we also need to insert additional values
+            auto& attr = mesh.template ref_indexed_attribute<ValueType>(iid);
+            attr.values().insert_elements(mesh.get_num_corners());
+            auto attr_values = attr.values().ref_all();
+            auto attr_indices = attr.indices().ref_all();
+            std::iota(attr_values.begin(), attr_values.end(), ValueType(0));
+            std::iota(attr_indices.begin(), attr_indices.end(), ValueType(0));
+
+            vgt.assign(vattr.begin(), vattr.end());
+            fgt.assign(fattr.begin(), fattr.end());
+            cgt.assign(cattr.begin(), cattr.end());
+            egt.assign(eattr.begin(), eattr.end());
+            igt.assign(attr_indices.begin(), attr_indices.end());
         }
         check_valid(mesh);
 
+        auto check_all_attr = [&]() {
+            check_attr(mesh, fid, fgt);
+            check_attr(mesh, cid, cgt);
+            check_attr(mesh, vid, vgt);
+            // TODO: Explicitly check edge attr remapping
+            // check_attr(mesh, eid, egt);
+            check_indexed_attr(mesh, iid, igt);
+        };
+
+        auto remove_facets_from_ground_truth = [&](auto func) {
+            for (Index f = mesh.get_num_facets(); f-- > 0;) {
+                if (func(f)) {
+                    fgt.erase(fgt.begin() + f);
+                    cgt.erase(cgt.begin() + f * 3, cgt.begin() + (f + 1) * 3);
+                    igt.erase(igt.begin() + f * 3, igt.begin() + (f + 1) * 3);
+                }
+            }
+        };
+
+        auto remove_vertices_from_ground_truth = [&](auto func) {
+            std::vector<bool> to_remove(mesh.get_num_facets(), false);
+            for (Index f = mesh.get_num_facets(); f-- > 0;) {
+                for (auto v : mesh.get_facet_vertices(f)) {
+                    if (func(v)) {
+                        to_remove[f] = true;
+                    }
+                }
+            }
+            for (Index v = mesh.get_num_facets(); v-- > 0;) {
+                if (func(v)) {
+                    vgt.erase(vgt.begin() + v);
+                }
+            }
+            remove_facets_from_ground_truth([&](Index f) noexcept { return to_remove[f]; });
+        };
+
         // Resize attr
+        remove_facets_from_ground_truth([](Index f) noexcept { return f == 1; });
         mesh.remove_facets({1});
         check_valid(mesh);
+        check_all_attr();
+
+        remove_facets_from_ground_truth([](Index f) noexcept { return f == 2; });
         mesh.remove_facets([](Index f) noexcept { return f == 2; });
         check_valid(mesh);
+        check_all_attr();
+
+        remove_vertices_from_ground_truth([](Index v) noexcept { return v == 6; });
         mesh.remove_vertices([](Index v) noexcept { return v == 6; });
         check_valid(mesh);
+
+        remove_vertices_from_ground_truth([](Index v) noexcept { return v == 5; });
         mesh.remove_vertices({5});
         check_valid(mesh);
 
@@ -2772,6 +2875,9 @@ void test_resize_attribute_type()
             std::iota(xattr.begin(), xattr.end(), ValueType(0));
         }
         check_valid(mesh);
+
+        // TODO: Implement "ground truth" attributes & remapping similar to the regular triangle
+        // mesh (more complicated due to corner offsets).
 
         // Resize attr
         mesh.remove_facets({1});

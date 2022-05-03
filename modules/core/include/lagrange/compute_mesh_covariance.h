@@ -64,7 +64,7 @@ Eigen::Matrix<typename MeshType::Scalar, 3, 3> compute_mesh_covariance( //
     };
 
     Matrix3 covariance = Matrix3::Zero();
-    for (auto facet_id : lagrange::range_facets(mesh_ref, active_facets)) {
+    for (auto facet_id : range_sparse(mesh_ref.get_num_facets(), active_facets)) {
         const Vector3 v0 = vertices.row(facets(facet_id, 0));
         const Vector3 v1 = vertices.row(facets(facet_id, 1));
         const Vector3 v2 = vertices.row(facets(facet_id, 2));

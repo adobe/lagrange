@@ -6,5 +6,3 @@ UI Module
 
 @defgroup module-ui UI Module
 @brief Lagrange UI Viewer and mini 3D engine
-
-For full documentation, refer to our [user guide](../UserGuide/UI/Overview/).

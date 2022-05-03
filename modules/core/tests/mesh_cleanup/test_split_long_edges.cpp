@@ -17,7 +17,7 @@
 #include <lagrange/create_mesh.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
 
-TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]")
+TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]" LA_SLOW_DEBUG_FLAG)
 {
     using namespace lagrange;
     Vertices3D vertices(3, 3);

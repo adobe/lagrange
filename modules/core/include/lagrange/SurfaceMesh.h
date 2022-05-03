@@ -401,13 +401,18 @@ public:
     ///
     /// Shrink buffer capacities to fit current mesh attributes, deallocating any extra capacity.
     ///
+    /// @todo       Not implemented yet.
+    ///
     void shrink_to_fit();
 
     ///
     /// Compress mesh storage if the mesh is regular. This iterates over all facets to check if the
     /// mesh is regular. If so the following attributes are removed:
+    ///
     /// - "$facet_to_first_corner"
     /// - "$corner_to_facet"
+    ///
+    /// @todo       Not implemented yet.
     ///
     void compress_if_regular();
 
@@ -417,32 +422,44 @@ public:
     /// @{
 
     ///
-    /// Whether the mesh only contains triangular facets. A mesh with no facet is considered a
+    /// Whether the mesh *must* only contain triangular facets. A mesh with no facet is considered a
     /// triangle mesh.
+    ///
+    /// @note       A mesh with hybrid storage *may* still be a triangle mesh, which this method
+    ///             does not check.
     ///
     /// @return     True if triangle mesh, False otherwise.
     ///
     [[nodiscard]] bool is_triangle_mesh() const;
 
     ///
-    /// Whether the mesh only contains quadrilateral facets. A mesh with no facet is considered a
-    /// quad mesh.
+    /// Whether the mesh *must* only contains quadrilateral facets. A mesh with no facet is
+    /// considered a quad mesh.
+    ///
+    /// @note       A mesh with hybrid storage *may* still be a quad mesh, which this method
+    ///             does not check.
     ///
     /// @return     True if quad mesh, False otherwise.
     ///
     [[nodiscard]] bool is_quad_mesh() const;
 
     ///
-    /// Whether the mesh only contains facets of equal sizes. A mesh with no facet is considered
-    /// regular.
+    /// Whether the mesh *must* only contains facets of equal sizes. A mesh with no facet is
+    /// considered regular.
+    ///
+    /// @note       A mesh with hybrid storage *may* still be have regular facet sizes, which this
+    ///             method does not check.
     ///
     /// @return     True if regular, False otherwise.
     ///
     [[nodiscard]] bool is_regular() const;
 
     ///
-    /// Whether the mesh contains facets of different sizes. This is the opposite of is_regular (an
-    /// empty mesh is _not_ considered hybrid).
+    /// Whether the mesh *may* contain facets of different sizes. This is the opposite of is_regular
+    /// (an empty mesh is _not_ considered hybrid).
+    ///
+    /// @note       A mesh with hybrid storage *may* still have all its facet be the same size,
+    ///             which this method does not check.
     ///
     /// @return     True if hybrid, False otherwise.
     ///
@@ -581,7 +598,7 @@ public:
     ///
     /// @return     A pointer to the facet vertices.
     ///
-    [[nodiscard]] span<const Index> get_facet(Index f) const;
+    [[nodiscard]] span<const Index> get_facet_vertices(Index f) const;
 
     ///
     /// Retrieves a writable pointer to a facet indices.
@@ -595,7 +612,7 @@ public:
     ///
     /// @return     A pointer to the facet vertices.
     ///
-    [[nodiscard]] span<Index> ref_facet(Index f);
+    [[nodiscard]] span<Index> ref_facet_vertices(Index f);
 
 public:
     /// @}
@@ -611,6 +628,17 @@ public:
     /// @return     The attribute identifier.
     ///
     [[nodiscard]] AttributeId get_attribute_id(std::string_view name) const;
+
+    ///
+    /// Retrieve attribute name from its id.
+    ///
+    /// @param[in]  id  %Attribute id.
+    ///
+    /// @return     %Attribute's name.
+    ///
+    /// @throws     Exception if id is invalid.
+    ///
+    [[nodiscard]] std::string_view get_attribute_name(AttributeId id) const;
 
     ///
     /// Create a new attribute and return the newly created attribute id. A mesh attribute is stored
@@ -1307,9 +1335,19 @@ public:
     /// @{
 
     ///
+    /// Check whether the given name corresponds to a reserved %attribute. Reserved %attributes are
+    /// %attributes whose name starts with a "$".
+    ///
+    /// @param[in]  name  %Attribute name.
+    ///
+    /// @return     True if this is the name of a reserved %attribute, false otherwise.
+    ///
+    static bool attr_name_is_reserved(std::string_view name);
+
+    ///
     /// %Attribute name for vertex -> position.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_vertex_to_position()
     {
@@ -1319,14 +1357,14 @@ public:
     ///
     /// %Attribute name for corner -> vertex indices.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_corner_to_vertex() { return s_corner_to_vertex; }
 
     ///
     /// %Attribute name for facet -> first corner index.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_facet_to_first_corner()
     {
@@ -1336,21 +1374,21 @@ public:
     ///
     /// %Attribute name for corner -> facet index.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_corner_to_facet() { return s_corner_to_facet; }
 
     ///
     /// %Attribute name for corner -> edge indices.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_corner_to_edge() { return s_corner_to_edge; }
 
     ///
     /// %Attribute name for edge -> first corner index.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_edge_to_first_corner()
     {
@@ -1360,7 +1398,7 @@ public:
     ///
     /// %Attribute name for corner -> next corner around edge.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_next_corner_around_edge()
     {
@@ -1370,7 +1408,7 @@ public:
     ///
     /// %Attribute name for vertex -> first corner index.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_vertex_to_first_corner()
     {
@@ -1380,7 +1418,7 @@ public:
     ///
     /// %Attribute name for corner -> next corner around vertex.
     ///
-    /// @return     Attribute name.
+    /// @return     %Attribute name.
     ///
     static constexpr std::string_view attr_name_next_corner_around_vertex()
     {

@@ -21,18 +21,6 @@
 
 namespace lagrange {
 
-namespace {
-
-// For internal assertion checks
-bool usage_implies_single_channel(AttributeUsage usage)
-{
-    return usage == AttributeUsage::Scalar || usage == AttributeUsage::VertexIndex ||
-           usage == AttributeUsage::FacetIndex || usage == AttributeUsage::CornerIndex ||
-           usage == AttributeUsage::EdgeIndex;
-}
-
-} // namespace
-
 ////////////////////////////////////////////////////////////////////////////////
 // Base class
 ////////////////////////////////////////////////////////////////////////////////
@@ -295,14 +283,12 @@ void Attribute<ValueType>::insert_elements(size_t count)
 template <typename ValueType>
 ValueType Attribute<ValueType>::get(size_t i, size_t c) const
 {
-    la_runtime_assert(!usage_implies_single_channel(get_usage()));
     return m_const_view[i * get_num_channels() + c];
 }
 
 template <typename ValueType>
 ValueType& Attribute<ValueType>::ref(size_t i, size_t c)
 {
-    la_runtime_assert(!usage_implies_single_channel(get_usage()));
     write_check();
     return m_view[i * get_num_channels() + c];
 }
@@ -310,14 +296,14 @@ ValueType& Attribute<ValueType>::ref(size_t i, size_t c)
 template <typename ValueType>
 ValueType Attribute<ValueType>::get(size_t i) const
 {
-    la_runtime_assert(usage_implies_single_channel(get_usage()));
+    la_runtime_assert(get_num_channels() == 1);
     return m_const_view[i];
 }
 
 template <typename ValueType>
 ValueType& Attribute<ValueType>::ref(size_t i)
 {
-    la_runtime_assert(usage_implies_single_channel(get_usage()));
+    la_runtime_assert(get_num_channels() == 1);
     write_check();
     return m_view[i];
 }

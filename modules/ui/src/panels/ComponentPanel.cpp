@@ -62,14 +62,14 @@ void component_panel_system(Registry& registry, Entity window_entity)
             // Only show registered components here
             auto type = entt::resolve(component_type);
             if (!type) {
-                return;
+                continue;
             }
 
             bool is_selected = (component_type == panel.selected_type);
 
             if (ImGui::Selectable(get_pretty_name(component_type).c_str(), is_selected)) {
                 panel.selected_type = component_type;
-                return;
+                continue;
             }
 
             if (is_selected) {

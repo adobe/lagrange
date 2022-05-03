@@ -13,10 +13,11 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
-#include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/Logger.h>
+#include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
+#include <lagrange/utils/strings.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -30,23 +31,8 @@
 namespace lagrange {
 namespace io {
 
-namespace {
-
-std::vector<std::string> string_split(const std::string& s, char delimiter)
-{
-    std::istringstream iss(s);
-    std::vector<std::string> words;
-    std::string word;
-    while (std::getline(iss, word, delimiter)) {
-        words.push_back(word);
-    }
-    return words;
-}
-
-} // namespace
-
 template <typename MeshType>
-auto load_mesh_obj(const std::string& filename, const ObjReaderOptions& options)
+auto load_mesh_obj(const fs::path& filename, const ObjReaderOptions& options)
     -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>
 {
     ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> result;
@@ -57,12 +43,12 @@ auto load_mesh_obj(const std::string& filename, const ObjReaderOptions& options)
 
     tinyobj::ObjReader reader;
     {
-        logger().trace("[load_mesh_obj] Parsing obj file: {}", filename);
+        logger().trace("[load_mesh_obj] Parsing obj file: {}", filename.string());
         tinyobj::ObjReaderConfig config;
         config.triangulate = options.triangulate;
         config.vertex_color = options.load_vertex_colors;
         config.mtl_search_path = options.mtl_search_path;
-        reader.ParseFromFile(filename, config);
+        reader.ParseFromFile(filename.string(), config);
     }
 
     result.success = reader.Valid();
@@ -242,9 +228,9 @@ auto load_mesh_obj(const std::string& filename, const ObjReaderOptions& options)
     return result;
 }
 
-#define LA_X_load_mesh(_, S, I)                                      \
-    template ObjReaderResult<S, I> load_mesh_obj<SurfaceMesh<S, I>>( \
-        const std::string& filename,                                 \
+#define LA_X_load_mesh(_, Scalar, Index)                                               \
+    template ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
+        const fs::path& filename,                                                      \
         const ObjReaderOptions& options);
 LA_SURFACE_MESH_X(load_mesh, 0)
 

@@ -17,11 +17,14 @@ lagrange_add_module()
 lagrange_include_modules(core fs)
 include(tinyobjloader)
 include(libigl) # TODO: remove libigl later
+include(mshio)
 target_link_libraries(lagrange_io PUBLIC
     lagrange::core
     lagrange::fs
     tinyobjloader::tinyobjloader
     igl::core
+    PRIVATE
+    mshio::mshio
 )
 
 option(LAGRANGE_WITH_ASSIMP "Add assimp functionality to lagrange::io" FALSE)

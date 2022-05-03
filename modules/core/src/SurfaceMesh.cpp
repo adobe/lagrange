@@ -91,6 +91,11 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         }
     }
 
+    [[nodiscard]] std::string_view get_name(AttributeId id) const
+    {
+        return m_attributes.at(id).first;
+    }
+
     [[nodiscard]] bool contains(std::string_view name) const
     {
         std::string key(name);
@@ -288,6 +293,12 @@ AttributeId SurfaceMesh<Scalar, Index>::get_attribute_id(std::string_view name) 
         throw Error(fmt::format("Attribute '{}' does not exist.", name));
     }
     return ret;
+}
+
+template <typename Scalar, typename Index>
+std::string_view SurfaceMesh<Scalar, Index>::get_attribute_name(AttributeId id) const
+{
+    return m_attributes->get_name(id);
 }
 
 template <typename Scalar, typename Index>
@@ -1006,6 +1017,12 @@ auto SurfaceMesh<Scalar, Index>::ref_corner_to_vertex() -> Attribute<Index>&
     return ref_attribute<Index>(m_corner_to_vertex_id);
 }
 
+template <typename Scalar, typename Index>
+bool SurfaceMesh<Scalar, Index>::attr_name_is_reserved(std::string_view name)
+{
+    return starts_with(name, "$");
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Mesh construction
 ////////////////////////////////////////////////////////////////////////////////
@@ -1180,6 +1197,8 @@ void SurfaceMesh<Scalar, Index>::add_polygons(
     Index facet_size,
     span<const Index> facet_indices)
 {
+    // TODO: If num_facets == 0, this should not trigger any write operation to a mesh attr (need to
+    // add a unit test for this!).
     la_runtime_assert(facet_size > 2); // TODO: remove this assert
     la_runtime_assert(
         !facet_indices.empty() || !has_edges(),
@@ -1276,7 +1295,7 @@ void SurfaceMesh<Scalar, Index>::remove_vertices(span<const Index> vertices_to_r
 
     // 3rd step: delete facets pointing to invalid vertices
     remove_facets([&](Index f) {
-        for (auto v : get_facet(f)) {
+        for (auto v : get_facet_vertices(f)) {
             if (v == invalid<Index>()) {
                 logger().trace("Removing f{}", f);
                 return true;
@@ -1323,7 +1342,7 @@ void SurfaceMesh<Scalar, Index>::remove_vertices(function_ref<bool(Index)> shoul
 
     // 3rd step: delete facets pointing to invalid vertices
     remove_facets([&](Index f) {
-        for (auto v : get_facet(f)) {
+        for (auto v : get_facet_vertices(f)) {
             if (v == invalid<Index>()) {
                 logger().trace("Removing f{}", f);
                 return true;
@@ -1565,13 +1584,13 @@ auto SurfaceMesh<Scalar, Index>::get_corner_facet(Index c) const -> Index
 }
 
 template <typename Scalar, typename Index>
-auto SurfaceMesh<Scalar, Index>::get_facet(Index f) const -> span<const Index>
+auto SurfaceMesh<Scalar, Index>::get_facet_vertices(Index f) const -> span<const Index>
 {
     return get_corner_to_vertex().get_middle(get_facet_corner_begin(f), size_t(get_facet_size(f)));
 }
 
 template <typename Scalar, typename Index>
-auto SurfaceMesh<Scalar, Index>::ref_facet(Index f) -> span<Index>
+auto SurfaceMesh<Scalar, Index>::ref_facet_vertices(Index f) -> span<Index>
 {
     return ref_corner_to_vertex().ref_middle(get_facet_corner_begin(f), size_t(get_facet_size(f)));
 }
@@ -2138,8 +2157,8 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
                 old_to_new_corners);
         });
 
-        // Move corner attributes
-        seq_foreach_attribute_write<AttributeElement::Corner>(*this, [&](auto&& attr) {
+        // Move corner & indexed attributes
+        auto move_corner_attributes = [&](auto&& attr) {
             for (Index c = 0; c < num_corners; ++c) {
                 if (old_to_new_corners(c) != invalid<Index>()) {
                     if (old_to_new_corners(c) != c) {
@@ -2149,7 +2168,17 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
                     }
                 }
             }
-        });
+        };
+        seq_foreach_attribute_write<AttributeElement::Indexed | AttributeElement::Corner>(
+            *this,
+            [&](auto&& attr) {
+                using AttributeType = std::decay_t<decltype(attr)>;
+                if constexpr (AttributeType::IsIndexed) {
+                    move_corner_attributes(attr.indices());
+                } else {
+                    move_corner_attributes(attr);
+                }
+            });
     };
 
     // Compute corner remapping

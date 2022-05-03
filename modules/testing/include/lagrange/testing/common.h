@@ -14,7 +14,7 @@
 // An alternative to injecting asset locations as command line macros,
 // is using a generated header.
 #ifdef LA_TESTING_USE_CONFIG
-#include <lagrange/testing/config.h>
+#include <lagrange/testing/public_config.h>
 #endif
 
 #include <lagrange/fs/filesystem.h>

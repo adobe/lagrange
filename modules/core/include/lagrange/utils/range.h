@@ -10,138 +10,16 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#include <Eigen/Core>
 
-#include <lagrange/common.h>
 #include <lagrange/utils/safe_cast.h>
 
-/*
-This file defines two iterable objects (Range and SparseRange),
-and functions to create them.
-
-Important: in the range_* functions, the `active` vector MUST
-exist while the range is being used. Do NOT write code such as:
-
-for (int i : range_sparse(n, { 0 })) { ... }   // Bad
-
-as the vector will be destructed while the iterator is still running.
-
-Similarily, do NOT write:
-
-for (int i : range_facets(mesh, {})) { ... }    // Bad
-
-But use this instead:
-
-for (int i : range_facets(mesh)) { ... }
-*/
+/// @addtogroup group-utils-misc
+/// @{
 
 namespace lagrange {
 
-namespace internal {
-// Forward declaration of Range objects later in the file.
-template <typename T>
-struct IteratorTrait;
-template <typename T, typename Trait = IteratorTrait<T>>
-class Range;
-template <typename T, typename Trait = IteratorTrait<T>>
-class SparseRange;
-template <typename Derived, typename Trait = IteratorTrait<Derived>>
-class RowRange;
-} // namespace internal
-
-// Returns an iterable object, ranging from 0 to end.
-template <typename T>
-internal::Range<T> range(T end)
-{
-    return internal::Range<T>(end);
-}
-
-// Returns an iterable object, ranging from begin to end.
-template <typename T>
-internal::Range<T> range(T begin, T end)
-{
-    return internal::Range<T>(begin, end);
-}
-
-// Returns an iterable object ranging through the rows of data.
-template <typename Derived>
-internal::RowRange<Derived> row_range(const Derived& data)
-{
-    return internal::RowRange<Derived>(data);
-}
-
-// Returns an iterable object.
-// If `active` is non-empty, it will iterate through the elements of `active`.
-// Otherwise, it will iterate from 0 to max.
-template <typename T>
-internal::SparseRange<T> range_sparse(T max, const std::vector<T>& active)
-{
-    return internal::SparseRange<T>(max, active);
-}
-
-// Returns an iterable object, ranging from 0 to mesh->num_facets.
-template <typename MeshType>
-internal::Range<typename MeshType::Index> range_facets(const MeshType& mesh)
-{
-    return internal::Range<typename MeshType::Index>(mesh.get_num_facets());
-}
-
-// Returns an iterable object.
-// If `active` is non-empty, it will iterate through the elements of `active`.
-// Otherwise, it will iterate from 0 to mesh->num_facets.
-template <typename MeshType>
-internal::SparseRange<typename MeshType::Index> range_facets(
-    const MeshType& mesh,
-    const typename MeshType::IndexList& active)
-{
-    return internal::SparseRange<typename MeshType::Index>(mesh.get_num_facets(), active);
-}
-
-// Returns an iterable object, ranging from 0 to mesh->num_vertices.
-template <typename MeshType>
-internal::Range<typename MeshType::Index> range_vertices(const MeshType& mesh)
-{
-    return internal::Range<typename MeshType::Index>(mesh.get_num_vertices());
-}
-
-// Returns an iterable object.
-// If `active` is non-empty, it will iterate through the elements of `active`.
-// Otherwise, it will iterate from 0 to mesh->num_vertices.
-template <typename MeshType>
-internal::SparseRange<typename MeshType::Index> range_vertices(
-    const MeshType& mesh,
-    const typename MeshType::IndexList& active)
-{
-    return internal::SparseRange<typename MeshType::Index>(mesh.get_num_vertices(), active);
-}
-
-// Prevent bad calls
-template <typename T>
-internal::SparseRange<T> range_sparse(T /*max*/, std::vector<T>&& /*active*/)
-{
-    static_assert(StaticAssertableBool<T>::False, "active indices cannot be an rvalue vector");
-}
-
-template <typename MeshType>
-internal::SparseRange<typename MeshType::Index> range_facets(
-    const MeshType& /*mesh*/,
-    typename MeshType::IndexList&& /*active*/)
-{
-    static_assert(
-        StaticAssertableBool<MeshType>::False,
-        "active indices cannot be an rvalue vector");
-}
-
-template <typename MeshType>
-internal::SparseRange<typename MeshType::Index> range_vertices(
-    const MeshType& /*mesh*/,
-    typename MeshType::IndexList&& /*active*/)
-{
-    static_assert(
-        StaticAssertableBool<MeshType>::False,
-        "active indices cannot be an rvalue vector");
-}
-
+////////////////////////////////////////////////////////////////////////////////
+/// @cond LA_INTERNAL_DOCS
 
 namespace internal {
 
@@ -155,7 +33,7 @@ struct IteratorTrait
     using reference = T&;
 };
 
-template <typename T, typename Trait>
+template <typename T, typename Trait = IteratorTrait<T>>
 class Range
 {
 public:
@@ -219,7 +97,7 @@ private:
     T m_end;
 };
 
-template <typename T, typename Trait>
+template <typename T, typename Trait = IteratorTrait<T>>
 class SparseRange
 {
     const T m_max;
@@ -280,72 +158,74 @@ public:
     }
 };
 
-
-template <typename Derived, typename Trait>
-class RowRange
-{
-private:
-    const Derived& m_data;
-
-public:
-    using Index = Eigen::Index;
-    using RowExpr = decltype(m_data.row(0));
-    RowRange(const Derived& data)
-        : m_data(data)
-    {}
-
-    class iterator
-    {
-    public:
-        using iterator_category = typename Trait::iterator_category;
-        using value_type = typename Trait::value_type;
-        using difference_type = typename Trait::difference_type;
-        using pointer = typename Trait::pointer;
-        using reference = typename Trait::reference;
-
-    public:
-        iterator(Index row_index, const Derived& context)
-            : m_row_index(row_index)
-            , m_context(context)
-        {}
-
-        decltype(auto) operator*() const { return m_context.row(m_row_index); }
-
-        iterator& operator++()
-        {
-            m_row_index++;
-            return *this;
-        }
-
-        bool operator!=(const iterator& other) const
-        {
-            // We compare the address of the context since comparing
-            // the actual Eigen matrix will be too expensive.
-            return &m_context != &other.m_context || m_row_index != other.m_row_index;
-        }
-
-        bool operator==(const iterator& other) const { return !(*this != other); }
-
-    private:
-        Index m_row_index;
-        const Derived& m_context;
-    };
-
-    iterator begin() const { return iterator(0, m_data); }
-
-    iterator end() const { return iterator(m_data.rows(), m_data); }
-
-    bool operator==(const RowRange<Derived>& other) const
-    {
-        // Checking address only as checking the entire matrix will be
-        // too expensive.
-        return &m_data == &other.m_data;
-    }
-
-    Index size() const { return m_data.rows(); }
-};
-
 } // namespace internal
 
+/// @endcond
+////////////////////////////////////////////////////////////////////////////////
+
+///
+/// Returns an iterable object representing the range [0, end).
+///
+/// @param[in]  end    End of the range. This bound is exclusive.
+///
+/// @tparam     Index  Index type.
+///
+/// @return     Iterator for the range [0, end).
+///
+template <typename Index>
+internal::Range<Index> range(Index end)
+{
+    return internal::Range<Index>(end);
+}
+
+///
+/// Returns an iterable object representing the range [begin, end).
+///
+/// @param[in]  begin  Start of the range. This bound is inclusive.
+/// @param[in]  end    End of the range. This bound is exclusive.
+///
+/// @tparam     Index  Index type.
+///
+/// @return     Iterator for the range [start, end).
+///
+template <typename Index>
+internal::Range<Index> range(Index begin, Index end)
+{
+    return internal::Range<Index>(begin, end);
+}
+
+///
+/// Returns an iterable object representing a subset of the range [0, max). If active is non-empty,
+/// it will iterate through the elements of active. Otherwise, it will iterate from 0 to max.
+///
+/// @warning    The `active` vector MUST exist while the range is being used. Do NOT write code such
+///             as:
+///             @code
+///             for (int i : range_sparse(n, { 0 })) { ... }   // Bad
+///             @endcode
+///             as the vector will be destructed while the iterator is still running.
+///
+/// @param[in]  max     End of the range. This bound is exclusive.
+/// @param[in]  active  Active indices in the range. If empty, it will iterate through the whole
+///                     range instead.
+///
+/// @tparam     Index  Index type.
+///
+/// @return     Sparse iterator for a subset of the range [0, max).
+///
+template <typename Index>
+internal::SparseRange<Index> range_sparse(Index max, const std::vector<Index>& active)
+{
+    return internal::SparseRange<Index>(max, active);
+}
+
+///
+/// @cond LA_INTERNAL_DOCS
+///
+/// Prevent bad calls.
+///
+template <typename T>
+internal::SparseRange<T> range_sparse(T /*max*/, std::vector<T>&& /*active*/) = delete;
+/// @endcond
 
 } // namespace lagrange

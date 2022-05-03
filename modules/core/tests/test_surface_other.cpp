@@ -139,7 +139,7 @@ void test_span()
     mesh.add_triangle(0, 1, 2);
     mesh.add_triangle(2, 3, 0);
 
-    auto facet_vertices = mesh.get_facet(1);
+    auto facet_vertices = mesh.get_facet_vertices(1);
     REQUIRE(facet_vertices.size() == 3);
     REQUIRE(facet_vertices[0] == 2);
     REQUIRE(facet_vertices[1] == 3);

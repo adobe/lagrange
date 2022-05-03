@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/fs/filesystem.h>
 
 // TODO: Hide in .cpp
 #include <tiny_obj_loader.h>
@@ -73,9 +74,9 @@ struct ObjReaderResult
 };
 
 ///
-/// Loads a .obj mesh from a stream.
+/// Loads a .obj mesh from a file.
 ///
-/// @param[in]  filename  The stream to read data from.
+/// @param[in]  filename  The file to read data from.
 /// @param[in]  options   Optional configuration for the loader.
 ///
 /// @tparam     MeshType  Mesh type to load.
@@ -83,7 +84,7 @@ struct ObjReaderResult
 /// @return     Result of the load.
 ///
 template <typename MeshType>
-auto load_mesh_obj(const std::string& filename, const ObjReaderOptions& options = {})
+auto load_mesh_obj(const fs::path& filename, const ObjReaderOptions& options = {})
     -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>;
 
 } // namespace io

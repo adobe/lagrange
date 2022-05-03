@@ -50,7 +50,7 @@ ComputeMeshCentroidOutput<typename MeshType::Scalar> compute_mesh_centroid( //
     Vertex3 centroid = Vertex3::Zero();
     Scalar area = 0;
 
-    for (auto facet_id : lagrange::range_facets(mesh_ref, active_facets)) {
+    for (auto facet_id : range_sparse(mesh_ref.get_num_facets(), active_facets)) {
         const Vertex3 v0 = vertices.row(facets(facet_id, 0));
         const Vertex3 v1 = vertices.row(facets(facet_id, 1));
         const Vertex3 v2 = vertices.row(facets(facet_id, 2));

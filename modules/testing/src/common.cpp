@@ -9,6 +9,11 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+
+#ifdef LA_TESTING_USE_CONFIG
+#include <lagrange/testing/private_config.h>
+#endif
+
 #include <lagrange/testing/common.h>
 
 #include <lagrange/io/load_mesh.impl.h>
@@ -20,28 +25,12 @@
 #include <mkl.h>
 #endif
 
-#if __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 namespace lagrange {
 namespace testing {
 
 fs::path get_data_dir()
 {
-#if __EMSCRIPTEN__
-    // Mount the test data directory within the Node.js filesystem.
-    static std::once_flag once_flag;
-    std::call_once(once_flag, []() {
-        EM_ASM({
-            FS.mkdir('/test_data');
-            FS.mount(NODEFS, { root: UTF8ToString($0) }, '/test_data');
-        }, TEST_DATA_DIR);
-    });
-    return fs::path("/test_data");
-#else
     return fs::path(TEST_DATA_DIR);
-#endif
 }
 
 // A nice thing about this function is that we don't have to rebuild "everything"

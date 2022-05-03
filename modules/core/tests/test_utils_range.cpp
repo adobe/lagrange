@@ -74,7 +74,7 @@ TEST_CASE("range", "[range]")
 
     SECTION("")
     {
-        for (auto f : range_facets(*mesh)) {
+        for (auto f : range(mesh->get_num_facets())) {
             ++count;
             sum += f;
         }
@@ -84,7 +84,7 @@ TEST_CASE("range", "[range]")
 
     SECTION("")
     {
-        for (auto f : range_facets(*mesh, active)) {
+        for (auto f : active) {
             ++count;
             REQUIRE(f == 1); // loop body should only run once
         }
@@ -94,7 +94,7 @@ TEST_CASE("range", "[range]")
     SECTION("")
     {
         active = {0, 1};
-        for (auto f : range_facets(*mesh, active)) {
+        for (auto f : active) {
             ++count;
             sum += f;
         }
@@ -104,7 +104,7 @@ TEST_CASE("range", "[range]")
 
     SECTION("")
     {
-        for (auto v : range_vertices(*mesh)) {
+        for (auto v : range(mesh->get_num_vertices())) {
             ++count;
             sum += v;
         }
@@ -115,30 +115,12 @@ TEST_CASE("range", "[range]")
     SECTION("")
     {
         active = {0, 1};
-        for (auto v : range_vertices(*mesh, active)) {
+        for (auto v : active) {
             ++count;
             sum += v;
         }
         REQUIRE(count == 2);
         REQUIRE(sum == 1);
-    }
-
-    SECTION("")
-    {
-        auto foo = []() -> std::vector<int> { return {0, 1, 2}; };
-        foo();
-        // The following statements should *NOT* compile:
-        // range_sparse(0, {});
-        // range_sparse(0, foo());
-        // range_sparse(0, std::move(active));
-
-        // range_vertices(*mesh, {});
-        // range_vertices(*mesh, foo());
-        // range_vertices(*mesh, std::move(active));
-
-        // range_facets(*mesh, {});
-        // range_facets(*mesh, foo());
-        // range_facets(*mesh, std::move(active));
     }
 
     SECTION("row range")
@@ -147,7 +129,7 @@ TEST_CASE("range", "[range]")
 
         SECTION("vertices")
         {
-            for (const auto row : row_range(vertices)) {
+            for (const auto row : vertices.rowwise()) {
                 REQUIRE((row.array() == vertices.row(i).array()).all());
                 i++;
             }
@@ -156,7 +138,7 @@ TEST_CASE("range", "[range]")
 
         SECTION("facets")
         {
-            for (const auto row : row_range(facets)) {
+            for (const auto row : facets.rowwise()) {
                 REQUIRE((row.array() == facets.row(i).array()).all());
                 i++;
             }
@@ -167,7 +149,7 @@ TEST_CASE("range", "[range]")
         {
             Eigen::MatrixXi M(3, 3);
             M << 1, 2, 3, 4, 5, 6, 7, 8, 9;
-            for (const auto row : row_range(M)) {
+            for (const auto row : M.rowwise()) {
                 REQUIRE((row.array() == M.row(i).array()).all());
                 i++;
             }
@@ -177,7 +159,7 @@ TEST_CASE("range", "[range]")
         SECTION("Empty matrix")
         {
             Eigen::MatrixXi Z(0, 3);
-            for (const auto row : row_range(Z)) {
+            for (const auto row : Z.rowwise()) {
                 REQUIRE((row.array() == Z.row(i).array()).all());
                 i++;
             }
@@ -187,7 +169,7 @@ TEST_CASE("range", "[range]")
         SECTION("Empty matrix 2")
         {
             Eigen::MatrixXi Z(3, 0);
-            for (const auto row : row_range(Z)) {
+            for (const auto row : Z.rowwise()) {
                 REQUIRE((row.array() == Z.row(i).array()).all());
                 i++;
             }

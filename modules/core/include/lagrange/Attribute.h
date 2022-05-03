@@ -222,7 +222,7 @@ public:
     ///
     /// Gets the default value to use when growing the attribute.
     ///
-    ValueType get_default_value() { return m_default_value; }
+    ValueType get_default_value() const { return m_default_value; }
 
     ///
     /// Sets the growth policy for external buffers.

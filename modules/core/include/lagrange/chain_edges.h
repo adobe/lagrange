@@ -38,10 +38,11 @@ std::vector<std::list<Index>> chain_edges(const Allocator& edges)
     std::vector<Chain> chains;
     VertexAdjList next;
     VertexAdjList prev;
-    next.reserve(edges.size());
-    prev.reserve(edges.size());
+    size_t num_edges = std::distance(edges.begin(), edges.end());
+    next.reserve(num_edges);
+    prev.reserve(num_edges);
     std::unordered_set<Index> visited;
-    visited.reserve(edges.size() * 2);
+    visited.reserve(num_edges * 2);
 
 LA_IGNORE_RANGE_LOOP_ANALYSIS_BEGIN
     for (const auto& e : edges) {

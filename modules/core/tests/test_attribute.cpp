@@ -513,12 +513,11 @@ void test_data_access()
         }
     }
 
-    // Internal data (scalar)
-    {
-        auto attr =
-            make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Scalar, 1, num_elems);
-        LA_REQUIRE_THROWS(attr.get(0, 0));
-        LA_REQUIRE_THROWS(attr.ref(0, 0));
+    // Internal data (scalar or 1d vector)
+    for (auto usage : {AttributeUsage::Scalar, AttributeUsage::Vector}) {
+        auto attr = make_attr<ValueType>(AttributeElement::Vertex, usage, 1, num_elems);
+        REQUIRE_NOTHROW(attr.get(0, 0));
+        REQUIRE_NOTHROW(attr.ref(0, 0));
         for (size_t i = 0; i < num_elems; ++i) {
             REQUIRE(attr.get(i) == values[i]);
         }
@@ -566,13 +565,13 @@ void test_data_access()
         }
     }
 
-    // External data (scalar)
-    {
-        Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Scalar, 1);
+    // External data (scalar or 1d vector)
+    for (auto usage : {AttributeUsage::Scalar, AttributeUsage::Vector}) {
+        Attribute<ValueType> attr(AttributeElement::Vertex, usage, 1);
         auto copy = values;
         attr.wrap(copy, num_elems);
-        LA_REQUIRE_THROWS(attr.get(0, 0));
-        LA_REQUIRE_THROWS(attr.ref(0, 0));
+        REQUIRE_NOTHROW(attr.get(0, 0));
+        REQUIRE_NOTHROW(attr.ref(0, 0));
         for (size_t i = 0; i < num_elems; ++i) {
             REQUIRE(attr.get(i) == values[i]);
         }

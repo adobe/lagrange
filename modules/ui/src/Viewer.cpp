@@ -64,7 +64,7 @@
 #include <fstream>
 
 #if defined(__EMSCRIPTEN__)
-#include <emscripten.h>
+    #include <emscripten.h>
 #endif
 
 #define MODAL_NAME_SHADER_ERROR "Shader Error"
@@ -593,7 +593,7 @@ bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
 
 bool Viewer::run(const std::function<void(void)>& main_loop /*= {}*/)
 {
-    return run([=](Registry & /*r*/) -> bool {
+    return run([=](Registry& /*r*/) -> bool {
         if (main_loop) main_loop();
         return true;
     });
@@ -964,11 +964,6 @@ std::string Viewer::get_config_folder()
 
 void Viewer::process_input()
 {
-    // Reset input before polling events
-    get_input().mouse.wheel = 0.0f;
-    get_input().mouse.wheel_horizontal = 0.0f;
-    get_input().mouse.delta = Eigen::Vector2f(0, 0);
-
     glfwPollEvents();
 
     auto& keybinds = get_keybinds();
