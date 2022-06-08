@@ -54,6 +54,34 @@ ConstVectorView<ValueType> vector_view(const Attribute<ValueType>& attribute)
     return {attribute.get_all().data(), Eigen::Index(attribute.get_num_elements())};
 }
 
+template <typename ValueType>
+RowMatrixView<ValueType> reshaped_ref(Attribute<ValueType>& attribute, size_t num_cols)
+{
+    la_runtime_assert(attribute.get_num_channels() == 1);
+    if (attribute.empty()) {
+        return {attribute.ref_all().data(), 0, Eigen::Index(num_cols)};
+    }
+    la_runtime_assert(num_cols != 0 && attribute.get_num_elements() % num_cols == 0);
+    return {
+        attribute.ref_all().data(),
+        Eigen::Index(attribute.get_num_elements() / num_cols),
+        Eigen::Index(num_cols)};
+}
+
+template <typename ValueType>
+ConstRowMatrixView<ValueType> reshaped_view(const Attribute<ValueType>& attribute, size_t num_cols)
+{
+    la_runtime_assert(attribute.get_num_channels() == 1);
+    if (attribute.empty()) {
+        return {attribute.get_all().data(), 0, Eigen::Index(num_cols)};
+    }
+    la_runtime_assert(num_cols != 0 && attribute.get_num_elements() % num_cols == 0);
+    return {
+        attribute.get_all().data(),
+        Eigen::Index(attribute.get_num_elements() / num_cols),
+        Eigen::Index(num_cols)};
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Generic attribute views (mesh)
 ////////////////////////////////////////////////////////////////////////////////
@@ -110,22 +138,16 @@ template <typename Scalar, typename Index>
 RowMatrixView<Index> facet_ref(SurfaceMesh<Scalar, Index>& mesh)
 {
     la_runtime_assert(mesh.is_regular());
-    auto num_facets = Eigen::Index(mesh.get_num_facets());
-    auto num_vpf = Eigen::Index(mesh.get_vertex_per_facet());
-    auto& attribute = mesh.ref_corner_to_vertex();
-    la_debug_assert(attribute.get_num_elements() % size_t(num_facets) == 0);
-    return {attribute.ref_all().data(), num_facets, num_vpf};
+    auto num_vpf = static_cast<size_t>(mesh.get_vertex_per_facet());
+    return reshaped_ref(mesh.ref_corner_to_vertex(), num_vpf);
 }
 
 template <typename Scalar, typename Index>
 ConstRowMatrixView<Index> facet_view(const SurfaceMesh<Scalar, Index>& mesh)
 {
     la_runtime_assert(mesh.is_regular());
-    auto num_facets = Eigen::Index(mesh.get_num_facets());
-    auto num_vpf = Eigen::Index(mesh.get_vertex_per_facet());
-    auto& attribute = mesh.template get_attribute<Index>(mesh.attr_id_corner_to_vertex());
-    la_debug_assert(attribute.get_num_elements() % size_t(num_facets) == 0);
-    return {attribute.get_all().data(), num_facets, num_vpf};
+    auto num_vpf = static_cast<size_t>(mesh.get_vertex_per_facet());
+    return reshaped_view(mesh.get_corner_to_vertex(), num_vpf);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -137,7 +159,13 @@ ConstRowMatrixView<Index> facet_view(const SurfaceMesh<Scalar, Index>& mesh)
     template RowMatrixView<ValueType> matrix_ref(Attribute<ValueType>& attribute);             \
     template ConstRowMatrixView<ValueType> matrix_view(const Attribute<ValueType>& attribute); \
     template VectorView<ValueType> vector_ref(Attribute<ValueType>& attribute);                \
-    template ConstVectorView<ValueType> vector_view(const Attribute<ValueType>& attribute);
+    template ConstVectorView<ValueType> vector_view(const Attribute<ValueType>& attribute);    \
+    template RowMatrixView<ValueType> reshaped_ref(                                            \
+        Attribute<ValueType>& attribute,                                                       \
+        size_t num_cols);                                                                      \
+    template ConstRowMatrixView<ValueType> reshaped_view(                                      \
+        const Attribute<ValueType>& attribute,                                                 \
+        size_t num_cols);
 LA_ATTRIBUTE_X(views_attr, 0)
 
 // Iterate over attribute types x mesh (scalar, index) types

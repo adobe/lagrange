@@ -143,11 +143,12 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
     }
     ImGui::SameLine();
 
-    // Pick file
+    // Pick file, make sure it goes out of scope after file is written
+    std::optional<FileDialogPath> dialog_path;
     if (ImGui::Button("Save as ...")) {
-        auto path = save_file("Save screenshot as", ".", {{"PNG files", "*.png"}});
-        if (!path.empty()) {
-            save_path = path;
+        dialog_path = save_file("Save screenshot as", ".", {{"PNG files", "*.png"}});
+        if (!dialog_path->empty()) {
+            save_path = dialog_path->path();
         }
     }
 
@@ -170,14 +171,18 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
                 if (color->save_to(save_path)) {
                     logger().info("Saved color framebuffer screenshot to: {}", save_path.string());
                 } else {
-                    logger().error("Failed to save color framebuffer screenshot to: {}", save_path.string());
+                    logger().error(
+                        "Failed to save color framebuffer screenshot to: {}",
+                        save_path.string());
                 }
             } else {
                 auto depth = fbo.get_depth_attachment();
                 if (depth && depth->save_to(save_path)) {
                     logger().info("Saved depth framebuffer screenshot to: {}", save_path.string());
                 } else {
-                    logger().error("Failed to save depth framebuffer screenshot to: {}", save_path.string());
+                    logger().error(
+                        "Failed to save depth framebuffer screenshot to: {}",
+                        save_path.string());
                 }
             }
         } else if (opt.mode == RendererPanel::ScreenshotOptions::Mode::WINDOW) {

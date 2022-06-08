@@ -24,7 +24,7 @@ endif()
 
 
 function(lagrange_ui_add_example name)
-    lagrange_add_example(${name} ${name}.cpp)
+    lagrange_add_example(${name} WITH_UI ${name}.cpp)
     target_link_libraries(${name} lagrange::ui CLI11::CLI11)
 
     # Folder in IDE
@@ -42,6 +42,13 @@ function(lagrange_ui_add_example name)
         LAGRANGE_DATA_FOLDER="${LAGRANGE_DATA_FOLDER}"
         )
 
+    if(EMSCRIPTEN)
+        target_link_options(${name} PUBLIC
+            "SHELL:-s FORCE_FILESYSTEM"
+        )       
+    endif()
+        
+
 endfunction()
 
 lagrange_ui_add_example(101_Viewer)
@@ -50,3 +57,5 @@ lagrange_ui_add_example(103_MeshFromMemory)
 lagrange_ui_add_example(104_MainLoop)
 lagrange_ui_add_example(105_Keybinds)
 lagrange_ui_add_example(106_Mouse)
+lagrange_ui_add_example(107_UIPanel)
+lagrange_ui_add_example(108_FileDialog)

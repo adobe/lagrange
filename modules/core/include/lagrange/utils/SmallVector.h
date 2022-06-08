@@ -1,168 +1,161 @@
-/*
- * Copyright 2020 Adobe. All rights reserved.
- * This file is licensed to you under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License. You may obtain a copy
- * of the License at http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under
- * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
- * OF ANY KIND, either express or implied. See the License for the specific language
- * governing permissions and limitations under the License.
- */
+// From https://github.com/KonanM/small_vector
+// Licensed under the Unlicense <https://unlicense.org/>
+// SPDX-License-Identifier: Unlicense
+//
+// Renamed and formatted to be consistent with Lagrange conventions.
+
 #pragma once
 
-#include <lagrange/utils/assert.h>
-
-#include <algorithm>
-#include <array>
 #include <initializer_list>
+#include <memory>
+#include <type_traits>
+#include <vector>
 
 namespace lagrange {
 
 ///
-/// Stack-allocated vector with a maximum size.
+/// Allocator that uses the stack upto a maximum size, and the heap beyond that.
+///
+/// @note From https://github.com/KonanM/small_vector, renamed and formatted to be consistent with
+///   Lagrange conventions.
+///
+template <typename T, std::size_t MaxSize = 8, typename NonReboundT = T>
+struct SmallBufferAllocator
+{
+    alignas(alignof(T)) char m_small_buffer[MaxSize * sizeof(T)];
+    std::allocator<T> m_alloc{};
+    bool m_small_buffer_used = false;
+
+    using value_type = T;
+    // we have to set these three values, as they are responsible for the correct handling of the
+    // move assignment operator
+    using propagate_on_container_move_assignment = std::false_type;
+    using propagate_on_container_swap = std::false_type;
+    using is_always_equal = std::false_type;
+
+    template <class U>
+    struct rebind
+    {
+        typedef SmallBufferAllocator<U, MaxSize, NonReboundT> other;
+    };
+
+    constexpr SmallBufferAllocator() noexcept = default;
+    template <class U>
+    constexpr SmallBufferAllocator(const SmallBufferAllocator<U, MaxSize, NonReboundT>&) noexcept
+    {}
+    // don't copy the small buffer for the copy/move constructors, as the copying is done through
+    // the vector
+    constexpr SmallBufferAllocator(const SmallBufferAllocator& other) noexcept
+        : m_small_buffer_used(other.m_small_buffer_used)
+    {}
+    constexpr SmallBufferAllocator& operator=(const SmallBufferAllocator& other) noexcept
+    {
+        m_small_buffer_used = other.m_small_buffer_used;
+        return *this;
+    }
+    constexpr SmallBufferAllocator(SmallBufferAllocator&&) noexcept {}
+    constexpr SmallBufferAllocator& operator=(const SmallBufferAllocator&&) noexcept
+    {
+        return *this;
+    }
+
+    constexpr T* allocate(const std::size_t n)
+    {
+        // when the allocator was rebound we don't want to use the small buffer
+        if constexpr (std::is_same<T, NonReboundT>::value) {
+            if (n <= MaxSize) {
+                m_small_buffer_used = true;
+                // as long as we use less memory than the small buffer, we return a pointer to it
+                return reinterpret_cast<T*>(&m_small_buffer);
+            }
+        }
+        m_small_buffer_used = false;
+        // otherwise use the default allocator
+        return m_alloc.allocate(n);
+    }
+    constexpr void deallocate(void* p, const std::size_t n)
+    {
+        // we don't deallocate anything if the memory was allocated in small buffer
+        if (&m_small_buffer != p) m_alloc.deallocate(static_cast<T*>(p), n);
+        m_small_buffer_used = false;
+    }
+    // according to the C++ standard when propagate_on_container_move_assignment is set to false,
+    // the comparison operators are used to check if two allocators are equal. When they are not, an
+    // element wise move is done instead of just taking over the memory. For our implementation this
+    // means the comparision has to return false, when the small buffer is active
+    friend constexpr bool operator==(
+        const SmallBufferAllocator& lhs,
+        const SmallBufferAllocator& rhs)
+    {
+        return !lhs.m_small_buffer_used && !rhs.m_small_buffer_used;
+    }
+    friend constexpr bool operator!=(
+        const SmallBufferAllocator& lhs,
+        const SmallBufferAllocator& rhs)
+    {
+        return !(lhs == rhs);
+    }
+};
+
+///
+/// Hybrid vector that uses the stack upto a maximum size, and the heap beyond that.
 ///
 /// @tparam     T     Value type.
 /// @tparam     N     Maximum size.
 ///
-template <typename T, size_t N>
-struct SmallVector
+/// @note From https://github.com/KonanM/small_vector, renamed and formatted to be consistent with
+///   Lagrange conventions.
+///
+template <typename T, std::size_t N = 8>
+class SmallVector : public std::vector<T, SmallBufferAllocator<T, N>>
 {
 private:
-    std::array<T, N> m_array;
-    size_t m_size = 0;
+    using vectorT = std::vector<T, SmallBufferAllocator<T, N>>;
 
 public:
-    SmallVector() = default;
-
+    // default initialize with the small buffer size
+    constexpr SmallVector() noexcept { vectorT::reserve(N); }
+    SmallVector(const SmallVector&) = default;
+    SmallVector& operator=(const SmallVector&) = default;
+    SmallVector(SmallVector&& other) noexcept(std::is_nothrow_move_constructible<T>::value)
+    {
+        if (other.size() <= N) vectorT::reserve(N);
+        vectorT::operator=(std::move(other));
+    }
+    SmallVector& operator=(SmallVector&& other) noexcept(
+        std::is_nothrow_move_constructible<T>::value)
+    {
+        if (other.size() <= N) vectorT::reserve(N);
+        vectorT::operator=(std::move(other));
+        return *this;
+    }
+    // use the default constructor first to reserve then construct the values
+    explicit SmallVector(std::size_t count)
+        : SmallVector()
+    {
+        vectorT::resize(count);
+    }
+    SmallVector(std::size_t count, const T& value)
+        : SmallVector()
+    {
+        vectorT::assign(count, value);
+    }
+    template <class InputIt>
+    SmallVector(InputIt first, InputIt last)
+        : SmallVector()
+    {
+        vectorT::insert(vectorT::begin(), first, last);
+    }
     SmallVector(std::initializer_list<T> init)
-        : m_size(init.size())
+        : SmallVector()
     {
-        la_runtime_assert(m_size <= N);
-        auto it = init.begin();
-        for (size_t i = 0; i < m_size; ++i) {
-            m_array[i] = std::move(*it);
-            ++it;
-        }
+        vectorT::insert(vectorT::begin(), init);
     }
-
-    size_t size() const { return m_size; }
-
-    void clear() { m_size = 0; }
-
-    void resize(const size_t i)
+    friend void swap(SmallVector& a, SmallVector& b) noexcept
     {
-        la_runtime_assert(i <= m_array.size());
-        m_size = i;
+        using std::swap;
+        swap(static_cast<vectorT&>(a), static_cast<vectorT&>(b));
     }
-
-    void push_back(const T& v)
-    {
-        la_runtime_assert(m_size < m_array.size());
-        m_array[m_size++] = v;
-    }
-
-    template <class... Args>
-    void emplace_back(Args&&... args)
-    {
-        la_runtime_assert(m_size < m_array.size());
-        m_array[m_size++] = T(std::forward<Args>(args)...);
-    }
-
-    void pop_back()
-    {
-        la_runtime_assert(m_size > 0);
-        --m_size;
-    }
-
-    T* data() { return m_array.data(); }
-
-    const T* data() const { return m_array.data(); }
-
-    T& front()
-    {
-        la_runtime_assert(m_size > 0);
-        return m_array.front();
-    }
-
-    const T& front() const
-    {
-        la_runtime_assert(m_size > 0);
-        return m_array.front();
-    }
-
-    T& back()
-    {
-        la_runtime_assert(m_size > 0);
-        return m_array.at(m_size - 1);
-    }
-
-    const T& back() const
-    {
-        la_runtime_assert(m_size > 0);
-        return m_array.at(m_size - 1);
-    }
-
-    T& at(const size_t i)
-    {
-        la_runtime_assert(i < m_size);
-        return m_array.at(i);
-    }
-
-    const T& at(const size_t i) const
-    {
-        la_runtime_assert(i < m_size);
-        return m_array.at(i);
-    }
-
-    T& operator[](const size_t i)
-    {
-        la_runtime_assert(i < m_size);
-        return m_array[i];
-    }
-
-    const T& operator[](const size_t i) const
-    {
-        la_runtime_assert(i < m_size);
-        return m_array[i];
-    }
-
-    template <typename U, class UnaryOperation>
-    auto transformed(UnaryOperation op) {
-        SmallVector<U, N> result;
-        result.resize(size());
-        for (size_t i = 0; i < size(); ++i) {
-            result[i] = op(at(i));
-        }
-        return result;
-    }
-
-    template <size_t D>
-    auto to_tuple() {
-        assert(D == m_size);
-        static_assert(D <= N, "Invalid size");
-        return to_tuple_helper(std::make_index_sequence<D>());
-    }
-
-private:
-    template <size_t... Indices>
-    auto to_tuple_helper(std::index_sequence<Indices...>) {
-        return std::make_tuple(m_array[Indices]...);
-    }
-
-public:
-    using iterator = typename std::array<T, N>::iterator;
-    using const_iterator = typename std::array<T, N>::const_iterator;
-    iterator begin() { return m_array.begin(); }
-    iterator end() { return m_array.begin() + m_size; }
-    const_iterator begin() const { return m_array.begin(); }
-    const_iterator end() const { return m_array.begin() + m_size; }
 };
-
-template <class T, size_t N>
-bool operator==(const SmallVector<T, N>& lhs, const SmallVector<T, N>& rhs)
-{
-    return (lhs.size() == rhs.size() && std::equal(lhs.begin(), lhs.end(), rhs.begin()));
-}
 
 } // namespace lagrange

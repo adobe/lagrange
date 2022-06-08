@@ -30,7 +30,7 @@
 ///
 /// @code
 /// #include <lagrange/SurfaceMeshTypes.h>
-/// #define LA_X_foo(_, S, I) template void my_function(const SurfaceMesh<S, I> &);
+/// #define LA_X_foo(_, Scalar, Index) template void my_function(const SurfaceMesh<Scalar, Index> &);
 /// LA_SURFACE_MESH_X(foo, 0)
 /// @endcode
 ///
@@ -55,7 +55,7 @@
 ///
 /// @code
 /// #include <lagrange/SurfaceMeshTypes.h>
-/// #define LA_X_foo(_, I) template void my_function(const Attribute<I> &facet_indices);
+/// #define LA_X_foo(_, Index) template void my_function(const Attribute<Index> &facet_indices);
 /// LA_SURFACE_MESH_INDEX_X(foo, 0)
 /// @endcode
 ///
@@ -75,7 +75,7 @@
 ///
 /// @code
 /// #include <lagrange/SurfaceMeshTypes.h>
-/// #define LA_X_foo(_, S) template void my_function(const Attribute<S> &vertex_positions);
+/// #define LA_X_foo(_, Scalar) template void my_function(const Attribute<Scalar> &vertex_positions);
 /// LA_SURFACE_MESH_SCALAR_X(foo, 0)
 /// @endcode
 ///

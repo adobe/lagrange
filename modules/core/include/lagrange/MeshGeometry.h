@@ -46,6 +46,9 @@ public:
     virtual const VertexArray& get_vertices() const = 0;
     virtual const FacetArray& get_facets() const = 0;
 
+    virtual VertexArray& get_vertices_ref() = 0;
+    virtual FacetArray& get_facets_ref() = 0;
+
 public:
     template <typename Derived>
     void import_vertices(Eigen::MatrixBase<Derived>& vertices)
@@ -86,12 +89,6 @@ public:
         });
         LA_IGNORE_SHADOW_WARNING_END
     }
-
-protected:
-    // Non const reference of member variables is needed by import/export
-    // functions, but it should stay hidden from the wild external world.
-    virtual VertexArray& get_vertices_ref() = 0;
-    virtual FacetArray& get_facets_ref() = 0;
 };
 
 template <typename _VertexArray, typename _FacetArray, typename Archive>

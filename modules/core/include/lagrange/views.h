@@ -142,6 +142,38 @@ VectorView<ValueType> vector_ref(Attribute<ValueType>& attribute);
 template <typename ValueType>
 ConstVectorView<ValueType> vector_view(const Attribute<ValueType>& attribute);
 
+///
+/// Returns a writable view of a given single-channel attribute in the form of an Eigen matrix with
+/// a prescribed number of columns. This is useful to view arbitrary corner attributes as 2D
+/// matrices for regular meshes.
+///
+/// @param[in]  attribute  Attribute to view.
+/// @param[in]  num_cols   Number of columns to use. It must divide the number of elements of the
+///                        prescribed attribute.
+///
+/// @tparam     ValueType  Attribute scalar type.
+///
+/// @return     An Eigen::Map wrapping the attribute data.
+///
+template <typename ValueType>
+RowMatrixView<ValueType> reshaped_ref(Attribute<ValueType>& attribute, size_t num_cols);
+
+///
+/// Returns a read-only view of a given single-channel attribute in the form of an Eigen matrix with
+/// a prescribed number of columns. This is useful to view arbitrary corner attributes as 2D
+/// matrices for regular meshes.
+///
+/// @param[in]  attribute  Attribute to view.
+/// @param[in]  num_cols   Number of columns to use. It must divide the number of elements of the
+///                        prescribed attribute.
+///
+/// @tparam     ValueType  Attribute scalar type.
+///
+/// @return     An Eigen::Map wrapping the attribute data.
+///
+template <typename ValueType>
+ConstRowMatrixView<ValueType> reshaped_view(const Attribute<ValueType>& attribute, size_t num_cols);
+
 ////////////////////////////////////////////////////////////////////////////////
 /// @}
 /// @name Generic attribute views (mesh)

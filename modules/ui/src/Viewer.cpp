@@ -841,11 +841,6 @@ bool Viewer::init_glfw(const WindowOptions& options)
         auto& input = static_cast<Viewer*>(glfwGetWindowUserPointer(window))->get_input();
         input.mouse.wheel = float(y);
         input.mouse.wheel_horizontal = float(x);
-
-#if defined(__EMSCRIPTEN__)
-        input.mouse_wheel /= -100.0f;
-        input.mouse_wheel_horizontal /= -100.0f;
-#endif
     });
 
 
@@ -1115,6 +1110,7 @@ void Viewer::draw_menu()
             auto path = open_file("Load a single mesh");
             if (!path.empty()) {
                 auto m = ui::load_obj<TriangleMesh3Df>(r, path);
+
                 if (m != NullEntity) {
                     ui::show_mesh(r, m);
                     ui::camera_focus_and_fit(r, get_focused_camera_entity(r));
@@ -1194,7 +1190,7 @@ void Viewer::draw_menu()
         ImGui::Separator();
 
         if (ImGui::MenuItem(ICON_FA_IMAGE " Load Image Based Light")) {
-            auto path = ui::open_file("Load an IBL");
+            const auto path = ui::open_file("Load an IBL");
             if (!path.empty()) {
                 try {
                     auto ibl = ui::generate_ibl(path);

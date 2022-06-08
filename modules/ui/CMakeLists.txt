@@ -73,6 +73,7 @@ elseif(EMSCRIPTEN)
         "SHELL:-s MAX_WEBGL_VERSION=2"
         "SHELL:-s GL_SUPPORT_AUTOMATIC_ENABLE_EXTENSIONS=1"
         "SHELL:-s GL_SUPPORT_SIMPLE_ENABLE_EXTENSIONS=1"
+        "SHELL:-s ASYNCIFY=1"
     )
 else()
     target_link_libraries(lagrange_ui PUBLIC OpenGL::GL)

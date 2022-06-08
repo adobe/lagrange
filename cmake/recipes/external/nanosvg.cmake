@@ -23,14 +23,29 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(nanosvg)
 
-add_library(nanosvg INTERFACE)
+# Generate implementation file
+file(WRITE "${nanosvg_BINARY_DIR}/nanosvg.cpp.in" [[
+    #include <math.h>
+    #include <stdio.h>
+    #include <string.h>
+
+    #define NANOSVG_IMPLEMENTATION
+    #include <nanosvg.h>
+]])
+
+configure_file(${nanosvg_BINARY_DIR}/nanosvg.cpp.in ${nanosvg_BINARY_DIR}/nanosvg.cpp COPYONLY)
+
+# Define nanosvg library
+add_library(nanosvg ${nanosvg_BINARY_DIR}/nanosvg.cpp)
 add_library(nanosvg::nanosvg ALIAS nanosvg)
 
 include(GNUInstallDirs)
-target_include_directories(nanosvg SYSTEM INTERFACE
+target_include_directories(nanosvg SYSTEM PUBLIC
     $<BUILD_INTERFACE:${nanosvg_SOURCE_DIR}/src/>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+
+set_target_properties(nanosvg PROPERTIES FOLDER "third_party")
 
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME nanosvg)

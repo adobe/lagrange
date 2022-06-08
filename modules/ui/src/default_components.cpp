@@ -52,11 +52,13 @@ bool browse_texture_widget(const std::shared_ptr<Texture>& tex_ptr, int widget_s
 
 std::shared_ptr<Texture> load_texture_dialog(const Texture::Params& default_params)
 {
-    auto path =
+    const auto path =
         ui::open_file("Load a texture", ".", {{"All Images", "*.jpg *.png *.gif *.exr *.bmp"}});
+
     if (!path.empty()) {
         try {
-            return std::make_shared<Texture>(path, default_params);
+            auto texture = std::make_shared<Texture>(path, default_params);
+            return texture;
 
         } catch (const std::exception& ex) {
             lagrange::logger().error("Failed to load texture '{}' : {}", path.string(), ex.what());
@@ -1075,7 +1077,7 @@ void show_ibl(Registry* rptr, Entity e)
 
 
     if (ImGui::Button("Save ...")) {
-        auto path = ui::open_folder("Save IBL to folder");
+        const auto path = ui::open_folder("Save IBL to folder");
         if (!path.empty()) {
             ui::save_ibl(ibl, path);
         }

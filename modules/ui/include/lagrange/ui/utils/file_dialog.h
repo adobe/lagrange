@@ -19,6 +19,45 @@ namespace lagrange {
 namespace ui {
 
 ///
+/// RAII Wrapper for fs::path obtained from a file dialog
+///
+/// If compiled for web under Emscripten:
+///     Removes the file from temporary browser filesystem when out of scope
+///     If created by `create_output_path`: triggers download of the file when going out of scope
+///
+class FileDialogPath
+{
+public:
+    /// Create FileDialogPath from Open File Dialog
+    static FileDialogPath make_input_path(const fs::path& path);
+    /// Create FileDialogPath from Save File Dialog
+    static FileDialogPath make_output_path(const fs::path& path);
+
+    FileDialogPath(FileDialogPath&& other);
+    FileDialogPath& operator=(FileDialogPath&& other);
+    ~FileDialogPath();
+
+    /// Implicit fs::path conversion
+    operator const fs::path &() const { return path(); }
+    /// Implicit string conversion.
+    operator std::string() const { return string(); }
+
+    /// Convert path to string
+    std::string string() const { return path().string(); }
+
+    bool empty() const noexcept { return path().empty(); }
+
+    /// Return underlying path
+    const fs::path& path() const;
+
+protected:
+    FileDialogPath(const fs::path& path);
+    struct FileDialogPathImpl;
+    std::unique_ptr<FileDialogPathImpl> m_impl;
+};
+
+
+///
 /// File filter option.
 ///
 struct FileFilter
@@ -55,7 +94,7 @@ enum class FolderOpen {
 ///
 /// @return     Selected file path.
 ///
-fs::path open_file(
+FileDialogPath open_file(
     const std::string& title,
     const fs::path& default_path = ".",
     const std::vector<FileFilter>& filters = {{"All Files", "*"}});
@@ -69,7 +108,7 @@ fs::path open_file(
 ///
 /// @return     Selected file path.
 ///
-std::vector<fs::path> open_files(
+std::vector<FileDialogPath> open_files(
     const std::string& title,
     const fs::path& default_path = ".",
     const std::vector<FileFilter>& filters = {{"All Files", "*"}});
@@ -84,7 +123,7 @@ std::vector<fs::path> open_files(
 ///
 /// @return     Selected file path.
 ///
-fs::path save_file(
+FileDialogPath save_file(
     const std::string& title,
     const fs::path& default_path = ".",
     const std::vector<FileFilter>& filters = {{"All Files", "*"}},
@@ -100,10 +139,29 @@ fs::path save_file(
 ///
 /// @return     Selected folder path.
 ///
-fs::path open_folder(
+FileDialogPath open_folder(
     const std::string& title,
     const fs::path& default_path = ".",
     FolderOpen open_behavior = FolderOpen::LastOpened);
+
+
+namespace utils {
+///
+///  Transforms a list of FileFilters
+///  into the `accept` HTML attribute (https://developer.mozilla.org/en-US/docs/Web/HTML/Attributes/accept)
+///  If a `*` wildcard is passed as one of the filters, return value will be an empty string.
+///  Supports MIME-types and image/*, video/*, and audio/* types
+///
+/// @param[in]  filters        List of FileFilters
+///
+/// @return     string for `accept` html attribute
+///
+/// Example:
+/// filters: {{"Label", "*.x *.z *.w image/png"}} output: ".x,.z,.w,image/png"
+///
+std::string transform_filters_to_accept(const std::vector<FileFilter>& filters);
+
+} // namespace utils
 
 } // namespace ui
 } // namespace lagrange

@@ -352,6 +352,7 @@ std::optional<Texture::DownloadResult> Texture::download(GLenum target, int mip_
     logger().error("WebGL does not support glGetTexImage.");
     (void)target;
     (void)elem_type_gl;
+    return {};
 #else
     glGetTexImage(target, mip_level, get_params().format, elem_type_gl, result.data.data());
 #endif

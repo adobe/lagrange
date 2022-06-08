@@ -56,15 +56,14 @@ public:
 
     virtual const FacetArray& get_facets() const override { return m_facets; }
 
+    virtual VertexArray& get_vertices_ref() override { return m_vertices; }
+
+    virtual FacetArray& get_facets_ref() override { return m_facets; }
+
 public:
     VertexArray& get_vertices() { return m_vertices; }
 
     FacetArray& get_facets() { return m_facets; }
-
-protected:
-    virtual VertexArray& get_vertices_ref() override { return m_vertices; }
-
-    virtual FacetArray& get_facets_ref() override { return m_facets; }
 
 private:
     VertexArray m_vertices;

@@ -91,6 +91,16 @@ public:
     ///
     using GetFacetsSizeFunction = function_ref<Index(Index f)>;
 
+    ///
+    /// Callback function to get the vertex indices of an edge endpoints in a user-provided ordering
+    /// of a mesh edges.
+    ///
+    /// @param[in]  e     Index of the edge being queried.
+    ///
+    /// @return     A pair of indices for the vertex endpoints.
+    ///
+    using GetEdgeVertices = function_ref<std::array<Index, 2>(Index e)>;
+
 public:
     ///
     /// @name Mesh construction
@@ -1281,7 +1291,8 @@ public:
     /// @return     The attribute reference.
     ///
     template <typename ValueType>
-    [[nodiscard]] auto ref_indexed_attribute(std::string_view name) -> IndexedAttribute<ValueType, Index>&;
+    [[nodiscard]] auto ref_indexed_attribute(std::string_view name)
+        -> IndexedAttribute<ValueType, Index>&;
 
     ///
     /// Gets a writable reference to an indexed attribute given its id. If the attribute is a
@@ -1502,6 +1513,19 @@ public:
     ///                    of edges in the mesh.
     ///
     void initialize_edges(span<const Index> edges = {});
+
+    ///
+    /// Initializes attributes associated to mesh edges and connectivity. In this overload, a
+    /// user-defined ordering of the mesh edges is provided via a function callback. The
+    /// user-provided ordering must be a valid indexing (all edges should appear exactly once).
+    ///
+    /// @param[in]  num_user_edges  Number of edges in the user-provided ordering. If it does not
+    ///                             match the actual number of mesh edges after initialization, an
+    ///                             exception is raised.
+    /// @param[in]  get_user_edge   Callback function to retrieve the vertices endpoints of an edge
+    ///                             given its user-provided index.
+    ///
+    void initialize_edges(Index num_user_edges, GetEdgeVertices get_user_edge);
 
     ///
     /// Clears attributes related to mesh edges and connectivity:
@@ -1865,6 +1889,18 @@ protected:
     void compute_corner_to_facet_internal(Index facet_begin, Index facet_end);
 
     ///
+    /// Initializes attributes associated to mesh edges and connectivity. Internal method to avoid
+    /// code duplication.
+    ///
+    /// @param[in]  num_user_edges     Number of edges in the user-provided ordering.
+    /// @param[in]  get_user_edge_ptr  Callback function to retrieve the vertices endpoints of an
+    ///                                edge given its user-provided index.
+    ///
+    void initialize_edges_internal(
+        Index num_user_edges = 0,
+        GetEdgeVertices* get_user_edge_ptr = nullptr);
+
+    ///
     /// Update attributes associated to mesh edges and connectivity for a specific range of facets.
     /// Corner chains are recomputed for the affected facet corners, unused edge indices are
     /// recycled and edge attributes are resized accordingly.
@@ -1878,23 +1914,31 @@ protected:
     ///
     /// @see        initialize_edges
     ///
-    /// @param[in]  facet_begin  First facet in the range.
-    /// @param[in]  facet_end    Index beyond the last facet in the range.
-    /// @param[in]  edges        M x 2 continuous array of mapping edge -> vertices, where M is the
-    ///                          number of edges in the mesh.
+    /// @param[in]  facet_begin        First facet in the range.
+    /// @param[in]  facet_end          Index beyond the last facet in the range.
+    /// @param[in]  num_user_edges     Number of edges in the user-provided ordering.
+    /// @param[in]  get_user_edge_ptr  Callback function to retrieve the vertices endpoints of an
+    ///                                edge given its user-provided index.
     ///
-    void
-    update_edges_range_internal(Index facet_begin, Index facet_end, span<const Index> edges = {});
+    void update_edges_range_internal(
+        Index facet_begin,
+        Index facet_end,
+        Index num_user_edges = 0,
+        GetEdgeVertices* get_user_edge_ptr = nullptr);
 
     ///
     /// Same as update_edges_range_internal, but operate on the last count facets in the mesh
     /// instead.
     ///
-    /// @param[in]  count  Number of facets to update.
-    /// @param[in]  edges  M x 2 continuous array of mapping edge -> vertices, where M is the number
-    ///                    of edges in the mesh.
+    /// @param[in]  count              Number of facets to update.
+    /// @param[in]  num_user_edges     Number of edges in the user-provided ordering.
+    /// @param[in]  get_user_edge_ptr  Callback function to retrieve the vertices endpoints of an
+    ///                                edge given its user-provided index.
     ///
-    void update_edges_last_internal(Index count, span<const Index> edges = {});
+    void update_edges_last_internal(
+        Index count,
+        Index num_user_edges = 0,
+        GetEdgeVertices* get_user_edge_ptr = nullptr);
 
     ///
     /// Gets the number of mesh elements, based on an element type. If the queried element type is

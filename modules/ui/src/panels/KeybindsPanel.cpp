@@ -51,7 +51,6 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
         if (ImGui::Button("Save", ImVec2(w / 3, 0))) {
             auto path = save_file("Save keybinding config", ".", {{"Json files", "*.json"}});
             if (!path.empty()) {
-                path.replace_extension(".json");
                 fs::ofstream f(path);
                 if (f.good()) {
                     k.save(f);

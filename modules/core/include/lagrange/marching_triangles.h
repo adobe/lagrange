@@ -48,25 +48,25 @@ struct MarchingTrianglesOutput
     std::vector<Scalar> vertices_parent_param;
 };
 
-// Perform marching triangles to extract the isocontours of a field
-// defined by the linear interpolation of a vertex attribute.
-//
-// Adapted from https://www.cs.ubc.ca/~rbridson/download/common_2008_nov_12.tar.gz
-// (code released to the __public domain__ by Robert Bridson)
-//
-// Input:
-//    mesh_ref, the mesh to run marching cubes on. Can be 2D or 3D,
-//              but must be triangular.
-//    isovalue, the isovalue to be extracted.
-//    vertex_attribute_name, the name of the vertex attribute
-//    attribute_col_index, which column of the vertex attribute should be used?
-//
-template <typename MeshType>
-MarchingTrianglesOutput<MeshType> marching_triangles(
+/**
+ * Perform marching triangles to extract isocontour on a field defined as
+ * the linear interpolation of values provided by the `get_value` function.
+ *
+ * Adapted from https://www.cs.ubc.ca/~rbridson/download/common_2008_nov_12.tar.gz
+ * (code released to the __public domain__ by Robert Bridson)
+ *
+ * @param[in]  mesh_ref  The input mesh.
+ * @param[in]  isovalue  The isovalue of the field at which to contour.
+ * @param[in]  get_value A function that takes the facet id and a local corner
+ *                       id and returns the field value at that corner.
+ *
+ * @returns The extracted isocontour.
+ */
+template <typename MeshType, typename ValueFn>
+MarchingTrianglesOutput<MeshType> marching_triangles_general(
     MeshType& mesh_ref,
-    const typename MeshType::Scalar isovalue,
-    const std::string vertex_attribute_name,
-    const typename MeshType::Index attribute_col_index = 0)
+    ScalarOf<MeshType> isovalue,
+    const ValueFn& get_value)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     using Index = typename MeshType::Index;
@@ -75,14 +75,9 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
     using MarchingTrianglesOutput = ::lagrange::MarchingTrianglesOutput<MeshType>;
     using Edge = typename MeshType::Edge;
 
-    la_runtime_assert(
-        mesh_ref.has_vertex_attribute(vertex_attribute_name),
-        "attribute does not exist in the mesh");
     la_runtime_assert(mesh_ref.get_vertex_per_facet() == 3, "only works for triangle meshes");
     mesh_ref.initialize_edge_data();
 
-    const auto& attribute = mesh_ref.get_vertex_attribute(vertex_attribute_name);
-    la_runtime_assert(attribute_col_index < safe_cast<Index>(attribute.cols()), "col_index is invalid");
     const auto& facets = mesh_ref.get_facets();
     const auto& vertices = mesh_ref.get_vertices();
 
@@ -90,9 +85,7 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
     std::vector<VertexType> extracted_vertices;
     std::vector<Index> extracted_vertices_parent_edge;
     std::vector<Scalar> extracted_vertices_parent_param;
-    std::vector<Index> parent_edge_to_extracted_vertex(
-        mesh_ref.get_num_edges(),
-        invalid<Index>());
+    std::vector<Index> parent_edge_to_extracted_vertex(mesh_ref.get_num_edges(), invalid<Index>());
 
     //
     // Find the point that attains a zero value on an edge
@@ -138,9 +131,9 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
         const Index v0 = facets(tri_id, 0);
         const Index v1 = facets(tri_id, 1);
         const Index v2 = facets(tri_id, 2);
-        Scalar p0 = attribute(v0, attribute_col_index) - isovalue;
-        Scalar p1 = attribute(v1, attribute_col_index) - isovalue;
-        Scalar p2 = attribute(v2, attribute_col_index) - isovalue;
+        Scalar p0 = get_value(tri_id, 0) - isovalue;
+        Scalar p1 = get_value(tri_id, 1) - isovalue;
+        Scalar p2 = get_value(tri_id, 2) - isovalue;
 
         const Index e01 = mesh_ref.get_edge(tri_id, 0);
         const Index e12 = mesh_ref.get_edge(tri_id, 1);
@@ -215,6 +208,79 @@ MarchingTrianglesOutput<MeshType> marching_triangles(
         output.vertices.row(i) = extracted_vertices[i];
     }
     return output;
+}
+
+
+// Perform marching triangles to extract the isocontours of a field
+// defined by the linear interpolation of a vertex attribute.
+//
+// Adapted from https://www.cs.ubc.ca/~rbridson/download/common_2008_nov_12.tar.gz
+// (code released to the __public domain__ by Robert Bridson)
+//
+// Input:
+//    mesh_ref, the mesh to run marching cubes on. Can be 2D or 3D,
+//              but must be triangular.
+//    isovalue, the isovalue to be extracted.
+//    vertex_attribute_name, the name of the vertex attribute
+//    attribute_col_index, which column of the vertex attribute should be used?
+//
+template <typename MeshType>
+MarchingTrianglesOutput<MeshType> marching_triangles(
+    MeshType& mesh_ref,
+    const typename MeshType::Scalar isovalue,
+    const std::string vertex_attribute_name,
+    const typename MeshType::Index attribute_col_index = 0)
+{
+    using Index = IndexOf<MeshType>;
+    la_runtime_assert(
+        mesh_ref.has_vertex_attribute(vertex_attribute_name),
+        "attribute does not exist in the mesh");
+    const auto& attribute = mesh_ref.get_vertex_attribute(vertex_attribute_name);
+    la_runtime_assert(
+        attribute_col_index < safe_cast<Index>(attribute.cols()),
+        "col_index is invalid");
+
+    const auto& facets = mesh_ref.get_facets();
+    return marching_triangles_general(mesh_ref, isovalue, [&](Index fi, Index ci) {
+        return attribute(facets(fi, ci), attribute_col_index);
+    });
+}
+
+/**
+ * Perform marching triangles to extract isocontours on a field defined as
+ * the linear interpolation of an indexed attribute.
+ *
+ * @param[in]  mesh_ref                The input triangle mesh.
+ * @param[in]  isovalue                The isovalue of the field at which to contour.
+ * @param[in]  indexed_attribute_name  The indexed attribute name defining the
+ *                                     field.
+ * @param[in]  attribute_col_index     The attribute channel to use (for vector
+ *                                     attributes only).
+ * @returns The extracted isocontour.
+ *
+ * @note The indexed attribute can be used to define fields with
+ * discontinuities.  However, result may contain artifacts if the desired
+ * iso-contour passes through such discontiuity.
+ */
+template <typename MeshType>
+MarchingTrianglesOutput<MeshType> marching_triangles_indexed(
+    MeshType& mesh_ref,
+    const typename MeshType::Scalar isovalue,
+    const std::string indexed_attribute_name,
+    const typename MeshType::Index attribute_col_index = 0)
+{
+    using Index = IndexOf<MeshType>;
+    la_runtime_assert(
+        mesh_ref.has_indexed_attribute(indexed_attribute_name),
+        "attribute does not exist in the mesh");
+    const auto& attribute = mesh_ref.get_indexed_attribute(indexed_attribute_name);
+    la_runtime_assert(
+        attribute_col_index < safe_cast<Index>(std::get<0>(attribute).cols()),
+        "col_index is invalid");
+
+    return marching_triangles_general(mesh_ref, isovalue, [&](Index fi, Index ci) {
+        return std::get<0>(attribute)(std::get<1>(attribute)(fi, ci), attribute_col_index);
+    });
 }
 
 } // namespace lagrange

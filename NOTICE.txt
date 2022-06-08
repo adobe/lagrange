@@ -145,6 +145,14 @@ This codebase contains a modified portion of code from Shewchuk's predicates whi
       from the Web page http://www.cs.cmu.edu/~quake/robust.html.
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from small_vector which can be obtained at:
+  * SOURCE:
+    * https://github.com/KonanM/small_vector
+
+  * LICENSE:
+    * https://github.com/KonanM/small_vector/blob/master/LICENSE
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from valuable which can be obtained at:
   * SOURCE:
     * https://github.com/LoopPerfect/valuable

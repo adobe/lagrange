@@ -378,7 +378,8 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
     // If usage tag indicates a "normal", check that num_channels == dim or dim + 1
     la_runtime_assert(
         usage != AttributeUsage::Normal || num_channels == get_dimension() ||
-        num_channels == get_dimension() + 1);
+            num_channels == get_dimension() + 1,
+        "Invalid number of channels for normal attributes: should be dim or dim + 1.");
 
     // If usage is an element index type, then ValueType must be the same as the mesh's Index type.
     if (usage == AttributeUsage::VertexIndex || usage == AttributeUsage::FacetIndex ||
@@ -432,6 +433,7 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_from(
     std::string_view source_name)
 {
     la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    if (source_name.empty()) source_name = name;
     const AttributeId source_id = source_mesh.get_attribute_id(source_name);
     const AttributeBase& source_attr = source_mesh.m_attributes->read_base(source_id);
     const size_t source_num_elements =
@@ -1602,10 +1604,43 @@ auto SurfaceMesh<Scalar, Index>::ref_facet_vertices(Index f) -> span<Index>
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::initialize_edges(span<const Index> input_edges)
 {
+    if (input_edges.empty()) {
+        initialize_edges_internal(0, nullptr);
+    } else {
+        la_runtime_assert(
+            input_edges.size() % 2 == 0,
+            "Input edge array size must be a multiple of two.");
+        const Index num_user_edges = static_cast<Index>(input_edges.size()) / 2;
+        // We need to be careful to not wrap a temporary lambda into a function_ref<>. Since the
+        // function wrapper is non-owning, this would lead to a "stack use after scope" UBSan
+        // issues. See the following for an explanation:
+        // https://github.com/TartanLlama/function_ref/issues/12
+        // https://www.open-std.org/jtc1/sc22/wg21/docs/papers/2019/p0792r4.html#possible-issues
+        [&](GetEdgeVertices get_user_edge) {
+            initialize_edges_internal(num_user_edges, &get_user_edge);
+        }([&](Index e) -> std::array<Index, 2> {
+            return {input_edges[2 * e], input_edges[2 * e + 1]};
+        });
+    }
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::initialize_edges(
+    Index num_user_edges,
+    GetEdgeVertices get_user_edge)
+{
+    initialize_edges_internal(num_user_edges, &get_user_edge);
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::initialize_edges_internal(
+    Index num_user_edges,
+    GetEdgeVertices* get_user_edge_ptr)
+{
     if (has_edges()) {
-        if (!input_edges.empty()) {
+        if (get_user_edge_ptr) {
             logger().warn(
-                "User-provided edge ordering ingored: mesh already contains edge information");
+                "User-provided edge ordering ignored: mesh already contains edge information");
         }
         return;
     }
@@ -1639,24 +1674,26 @@ void SurfaceMesh<Scalar, Index>::initialize_edges(span<const Index> input_edges)
         AttributeElement::Corner,
         AttributeUsage::CornerIndex,
         1);
-    update_edges_last_internal(get_num_facets(), input_edges);
+    update_edges_last_internal(get_num_facets(), num_user_edges, get_user_edge_ptr);
 }
 
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::update_edges_last_internal(
     Index count,
-    span<const Index> input_edges)
+    Index num_user_edges,
+    GetEdgeVertices* get_user_edge_ptr)
 {
     const Index facet_end = get_num_facets();
     const Index facet_begin = facet_end - count;
-    update_edges_range_internal(facet_begin, facet_end, input_edges);
+    update_edges_range_internal(facet_begin, facet_end, num_user_edges, get_user_edge_ptr);
 }
 
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
     Index facet_begin,
     Index facet_end,
-    span<const Index> input_edges)
+    Index num_user_edges,
+    GetEdgeVertices* get_user_edge_ptr)
 {
     // Assumptions: the range of facets given as input doesn't have any connectivity information
     // (i.e. facet corners do not appear in any chain around vertices/edges).
@@ -1669,10 +1706,6 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
     }
     const Index corner_begin = get_facet_corner_begin(facet_begin);
     const Index corner_end = get_facet_corner_end(facet_end - 1);
-
-    la_runtime_assert(
-        input_edges.size() % 2 == 0,
-        "Input edge array size must be a multiple of two.");
 
     // Compute corner -> edge mapping
     struct UnorientedEdge
@@ -1742,11 +1775,11 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
 
     // Sort user-defined edges (if available)
     std::vector<UnorientedEdge> edge_to_id_user;
-    if (!input_edges.empty()) {
-        const Index ne = static_cast<Index>(input_edges.size()) / 2;
-        edge_to_id_user.reserve(ne);
-        for (Index e = 0; e < ne; ++e) {
-            edge_to_id_user.emplace_back(input_edges[2 * e], input_edges[2 * e + 1], e);
+    if (get_user_edge_ptr != nullptr) {
+        edge_to_id_user.reserve(num_user_edges);
+        for (Index e = 0; e < num_user_edges; ++e) {
+            auto v = (*get_user_edge_ptr)(e);
+            edge_to_id_user.emplace_back(v[0], v[1], e);
         }
         tbb::parallel_sort(edge_to_id_user.begin(), edge_to_id_user.end());
     }

@@ -141,6 +141,17 @@ public:
         return m_geometry->get_facets();
     }
 
+    VertexArray& ref_vertices()
+    {
+        la_runtime_assert(is_initialized());
+        return m_geometry->get_vertices_ref();
+    }
+    FacetArray& ref_facets()
+    {
+        la_runtime_assert(is_initialized());
+        return m_geometry->get_facets_ref();
+    }
+
     std::vector<std::string> get_vertex_attribute_names() const
     {
         la_runtime_assert(is_initialized());
@@ -312,6 +323,14 @@ public:
         return attr->get()->template get<AttributeArray>();
     }
 
+    decltype(auto) get_edge_attribute_array(const std::string& name) const
+    {
+        la_runtime_assert(is_initialized() && is_edge_data_initialized());
+        auto* attr = m_edge_attributes->get(name);
+        la_runtime_assert(attr != nullptr, "Attribute " + name + " is not initialized.");
+        return attr->get();
+    }
+
     decltype(auto) get_edge_attribute_array(const std::string& name)
     {
         la_runtime_assert(is_initialized() && is_edge_data_initialized());
@@ -331,6 +350,14 @@ public:
     }
 
     auto get_indexed_attribute_array(const std::string& name) const
+    {
+        la_runtime_assert(is_initialized());
+        const auto data = m_indexed_attributes->get(name);
+        la_runtime_assert(data != nullptr);
+        return std::make_tuple(data->get_values(), data->get_indices());
+    }
+
+    auto get_indexed_attribute_array(const std::string& name)
     {
         la_runtime_assert(is_initialized());
         const auto data = m_indexed_attributes->get(name);

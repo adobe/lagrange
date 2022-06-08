@@ -26,6 +26,7 @@
 #include <lagrange/ui/types/ShaderLoader.h>
 #include <lagrange/ui/utils/layer.h>
 #include <lagrange/ui/utils/lights.h>
+#include <lagrange/ui/utils/logger.h>
 #include <lagrange/ui/utils/mesh.h>
 #include <lagrange/ui/utils/render.h>
 
@@ -329,10 +330,8 @@ void activate_shader(Registry& r, Shader& shader, RenderContext& rctx)
     }
 
 #if defined(__EMSCRIPTEN__)
-    static bool err_nonce = false;
-    if (num_point > 0 && !err_nonce) {
-        lagrange::logger().error("Point lights are currently not implemented for Emscripten/WebGL");
-        err_nonce = true;
+    if (num_point > 0) {
+        log_error_once(r, "Point lights are currently not implemented for Emscripten/WebGL");
     }
 #endif
 
@@ -549,8 +548,6 @@ void render_gl_render_queue(Registry& r)
 
         shader["alpha_multiplier"] = 1.0f;
 
-        static bool draw_buffer_error_once = false;
-
         for (auto& it : material.int_values) {
             // Set uniform if exists
             shader.uniform(it.first) = it.second;
@@ -574,10 +571,8 @@ void render_gl_render_queue(Registry& r)
 #if defined(__EMSCRIPTEN__)
                 // TODO WebGL: glDrawBuffer is not supported.
                 // Consider using glDrawBuffers instead.
-                if (!draw_buffer_error_once) {
-                    logger().error("WebGL does not support glDrawBuffer.");
-                    draw_buffer_error_once = true;
-                }
+                log_error_once(r, "WebGL does not support glDrawBuffer.");
+
 #else
                 gl(glDrawBuffer, it.second);
 #endif
@@ -629,8 +624,7 @@ void render_gl_render_queue(Registry& r)
 
         if (material.int_values.count(RasterizerOptions::PolygonMode)) {
 #if defined(__EMSCRIPTEN__)
-            // TODO WebGL: glPolygonMode is not supported.
-            logger().error("WebGL does not support glPolygonMode.");
+            log_error_once(r, "WebGL does not support glPolygonMode.");
 #else
             const int mode = material.int_values.at(RasterizerOptions::PolygonMode);
             gl(glPolygonMode, GL_FRONT_AND_BACK, mode);
@@ -639,15 +633,13 @@ void render_gl_render_queue(Registry& r)
 
         if (material.float_values.count(RasterizerOptions::PointSize)) {
 #if defined(__EMSCRIPTEN__)
-            // TODO WebGL: glPointSize is not supported.
-            logger().error("WebGL does not support glPointSize.");
+            log_error_once(r, "WebGL does not support glPointSize.");
 #else
             gl(glPointSize, material.float_values.at(RasterizerOptions::PointSize));
 #endif
         } else if (material.int_values.count(RasterizerOptions::PointSize)) {
 #if defined(__EMSCRIPTEN__)
-            // TODO WebGL: glPointSize is not supported.
-            logger().error("WebGL does not support glPointSize.");
+            log_error_once(r, "WebGL does not support glPointSize.");
 #else
             gl(glPointSize, float(material.int_values.at(RasterizerOptions::PointSize)));
 #endif

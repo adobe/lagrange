@@ -14,7 +14,7 @@
 #include <lagrange/ExactPredicates.h>
 #include <lagrange/common.h>
 
-TEST_CASE("ExactPredicates", "[ExactPredciates]")
+TEST_CASE("ExactPredicates", "[ExactPredicates]")
 {
     using namespace lagrange;
     auto predicates = ExactPredicates::create("shewchuk");

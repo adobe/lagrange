@@ -13,7 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 
-#include <vector>
+#include <string_view>
 
 namespace lagrange {
 
@@ -25,16 +25,27 @@ namespace lagrange {
 ///
 /// @{
 
-///
-/// Triangulate polygonal facets of a mesh using a prescribed set of rules.
-///
-/// @param[in, out] mesh     Polygonal mesh to triangulate in place.
-///
-/// @tparam         Scalar   Mesh scalar type.
-/// @tparam         Index    Mesh index type.
-///
+/**
+ * Compute facet normals.
+ *
+ * @param[in, out] mesh    The input mesh.
+ * @param[in]      name    The facet normal attribute name.
+ *
+ * @tparam         Scalar  Mesh scalar type.
+ * @tparam         Index   Mesh index type.
+ *
+ * @return         AttributeId  The attribute id of the facet normal attribute.
+ *
+ * @post           The computed facet normals are stored in `mesh` as a facet attribute named
+ *                 `name`.
+ *
+ * @note           Non-planar polygonal facet's normal is not well defined.  This method can only
+ *                 compute an approximated normal using a triangle fan.
+ */
 template <typename Scalar, typename Index>
-void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh);
+AttributeId compute_facet_normal(
+    SurfaceMesh<Scalar, Index>& mesh,
+    std::string_view name = "@facet_normal");
 
 /// @}
 

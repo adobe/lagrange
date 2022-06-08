@@ -56,7 +56,6 @@ public:
 
     virtual const FacetArray& get_facets() const override { return m_facets; }
 
-protected:
     virtual VertexArray& get_vertices_ref() override
     {
         // We assume geometry remain unchanged during the entire life span.
