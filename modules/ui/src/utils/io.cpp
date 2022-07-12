@@ -290,24 +290,10 @@ Entity detail::load_scene_impl(
                     } else if (fmt == "rgba8880") {
                         tex_param.format = GL_RGB;
                     } else {
-                        const auto fmt = std::string(embedded->achFormatHint);
-                        if (fmt == "rgba8888") {
-                            tex_param.format = GL_RGBA;
-                        } else if (fmt == "rgba8880") {
-                            tex_param.format = GL_RGB;
-                        } else {
-                            tex_param.format = 0;
-                            lagrange::logger().error("Unsupported packed texture fromat {}", fmt);
-                        }
-
-                        if (tex_param.format != 0) {
-                            tex = std::make_shared<Texture>(
-                                tex_param,
-                                embedded->mWidth,
-                                embedded->mHeight);
-                        }
+                        tex_param.format = 0;
+                        lagrange::logger().error("Unsupported packed texture fromat {}", fmt);
                     }
-
+                    
                     if (tex_param.format != 0) {
                         tex = std::make_shared<Texture>(
                             tex_param,
@@ -384,8 +370,6 @@ Entity detail::load_scene_impl(
 
 
     std::function<Entity(Entity, aiNode*)> walk;
-
-
     walk = [&](Entity parent, aiNode* node) -> Entity {
         if (!node) return NullEntity;
 
@@ -399,6 +383,7 @@ Entity detail::load_scene_impl(
                 t(i, j) = node->mTransformation[i][j];
             }
         }
+        ui::set_transform(r, e, t);
 
 
         for (unsigned int mesh_index = 0; mesh_index < node->mNumMeshes; mesh_index++) {

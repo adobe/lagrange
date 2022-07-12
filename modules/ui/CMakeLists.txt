@@ -38,8 +38,11 @@ include(portable_file_dialogs)
 target_link_libraries(imgui PUBLIC Eigen3::Eigen)
 
 get_property(lagrange_source_dir GLOBAL PROPERTY __lagrange_source_dir)
+
+get_filename_component(IMCONFIG_ABS_PATH "${lagrange_source_dir}/modules/ui/include/lagrange/ui/imgui/imconfig.h" ABSOLUTE)
+
 target_compile_definitions(imgui PUBLIC
-    IMGUI_USER_CONFIG="${lagrange_source_dir}/modules/ui/include/lagrange/ui/imgui/imconfig.h"
+    IMGUI_USER_CONFIG="${IMCONFIG_ABS_PATH}"
 )
 
 target_link_libraries(lagrange_ui

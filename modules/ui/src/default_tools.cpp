@@ -29,9 +29,11 @@
 
 #include <lagrange/ui/panels/ViewportPanel.h>
 
-
-#include <ImGuizmo.h>
+// clang-format off
+// imgui must be included before imguizmo
 #include <imgui.h>
+#include <ImGuizmo.h>
+// clang-format on
 
 namespace lagrange {
 namespace ui {

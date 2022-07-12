@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     imguizmo
     GIT_REPOSITORY https://github.com/CedricGuillemet/ImGuizmo.git
-    GIT_TAG ace44b6ddae5c9ee7e48d8e25589838ec40227fa
+    GIT_TAG e3174578bdc99c715e51c5ad88e7d50b4eeb19b0
 )
 FetchContent_MakeAvailable(imguizmo)
 

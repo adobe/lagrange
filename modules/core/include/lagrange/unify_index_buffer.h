@@ -18,6 +18,18 @@
 
 namespace lagrange {
 
+///
+/// @defgroup   group-surfacemesh-attr-utils Attributes utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various attribute processing utilities
+///
+/// @{
+
+///
+/// @name Index buffer unification
+/// @{
+
 /**
  * Unify index buffers of the input `mesh` for all attributes specified in `attribute_ids`.
  *
@@ -53,5 +65,8 @@ template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> unify_named_index_buffer(
     const SurfaceMesh<Scalar, Index>& mesh,
     const std::vector<std::string_view>& attribute_names);
+
+/// @}
+/// @}
 
 } // namespace lagrange

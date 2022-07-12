@@ -39,7 +39,7 @@ target_include_directories(opensubdiv SYSTEM PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+if(CMAKE_HOST_WIN32)
     target_compile_definitions(opensubdiv PUBLIC _USE_MATH_DEFINES)
 endif()
 

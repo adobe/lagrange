@@ -33,20 +33,20 @@ namespace lagrange {
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> unify_index_buffer(
     const SurfaceMesh<Scalar, Index>& mesh,
-    const std::vector<AttributeId>& selected_attribute_ids)
+    const std::vector<AttributeId>& attribute_ids)
 {
     enum CompResult : short { LESS = -1, EQUAL = 0, GREATER = 1 };
     std::vector<span<const Index>> selected_indices;
-    selected_indices.reserve(selected_attribute_ids.size());
+    selected_indices.reserve(attribute_ids.size());
 
     // Gather involved indices.
     seq_foreach_named_attribute_read<Indexed>(mesh, [&](std::string_view name, auto&& attr) {
         if (mesh.attr_name_is_reserved(name)) return;
-        if (!selected_attribute_ids.empty()) {
+        if (!attribute_ids.empty()) {
             if (std::find(
-                    selected_attribute_ids.begin(),
-                    selected_attribute_ids.end(),
-                    mesh.get_attribute_id(name)) == selected_attribute_ids.end())
+                    attribute_ids.begin(),
+                    attribute_ids.end(),
+                    mesh.get_attribute_id(name)) == attribute_ids.end())
                 return;
         }
         selected_indices.push_back(attr.indices().get_all());
@@ -176,9 +176,8 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         if (mesh.attr_name_is_reserved(name)) return;
         auto attr_id = mesh.get_attribute_id(name);
 
-        if (!selected_attribute_ids.empty() &&
-            std::find(selected_attribute_ids.begin(), selected_attribute_ids.end(), attr_id) !=
-                selected_attribute_ids.end()) {
+        if (!attribute_ids.empty() &&
+            std::find(attribute_ids.begin(), attribute_ids.end(), attr_id) != attribute_ids.end()) {
             logger().info(
                 "Unified index buffer: mapping indexed attribute \"{}\" as vertex attribute",
                 name);
@@ -245,10 +244,10 @@ SurfaceMesh<Scalar, Index> unify_named_index_buffer(
 #define LA_X_unify_index_buffer(_, Scalar, Index)                 \
     template SurfaceMesh<Scalar, Index> unify_index_buffer(       \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
-        const std::vector<AttributeId>&);                         \
+        const std::vector<AttributeId>& attribute_ids);           \
     template SurfaceMesh<Scalar, Index> unify_named_index_buffer( \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
-        const std::vector<std::string_view>&);
+        const std::vector<std::string_view>& attribute_names);
 LA_SURFACE_MESH_X(unify_index_buffer, 0)
 
 } // namespace lagrange

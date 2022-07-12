@@ -26,13 +26,18 @@ include(lagrange_filter_flags)
 # options
 # More options can be found at:
 # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html#variable:CMAKE_%3CLANG%3E_COMPILER_ID
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    # using Visual Studio C++ on Windows
+
+# When compiling on Windows 
+# Applied for MSVC with Windows target and also for cross-compiling using other toolchains
+if(CMAKE_HOST_WIN32)
     target_compile_definitions(lagrange_warnings INTERFACE _USE_MATH_DEFINES)
     target_compile_definitions(lagrange_warnings INTERFACE _CRT_SECURE_NO_WARNINGS)
     target_compile_definitions(lagrange_warnings INTERFACE _ENABLE_EXTENDED_ALIGNED_STORAGE)
     target_compile_definitions(lagrange_warnings INTERFACE NOMINMAX)
+endif()
 
+# using Visual Studio C++ on Windows
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(options
         # using /Wall on Visual Studio is a bad idea, since it enables all
         # warnings that are disabled by default. /W4 is for lint-like warnings.

@@ -13,7 +13,7 @@
  #include "layout/default_vertex_layout.glsl"
 
 #ifdef SKELETAL
-const int MAX_NUM_BONES = 32;
+const int MAX_NUM_BONES = 64;
 uniform mat4 bones[MAX_NUM_BONES];
 #endif
 
