@@ -15,7 +15,7 @@
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -54,6 +54,15 @@ TEST_CASE("Assert", "[next]")
     REQUIRE_NOTHROW(la_debug_assert(false));
     REQUIRE_NOTHROW(la_debug_assert(false, "This is false"));
 #endif // NDEBUG
+
+    int r = 0;
+    auto add_to_r = [&](){r++; return true;};
+    la_debug_assert(add_to_r());
+#ifdef NDEBUG
+    REQUIRE(r == 0);
+#else
+    REQUIRE(r == 1);
+#endif
 
     SUCCEED();
 }

@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/NormalWeightingType.h>
 #include <lagrange/SurfaceMesh.h>
 
 #include <string_view>
@@ -25,27 +26,36 @@ namespace lagrange {
 ///
 /// @{
 
+///
+/// Option struct for computing per-facet mesh normals.
+///
+struct FacetNormalOptions
+{
+    /// Output normal attribute name.
+    std::string_view output_attribute_name = "@facet_normal";
+};
+
 /**
  * Compute facet normals.
  *
- * @param[in, out] mesh    The input mesh.
- * @param[in]      name    The facet normal attribute name.
+ * @param[in, out] mesh     The input mesh.
+ * @param[in]      options  Optional arguments to control normal generation.
  *
- * @tparam         Scalar  Mesh scalar type.
- * @tparam         Index   Mesh index type.
+ * @tparam         Scalar   Mesh scalar type.
+ * @tparam         Index    Mesh index type.
  *
  * @return         AttributeId  The attribute id of the facet normal attribute.
  *
  * @post           The computed facet normals are stored in `mesh` as a facet attribute named
- *                 `name`.
+ *                 `options.output_attribute_name`.
  *
  * @note           Non-planar polygonal facet's normal is not well defined.  This method can only
  *                 compute an approximated normal using a triangle fan.
+ *
+ * @see            `FacetNormalOptions`.
  */
 template <typename Scalar, typename Index>
-AttributeId compute_facet_normal(
-    SurfaceMesh<Scalar, Index>& mesh,
-    std::string_view name = "@facet_normal");
+AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOptions options = {});
 
 /// @}
 

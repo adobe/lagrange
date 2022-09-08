@@ -22,12 +22,6 @@
 #include <lagrange/corner_to_edge_mapping.h>
 #include <lagrange/utils/geometry3d.h>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <igl/internal_angles.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include <tbb/parallel_for.h>
 
 namespace lagrange {

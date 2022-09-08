@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
@@ -92,7 +93,7 @@ TEST_CASE("SamplePointsOnSurface", "[sample_points_on_surface][triangle_mesh]" L
                                               V.row(F(facet_id, 2)) * bary(2);
             //
             for (auto j : range(position_method0.cols())) {
-                REQUIRE(position_method0(j) == Approx(position_method1(j)).margin(1e-10));
+                REQUIRE(position_method0(j) == Catch::Approx(position_method1(j)).margin(1e-10));
             }
         }
 
@@ -295,15 +296,15 @@ TEST_CASE("SamplePointsOnSurface", "[sample_points_on_surface][triangle_mesh]" L
 
         // Make sure they are the same
         const double eps = 0.5;
-        SECTION("Ix") { REQUIRE(Ix_expected == Approx(Ix_computed).margin(eps)); }
-        SECTION("Iy") { REQUIRE(Iy_expected == Approx(Iy_computed).margin(eps)); }
-        SECTION("Iz") { REQUIRE(Iz_expected == Approx(Iz_computed).margin(eps)); }
-        SECTION("Ixx") { REQUIRE(Ixx_expected == Approx(Ixx_computed).margin(eps)); }
-        SECTION("Iyy") { REQUIRE(Iyy_expected == Approx(Iyy_computed).margin(eps)); }
-        SECTION("Izz") { REQUIRE(Izz_expected == Approx(Izz_computed).margin(eps)); }
-        SECTION("Ixy") { REQUIRE(Ixy_expected == Approx(Ixy_computed).margin(eps)); }
-        SECTION("Ixz") { REQUIRE(Ixz_expected == Approx(Ixz_computed).margin(eps)); }
-        SECTION("Iyz") { REQUIRE(Iyz_expected == Approx(Iyz_computed).margin(eps)); }
+        SECTION("Ix") { REQUIRE(Ix_expected == Catch::Approx(Ix_computed).margin(eps)); }
+        SECTION("Iy") { REQUIRE(Iy_expected == Catch::Approx(Iy_computed).margin(eps)); }
+        SECTION("Iz") { REQUIRE(Iz_expected == Catch::Approx(Iz_computed).margin(eps)); }
+        SECTION("Ixx") { REQUIRE(Ixx_expected == Catch::Approx(Ixx_computed).margin(eps)); }
+        SECTION("Iyy") { REQUIRE(Iyy_expected == Catch::Approx(Iyy_computed).margin(eps)); }
+        SECTION("Izz") { REQUIRE(Izz_expected == Catch::Approx(Izz_computed).margin(eps)); }
+        SECTION("Ixy") { REQUIRE(Ixy_expected == Catch::Approx(Ixy_computed).margin(eps)); }
+        SECTION("Ixz") { REQUIRE(Ixz_expected == Catch::Approx(Ixz_computed).margin(eps)); }
+        SECTION("Iyz") { REQUIRE(Iyz_expected == Catch::Approx(Iyz_computed).margin(eps)); }
 
         // Save the mesh if rquired
         if (should_dump_meshes) {

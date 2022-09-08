@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Adobe. All rights reserved.
+# Copyright 2017 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -12,5 +12,5 @@
 include(cli11)
 lagrange_include_modules(io)
 
-lagrange_add_example(mesh_cleanup main.cpp)
+lagrange_add_example(mesh_cleanup mesh_cleanup.cpp)
 target_link_libraries(mesh_cleanup lagrange::core lagrange::io CLI11::CLI11)

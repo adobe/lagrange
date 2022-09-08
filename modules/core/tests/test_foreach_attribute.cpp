@@ -18,10 +18,11 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <map>
 #include <sstream>
 #include <unordered_map>
 

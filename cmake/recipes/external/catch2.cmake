@@ -19,7 +19,14 @@ include(FetchContent)
 FetchContent_Declare(
     catch2
     GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v2.13.7
+    GIT_TAG v3.0.0-preview4
     GIT_SHALLOW TRUE
 )
+
+option(CATCH_CONFIG_CPP17_STRING_VIEW "Enable support for std::string_view" ON)
 FetchContent_MakeAvailable(catch2)
+
+target_compile_features(Catch2 PUBLIC cxx_std_17)
+
+set_target_properties(Catch2 PROPERTIES FOLDER third_party)
+set_target_properties(Catch2WithMain PROPERTIES FOLDER third_party)

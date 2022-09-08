@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Adobe. All rights reserved.
+# Copyright 2019 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -46,16 +46,18 @@ endif()
 if(LAGRANGE_ASSERT_DEBUG_BREAK)
     target_compile_definitions(lagrange_core PRIVATE -DLA_ENABLE_ASSERT_DEBUG_BREAK)
 endif()
+if (LAGRANGE_ENABLE_LEGACY_FUNCTIONS)
+    target_compile_definitions(lagrange_core PUBLIC
+        -DLAGRANGE_ENABLE_LEGACY_FUNCTIONS)
+endif()
 
 # 2. dependencies
 include(eigen)
-include(libigl)
 include(span-lite)
 include(spdlog)
 include(tbb)
 target_link_libraries(lagrange_core PUBLIC
     Eigen3::Eigen
-    igl::core
     lagrange::warnings
     nonstd::span-lite
     spdlog::spdlog

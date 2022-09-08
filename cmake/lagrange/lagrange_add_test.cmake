@@ -14,6 +14,12 @@ function(lagrange_add_test)
     get_filename_component(module_path "${CMAKE_CURRENT_SOURCE_DIR}/.." REALPATH)
     get_filename_component(module_name "${module_path}" NAME)
 
+    # Retrieve options
+    set(options CUSTOM_MAIN)
+    set(oneValueArgs "")
+    set(multiValueArgs "")
+    cmake_parse_arguments(OPTIONS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
     # Create test executable
     file(GLOB_RECURSE SRC_FILES "*.cpp" "*.h")
     include(lagrange_add_executable)
@@ -28,9 +34,19 @@ function(lagrange_add_test)
         lagrange::testing
     )
 
+    # Use Catch2's provided main() by default
+    if(NOT OPTIONS_CUSTOM_MAIN)
+        target_link_libraries(${test_target} PUBLIC Catch2::Catch2WithMain)
+    endif()
+
     # Enable code coverage
     include(FetchContent)
     target_code_coverage(${test_target} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
+
+    # TSan suppression file to be passed to catch_discover_tests
+    set(LAGRANGE_TESTS_ENVIRONMENT
+        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/scripts/tsan.suppressions"
+    )
 
     # Output directory
     set_target_properties(${test_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
@@ -42,9 +58,12 @@ function(lagrange_add_test)
             REPORTER junit
             OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
             OUTPUT_SUFFIX ".xml"
+            PROPERTIES ENVIRONMENT ${LAGRANGE_TESTS_ENVIRONMENT}
         )
     else()
-        catch_discover_tests(${test_target})
+        catch_discover_tests(${test_target}
+            PROPERTIES ENVIRONMENT ${LAGRANGE_TESTS_ENVIRONMENT}
+        )
     endif()
 
 endfunction()

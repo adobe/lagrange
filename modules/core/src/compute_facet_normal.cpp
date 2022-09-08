@@ -12,10 +12,13 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
+
+#include "internal/string_from_scalar.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -28,16 +31,37 @@
 namespace lagrange {
 
 template <typename Scalar, typename Index>
-AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, std::string_view name)
+AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOptions options)
 {
     la_runtime_assert(mesh.get_dimension() == 3, "Only 3D mesh is supported.");
     const auto num_facets = mesh.get_num_facets();
     AttributeId id;
-    if (!mesh.has_attribute(name)) {
-        id = mesh.template create_attribute<Scalar>(name, Facet, AttributeUsage::Normal, 3);
+    if (!mesh.has_attribute(options.output_attribute_name)) {
+        id = mesh.template create_attribute<Scalar>(
+            options.output_attribute_name,
+            Facet,
+            AttributeUsage::Normal,
+            3);
     } else {
-        id = mesh.get_attribute_id(name);
+        // Sanity checks on user-given attribute name
+        id = mesh.get_attribute_id(options.output_attribute_name);
+        la_runtime_assert(!mesh.is_attribute_indexed(id), "Attribute should not be indexed");
+        la_runtime_assert(
+            mesh.template is_attribute_type<Scalar>(id),
+            fmt::format("Attribute type should be {}", internal::string_from_scalar<Scalar>()));
+        const auto& attr = mesh.template get_attribute<Scalar>(id);
+        la_runtime_assert(
+            attr.get_num_channels() == 3,
+            fmt::format("Attribute should have 3 channels, not {}", attr.get_num_channels()));
+        la_runtime_assert(
+            attr.get_usage() == AttributeUsage::Normal,
+            "Attribute usage should be normal");
+        la_runtime_assert(!attr.is_read_only(), "Attribute is read only");
+        logger().debug(
+            "Attribute {} already exists, overwriting it.",
+            options.output_attribute_name);
     }
+
     auto& attr = mesh.template ref_attribute<Scalar>(id);
     la_debug_assert(static_cast<Index>(attr.get_num_elements()) == num_facets);
     auto attr_ref = attr.ref_all(); // Just to trigger copy-on-write.
@@ -64,7 +88,7 @@ AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, std::string_v
 }
 
 #define LA_X_compute_facet_normal(_, Scalar, Index) \
-    template AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, std::string_view);
+    template AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOptions);
 LA_SURFACE_MESH_X(compute_facet_normal, 0)
 
 } // namespace lagrange

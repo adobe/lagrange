@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2017 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
@@ -31,8 +32,8 @@ TEST_CASE("2DTriangleFacetArea", "[mesh][triangle][area]")
 
     auto& areas = mesh->get_facet_attribute("area");
     REQUIRE(areas.rows() == facets.rows());
-    REQUIRE(areas(0, 0) == Approx(0.5));
-    REQUIRE(areas(1, 0) == Approx(0.5));
+    REQUIRE(areas(0, 0) == Catch::Approx(0.5));
+    REQUIRE(areas(1, 0) == Catch::Approx(0.5));
 }
 
 TEST_CASE("3DTriangleFacetArea", "[mesh][triangle][area]")
@@ -50,8 +51,8 @@ TEST_CASE("3DTriangleFacetArea", "[mesh][triangle][area]")
 
     auto& areas = mesh->get_facet_attribute("area");
     REQUIRE(areas.rows() == facets.rows());
-    REQUIRE(areas(0, 0) == Approx(0.5));
-    REQUIRE(areas(1, 0) == Approx(0.5));
+    REQUIRE(areas(0, 0) == Catch::Approx(0.5));
+    REQUIRE(areas(1, 0) == Catch::Approx(0.5));
 }
 
 TEST_CASE("2DQuadFacetArea", "[mesh][quad][area]")
@@ -69,7 +70,7 @@ TEST_CASE("2DQuadFacetArea", "[mesh][quad][area]")
 
     auto& areas = mesh->get_facet_attribute("area");
     REQUIRE(areas.rows() == facets.rows());
-    REQUIRE(areas(0, 0) == Approx(1.0));
+    REQUIRE(areas(0, 0) == Catch::Approx(1.0));
 }
 
 TEST_CASE("3DQuadFacetArea", "[mesh][quad][area]")
@@ -87,7 +88,7 @@ TEST_CASE("3DQuadFacetArea", "[mesh][quad][area]")
 
     auto& areas = mesh->get_facet_attribute("area");
     REQUIRE(areas.rows() == facets.rows());
-    REQUIRE(areas(0, 0) == Approx(1.0));
+    REQUIRE(areas(0, 0) == Catch::Approx(1.0));
 }
 
 TEST_CASE("SingleUVArea", "[mesh][uv][area]")

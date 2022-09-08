@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2018 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -18,6 +18,7 @@
 #include <lagrange/mesh_cleanup/remove_duplicate_facets.h>
 #include <lagrange/utils/safe_cast.h>
 
+#include <catch2/catch_approx.hpp>
 
 TEST_CASE("RemoveDuplicateFacetsTest", "[duplicate][cleanup][mesh]")
 {
@@ -41,7 +42,7 @@ TEST_CASE("RemoveDuplicateFacetsTest", "[duplicate][cleanup][mesh]")
         REQUIRE(out_mesh->get_uv_indices().rows() == 2);
 
         auto uv_areas = compute_uv_area_raw(out_mesh->get_uv(), out_mesh->get_uv_indices());
-        REQUIRE(uv_areas.sum() == Approx(1.0));
+        REQUIRE(uv_areas.sum() == Catch::Approx(1.0));
     }
 
     SECTION("Simple duplicates")
@@ -81,7 +82,7 @@ TEST_CASE("RemoveDuplicateFacetsTest", "[duplicate][cleanup][mesh]")
         REQUIRE(out_mesh->get_uv_indices().rows() == 2);
 
         auto uv_areas = compute_uv_area_raw(out_mesh->get_uv(), out_mesh->get_uv_indices());
-        REQUIRE(uv_areas.sum() == Approx(1.0));
+        REQUIRE(uv_areas.sum() == Catch::Approx(1.0));
     }
 
     SECTION("Empty mesh")

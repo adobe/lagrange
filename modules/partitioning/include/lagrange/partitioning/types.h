@@ -9,9 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-////////////////////////////////////////////////////////////////////////////////
-// Keep this file empty, and implement unit tests in separate compilation units!
-////////////////////////////////////////////////////////////////////////////////
+#pragma once
 
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch.hpp>
+#include <cstdint>
+
+namespace lagrange {
+namespace partitioning {
+
+/// Index type used by METIS
+using index_t = int32_t;
+
+} // namespace partitioning
+} // namespace lagrange

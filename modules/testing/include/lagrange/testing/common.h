@@ -14,14 +14,16 @@
 // An alternative to injecting asset locations as command line macros,
 // is using a generated header.
 #ifdef LA_TESTING_USE_CONFIG
-#include <lagrange/testing/public_config.h>
+    #include <lagrange/testing/public_config.h>
 #endif
 
+#include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/utils/assert.h>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 
 ///
 /// Convenience macro wrapping around Catch2's REQUIRE_THROWS macro. We disable triggering debugger
@@ -107,6 +109,27 @@ std::unique_ptr<MeshType> load_mesh(const fs::path& relative_path)
 }
 extern template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
 extern template std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
+
+///
+/// Load a mesh from test data directory as a `SurfaceMesh`.
+///
+/// @param[in]  relative_path  Relative path of the file to load.
+///
+/// @tparam     Scalar       Scalar type.
+/// @tparam     Index        Index type.
+///
+/// @return     A `SurfaceMesh` obj.
+///
+/// @note  Only obj mesh are supported for now.
+///
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> load_surface_mesh(const fs::path& relative_path)
+{
+    auto result =
+        lagrange::io::load_mesh_obj<SurfaceMesh<Scalar, Index>>(get_data_path(relative_path));
+    REQUIRE(result.success);
+    return result.mesh;
+}
 
 ///
 /// Set up MKL Conditional Numerical Reproducibility to ensure maximum compatibility between

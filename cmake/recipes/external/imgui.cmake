@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Adobe. All rights reserved.
+# Copyright 2019 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -34,7 +34,7 @@ include(FetchContent)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/adobe/imgui.git
-    GIT_TAG docking_v1.88
+    GIT_TAG 86e67ae3290b663ea416e224e84fc1af46d5eb43 # docking_v1.88
 )
 FetchContent_MakeAvailable(imgui)
 

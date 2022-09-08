@@ -23,11 +23,13 @@
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
 #include <set>
+#include <numeric>
+#include <random>
 #include <unordered_set>
 
 namespace {
@@ -249,7 +251,7 @@ void check_valid(const MeshType& mesh)
                 const Index c = first_corner + lv;
                 const Index e = c2e[c];
                 REQUIRE(mesh.get_edge(f, lv) == e);
-                REQUIRE(mesh.get_edge_from_corner(c) == e);
+                REQUIRE(mesh.get_corner_edge(c) == e);
                 REQUIRE(corners_around_vertex[v].count(c) == 0);
                 REQUIRE(corners_around_edge[e].count(c) == 0);
                 corners_around_vertex[v].insert(c);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <lagrange/combine_mesh_list.h>
 #include <lagrange/common.h>
@@ -178,10 +179,10 @@ TEST_CASE("combine_mesh_list", "[mesh][combine]")
             REQUIRE(out_indices.rows() == 4);
             REQUIRE(out_indices.cols() == 3);
 
-            REQUIRE(out_values.minCoeff() == Approx(1));
-            REQUIRE(out_values.maxCoeff() == Approx(6));
-            REQUIRE(out_indices.minCoeff() == Approx(0));
-            REQUIRE(out_indices.maxCoeff() == Approx(11));
+            REQUIRE(out_values.minCoeff() == Catch::Approx(1));
+            REQUIRE(out_values.maxCoeff() == Catch::Approx(6));
+            REQUIRE(out_indices.minCoeff() == Catch::Approx(0));
+            REQUIRE(out_indices.maxCoeff() == Catch::Approx(11));
         }
     }
 }

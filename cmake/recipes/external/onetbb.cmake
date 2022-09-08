@@ -13,7 +13,7 @@ if(TARGET TBB::tbb)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating targets 'TBB::tbb'")
+message(STATUS "Third-party (external): creating target 'TBB::tbb' (OneTBB)")
 
 # Emscripten sets CMAKE_SYSTEM_PROCESSOR to "x86". Change it to "WASM" to prevent TBB from
 # adding machine-specific "-mrtm" and "-mwaitpkg" compile options.

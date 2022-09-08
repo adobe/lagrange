@@ -235,18 +235,18 @@ auto load_mesh_ext(
             auto index = indices[i];
             index.vertex_index =
                 fix_index(index.vertex_index, num_vertices, loader.vertex_offset);
-            assert(index.vertex_index >= 0 && index.vertex_index < num_vertices);
+            assert(index.vertex_index >= 0 && index.vertex_index < static_cast<int>(num_vertices));
             if (loader.params.load_normals && num_normals) {
                 index.normal_index =
                     fix_index(index.normal_index, num_normals, loader.normal_offset);
-                assert(index.normal_index >= 0 && index.normal_index < num_normals);
+                assert(index.normal_index >= 0 && index.normal_index < static_cast<int>(num_normals));
             } else {
                 index.normal_index = -1;
             }
             if (loader.params.load_uvs && num_uvs) {
                 index.texcoord_index =
                     fix_index(index.texcoord_index, num_uvs, loader.uv_offset);
-                assert(index.texcoord_index >= 0 && index.texcoord_index < num_uvs);
+                assert(index.texcoord_index >= 0 && index.texcoord_index < static_cast<int>(num_uvs));
             } else {
                 index.texcoord_index = -1;
             }

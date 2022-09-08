@@ -183,27 +183,27 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
     template <typename ValueType>
     [[nodiscard]] Attribute<ValueType>& write(AttributeId id)
     {
-        return *m_attributes.at(id).second.template dynamic_write<Attribute<ValueType>>();
+        return *m_attributes.at(id).second.template static_write<Attribute<ValueType>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] IndexedAttribute<ValueType, Index>& write_indexed(AttributeId id)
     {
         return *m_attributes.at(id)
-                    .second.template dynamic_write<IndexedAttribute<ValueType, Index>>();
+                    .second.template static_write<IndexedAttribute<ValueType, Index>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] const Attribute<ValueType>& read(AttributeId id) const
     {
-        return *m_attributes.at(id).second.template dynamic_read<Attribute<ValueType>>();
+        return *m_attributes.at(id).second.template static_read<Attribute<ValueType>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] const IndexedAttribute<ValueType, Index>& read_indexed(AttributeId id) const
     {
         return *m_attributes.at(id)
-                    .second.template dynamic_read<IndexedAttribute<ValueType, Index>>();
+                    .second.template static_read<IndexedAttribute<ValueType, Index>>();
     }
 
     template <typename ValueType>
@@ -345,8 +345,8 @@ template <typename ValueType>
 AttributeId SurfaceMesh<Scalar, Index>::create_attribute(
     std::string_view name,
     AttributeElement element,
-    AttributeUsage usage,
     size_t num_channels,
+    AttributeUsage usage,
     span<const ValueType> initial_values,
     span<const Index> initial_indices,
     AttributeCreatePolicy policy)
@@ -363,6 +363,27 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute(
         num_channels,
         initial_values,
         initial_indices);
+}
+
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::create_attribute(
+    std::string_view name,
+    AttributeElement element,
+    AttributeUsage usage,
+    size_t num_channels,
+    span<const ValueType> initial_values,
+    span<const Index> initial_indices,
+    AttributeCreatePolicy policy)
+{
+    return create_attribute(
+        name,
+        element,
+        num_channels,
+        usage,
+        initial_values,
+        initial_indices,
+        policy);
 }
 
 template <typename Scalar, typename Index>
@@ -1736,6 +1757,7 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
     // Sort new unoriented edges + assign corner -> edge mapping to previously existing edges
     std::vector<UnorientedEdge> edge_to_corner;
     edge_to_corner.reserve(corner_end - corner_begin);
+    const bool whole_mesh = (facet_end - facet_begin == get_num_facets());
     for (Index f = facet_begin; f < facet_end; ++f) {
         const Index c0 = get_facet_corner_begin(f);
         const Index nv = get_facet_size(f);
@@ -1743,22 +1765,27 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
             auto v1 = corner_to_vertex[c0 + lv];
             auto v2 = corner_to_vertex[c0 + ((lv + 1) % nv)];
             UnorientedEdge edge(v1, v2, c0 + lv);
-            // Check corners around v1 and v2 for existing edges with endpoints {v1, v2}
             Index assigned_e = invalid<Index>();
-            for (Index v : {v1, v2}) {
-                if (assigned_e == invalid<Index>()) {
-                    foreach_edge_around_vertex_with_duplicates(v, [&](Index e) {
-                        if (assigned_e != invalid<Index>()) {
-                            return;
-                        }
-                        if (e != invalid<Index>()) {
-                            auto w = get_edge_vertices(e);
-                            UnorientedEdge other(w[0], w[1], e);
-                            if (edge.key() == other.key()) {
-                                assigned_e = e;
+            if (!whole_mesh) {
+                // Check corners around v1 and v2 for existing edges with endpoints {v1, v2}
+                // This look is disabled when we are assigning edge ids for the whole mesh, since
+                // this adds a significant overhead. We should look into more efficient ways to
+                // incrementally add vertices/facets on a mesh with edge id information.
+                for (Index v : {v1, v2}) {
+                    if (assigned_e == invalid<Index>()) {
+                        foreach_edge_around_vertex_with_duplicates(v, [&](Index e) {
+                            if (assigned_e != invalid<Index>()) {
+                                return;
                             }
-                        }
-                    });
+                            if (e != invalid<Index>()) {
+                                auto w = get_edge_vertices(e);
+                                UnorientedEdge other(w[0], w[1], e);
+                                if (edge.key() == other.key()) {
+                                    assigned_e = e;
+                                }
+                            }
+                        });
+                    }
                 }
             }
             if (assigned_e != invalid<Index>()) {
@@ -1785,12 +1812,13 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
     }
 
     // Assign unique edge ids
+    const bool has_custom_edges = !edge_to_id_user.empty();
     const Index old_num_edges = get_num_edges();
     Index new_num_edges = old_num_edges;
     for (auto it_begin = edge_to_corner.begin(); it_begin != edge_to_corner.end();) {
         // Determine id of the current edge
         Index edge_id = new_num_edges;
-        if (!edge_to_id_user.empty()) {
+        if (has_custom_edges) {
             la_runtime_assert(
                 new_num_edges < old_num_edges + Index(edge_to_id_user.size()),
                 "Incorrect number of edges in user-provided indexing!");
@@ -1852,11 +1880,17 @@ auto SurfaceMesh<Scalar, Index>::get_edge(Index f, Index lv) const -> Index
 }
 
 template <typename Scalar, typename Index>
-auto SurfaceMesh<Scalar, Index>::get_edge_from_corner(Index c) const -> Index
+auto SurfaceMesh<Scalar, Index>::get_corner_edge(Index c) const -> Index
 {
     la_debug_assert(m_corner_to_edge_id != invalid_attribute_id());
     const auto& c2e = get_attribute<Index>(m_corner_to_edge_id);
     return c2e.get(c);
+}
+
+template <typename Scalar, typename Index>
+auto SurfaceMesh<Scalar, Index>::get_edge_from_corner(Index c) const -> Index
+{
+    return get_corner_edge(c);
 }
 
 template <typename Scalar, typename Index>
@@ -2444,6 +2478,14 @@ void SurfaceMesh<Scalar, Index>::compute_corner_to_facet_internal(
 ////////////////////////////////////////////////////////////////////////////////
 
 #define LA_X_surface_mesh_attr(ValueType, Scalar, Index)                                           \
+    template AttributeId SurfaceMesh<Scalar, Index>::create_attribute(                             \
+        std::string_view name,                                                                     \
+        AttributeElement element,                                                                  \
+        size_t num_channels,                                                                       \
+        AttributeUsage usage,                                                                      \
+        span<const ValueType> initial_values,                                                      \
+        span<const Index> initial_indices,                                                         \
+        AttributeCreatePolicy policy);                                                             \
     template AttributeId SurfaceMesh<Scalar, Index>::create_attribute(                             \
         std::string_view name,                                                                     \
         AttributeElement element,                                                                  \

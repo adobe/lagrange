@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2017 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -17,14 +17,19 @@
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <igl/bounding_box_diagonal.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include <CLI/CLI.hpp>
 #include <Eigen/Core>
+
+Eigen::AlignedBox3d mesh_bbox(const lagrange::TriangleMesh3D& mesh)
+{
+    using Index = typename lagrange::TriangleMesh3D::Index;
+    Eigen::AlignedBox3d bbox;
+    la_runtime_assert(mesh.get_vertices().cols() == 3);
+    for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
+        bbox.extend(mesh.get_vertices().row(v).transpose());
+    }
+    return bbox;
+}
 
 int main(int argc, char** argv)
 {
@@ -56,7 +61,7 @@ int main(int argc, char** argv)
     auto mesh = lagrange::io::load_mesh<lagrange::TriangleMesh3D>(args.input);
 
     if (args.relative) {
-        double diag = igl::bounding_box_diagonal(mesh->get_vertices());
+        double diag = mesh_bbox(*mesh).diagonal().norm();
         lagrange::logger().info(
             "Using a relative tolerance of {:.3f} x {:.3f} = {:.3f}",
             args.tol,

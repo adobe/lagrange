@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Adobe. All rights reserved.
+# Copyright 2019 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -37,7 +37,7 @@ include(FetchContent)
 FetchContent_Declare(
     tbb
     GIT_REPOSITORY https://github.com/wjakob/tbb.git
-    GIT_TAG 141b0e310e1fb552bdca887542c9c1a8544d6503
+    GIT_TAG 9e219e24fe223b299783200f217e9d27790a87b0
     GIT_SHALLOW FALSE
 )
 
@@ -48,6 +48,7 @@ option(TBB_BUILD_TBBMALLOC       "Build TBB malloc library" ON)
 option(TBB_BUILD_TBBMALLOC_PROXY "Build TBB malloc proxy library" OFF)
 option(TBB_BUILD_TESTS           "Build TBB tests and enable testing infrastructure" OFF)
 option(TBB_NO_DATE               "Do not save the configure date in the version string" ON)
+option(TBB_SET_SOVERSION         "Set the SOVERSION (shared library build version suffix)?" ON)
 
 # Mark those options as advanced so they don't show up in CMake GUI
 # Please use TBB_PREFER_STATIC instead

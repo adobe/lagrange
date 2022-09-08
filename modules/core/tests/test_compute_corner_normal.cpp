@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/catch_approx.hpp>
 #include <cmath>
 
 #include <lagrange/Mesh.h>
@@ -17,7 +19,9 @@
 #include <lagrange/compute_corner_normal.h>
 #include <lagrange/create_mesh.h>
 
-TEST_CASE("compute_corner_normal", "[mesh][triangle][attribute][corner_normal]")
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+TEST_CASE("legacy::compute_corner_normal", "[mesh][triangle][attribute][corner_normal][legacy]")
 {
     using namespace lagrange;
     auto mesh = create_cube();
@@ -30,7 +34,8 @@ TEST_CASE("compute_corner_normal", "[mesh][triangle][attribute][corner_normal]")
         const auto& corner_normals = mesh->get_corner_attribute("normal");
         REQUIRE(corner_normals.rows() == 36);
         REQUIRE(
-            corner_normals.rowwise().template lpNorm<Eigen::Infinity>().minCoeff() == Approx(1.0));
+            corner_normals.rowwise().template lpNorm<Eigen::Infinity>().minCoeff() ==
+            Catch::Approx(1.0));
     }
 
     SECTION("Smooth edge")
@@ -43,3 +48,4 @@ TEST_CASE("compute_corner_normal", "[mesh][triangle][attribute][corner_normal]")
         REQUIRE(corner_normals.rowwise().template lpNorm<Eigen::Infinity>().maxCoeff() < 1.0);
     }
 }
+#endif

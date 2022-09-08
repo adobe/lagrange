@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/select_facets_by_normal_similarity.h>
@@ -184,7 +185,7 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
                 const auto midpoint = get_facet_midpoint(mesh, facet_id);
                 if (facet_id == dont_select_this) {
                     REQUIRE(is_facet_selected[facet_id] == false);
-                } else if (midpoint.z() == Approx(0.)) {
+                } else if (midpoint.z() == Catch::Approx(0.)) {
                     REQUIRE(is_facet_selected[facet_id] == true);
                 } else {
                     REQUIRE(is_facet_selected[facet_id] == false);
@@ -223,9 +224,9 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
                                                          (facet_midpoint.y() > y_min_lim) &&
                                                          (facet_midpoint.x() > x_min_lim);
 
-                if (facet_midpoint.z() == Approx(0.)) { // don't select bottom
+                if (facet_midpoint.z() == Catch::Approx(0.)) { // don't select bottom
                     REQUIRE(is_facet_selected[facet_id] == false);
-                } else if (facet_midpoint.z() == Approx(height)) { // don't select top
+                } else if (facet_midpoint.z() == Catch::Approx(height)) { // don't select top
                     REQUIRE(is_facet_selected[facet_id] == false);
                 } else if (is_face_in_the_right_region) { // only select right part of the side
                     // std::cout << facet_id << ";" << facet_midpoint.y() << "; " << y_min_lim <<

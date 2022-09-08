@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <Eigen/Geometry>
 
@@ -79,8 +80,8 @@ TEST_CASE("ComputeMeshCovariance", "[mesh][covariance]")
     auto out_covariance_at_centroid =
         compute_mesh_covariance(*mesh_unique, tr.transpose(), {0, 2, 3, 4});
 
-    CHECK((out_covariance_at_zero - rot_covariance_tr).norm() == Approx(0.).margin(1e-10));
-    CHECK((out_covariance_at_centroid - rot_covariance).norm() == Approx(0.).margin(1e-10));
+    CHECK((out_covariance_at_zero - rot_covariance_tr).norm() == Catch::Approx(0.).margin(1e-10));
+    CHECK((out_covariance_at_centroid - rot_covariance).norm() == Catch::Approx(0.).margin(1e-10));
 
     // std::cout << out_covariance_at_zero.covariance << std::endl;
     // std::cout << rot_covariance_tr << std::endl;

@@ -14,12 +14,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <igl/bfs_orient.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/internal/bfs_orient.h>
 
 #include <Eigen/Core>
 
@@ -78,7 +73,7 @@ void orient_outward(lagrange::Mesh<VertexArray, FacetArray>& mesh, bool positive
 
     // Orient connected components on the surface
     Eigen::Matrix<Index, Eigen::Dynamic, 1> components;
-    igl::bfs_orient(facets, facets, components);
+    lagrange::internal::bfs_orient(facets, facets, components);
 
     // Signed volumes per components
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1> signed_volumes;

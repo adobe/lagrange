@@ -13,8 +13,6 @@
 
 #include <lagrange/orient_outward.h>
 
-
-
 TEST_CASE("orient_outward", "[Mesh]")
 {
     auto mesh_in = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/torus3_in.obj");

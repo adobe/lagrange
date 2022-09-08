@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2017 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
@@ -41,7 +42,7 @@ TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]" LA_
         REQUIRE(mesh2->get_num_facets() == 1);
 
         const auto uv_areas = compute_uv_area_raw(mesh2->get_uv(), mesh2->get_uv_indices());
-        REQUIRE(uv_areas.sum() == Approx(0.5));
+        REQUIRE(uv_areas.sum() == Catch::Approx(0.5));
     }
 
     SECTION("single split")
@@ -51,7 +52,7 @@ TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]" LA_
         REQUIRE(mesh2->get_num_facets() == 2);
 
         const auto uv_areas = compute_uv_area_raw(mesh2->get_uv(), mesh2->get_uv_indices());
-        REQUIRE(uv_areas.sum() == Approx(0.5));
+        REQUIRE(uv_areas.sum() == Catch::Approx(0.5));
     }
 
     SECTION("Two triangles")
@@ -73,7 +74,7 @@ TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]" LA_
             REQUIRE(mesh2->get_num_facets() == 4);
 
             const auto uv_areas = compute_uv_area_raw(mesh2->get_uv(), mesh2->get_uv_indices());
-            REQUIRE(uv_areas.sum() == Approx(1.0));
+            REQUIRE(uv_areas.sum() == Catch::Approx(1.0));
         }
 
         SECTION("with attribute")
@@ -119,7 +120,7 @@ TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]" LA_
             REQUIRE(f_idx.maxCoeff() == 1);
 
             const auto uv_areas = compute_uv_area_raw(mesh2->get_uv(), mesh2->get_uv_indices());
-            REQUIRE(uv_areas.sum() == Approx(1.0));
+            REQUIRE(uv_areas.sum() == Catch::Approx(1.0));
         }
     }
 

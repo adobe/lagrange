@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <Eigen/Geometry>
 
@@ -63,11 +64,11 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
         const double b2 = b * b;
         const double c2 = c * c;
 
-        auto approx0 = Approx(0).margin(eps);
+        auto approx0 = Catch::Approx(0).margin(eps);
 
-        REQUIRE(weights(0) == Approx(mass * 2 * a2));
-        REQUIRE(weights(1) == Approx(mass * 2 * b2));
-        REQUIRE(weights(2) == Approx(mass * 2 * c2));
+        REQUIRE(weights(0) == Catch::Approx(mass * 2 * a2));
+        REQUIRE(weights(1) == Catch::Approx(mass * 2 * b2));
+        REQUIRE(weights(2) == Catch::Approx(mass * 2 * c2));
         REQUIRE((components.col(0) - R * Eigen::Vector3d(1, 0, 0)).norm() == approx0);
         REQUIRE((components.col(1) - R * Eigen::Vector3d(0, 1, 0)).norm() == approx0);
         REQUIRE((components.col(2) - R * Eigen::Vector3d(0, 0, 1)).norm() == approx0);
@@ -108,7 +109,7 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
                 out.components,
                 rotation,
                 Eigen::Vector3d::Zero());
-            REQUIRE(out.center.norm() == Approx(0.).margin(eps));
+            REQUIRE(out.center.norm() == Catch::Approx(0.).margin(eps));
         }
 
         SECTION("With rotation and translation")
@@ -118,7 +119,7 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
             auto out =
                 compute_pointcloud_pca(points_tr, true /*shift_center*/, false /*normalize*/);
             verify_pca(1 /* mass */, points_tr, out.weights, out.components, rotation, translation);
-            REQUIRE((out.center - translation).norm() == Approx(0.).margin(eps));
+            REQUIRE((out.center - translation).norm() == Catch::Approx(0.).margin(eps));
         }
 
         SECTION("With rotation and translation, also scale the covariance matrix")
@@ -128,7 +129,7 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
             const double mass = safe_cast<double>(1.) / (points.rows());
             auto out = compute_pointcloud_pca(points_tr, true /*shift_center*/, true /*normalize*/);
             verify_pca(mass, points_tr, out.weights, out.components, rotation, translation);
-            REQUIRE((out.center - translation).norm() == Approx(0.).margin(eps));
+            REQUIRE((out.center - translation).norm() == Catch::Approx(0.).margin(eps));
         }
     }
 
@@ -161,7 +162,7 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
                 out.components,
                 rotation,
                 Eigen::Vector3d::Zero());
-            REQUIRE(out.center.norm() == Approx(0.).margin(eps));
+            REQUIRE(out.center.norm() == Catch::Approx(0.).margin(eps));
         }
 
         SECTION("With rotation and translation")
@@ -171,7 +172,7 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
             auto out =
                 compute_pointcloud_pca(points_tr, true /*shift_center*/, false /*normalize*/);
             verify_pca(1 /* mass */, points_tr, out.weights, out.components, rotation, translation);
-            REQUIRE((out.center - translation).norm() == Approx(0.).margin(eps));
+            REQUIRE((out.center - translation).norm() == Catch::Approx(0.).margin(eps));
         }
 
         SECTION("With rotation and translation, also scale the covariance matrix")
@@ -181,7 +182,7 @@ TEST_CASE("ComputePointcloudPCA", "[compute_pointcloud_pca][symmetry]")
             const double mass = safe_cast<double>(1.) / (points.rows());
             auto out = compute_pointcloud_pca(points_tr, true /*shift_center*/, true /*normalize*/);
             verify_pca(mass, points_tr, out.weights, out.components, rotation, translation);
-            REQUIRE((out.center - translation).norm() == Approx(0.).margin(eps));
+            REQUIRE((out.center - translation).norm() == Catch::Approx(0.).margin(eps));
         }
     }
 

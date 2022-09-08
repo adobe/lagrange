@@ -1,5 +1,5 @@
 #
-# Copyright 2020 Adobe. All rights reserved.
+# Copyright 2016 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -65,7 +65,7 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 6.3.0)
+project(Lagrange VERSION 6.4.0)
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -92,16 +92,10 @@ option(LAGRANGE_UNIT_TESTS         "Build all unit tests"                       
 option(LAGRANGE_USE_PCH            "Enable precompiled headers"                           OFF)
 option(LAGRANGE_WITH_ONETBB        "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY         "Build tracy client with Lagrange"                     OFF)
+option(LAGRANGE_ENABLE_LEGACY_FUNCTIONS "Enable support for legacy functions."            ON)
 
 # Specific override for building on Jenkins
 if(LAGRANGE_JENKINS)
-    if(CMAKE_HOST_SYSTEM_NAME MATCHES Linux)
-        # Unfortunately, on CentOS 7, the pre-compiled version of libarpack.so provided by
-        # anorigami is somehow incompatible with our built-from-source TBB. Indeed, their
-        # libarpack.so is looking for libtbb.so.2, but our CMake only produces a libtbb.so.
-        # Until we figure this out, we have to build arpack ourselves from source on CentOS.
-        option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
-    endif()
     # IPO is very slow and not needed for CI purposes
     option(TBB_ENABLE_IPO "Enable Interprocedural Optimization (IPO) during the compilation" OFF)
 endif()
@@ -217,7 +211,7 @@ if(LAGRANGE_UNIT_TESTS)
     # Include Catch2 and provide function `catch_discover_tests` to register tests.
     include(catch2)
     FetchContent_GetProperties(catch2)
-    include("${catch2_SOURCE_DIR}/contrib/Catch.cmake")
+    include("${catch2_SOURCE_DIR}/extras/Catch.cmake")
 
     # Global target for code coverage
     if(LAGRANGE_TOPLEVEL_PROJECT)

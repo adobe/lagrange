@@ -661,6 +661,51 @@ public:
     /// @param[in]  name             %Attribute name to create.
     /// @param[in]  element          %Mesh element to which the attribute is attached to (Vertex,
     ///                              Facet, etc.).
+    /// @param[in]  num_channels     The number of channels for the attribute. Cannot be modified
+    ///                              once the attribute has been created.
+    /// @param[in]  usage            Tag to indicate how the values are modified under rigid
+    ///                              transformation.
+    /// @param[in]  initial_values   A span of initial values to populate the attribute values with.
+    ///                              The data is copied into the attribute. If the span is provided,
+    ///                              it must have the right dimension (number of elements x number
+    ///                              of channels).
+    /// @param[in]  initial_indices  A span of initial values to populate the attribute indices
+    ///                              with. If the attribute element type is not Indexed, providing a
+    ///                              non-empty value for this argument will result in a runtime
+    ///                              error. The data is copied into the attribute. If the span is
+    ///                              provided, it must have the right dimension (number of corners).
+    /// @param[in]  policy           %Attribute creation policy. By default using a reserved
+    ///                              attribute name (starting with a "$") will throw an exception.
+    ///
+    /// @tparam     ValueType        Value type for the attribute.
+    ///
+    /// @return     The attribute identifier.
+    ///
+    /// @see        AttributeUsage
+    ///
+    template <typename ValueType>
+    AttributeId create_attribute(
+        std::string_view name,
+        AttributeElement element,
+        size_t num_channels = 1,
+        AttributeUsage usage = AttributeUsage::Vector,
+        span<const ValueType> initial_values = {},
+        span<const Index> initial_indices = {},
+        AttributeCreatePolicy policy = AttributeCreatePolicy::ErrorIfReserved);
+
+    ///
+    /// @overload
+    ///
+    /// Create a new attribute and return the newly created attribute id. A mesh attribute is stored
+    /// as a row-major R x C matrix. The number of rows (R) is determined by the number of elements
+    /// in the mesh that the attribute is attached to. The number of columns (C) is determined by
+    /// the user when the attribute is created (num_channels), and cannot be modified afterwards.
+    /// Note that the attribute tag determines how many channels are acceptable for certain types of
+    /// attributes.
+    ///
+    /// @param[in]  name             %Attribute name to create.
+    /// @param[in]  element          %Mesh element to which the attribute is attached to (Vertex,
+    ///                              Facet, etc.).
     /// @param[in]  usage            Tag to indicate how the values are modified under rigid
     ///                              transformation.
     /// @param[in]  num_channels     The number of channels for the attribute. Cannot be modified
@@ -687,7 +732,7 @@ public:
     AttributeId create_attribute(
         std::string_view name,
         AttributeElement element,
-        AttributeUsage usage = AttributeUsage::Vector,
+        AttributeUsage usage,
         size_t num_channels = 1,
         span<const ValueType> initial_values = {},
         span<const Index> initial_indices = {},
@@ -1567,7 +1612,14 @@ public:
     ///
     /// @return     Edge index.
     ///
-    Index get_edge_from_corner(Index c) const;
+    Index get_corner_edge(Index c) const;
+
+    ///
+    /// @copydoc get_corner_edge
+    ///
+    /// @deprecated Use get_corner_edge instead.
+    ///
+    [[deprecated("Use get_corner_edge() instead.")]] Index get_edge_from_corner(Index c) const;
 
     ///
     /// Retrieve edge endpoints.
@@ -1609,6 +1661,10 @@ public:
     ///
     /// Gets the next corner around the vertex associated to a corner. If the corner is the last one
     /// in the chain, this function returns INVALID<Index>.
+    ///
+    /// @note The sequence of corners around a vertex defined by this function
+    /// has no geometric meaning. I.e. the current corner and its next corner
+    /// may not be adjacent to the same edge.
     ///
     /// @param[in]  c     Corner index.
     ///

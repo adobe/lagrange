@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <vector>
+#include <numeric>
 
 namespace {
 using namespace lagrange;

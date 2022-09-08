@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -16,6 +16,7 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 
+#include <catch2/catch_approx.hpp>
 
 TEST_CASE("drop", "[mesh][io]")
 {
@@ -29,6 +30,6 @@ TEST_CASE("drop", "[mesh][io]")
     REQUIRE(mesh->is_uv_initialized());
     REQUIRE(mesh2->is_uv_initialized());
 
-    REQUIRE((mesh->get_uv() - mesh2->get_uv()).norm() == Approx(0.0).margin(1e-14));
-    REQUIRE((mesh->get_uv_indices() - mesh2->get_uv_indices()).norm() == Approx(0.0));
+    REQUIRE((mesh->get_uv() - mesh2->get_uv()).norm() == Catch::Approx(0.0).margin(1e-14));
+    REQUIRE((mesh->get_uv_indices() - mesh2->get_uv_indices()).norm() == Catch::Approx(0.0));
 }

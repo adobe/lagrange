@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2017 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
@@ -27,8 +28,8 @@ TEST_CASE("DijkstraDistance", "[dijstra][triangle]")
 
         REQUIRE(cube->has_vertex_attribute("dijkstra_distance"));
         const auto& dist = cube->get_vertex_attribute("dijkstra_distance");
-        REQUIRE(dist.minCoeff() == Approx(0.0));
-        REQUIRE(dist.maxCoeff() <= Approx(6.0));
+        REQUIRE(dist.minCoeff() == Catch::Approx(0.0));
+        REQUIRE(dist.maxCoeff() <= Catch::Approx(6.0));
     }
 
     SECTION("sphere")
@@ -38,7 +39,7 @@ TEST_CASE("DijkstraDistance", "[dijstra][triangle]")
 
         REQUIRE(sphere->has_vertex_attribute("dijkstra_distance"));
         const auto& dist = sphere->get_vertex_attribute("dijkstra_distance");
-        REQUIRE(dist.minCoeff() == Approx(0.0));
-        REQUIRE(dist.maxCoeff() == Approx(M_PI).epsilon(0.1));
+        REQUIRE(dist.minCoeff() == Catch::Approx(0.0));
+        REQUIRE(dist.maxCoeff() == Catch::Approx(M_PI).epsilon(0.1));
     }
 }

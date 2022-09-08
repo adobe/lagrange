@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2021 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -25,7 +25,6 @@
 #include <lagrange/ui/utils/math.h>
 #include <lagrange/ui/utils/objectid_viewport.h>
 #include <lagrange/utils/tbb.h>
-
 
 namespace lagrange {
 namespace ui {
@@ -199,7 +198,7 @@ void ensure_normal(MeshBase* d)
         } else if (mesh.has_indexed_attribute("normal")) {
             map_indexed_attribute_to_corner_attribute(mesh, "normal");
         } else {
-            lagrange::compute_vertex_normal(mesh, igl::PER_VERTEX_NORMALS_WEIGHTING_TYPE_UNIFORM);
+            lagrange::compute_vertex_normal(mesh, PER_VERTEX_NORMALS_WEIGHTING_TYPE_UNIFORM);
             map_vertex_attribute_to_corner_attribute(mesh, "normal");
         }
     }

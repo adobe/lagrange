@@ -74,6 +74,21 @@ public:
         return dynamic_cast<const Derived*>(m_data.get());
     }
 
+    /// Returns a const pointer to the data. Does not require ownership and will not lead to any copy.
+    template <typename Derived>
+    const Derived* static_read() const
+    {
+        return static_cast<const Derived*>(m_data.get());
+    }
+
+    /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
+    template <typename Derived>
+    Derived* static_write()
+    {
+        ensure_unique_owner<Derived>();
+        return static_cast<Derived*>(m_data.get());
+    }
+
     /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
     template <typename Derived>
     Derived* dynamic_write()

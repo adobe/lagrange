@@ -29,7 +29,7 @@ function(lagrange_download_data)
             PREFIX "${FETCHCONTENT_BASE_DIR}/lagrange-test-data"
             SOURCE_DIR ${LAGRANGE_DATA_FOLDER}
             GIT_REPOSITORY https://github.com/adobe/lagrange-test-data.git
-            GIT_TAG 3b6d5e1b000a68c0c06cce10f73c60fcdb64dbcf
+            GIT_TAG bb6f8c0bd6347032d43d4d39e757d22439bc7645
             CONFIGURE_COMMAND ""
             BUILD_COMMAND ""
             INSTALL_COMMAND ""
@@ -49,6 +49,7 @@ function(lagrange_download_data)
             list(GET entry 1 remote_path)
             list(GET entry 2 checksum)
             set(local_path "${LAGRANGE_DATA_FOLDER}/${local_relpath}")
+            set(keyfile_option "${LAGRANGE_ARTIFACTORY_KEYFILE}")
 
             add_custom_command(
                 OUTPUT
@@ -61,7 +62,7 @@ function(lagrange_download_data)
                         "${local_relpath}"
                         "${remote_path}"
                         "${checksum}"
-                        "${LAGRANGE_ARTIFACTORY_KEYFILE}"
+                        ${keyfile_option}
                 COMMENT
                     "Downloading file ${local_path}"
                 VERBATIM

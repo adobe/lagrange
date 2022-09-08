@@ -103,19 +103,17 @@ ConstRowMatrixView<ValueType> attribute_matrix_view(
 }
 
 template <typename ValueType, typename Scalar, typename Index>
-RowMatrixView<ValueType> attribute_vector_ref(
-    SurfaceMesh<Scalar, Index>& mesh,
-    std::string_view name)
+VectorView<ValueType> attribute_vector_ref(SurfaceMesh<Scalar, Index>& mesh, std::string_view name)
 {
-    return matrix_ref(mesh.template ref_attribute<ValueType>(name));
+    return vector_ref(mesh.template ref_attribute<ValueType>(name));
 }
 
 template <typename ValueType, typename Scalar, typename Index>
-ConstRowMatrixView<ValueType> attribute_vector_view(
+ConstVectorView<ValueType> attribute_vector_view(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view name)
 {
-    return matrix_view(mesh.template get_attribute<ValueType>(name));
+    return vector_view(mesh.template get_attribute<ValueType>(name));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -176,10 +174,10 @@ LA_ATTRIBUTE_X(views_attr, 0)
     template ConstRowMatrixView<ValueType> attribute_matrix_view( \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         std::string_view name);                                   \
-    template RowMatrixView<ValueType> attribute_vector_ref(       \
+    template VectorView<ValueType> attribute_vector_ref(          \
         SurfaceMesh<Scalar, Index>& mesh,                         \
         std::string_view name);                                   \
-    template ConstRowMatrixView<ValueType> attribute_vector_view( \
+    template ConstVectorView<ValueType> attribute_vector_view(    \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         std::string_view name);
 #define LA_X_views_aux(_, ValueType) LA_SURFACE_MESH_X(views_mesh_attr, ValueType)

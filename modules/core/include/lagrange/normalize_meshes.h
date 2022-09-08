@@ -10,60 +10,47 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/legacy/normalize_meshes.h>
+#endif
 
-#include <lagrange/Mesh.h>
-#include <lagrange/MeshTrait.h>
+#include <lagrange/SurfaceMesh.h>
+#include <lagrange/utils/span.h>
+
+#include <vector>
 
 namespace lagrange {
 
 ///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
+
+///
+/// Normalize a mesh to fit in a unit box centered at the origin.
+///
+/// @param[in]  mesh    Input mesh.
+///
+/// @tparam     Scalar  Mesh scalar type.
+/// @tparam     Index   Mesh index type.
+///
+template <typename Scalar, typename Index>
+void normalize_mesh(SurfaceMesh<Scalar, Index>& mesh);
+
+///
 /// Normalize a list of meshes to fit in a unit box centered at the origin.
 ///
-/// @param[in]  meshes       List of pointers to the meshes to modify.
+/// @param[in]  meshes  List of pointers to the meshes to modify.
 ///
-/// @tparam     MeshTypePtr  Mesh pointer type.
+/// @tparam     Scalar  Mesh scalar type.
+/// @tparam     Index   Mesh index type.
 ///
-template <typename MeshTypePtr>
-void normalize_meshes(const std::vector<MeshTypePtr>& meshes)
-{
-    static_assert(MeshTrait<MeshTypePtr>::is_mesh_ptr(), "Input type is not a Mesh pointer type");
-    using MeshType = typename std::pointer_traits<MeshTypePtr>::element_type;
-    using Scalar = typename MeshType::Scalar;
-    using VertexArray = typename MeshType::VertexArray;
-    using VectorType = Eigen::Matrix<Scalar, 1, VertexArray::ColsAtCompileTime>;
+template <typename Scalar, typename Index>
+void normalize_meshes(span<SurfaceMesh<Scalar, Index>*> meshes);
 
-    if (meshes.empty()) {
-        return;
-    }
-
-    const auto DIM = meshes.front()->get_vertices().cols();
-
-    VectorType min_pos = VectorType::Constant(DIM, std::numeric_limits<Scalar>::max());
-    VectorType max_pos = VectorType::Constant(DIM, std::numeric_limits<Scalar>::lowest());
-
-    for (const auto& mesh : meshes) {
-        const auto& V = mesh->get_vertices();
-        min_pos = min_pos.cwiseMin(V.colwise().minCoeff());
-        max_pos = max_pos.cwiseMax(V.colwise().maxCoeff());
-    }
-
-    const Scalar scaling = Scalar(1) / (max_pos - min_pos).maxCoeff();
-    const auto origin = Scalar(0.5) * (min_pos + max_pos);
-
-    for (auto& mesh : meshes) {
-        VertexArray vertices;
-        mesh->export_vertices(vertices);
-        vertices = (vertices.array().rowwise() - origin.array()) * scaling;
-        mesh->import_vertices(vertices);
-    }
-}
-
-template <typename MeshType>
-void normalize_mesh(MeshType& mesh)
-{
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-    std::vector<MeshType*> vec = {&mesh};
-    normalize_meshes(vec);
-}
+/// @}
 
 } // namespace lagrange

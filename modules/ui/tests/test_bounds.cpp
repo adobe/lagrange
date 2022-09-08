@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2021 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -11,6 +11,8 @@
  */
 #include <lagrange/testing/common.h>
 #include <lagrange/ui/utils/bounds.h>
+
+#include <catch2/catch_approx.hpp>
 
 namespace ui = lagrange::ui;
 
@@ -24,7 +26,7 @@ TEST_CASE("get_nearest_bounds_distance", "[ui][bounds]")
         ui::Layer visible_layers(true);
         ui::Layer hidden_layers(false);
         float nearest = ui::get_nearest_bounds_distance(r, from, visible_layers, hidden_layers);
-        REQUIRE(nearest == Approx(expected_distance));
+        REQUIRE(nearest == Catch::Approx(expected_distance));
     };
 
     SECTION("no bounds")
@@ -88,7 +90,7 @@ TEST_CASE("get_furthest_bounds_distance", "[ui][bounds]")
         ui::Layer visible_layers(true);
         ui::Layer hidden_layers(false);
         float furthest = ui::get_furthest_bounds_distance(r, from, visible_layers, hidden_layers);
-        REQUIRE(furthest == Approx(expected_distance));
+        REQUIRE(furthest == Catch::Approx(expected_distance));
     };
 
     SECTION("no bounds")

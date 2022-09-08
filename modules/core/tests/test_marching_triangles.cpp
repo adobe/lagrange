@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -14,6 +14,7 @@
 #include <vector>
 
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <lagrange/create_mesh.h>
 #include <lagrange/io/save_mesh.h>
@@ -154,7 +155,7 @@ void verify_vertex_positions(const MeshType& m, const MarchingTrianglesOutput& o
         const auto vp2 = mesh_vertices.row(parent_edge[1]).eval();
         const auto t = o.vertices_parent_param[i];
         const auto v2 = (vp1 * (1 - t) + vp2 * (t)).eval();
-        CHECK((v1 - v2).norm() == Approx(0).margin(1e-5));
+        CHECK((v1 - v2).norm() == Catch::Approx(0).margin(1e-5));
     }
 }
 
@@ -254,7 +255,7 @@ TEST_CASE("MarchingTriangles_PerimeterOfEllipse", "[marching_triangles]")
         // Check the values
         // Only if the ellipse is fully contained in the square mesh
         if (ea < 0.5 && eb < 0.5) {
-            CHECK(perimeter_analytical == Approx(perimeter_computed).epsilon(0.05));
+            CHECK(perimeter_analytical == Catch::Approx(perimeter_computed).epsilon(0.05));
         }
 
         // Save the contour for dumping if need be

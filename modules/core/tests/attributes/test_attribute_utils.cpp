@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2017 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -16,6 +16,8 @@
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/utils/range.h>
+
+#include <catch2/catch_approx.hpp>
 
 TEST_CASE("AttributeUtils", "[attribute][conversion]")
 {
@@ -62,7 +64,7 @@ TEST_CASE("AttributeUtils", "[attribute][conversion]")
             map_corner_attribute_to_vertex_attribute(*mesh, "index");
             mesh->export_vertex_attribute("index", vertex_indices);
             for (Index i = 0; i < num_vertices; i++) {
-                REQUIRE(Approx(vertex_indices(i, 0)) == i);
+                REQUIRE(Catch::Approx(vertex_indices(i, 0)) == i);
             }
         }
     }
@@ -96,7 +98,7 @@ TEST_CASE("AttributeUtils", "[attribute][conversion]")
             map_corner_attribute_to_facet_attribute(*mesh, "index");
             mesh->export_facet_attribute("index", facet_indices);
             for (auto i : range(num_facets)) {
-                REQUIRE(facet_indices(i, 0) == Approx(i));
+                REQUIRE(facet_indices(i, 0) == Catch::Approx(i));
             }
         }
     }

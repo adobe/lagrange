@@ -146,7 +146,7 @@ void trigger_breakpoint();
     ((void)(!static_cast<bool>((condition)) && ::lagrange::assertion_failed(LA_ASSERT_FUNCTION, __FILE__, __LINE__, #condition, message)))
 #define LA_INTERNAL_ASSERT_ARGS_1(condition) LA_INTERNAL_ASSERT_ARGS_2(condition, "")
 
-#define LA_INTERNAL_IGNORE_ARGS_2(condition, message) ((void)(condition))
+#define LA_INTERNAL_IGNORE_ARGS_2(condition, message) ((void)(0))
 #define LA_INTERNAL_IGNORE_ARGS_1(condition) LA_INTERNAL_IGNORE_ARGS_2(condition, "")
 
 /// @endcond

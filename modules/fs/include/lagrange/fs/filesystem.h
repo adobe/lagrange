@@ -16,6 +16,7 @@
 #if defined(LAGRANGE_USE_STD_FS)
 
 #include <filesystem>
+#include <fstream>
 namespace lagrange {
 namespace fs {
 using namespace std::filesystem;

@@ -228,7 +228,7 @@ ConstRowMatrixView<ValueType> attribute_matrix_view(
 /// @return     An Eigen::Map wrapping the attribute data.
 ///
 template <typename ValueType, typename Scalar, typename Index>
-RowMatrixView<ValueType> attribute_vector_ref(
+VectorView<ValueType> attribute_vector_ref(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view name);
 
@@ -246,7 +246,7 @@ RowMatrixView<ValueType> attribute_vector_ref(
 /// @return     An Eigen::Map wrapping the attribute data.
 ///
 template <typename ValueType, typename Scalar, typename Index>
-ConstRowMatrixView<ValueType> attribute_vector_view(
+ConstVectorView<ValueType> attribute_vector_view(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view name);
 

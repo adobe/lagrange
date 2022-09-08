@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -13,6 +13,7 @@
 #include <iostream>
 
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 #include <Eigen/Geometry>
 
@@ -67,8 +68,8 @@ TEST_CASE("ComputeMeshCentroid", "[mesh][centroid]")
     auto mesh_unique = lagrange::create_mesh(vertices, facets);
     auto out = compute_mesh_centroid(*mesh_unique, {0, 2, 3, 4});
 
-    CHECK(out.area == Approx(ref_area));
-    CHECK((out.centroid.transpose() - ref_center - tr).norm() == Approx(0.).margin(1e-10));
+    CHECK(out.area == Catch::Approx(ref_area));
+    CHECK((out.centroid.transpose() - ref_center - tr).norm() == Catch::Approx(0.).margin(1e-10));
 
 
 } // end of TEST

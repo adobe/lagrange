@@ -9,8 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#define CATCH_CONFIG_RUNNER
 #include <lagrange/testing/common.h>
+#include <catch2/catch_session.hpp>
 
 #ifdef LAGRANGE_UI_OPENGL_TESTS
 #include <lagrange/ui/types/GLContext.h>

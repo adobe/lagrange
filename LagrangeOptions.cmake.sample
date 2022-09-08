@@ -45,9 +45,14 @@
 # option(LAGRANGE_ALL             "Build all lagrange modules"             ON)
 
 # Optional modules in alphabetical order.
-# option(LAGRANGE_MODULE_FS "Build module lagrange::fs" ON)
-# option(LAGRANGE_MODULE_IO "Build module lagrange::io" ON)
-# option(LAGRANGE_MODULE_UI "Build module lagrange::ui" ON)
+# option(LAGRANGE_MODULE_BVH          "Build module lagrange::bvh"          ON)
+# option(LAGRANGE_MODULE_FS           "Build module lagrange::fs"           ON)
+# option(LAGRANGE_MODULE_IO           "Build module lagrange::io"           ON)
+# option(LAGRANGE_MODULE_PARTITIONING "Build module lagrange::partitioning" ON)
+# option(LAGRANGE_MODULE_RAYCASTING   "Build module lagrange::raycasting"   ON)
+# option(LAGRANGE_MODULE_SUBDIVISION  "Build module lagrange::subdivision"  ON)
+# option(LAGRANGE_MODULE_UI           "Build module lagrange::ui"           ON)
+# option(LAGRANGE_MODULE_VOLUME       "Build module lagrange::volume"       ON)
 
 # General options
 # option(LAGRANGE_DOCUMENTATION      "Build Doxygen documentation"                          ON)

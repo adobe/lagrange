@@ -129,7 +129,7 @@ AttributeId map_attribute_internal(
                 src_element = [&](size_t c) { return mesh.get_corner_facet(c); };
                 break;
             case AttributeElement::Edge:
-                src_element = [&](size_t c) { return mesh.get_edge_from_corner(c); };
+                src_element = [&](size_t c) { return mesh.get_corner_edge(c); };
                 break;
             case AttributeElement::Corner: src_element = [](size_t c) { return c; }; break;
             case AttributeElement::Value:
@@ -171,7 +171,7 @@ AttributeId map_attribute_internal(
             break;
         case AttributeElement::Edge:
             for (Index c = 0; c < mesh.get_num_corners(); ++c) {
-                src_index[c] = mesh.get_edge_from_corner(c);
+                src_index[c] = mesh.get_corner_edge(c);
             }
             break;
         case AttributeElement::Corner:
@@ -194,7 +194,7 @@ AttributeId map_attribute_internal(
                 dst_element = [&](size_t c) { return mesh.get_corner_facet(c); };
                 break;
             case AttributeElement::Edge:
-                dst_element = [&](size_t c) { return mesh.get_edge_from_corner(c); };
+                dst_element = [&](size_t c) { return mesh.get_corner_edge(c); };
                 break;
             case AttributeElement::Corner: break;
             case AttributeElement::Value: new_attr.resize_elements(num_elements); break;
@@ -270,8 +270,8 @@ AttributeId map_attribute_in_place(
         }
     };
 
-    auto name = mesh.get_attribute_name(id);
-    std::string tmp_name = get_unique_name(std::string(name) + "_");
+    std::string name(mesh.get_attribute_name(id));
+    std::string tmp_name = get_unique_name(name + "_");
 
     auto new_id = map_attribute(mesh, id, tmp_name, new_element);
     mesh.delete_attribute(name);

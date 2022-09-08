@@ -16,6 +16,10 @@
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/map_attribute.h>
 
+#include <catch2/catch_approx.hpp>
+
+#include <random>
+
 namespace fs = lagrange::fs;
 
 namespace {
@@ -25,11 +29,11 @@ void assert_same_approx(lagrange::span<const Scalar> l, lagrange::span<const Sca
 {
     REQUIRE(l.size() == r.size());
     for (size_t i = 0; i < l.size(); ++i) {
-        REQUIRE(Approx(l[i]) == r[i]);
+        REQUIRE(Catch::Approx(l[i]) == r[i]);
     }
 }
 
-bool is_averaging(lagrange::AttributeElement left, lagrange::AttributeElement right)
+constexpr bool is_averaging(lagrange::AttributeElement left, lagrange::AttributeElement right)
 {
     using namespace lagrange;
     const auto V = AttributeElement::Vertex;
@@ -84,19 +88,22 @@ void test_map_attribute_one(
     for (auto src_element : src_elements) {
         for (auto dst_element : dst_elements) {
             lagrange::SurfaceMesh<Scalar, Index> mesh = original_mesh;
+            std::string_view name = "foo";
             auto id = mesh.template create_attribute<ValueType>(
-                "foo",
+                name,
                 src_element,
                 lagrange::AttributeUsage::Vector,
                 num_channels);
 
-            auto& values = [&]() -> Attribute<ValueType>& {
+            Attribute<ValueType>* values_ptr;
+            {
                 if (src_element == AttributeElement::Indexed) {
-                    return mesh.template ref_indexed_attribute<ValueType>(id).values();
+                    values_ptr = &mesh.template ref_indexed_attribute<ValueType>(id).values();
                 } else {
-                    return mesh.template ref_attribute<ValueType>(id);
+                    values_ptr = &mesh.template ref_attribute<ValueType>(id);
                 }
-            }();
+            }
+            Attribute<ValueType>& values = *values_ptr;
 
             if (src_element == AttributeElement::Indexed) {
                 // Compute a random index buffer
@@ -127,8 +134,8 @@ void test_map_attribute_one(
             // Populate initial values
             for (auto& x : values.ref_all()) {
                 if (is_averaging(src_element, dst_element)) {
-                    // If the forward mapping is averaging, we just check that a constant field is
-                    // preserved by both mappings.
+                    // If the forward mapping is averaging, we just check that a constant
+                    // field is preserved by both mappings.
                     x = ValueType(5);
                 } else {
                     // Otherwise, let's see our attribute with a random value.
@@ -143,8 +150,8 @@ void test_map_attribute_one(
                     mesh.template get_attribute<ValueType>(id).get_all(),
                     mesh.template get_attribute<ValueType>(old_id).get_all());
             } else {
-                // Index attributes might have their value buffer deduplicated, but otherwise the
-                // content should match.
+                // Index attributes might have their value buffer deduplicated, but
+                // otherwise the content should match.
                 const auto& attr = mesh.template get_indexed_attribute<ValueType>(id);
                 const auto& old_attr = mesh.template get_indexed_attribute<ValueType>(old_id);
                 for (Index c = 0; c < mesh.get_num_corners(); ++c) {
@@ -153,6 +160,11 @@ void test_map_attribute_one(
                     REQUIRE(std::equal(l.begin(), l.end(), r.begin()));
                 }
             }
+
+            // Test mapping in place
+            REQUIRE(mesh.has_attribute(name));
+            map_attribute_in_place(mesh, name, dst_element);
+            REQUIRE(mesh.has_attribute(name));
         }
     }
 }

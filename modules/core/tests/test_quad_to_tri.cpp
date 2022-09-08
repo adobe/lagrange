@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2019 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -15,6 +15,7 @@
 #include <lagrange/quad_to_tri.h>
 #include <Eigen/Core>
 #include <lagrange/testing/common.h>
+#include <catch2/catch_approx.hpp>
 
 
 namespace lagrange_test_internal {
@@ -28,7 +29,7 @@ void assert_same_area(MeshType1& mesh1, MeshType2& mesh2)
     const auto& area1 = mesh1.get_facet_attribute("area");
     const auto& area2 = mesh2.get_facet_attribute("area");
 
-    REQUIRE(area1.sum() == Approx(area2.sum()));
+    REQUIRE(area1.sum() == Catch::Approx(area2.sum()));
 
     if (mesh1.is_uv_initialized() && mesh2.is_uv_initialized()) {
         const auto uv1 = mesh1.get_uv_mesh();
@@ -39,7 +40,7 @@ void assert_same_area(MeshType1& mesh1, MeshType2& mesh2)
         const auto& uv_area1 = uv1->get_facet_attribute("area");
         const auto& uv_area2 = uv2->get_facet_attribute("area");
 
-        REQUIRE(uv_area1.sum() == Approx(uv_area2.sum()));
+        REQUIRE(uv_area1.sum() == Catch::Approx(uv_area2.sum()));
     }
 }
 
@@ -124,7 +125,7 @@ TEST_CASE("quad_to_tri attribute", "[mesh][quad_to_tri][attribute]")
             const auto& tri_vi = tri_cube->get_vertices().row(i);
             const auto v_idx = safe_cast<Index>(index(i, 0));
             const auto& cube_vi = cube->get_vertices().row(v_idx);
-            REQUIRE((tri_vi - cube_vi).norm() == Approx(0.0));
+            REQUIRE((tri_vi - cube_vi).norm() == Catch::Approx(0.0));
         }
     }
 
@@ -150,7 +151,7 @@ TEST_CASE("quad_to_tri attribute", "[mesh][quad_to_tri][attribute]")
             const auto& tri_vi = tri_cube->get_vertices().row(tri_facets(i / 3, i % 3));
             const auto& cube_vi =
                 cube->get_vertices().row(facets(index(i, 0) / 4, index(i, 0) % 4));
-            REQUIRE((tri_vi - cube_vi).norm() == Approx(0.0));
+            REQUIRE((tri_vi - cube_vi).norm() == Catch::Approx(0.0));
         }
     }
 }

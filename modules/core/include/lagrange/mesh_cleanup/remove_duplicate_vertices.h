@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2016 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -11,15 +11,6 @@
  */
 #pragma once
 
-#include <cassert>
-#include <vector>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <igl/sortrows.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/Mesh.h>
@@ -28,6 +19,9 @@
 #include <lagrange/reorder_mesh_vertices.h>
 #include <lagrange/attributes/map_attributes.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/internal/sortrows.h>
+
+#include <vector>
 
 namespace lagrange {
 
@@ -44,7 +38,7 @@ void unique_rows(
     {
         DerivedA __; // sorted A
         constexpr bool is_ascending = true; // does not matter really
-        igl::sortrows(A, is_ascending, __, IM);
+        lagrange::internal::sortrows(A, is_ascending, __, IM);
     }
 
     // Build the forward mapping and the number of unique rows

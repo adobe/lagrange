@@ -9,8 +9,8 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-lagrange_add_test()
+lagrange_add_test(CUSTOM_MAIN)
 
 if(LAGRANGE_UI_OPENGL_TESTS)
-target_compile_definitions(test_lagrange_ui PRIVATE LAGRANGE_UI_OPENGL_TESTS)
+    target_compile_definitions(test_lagrange_ui PRIVATE LAGRANGE_UI_OPENGL_TESTS)
 endif()
