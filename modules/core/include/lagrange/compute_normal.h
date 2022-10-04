@@ -43,9 +43,16 @@ struct NormalOptions
     /// Per-vertex normal averaging weighting type.
     NormalWeightingType weight_type = NormalWeightingType::Angle;
 
-    /// Precomputed facet normal attribute name.  If the attribute does not exist, the algorithm
-    /// will compute it.
+    /// Precomputed facet normal attribute name. Used to determine the orientation of accumulated
+    /// corner normals. If the attribute does not exist, the algorithm will compute it.
     std::string_view facet_normal_attribute_name = "@facet_normal";
+
+    /// Whether to recompute the facet normal attribute, or reuse existing cached values if present.
+    bool recompute_facet_normals = false;
+
+    /// Whether to keep any newly added facet normal attribute. If such an attribute is already
+    /// present in the input mesh, it will not be removed, even if this argument is set to false.
+    bool keep_facet_normals = false;
 };
 
 /**

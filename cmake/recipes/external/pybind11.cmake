@@ -19,14 +19,14 @@ include(FetchContent)
 FetchContent_Declare(
     pybind11
     GIT_REPOSITORY https://github.com/pybind/pybind11
-    GIT_TAG v2.5.0
+    GIT_TAG v2.10.0
     GIT_SHALLOW TRUE
 )
 
 # Pybind11 still uses the deprecated FindPythonInterp. So let's call CMake's
 # new FindPython module and set PYTHON_EXECUTABLE for Pybind11 to pick up.
 # This works well with conda environments.
-find_package(Python REQUIRED COMPONENTS Interpreter)
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
 set(PYTHON_EXECUTABLE ${Python_EXECUTABLE})
 
 FetchContent_MakeAvailable(pybind11)

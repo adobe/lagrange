@@ -9,14 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-
-#include "internal/compute_weighted_corner_normal.h"
 #include <lagrange/AttributeFwd.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_weighted_corner_normal.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
+
+#include "internal/compute_weighted_corner_normal.h"
+#include "internal/retrieve_normal_attribute.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -33,20 +34,8 @@ AttributeId compute_weighted_corner_normal(
 {
     const Index num_corners = mesh.get_num_corners();
 
-    AttributeId id;
-    if (mesh.has_attribute(options.output_attribute_name)) {
-        logger().info(
-            "Attribute {} already exists, overwritting it.",
-            options.output_attribute_name);
-        id = mesh.get_attribute_id(options.output_attribute_name);
-        la_runtime_assert(mesh.template is_attribute_type<Scalar>(id));
-    } else {
-        id = mesh.template create_attribute<Scalar>(
-            options.output_attribute_name,
-            Corner,
-            3,
-            AttributeUsage::Normal);
-    }
+    AttributeId id = internal::retrieve_normal_attribute(mesh, options.output_attribute_name, Corner);
+
     auto normals = matrix_ref(mesh.template ref_attribute<Scalar>(id));
     la_debug_assert(static_cast<Index>(normals.rows()) == num_corners);
 
@@ -62,4 +51,5 @@ AttributeId compute_weighted_corner_normal(
         SurfaceMesh<Scalar, Index>&,                                    \
         CornerNormalOptions);
 LA_SURFACE_MESH_X(compute_weighted_corner_normal, 0)
+
 } // namespace lagrange

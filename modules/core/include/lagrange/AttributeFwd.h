@@ -120,6 +120,17 @@ enum class AttributeExportPolicy {
 };
 
 ///
+/// Policy for copying attribute that are views onto external buffers.  By
+/// default, a copy is created, meaning we can use the copied attribute to
+/// manage the lifetime of the allocated data.
+///
+enum class AttributeCopyPolicy {
+    CopyIfExternal, ///< Copy the buffer during copy if the attribute points to an external buffer.
+    KeepExternalPtr, ///< Keep the raw pointer to the external buffer data. Use with caution.
+    ErrorIfExternal, ///< Throw an exception if the attribute points to an external buffer.
+};
+
+///
 /// Policy for attribute deletion of reserved attribute names. By default, attribute names starting
 /// with "$" are reserved for internal use. Deleting a reserved attribute name requires an explicit
 /// policy flag to be passed to the appropriate function.

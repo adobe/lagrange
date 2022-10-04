@@ -65,7 +65,9 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
 endif()
 
 ################################################################################
-project(Lagrange VERSION 6.4.0)
+file(READ "VERSION" lagrange_version)
+string(STRIP ${lagrange_version} lagrange_version)
+project(Lagrange VERSION ${lagrange_version})
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
@@ -178,6 +180,7 @@ include(lagrange_add_example)
 include(lagrange_add_executable)
 include(lagrange_add_module)
 include(lagrange_add_performance)
+include(lagrange_add_python_binding)
 include(lagrange_add_test)
 include(lagrange_download_data)
 include(lagrange_global_flags)

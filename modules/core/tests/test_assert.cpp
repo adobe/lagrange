@@ -38,7 +38,7 @@ TEST_CASE("Assert", "[next]")
     int sum = (la_runtime_assert(a > 0), a) + (la_runtime_assert(b < 0), b);
     REQUIRE(sum == 1);
 
-    bool x = true;
+    bool x = true; (void)x;
     la_debug_assert(x);
 
     la_debug_assert(true);
@@ -56,7 +56,7 @@ TEST_CASE("Assert", "[next]")
 #endif // NDEBUG
 
     int r = 0;
-    auto add_to_r = [&](){r++; return true;};
+    auto add_to_r = [&](){r++; return true;}; (void)add_to_r;
     la_debug_assert(add_to_r());
 #ifdef NDEBUG
     REQUIRE(r == 0);

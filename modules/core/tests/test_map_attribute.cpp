@@ -138,7 +138,7 @@ void test_map_attribute_one(
                     // field is preserved by both mappings.
                     x = ValueType(5);
                 } else {
-                    // Otherwise, let's see our attribute with a random value.
+                    // Otherwise, let's initialize our attribute with random values.
                     x = static_cast<ValueType>(dist_values(gen));
                 }
             }
@@ -166,6 +166,56 @@ void test_map_attribute_one(
             map_attribute_in_place(mesh, name, dst_element);
             REQUIRE(mesh.has_attribute(name));
         }
+    }
+}
+
+template <typename ValueType, typename Scalar, typename Index>
+void test_map_attribute_value_invalid(
+    const lagrange::SurfaceMesh<Scalar, Index> original_mesh,
+    size_t num_channels)
+{
+    using namespace lagrange;
+
+    std::mt19937 gen;
+
+    std::vector<AttributeElement> dst_elements = {
+        AttributeElement::Vertex,
+        AttributeElement::Facet,
+        AttributeElement::Corner,
+        AttributeElement::Indexed};
+
+    if (original_mesh.has_edges()) {
+        dst_elements.push_back(AttributeElement::Edge);
+    }
+
+    const Index num_values_elements = 42;
+    for (auto dst_element : dst_elements) {
+        lagrange::SurfaceMesh<Scalar, Index> mesh = original_mesh;
+        std::string_view name = "foo";
+        auto id = mesh.template create_attribute<ValueType>(
+            name,
+            lagrange::AttributeElement::Value,
+            lagrange::AttributeUsage::Vector,
+            num_channels);
+
+        Attribute<ValueType>& values = mesh.template ref_attribute<ValueType>(id);
+
+        // Check that we are creating a mismatch with target attribute size
+        switch (dst_element) {
+        case AttributeElement::Vertex:
+            REQUIRE(num_values_elements != mesh.get_num_vertices());
+            break;
+        case AttributeElement::Facet: REQUIRE(num_values_elements != mesh.get_num_facets()); break;
+        case AttributeElement::Edge: REQUIRE(num_values_elements != mesh.get_num_edges()); break;
+        case AttributeElement::Corner:
+        case AttributeElement::Indexed:
+            REQUIRE(num_values_elements != mesh.get_num_corners());
+            break;
+        default: la_debug_assert(false); break;
+        }
+        values.resize_elements(num_values_elements);
+
+        LA_REQUIRE_THROWS(map_attribute(mesh, id, "new_foo", dst_element));
     }
 }
 
@@ -200,10 +250,35 @@ void test_map_attribute_all()
     }
 }
 
+template <typename Scalar, typename Index, typename ValueType>
+void test_map_attribute_invalid()
+{
+    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
+
+    auto filenames = {
+        "poly/L-plane.obj",
+        "poly/mixedFaringPart.obj",
+        "poly/tetris.obj",
+        "cube_soup.obj"};
+
+    for (fs::path filename : filenames) {
+        fs::path input_path = lagrange::testing::get_data_path("open/core" / filename);
+        REQUIRE(fs::exists(input_path));
+        auto mesh = lagrange::io::load_mesh_obj<MeshType>(input_path.string()).mesh;
+        mesh.initialize_edges();
+        test_map_attribute_value_invalid<ValueType>(mesh, 1);
+    }
+}
+
 } // namespace
 
 TEST_CASE("map_attribute", "[attribute][conversion]")
 {
 #define LA_X_map_attribute_all(_, Scalar, Index) test_map_attribute_all<Scalar, Index>();
     LA_SURFACE_MESH_X(map_attribute_all, 0)
+}
+
+TEST_CASE("map_attribute: invalid", "[attribute][conversion]")
+{
+    test_map_attribute_invalid<float, uint32_t, double>();
 }

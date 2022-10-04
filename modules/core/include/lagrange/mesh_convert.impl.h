@@ -75,11 +75,12 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_internal(InputMeshType&& mesh)
 #undef LA_X_to_surface_mesh_index
 
     // 1st - Transfer vertices positions and facets indices
-    SurfaceMesh<Scalar, Index> new_mesh(mesh.get_dim());
+    SurfaceMesh<Scalar, Index> new_mesh(static_cast<Index>(mesh.get_dim()));
     if constexpr (policy == Policy::Copy) {
         // Copy vertex/facet buffer
-        new_mesh.add_vertices(mesh.get_num_vertices());
-        new_mesh.add_polygons(mesh.get_num_facets(), mesh.get_vertex_per_facet());
+        new_mesh.add_vertices(static_cast<Index>(mesh.get_num_vertices()));
+        new_mesh.add_polygons(static_cast<Index>(mesh.get_num_facets()),
+                              static_cast<Index>(mesh.get_vertex_per_facet()));
         if (mesh.get_num_vertices() > 0) {
             vertex_ref(new_mesh) = mesh.get_vertices().template cast<Scalar>();
         }
@@ -114,12 +115,13 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_internal(InputMeshType&& mesh)
     }
 
     // 2nd - Transfer edge indices
-    logger().info("transfer edge indices");
     if (mesh.is_edge_data_initialized()) {
-        new_mesh.initialize_edges(mesh.get_num_edges(), [&](Index e) -> std::array<Index, 2> {
-            auto v = mesh.get_edge_vertices(e);
-            return {static_cast<Index>(v[0]), static_cast<Index>(v[1])};
-        });
+        new_mesh.initialize_edges(
+            static_cast<Index>(mesh.get_num_edges()),
+            [&](Index e) -> std::array<Index, 2> {
+                auto v = mesh.get_edge_vertices(static_cast<typename MeshType::Index>(e));
+                return {static_cast<Index>(v[0]), static_cast<Index>(v[1])};
+            });
     }
 
     // 3rd - Transfer attributes

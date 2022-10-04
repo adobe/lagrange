@@ -99,6 +99,7 @@ public:
     }
     std::vector<ClosestPoint> query_k_nearest_neighbours(const PointType& p, int k) const override
     {
+        (void)p; (void)k;
         throw std::runtime_error("LibIGL AABB does not support KNN queries");
     }
 

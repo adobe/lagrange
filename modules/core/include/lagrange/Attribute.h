@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/utils/SharedSpan.h>
 #include <lagrange/utils/span.h>
 
 #include <vector>
@@ -193,6 +194,22 @@ public:
     void wrap(span<ValueType> buffer, size_t num_elements);
 
     ///
+    /// Wraps an external buffer into the attribute. The buffer ownership is shared with the
+    /// attribute. Note that only the number of element is allowed to change when wrapping an
+    /// external buffer (the number of channels is fixed during the attribute construction).
+    ///
+    /// @param[in]  shared_buffer Pointer to an external buffer managed by a SharedSpan to be used
+    ///                           as storage.  This pointer exposes a view of the buffer managed by
+    ///                           the owner. The buffer must have a capacity (determined by
+    ///                           buffer_ptr.size()) that is large enough to store num elements x
+    ///                           num channels entries.  The buffer can be larger than required, in
+    ///                           which case the padding capacity can be used to grow the attribute,
+    ///                           as determined by the AttributeGrowthPolicy.
+    /// @param[in]  num_elements  New number of elements associated with the attribute.
+    ///
+    void wrap(SharedSpan<ValueType> buffer_ptr, size_t num_elements);
+
+    ///
     /// Wraps a const external buffer into the attribute. The pointer must remain valid for the
     /// lifetime of the attribute. Note that only the number of element is allowed to change when
     /// wrapping an external buffer (the number of channels is fixed during the attribute
@@ -207,6 +224,22 @@ public:
     /// @param[in]  num_elements  New number of elements associated with the attribute.
     ///
     void wrap_const(span<const ValueType> buffer, size_t num_elements);
+
+    ///
+    /// Wraps a const external buffer into the attribute. The buffer ownership is shared with the
+    /// attribute. Note that only the number of element is allowed to change when wrapping an
+    /// external buffer (the number of channels is fixed during the attribute construction).
+    ///
+    /// @param[in]  shared_buffer Pointer to an external buffer managed by a SharedSpan to be used
+    ///                           as storage.  This pointer exposes a view of the buffer managed by
+    ///                           the owner.  The buffer must have a capacity (determined by
+    ///                           shared_buffer.size()) that is large enough to store num elements x
+    ///                           num channels entries.  The buffer can be larger than required, in
+    ///                           which case the padding capacity can be used to grow the attribute,
+    ///                           as determined by the AttributeGrowthPolicy.
+    /// @param[in]  num_elements  New number of elements associated with the attribute.
+    ///
+    void wrap_const(SharedSpan<const ValueType> shared_buffer, size_t num_elements);
 
     /// @}
     /// @name Attribute growth
@@ -251,6 +284,20 @@ public:
     /// @return     The attribute write policy.
     ///
     AttributeWritePolicy get_write_policy() const { return m_write_policy; }
+
+    ///
+    /// Set copy policy for external buffers.
+    ///
+    /// @param[in] policy  New policy
+    ///
+    void set_copy_policy(AttributeCopyPolicy policy) { m_copy_policy = policy; }
+
+    ///
+    /// Get the copy policy for external buffers.
+    ///
+    /// @return     The attribute copy policy.
+    ///
+    AttributeCopyPolicy get_copy_policy() const { return m_copy_policy; }
 
     ///
     /// Creates an internal copy of the attribute data. The attribute buffer must be external before
@@ -501,6 +548,10 @@ protected:
     /// Internal buffer storing the data (when the attribute is not external).
     std::vector<ValueType> m_data;
 
+    /// Optional aliased ptr to extend the lifetime of memory owner object of
+    /// external buffer.
+    std::shared_ptr<const ValueType> m_owner;
+
     /// Default values used to populate buffer when the attribute grows.
     ValueType m_default_value = ValueType(0);
 
@@ -518,6 +569,9 @@ protected:
 
     /// Policy for write access to read-only external buffers.
     AttributeWritePolicy m_write_policy = AttributeWritePolicy::ErrorIfReadOnly;
+
+    /// Copy policy for external buffers.
+    AttributeCopyPolicy m_copy_policy = AttributeCopyPolicy::CopyIfExternal;
 
     /// Flag to determine whether an attribute is using an external or internal buffer. We need this
     /// flag to distinguish if an empty buffer is internally managed or external.

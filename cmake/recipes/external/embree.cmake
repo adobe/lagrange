@@ -48,9 +48,42 @@ endif()
 # - https://gitlab.kitware.com/cmake/cmake/issues/17735
 # - https://crascit.com/2018/09/14/do-not-redefine-cmake-commands/
 function(embree_import_target)
+    macro(push_variable var value)
+        if(DEFINED CACHE{${var}})
+            set(LAGRANGE_OLD_${var}_VALUE "${${var}}")
+            set(LAGRANGE_OLD_${var}_TYPE CACHE_TYPE)
+        elseif(DEFINED ${var})
+            set(LAGRANGE_OLD_${var}_VALUE "${${var}}")
+            set(LAGRANGE_OLD_${var}_TYPE NORMAL_TYPE)
+        else()
+            set(LAGRANGE_OLD_${var}_TYPE NONE_TYPE)
+        endif()
+        set(${var} "${value}" CACHE PATH "" FORCE)
+    endmacro()
+
+    macro(pop_variable var)
+        if(LAGRANGE_OLD_${var}_TYPE STREQUAL CACHE_TYPE)
+            set(${var} "${LAGRANGE_OLD_${var}_VALUE}" CACHE PATH "" FORCE)
+        elseif(LAGRANGE_OLD_${var}_TYPE STREQUAL NORMAL_TYPE)
+            unset(${var} CACHE)
+            set(${var} "${LAGRANGE_OLD_${var}_VALUE}")
+        elseif(LAGRANGE_OLD_${var}_TYPE STREQUAL NONE_TYPE)
+            unset(${var} CACHE)
+        else()
+            message(FATAL_ERROR "Trying to pop a variable that has not been pushed: ${var}")
+        endif()
+    endmacro()
+
     macro(ignore_package NAME)
-        file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/${NAME}/${NAME}Config.cmake "")
-        set(${NAME}_DIR ${CMAKE_CURRENT_BINARY_DIR}/${NAME} CACHE PATH "" FORCE)
+        set(LAGRANGE_DUMMY_DIR "${CMAKE_CURRENT_BINARY_DIR}/embree_cmake/${NAME}")
+        file(WRITE ${LAGRANGE_DUMMY_DIR}/${NAME}Config.cmake "")
+        push_variable(${NAME}_DIR ${LAGRANGE_DUMMY_DIR})
+        push_variable(${NAME}_ROOT ${LAGRANGE_DUMMY_DIR})
+    endmacro()
+
+    macro(unignore_package NAME)
+        pop_variable(${NAME}_DIR)
+        pop_variable(${NAME}_ROOT)
     endmacro()
 
     # Prefer Config mode before Module mode to prevent embree from loading its own FindTBB.cmake
@@ -68,6 +101,8 @@ function(embree_import_target)
 
     # Ready to include embree's atrocious CMake
     FetchContent_MakeAvailable(embree)
+
+    unignore_package(TBB)
 
     # Disable warnings
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

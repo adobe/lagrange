@@ -114,8 +114,11 @@ AttributeId map_attribute_internal(
             case AttributeElement::Vertex: num_elements = mesh.get_num_vertices(); break;
             case AttributeElement::Facet: num_elements = mesh.get_num_facets(); break;
             case AttributeElement::Edge: num_elements = mesh.get_num_edges(); break;
-            case AttributeElement::Corner:
-            case AttributeElement::Value: num_elements = mesh.get_num_corners(); break;
+            case AttributeElement::Corner: num_elements = mesh.get_num_corners(); break;
+            case AttributeElement::Value:
+                num_elements = mesh.get_num_corners();
+                la_runtime_assert(old_attr.get_num_elements() == num_elements);
+                break;
             case AttributeElement::Indexed: la_debug_assert(false);
             }
             src_element = [](size_t i) { return i; };
@@ -138,9 +141,9 @@ AttributeId map_attribute_internal(
                 case AttributeElement::Vertex: num_elements = mesh.get_num_vertices(); break;
                 case AttributeElement::Facet: num_elements = mesh.get_num_facets(); break;
                 case AttributeElement::Edge: num_elements = mesh.get_num_edges(); break;
-                case AttributeElement::Corner:
-                case AttributeElement::Indexed: num_elements = mesh.get_num_corners(); break;
-                case AttributeElement::Value: la_debug_assert(false);
+                case AttributeElement::Corner: num_elements = mesh.get_num_corners(); break;
+                case AttributeElement::Indexed:
+                case AttributeElement::Value: la_debug_assert(false); break;
                 }
                 la_runtime_assert(old_attr.get_num_elements() == num_elements);
                 src_element = [](size_t i) { return i; };

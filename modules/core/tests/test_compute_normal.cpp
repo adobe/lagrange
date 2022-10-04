@@ -266,6 +266,43 @@ TEST_CASE("compute_normal", "[surface][attribute][normal][utilities]")
     }
 }
 
+TEST_CASE("compute_normal: facet normal attr", "[surface][attribute][normal][utilities]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({0.5, 0.5, 1.0});
+    mesh.add_triangle(0, 1, 4);
+    mesh.add_triangle(1, 2, 4);
+    mesh.add_triangle(2, 3, 4);
+    mesh.add_triangle(3, 0, 4);
+    mesh.add_quad(3, 2, 1, 0);
+
+    NormalOptions options;
+    auto facet_normal_name = options.facet_normal_attribute_name;
+
+    REQUIRE(!mesh.has_attribute(facet_normal_name));
+    compute_normal(mesh, M_PI / 4, {}, options);
+    REQUIRE(!mesh.has_attribute(facet_normal_name));
+
+    options.keep_facet_normals = true;
+    compute_normal(mesh, M_PI / 4, {}, options);
+    REQUIRE(mesh.has_attribute(facet_normal_name));
+    mesh.delete_attribute(facet_normal_name);
+
+    // Whether to keep the facet attribute or not does *not* depend on the presence of edge
+    // information, contrary to the compute_vertex_normal method.
+    mesh.initialize_edges();
+    compute_normal(mesh, M_PI / 4, {}, options);
+    REQUIRE(mesh.has_attribute(facet_normal_name));
+}
+
 TEST_CASE("compute_normal benchmark", "[surface][attribute][normal][utilities][!benchmark]")
 {
     using namespace lagrange;

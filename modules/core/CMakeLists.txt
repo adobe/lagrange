@@ -133,3 +133,8 @@ endif()
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
 endif()
+
+# 5. python binding
+if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
+    add_subdirectory(python)
+endif()

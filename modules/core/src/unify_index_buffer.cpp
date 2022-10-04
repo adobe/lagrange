@@ -114,7 +114,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
     // Map vertices.
     std::vector<Index> corner_to_vertex(mesh.get_num_corners(), invalid<Index>());
     size_t num_unique_corners = corner_group_indices.size() - 1;
-    logger().info("Unified index buffer: {} vertices", num_unique_corners);
+    logger().debug("Unified index buffer: {} vertices", num_unique_corners);
     output_mesh.add_vertices(num_unique_corners, [&](Index i, span<Scalar> p) {
         for (size_t j = corner_group_indices[i]; j < corner_group_indices[i + 1]; j++) {
             const auto cid = corner_groups[j];
@@ -130,7 +130,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
 
     // Map facets.
     auto num_facets = mesh.get_num_facets();
-    logger().info("Unified index buffer: {} facets", num_facets);
+    logger().debug("Unified index buffer: {} facets", num_facets);
     output_mesh.add_hybrid(
         num_facets,
         [&](Index fid) { return mesh.get_facet_size(fid); },
@@ -145,7 +145,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
     seq_foreach_named_attribute_read<Vertex>(mesh, [&](std::string_view name, auto&& attr) {
         if (mesh.attr_name_is_reserved(name)) return;
 
-        logger().info("Unified index buffer: mapping vertex attribute {}", name);
+        logger().debug("Unified index buffer: mapping vertex attribute {}", name);
         using AttributeType = std::decay_t<decltype(attr)>;
         using ValueType = typename AttributeType::ValueType;
         auto id = output_mesh.template create_attribute<ValueType>(
@@ -167,7 +167,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
     seq_foreach_named_attribute_read<Facet | Corner>(mesh, [&](std::string_view name, auto&& attr) {
         LA_IGNORE(attr);
         if (mesh.attr_name_is_reserved(name)) return;
-        logger().info("Unified index buffer: mapping facet attribute {}", name);
+        logger().debug("Unified index buffer: mapping facet attribute {}", name);
         output_mesh.create_attribute_from(name, mesh);
     });
 
@@ -178,7 +178,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
 
         if (!attribute_ids.empty() &&
             std::find(attribute_ids.begin(), attribute_ids.end(), attr_id) != attribute_ids.end()) {
-            logger().info(
+            logger().debug(
                 "Unified index buffer: mapping indexed attribute \"{}\" as vertex attribute",
                 name);
             // Selected attributes should be mapped over as vertex
@@ -206,7 +206,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
             }
         } else {
             // Copy over unselected index attribute.
-            logger().info(
+            logger().debug(
                 "Unified index buffer: mapping indexed attribute \"{}\" as indexed attribute",
                 name);
             output_mesh.create_attribute_from(name, mesh);

@@ -32,6 +32,20 @@ struct VertexNormalOptions
 
     /// Per-vertex normal averaging weighting type.
     NormalWeightingType weight_type = NormalWeightingType::Angle;
+
+    /// Precomputed weighted corner attribute name. If the attribute does not exist, the algorithm
+    /// will compute it. Note that if the input mesh has edge information, this intermediate
+    /// attribute will not be computed (averaging will be performed directly in parallel).
+    std::string_view weighted_corner_normal_attribute_name = "@weighted_corner_normal";
+
+    /// Whether to recompute the weighted corner normal attribute, or reuse existing cached values
+    /// if present.
+    bool recompute_weighted_corner_normals = false;
+
+    /// Whether to keep any newly added weighted corner normal attribute. If such an attribute is
+    /// already present in the input mesh, it will not be removed, even if this argument is set to
+    /// false.
+    bool keep_weighted_corner_normals = false;
 };
 
 /**

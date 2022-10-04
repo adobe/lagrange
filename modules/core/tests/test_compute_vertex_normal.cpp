@@ -19,15 +19,14 @@
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/mesh_convert.h>
-#include <lagrange/views.h>
 #include <lagrange/utils/geometry3d.h>
+#include <lagrange/views.h>
 
-TEST_CASE("compute_vertex_normal", "[surface][attribute][normal][utilities]")
+namespace {
+
+template <typename Scalar, typename Index>
+lagrange::SurfaceMesh<Scalar, Index> make_cube()
 {
-    using namespace lagrange;
-    using Scalar = double;
-    using Index = uint32_t;
-
     lagrange::SurfaceMesh<Scalar, Index> mesh;
     mesh.add_vertex({0, 0, 0});
     mesh.add_vertex({1, 0, 0});
@@ -44,6 +43,19 @@ TEST_CASE("compute_vertex_normal", "[surface][attribute][normal][utilities]")
     mesh.add_quad(6, 7, 3, 2);
     mesh.add_quad(0, 1, 5, 4);
 
+    return mesh;
+}
+
+} // namespace
+
+TEST_CASE("compute_vertex_normal", "[surface][attribute][normal][utilities]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh = make_cube<Scalar, Index>();
+
     auto id = compute_vertex_normal(mesh);
     REQUIRE(mesh.is_attribute_type<Scalar>(id));
     REQUIRE(!mesh.is_attribute_indexed(id));
@@ -54,6 +66,33 @@ TEST_CASE("compute_vertex_normal", "[surface][attribute][normal][utilities]")
         REQUIRE(std::abs(normals(i, 1)) == Catch::Approx(1.0 / sqrt(3.0)));
         REQUIRE(std::abs(normals(i, 2)) == Catch::Approx(1.0 / sqrt(3.0)));
     }
+}
+
+TEST_CASE("compute_vertex_normal: corner normal attr", "[surface][attribute][normal][utilities]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh = make_cube<Scalar, Index>();
+
+    VertexNormalOptions options;
+    auto corner_normal_name = options.weighted_corner_normal_attribute_name;
+
+    REQUIRE(!mesh.has_attribute(corner_normal_name));
+    compute_vertex_normal(mesh, options);
+    REQUIRE(!mesh.has_attribute(corner_normal_name));
+
+    options.keep_weighted_corner_normals = true;
+    compute_vertex_normal(mesh, options);
+    REQUIRE(mesh.has_attribute(corner_normal_name));
+    mesh.delete_attribute(corner_normal_name);
+
+    // Whether to keep the corner attribute or not *does* depend on the presence of edge
+    // information, contrary to the compute_vertex_normal method.
+    mesh.initialize_edges();
+    compute_vertex_normal(mesh, options);
+    REQUIRE(!mesh.has_attribute(corner_normal_name));
 }
 
 TEST_CASE("compute_vertex_normal Waffle", "[surface][attribute][normal][utilities]" LA_CORP_FLAG)
@@ -85,8 +124,16 @@ TEST_CASE("compute_vertex_normal benchmark", "[surface][attribute][normal][utili
 
     auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
 
-    BENCHMARK_ADVANCED("compute_vertex_normal")(Catch::Benchmark::Chronometer meter)
+    BENCHMARK_ADVANCED("compute_vertex_normal without edges")(Catch::Benchmark::Chronometer meter)
     {
+        if (mesh.has_attribute("@vertex_normal"))
+            mesh.delete_attribute("@vertex_normal", AttributeDeletePolicy::Force);
+        meter.measure([&]() { return compute_vertex_normal(mesh); });
+    };
+
+    BENCHMARK_ADVANCED("compute_vertex_normal with edges")(Catch::Benchmark::Chronometer meter)
+    {
+        mesh.initialize_edges();
         if (mesh.has_attribute("@vertex_normal"))
             mesh.delete_attribute("@vertex_normal", AttributeDeletePolicy::Force);
         meter.measure([&]() { return compute_vertex_normal(mesh); });

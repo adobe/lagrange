@@ -26,8 +26,8 @@ void doublearea(
     const Eigen::MatrixBase<DerivedF>& F,
     Eigen::PlainObjectBase<DeriveddblA>& dblA)
 {
-    const int dim = V.cols();
-    const size_t m = F.rows();
+    const auto dim = V.cols();
+    const auto m = F.rows();
 
     // Only support triangles
     la_runtime_assert(F.cols() == 3);
@@ -39,7 +39,7 @@ void doublearea(
     Eigen::Matrix<typename DerivedV::Scalar, Eigen::Dynamic, 3> l;
 
     // Projected area helper
-    const auto& proj_doublearea = [&V, &F](const int x, const int y, const int f) ->
+    const auto& proj_doublearea = [&V, &F](Eigen::Index x, Eigen::Index y, Eigen::Index f) ->
         typename DerivedV::Scalar {
             auto rx = V(F(f, 0), x) - V(F(f, 2), x);
             auto sx = V(F(f, 1), x) - V(F(f, 2), x);
@@ -51,7 +51,7 @@ void doublearea(
     switch (dim) {
     case 3: {
         dblA = DeriveddblA::Zero(m, 1);
-        for (size_t f = 0; f < m; f++) {
+        for (Eigen::Index f = 0; f < m; f++) {
             for (int d = 0; d < 3; d++) {
                 const auto dblAd = proj_doublearea(d, (d + 1) % 3, f);
                 dblA(f) += dblAd * dblAd;
@@ -62,13 +62,12 @@ void doublearea(
     }
     case 2: {
         dblA.resize(m, 1);
-        for (size_t f = 0; f < m; f++) {
+        for (Eigen::Index f = 0; f < m; f++) {
             dblA(f) = proj_doublearea(0, 1, f);
         }
         break;
     }
-    default:
-        break;
+    default: break;
     }
 }
 

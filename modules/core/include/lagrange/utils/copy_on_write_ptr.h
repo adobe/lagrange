@@ -105,6 +105,25 @@ public:
         return std::dynamic_pointer_cast<Derived>(std::move(m_data));
     }
 
+public:
+    /// Return a weak pointer to the data.
+    ///
+    /// @warning This method is for internal usage purposes.
+    ///
+    /// @see read() for preferred way of accessing data.
+    std::weak_ptr<const T> _get_weak_ptr() const {
+        return m_data;
+    }
+
+    /// Return a weak pointer to the data.
+    ///
+    /// @warning This method is for internal usage purposes.
+    ///
+    /// @see read() for preferred way of accessing data.
+    std::weak_ptr<T> _get_weak_ptr() {
+        return m_data;
+    }
+
 protected:
     /// Shared object.
     std::shared_ptr<T> m_data;

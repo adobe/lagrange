@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/utils/SharedSpan.h>
 #include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/span.h>
 #include <lagrange/utils/value_ptr.h>
@@ -790,6 +791,21 @@ public:
         span<ValueType> values_view);
 
     ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_values`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_attribute(
+        std::string_view name,
+        AttributeElement element,
+        AttributeUsage usage,
+        size_t num_channels,
+        SharedSpan<ValueType> shared_values);
+
+    ///
     /// Wraps a read-only external buffer as a mesh attribute. The buffer must remain valid during
     /// the lifetime of the mesh object (and any derived meshes that might have been copied from
     /// it). Any operation that attempts to write data to the attribute will throw a runtime
@@ -819,6 +835,21 @@ public:
         AttributeUsage usage,
         size_t num_channels,
         span<const ValueType> values_view);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_values`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_const_attribute(
+        std::string_view name,
+        AttributeElement element,
+        AttributeUsage usage,
+        size_t num_channels,
+        SharedSpan<const ValueType> shared_values);
 
     ///
     /// Wraps a writable external buffer as a mesh attribute. The buffer must remain valid during
@@ -853,6 +884,55 @@ public:
         size_t num_values,
         size_t num_channels,
         span<ValueType> values_view,
+        span<Index> indices_view);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_values` and
+    /// `shared_indices`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_indexed_attribute(
+        std::string_view name,
+        AttributeUsage usage,
+        size_t num_values,
+        size_t num_channels,
+        SharedSpan<ValueType> shared_values,
+        SharedSpan<Index> shared_indices);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_indices`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_indexed_attribute(
+        std::string_view name,
+        AttributeUsage usage,
+        size_t num_values,
+        size_t num_channels,
+        span<ValueType> values_view,
+        SharedSpan<Index> shared_indices);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_values`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_indexed_attribute(
+        std::string_view name,
+        AttributeUsage usage,
+        size_t num_values,
+        size_t num_channels,
+        SharedSpan<ValueType> shared_values,
         span<Index> indices_view);
 
     ///
@@ -892,6 +972,55 @@ public:
         span<const Index> indices_view);
 
     ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffers referred by `shared_values` and
+    /// `shared_indices`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_const_indexed_attribute(
+        std::string_view name,
+        AttributeUsage usage,
+        size_t num_values,
+        size_t num_channels,
+        SharedSpan<const ValueType> shared_values,
+        SharedSpan<const Index> shared_indices);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_indices`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_const_indexed_attribute(
+        std::string_view name,
+        AttributeUsage usage,
+        size_t num_values,
+        size_t num_channels,
+        span<const ValueType> values_view,
+        SharedSpan<const Index> shared_indices);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_values`.
+    ///
+    template <typename ValueType>
+    AttributeId wrap_as_const_indexed_attribute(
+        std::string_view name,
+        AttributeUsage usage,
+        size_t num_values,
+        size_t num_channels,
+        SharedSpan<const ValueType> shared_values,
+        span<const Index> indices_view);
+
+    ///
     /// Wraps a writable external buffer as mesh vertices coordinates. The buffer must remain valid
     /// during the lifetime of the mesh object (and any derived meshes that might have been copied
     /// from it). The user must provide the new number of vertices to resize the mesh with.
@@ -906,6 +1035,15 @@ public:
     /// @return     The attribute identifier.
     ///
     AttributeId wrap_as_vertices(span<Scalar> vertices_view, Index num_vertices);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_vertices`.
+    ///
+    AttributeId wrap_as_vertices(SharedSpan<Scalar> shared_vertices, Index num_vertices);
 
     ///
     /// Wraps a read-only external buffer as mesh vertices coordinates. The buffer must remain valid
@@ -925,6 +1063,17 @@ public:
     AttributeId wrap_as_const_vertices(span<const Scalar> vertices_view, Index num_vertices);
 
     ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_vertices`.
+    ///
+    AttributeId wrap_as_const_vertices(
+        SharedSpan<const Scalar> shared_vertices,
+        Index num_vertices);
+
+    ///
     /// Wraps a writable external buffer as mesh facets for a regular mesh. The buffer must remain
     /// valid during the lifetime of the mesh object (and any derived meshes that might have been
     /// copied from it). The user must provide the new number of facets to resize the mesh with.
@@ -939,6 +1088,16 @@ public:
     /// @return     The attribute identifier.
     ///
     AttributeId wrap_as_facets(span<Index> facets_view, Index num_facets, Index vertex_per_facet);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_facets`.
+    ///
+    AttributeId
+    wrap_as_facets(SharedSpan<Index> shared_facets, Index num_facets, Index vertex_per_facet);
 
     ///
     /// Wraps a read-only external buffer as mesh facets for a regular mesh. The buffer must remain
@@ -957,6 +1116,18 @@ public:
     ///
     AttributeId
     wrap_as_const_facets(span<const Index> facets_view, Index num_facets, Index vertex_per_facet);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_facets`.
+    ///
+    AttributeId wrap_as_const_facets(
+        SharedSpan<const Index> shared_facets,
+        Index num_facets,
+        Index vertex_per_facet);
 
     ///
     /// Wraps writable external buffers as mesh facets for a hybrid mesh. The buffer must remain
@@ -983,6 +1154,46 @@ public:
         Index num_corners);
 
     ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffers referred by `shared_offsets` and
+    /// `shared_facets`.
+    ///
+    AttributeId wrap_as_facets(
+        SharedSpan<Index> shared_offsets,
+        Index num_facets,
+        SharedSpan<Index> shared_facets,
+        Index num_corners);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_facets`.
+    ///
+    AttributeId wrap_as_facets(
+        span<Index> offsets_view,
+        Index num_facets,
+        SharedSpan<Index> shared_facets,
+        Index num_corners);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_offsets`.
+    ///
+    AttributeId wrap_as_facets(
+        SharedSpan<Index> shared_offsets,
+        Index num_facets,
+        span<Index> facets_view,
+        Index num_corners);
+
+    ///
     /// Wraps read-only external buffers as mesh facets for a hybrid mesh. The buffer must remain
     /// valid during the lifetime of the mesh object (and any derived meshes that might have been
     /// copied from it). The user must provide the new number of facets to resize the mesh with. Any
@@ -1003,6 +1214,46 @@ public:
     ///
     AttributeId wrap_as_const_facets(
         span<const Index> offsets_view,
+        Index num_facets,
+        span<const Index> facets_view,
+        Index num_corners);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffers referred by `shared_offsets` and
+    /// `shared_facets`.
+    ///
+    AttributeId wrap_as_const_facets(
+        SharedSpan<const Index> shared_offsets,
+        Index num_facets,
+        SharedSpan<const Index> shared_facets,
+        Index num_corners);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_facets`.
+    ///
+    AttributeId wrap_as_const_facets(
+        span<const Index> offsets_view,
+        Index num_facets,
+        SharedSpan<const Index> shared_facets,
+        Index num_corners);
+
+    ///
+    /// @overload
+    ///
+    /// @note
+    /// This function differs from the prevous version by participating in
+    /// shared ownership management of the buffer referred by `shared_offsets`.
+    ///
+    AttributeId wrap_as_const_facets(
+        SharedSpan<const Index> shared_offsets,
         Index num_facets,
         span<const Index> facets_view,
         Index num_corners);
@@ -1274,6 +1525,29 @@ public:
     [[nodiscard]] const Attribute<ValueType>& get_attribute(AttributeId id) const;
 
     ///
+    /// Gets a read-only weak pointer to the base attribute object.
+    ///
+    /// @param[in]  name  %Attribute name.
+    ///
+    /// @return     A weak ptr to the base attribute object.
+    ///
+    /// @note This method is for tracking the life span of the attribute object.
+    ///
+    [[nodiscard]] std::weak_ptr<const AttributeBase> _get_attribute_ptr(
+        std::string_view name) const;
+
+    ///
+    /// Gets a read-only weak pointer to the base attribute object.
+    ///
+    /// @param[in]  id    %Attribute id.
+    ///
+    /// @return     A weak ptr to the base attribute object.
+    ///
+    /// @note This method is for tracking the life span of the attribute object.
+    ///
+    [[nodiscard]] std::weak_ptr<const AttributeBase> _get_attribute_ptr(AttributeId id) const;
+
+    ///
     /// Gets a read-only reference to an indexed attribute given its name.
     ///
     /// @param[in]  name        %Attribute name.
@@ -1324,6 +1598,28 @@ public:
     ///
     template <typename ValueType>
     [[nodiscard]] Attribute<ValueType>& ref_attribute(AttributeId id);
+
+    ///
+    /// Gets a weak pointer to the base attribute object.
+    ///
+    /// @param[in]  name  %Attribute name.
+    ///
+    /// @return     A weak ptr to the base attribute object.
+    ///
+    /// @note This method is for tracking the life span of the attribute object.
+    ///
+    [[nodiscard]] std::weak_ptr<AttributeBase> _ref_attribute_ptr(std::string_view name);
+
+    ///
+    /// Gets a weak pointer to the base attribute object.
+    ///
+    /// @param[in]  id    %Attribute id.
+    ///
+    /// @return     A weak ptr to the base attribute object.
+    ///
+    /// @note This method is for tracking the life span of the attribute object.
+    ///
+    [[nodiscard]] std::weak_ptr<AttributeBase> _ref_attribute_ptr(AttributeId id);
 
     ///
     /// Gets a writable reference to an indexed attribute given its name. If the attribute is a
@@ -2005,6 +2301,93 @@ protected:
     /// @return     The number of such elements in the mesh.
     ///
     [[nodiscard]] size_t get_num_elements_internal(AttributeElement element) const;
+
+    ///
+    /// Wrap a span in an attribute.
+    ///
+    /// @tparam ValueType       The attribute value type.
+    ///
+    /// @param[in] attr         The attribute object.
+    /// @param[in] num_values   The number of elements to wrap.
+    /// @param[in] values_view  A view of the raw buffer.  Its size must sufficiently large to hold
+    ///                         at least `num_values` elements.
+    ///
+    template <typename ValueType>
+    void wrap_as_attribute_internal(
+        Attribute<std::decay_t<ValueType>>& attr,
+        size_t num_values,
+        span<ValueType> values_view);
+
+    ///
+    /// Wrap a shared span in an attribute.  The attribute object will take a share of the memory
+    /// ownership of the external buffer referred by the shared span so that it will stay alive
+    /// as long as the attribute is using it.
+    ///
+    /// @tparam ValueType        The attribute value type.
+    ///
+    /// @param[in] attr          The attribute object.
+    /// @param[in] num_values    The number of elements to wrap.
+    /// @param[in] shared_values A shared span object with memory ownership tracking support.
+    ///                          Its size must sufficiently large to hold at least `num_values`
+    ///                          elements.
+    ///
+    template <typename ValueType>
+    void wrap_as_attribute_internal(
+        Attribute<std::decay_t<ValueType>>& attr,
+        size_t num_values,
+        SharedSpan<ValueType> shared_values);
+
+    ///
+    /// Wrap shared spans as offsets and facets.
+    ///
+    /// @tparam OffsetSpan  The offset span type.  Should be either `span<T>` or `SharedSpan<T>`.
+    /// @tparam FacetSpan   The facet span type.  Should be either `span<T>` or `SharedSpan<T>`.
+    ///
+    /// @param offsets      The offset span.  Its size should be >= `num_facets`.
+    /// @param num_facets   The number of facets.
+    /// @param facets       The facet span.  Its size should be >= `num_corners`.
+    /// @param num_corners  The number of corners.
+    ///
+    /// @return The corner-to-vertex attribute id.
+    ///
+    template <typename OffsetSpan, typename FacetSpan>
+    AttributeId wrap_as_facets_internal(
+        OffsetSpan offsets,
+        Index num_facets,
+        FacetSpan facets,
+        Index num_corners);
+
+    ///
+    /// The most generic way of creating an attribute wrapped around external buffers.
+    ///
+    /// Based on the `element` type, it will create either a normal attribute or an indexed
+    /// attribute.  The generated attribute will have the same "const-ness" as the `value_type` of
+    /// the span.  If a SharedSpan is used, the attribute will participate in ownership sharing of
+    /// the buffer it uses.
+    ///
+    /// @tparam ValueSpan   The value span type.  Should be either `span<T>` or `SharedSpan<T>`.
+    /// @tparam IndexSpan   The index span type.  Should be either `span<T>` or `SharedSpan<T>`.
+    ///
+    /// @param name         The attribute name.
+    /// @param element      The attribute element type.
+    /// @param usage        The attribute usage type.
+    /// @param num_values   The number of values.
+    /// @param num_channels The number of channels.
+    /// @param values       The value span.  Its size should be >= num_values * num_channels.
+    /// @param indices      The index span.  Its size should be >= the number of corresponding
+    ///                     elements.  It is only used for creating indexed attribute.
+    ///
+    /// @return The attribute id of the generated attribute.
+    ///
+    template <typename ValueSpan, typename IndexSpan = span<Index>>
+    AttributeId wrap_as_attribute_internal(
+        std::string_view name,
+        AttributeElement element,
+        AttributeUsage usage,
+        size_t num_values,
+        size_t num_channels,
+        ValueSpan values,
+        IndexSpan indices = {});
 
 protected:
     /// @cond LA_INTERNAL_DOCS

@@ -27,9 +27,9 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <set>
 #include <numeric>
 #include <random>
+#include <set>
 #include <unordered_set>
 
 namespace {
@@ -2901,6 +2901,58 @@ void test_resize_attribute_type()
     }
 }
 
+template <typename ValueType, typename Scalar, typename Index>
+void test_copy_attribute()
+{
+    using namespace lagrange;
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0.0f, 0.0f, 0.0f});
+    mesh.add_vertex({1.0f, 0.0f, 0.0f});
+    mesh.add_vertex({0.0f, 1.0f, 0.0f});
+    mesh.add_triangle(0, 1, 2);
+
+    // Wrap a buffer as attribute.
+    std::array<int, 3> indices{0, 1, 2};
+    constexpr char name[] = "vertex_index";
+    mesh.template wrap_as_attribute<int>(name, Vertex, AttributeUsage::Scalar, 1, indices);
+    REQUIRE(mesh.has_attribute(name));
+    auto& attr = mesh.template ref_attribute<int>(name);
+    REQUIRE(attr.is_external());
+
+    // "Read access"
+    {
+        // Copy mesh and check read-access to the attribute.
+        auto mesh2 = mesh;
+        REQUIRE(mesh2.has_attribute(name));
+        const auto& attr2 = mesh2.template get_attribute<int>(name);
+        REQUIRE(attr.get_all().data() == attr2.get_all().data());
+    }
+
+    // "AttributeCopyPolicy::CopyIfExternal"
+    {
+        auto mesh2 = mesh;
+        // Trigger copy-on-write on the wrapped attribute.
+        auto& attr2 = mesh2.template ref_attribute<int>(name);
+        REQUIRE(attr.get_all().data() != attr2.get_all().data());
+    }
+
+    // "AttributeCopyPolicy::KeepExternalPtr"
+    {
+        attr.set_copy_policy(AttributeCopyPolicy::KeepExternalPtr);
+        auto mesh2 = mesh;
+        // Trigger copy-on-write on the wrapped attribute.
+        auto& attr2 = mesh2.template ref_attribute<int>(name);
+        REQUIRE(attr.get_all().data() == attr2.get_all().data());
+    }
+
+    // "AttributeCopyPolicy::ErrorIfExternal"
+    {
+        auto mesh2 = mesh;
+        attr.set_copy_policy(AttributeCopyPolicy::ErrorIfExternal);
+        LA_REQUIRE_THROWS(mesh2.template ref_attribute<int>(name));
+    }
+}
+
 } // namespace
 
 TEST_CASE("SurfaceMesh Construction", "[next]")
@@ -3053,6 +3105,14 @@ TEST_CASE("SurfaceMesh: Resize Attribute Type", "[next]")
 #define LA_X_test_resize_attribute_type_aux(_, ValueType) \
     LA_SURFACE_MESH_X(test_resize_attribute_type, ValueType)
     LA_ATTRIBUTE_X(test_resize_attribute_type_aux, 0)
+}
+
+TEST_CASE("SurfaceMesh: Copy Attribute", "[next]")
+{
+#define LA_X_test_copy_attribute(ValueType, Scalar, Index) \
+    test_copy_attribute<ValueType, Scalar, Index>();
+#define LA_X_test_copy_attribute_aux(_, ValueType) LA_SURFACE_MESH_X(test_copy_attribute, ValueType)
+    LA_ATTRIBUTE_X(test_copy_attribute_aux, 0)
 }
 
 TEST_CASE("SurfaceMesh: Shrink And Compress", "[next]")

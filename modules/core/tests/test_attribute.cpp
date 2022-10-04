@@ -444,6 +444,7 @@ void test_move_copy_external()
     {
         Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
         attr.wrap(values, num_elems);
+        attr.set_copy_policy(AttributeCopyPolicy::KeepExternalPtr);
         void* old_addr = attr.ref_all().data();
         REQUIRE(old_addr == values.data());
         lagrange::Attribute<ValueType> new_attr(attr);
@@ -457,6 +458,7 @@ void test_move_copy_external()
     {
         Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
         attr.wrap(values, num_elems);
+        attr.set_copy_policy(AttributeCopyPolicy::KeepExternalPtr);
         void* old_addr = attr.ref_all().data();
         REQUIRE(old_addr == values.data());
         lagrange::Attribute<ValueType> new_attr(
@@ -958,6 +960,34 @@ void test_empty_buffers()
     }
 }
 
+template <typename ValueType>
+void test_ownership()
+{
+    using namespace lagrange;
+    const size_t num_channels = 1;
+    const size_t num_elements = 3;
+
+    using Buffer = std::vector<ValueType>;
+
+    auto data = std::make_shared<Buffer>(num_elements, 0);
+    auto buffer_ptr = make_shared_span(data, data->data(), data->size());
+    auto owner = buffer_ptr.owner();
+
+    REQUIRE(owner.use_count() == 3);
+    {
+        Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Scalar, num_channels);
+        attr.wrap(buffer_ptr, num_elements);
+        REQUIRE(owner.use_count() == 4);
+        REQUIRE(attr.get_all().data() == owner.get());
+
+        Attribute<ValueType> another_attr(AttributeElement::Vertex, AttributeUsage::Scalar, num_channels);
+        another_attr.wrap(buffer_ptr, num_elements);
+        REQUIRE(owner.use_count() == 5);
+        REQUIRE(another_attr.get_all().data() == owner.get());
+    }
+    REQUIRE(owner.use_count() == 3);
+}
+
 } // namespace
 
 TEST_CASE("IndexedAttribute: Move-Copy", "[next]")
@@ -1007,6 +1037,12 @@ TEST_CASE("Attribute: Empty Buffers", "[next]")
 {
 #define LA_X_empty_buffers(_, ValueType) test_empty_buffers<ValueType>();
     LA_ATTRIBUTE_X(empty_buffers, 0)
+}
+
+TEST_CASE("Attribute: ownership", "[next]")
+{
+#define LA_X_ownership(_, ValueType) test_ownership<ValueType>();
+    LA_ATTRIBUTE_X(ownership, 0)
 }
 
 // TODO

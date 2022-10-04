@@ -80,11 +80,13 @@ template <typename ValueType>
 Attribute<ValueType>::Attribute(Attribute<ValueType>&& other) noexcept
     : AttributeBase(std::move(other))
     , m_data(std::move(other.m_data))
+    , m_owner(std::move(other.m_owner))
     , m_default_value(other.m_default_value)
     , m_view(other.m_view)
     , m_const_view(other.m_const_view)
     , m_growth_policy(other.m_growth_policy)
     , m_write_policy(other.m_write_policy)
+    , m_copy_policy(other.m_copy_policy)
     , m_is_external(other.m_is_external)
     , m_is_read_only(other.m_is_read_only)
     , m_num_elements(other.m_num_elements)
@@ -108,9 +110,11 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(Attribute<ValueType>&& oth
         m_const_view = other.m_const_view;
         m_growth_policy = other.m_growth_policy;
         m_write_policy = other.m_write_policy;
+        m_copy_policy = other.m_copy_policy;
         m_is_external = other.m_is_external;
         m_is_read_only = other.m_is_read_only;
         m_num_elements = other.m_num_elements;
+        m_owner = std::move(other.m_owner);
         other.clear_views();
         if (!is_external()) {
             // It's a move, so internal buffer address should be the same
@@ -125,11 +129,13 @@ template <typename ValueType>
 Attribute<ValueType>::Attribute(const Attribute<ValueType>& other)
     : AttributeBase(other)
     , m_data(other.m_data)
+    , m_owner(other.m_owner)
     , m_default_value(other.m_default_value)
     , m_view(other.m_view)
     , m_const_view(other.m_const_view)
     , m_growth_policy(other.m_growth_policy)
     , m_write_policy(other.m_write_policy)
+    , m_copy_policy(other.m_copy_policy)
     , m_is_external(other.m_is_external)
     , m_is_read_only(other.m_is_read_only)
     , m_num_elements(other.m_num_elements)
@@ -137,6 +143,13 @@ Attribute<ValueType>::Attribute(const Attribute<ValueType>& other)
     if (!is_external()) {
         // It's a copy, so internal buffer address should be updated
         update_views();
+    } else {
+        switch (m_copy_policy) {
+        case AttributeCopyPolicy::CopyIfExternal: create_internal_copy(); break;
+        case AttributeCopyPolicy::KeepExternalPtr: break;
+        case AttributeCopyPolicy::ErrorIfExternal:
+            throw Error("Attribute copy policy prevents copying external buffer");
+        }
     }
 }
 
@@ -151,12 +164,21 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(const Attribute<ValueType>
         m_const_view = other.m_const_view;
         m_growth_policy = other.m_growth_policy;
         m_write_policy = other.m_write_policy;
+        m_copy_policy = other.m_copy_policy;
         m_is_external = other.m_is_external;
         m_is_read_only = other.m_is_read_only;
         m_num_elements = other.m_num_elements;
+        m_owner = other.m_owner;
         if (!is_external()) {
             // It's a copy, so internal buffer address should be updated
             update_views();
+        } else {
+            switch (m_copy_policy) {
+            case AttributeCopyPolicy::CopyIfExternal: create_internal_copy(); break;
+            case AttributeCopyPolicy::KeepExternalPtr: break;
+            case AttributeCopyPolicy::ErrorIfExternal:
+                throw Error("Attribute copy policy prevents copying external buffer");
+            }
         }
     }
     return *this;
@@ -172,6 +194,19 @@ void Attribute<ValueType>::wrap(lagrange::span<ValueType> buffer, size_t num_ele
     m_data.clear();
     m_is_external = true;
     m_is_read_only = false;
+    m_owner.reset();
+}
+
+template <typename ValueType>
+void Attribute<ValueType>::wrap(SharedSpan<ValueType> shared_buffer, size_t num_elements)
+{
+    m_view = shared_buffer.ref();
+    m_const_view = m_view;
+    m_num_elements = num_elements;
+    m_data.clear();
+    m_owner = shared_buffer.owner();
+    m_is_external = true;
+    m_is_read_only = false;
 }
 
 template <typename ValueType>
@@ -182,6 +217,19 @@ void Attribute<ValueType>::wrap_const(lagrange::span<const ValueType> buffer, si
     m_const_view = buffer;
     m_num_elements = num_elements;
     m_data.clear();
+    m_is_external = true;
+    m_is_read_only = true;
+    m_owner.reset();
+}
+
+template <typename ValueType>
+void Attribute<ValueType>::wrap_const(SharedSpan<const ValueType> shared_buffer, size_t num_elements)
+{
+    m_view = {};
+    m_const_view = shared_buffer.get();
+    m_num_elements = num_elements;
+    m_data.clear();
+    m_owner = shared_buffer.owner();
     m_is_external = true;
     m_is_read_only = true;
 }
@@ -201,6 +249,7 @@ void Attribute<ValueType>::create_internal_copy()
     m_data.assign(get_all().begin(), get_all().end());
     m_is_external = false;
     m_is_read_only = false;
+    m_owner.reset();
     update_views();
 }
 
@@ -430,6 +479,7 @@ template <typename ValueType>
 void Attribute<ValueType>::update_views()
 {
     la_debug_assert(!is_external());
+    la_debug_assert(m_owner == nullptr);
     la_debug_assert(get_num_channels() != 0);
     la_debug_assert(m_data.size() % get_num_channels() == 0);
     m_view = {m_data.data(), m_data.size()};

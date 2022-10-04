@@ -31,7 +31,7 @@ namespace lagrange {
 struct CornerNormalOptions
 {
     /// Output normal attribute name.
-    std::string_view output_attribute_name = "@corner_normal";
+    std::string_view output_attribute_name = "@weighted_corner_normal";
 
     /// Per-vertex normal averaging weighting type.
     NormalWeightingType weight_type = NormalWeightingType::Uniform;

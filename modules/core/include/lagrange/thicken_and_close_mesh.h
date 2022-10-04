@@ -108,7 +108,7 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
     const Index num_input_vertices = input_mesh.get_num_vertices();
     const Index num_input_facets = input_mesh.get_num_facets();
     const bool has_uvs = input_mesh.is_uv_initialized();
-    const Index num_input_uvs = (has_uvs ? input_mesh.get_uv().rows() : 0);
+    const Index num_input_uvs = static_cast<Index>(has_uvs ? input_mesh.get_uv().rows() : 0);
 
     // Count boundary edges and vertices in the input mesh
     Index num_boundary_edges = 0;
@@ -123,7 +123,7 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
             }
         }
     }
-    num_boundary_vertices = boundary_vertices.size();
+    num_boundary_vertices = static_cast<Index>(boundary_vertices.size());
 
     // Vertices
     // output vertices are packed as follows:
@@ -281,8 +281,10 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
         }
 
         // Stitch
-        Index uvbstart = 2 * input_uv_values.rows();
-        for (Index e = 0, f_uv = 2 * input_uv_indices.rows(); e < input_mesh.get_num_edges(); ++e) {
+        Index uvbstart = static_cast<Index>(2 * input_uv_values.rows());
+        for (Index e = 0, f_uv = 2 * static_cast<Index>(input_uv_indices.rows());
+             e < input_mesh.get_num_edges();
+             ++e) {
             if (input_mesh.is_boundary_edge(e)) {
                 // Find first and only face on this edge
                 const Index f = input_mesh.get_one_facet_around_edge(e);

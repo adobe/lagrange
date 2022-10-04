@@ -161,7 +161,7 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
             throw Error(fmt::format("Source attribute '{}' does not exist", old_name));
         }
         if (it_new != m_name_to_id.end()) {
-            throw Error(fmt::format("Target attribute '{}' already exist", old_name));
+            throw Error(fmt::format("Target attribute '{}' already exist", new_name));
         } else {
             AttributeId id = it_old->second;
             m_name_to_id.erase(it_old);
@@ -218,6 +218,16 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
     {
         return m_attributes.at(id)
             .second.template release_ptr<IndexedAttribute<ValueType, Index>>();
+    }
+
+    [[nodiscard]] std::weak_ptr<const AttributeBase> _get_weak_ptr(AttributeId id) const
+    {
+        return m_attributes.at(id).second._get_weak_ptr();
+    }
+
+    [[nodiscard]] std::weak_ptr<AttributeBase> _ref_weak_ptr(AttributeId id)
+    {
+        return m_attributes.at(id).second._get_weak_ptr();
     }
 
 protected:
@@ -478,19 +488,36 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(
     la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
     la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
 
-    // If usage is an element index type, then ValueType must be the same as the mesh's Index type.
-    if (usage == AttributeUsage::VertexIndex || usage == AttributeUsage::FacetIndex ||
-        usage == AttributeUsage::CornerIndex || usage == AttributeUsage::EdgeIndex) {
-        la_runtime_assert((std::is_same_v<ValueType, Index>));
-    }
+    const size_t num_elements = get_num_elements_internal(element);
+    return wrap_as_attribute_internal(
+        name,
+        element,
+        usage,
+        num_elements,
+        num_channels,
+        values_view);
+}
+
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(
+    std::string_view name,
+    AttributeElement element,
+    AttributeUsage usage,
+    size_t num_channels,
+    SharedSpan<ValueType> shared_values)
+{
+    la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
 
     const size_t num_elements = get_num_elements_internal(element);
-    la_runtime_assert(values_view.size() >= num_elements * num_channels);
-    auto id = m_attributes->template create<ValueType>(name, element, usage, num_channels);
-    set_attribute_default_internal<ValueType>(name);
-    auto& attr = m_attributes->template write<ValueType>(id);
-    attr.wrap(values_view, num_elements);
-    return id;
+    return wrap_as_attribute_internal(
+        name,
+        element,
+        usage,
+        num_elements,
+        num_channels,
+        shared_values);
 }
 
 template <typename Scalar, typename Index>
@@ -505,19 +532,36 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(
     la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
     la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
 
-    // If usage is an element index type, then ValueType must be the same as the mesh's Index type.
-    if (usage == AttributeUsage::VertexIndex || usage == AttributeUsage::FacetIndex ||
-        usage == AttributeUsage::CornerIndex || usage == AttributeUsage::EdgeIndex) {
-        la_runtime_assert((std::is_same_v<ValueType, Index>));
-    }
+    const size_t num_elements = get_num_elements_internal(element);
+    return wrap_as_attribute_internal(
+        name,
+        element,
+        usage,
+        num_elements,
+        num_channels,
+        values_view);
+}
+
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(
+    std::string_view name,
+    AttributeElement element,
+    AttributeUsage usage,
+    size_t num_channels,
+    SharedSpan<const ValueType> shared_values)
+{
+    la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
 
     const size_t num_elements = get_num_elements_internal(element);
-    la_runtime_assert(values_view.size() >= num_elements * num_channels);
-    auto id = m_attributes->template create<ValueType>(name, element, usage, num_channels);
-    set_attribute_default_internal<ValueType>(name);
-    auto& attr = m_attributes->template write<ValueType>(id);
-    attr.wrap_const(values_view, num_elements);
-    return id;
+    return wrap_as_attribute_internal(
+        name,
+        element,
+        usage,
+        num_elements,
+        num_channels,
+        shared_values);
 }
 
 template <typename Scalar, typename Index>
@@ -531,21 +575,77 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
     span<Index> indices_view)
 {
     la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
-    const size_t num_corners = get_num_elements_internal(AttributeElement::Corner);
-    la_runtime_assert(values_view.size() >= num_values * num_channels);
-    la_runtime_assert(indices_view.size() >= num_corners);
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        values_view,
+        indices_view);
+}
 
-    // If usage is an element index type, then ValueType must be the same as the mesh's Index type.
-    if (usage == AttributeUsage::VertexIndex || usage == AttributeUsage::FacetIndex ||
-        usage == AttributeUsage::CornerIndex || usage == AttributeUsage::EdgeIndex) {
-        la_runtime_assert((std::is_same_v<ValueType, Index>));
-    }
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
+    std::string_view name,
+    AttributeUsage usage,
+    size_t num_values,
+    size_t num_channels,
+    SharedSpan<ValueType> shared_values,
+    SharedSpan<Index> shared_indices)
+{
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        shared_values,
+        shared_indices);
+}
 
-    auto id = m_attributes->template create_indexed<ValueType>(name, usage, num_channels);
-    auto& attr = m_attributes->template write_indexed<ValueType>(id);
-    attr.values().wrap(values_view, num_values);
-    attr.indices().wrap(indices_view, num_corners);
-    return id;
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
+    std::string_view name,
+    AttributeUsage usage,
+    size_t num_values,
+    size_t num_channels,
+    span<ValueType> values_view,
+    SharedSpan<Index> shared_indices)
+{
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        values_view,
+        shared_indices);
+}
+
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
+    std::string_view name,
+    AttributeUsage usage,
+    size_t num_values,
+    size_t num_channels,
+    SharedSpan<ValueType> shared_values,
+    span<Index> indices_view)
+{
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        shared_values,
+        indices_view);
 }
 
 template <typename Scalar, typename Index>
@@ -559,21 +659,77 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
     span<const Index> indices_view)
 {
     la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
-    const size_t num_corners = get_num_elements_internal(AttributeElement::Corner);
-    la_runtime_assert(values_view.size() >= num_values * num_channels);
-    la_runtime_assert(indices_view.size() >= num_corners);
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        values_view,
+        indices_view);
+}
 
-    // If usage is an element index type, then ValueType must be the same as the mesh's Index type.
-    if (usage == AttributeUsage::VertexIndex || usage == AttributeUsage::FacetIndex ||
-        usage == AttributeUsage::CornerIndex || usage == AttributeUsage::EdgeIndex) {
-        la_runtime_assert((std::is_same_v<ValueType, Index>));
-    }
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
+    std::string_view name,
+    AttributeUsage usage,
+    size_t num_values,
+    size_t num_channels,
+    SharedSpan<const ValueType> shared_values,
+    SharedSpan<const Index> shared_indices)
+{
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        shared_values,
+        shared_indices);
+}
 
-    auto id = m_attributes->template create_indexed<ValueType>(name, usage, num_channels);
-    auto& attr = m_attributes->template write_indexed<ValueType>(id);
-    attr.values().wrap_const(values_view, num_values);
-    attr.indices().wrap_const(indices_view, num_corners);
-    return id;
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
+    std::string_view name,
+    AttributeUsage usage,
+    size_t num_values,
+    size_t num_channels,
+    span<const ValueType> values_view,
+    SharedSpan<const Index> shared_indices)
+{
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        values_view,
+        shared_indices);
+}
+
+template <typename Scalar, typename Index>
+template <typename ValueType>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
+    std::string_view name,
+    AttributeUsage usage,
+    size_t num_values,
+    size_t num_channels,
+    SharedSpan<const ValueType> shared_values,
+    span<const Index> indices_view)
+{
+    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    return wrap_as_attribute_internal(
+        name,
+        AttributeElement::Indexed,
+        usage,
+        num_values,
+        num_channels,
+        shared_values,
+        indices_view);
 }
 
 template <typename Scalar, typename Index>
@@ -589,6 +745,18 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_vertices(
 }
 
 template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_vertices(
+    SharedSpan<Scalar> shared_vertices,
+    Index num_vertices)
+{
+    la_runtime_assert(shared_vertices.size() >= num_vertices * get_dimension());
+    auto& attr = m_attributes->template write<Scalar>(m_vertex_to_position_id);
+    attr.wrap(std::move(shared_vertices), num_vertices);
+    resize_vertices_internal(num_vertices);
+    return m_vertex_to_position_id;
+}
+
+template <typename Scalar, typename Index>
 AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_vertices(
     span<const Scalar> vertices_view,
     Index num_vertices)
@@ -596,6 +764,18 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_vertices(
     la_runtime_assert(vertices_view.size() >= num_vertices * get_dimension());
     auto& attr = m_attributes->template write<Scalar>(m_vertex_to_position_id);
     attr.wrap_const(vertices_view, num_vertices);
+    resize_vertices_internal(num_vertices);
+    return m_vertex_to_position_id;
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_vertices(
+    SharedSpan<const Scalar> shared_vertices,
+    Index num_vertices)
+{
+    la_runtime_assert(shared_vertices.size() >= num_vertices * get_dimension());
+    auto& attr = m_attributes->template write<Scalar>(m_vertex_to_position_id);
+    attr.wrap_const(std::move(shared_vertices), num_vertices);
     resize_vertices_internal(num_vertices);
     return m_vertex_to_position_id;
 }
@@ -616,6 +796,27 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
     m_vertex_per_facet = vertex_per_facet;
     auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
     attr.wrap(facets_view, num_facets * vertex_per_facet);
+    resize_facets_internal(num_facets);
+    resize_corners_internal(num_facets * vertex_per_facet);
+    return m_corner_to_vertex_id;
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
+    SharedSpan<Index> shared_facets,
+    Index num_facets,
+    Index vertex_per_facet)
+{
+    la_runtime_assert(shared_facets.size() >= num_facets * vertex_per_facet);
+    if (m_facet_to_first_corner_id != invalid_attribute_id()) {
+        // Mesh is regular, so delete hybrid storage attributes
+        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
+        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
+        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+    }
+    m_vertex_per_facet = vertex_per_facet;
+    auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+    attr.wrap(std::move(shared_facets), num_facets * vertex_per_facet);
     resize_facets_internal(num_facets);
     resize_corners_internal(num_facets * vertex_per_facet);
     return m_corner_to_vertex_id;
@@ -643,47 +844,64 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
 }
 
 template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
+    SharedSpan<const Index> shared_facets,
+    Index num_facets,
+    Index vertex_per_facet)
+{
+    la_runtime_assert(shared_facets.size() >= num_facets * vertex_per_facet);
+    if (m_facet_to_first_corner_id != invalid_attribute_id()) {
+        // Mesh is regular, so delete hybrid storage attributes
+        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
+        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
+        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+    }
+    m_vertex_per_facet = vertex_per_facet;
+    auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+    attr.wrap_const(std::move(shared_facets), num_facets * vertex_per_facet);
+    resize_facets_internal(num_facets);
+    resize_corners_internal(num_facets * vertex_per_facet);
+    return m_corner_to_vertex_id;
+}
+
+template <typename Scalar, typename Index>
 AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
     span<Index> offsets_view,
     Index num_facets,
     span<Index> facets_view,
     Index num_corners)
 {
-    la_runtime_assert(facets_view.size() >= num_corners);
-    la_runtime_assert(offsets_view.size() >= num_facets);
-    m_vertex_per_facet = 0;
-    if (m_facet_to_first_corner_id == invalid_attribute_id()) {
-        // Create new facet -> first corner index attribute
-        m_facet_to_first_corner_id = m_attributes->template create<Index>(
-            s_facet_to_first_corner,
-            AttributeElement::Facet,
-            AttributeUsage::CornerIndex,
-            1);
-        set_attribute_default_internal<Index>(s_facet_to_first_corner);
-        // Create new corner -> facet index attribute
-        la_debug_assert(m_corner_to_facet_id == invalid_attribute_id());
-        m_corner_to_facet_id = m_attributes->template create<Index>(
-            s_corner_to_facet,
-            AttributeElement::Corner,
-            AttributeUsage::FacetIndex,
-            1);
-        set_attribute_default_internal<Index>(s_corner_to_facet);
-    }
-    {
-        // Wrap facet -> first corner index
-        auto& attr = m_attributes->template write<Index>(m_facet_to_first_corner_id);
-        attr.wrap(offsets_view, num_facets);
-        resize_facets_internal(num_facets);
-    }
-    {
-        // Wrap corner -> vertex index
-        auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
-        attr.wrap(facets_view, num_corners);
-        resize_corners_internal(num_corners);
-    }
-    // Compute inverse mapping (corner -> facet index)
-    compute_corner_to_facet_internal(0, get_num_facets());
-    return m_corner_to_vertex_id;
+    return wrap_as_facets_internal(offsets_view, num_facets, facets_view, num_corners);
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
+    SharedSpan<Index> shared_offsets,
+    Index num_facets,
+    SharedSpan<Index> shared_facets,
+    Index num_corners)
+{
+    return wrap_as_facets_internal(shared_offsets, num_facets, shared_facets, num_corners);
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
+    span<Index> offsets_view,
+    Index num_facets,
+    SharedSpan<Index> shared_facets,
+    Index num_corners)
+{
+    return wrap_as_facets_internal(offsets_view, num_facets, shared_facets, num_corners);
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
+    SharedSpan<Index> shared_offsets,
+    Index num_facets,
+    span<Index> facets_view,
+    Index num_corners)
+{
+    return wrap_as_facets_internal(shared_offsets, num_facets, facets_view, num_corners);
 }
 
 template <typename Scalar, typename Index>
@@ -693,41 +911,37 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
     span<const Index> facets_view,
     Index num_corners)
 {
-    la_runtime_assert(facets_view.size() >= num_corners);
-    la_runtime_assert(offsets_view.size() >= num_facets);
-    m_vertex_per_facet = 0;
-    if (m_facet_to_first_corner_id == invalid_attribute_id()) {
-        // Create new facet -> first corner index attribute
-        m_facet_to_first_corner_id = m_attributes->template create<Index>(
-            s_facet_to_first_corner,
-            AttributeElement::Facet,
-            AttributeUsage::CornerIndex,
-            1);
-        set_attribute_default_internal<Index>(s_facet_to_first_corner);
-        // Create new corner -> facet index attribute
-        la_debug_assert(m_corner_to_facet_id == invalid_attribute_id());
-        m_corner_to_facet_id = m_attributes->template create<Index>(
-            s_corner_to_facet,
-            AttributeElement::Corner,
-            AttributeUsage::FacetIndex,
-            1);
-        set_attribute_default_internal<Index>(s_corner_to_facet);
-    }
-    {
-        // Wrap facet -> first corner index
-        auto& attr = m_attributes->template write<Index>(m_facet_to_first_corner_id);
-        attr.wrap_const(offsets_view, num_facets);
-        resize_facets_internal(num_facets);
-    }
-    {
-        // Wrap corner -> vertex index
-        auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
-        attr.wrap_const(facets_view, num_corners);
-        resize_corners_internal(num_corners);
-    }
-    // Compute inverse mapping (corner -> facet index)
-    compute_corner_to_facet_internal(0, get_num_facets());
-    return m_corner_to_vertex_id;
+    return wrap_as_facets_internal(offsets_view, num_facets, facets_view, num_corners);
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
+    SharedSpan<const Index> shared_offsets,
+    Index num_facets,
+    SharedSpan<const Index> shared_facets,
+    Index num_corners)
+{
+    return wrap_as_facets_internal(shared_offsets, num_facets, shared_facets, num_corners);
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
+    span<const Index> offsets_view,
+    Index num_facets,
+    SharedSpan<const Index> shared_facets,
+    Index num_corners)
+{
+    return wrap_as_facets_internal(offsets_view, num_facets, shared_facets, num_corners);
+}
+
+template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
+    SharedSpan<const Index> shared_offsets,
+    Index num_facets,
+    span<const Index> facets_view,
+    Index num_corners)
+{
+    return wrap_as_facets_internal(shared_offsets, num_facets, facets_view, num_corners);
 }
 
 template <typename Scalar, typename Index>
@@ -966,6 +1180,21 @@ const Attribute<ValueType>& SurfaceMesh<Scalar, Index>::get_attribute(AttributeI
 }
 
 template <typename Scalar, typename Index>
+std::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribute_ptr(
+    std::string_view name) const
+{
+    return _get_attribute_ptr(get_attribute_id(name));
+}
+
+template <typename Scalar, typename Index>
+std::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribute_ptr(
+    AttributeId id) const
+{
+    la_debug_assert(id != invalid_attribute_id());
+    return m_attributes->_get_weak_ptr(id);
+}
+
+template <typename Scalar, typename Index>
 template <typename ValueType>
 auto SurfaceMesh<Scalar, Index>::get_indexed_attribute(std::string_view name) const
     -> const IndexedAttribute<ValueType, Index>&
@@ -994,6 +1223,19 @@ Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id)
 {
     la_debug_assert(id != invalid_attribute_id());
     return m_attributes->template write<ValueType>(id);
+}
+
+template <typename Scalar, typename Index>
+std::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(std::string_view name)
+{
+    return _ref_attribute_ptr(get_attribute_id(name));
+}
+
+template <typename Scalar, typename Index>
+std::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(AttributeId id)
+{
+    la_debug_assert(id != invalid_attribute_id());
+    return m_attributes->_ref_weak_ptr(id);
 }
 
 template <typename Scalar, typename Index>
@@ -2367,10 +2609,19 @@ template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::reserve_indices_internal(Index num_facets, Index facet_size)
     -> span<Index>
 {
-    return reserve_indices_internal(num_facets, [&facet_size](Index i) noexcept -> Index {
-        (void)i;
-        return facet_size;
-    });
+    if (is_regular() && (m_vertex_per_facet == 0 || m_vertex_per_facet == facet_size)) {
+        // A faster pass for regular mesh.
+        const Index total_num_facets = get_num_facets() + num_facets;
+        resize_facets_internal(total_num_facets);
+        m_vertex_per_facet = facet_size;
+        resize_corners_internal(total_num_facets * facet_size);
+        return ref_attribute<Index>(m_corner_to_vertex_id).ref_last(num_facets * facet_size);
+    } else {
+        return reserve_indices_internal(num_facets, [&facet_size](Index i) noexcept -> Index {
+            (void)i;
+            return facet_size;
+        });
+    }
 }
 
 template <typename Scalar, typename Index>
@@ -2473,6 +2724,124 @@ void SurfaceMesh<Scalar, Index>::compute_corner_to_facet_internal(
     }
 }
 
+template <typename Scalar, typename Index>
+template <typename ValueType>
+void SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
+    Attribute<std::decay_t<ValueType>>& attr,
+    size_t num_values,
+    SharedSpan<ValueType> shared_values)
+{
+    if constexpr (std::is_const_v<ValueType>) {
+        attr.wrap_const(std::move(shared_values), num_values);
+    } else {
+        attr.wrap(std::move(shared_values), num_values);
+    }
+}
+
+template <typename Scalar, typename Index>
+template <typename ValueType>
+void SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
+    Attribute<std::decay_t<ValueType>>& attr,
+    size_t num_values,
+    span<ValueType> values_view)
+{
+    if constexpr (std::is_const_v<ValueType>) {
+        attr.wrap_const(values_view, num_values);
+    } else {
+        attr.wrap(values_view, num_values);
+    }
+}
+
+template <typename Scalar, typename Index>
+template <typename OffsetSpan, typename FacetSpan>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets_internal(
+    OffsetSpan offsets,
+    Index num_facets,
+    FacetSpan facets,
+    Index num_corners)
+{
+    la_runtime_assert(facets.size() >= num_corners);
+    la_runtime_assert(offsets.size() >= num_facets);
+    m_vertex_per_facet = 0;
+    if (m_facet_to_first_corner_id == invalid_attribute_id()) {
+        // Create new facet -> first corner index attribute
+        m_facet_to_first_corner_id = m_attributes->template create<Index>(
+            s_facet_to_first_corner,
+            AttributeElement::Facet,
+            AttributeUsage::CornerIndex,
+            1);
+        set_attribute_default_internal<Index>(s_facet_to_first_corner);
+        // Create new corner -> facet index attribute
+        la_debug_assert(m_corner_to_facet_id == invalid_attribute_id());
+        m_corner_to_facet_id = m_attributes->template create<Index>(
+            s_corner_to_facet,
+            AttributeElement::Corner,
+            AttributeUsage::FacetIndex,
+            1);
+        set_attribute_default_internal<Index>(s_corner_to_facet);
+    }
+
+    // Wrap facet -> first corner index
+    {
+        auto& attr = m_attributes->template write<Index>(m_facet_to_first_corner_id);
+        wrap_as_attribute_internal(attr, num_facets, offsets);
+        resize_facets_internal(num_facets);
+    }
+
+    // Wrap corner -> vertex index
+    {
+        auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+        wrap_as_attribute_internal(attr, num_corners, facets);
+        resize_corners_internal(num_corners);
+    }
+
+    // Compute inverse mapping (corner -> facet index)
+    compute_corner_to_facet_internal(0, get_num_facets());
+    return m_corner_to_vertex_id;
+}
+
+
+template <typename Scalar, typename Index>
+template <typename ValueSpan, typename IndexSpan>
+AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
+    std::string_view name,
+    AttributeElement element,
+    AttributeUsage usage,
+    size_t num_values,
+    size_t num_channels,
+    ValueSpan values,
+    IndexSpan indices)
+{
+    using _ValueType_ = typename ValueSpan::value_type;
+    using _IndexType_ = typename IndexSpan::value_type;
+    static_assert(std::is_same_v<Index, _IndexType_>, "Invalid index type");
+
+    // If usage is an element index type, then ValueType must be the same as the mesh's Index type.
+    if (usage == AttributeUsage::VertexIndex || usage == AttributeUsage::FacetIndex ||
+        usage == AttributeUsage::CornerIndex || usage == AttributeUsage::EdgeIndex) {
+        la_runtime_assert((std::is_same_v<_ValueType_, Index>));
+    }
+
+    if (element != AttributeElement::Indexed) {
+        la_runtime_assert(values.size() >= num_values * num_channels);
+        auto id = m_attributes->template create<_ValueType_>(name, element, usage, num_channels);
+        set_attribute_default_internal<_ValueType_>(name);
+        auto& attr = m_attributes->template write<_ValueType_>(id);
+        wrap_as_attribute_internal(attr, num_values, values);
+        return id;
+    } else {
+        const size_t num_corners = get_num_elements_internal(AttributeElement::Corner);
+        la_runtime_assert(values.size() >= num_values * num_channels);
+        la_runtime_assert(indices.size() >= num_corners);
+        auto id = m_attributes->template create_indexed<_ValueType_>(name, usage, num_channels);
+        auto& attr = m_attributes->template write_indexed<_ValueType_>(id);
+        wrap_as_attribute_internal(attr.values(), num_values, values);
+        wrap_as_attribute_internal(attr.indices(), num_corners, indices);
+        return id;
+    }
+}
+
+
 ////////////////////////////////////////////////////////////////////////////////
 // Explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
@@ -2500,12 +2869,24 @@ void SurfaceMesh<Scalar, Index>::compute_corner_to_facet_internal(
         AttributeUsage usage,                                                                      \
         size_t num_channels,                                                                       \
         span<ValueType> values_view);                                                              \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(                            \
+        std::string_view name,                                                                     \
+        AttributeElement element,                                                                  \
+        AttributeUsage usage,                                                                      \
+        size_t num_channels,                                                                       \
+        SharedSpan<ValueType> shared_values);                                                      \
     template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(                      \
         std::string_view name,                                                                     \
         AttributeElement element,                                                                  \
         AttributeUsage usage,                                                                      \
         size_t num_channels,                                                                       \
         span<const ValueType> values_view);                                                        \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(                      \
+        std::string_view name,                                                                     \
+        AttributeElement element,                                                                  \
+        AttributeUsage usage,                                                                      \
+        size_t num_channels,                                                                       \
+        SharedSpan<const ValueType> shared_values);                                                \
     template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
         std::string_view name,                                                                     \
         AttributeUsage usage,                                                                      \
@@ -2513,12 +2894,54 @@ void SurfaceMesh<Scalar, Index>::compute_corner_to_facet_internal(
         size_t num_channels,                                                                       \
         span<ValueType> values_view,                                                               \
         span<Index> indices_view);                                                                 \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
+        std::string_view name,                                                                     \
+        AttributeUsage usage,                                                                      \
+        size_t num_values,                                                                         \
+        size_t num_channels,                                                                       \
+        SharedSpan<ValueType> shared_values,                                                       \
+        SharedSpan<Index> shared_indices);                                                         \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
+        std::string_view name,                                                                     \
+        AttributeUsage usage,                                                                      \
+        size_t num_values,                                                                         \
+        size_t num_channels,                                                                       \
+        span<ValueType> values_view,                                                               \
+        SharedSpan<Index> shared_indices);                                                         \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
+        std::string_view name,                                                                     \
+        AttributeUsage usage,                                                                      \
+        size_t num_values,                                                                         \
+        size_t num_channels,                                                                       \
+        SharedSpan<ValueType> shared_values,                                                       \
+        span<Index> indices_view);                                                                 \
     template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
         std::string_view name,                                                                     \
         AttributeUsage usage,                                                                      \
         size_t num_values,                                                                         \
         size_t num_channels,                                                                       \
         span<const ValueType> values_view,                                                         \
+        span<const Index> indices_view);                                                           \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
+        std::string_view name,                                                                     \
+        AttributeUsage usage,                                                                      \
+        size_t num_values,                                                                         \
+        size_t num_channels,                                                                       \
+        SharedSpan<const ValueType> shared_values,                                                 \
+        SharedSpan<const Index> shared_indices);                                                   \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
+        std::string_view name,                                                                     \
+        AttributeUsage usage,                                                                      \
+        size_t num_values,                                                                         \
+        size_t num_channels,                                                                       \
+        span<const ValueType> values_view,                                                         \
+        SharedSpan<const Index> shared_indices);                                                   \
+    template AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
+        std::string_view name,                                                                     \
+        AttributeUsage usage,                                                                      \
+        size_t num_values,                                                                         \
+        size_t num_channels,                                                                       \
+        SharedSpan<const ValueType> shared_values,                                                 \
         span<const Index> indices_view);                                                           \
     template std::shared_ptr<Attribute<ValueType>>                                                 \
     SurfaceMesh<Scalar, Index>::delete_and_export_attribute(                                       \

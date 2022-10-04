@@ -15,10 +15,11 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_facet_normal.h>
+#include <lagrange/internal/string_from_scalar.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
 
-#include "internal/string_from_scalar.h"
+#include "internal/retrieve_normal_attribute.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -35,32 +36,7 @@ AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOp
 {
     la_runtime_assert(mesh.get_dimension() == 3, "Only 3D mesh is supported.");
     const auto num_facets = mesh.get_num_facets();
-    AttributeId id;
-    if (!mesh.has_attribute(options.output_attribute_name)) {
-        id = mesh.template create_attribute<Scalar>(
-            options.output_attribute_name,
-            Facet,
-            AttributeUsage::Normal,
-            3);
-    } else {
-        // Sanity checks on user-given attribute name
-        id = mesh.get_attribute_id(options.output_attribute_name);
-        la_runtime_assert(!mesh.is_attribute_indexed(id), "Attribute should not be indexed");
-        la_runtime_assert(
-            mesh.template is_attribute_type<Scalar>(id),
-            fmt::format("Attribute type should be {}", internal::string_from_scalar<Scalar>()));
-        const auto& attr = mesh.template get_attribute<Scalar>(id);
-        la_runtime_assert(
-            attr.get_num_channels() == 3,
-            fmt::format("Attribute should have 3 channels, not {}", attr.get_num_channels()));
-        la_runtime_assert(
-            attr.get_usage() == AttributeUsage::Normal,
-            "Attribute usage should be normal");
-        la_runtime_assert(!attr.is_read_only(), "Attribute is read only");
-        logger().debug(
-            "Attribute {} already exists, overwriting it.",
-            options.output_attribute_name);
-    }
+    AttributeId id = internal::retrieve_normal_attribute(mesh, options.output_attribute_name, Facet);
 
     auto& attr = mesh.template ref_attribute<Scalar>(id);
     la_debug_assert(static_cast<Index>(attr.get_num_elements()) == num_facets);

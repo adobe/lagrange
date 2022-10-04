@@ -52,10 +52,13 @@ __pycache__
 /cmake-build-*
 /build*
 /_build
+/_skbuild
 /data
 
 # Lagrange specifics
 LagrangeOptions.cmake
+# The MetaBuild equivalent
+/META/META.user.yaml
 
 /external
 /dist

@@ -27,7 +27,7 @@ include(lagrange_filter_flags)
 # More options can be found at:
 # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html#variable:CMAKE_%3CLANG%3E_COMPILER_ID
 
-# When compiling on Windows 
+# When compiling on Windows
 # Applied for MSVC with Windows target and also for cross-compiling using other toolchains
 if(CMAKE_HOST_WIN32)
     target_compile_definitions(lagrange_warnings INTERFACE _USE_MATH_DEFINES)
@@ -60,6 +60,7 @@ else()
     # for a complete list.
     #
     # The ones we care about are "AppleClang", "Clang", "GNU" and "Intel".
+
     set(options
         -Wall
         -Werror=c++17-extensions
@@ -69,6 +70,7 @@ else()
         -Wno-missing-braces
         -Wno-unknown-pragmas
         -Wshadow
+        -Qunused-arguments
         -msse3
     )
 

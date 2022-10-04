@@ -261,11 +261,11 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                 } else {
                     // Copy attributes from opposite facets
                     for (auto e : loop) {
-                        const Index v0 = reduced_to_vertex[boundary_edges[e][0]];
+                        const Index v0 = reduced_to_vertex[boundary_edges[e][0]]; (void)v0;
                         const Index c = boundary_corners[e][1];
-                        const Index f = c / nvpf;
+                        const Index f = c / nvpf; (void)f;
                         assert(f == boundary_corners[e][0] / nvpf);
-                        const Index lv = c % nvpf;
+                        const Index lv = c % nvpf; (void)lv;
                         la_debug_assert(mesh.get_facets()(f, (lv + 1) % nvpf) == v0);
                         const Index e0 = new_mesh->get_edge(facet_counter, 0);
                         const Index e1 = new_mesh->get_edge(facet_counter, 1);

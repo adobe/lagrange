@@ -62,3 +62,7 @@ foreach(name IN ITEMS ${module_names})
         lagrange_include_modules(${name})
     endif()
 endforeach()
+
+if(TARGET lagrange_python)
+    lagrange_generate_python_binding_module()
+endif()
