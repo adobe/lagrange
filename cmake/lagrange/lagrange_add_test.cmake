@@ -45,7 +45,7 @@ function(lagrange_add_test)
 
     # TSan suppression file to be passed to catch_discover_tests
     set(LAGRANGE_TESTS_ENVIRONMENT
-        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/scripts/tsan.suppressions"
+        # "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/scripts/tsan.suppressions"
     )
 
     # Output directory
