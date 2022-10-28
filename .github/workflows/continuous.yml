@@ -36,10 +36,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
             sudo apt-get update
-            sudo apt-get install \
-              # libglu1-mesa-dev \
-              # xorg-dev \
-              ccache
+            sudo apt-get install ccache
 
       - name: Dependencies (macOS)
         if: runner.os == 'macOS'
