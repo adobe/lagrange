@@ -8,6 +8,10 @@ on:
     branches:
       - main
 
+env:
+  CTEST_OUTPUT_ON_FAILURE: ON
+  CTEST_PARALLEL_LEVEL: 2
+
 jobs:
   ####################
   # Linux / macOS
@@ -44,10 +48,10 @@ jobs:
 
       - name: Cache Build
         id: cache-build
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ~/.ccache
-          key: ${{ runner.os }}-${{ matrix.config }}-${{ matrix.static }}-cache
+          key: ${{ runner.os }}-${{ matrix.config }}-cache
 
       - name: Prepare ccache
         run: |
@@ -60,10 +64,14 @@ jobs:
           cd build
           cmake .. \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
+            -DUSE_SANITIZER=Thread
 
       - name: Build
         run: cd build; make -j2; ccache --show-stats
+
+      - name: Tests
+        run: cd build; ctest --verbose
 
   ####################
   # Windows
@@ -72,9 +80,6 @@ jobs:
   Windows:
     name: Windows (${{ matrix.config }})
     runs-on: windows-2022
-    env:
-      CC: cl.exe
-      CXX: cl.exe
     strategy:
       fail-fast: false
       matrix:
@@ -94,10 +99,10 @@ jobs:
 
       - name: Cache build
         id: cache-build
-        uses: actions/cache@v1
+        uses: actions/cache@v2
         with:
           path: ${{ env.appdata }}\Mozilla\sccache
-          key: ${{ runner.os }}-${{ matrix.config }}-${{ matrix.static }}-cache
+          key: ${{ runner.os }}-${{ matrix.config }}-cache
 
       - name: Prepare sccache
         run: |
@@ -122,3 +127,6 @@ jobs:
             -B build ^
             -S .
           cmake --build build -j2
+
+      - name: Tests
+        run: cd build; ctest --verbose -j2
