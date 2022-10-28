@@ -1,0 +1,127 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  ####################
+  # Linux / macOS
+  ####################
+
+  Unix:
+    name: ${{ matrix.name }} (${{ matrix.config }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-12]
+        config: [Release]
+        include:
+          - os: macos-12
+            name: macOS
+          - os: ubuntu-22.04
+            name: Linux
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 10
+
+      - name: Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+            sudo apt-get update
+            sudo apt-get install \
+              # libglu1-mesa-dev \
+              # xorg-dev \
+              ccache
+
+      - name: Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ccache
+
+      - name: Cache Build
+        id: cache-build
+        uses: actions/cache@v1
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-${{ matrix.config }}-${{ matrix.static }}-cache
+
+      - name: Prepare ccache
+        run: |
+          ccache --max-size=1.0G
+          ccache -V && ccache --show-stats && ccache --zero-stats
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }}
+
+      - name: Build
+        run: cd build; make -j2; ccache --show-stats
+
+  ####################
+  # Windows
+  ####################
+
+  Windows:
+    name: Windows (${{ matrix.config }})
+    runs-on: windows-2022
+    env:
+      CC: cl.exe
+      CXX: cl.exe
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Release]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v1
+        with:
+          fetch-depth: 10
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Set env variable for sccache
+        run: |
+          echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
+
+      - name: Cache build
+        id: cache-build
+        uses: actions/cache@v1
+        with:
+          path: ${{ env.appdata }}\Mozilla\sccache
+          key: ${{ runner.os }}-${{ matrix.config }}-${{ matrix.static }}-cache
+
+      - name: Prepare sccache
+        run: |
+          iwr -useb 'https://raw.githubusercontent.com/scoopinstaller/install/master/install.ps1' -outfile 'install.ps1'
+          .\install.ps1 -RunAsAdmin
+          scoop install sccache --global
+          # Scoop modifies the PATH so we make it available for the next steps of the job
+          echo "${env:PATH}" >> ${env:GITHUB_PATH}
+
+        # We run configure + build in the same step, since they both need to call VsDevCmd
+        # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
+      - name: Configure and build
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -DCMAKE_JOB_POOLS=pool-linking=1;pool-compilation=2 ^
+            -DCMAKE_JOB_POOL_COMPILE:STRING=pool-compilation ^
+            -DCMAKE_JOB_POOL_LINK:STRING=pool-linking ^
+            -B build ^
+            -S .
+          cmake --build build -j2
