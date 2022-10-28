@@ -24,7 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-22.04, macos-12]
-        config: [Release]
+        config: [Debug]
         include:
           - os: macos-12
             name: macOS
