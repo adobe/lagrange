@@ -50,26 +50,29 @@ DisjointSets<Index> compute_unified_indices(
     const std::vector<bool>& is_cone_vertex)
 {
     DisjointSets<Index> unified_indices(mesh.get_num_corners());
-    tbb::parallel_for(Index(0), mesh.get_num_edges(), [&](Index ei) {
-        if (!is_edge_smooth(ei)) return;
-        const Index ci = mesh.get_first_corner_around_edge(ei);
-        const Index cj = mesh.get_next_corner_around_edge(ci);
-        if (cj == invalid<Index>()) return; // Boundary.
-        const Index ck = mesh.get_next_corner_around_edge(cj);
-        if (ck != invalid<Index>()) return; // Non-manifold.
-
-        const Index fi = mesh.get_corner_facet(ci);
-        const Index ci_next =
-            (ci + 1 == mesh.get_facet_corner_end(fi)) ? mesh.get_facet_corner_begin(fi) : ci + 1;
-
-        const Index fj = mesh.get_corner_facet(cj);
-        const Index cj_next =
-            (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj) : cj + 1;
-
-        la_debug_assert(mesh.get_corner_vertex(ci) == mesh.get_corner_vertex(cj_next));
-        la_debug_assert(mesh.get_corner_vertex(cj) == mesh.get_corner_vertex(ci_next));
-        if (!is_cone_vertex[mesh.get_corner_vertex(ci)]) unified_indices.merge(ci, cj_next);
-        if (!is_cone_vertex[mesh.get_corner_vertex(cj)]) unified_indices.merge(cj, ci_next);
+    tbb::parallel_for(Index(0), mesh.get_num_vertices(), [&](Index vi) {
+        if (is_cone_vertex[vi]) return;
+        mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
+            const Index ei = mesh.get_corner_edge(ci);
+            const Index fi = mesh.get_corner_facet(ci);
+            if (mesh.count_num_corners_around_edge(ei) != 1) {
+                return; // Boundary or non-manifold, don't merge corners
+            }
+            mesh.foreach_corner_around_edge(ei, [&](Index cj) {
+                Index vj = mesh.get_corner_vertex(cj);
+                const Index fj = mesh.get_corner_facet(cj);
+                if (fi == fj) return;
+                if (vi != vj) {
+                    cj = (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj)
+                                                                   : cj + 1;
+                    vj = mesh.get_corner_vertex(cj);
+                    la_debug_assert(vi == vj);
+                }
+                if (is_edge_smooth(ei)) {
+                    unified_indices.merge(ci, cj);
+                }
+            });
+        });
     });
 
     return unified_indices;
@@ -82,28 +85,30 @@ DisjointSets<Index> compute_unified_indices(
     const std::vector<bool>& is_cone_vertex)
 {
     DisjointSets<Index> unified_indices(mesh.get_num_corners());
-    tbb::parallel_for(Index(0), mesh.get_num_edges(), [&](Index ei) {
-        const Index ci = mesh.get_first_corner_around_edge(ei);
-        const Index cj = mesh.get_next_corner_around_edge(ci);
-        if (cj == invalid<Index>()) return; // Boundary.
-        const Index ck = mesh.get_next_corner_around_edge(cj);
-        if (ck != invalid<Index>()) return; // Non-manifold.
-
-        const Index fi = mesh.get_corner_facet(ci);
-        const Index fj = mesh.get_corner_facet(cj);
-        if (!is_edge_smooth(fi, fj)) return;
-
-        const Index ci_next =
-            (ci + 1 == mesh.get_facet_corner_end(fi) ? mesh.get_facet_corner_begin(fi) : ci + 1);
-        const Index cj_next =
-            (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj) : cj + 1;
-
-        la_debug_assert(mesh.get_corner_vertex(ci) == mesh.get_corner_vertex(cj_next));
-        la_debug_assert(mesh.get_corner_vertex(cj) == mesh.get_corner_vertex(ci_next));
-        if (!is_cone_vertex[mesh.get_corner_vertex(ci)]) unified_indices.merge(ci, cj_next);
-        if (!is_cone_vertex[mesh.get_corner_vertex(cj)]) unified_indices.merge(cj, ci_next);
+    tbb::parallel_for(Index(0), mesh.get_num_vertices(), [&](Index vi) {
+        if (is_cone_vertex[vi]) return;
+        mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
+            const Index ei = mesh.get_corner_edge(ci);
+            const Index fi = mesh.get_corner_facet(ci);
+            if (mesh.count_num_corners_around_edge(ei) != 1) {
+                return; // Boundary or non-manifold, don't merge corners
+            }
+            mesh.foreach_corner_around_edge(ei, [&](Index cj) {
+                Index vj = mesh.get_corner_vertex(cj);
+                const Index fj = mesh.get_corner_facet(cj);
+                if (fi == fj) return;
+                if (vi != vj) {
+                    cj = (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj)
+                                                                   : cj + 1;
+                    vj = mesh.get_corner_vertex(cj);
+                    la_debug_assert(vi == vj);
+                }
+                if (is_edge_smooth(fi, fj)) {
+                    unified_indices.merge(ci, cj);
+                }
+            });
+        });
     });
-
 
     return unified_indices;
 }
