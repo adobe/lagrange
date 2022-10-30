@@ -58,6 +58,9 @@ DisjointSets<Index> compute_unified_indices(
             if (mesh.count_num_corners_around_edge(ei) != 1) {
                 return; // Boundary or non-manifold, don't merge corners
             }
+            if (!is_edge_smooth(ei)) {
+                return;
+            }
             mesh.foreach_corner_around_edge(ei, [&](Index cj) {
                 Index vj = mesh.get_corner_vertex(cj);
                 const Index fj = mesh.get_corner_facet(cj);
@@ -68,9 +71,7 @@ DisjointSets<Index> compute_unified_indices(
                     vj = mesh.get_corner_vertex(cj);
                     la_debug_assert(vi == vj);
                 }
-                if (is_edge_smooth(ei)) {
-                    unified_indices.merge(ci, cj);
-                }
+                unified_indices.merge(ci, cj);
             });
         });
     });
