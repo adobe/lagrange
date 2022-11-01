@@ -53,6 +53,7 @@ function(lagrange_add_test)
 
     # Register tests
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/reports")
+
     if(LAGRANGE_TOPLEVEL_PROJECT AND NOT EMSCRIPTEN)
         catch_discover_tests(${test_target}
             REPORTER junit

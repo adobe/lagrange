@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     gklib
     GIT_REPOSITORY https://github.com/KarypisLab/GKlib.git
-    GIT_TAG        a7f8172703cf6e999dd0710eb279bba513da4fec
+    GIT_TAG        67c6e4322bb326a04727995775c3eafc47d7a252
 )
 
 FetchContent_GetProperties(gklib)
@@ -46,13 +46,6 @@ target_include_directories(GKlib SYSTEM PUBLIC
     "$<BUILD_INTERFACE:${gklib_SOURCE_DIR}>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
-
-# Until [1] is merged, workaround this by making a copying the missing header so it can be found
-# during compilation.
-# [1]: https://github.com/KarypisLab/GKlib/pull/19
-file(MAKE_DIRECTORY "${gklib_BINARY_DIR}/include/gklib")
-configure_file("${gklib_SOURCE_DIR}/gk_ms_stdint.h" "${gklib_BINARY_DIR}/include/gklib/ms_stdint.h" COPYONLY)
-target_include_directories(GKlib SYSTEM PUBLIC "$<BUILD_INTERFACE:${gklib_BINARY_DIR}/include/gklib>")
 
 set_target_properties(GKlib PROPERTIES FOLDER third_party)
 

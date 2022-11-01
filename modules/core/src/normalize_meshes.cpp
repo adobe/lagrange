@@ -23,6 +23,8 @@ template <typename Scalar, typename Index>
 void normalize_mesh(SurfaceMesh<Scalar, Index>& mesh)
 {
     auto vertices = vertex_ref(mesh);
+    if (vertices.rows() == 0) return;
+
     auto bbox_min = vertices.colwise().minCoeff().eval();
     auto bbox_max = vertices.colwise().maxCoeff().eval();
     auto bbox_center = ((bbox_min + bbox_max) / 2).eval();

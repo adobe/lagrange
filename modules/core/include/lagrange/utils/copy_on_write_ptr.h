@@ -64,6 +64,11 @@ public:
     /// Default copy assignment operator.
     copy_on_write_ptr& operator=(const copy_on_write_ptr&) = default;
 
+    /// Check if this copy-on-write ptr is nullptr.
+    explicit operator bool() const {
+        return bool(m_data);
+    }
+
     /// Returns a const pointer to the data. Does not require ownership and will not lead to any copy.
     const T* read() const { return m_data.get(); }
 

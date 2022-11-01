@@ -63,8 +63,8 @@ vec3 pbr_ibl_color(
 vec4 pbr(vec3 in_pos, vec3 in_normal, vec2 in_uv, vec4 in_color, vec3 in_tangent, vec3 in_bitangent)
 {
     vec3 baseColor;
-    float metallic, roughness, opacity;
-    read_material(in_uv, baseColor, metallic, roughness, opacity);
+    float metallic, roughness, opacity, backface_lighting;
+    read_material(in_uv, baseColor, metallic, roughness, opacity, backface_lighting);
 
     vec3 N = adjust_normal(in_normal, in_tangent, in_bitangent, in_uv);
 
@@ -73,7 +73,14 @@ vec4 pbr(vec3 in_pos, vec3 in_normal, vec2 in_uv, vec4 in_color, vec3 in_tangent
     vec3 color = vec3(0);
 
     vec3 lightOut = normalize(cameraPos - in_pos);
-    float cos_out = max(0.0, dot(lightOut, N)); // n dot v
+    float cos_out = dot(lightOut, N); // n dot v
+    float color_multiplier = 1.0f;
+
+    if (cos_out < 0.0f) {
+        cos_out = -cos_out;
+        N = -N;
+        color_multiplier = backface_lighting;
+    }
 
     // MAX_LIGHTS_SPOT == 2
     if (spot_lights_count >= 1)
@@ -151,5 +158,5 @@ vec4 pbr(vec3 in_pos, vec3 in_normal, vec2 in_uv, vec4 in_color, vec3 in_tangent
 
     color += pbr_ibl_color(N, cos_out, lightOut, f_0, metallic, roughness, baseColor);
 
-    return vec4(color, opacity);
+    return vec4(color * color_multiplier, opacity);
 }

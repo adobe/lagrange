@@ -105,7 +105,8 @@ AttributeId compute_normal(
  *
  * @param[in]  mesh                     The input mesh.
  * @param[in]  feature_angle_threshold  An edge with dihedral angle larger than this threshold is
- *                                      considered as an feature edge.
+ *                                      considered as an feature edge. The angle is expressed in
+ *                                      radian.
  * @param[in]  cone_vertices            A list of cone vertices.
  * @param[in]  options                  Optional arguments to control normal generation.
  *

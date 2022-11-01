@@ -34,6 +34,8 @@ AttributeBase::AttributeBase(AttributeElement element, AttributeUsage usage, siz
     case AttributeUsage::Vector: la_runtime_assert(num_channels >= 1); break;
     case AttributeUsage::Scalar: la_runtime_assert(num_channels == 1); break;
     case AttributeUsage::Normal:
+    case AttributeUsage::Tangent:
+    case AttributeUsage::Bitangent:
         la_runtime_assert(num_channels >= 1);
         break; // depends on mesh dimension
     case AttributeUsage::Color: la_runtime_assert(num_channels >= 1 && num_channels <= 4); break;
@@ -66,6 +68,8 @@ Attribute<ValueType>::Attribute(AttributeElement element, AttributeUsage usage, 
     case AttributeUsage::Vector: break;
     case AttributeUsage::Scalar: break;
     case AttributeUsage::Normal: break;
+    case AttributeUsage::Tangent: break;
+    case AttributeUsage::Bitangent: break;
     case AttributeUsage::Color: break;
     case AttributeUsage::UV: break;
     default: throw Error("Unsupported usage");
@@ -307,6 +311,11 @@ void Attribute<ValueType>::insert_elements(lagrange::span<const ValueType> value
         std::copy(values.begin(), values.end(), span.begin());
         m_num_elements += values.size() / get_num_channels();
     }
+}
+
+template <typename ValueType>
+void Attribute<ValueType>::insert_elements(std::initializer_list<const ValueType> values) {
+    insert_elements(span<const ValueType>(values.begin(), values.end()));
 }
 
 template <typename ValueType>

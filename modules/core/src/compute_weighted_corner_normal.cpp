@@ -13,11 +13,11 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_weighted_corner_normal.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
 
 #include "internal/compute_weighted_corner_normal.h"
-#include "internal/retrieve_normal_attribute.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -34,7 +34,13 @@ AttributeId compute_weighted_corner_normal(
 {
     const Index num_corners = mesh.get_num_corners();
 
-    AttributeId id = internal::retrieve_normal_attribute(mesh, options.output_attribute_name, Corner);
+    AttributeId id = internal::find_or_create_attribute<Scalar>(
+        mesh,
+        options.output_attribute_name,
+        Corner,
+        AttributeUsage::Normal,
+        3,
+        internal::ResetToDefault::Yes);
 
     auto normals = matrix_ref(mesh.template ref_attribute<Scalar>(id));
     la_debug_assert(static_cast<Index>(normals.rows()) == num_corners);

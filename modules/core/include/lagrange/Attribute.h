@@ -334,7 +334,15 @@ public:
     /// @param[in]  values  Values to be inserted. The span size must be a multiple of number of
     ///                     channels for the attribute.
     ///
-    void insert_elements(lagrange::span<const ValueType> values);
+    void insert_elements(span<const ValueType> values);
+
+    ///
+    /// Inserts values for new elements.
+    ///
+    /// @param[in]  values  Values to be inserted. The span size must be a multiple of number of
+    ///                     channels for the attribute.
+    ///
+    void insert_elements(std::initializer_list<const ValueType> values);
 
     ///
     /// Inserts new elements. Use set_default_value to use a non-zero default value to initialize

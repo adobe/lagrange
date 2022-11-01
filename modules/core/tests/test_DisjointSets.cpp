@@ -11,25 +11,26 @@
  */
 #include <lagrange/testing/common.h>
 
-#include <lagrange/DisjointSets.h>
+#include <lagrange/utils/DisjointSets.h>
 
 TEST_CASE("DisjointSets", "[disjoint_sets]")
 {
     using namespace lagrange;
     DisjointSets<int> data;
+    std::vector<int> disjoint_set_indices;
 
     SECTION("Init")
     {
-        auto r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 0);
+        auto n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 0);
 
         data.init(10);
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 10);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 10);
 
         data.clear();
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 0);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 0);
     }
 
     SECTION("Invalid index")
@@ -42,23 +43,23 @@ TEST_CASE("DisjointSets", "[disjoint_sets]")
     SECTION("Cyclic merge")
     {
         data.init(3);
-        auto r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 3);
+        auto n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 3);
 
         data.merge(0, 1);
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 2);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 2);
         REQUIRE(data.find(0) == data.find(1));
 
         data.merge(1, 2);
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 1);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 1);
         REQUIRE(data.find(0) == data.find(1));
         REQUIRE(data.find(0) == data.find(2));
 
         data.merge(2, 0);
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 1);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 1);
         REQUIRE(data.find(0) == data.find(1));
         REQUIRE(data.find(0) == data.find(2));
     }
@@ -66,23 +67,23 @@ TEST_CASE("DisjointSets", "[disjoint_sets]")
     SECTION("Cyclic merge reversed direction")
     {
         data.init(3);
-        auto r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 3);
+        auto n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 3);
 
         data.merge(1, 0);
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 2);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 2);
         REQUIRE(data.find(0) == data.find(1));
 
         data.merge(2, 1);
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 1);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 1);
         REQUIRE(data.find(0) == data.find(1));
         REQUIRE(data.find(0) == data.find(2));
 
         data.merge(0, 2);
-        r = data.extract_disjoint_sets();
-        REQUIRE(r.size() == 1);
+        n = data.extract_disjoint_set_indices(disjoint_set_indices);
+        REQUIRE(n == 1);
         REQUIRE(data.find(0) == data.find(1));
         REQUIRE(data.find(0) == data.find(2));
     }

@@ -15,11 +15,11 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/compute_weighted_corner_normal.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/views.h>
 
 #include "internal/compute_weighted_corner_normal.h"
-#include "internal/retrieve_normal_attribute.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -35,8 +35,14 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
     la_runtime_assert(mesh.get_dimension() == 3, "Only 3D meshes are supported.");
 
     const Index num_vertices = mesh.get_num_vertices();
-    AttributeId id =
-        internal::retrieve_normal_attribute(mesh, options.output_attribute_name, Vertex);
+
+    AttributeId id = internal::find_or_create_attribute<Scalar>(
+        mesh,
+        options.output_attribute_name,
+        Vertex,
+        AttributeUsage::Normal,
+        3,
+        internal::ResetToDefault::Yes);
 
     auto normals = matrix_ref(mesh.template ref_attribute<Scalar>(id));
     la_debug_assert(static_cast<Index>(normals.rows()) == num_vertices);
@@ -59,10 +65,12 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
             corner_options.weight_type = options.weight_type;
             corner_normal_id = compute_weighted_corner_normal(mesh, corner_options);
         } else {
-            corner_normal_id = internal::retrieve_normal_attribute(
+            corner_normal_id = internal::find_attribute<Scalar>(
                 mesh,
                 options.weighted_corner_normal_attribute_name,
-                Corner);
+                Corner,
+                AttributeUsage::Normal,
+                3);
         }
         auto corner_normals = matrix_view(mesh.template get_attribute<Scalar>(corner_normal_id));
 

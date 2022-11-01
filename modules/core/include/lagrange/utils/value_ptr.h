@@ -127,7 +127,7 @@ struct default_clone
 template <class T, class Cloner = default_clone<T>, class Deleter = std::default_delete<T>>
 class value_ptr
 {
-    detail::compressed_ptr<T, Deleter, Cloner> ptr_;
+    ::lagrange::detail::compressed_ptr<T, Deleter, Cloner> ptr_;
 
     std::unique_ptr<T, Deleter>& ptr() { return ptr_; }
     std::unique_ptr<T, Deleter> const& ptr() const { return ptr_; }

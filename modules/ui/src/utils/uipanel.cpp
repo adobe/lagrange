@@ -153,9 +153,12 @@ const WindowSize& get_window_size(const Registry& r)
     return r.ctx<WindowSize>();
 }
 
-const MainMenuHeight& get_menu_height(const Registry& r)
+MainMenuHeight get_menu_height(const Registry& r)
 {
-    return r.ctx<MainMenuHeight>();
+    if (r.try_ctx<MainMenuHeight>())
+        return r.ctx<MainMenuHeight>();
+    else
+        return MainMenuHeight{0.0f};
 }
 
 void hide_tab_bar(Registry& r, Entity uipanel_entity)

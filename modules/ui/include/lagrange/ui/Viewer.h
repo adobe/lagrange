@@ -103,10 +103,16 @@ public:
         bool show_default_ibl = true;
         size_t default_ibl_resolution = 256;
 
+        /// Enable rendering of the default menu
+        bool show_topbar_menu = true;
+
         /// Path to imgui .ini file
         /// If not set, the .ini file will be at %APPDATA%/_window_title.ini
         ///
         std::string imgui_ini_path = "";
+
+        /// Color for selection silhouette
+        Color selection_color = Color(252.0f / 255.0f, 86.0f / 255.0f, 3.0f / 255.0f, 1.0f);
     };
 
 
@@ -160,6 +166,12 @@ public:
     /// Returns true if viewer initialized succesfully
     bool is_initialized() const;
 
+    /// Returns true if the default menu is rendered
+    bool is_show_topbar_menu() const { return m_show_topbar_menu; }
+
+    /// Set if the default menu is rendered
+    void set_show_topbar_menu(bool show_topbar_menu) { m_show_topbar_menu = show_topbar_menu; }
+
     /// Returns elapsed time in seconds from the last frame
     double get_frame_elapsed_time() const;
 
@@ -208,6 +220,8 @@ public:
         m_main_thread_max_func_per_frame = limit;
     }
 
+protected:
+    virtual void draw_menu();
 
 private:
     void render_one_frame(const std::function<bool(Registry& r)>& main_loop);
@@ -234,8 +248,6 @@ private:
     void end_imgui_frame();
 
     void make_current();
-
-    void draw_menu();
 
     void start_dockspace();
     void end_dockspace();
@@ -269,6 +281,7 @@ private:
 
     bool m_show_imgui_demo = false;
     bool m_show_imgui_style = false;
+    bool m_show_topbar_menu = true;
 
     entt::registry m_registry;
     Systems m_systems;

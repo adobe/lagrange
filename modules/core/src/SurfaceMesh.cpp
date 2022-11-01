@@ -17,6 +17,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/copy_on_write_ptr.h>
@@ -177,57 +178,72 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
 
     [[nodiscard]] const AttributeBase& read_base(AttributeId id) const
     {
-        return *m_attributes.at(id).second.read();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return *ptr.read();
     }
 
     template <typename ValueType>
     [[nodiscard]] Attribute<ValueType>& write(AttributeId id)
     {
-        return *m_attributes.at(id).second.template static_write<Attribute<ValueType>>();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return *ptr.template static_write<Attribute<ValueType>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] IndexedAttribute<ValueType, Index>& write_indexed(AttributeId id)
     {
-        return *m_attributes.at(id)
-                    .second.template static_write<IndexedAttribute<ValueType, Index>>();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return *ptr.template static_write<IndexedAttribute<ValueType, Index>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] const Attribute<ValueType>& read(AttributeId id) const
     {
-        return *m_attributes.at(id).second.template static_read<Attribute<ValueType>>();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return *ptr.template static_read<Attribute<ValueType>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] const IndexedAttribute<ValueType, Index>& read_indexed(AttributeId id) const
     {
-        return *m_attributes.at(id)
-                    .second.template static_read<IndexedAttribute<ValueType, Index>>();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return *ptr.template static_read<IndexedAttribute<ValueType, Index>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] std::shared_ptr<Attribute<ValueType>> release_ptr(AttributeId id)
     {
-        return m_attributes.at(id).second.template release_ptr<Attribute<ValueType>>();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return ptr.template release_ptr<Attribute<ValueType>>();
     }
 
     template <typename ValueType>
     [[nodiscard]] std::shared_ptr<IndexedAttribute<ValueType, Index>> release_indexed_ptr(
         AttributeId id)
     {
-        return m_attributes.at(id)
-            .second.template release_ptr<IndexedAttribute<ValueType, Index>>();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return ptr.template release_ptr<IndexedAttribute<ValueType, Index>>();
     }
 
     [[nodiscard]] std::weak_ptr<const AttributeBase> _get_weak_ptr(AttributeId id) const
     {
-        return m_attributes.at(id).second._get_weak_ptr();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return ptr._get_weak_ptr();
     }
 
     [[nodiscard]] std::weak_ptr<AttributeBase> _ref_weak_ptr(AttributeId id)
     {
-        return m_attributes.at(id).second._get_weak_ptr();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return ptr._get_weak_ptr();
     }
 
 protected:
@@ -406,11 +422,17 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
     span<const ValueType> initial_values,
     span<const Index> initial_indices)
 {
-    // If usage tag indicates a "normal", check that num_channels == dim or dim + 1
-    la_runtime_assert(
-        usage != AttributeUsage::Normal || num_channels == get_dimension() ||
-            num_channels == get_dimension() + 1,
-        "Invalid number of channels for normal attributes: should be dim or dim + 1.");
+    // If usage tag indicates a "normal/tangent/bitangent", check that num_channels == dim or dim + 1
+    if (usage == AttributeUsage::Normal || usage == AttributeUsage::Tangent ||
+        usage == AttributeUsage::Bitangent) {
+        la_runtime_assert(
+            num_channels == get_dimension() || num_channels == get_dimension() + 1,
+            fmt::format(
+                "Invalid number of channels for {} attribute: should be {} or {} + 1.",
+                internal::to_string(usage),
+                get_dimension(),
+                get_dimension()));
+    }
 
     // If usage is an element index type, then ValueType must be the same as the mesh's Index type.
     if (usage == AttributeUsage::VertexIndex || usage == AttributeUsage::FacetIndex ||
@@ -1361,6 +1383,14 @@ void SurfaceMesh<Scalar, Index>::add_vertices(Index num_vertices, span<const Sca
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_vertices(
     Index num_vertices,
+    std::initializer_list<const Scalar> coordinates)
+{
+    add_vertices(num_vertices, span<const Scalar>(coordinates.begin(), coordinates.end()));
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::add_vertices(
+    Index num_vertices,
     SetVertexCoordinatesFunction set_vertex_coordinates)
 {
     la_runtime_assert(set_vertex_coordinates);
@@ -1437,6 +1467,14 @@ void SurfaceMesh<Scalar, Index>::add_triangles(Index num_facets, span<const Inde
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_triangles(
     Index num_facets,
+    std::initializer_list<const Index> facet_indices)
+{
+    add_polygons(num_facets, 3, span<const Index>(facet_indices.begin(), facet_indices.end()));
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::add_triangles(
+    Index num_facets,
     SetMultiFacetsIndicesFunction set_facets_indices)
 {
     add_polygons(num_facets, 3, set_facets_indices);
@@ -1446,6 +1484,14 @@ template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_quads(Index num_facets, span<const Index> facet_indices)
 {
     add_polygons(num_facets, 4, facet_indices);
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::add_quads(
+    Index num_facets,
+    std::initializer_list<const Index> facet_indices)
+{
+    add_polygons(num_facets, 4, span<const Index>(facet_indices.begin(), facet_indices.end()));
 }
 
 template <typename Scalar, typename Index>
@@ -1480,6 +1526,18 @@ template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_polygons(
     Index num_facets,
     Index facet_size,
+    std::initializer_list<const Index> facet_indices)
+{
+    add_polygons(
+        num_facets,
+        facet_size,
+        span<const Index>(facet_indices.begin(), facet_indices.end()));
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::add_polygons(
+    Index num_facets,
+    Index facet_size,
     SetMultiFacetsIndicesFunction set_facets_indices)
 {
     la_runtime_assert(facet_size > 2);
@@ -1506,6 +1564,16 @@ void SurfaceMesh<Scalar, Index>::add_hybrid(
         std::copy(facet_indices.begin(), facet_indices.end(), new_corners.begin());
     }
     update_edges_last_internal(Index(facet_sizes.size()));
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::add_hybrid(
+    std::initializer_list<const Index> facet_sizes,
+    std::initializer_list<const Index> facet_indices)
+{
+    add_hybrid(
+        span<const Index>(facet_sizes.begin(), facet_sizes.end()),
+        span<const Index>(facet_indices.begin(), facet_indices.end()));
 }
 
 template <typename Scalar, typename Index>

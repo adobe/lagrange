@@ -15,6 +15,8 @@
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Layer.h>
 
+#include <unordered_set>
+
 namespace lagrange {
 namespace ui {
 
@@ -30,6 +32,13 @@ struct ScenePanel
     }
     io::MeshLoaderParams mesh_params;
     ui::Layer visible_layers;
+
+    bool show_tree_view = true;
+    bool show_mesh_entities = true;
+    bool show_scene_panel_layers = true;
+    bool show_all_entities = true;
+
+    std::unordered_set<Entity> tree_view_ignored_entities;
 };
 
 

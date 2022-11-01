@@ -53,7 +53,9 @@ enum AttributeElement : int {
 enum class AttributeUsage {
     Vector, ///< Mesh attribute can have any number of channels (including 1 channel).
     Scalar, ///< Mesh attribute must have exactly 1 channel.
-    Normal, ///< Mesh attribute can have 2, 3 or 4 channels.
+    Normal, ///< Mesh attribute can have dim or dim + 1 channels.
+    Tangent, ///< Mesh attribute can have dim or dim + 1 channels.
+    Bitangent, ///< Mesh attribute can have dim or dim + 1 channels.
     Color, ///< Mesh attribute can have 1, 2, 3 or 4 channels.
     UV, ///< Mesh attribute must have exactly 2 channels.
     VertexIndex, ///< Single channel integer attribute indexing a mesh vertex.

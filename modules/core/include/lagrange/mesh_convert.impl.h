@@ -262,7 +262,7 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_wrap(MeshType&& mesh)
             std::forward<MeshType>(mesh));
 }
 
-namespace detail {
+namespace mesh_convert_detail {
 
 //
 // TODO:
@@ -333,7 +333,7 @@ std::vector<Index> fast_edge_sort(
     return edge_ids;
 }
 
-} // namespace detail
+} // namespace mesh_convert_detail
 
 template <typename MeshType, typename Scalar, typename Index>
 std::unique_ptr<MeshType> to_legacy_mesh(const SurfaceMesh<Scalar, Index>& mesh)
@@ -385,12 +385,12 @@ std::unique_ptr<MeshType> to_legacy_mesh(const SurfaceMesh<Scalar, Index>& mesh)
         const auto num_vertices = static_cast<size_t>(mesh.get_num_vertices());
         auto buffer = std::make_unique<uint8_t[]>(
             (num_vertices + 1) * std::max(sizeof(Index), sizeof(MeshIndex)));
-        old_edge_ids = detail::fast_edge_sort(
+        old_edge_ids = mesh_convert_detail::fast_edge_sort(
             mesh.get_num_edges(),
             mesh.get_num_vertices(),
             [&](Index e) -> std::array<Index, 2> { return mesh.get_edge_vertices(e); },
             {reinterpret_cast<Index*>(buffer.get()), num_vertices + 1});
-        new_edge_ids = detail::fast_edge_sort(
+        new_edge_ids = mesh_convert_detail::fast_edge_sort(
             new_mesh->get_num_edges(),
             new_mesh->get_num_vertices(),
             [&](MeshIndex e) -> std::array<MeshIndex, 2> { return new_mesh->get_edge_vertices(e); },

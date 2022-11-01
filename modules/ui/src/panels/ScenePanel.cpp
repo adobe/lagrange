@@ -65,7 +65,8 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
 
     auto& input = get_input(registry);
 
-    if (ImGui::CollapsingHeader("Tree View", ImGuiTreeNodeFlags_DefaultOpen)) {
+    if (scene_panel_data.show_tree_view &&
+        ImGui::CollapsingHeader("Tree View", ImGuiTreeNodeFlags_DefaultOpen)) {
         // Todo via registration mechanism
         auto get_icon = [&](Entity e) -> std::string {
             if (registry.all_of<MeshRender>(e)) return ICON_FA_CUBE " ";
@@ -101,6 +102,10 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
         iterate_inorder(
             registry,
             [&](Entity e) {
+                if (scene_panel_data.tree_view_ignored_entities.find(e) !=
+                    scene_panel_data.tree_view_ignored_entities.end())
+                    return false;
+
                 ImGui::PushID(int(e));
 
                 const std::string name =
@@ -230,11 +235,14 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
 
                 return node_open;
             },
-            [&](Entity /*e*/, bool open) {
+            [&](Entity e, bool open) {
                 if (open) {
                     ImGui::TreePop();
                 }
 
+                if (scene_panel_data.tree_view_ignored_entities.find(e) !=
+                    scene_panel_data.tree_view_ignored_entities.end())
+                    return;
 
                 ImGui::PopID();
             });
@@ -249,7 +257,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
         }
     }
 
-    if (ImGui::CollapsingHeader("Mesh Entities")) {
+    if (scene_panel_data.show_mesh_entities && ImGui::CollapsingHeader("Mesh Entities")) {
         auto view = registry.view<MeshData>();
         ImGui::Indent();
         for (auto e : view) {
@@ -270,7 +278,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
         ImGui::Unindent();
     }
 
-    if (ImGui::CollapsingHeader("Scene Panel Layers")) {
+    if (scene_panel_data.show_scene_panel_layers && ImGui::CollapsingHeader("Scene Panel Layers")) {
         ImGui::Indent(); // align with the treeview above
         for (size_t i = 0; i < get_max_layers(); i++) {
             const auto& name = get_layer_name(registry, LayerIndex(i));
@@ -284,7 +292,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
         ImGui::Unindent();
     }
 
-    if (ImGui::CollapsingHeader("All Entities")) {
+    if (scene_panel_data.show_all_entities && ImGui::CollapsingHeader("All Entities")) {
         ImGuiTableFlags flags = ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_Resizable |
                                 ImGuiTableFlags_BordersOuter | ImGuiTableFlags_ContextMenuInBody;
 

@@ -12,18 +12,18 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeFwd.h>
-#include <lagrange/DisjointSets.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
 
+#include "internal/bucket_sort.h"
 #include "internal/compute_weighted_corner_normal.h"
-#include "internal/retrieve_normal_attribute.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -50,26 +50,31 @@ DisjointSets<Index> compute_unified_indices(
     const std::vector<bool>& is_cone_vertex)
 {
     DisjointSets<Index> unified_indices(mesh.get_num_corners());
-    tbb::parallel_for(Index(0), mesh.get_num_edges(), [&](Index ei) {
-        if (!is_edge_smooth(ei)) return;
-        const Index ci = mesh.get_first_corner_around_edge(ei);
-        const Index cj = mesh.get_next_corner_around_edge(ci);
-        if (cj == invalid<Index>()) return; // Boundary.
-        const Index ck = mesh.get_next_corner_around_edge(cj);
-        if (ck != invalid<Index>()) return; // Non-manifold.
-
-        const Index fi = mesh.get_corner_facet(ci);
-        const Index ci_next =
-            (ci + 1 == mesh.get_facet_corner_end(fi)) ? mesh.get_facet_corner_begin(fi) : ci + 1;
-
-        const Index fj = mesh.get_corner_facet(cj);
-        const Index cj_next =
-            (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj) : cj + 1;
-
-        la_debug_assert(mesh.get_corner_vertex(ci) == mesh.get_corner_vertex(cj_next));
-        la_debug_assert(mesh.get_corner_vertex(cj) == mesh.get_corner_vertex(ci_next));
-        if (!is_cone_vertex[mesh.get_corner_vertex(ci)]) unified_indices.merge(ci, cj_next);
-        if (!is_cone_vertex[mesh.get_corner_vertex(cj)]) unified_indices.merge(cj, ci_next);
+    logger().info("compute unified indices");
+    tbb::parallel_for(Index(0), mesh.get_num_vertices(), [&](Index vi) {
+        if (is_cone_vertex[vi]) return;
+        mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
+            const Index ei = mesh.get_corner_edge(ci);
+            const Index fi = mesh.get_corner_facet(ci);
+            if (mesh.count_num_corners_around_edge(ei) != 2) {
+                return; // Boundary or non-manifold, don't merge corners
+            }
+            if (!is_edge_smooth(ei)) {
+                return;
+            }
+            mesh.foreach_corner_around_edge(ei, [&](Index cj) {
+                Index vj = mesh.get_corner_vertex(cj);
+                const Index fj = mesh.get_corner_facet(cj);
+                if (fi == fj) return;
+                if (vi != vj) {
+                    cj = (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj)
+                                                                   : cj + 1;
+                    vj = mesh.get_corner_vertex(cj);
+                    la_debug_assert(vi == vj);
+                }
+                unified_indices.merge(ci, cj);
+            });
+        });
     });
 
     return unified_indices;
@@ -82,28 +87,30 @@ DisjointSets<Index> compute_unified_indices(
     const std::vector<bool>& is_cone_vertex)
 {
     DisjointSets<Index> unified_indices(mesh.get_num_corners());
-    tbb::parallel_for(Index(0), mesh.get_num_edges(), [&](Index ei) {
-        const Index ci = mesh.get_first_corner_around_edge(ei);
-        const Index cj = mesh.get_next_corner_around_edge(ci);
-        if (cj == invalid<Index>()) return; // Boundary.
-        const Index ck = mesh.get_next_corner_around_edge(cj);
-        if (ck != invalid<Index>()) return; // Non-manifold.
-
-        const Index fi = mesh.get_corner_facet(ci);
-        const Index fj = mesh.get_corner_facet(cj);
-        if (!is_edge_smooth(fi, fj)) return;
-
-        const Index ci_next =
-            (ci + 1 == mesh.get_facet_corner_end(fi) ? mesh.get_facet_corner_begin(fi) : ci + 1);
-        const Index cj_next =
-            (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj) : cj + 1;
-
-        la_debug_assert(mesh.get_corner_vertex(ci) == mesh.get_corner_vertex(cj_next));
-        la_debug_assert(mesh.get_corner_vertex(cj) == mesh.get_corner_vertex(ci_next));
-        if (!is_cone_vertex[mesh.get_corner_vertex(ci)]) unified_indices.merge(ci, cj_next);
-        if (!is_cone_vertex[mesh.get_corner_vertex(cj)]) unified_indices.merge(cj, ci_next);
+    tbb::parallel_for(Index(0), mesh.get_num_vertices(), [&](Index vi) {
+        if (is_cone_vertex[vi]) return;
+        mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
+            const Index ei = mesh.get_corner_edge(ci);
+            const Index fi = mesh.get_corner_facet(ci);
+            if (mesh.count_num_corners_around_edge(ei) != 2) {
+                return; // Boundary or non-manifold, don't merge corners
+            }
+            mesh.foreach_corner_around_edge(ei, [&](Index cj) {
+                Index vj = mesh.get_corner_vertex(cj);
+                const Index fj = mesh.get_corner_facet(cj);
+                if (fi == fj) return;
+                if (vi != vj) {
+                    cj = (cj + 1 == mesh.get_facet_corner_end(fj)) ? mesh.get_facet_corner_begin(fj)
+                                                                   : cj + 1;
+                    vj = mesh.get_corner_vertex(cj);
+                    la_debug_assert(vi == vj);
+                }
+                if (is_edge_smooth(fi, fj)) {
+                    unified_indices.merge(ci, cj);
+                }
+            });
+        });
     });
-
 
     return unified_indices;
 }
@@ -120,8 +127,12 @@ auto recompute_facet_normal_if_needed(
         facet_normal_options.output_attribute_name = options.facet_normal_attribute_name;
         facet_normal_id = compute_facet_normal(mesh, facet_normal_options);
     } else {
-        facet_normal_id =
-            internal::retrieve_normal_attribute(mesh, options.facet_normal_attribute_name, Facet);
+        facet_normal_id = internal::find_attribute<Scalar>(
+            mesh,
+            options.facet_normal_attribute_name,
+            Facet,
+            AttributeUsage::Normal,
+            3);
     }
     return std::make_pair(
         matrix_view(mesh.template get_attribute<Scalar>(facet_normal_id)),
@@ -141,7 +152,6 @@ AttributeId compute_normal_internal(
     auto [facet_normal, had_facet_normals] = recompute_facet_normal_if_needed(mesh, options);
 
     const auto num_vertices = mesh.get_num_vertices();
-    const auto num_corners = mesh.get_num_corners();
 
     std::vector<bool> is_cone_vertex(num_vertices, false);
     for (auto vi : cone_vertices) is_cone_vertex[vi] = true;
@@ -150,45 +160,25 @@ AttributeId compute_normal_internal(
     // group corners sharing the same normal together.
     DisjointSets<Index> unified_indices = get_unified_indices(is_cone_vertex);
 
-    // Step 2: Gather corner groups.
-    AttributeId attr_id =
-        internal::retrieve_normal_attribute(mesh, options.output_attribute_name, Indexed);
+    // Step 2: Sort corner indices according to groups.
+    AttributeId attr_id = internal::find_or_create_attribute<Scalar>(
+        mesh,
+        options.output_attribute_name,
+        Indexed,
+        AttributeUsage::Normal,
+        3,
+        internal::ResetToDefault::Yes);
+
     auto& attr = mesh.template ref_indexed_attribute<Scalar>(attr_id);
     auto attr_indices = attr.indices().ref_all();
-    la_debug_assert(attr_indices.size() == num_corners);
-    std::fill(attr_indices.begin(), attr_indices.end(), invalid<Index>());
+    la_debug_assert(attr_indices.size() == mesh.get_num_corners());
 
-    Index num_indices = 0;
-    for (Index n = 0; n < num_corners; ++n) {
-        Index r = unified_indices.find(n);
-        if (attr_indices[r] == invalid<Index>()) {
-            attr_indices[r] = num_indices++;
-        }
-        attr_indices[n] = attr_indices[r];
-    }
-
-    std::vector<Index> indices(num_corners);
-    std::vector<Index> offsets(num_indices + 1, 0);
-    for (Index c = 0; c < num_corners; ++c) {
-        offsets[attr_indices[c] + 1]++;
-    }
-    for (Index r = 1; r <= num_indices; ++r) {
-        offsets[r] += offsets[r - 1];
-    }
-    {
-        // Bucket sort for corner indices
-        std::vector<Index> counter = offsets;
-        for (Index c = 0; c < num_corners; c++) {
-            indices[counter[attr_indices[c]]++] = c;
-        }
-    }
+    auto buckets = internal::bucket_sort(unified_indices, attr_indices);
 
     // Step 3: Compute and average corner normals.
     auto& attr_values = attr.values();
-    attr_values.set_default_value(0);
-    attr_values.resize_elements(num_indices);
+    attr_values.resize_elements(buckets.num_representatives);
     auto normal_values = matrix_ref(attr_values);
-    normal_values.setZero();
 
     auto compute_weighted_corner_normal =
         [&, facet_normal = facet_normal](Index ci) -> Eigen::Matrix<Scalar, 3, 1> {
@@ -198,9 +188,10 @@ AttributeId compute_normal_internal(
         return n;
     };
 
-    tbb::parallel_for((Index)0, num_indices, [&](Index r) {
-        for (Index i = offsets[r]; i < offsets[r + 1]; i++) {
-            Index c = indices[i];
+    tbb::parallel_for((Index)0, buckets.num_representatives, [&](Index r) {
+        for (Index i = buckets.representative_offsets[r]; i < buckets.representative_offsets[r + 1];
+             ++i) {
+            Index c = buckets.sorted_elements[i];
             normal_values.row(r) += compute_weighted_corner_normal(c).transpose();
         }
         normal_values.row(r).stableNormalize();

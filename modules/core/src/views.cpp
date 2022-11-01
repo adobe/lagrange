@@ -116,6 +116,34 @@ ConstVectorView<ValueType> attribute_vector_view(
     return vector_view(mesh.template get_attribute<ValueType>(name));
 }
 
+template <typename ValueType, typename Scalar, typename Index>
+RowMatrixView<ValueType> attribute_matrix_ref(SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
+{
+    return matrix_ref(mesh.template ref_attribute<ValueType>(id));
+}
+
+template <typename ValueType, typename Scalar, typename Index>
+ConstRowMatrixView<ValueType> attribute_matrix_view(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId id)
+{
+    return matrix_view(mesh.template get_attribute<ValueType>(id));
+}
+
+template <typename ValueType, typename Scalar, typename Index>
+VectorView<ValueType> attribute_vector_ref(SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
+{
+    return vector_ref(mesh.template ref_attribute<ValueType>(id));
+}
+
+template <typename ValueType, typename Scalar, typename Index>
+ConstVectorView<ValueType> attribute_vector_view(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId id)
+{
+    return vector_view(mesh.template get_attribute<ValueType>(id));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Specific attribute views
 ////////////////////////////////////////////////////////////////////////////////
@@ -179,7 +207,19 @@ LA_ATTRIBUTE_X(views_attr, 0)
         std::string_view name);                                   \
     template ConstVectorView<ValueType> attribute_vector_view(    \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
-        std::string_view name);
+        std::string_view name);                                   \
+    template RowMatrixView<ValueType> attribute_matrix_ref(       \
+        SurfaceMesh<Scalar, Index>& mesh,                         \
+        AttributeId id);                                          \
+    template ConstRowMatrixView<ValueType> attribute_matrix_view( \
+        const SurfaceMesh<Scalar, Index>& mesh,                   \
+        AttributeId id);                                          \
+    template VectorView<ValueType> attribute_vector_ref(          \
+        SurfaceMesh<Scalar, Index>& mesh,                         \
+        AttributeId id);                                          \
+    template ConstVectorView<ValueType> attribute_vector_view(    \
+        const SurfaceMesh<Scalar, Index>& mesh,                   \
+        AttributeId id);
 #define LA_X_views_aux(_, ValueType) LA_SURFACE_MESH_X(views_mesh_attr, ValueType)
 LA_ATTRIBUTE_X(views_aux, 0)
 

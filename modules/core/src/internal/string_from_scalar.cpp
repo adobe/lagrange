@@ -13,8 +13,6 @@
 
 #include <lagrange/AttributeTypes.h>
 
-#include <string_view>
-
 namespace lagrange::internal {
 
 #define LA_X_string_from_scalar(_, ValueType)        \

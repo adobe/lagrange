@@ -75,7 +75,7 @@ void toolbar_panel_system(Registry& registry, Entity /*e*/)
 
         auto& sel_ctx = get_selection_context(registry);
 
-        if (button_toolbar(
+        if (tools.has_backface_selection_tool() && button_toolbar(
                 sel_ctx.select_backfacing,
                 ICON_FA_STEP_BACKWARD,
                 "Select Backfaces",

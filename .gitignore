@@ -29,6 +29,9 @@
 # Python cache
 __pycache__
 
+# Python folders
+*.egg-info
+
 # Executables
 *.exe
 *.out

@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     openvdb
     GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
-    GIT_TAG 05b32911c2699b2cfe4b364da071cca9fcc420f2
+    GIT_TAG v10.0.0
 )
 
 option(OPENVDB_CORE_SHARED "" OFF)
@@ -111,8 +111,8 @@ function(openvdb_import_target)
     include(tbb)
     include(boost)
     include(ilmbase)
-    set(Tbb_VERSION 2019.0 CACHE STRING "" FORCE)
-    set(Boost_LIB_VERSION 1.70 CACHE STRING "" FORCE)
+    set(Tbb_VERSION 2021.0 CACHE STRING "" FORCE)
+    set(Boost_LIB_VERSION 1.76 CACHE STRING "" FORCE)
     set(IlmBase_VERSION 2.4 CACHE STRING "" FORCE)
 
     # Ready to include openvdb CMake

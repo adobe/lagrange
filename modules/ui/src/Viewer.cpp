@@ -61,6 +61,7 @@
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <fstream>
 
 #if defined(__EMSCRIPTEN__)
@@ -175,7 +176,7 @@ Viewer::Viewer(const WindowOptions& window_options)
     // Make sure that selection/outline and objectid viewports have correct size and post process effects
     m_systems.add(
         Systems::Stage::Init,
-        [](Registry& r) {
+        [this](Registry& r) {
             auto focused_viewport_entity = ui::get_focused_viewport_entity(r);
             auto selection_viewport_entity = ui::get_selection_viewport_entity(r);
 
@@ -197,7 +198,10 @@ Viewer::Viewer(const WindowOptions& window_options)
 
                 // Only show outline if in object mode
                 if (object_mode) {
-                    add_selection_outline_post_process(r, focused_viewport_entity);
+                    add_selection_outline_post_process(
+                        r,
+                        focused_viewport_entity,
+                        m_initial_window_options.selection_color);
                 }
             }
 
@@ -377,7 +381,7 @@ Viewer::Viewer(const WindowOptions& window_options)
 
     m_width = window_options.width;
     m_height = window_options.height;
-
+    m_show_topbar_menu = window_options.show_topbar_menu;
 
     // Create default camera
     auto default_camera =
@@ -479,8 +483,7 @@ void Viewer::render_one_frame(const std::function<bool(Registry&)>& main_loop)
 
         start_imgui_frame();
 
-
-        draw_menu();
+        if (m_show_topbar_menu) draw_menu();
         // Dock space
         {
             start_dockspace();
@@ -950,9 +953,9 @@ std::string Viewer::get_config_folder()
     const char* appdata = getenv("LOCALAPPDATA");
     return std::string(appdata) + "\\lagrange\\";
 #elif defined(__APPLE__)
-    return std::string("~/Library/Preferences/lagrange/");
+    return std::string(getenv("HOME")) + "/Library/Preferences/lagrange/";
 #else
-    return std::string("~/.lagrange/");
+    return std::string(getenv("HOME")) + "/.lagrange/";
 #endif
 }
 

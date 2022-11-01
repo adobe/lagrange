@@ -39,6 +39,16 @@ const std::vector<entt::id_type>& Tools::get_tool_types() const
     return m_tool_types;
 }
 
+std::vector<entt::id_type>& Tools::get_element_types()
+{
+    return m_element_types;
+}
+
+std::vector<entt::id_type>& Tools::get_tool_types()
+{
+    return m_tool_types;
+}
+
 entt::id_type Tools::get_current_tool_type() const
 {
     return m_current_key.first;
@@ -59,5 +69,14 @@ void Tools::set_current_tool_type(entt::id_type tool_type)
     m_current_key = KeyType{tool_type, m_current_key.second};
 }
 
+bool Tools::has_backface_selection_tool() const
+{
+    return m_has_backface_selection_tool;
+}
+
+void Tools::enable_backface_selection_tool(bool has_backface_selection_tool)
+{
+    m_has_backface_selection_tool = has_backface_selection_tool;
+}
 } // namespace ui
 } // namespace lagrange

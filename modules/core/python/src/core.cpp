@@ -23,6 +23,7 @@
 #include "bind_enum.h"
 #include "bind_indexed_attribute.h"
 #include "bind_surface_mesh.h"
+#include "bind_utilities.h"
 
 namespace lagrange::python {
 
@@ -36,6 +37,7 @@ void populate_core_module(nb::module_& m)
     lagrange::python::bind_surface_mesh<Scalar, Index>(m);
     lagrange::python::bind_attribute(m);
     lagrange::python::bind_indexed_attribute(m);
+    lagrange::python::bind_utilities<Scalar, Index>(m);
 }
 
 } // namespace lagrange::python

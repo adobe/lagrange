@@ -210,7 +210,10 @@ Entity add_viewport(Registry& registry, Entity camera_entity, bool srgb /*= fals
     return e;
 }
 
-void add_selection_outline_post_process(Registry& registry, Entity viewport_entity)
+void add_selection_outline_post_process(
+    Registry& registry,
+    Entity viewport_entity,
+    const Color& selection_color)
 {
     auto& vc = registry.get<ViewportComponent>(viewport_entity);
 
@@ -223,8 +226,7 @@ void add_selection_outline_post_process(Registry& registry, Entity viewport_enti
         auto mat = create_material(registry, DefaultShaders::Outline);
         mat->set_texture("color_tex", color);
         mat->set_texture("depth_tex", depth);
-        const Color dark_orange = Color(252.0f / 255.0f, 86.0f / 255.0f, 3.0f / 255.0f, 1.0f);
-        mat->set_color("in_color", dark_orange);
+        mat->set_color("in_color", selection_color);
         mat->set_int(RasterizerOptions::DepthTest, GL_FALSE);
         mat->set_int(RasterizerOptions::BlendEquation, GL_FUNC_ADD);
         mat->set_int(RasterizerOptions::BlendSrcRGB, GL_SRC_ALPHA);
