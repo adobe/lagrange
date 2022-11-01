@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/utils/copy_on_write_ptr.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -304,7 +305,7 @@ void test_foreach_cow()
     using namespace lagrange;
 
     // Sequential Write
-    {
+    if (0) {
         SurfaceMesh<Scalar, Index_> mesh;
         mesh.add_vertices(10);
         mesh.add_triangles(5);
@@ -370,44 +371,45 @@ void test_foreach_cow()
         }
 
         std::map<std::string, std::pair<const void*, const void*>> ptr;
-        seq_foreach_named_attribute_read<~AttributeElement::Indexed>(
-            mesh,
-            [&](std::string_view name, auto&& attr) {
-                ptr[std::string(name)].first = attr.get_all().data();
-            });
+        // seq_foreach_named_attribute_read<~AttributeElement::Indexed>(
+        //     mesh,
+        //     [&](std::string_view name, auto&& attr) {
+        //         ptr[std::string(name)].first = attr.get_all().data();
+        //     });
         par_foreach_attribute_write<~AttributeElement::Indexed>(mesh, [](auto&& attr) {
             attr.ref_all()[0] = 1;
         });
-        seq_foreach_named_attribute_read<~AttributeElement::Indexed>(
-            mesh,
-            [&](std::string_view name, auto&& attr) {
-                ptr[std::string(name)].second = attr.get_all().data();
-            });
-        for (auto kv : ptr) {
-            std::string_view name = kv.first;
-            const void* before1 = kv.second.first;
-            const void* after1 = kv.second.second;
-            if (starts_with(name, "attr_")) {
-                auto tokens = string_split(std::string(name), '_');
-                std::string other =
-                    fmt::format("{}_{}_{}", tokens[0], tokens[1], tokens.back() == "1" ? "2" : "1");
-                const void* before2 = ptr.at(other).first;
-                const void* after2 = ptr.at(other).second;
-                CAPTURE(name, before1, after1, before2, after2);
-                REQUIRE(before1 == before2);
-                REQUIRE(after1 != after2);
-                // We do not require that (before1 == after1 || before2 == after2). Indeed, a
-                // conservative copy may happen both attribute in case of a concurrent write. Since
-                // we do not block write operations with a mutex (which is expensive), it is
-                // preferable to always copy instead.
-            } else {
-                REQUIRE(before1 == after1);
-            }
-        }
+        // seq_foreach_named_attribute_read<~AttributeElement::Indexed>(
+        //     mesh,
+        //     [&](std::string_view name, auto&& attr) {
+        //         ptr[std::string(name)].second = attr.get_all().data();
+        //     });
+        // for (auto kv : ptr) {
+        //     std::string_view name = kv.first;
+        //     const void* before1 = kv.second.first;
+        //     const void* after1 = kv.second.second;
+        //     if (starts_with(name, "attr_")) {
+        //         auto tokens = string_split(std::string(name), '_');
+        //         std::string other =
+        //             fmt::format("{}_{}_{}", tokens[0], tokens[1], tokens.back() == "1" ? "2" :
+        //             "1");
+        //         const void* before2 = ptr.at(other).first;
+        //         const void* after2 = ptr.at(other).second;
+        //         CAPTURE(name, before1, after1, before2, after2);
+        //         REQUIRE(before1 == before2);
+        //         REQUIRE(after1 != after2);
+        //         // We do not require that (before1 == after1 || before2 == after2). Indeed, a
+        //         // conservative copy may happen both attribute in case of a concurrent write. Since
+        //         // we do not block write operations with a mutex (which is expensive), it is
+        //         // preferable to always copy instead.
+        //     } else {
+        //         REQUIRE(before1 == after1);
+        //     }
+        // }
     }
 
     // Adding Attributes
-    {
+    if (0) {
         SurfaceMesh<Scalar, Index_> mesh;
         mesh.add_vertices(10);
         mesh.add_triangles(5);
@@ -449,6 +451,82 @@ void test_foreach_cow()
         }
     }
 }
+class ThreadPool
+{
+public:
+    template <typename Index, typename Callable>
+    static void ParallelFor(Index start, Index end, Callable func)
+    {
+        // Estimate number of threads in the pool
+        const static unsigned nb_threads_hint = std::thread::hardware_concurrency();
+        const static unsigned nb_threads = (nb_threads_hint == 0u ? 8u : nb_threads_hint);
+
+        // Size of a slice for the range functions
+        Index n = end - start + 1;
+        Index slice = (Index)std::round(n / static_cast<double>(nb_threads));
+        slice = std::max(slice, Index(1));
+
+        // [Helper] Inner loop
+        auto launchRange = [&func](int k1, int k2) {
+            for (Index k = k1; k < k2; k++) {
+                func(k);
+            }
+        };
+
+        // Create pool and launch jobs
+        std::vector<std::thread> pool;
+        pool.reserve(nb_threads);
+        Index i1 = start;
+        Index i2 = std::min(start + slice, end);
+        for (unsigned i = 0; i + 1 < nb_threads && i1 < end; ++i) {
+            pool.emplace_back(launchRange, i1, i2);
+            i1 = i2;
+            i2 = std::min(i2 + slice, end);
+        }
+        if (i1 < end) {
+            pool.emplace_back(launchRange, i1, end);
+        }
+
+        // Wait for jobs to finish
+        for (std::thread& t : pool) {
+            if (t.joinable()) {
+                t.join();
+            }
+        }
+    }
+
+    // Serial version for easy comparison
+    template <typename Index, typename Callable>
+    static void SequentialFor(Index start, Index end, Callable func)
+    {
+        for (Index i = start; i < end; i++) {
+            func(i);
+        }
+    }
+};
+
+template <typename ValueType>
+void test_parallel_cow()
+{
+    using namespace lagrange;
+
+    int N = 100;
+
+    std::vector<copy_on_write_ptr<AttributeBase>> attrs;
+    for (int i = 0; i < N; ++i) {
+        auto ptr = std::make_shared<Attribute<ValueType>>(
+            AttributeElement::Vertex,
+            AttributeUsage::Scalar,
+            1);
+        ptr->insert_elements(10);
+        attrs.emplace_back(std::move(ptr));
+        attrs.push_back(attrs.back());
+    }
+    ThreadPool::ParallelFor(0, N, [&](int i) {
+    // tbb::parallel_for(0, N, [&](int i) {
+        attrs[i].static_write<Attribute<ValueType>>()->ref_all()[0] = 1;
+    });
+}
 
 } // namespace
 
@@ -460,6 +538,13 @@ TEST_CASE("SurfaceMesh: Foreach Attributes", "[next]")
 
 TEST_CASE("SurfaceMesh: Foreach CoW", "[next]")
 {
-#define LA_X_test_foreach_cow(_, Scalar, Index) test_foreach_cow<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_foreach_cow, 0)
+    test_foreach_cow<double, uint32_t>();
+
+    // #define LA_X_test_foreach_cow(_, Scalar, Index) test_foreach_cow<Scalar, Index>();
+    //     LA_SURFACE_MESH_X(test_foreach_cow, 0)
+}
+
+TEST_CASE("SurfaceMesh: Parallel CoW", "[next]")
+{
+    test_parallel_cow<double>();
 }

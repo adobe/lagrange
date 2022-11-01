@@ -13,6 +13,8 @@
 
 #include <lagrange/utils/assert.h>
 
+#include <lagrange/Logger.h>
+
 #include <memory>
 
 namespace lagrange {
@@ -55,7 +57,7 @@ public:
     /// Move-construct from a derived type.
     template <typename Derived>
     copy_on_write_ptr(copy_on_write_ptr<Derived>&& ptr)
-        : m_data{std::dynamic_pointer_cast<T>(std::move(ptr.m_data))}
+        : m_data{std::move(ptr.m_data)}
     {}
 
     /// Default copy constructor.
@@ -83,18 +85,18 @@ public:
 
     /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
     template <typename Derived>
-    Derived* static_write()
-    {
-        ensure_unique_owner<Derived>();
-        return static_cast<Derived*>(m_data.get());
-    }
-
-    /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
-    template <typename Derived>
     Derived* dynamic_write()
     {
         ensure_unique_owner<Derived>();
         return dynamic_cast<Derived*>(m_data.get());
+    }
+
+    /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
+    template <typename Derived>
+    Derived* static_write()
+    {
+        ensure_unique_owner<Derived>();
+        return static_cast<Derived*>(m_data.get());
     }
 
     /// Returns a writable smart pointer to the data. Will cause a copy if ownership is shared.
@@ -111,18 +113,14 @@ public:
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    std::weak_ptr<const T> _get_weak_ptr() const {
-        return m_data;
-    }
+    std::weak_ptr<const T> _get_weak_ptr() const { return m_data; }
 
     /// Return a weak pointer to the data.
     ///
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    std::weak_ptr<T> _get_weak_ptr() {
-        return m_data;
-    }
+    std::weak_ptr<T> _get_weak_ptr() { return m_data; }
 
 protected:
     /// Shared object.
@@ -132,10 +130,26 @@ protected:
     template <typename Derived>
     void ensure_unique_owner()
     {
+        // {
+        //     auto ptr = dynamic_cast<const Derived*>(m_data.get());
+        //     const void *addr = nullptr;
+        //     if constexpr (!Derived::IsIndexed) {
+        //         addr = ptr->get_all().data();
+        //     }
+        //    logger().info("use count {} before: {}", addr, m_data.use_count());
+        // }
         if (m_data.use_count() != 1) {
-            auto ptr = dynamic_cast<const Derived*>(m_data.get());
-            la_debug_assert(ptr);
-            m_data = std::dynamic_pointer_cast<T>(std::make_shared<Derived>(*ptr));
+            // Increase refcount while we're copying the underlying data...
+            // std::shared_ptr<T> copy = m_data;
+            auto ptr = static_cast<const Derived*>(m_data.get());
+            la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
+            // const void *addr = nullptr;
+            // if constexpr (!Derived::IsIndexed) {
+            //     addr = ptr->get_all().data();
+            // }
+            // logger().info("use count {} before: {}", addr, m_data.use_count());
+            m_data = std::make_shared<Derived>(*ptr);
+            // logger().info("use count {} after: {}", addr, m_data.use_count());
         }
     }
 };
