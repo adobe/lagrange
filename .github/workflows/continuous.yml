@@ -18,7 +18,7 @@ jobs:
   ####################
 
   Unix:
-    name: ${{ matrix.name }} (${{ matrix.config }})
+    name: ${{ matrix.name }} (${{ matrix.config }}${{ fromJSON('["", ", ${{ matrix.sanitizer }}"]')[matrix.sanitizer == '""'] }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
