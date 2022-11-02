@@ -56,12 +56,14 @@ include(eigen)
 include(span-lite)
 include(spdlog)
 include(tbb)
+include(smart_ptr)
 target_link_libraries(lagrange_core PUBLIC
     Eigen3::Eigen
     lagrange::warnings
     nonstd::span-lite
     spdlog::spdlog
     TBB::tbb
+    smart_ptr::smart_ptr
 )
 
 if(LAGRANGE_WITH_TRACY)

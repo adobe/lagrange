@@ -15,6 +15,9 @@
 
 #include <lagrange/Logger.h>
 
+#include <shared_ptr.hpp>
+
+#include <cassert>
 #include <memory>
 
 namespace lagrange {
@@ -38,9 +41,14 @@ public:
     using const_reference = typename std::add_const<T>::type&;
     using element_type = T;
 
+private:
+    template <class U>
+    using disable_copy =
+        std::enable_if_t<!std::is_same<std::decay_t<U>, copy_on_write_ptr>::value>*;
+
 public:
     /// Construct a copy-on-write ptr from a shared-pointer
-    copy_on_write_ptr(std::shared_ptr<T>&& ptr = nullptr)
+    copy_on_write_ptr(smart_ptr::shared_ptr<T>&& ptr = nullptr)
         : m_data(std::move(ptr))
     {
         if (m_data) {
@@ -104,7 +112,10 @@ public:
     std::shared_ptr<Derived> release_ptr()
     {
         ensure_unique_owner<Derived>();
-        return std::dynamic_pointer_cast<Derived>(std::move(m_data));
+        auto ptr = static_cast<const Derived*>(m_data.get());
+        assert(dynamic_cast<const Derived*>(m_data.get()));
+        return std::make_shared<Derived>(*ptr);
+        // return std::dynamic_pointer_cast<Derived>(std::move(m_data));
     }
 
 public:
@@ -113,43 +124,26 @@ public:
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    std::weak_ptr<const T> _get_weak_ptr() const { return m_data; }
+    // std::weak_ptr<const T> _get_weak_ptr() const { return m_data; }
 
     /// Return a weak pointer to the data.
     ///
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    std::weak_ptr<T> _get_weak_ptr() { return m_data; }
+    // std::weak_ptr<T> _get_weak_ptr() { return m_data; }
 
 protected:
-    /// Shared object.
-    std::shared_ptr<T> m_data;
+    smart_ptr::shared_ptr<T> m_data;
 
     /// If we are not the owner of the shared object, make a private copy of it
     template <typename Derived>
     void ensure_unique_owner()
     {
-        // {
-        //     auto ptr = dynamic_cast<const Derived*>(m_data.get());
-        //     const void *addr = nullptr;
-        //     if constexpr (!Derived::IsIndexed) {
-        //         addr = ptr->get_all().data();
-        //     }
-        //    logger().info("use count {} before: {}", addr, m_data.use_count());
-        // }
         if (m_data.use_count() != 1) {
-            // Increase refcount while we're copying the underlying data...
-            // std::shared_ptr<T> copy = m_data;
             auto ptr = static_cast<const Derived*>(m_data.get());
-            la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
-            // const void *addr = nullptr;
-            // if constexpr (!Derived::IsIndexed) {
-            //     addr = ptr->get_all().data();
-            // }
-            // logger().info("use count {} before: {}", addr, m_data.use_count());
-            m_data = std::make_shared<Derived>(*ptr);
-            // logger().info("use count {} after: {}", addr, m_data.use_count());
+            assert(dynamic_cast<const Derived*>(m_data.get()));
+            m_data = smart_ptr::make_shared<Derived>(*ptr);
         }
     }
 };

@@ -58,7 +58,7 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         auto id = create_id(name);
         m_attributes.at(id).first = name;
         m_attributes.at(id).second = copy_on_write_ptr<AttributeBase>(
-            std::make_shared<Attribute<ValueType>>(element, usage, num_channels));
+            smart_ptr::make_shared<Attribute<ValueType>>(element, usage, num_channels));
         return id;
     }
 
@@ -68,7 +68,7 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         auto id = create_id(name);
         m_attributes.at(id).first = name;
         m_attributes.at(id).second = copy_on_write_ptr<AttributeBase>(
-            std::make_shared<IndexedAttribute<ValueType, Index>>(usage, num_channels));
+            smart_ptr::make_shared<IndexedAttribute<ValueType, Index>>(usage, num_channels));
         return id;
     }
 
@@ -222,12 +222,14 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
 
     [[nodiscard]] std::weak_ptr<const AttributeBase> _get_weak_ptr(AttributeId id) const
     {
-        return m_attributes.at(id).second._get_weak_ptr();
+        return {};
+        // return m_attributes.at(id).second._get_weak_ptr();
     }
 
     [[nodiscard]] std::weak_ptr<AttributeBase> _ref_weak_ptr(AttributeId id)
     {
-        return m_attributes.at(id).second._get_weak_ptr();
+        return {};
+        // return m_attributes.at(id).second._get_weak_ptr();
     }
 
 protected:
