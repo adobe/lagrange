@@ -274,6 +274,7 @@ void test_map_attribute_invalid()
 
 TEST_CASE("map_attribute", "[attribute][conversion]")
 {
+    lagrange::ScopedLogLevel _(spdlog::level::err);
 #define LA_X_map_attribute_all(_, Scalar, Index) test_map_attribute_all<Scalar, Index>();
     LA_SURFACE_MESH_X(map_attribute_all, 0)
 }
