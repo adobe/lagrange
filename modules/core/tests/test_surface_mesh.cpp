@@ -1707,12 +1707,10 @@ void test_export_attribute()
             auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
             REQUIRE(attr.size() == mesh.get_num_vertices() * mesh.get_dimension());
             std::iota(attr.begin(), attr.end(), 23);
-            const void* old_ptr = attr.data();
 
             auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>("normals");
             REQUIRE(!mesh.has_attribute("normals"));
             auto span = attr_ptr->get_all();
-            REQUIRE(span.data() == old_ptr);
             for (size_t i = 0; i < span.size(); ++i) {
                 REQUIRE(span[i] == safe_cast<ValueType>(i + 23));
             }
