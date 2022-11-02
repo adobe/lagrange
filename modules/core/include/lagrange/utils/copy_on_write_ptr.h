@@ -117,9 +117,11 @@ public:
     std::shared_ptr<Derived> release_ptr()
     {
         ensure_unique_owner<Derived>();
-        auto ptr = static_cast<const Derived*>(m_data.get());
-        assert(dynamic_cast<const Derived*>(m_data.get()));
-        return std::make_shared<Derived>(std::move(*ptr));
+        auto ptr = static_cast<Derived*>(m_data.get());
+        assert(dynamic_cast<Derived*>(m_data.get()));
+        auto ret = std::make_shared<Derived>(std::move(*ptr));
+        m_data.reset();
+        return ret;
     }
 
 public:
