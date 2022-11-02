@@ -1711,6 +1711,7 @@ void test_export_attribute()
             auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>("normals");
             REQUIRE(!mesh.has_attribute("normals"));
             auto span = attr_ptr->get_all();
+            REQUIRE(span.data() == old_ptr);
             for (size_t i = 0; i < span.size(); ++i) {
                 REQUIRE(span[i] == safe_cast<ValueType>(i + 23));
             }

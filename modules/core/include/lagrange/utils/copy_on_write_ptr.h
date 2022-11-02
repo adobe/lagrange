@@ -119,8 +119,7 @@ public:
         ensure_unique_owner<Derived>();
         auto ptr = static_cast<const Derived*>(m_data.get());
         assert(dynamic_cast<const Derived*>(m_data.get()));
-        return std::make_shared<Derived>(*ptr);
-        // return std::dynamic_pointer_cast<Derived>(std::move(m_data));
+        return std::make_shared<Derived>(std::move(*ptr));
     }
 
 public:
