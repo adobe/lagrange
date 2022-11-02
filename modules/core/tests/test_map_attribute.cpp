@@ -272,7 +272,7 @@ void test_map_attribute_invalid()
 
 } // namespace
 
-TEST_CASE("map_attribute", "[attribute][conversion]")
+TEST_CASE("map_attribute", "[attribute][conversion]" LA_SLOW_DEBUG_FLAG)
 {
     lagrange::ScopedLogLevel _(spdlog::level::err);
 #define LA_X_map_attribute_all(_, Scalar, Index) test_map_attribute_all<Scalar, Index>();
