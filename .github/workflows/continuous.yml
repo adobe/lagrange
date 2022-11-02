@@ -18,7 +18,7 @@ jobs:
   ####################
 
   Unix:
-    name: ${{ matrix.name }} (${{ matrix.config }}${{ fromJSON('["", ", ${{ matrix.sanitizer }}"]')[matrix.sanitizer == '""'] }})
+    name: ${{ matrix.name }} (${{ matrix.config }}, ${{ matrix.sanitizer }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -30,7 +30,7 @@ jobs:
           macos-12-llvm-clang
         ]
         config: [Release, Debug]
-        sanitizer: ["", "Address", "Thread", "Leak", "MemoryWithOrigins"]
+        sanitizer: ["", "Address", "Thread", "Leak"]
         include:
           - name: ubuntu-22.04-gcc
             os: ubuntu-22.04
