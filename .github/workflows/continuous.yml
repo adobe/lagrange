@@ -30,6 +30,7 @@ jobs:
           macos-12-llvm-clang
         ]
         config: [Release, Debug]
+        sanitizer: ["", "Address", "Thread", "Leak", "MemoryWithOrigins"]
         include:
           - name: ubuntu-22.04-gcc
             os: ubuntu-22.04
@@ -95,8 +96,8 @@ jobs:
           cd build
           cmake .. \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
-            -DCMAKE_BUILD_TYPE=${{ matrix.config }}
-            # -DUSE_SANITIZER=Thread
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
+            -DUSE_SANITIZER=${{ matrix.sanitizer }}
 
       - name: Build
         run: cd build; make -j2; ccache --show-stats
