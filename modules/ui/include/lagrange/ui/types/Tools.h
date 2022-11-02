@@ -73,9 +73,14 @@ public:
     const std::vector<entt::id_type>& get_element_types() const;
     const std::vector<entt::id_type>& get_tool_types() const;
 
+    std::vector<entt::id_type>& get_element_types();
+    std::vector<entt::id_type>& get_tool_types();
+
     entt::id_type get_current_tool_type() const;
     entt::id_type get_current_element_type() const;
 
+    bool has_backface_selection_tool() const;
+    void enable_backface_selection_tool(bool has_backfaces_tool);
 
     void set_current_element_type(entt::id_type element_type);
 
@@ -106,6 +111,8 @@ private:
     std::vector<entt::id_type> m_element_types;
 
     KeyType m_current_key = {0, 0};
+
+    bool m_has_backface_selection_tool = true;
 };
 
 

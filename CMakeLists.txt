@@ -64,6 +64,11 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
     endforeach()
 endif()
 
+# Set default macOS deployment target
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
+endif()
+
 ################################################################################
 file(READ "VERSION" lagrange_version)
 string(STRIP ${lagrange_version} lagrange_version)
@@ -125,9 +130,10 @@ set(LAGRANGE_WEBSITE_REPO "" CACHE FILEPATH "Path to the website repository for 
 
 # Set default minimum C++ standard
 if(LAGRANGE_TOPLEVEL_PROJECT)
-    set(CMAKE_CXX_STANDARD 14)
+    set(CMAKE_CXX_STANDARD 17)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 if(LAGRANGE_EXTERNAL_ONLY)
@@ -153,12 +159,11 @@ else()
 endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
 
-# When building anorigami module, additionally defaults to MKL-dynamic and TBB-dynamic
+# When building anorigami module, defaults to pre-built Arpack and dynamic MKL/TBB
 if(LAGRANGE_MODULE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
     option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
-    include(mkl)
 endif()
 
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
@@ -184,10 +189,11 @@ include(lagrange_add_python_binding)
 include(lagrange_add_test)
 include(lagrange_download_data)
 include(lagrange_global_flags)
+include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
-include(lagrange_warnings)
 include(lagrange_limit_parallelism)
+include(lagrange_warnings)
 include(sanitizers)
 include(code-coverage)
 
@@ -202,9 +208,11 @@ endif()
 find_package(Threads REQUIRED)
 
 # Include OneTBB early to provide TBB::tbb target
-if(LAGRANGE_WITH_ONETBB AND NOT (LAGRANGE_ALL OR LAGRANGE_MODULE_LANTERN))
+if(LAGRANGE_WITH_ONETBB)
     set(MKL_VERSION 2021.3.0 CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
     include(onetbb)
+else()
+    set(MKL_VERSION 2020.4 CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
 endif()
 
 # Enable unit testing at the root level

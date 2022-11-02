@@ -54,7 +54,7 @@ void toggle_panel(Registry& r, Entity e);
 /// @return
 const WindowSize& get_window_size(const Registry& r);
 
-const MainMenuHeight& get_menu_height(const Registry& r);
+MainMenuHeight get_menu_height(const Registry& r);
 
 
 void hide_tab_bar(Registry& r, Entity uipanel_entity);

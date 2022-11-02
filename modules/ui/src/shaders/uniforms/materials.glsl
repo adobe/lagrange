@@ -18,6 +18,7 @@
 #pragma property material_metallic "Metallic" Texture2D(0.1)
 #pragma property material_normal "Normal" Texture2D [normal]
 #pragma property material_opacity "Opacity" float(1,0,1)
+#pragma property material_backface_lighting "BackfaceLighting" float(0.5,0,1)
 
 // Currently not used in shader
 // TODO: change default value and add range
@@ -33,7 +34,8 @@ void read_material(
     out vec3 baseColor,
     out float metallic,
     out float roughness,
-    out float opacity
+    out float opacity,
+    out float backface_lighting
 ){
 
     vec4 baseColor_ = material_base_color_default_value;
@@ -54,6 +56,7 @@ void read_material(
         roughness = material_roughness_default_value;
 
     opacity = baseColor_.a * material_opacity;
+    backface_lighting = material_backface_lighting;
 }
 
 // If normal texture is set, the normal will be adjusted

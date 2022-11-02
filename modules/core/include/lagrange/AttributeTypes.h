@@ -53,6 +53,60 @@
     LA_X_##mode(data, float) \
     LA_X_##mode(data, double)
 
+///
+/// [X Macro](https://en.wikipedia.org/wiki/X_Macro) arguments for the Attribute<> class.
+/// Usage is similar to LA_ATTRIBUTE_X, but it will only iterate over integral value types.
+///
+/// Use in a .cpp as follows:
+///
+/// @code
+/// #include <lagrange/AttributeTypes.h>
+/// #define LA_X_foo(_, IndexType) template void my_function(const Attribute<IndexType> &);
+/// LA_ATTRIBUTE_INDEX_X(foo, 0)
+/// @endcode
+///
+/// The optional `data` argument can forwarded to other macros, in order to implement cartesian
+/// products when instantiating nested types.
+///
+/// @param      mode  Suffix to apply to the LA_X_* macro.
+/// @param      data  Data to be passed around as the first argument of the X macro.
+///
+/// @return     Expansion of LA_X_##mode() for each type to be instantiated.
+///
+#define LA_ATTRIBUTE_INDEX_X(mode, data) \
+    LA_X_##mode(data, int8_t) \
+    LA_X_##mode(data, int16_t) \
+    LA_X_##mode(data, int32_t) \
+    LA_X_##mode(data, int64_t) \
+    LA_X_##mode(data, uint8_t) \
+    LA_X_##mode(data, uint16_t) \
+    LA_X_##mode(data, uint32_t) \
+    LA_X_##mode(data, uint64_t)
+
+///
+/// [X Macro](https://en.wikipedia.org/wiki/X_Macro) arguments for the Attribute<> class.
+/// Usage is similar to LA_ATTRIBUTE_X, but it will only iterate over floating points value types.
+///
+/// Use in a .cpp as follows:
+///
+/// @code
+/// #include <lagrange/AttributeTypes.h>
+/// #define LA_X_foo(_, IndexType) template void my_function(const Attribute<IndexType> &);
+/// LA_ATTRIBUTE_SCALAR_X(foo, 0)
+/// @endcode
+///
+/// The optional `data` argument can forwarded to other macros, in order to implement cartesian
+/// products when instantiating nested types.
+///
+/// @param      mode  Suffix to apply to the LA_X_* macro.
+/// @param      data  Data to be passed around as the first argument of the X macro.
+///
+/// @return     Expansion of LA_X_##mode() for each type to be instantiated.
+///
+#define LA_ATTRIBUTE_SCALAR_X(mode, data) \
+    LA_X_##mode(data, float) \
+    LA_X_##mode(data, double)
+
 /// @}
 
 // clang-format on

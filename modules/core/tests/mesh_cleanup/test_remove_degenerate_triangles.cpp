@@ -12,6 +12,7 @@
 #include <lagrange/testing/common.h>
 
 #include <algorithm>
+#include <numeric>
 
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>

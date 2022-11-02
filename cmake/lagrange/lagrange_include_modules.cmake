@@ -26,7 +26,8 @@ function(lagrange_include_modules)
             add_subdirectory(${lagrange_source_dir}/modules/${name} ${lagrange_binary_dir}/modules/lagrange_${name})
         endif()
 
-        if(NOT TARGET lagrange::${name})
+        # deformers or lantern modules can be skipped on certain platforms due to lack of support
+        if(NOT name MATCHES "(deformers|lantern)" AND NOT TARGET lagrange::${name})
             message(FATAL_ERROR "Failed to create lagrange module: ${name}")
         endif()
     endforeach()

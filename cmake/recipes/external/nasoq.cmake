@@ -18,14 +18,20 @@ endif()
 # nasoq::eigen_interface depends on nasoq::nasoq.
 # nasoq::nasoq does NOT include nasoq::eigen_interface.
 
-
+include(blas)
 include(eigen)
 include(metis)
 
 option(NASOQ_WITH_EIGEN "Build NASOQ Eigen interface" ON)
 
 # Note: For now, Nasoq's CMake code to find OpenBLAS is broken on Linux, so we default to MKL.
-set(NASOQ_BLAS_BACKEND "MKL" CACHE STRING "BLAS implementation for NASOQ to use")
+if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64" OR "${CMAKE_OSX_ARCHITECTURES}" MATCHES "arm64")
+    # apple M1
+    set(NASOQ_BLAS_BACKEND "OpenBLAS" CACHE STRING "BLAS implementation for NASOQ to use")
+else()
+    # windows, linux, apple intel
+    set(NASOQ_BLAS_BACKEND "MKL" CACHE STRING "BLAS implementation for NASOQ to use")
+endif()
 
 if(NASOQ_BLAS_BACKEND STREQUAL "MKL")
     include(mkl)
@@ -45,10 +51,7 @@ FetchContent_Declare(
 set(CMAKE_DISABLE_FIND_PACKAGE_OpenMP TRUE)
 FetchContent_MakeAvailable(nasoq)
 
-if(NASOQ_BLAS_BACKEND STREQUAL "MKL")
-    # Really should be handled by Nasoq's CMake...
-    target_link_libraries(nasoq PUBLIC mkl::mkl)
-endif()
+target_link_libraries(nasoq PUBLIC BLAS::BLAS)
 
 set_target_properties(nasoq PROPERTIES FOLDER third_party)
 if(TARGET clapack)

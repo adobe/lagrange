@@ -12,18 +12,18 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeFwd.h>
-#include <lagrange/DisjointSets.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
 
+#include "internal/bucket_sort.h"
 #include "internal/compute_weighted_corner_normal.h"
-#include "internal/retrieve_normal_attribute.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -126,8 +126,12 @@ auto recompute_facet_normal_if_needed(
         facet_normal_options.output_attribute_name = options.facet_normal_attribute_name;
         facet_normal_id = compute_facet_normal(mesh, facet_normal_options);
     } else {
-        facet_normal_id =
-            internal::retrieve_normal_attribute(mesh, options.facet_normal_attribute_name, Facet);
+        facet_normal_id = internal::find_attribute<Scalar>(
+            mesh,
+            options.facet_normal_attribute_name,
+            Facet,
+            AttributeUsage::Normal,
+            3);
     }
     return std::make_pair(
         matrix_view(mesh.template get_attribute<Scalar>(facet_normal_id)),
@@ -147,7 +151,6 @@ AttributeId compute_normal_internal(
     auto [facet_normal, had_facet_normals] = recompute_facet_normal_if_needed(mesh, options);
 
     const auto num_vertices = mesh.get_num_vertices();
-    const auto num_corners = mesh.get_num_corners();
 
     std::vector<bool> is_cone_vertex(num_vertices, false);
     for (auto vi : cone_vertices) is_cone_vertex[vi] = true;
@@ -156,45 +159,25 @@ AttributeId compute_normal_internal(
     // group corners sharing the same normal together.
     DisjointSets<Index> unified_indices = get_unified_indices(is_cone_vertex);
 
-    // Step 2: Gather corner groups.
-    AttributeId attr_id =
-        internal::retrieve_normal_attribute(mesh, options.output_attribute_name, Indexed);
+    // Step 2: Sort corner indices according to groups.
+    AttributeId attr_id = internal::find_or_create_attribute<Scalar>(
+        mesh,
+        options.output_attribute_name,
+        Indexed,
+        AttributeUsage::Normal,
+        3,
+        internal::ResetToDefault::Yes);
+
     auto& attr = mesh.template ref_indexed_attribute<Scalar>(attr_id);
     auto attr_indices = attr.indices().ref_all();
-    la_debug_assert(attr_indices.size() == num_corners);
-    std::fill(attr_indices.begin(), attr_indices.end(), invalid<Index>());
+    la_debug_assert(attr_indices.size() == mesh.get_num_corners());
 
-    Index num_indices = 0;
-    for (Index n = 0; n < num_corners; ++n) {
-        Index r = unified_indices.find(n);
-        if (attr_indices[r] == invalid<Index>()) {
-            attr_indices[r] = num_indices++;
-        }
-        attr_indices[n] = attr_indices[r];
-    }
-
-    std::vector<Index> indices(num_corners);
-    std::vector<Index> offsets(num_indices + 1, 0);
-    for (Index c = 0; c < num_corners; ++c) {
-        offsets[attr_indices[c] + 1]++;
-    }
-    for (Index r = 1; r <= num_indices; ++r) {
-        offsets[r] += offsets[r - 1];
-    }
-    {
-        // Bucket sort for corner indices
-        std::vector<Index> counter = offsets;
-        for (Index c = 0; c < num_corners; c++) {
-            indices[counter[attr_indices[c]]++] = c;
-        }
-    }
+    auto buckets = internal::bucket_sort(unified_indices, attr_indices);
 
     // Step 3: Compute and average corner normals.
     auto& attr_values = attr.values();
-    attr_values.set_default_value(0);
-    attr_values.resize_elements(num_indices);
+    attr_values.resize_elements(buckets.num_representatives);
     auto normal_values = matrix_ref(attr_values);
-    normal_values.setZero();
 
     auto compute_weighted_corner_normal =
         [&, facet_normal = facet_normal](Index ci) -> Eigen::Matrix<Scalar, 3, 1> {
@@ -204,9 +187,10 @@ AttributeId compute_normal_internal(
         return n;
     };
 
-    tbb::parallel_for((Index)0, num_indices, [&](Index r) {
-        for (Index i = offsets[r]; i < offsets[r + 1]; i++) {
-            Index c = indices[i];
+    tbb::parallel_for((Index)0, buckets.num_representatives, [&](Index r) {
+        for (Index i = buckets.representative_offsets[r]; i < buckets.representative_offsets[r + 1];
+             ++i) {
+            Index c = buckets.sorted_elements[i];
             normal_values.row(r) += compute_weighted_corner_normal(c).transpose();
         }
         normal_values.row(r).stableNormalize();

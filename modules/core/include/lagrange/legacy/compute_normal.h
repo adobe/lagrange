@@ -14,7 +14,6 @@
 #include <numeric>
 #include <vector>
 
-#include <lagrange/DisjointSets.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/chain_corners_around_edges.h>
 #include <lagrange/chain_corners_around_vertices.h>
@@ -22,6 +21,7 @@
 #include <lagrange/compute_triangle_normal.h>
 #include <lagrange/corner_to_edge_mapping.h>
 #include <lagrange/legacy/inline.h>
+#include <lagrange/utils/DisjointSets.h>
 #include <lagrange/utils/geometry3d.h>
 
 namespace lagrange {

@@ -94,7 +94,10 @@ void camera_focus_and_fit(Registry& registry);
 */
 Entity get_selection_viewport_entity(const Registry& registry);
 Entity get_objectid_viewport_entity(const Registry& registry);
-void add_selection_outline_post_process(Registry& registry, Entity viewport_entity);
+void add_selection_outline_post_process(
+    Registry& registry,
+    Entity viewport_entity,
+    const Color& selection_color);
 
 
 } // namespace ui

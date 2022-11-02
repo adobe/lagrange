@@ -16,24 +16,24 @@
 #include <lagrange/utils/warning.h>
 
 #if !defined(LA_ASSERT_DEBUG_BREAK)
-#if defined(_WIN32)
+    #if defined(_WIN32)
 extern void __cdecl __debugbreak(void);
-#define LA_ASSERT_DEBUG_BREAK() __debugbreak()
-#else
-#if defined(__APPLE__)
-#include <TargetConditionals.h>
-#endif
-#if defined(__clang__) && !TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
-#define LA_ASSERT_DEBUG_BREAK() __builtin_debugtrap()
-#elif defined(linux) || defined(__linux) || defined(__linux__) || defined(__APPLE__)
-#include <signal.h>
-#define LA_ASSERT_DEBUG_BREAK() raise(SIGTRAP)
-#elif defined(__GNUC__)
-#define LA_ASSERT_DEBUG_BREAK() __builtin_trap()
-#else
-#define LA_ASSERT_DEBUG_BREAK() ((void)0)
-#endif
-#endif
+        #define LA_ASSERT_DEBUG_BREAK() __debugbreak()
+    #else
+        #if defined(__APPLE__)
+            #include <TargetConditionals.h>
+        #endif
+        #if defined(__clang__) && !TARGET_OS_IPHONE || TARGET_IPHONE_SIMULATOR
+            #define LA_ASSERT_DEBUG_BREAK() __builtin_debugtrap()
+        #elif defined(linux) || defined(__linux) || defined(__linux__) || defined(__APPLE__)
+            #include <signal.h>
+            #define LA_ASSERT_DEBUG_BREAK() raise(SIGTRAP)
+        #elif defined(__GNUC__)
+            #define LA_ASSERT_DEBUG_BREAK() __builtin_trap()
+        #else
+            #define LA_ASSERT_DEBUG_BREAK() ((void)0)
+        #endif
+    #endif
 #endif
 
 namespace lagrange {
@@ -78,12 +78,7 @@ bool assertion_failed(
     std::string_view message)
 {
     // Insert a breakpoint programmatically to automatically step into the debugger
-    if (get_breakpoint_enabled()) {
-        // LCOV_EXCL_START
-        trigger_breakpoint();
-        // LCOV_EXCL_STOP
-    }
-    throw Error(fmt::format(
+    auto msg = fmt::format(
         "Assertion failed: \"{}\"{}{}\n"
         "\tIn file: {}, line {};\n"
         "\tIn function: {};",
@@ -92,7 +87,14 @@ bool assertion_failed(
         message,
         file,
         line,
-        function));
+        function);
+    if (get_breakpoint_enabled()) {
+        // LCOV_EXCL_START
+        logger().error(msg);
+        trigger_breakpoint();
+        // LCOV_EXCL_STOP
+    }
+    throw Error(msg);
 }
 LA_IGNORE_NONVOID_NORETURN_WARNING_END
 

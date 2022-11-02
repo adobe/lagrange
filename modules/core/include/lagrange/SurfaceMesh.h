@@ -177,6 +177,15 @@ public:
     ///
     /// Adds multiple vertices to the mesh.
     ///
+    /// @param[in]  num_vertices  Number of vertices to add.
+    /// @param[in]  coordinates   A contiguous array of point coordinates (num_vertices x
+    ///                           dimension).
+    ///
+    void add_vertices(Index num_vertices, std::initializer_list<const Scalar> coordinates);
+
+    ///
+    /// Adds multiple vertices to the mesh.
+    ///
     /// @param[in]  num_vertices            Number of vertices to add.
     /// @param[in]  set_vertex_coordinates  Function to set point coordinates of a given vertex.
     ///
@@ -205,6 +214,21 @@ public:
     ///                            is the index of the k-th corner of the i-th facet.
     ///
     void add_triangles(Index num_facets, span<const Index> facet_indices = {});
+
+    ///
+    /// Adds multiple triangular facets to the mesh.
+    ///
+    /// @warning    If the mesh contains edge/connectivity attributes, this function will throw an
+    ///             exception if you pass an empty buffer of facet indices. This is because it is
+    ///             impossible to update edge/connectivity information if the facet buffer is
+    ///             directly modified by the user. Instead, the correct facet indices must be
+    ///             provided when the facet is constructed.
+    ///
+    /// @param[in]  num_facets     Number of facets to add.
+    /// @param[in]  facet_indices  A contiguous array of corner indices, where facet_indices[3*i+k]
+    ///                            is the index of the k-th corner of the i-th facet.
+    ///
+    void add_triangles(Index num_facets, std::initializer_list<const Index> facet_indices);
 
     ///
     /// Adds multiple triangular facets to the mesh.
@@ -238,6 +262,21 @@ public:
     ///                            is the index of the k-th corner of the i-th facet.
     ///
     void add_quads(Index num_facets, span<const Index> facet_indices = {});
+
+    ///
+    /// Adds multiple quadrilateral facets to the mesh.
+    ///
+    /// @warning    If the mesh contains edge/connectivity attributes, this function will throw an
+    ///             exception if you pass an empty buffer of facet indices. This is because it is
+    ///             impossible to update edge/connectivity information if the facet buffer is
+    ///             directly modified by the user. Instead, the correct facet indices must be
+    ///             provided when the facet is constructed.
+    ///
+    /// @param[in]  num_facets     Number of facets to add.
+    /// @param[in]  facet_indices  A contiguous array of corner indices, where facet_indices[4*i+k]
+    ///                            is the index of the k-th corner of the i-th facet.
+    ///
+    void add_quads(Index num_facets, std::initializer_list<const Index> facet_indices);
 
     ///
     /// Adds multiple quadrilateral facets to the mesh.
@@ -296,6 +335,26 @@ public:
     ///
     /// Adds multiple polygonal facets of the same size to the mesh.
     ///
+    /// @warning    If the mesh contains edge/connectivity attributes, this function will throw an
+    ///             exception if you pass an empty buffer of facet indices. This is because it is
+    ///             impossible to update edge/connectivity information if the facet buffer is
+    ///             directly modified by the user. Instead, the correct facet indices must be
+    ///             provided when the facet is constructed.
+    ///
+    /// @param[in]  num_facets     Number of facets to add.
+    /// @param[in]  facet_size     Size of each facet to be added.
+    /// @param[in]  facet_indices  A contiguous array of corner indices, where
+    ///                            facet_indices[facet_size*i+k] is the index of the k-th corner of
+    ///                            the i-th facet.
+    ///
+    void add_polygons(
+        Index num_facets,
+        Index facet_size,
+        std::initializer_list<const Index> facet_indices);
+
+    ///
+    /// Adds multiple polygonal facets of the same size to the mesh.
+    ///
     /// @param[in]  num_facets          Number of facets to add.
     /// @param[in]  facet_size          Size of each facet to be added.
     /// @param[in]  set_facets_indices  Callable function to set vertex indices of a given facet.
@@ -320,6 +379,24 @@ public:
     ///                            k-th corner of the i-th facet.
     ///
     void add_hybrid(span<const Index> facet_sizes, span<const Index> facet_indices = {});
+
+    ///
+    /// Adds multiple polygonal facets of different sizes to the mesh.
+    ///
+    /// @warning    If the mesh contains edge/connectivity attributes, this function will throw an
+    ///             exception if you pass an empty buffer of facet indices. This is because it is
+    ///             impossible to update edge/connectivity information if the facet buffer is
+    ///             directly modified by the user. Instead, the correct facet indices must be
+    ///             provided when the facet is constructed.
+    ///
+    /// @param[in]  facet_sizes    A contiguous array representing the size of each facet to add.
+    /// @param[in]  facet_indices  A contiguous array of corner indices, where
+    ///                            facet_indices[sum(facet_sizes(j), j<=i) + k] is the index of the
+    ///                            k-th corner of the i-th facet.
+    ///
+    void add_hybrid(
+        std::initializer_list<const Index> facet_sizes,
+        std::initializer_list<const Index> facet_indices);
 
     ///
     /// Adds multiple polygonal facets of different sizes to the mesh.

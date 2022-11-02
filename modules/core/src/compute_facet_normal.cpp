@@ -15,11 +15,10 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_facet_normal.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/internal/string_from_scalar.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
-
-#include "internal/retrieve_normal_attribute.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -36,7 +35,14 @@ AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOp
 {
     la_runtime_assert(mesh.get_dimension() == 3, "Only 3D mesh is supported.");
     const auto num_facets = mesh.get_num_facets();
-    AttributeId id = internal::retrieve_normal_attribute(mesh, options.output_attribute_name, Facet);
+
+    AttributeId id = internal::find_or_create_attribute<Scalar>(
+        mesh,
+        options.output_attribute_name,
+        Facet,
+        AttributeUsage::Normal,
+        3,
+        internal::ResetToDefault::No);
 
     auto& attr = mesh.template ref_attribute<Scalar>(id);
     la_debug_assert(static_cast<Index>(attr.get_num_elements()) == num_facets);

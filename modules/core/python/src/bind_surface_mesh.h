@@ -25,6 +25,7 @@
 #include <lagrange/AttributeFwd.h>
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/Error.h>
@@ -49,6 +50,11 @@ void bind_surface_mesh(nanobind::module_& m)
         auto [data, shape, stride] = tensor_to_span(b);
         la_runtime_assert(is_dense(shape, stride));
         la_runtime_assert(check_shape(shape, self.get_dimension()));
+        self.add_vertex(data);
+    });
+    // Handy overload to take python list as argument.
+    surface_mesh_class.def("add_vertex", [](MeshType& self, const std::vector<Scalar>& b) {
+        span<const Scalar> data{b.data(), b.size()};
         self.add_vertex(data);
     });
     surface_mesh_class.def("add_vertices", [](MeshType& self, Tensor<Scalar> b) {
@@ -210,6 +216,8 @@ void bind_surface_mesh(nanobind::module_& m)
                         num_channels,
                         make_shared_span(owner, data.data(), data.size()));
                 }
+                auto& attr = self.template ref_attribute<ValueType>(id);
+                attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
                 return id;
             };
 
@@ -263,6 +271,9 @@ void bind_surface_mesh(nanobind::module_& m)
                         make_shared_span(value_owner, value_data.data(), value_data.size()),
                         make_shared_span(index_owner, index_data.data(), index_data.size()));
                 }
+                auto& attr = self.template ref_indexed_attribute<ValueType>(id);
+                attr.values().set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+                attr.indices().set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
                 return id;
             };
 
@@ -298,15 +309,35 @@ void bind_surface_mesh(nanobind::module_& m)
         "is_attribute_indexed",
         static_cast<bool (MeshType::*)(std::string_view) const>(&MeshType::is_attribute_indexed));
     surface_mesh_class.def("attribute", [](MeshType& self, AttributeId id) {
+        la_runtime_assert(
+            !self.is_attribute_indexed(id),
+            fmt::format(
+                "Attribute {} is indexed!  Please use `indexed_attribute` property instead.",
+                id));
         return PyAttribute(self._ref_attribute_ptr(id));
     });
     surface_mesh_class.def("attribute", [](MeshType& self, std::string_view name) {
+        la_runtime_assert(
+            !self.is_attribute_indexed(name),
+            fmt::format(
+                "Attribute \"{}\" is indexed!  Please use `indexed_attribute` property instead.",
+                name));
         return PyAttribute(self._ref_attribute_ptr(name));
     });
     surface_mesh_class.def("indexed_attribute", [](MeshType& self, AttributeId id) {
+        la_runtime_assert(
+            self.is_attribute_indexed(id),
+            fmt::format(
+                "Attribute {} is not indexed!  Please use `attribute` property instead.",
+                id));
         return PyIndexedAttribute(self._ref_attribute_ptr(id));
     });
     surface_mesh_class.def("indexed_attribute", [](MeshType& self, std::string_view name) {
+        la_runtime_assert(
+            self.is_attribute_indexed(name),
+            fmt::format(
+                "Attribute \"{}\"is not indexed!  Please use `attribute` property instead.",
+                name));
         return PyIndexedAttribute(self._ref_attribute_ptr(name));
     });
     surface_mesh_class.def("__attribute_ref_count__", [](MeshType& self, AttributeId id) {
@@ -326,9 +357,11 @@ void bind_surface_mesh(nanobind::module_& m)
 
             size_t num_vertices = shape.size() == 1 ? 1 : shape[0];
             auto owner = std::make_shared<nb::object>(nb::cast(tensor));
-            self.wrap_as_vertices(
+            auto id = self.wrap_as_vertices(
                 make_shared_span(owner, values.data(), values.size()),
                 num_vertices);
+            auto& attr = self.template ref_attribute<Scalar>(id);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
         });
     surface_mesh_class.def_property(
         "facets",
@@ -352,10 +385,12 @@ void bind_surface_mesh(nanobind::module_& m)
             const size_t num_facets = shape.size() == 1 ? 1 : shape[0];
             const size_t vertex_per_facet = shape.size() == 1 ? shape[0] : shape[1];
             auto owner = std::make_shared<nb::object>(nb::cast(tensor));
-            self.wrap_as_facets(
+            auto id = self.wrap_as_facets(
                 make_shared_span(owner, values.data(), values.size()),
                 num_facets,
                 vertex_per_facet);
+            auto& attr = self.template ref_attribute<Scalar>(id);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
         });
     surface_mesh_class.def(
         "wrap_as_vertices",
@@ -365,9 +400,12 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
 
             auto owner = std::make_shared<nb::object>(nb::cast(tensor));
-            return self.wrap_as_vertices(
+            auto id = self.wrap_as_vertices(
                 make_shared_span(owner, values.data(), values.size()),
                 num_vertices);
+            auto& attr = self.template ref_attribute<Scalar>(id);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            return id;
         });
     surface_mesh_class.def(
         "wrap_as_facets",
@@ -376,10 +414,13 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(is_dense(shape, stride));
 
             auto owner = std::make_shared<nb::object>(nb::cast(tensor));
-            return self.wrap_as_facets(
+            auto id = self.wrap_as_facets(
                 make_shared_span(owner, values.data(), values.size()),
                 num_facets,
                 vertex_per_facet);
+            auto& attr = self.template ref_attribute<Scalar>(id);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            return id;
         });
     surface_mesh_class.def(
         "wrap_as_facets",
@@ -396,11 +437,14 @@ void bind_surface_mesh(nanobind::module_& m)
             auto offsets_owner = std::make_shared<nb::object>(nb::cast(offsets));
             auto facets_owner = std::make_shared<nb::object>(nb::cast(facets));
 
-            return self.wrap_as_facets(
+            auto id = self.wrap_as_facets(
                 make_shared_span(offsets_owner, offsets_data.data(), offsets_data.size()),
                 num_facets,
                 make_shared_span(facets_owner, facets_data.data(), facets_data.size()),
                 num_corners);
+            auto& attr = self.template ref_attribute<Scalar>(id);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            return id;
         });
     surface_mesh_class.def_static("attr_name_is_reserved", &MeshType::attr_name_is_reserved);
     surface_mesh_class.def_property_readonly_static(

@@ -56,7 +56,7 @@ Eigen::Matrix<Scalar, _Rows, _Cols> project_on_line(
 /// Project the vector on the plane defined by its normal n.
 /// Assumes the normal n is a unit vector.
 template <typename Scalar, int _Rows, int _Cols>
-Eigen::Matrix<Scalar, 3, 1> project_on_plane(
+Eigen::Matrix<Scalar, _Rows, _Cols> project_on_plane(
     const Eigen::Matrix<Scalar, _Rows, _Cols>& v,
     const Eigen::Matrix<Scalar, _Rows, _Cols>& n)
 {

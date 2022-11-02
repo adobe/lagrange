@@ -15,7 +15,6 @@
 #include <limits>
 #include <memory>
 
-#include <lagrange/DisjointSets.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/attributes/map_attributes.h>
@@ -24,6 +23,7 @@
 #include <lagrange/create_mesh.h>
 #include <lagrange/mesh_cleanup/remove_isolated_vertices.h>
 #include <lagrange/mesh_cleanup/remove_topologically_degenerate_triangles.h>
+#include <lagrange/utils/DisjointSets.h>
 #include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {

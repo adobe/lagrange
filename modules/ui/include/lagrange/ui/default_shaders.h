@@ -50,6 +50,7 @@ struct PBRMaterial
     constexpr static const StringID Normal = "material_normal"_hs;
     constexpr static const StringID Metallic = "material_metallic"_hs;
     constexpr static const StringID Opacity = "material_opacity"_hs;
+    constexpr static const StringID BackfaceLighting = "material_backface_lighting"_hs;
 
     constexpr static const entt::id_type IndexOfRefraction = "material_index_of_refraction"_hs;
 
