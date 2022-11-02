@@ -109,7 +109,7 @@ jobs:
   ####################
 
   Windows:
-    name: Windows (${{ matrix.config }})
+    name: windows-2022 (${{ matrix.config }})
     runs-on: windows-2022
     strategy:
       fail-fast: false
