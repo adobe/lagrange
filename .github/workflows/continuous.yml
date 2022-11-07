@@ -97,6 +97,7 @@ jobs:
           cmake .. \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
+            -DLAGRANGE_JENKINS=OFF \
             -DUSE_SANITIZER=${{ matrix.sanitizer }}
 
       - name: Build
