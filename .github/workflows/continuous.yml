@@ -29,7 +29,7 @@ jobs:
           macos-12-apple-clang,
           macos-12-llvm-clang
         ]
-        config: [Release, Debug]
+        config: [RelwithDebInfo, Debug]
         sanitizer: ["Address", "Thread"]
         include:
           - name: ubuntu-22.04-gcc
