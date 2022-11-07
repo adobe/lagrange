@@ -133,7 +133,7 @@ std::unique_ptr<MeshType> unify_index_buffer(
     });
 
     auto unified_mesh = create_mesh(std::move(unified_vertices), std::move(unified_facets));
-    const auto& unified_facets = unified_mesh->get_facets();
+    const auto& new_facets = unified_mesh->get_facets();
 
     for (auto i : range(num_attrs)) {
         const auto& attr_name = indexed_attribute_names[i];
@@ -145,7 +145,7 @@ std::unique_ptr<MeshType> unify_index_buffer(
         unified_attr.setZero();
         for (Index fi = 0; fi < num_facets; ++fi) {
             for (auto ci : range(vertex_per_facet)) {
-                unified_attr.row(unified_facets(fi, ci)) = values.row(indices(fi, ci));
+                unified_attr.row(new_facets(fi, ci)) = values.row(indices(fi, ci));
             }
         }
         unified_mesh->import_vertex_attribute(attr_name, unified_attr);
