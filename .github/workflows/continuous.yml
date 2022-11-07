@@ -10,7 +10,7 @@ on:
 
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
-  CTEST_PARALLEL_LEVEL: 1
+  CTEST_PARALLEL_LEVEL: 2
 
 jobs:
   ####################
@@ -18,7 +18,7 @@ jobs:
   ####################
 
   Unix:
-    name: ${{ matrix.name }} (${{ matrix.config }}, ${{ matrix.sanitizer }})
+    name: ${{ matrix.name }} (${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
