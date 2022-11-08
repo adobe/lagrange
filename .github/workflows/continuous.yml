@@ -25,7 +25,7 @@ jobs:
       matrix:
         os: [ubuntu-22.04, macos-12]
         config: [RelwithDebInfo, Debug]
-        compiler: [gcc, apple-clang, llvm-clang]
+        compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"]
         exclude:
           - os: macos-12
@@ -33,7 +33,7 @@ jobs:
           - os: macos-12
             compiler: gcc
           - os: ubuntu
-            compiler: apple-clang
+            compiler: apple
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -59,7 +59,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
             brew install ccache
-            if [ "${{ matrix.compiler }}" = "llvm-clang" ]; then
+            if [ "${{ matrix.compiler }}" = "llvm" ]; then
               brew install llvm@15
               echo "CC='$(brew --prefix llvm@15)/bin/clang'" >> $GITHUB_ENV
               echo "CXX='$(brew --prefix llvm@15)/bin/clang++'" >> $GITHUB_ENV
