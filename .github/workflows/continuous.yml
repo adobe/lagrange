@@ -18,38 +18,22 @@ jobs:
   ####################
 
   Unix:
-    name: ${{ matrix.name }} (${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
+    name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        name: [
-          ubuntu-22.04-gcc,
-          ubuntu-22.04-clang,
-          macos-12-apple-clang,
-          macos-12-llvm-clang
-        ]
+        os: [ubuntu-22.04, macos-12]
         config: [RelwithDebInfo, Debug]
+        compiler: [gcc, apple-clang, llvm-clang]
         sanitizer: ["Address", "Thread"]
-        include:
-          - name: ubuntu-22.04-gcc
-            os: ubuntu-22.04
-            compiler: gcc
-
-          - name: ubuntu-22.04-clang
-            os: ubuntu-22.04
-            compiler: clang
-
-          - name: macos-12-apple-clang
-            os: macos-12
-            compiler: apple-clang
-
-          - name: macos-12-llvm-clang
-            os: macos-12
-            compiler: llvm-clang
         exclude:
-          - name: macos-12*
+          - os: macos-12
             sanitizer: "Thread"
+          - os: macos-12
+            compiler: gcc
+          - os: ubuntu
+            compiler: apple-clang
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
