@@ -48,7 +48,7 @@ jobs:
             os: macos-12
             compiler: llvm-clang
         exclude:
-          - os: macos-12
+          - name: macos-12*
             sanitizer: "Thread"
     steps:
       - name: Checkout repository
