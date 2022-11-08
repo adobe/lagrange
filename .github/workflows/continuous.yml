@@ -47,6 +47,9 @@ jobs:
           - name: macos-12-llvm-clang
             os: macos-12
             compiler: llvm-clang
+        exclude:
+          - os: macos-12
+            sanitizer: "Thread"
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
