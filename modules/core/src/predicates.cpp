@@ -1,3 +1,10 @@
+// Source: https://www.cs.cmu.edu/~quake/robust.html
+// SPDX-License-Identifier: CC-PDDC
+//
+// This file has been modified by Adobe.
+//
+// All modifications are Copyright 2016 Adobe.
+
 /*****************************************************************************/
 /*                                                                           */
 /*  Routines for Arbitrary Precision Floating-point Arithmetic               */

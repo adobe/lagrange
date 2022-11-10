@@ -1,5 +1,5 @@
 // Source: https://github.com/alicevision/geogram/blob/master/src/lib/geogram/basic/geometry_nd.h
-// License: BSD-3
+// SPDX-License-Identifier: BSD-3-Clause
 //
 // Copyright (c) 2012-2014, Bruno Levy
 // All rights reserved.
@@ -43,7 +43,7 @@
 //    54506 VANDOEUVRE LES NANCY CEDEX
 //    FRANCE
 //
-// This file has been modified by Adobe to use Eigen for linear algebra.
+// This file has been modified by Adobe.
 //
 // All modifications are Copyright 2020 Adobe.
 //

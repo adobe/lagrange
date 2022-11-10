@@ -37,8 +37,14 @@ inline int fedisableexcept(unsigned int /*excepts*/)
 
 #include <fenv.h>
 
+// Source: http://www-personal.umich.edu/~williams/archive/computation/fe-handling-example.c
+// SPDX-License-Identifier: CC-PDDC
+//
 // Public domain polyfill for feenableexcept on OS X
-// http://www-personal.umich.edu/~williams/archive/computation/fe-handling-example.c
+//
+// These functions have been modified by Adobe.
+//
+// All modifications are Copyright 2020 Adobe.
 
 namespace {
 

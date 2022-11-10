@@ -1,4 +1,5 @@
-# https://github.com/StableCoder/cmake-scripts
+# Source: https://github.com/StableCoder/cmake-scripts
+# SPDX-License-Identifier: Apache-2.0
 #
 # Copyright (C) 2018 by George Cave - gcave@stablecoder.ca
 #
@@ -13,6 +14,10 @@
 # WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
 # License for the specific language governing permissions and limitations under
 # the License.
+#
+# This file has been modified by Adobe.
+#
+# All modifications are Copyright 2020 Adobe.
 
 set(USE_SANITIZER
     ""

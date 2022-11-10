@@ -59,7 +59,7 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         auto id = create_id(name);
         m_attributes.at(id).first = name;
         m_attributes.at(id).second = copy_on_write_ptr<AttributeBase>(
-            smart_ptr::make_shared<Attribute<ValueType>>(element, usage, num_channels));
+            internal::make_shared<Attribute<ValueType>>(element, usage, num_channels));
         return id;
     }
 
@@ -69,7 +69,7 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         auto id = create_id(name);
         m_attributes.at(id).first = name;
         m_attributes.at(id).second = copy_on_write_ptr<AttributeBase>(
-            smart_ptr::make_shared<IndexedAttribute<ValueType, Index>>(usage, num_channels));
+            internal::make_shared<IndexedAttribute<ValueType, Index>>(usage, num_channels));
         return id;
     }
 
@@ -232,13 +232,13 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         return ptr.template release_ptr<IndexedAttribute<ValueType, Index>>();
     }
 
-    [[nodiscard]] std::weak_ptr<const AttributeBase> _get_weak_ptr(AttributeId id) const
+    [[nodiscard]] internal::weak_ptr<const AttributeBase> _get_weak_ptr(AttributeId id) const
     {
         return {};
         // return m_attributes.at(id).second._get_weak_ptr();
     }
 
-    [[nodiscard]] std::weak_ptr<AttributeBase> _ref_weak_ptr(AttributeId id)
+    [[nodiscard]] internal::weak_ptr<AttributeBase> _ref_weak_ptr(AttributeId id)
     {
         return {};
         // return m_attributes.at(id).second._get_weak_ptr();
@@ -1200,14 +1200,14 @@ const Attribute<ValueType>& SurfaceMesh<Scalar, Index>::get_attribute(AttributeI
 }
 
 template <typename Scalar, typename Index>
-std::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribute_ptr(
+internal::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribute_ptr(
     std::string_view name) const
 {
     return _get_attribute_ptr(get_attribute_id(name));
 }
 
 template <typename Scalar, typename Index>
-std::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribute_ptr(
+internal::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribute_ptr(
     AttributeId id) const
 {
     la_debug_assert(id != invalid_attribute_id());
@@ -1246,13 +1246,13 @@ Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id)
 }
 
 template <typename Scalar, typename Index>
-std::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(std::string_view name)
+internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(std::string_view name)
 {
     return _ref_attribute_ptr(get_attribute_id(name));
 }
 
 template <typename Scalar, typename Index>
-std::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(AttributeId id)
+internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(AttributeId id)
 {
     la_debug_assert(id != invalid_attribute_id());
     return m_attributes->_ref_weak_ptr(id);

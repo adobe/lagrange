@@ -1,6 +1,6 @@
 /*
  * Source: https://github.com/ocornut/imgui/issues/1901
- * License: MIT
+ * SPDX-License-Identifier: MIT
  *
  * Copyright (c) 2018 Zelimir Fedoran
  *
@@ -24,6 +24,7 @@
  *
  *
  * This file has been modified by Adobe.
+ *
  * All modifications are Copyright 2021 Adobe.
  */
 

@@ -1,4 +1,9 @@
-// Adapted from https://github.com/LoopPerfect/valuable
+// Source: https://github.com/LoopPerfect/valuable
+// SPDX-License-Identifier: MIT
+//
+// This file has been modified by Adobe.
+//
+// All modifications are Copyright 2022 Adobe.
 //
 // MIT License
 //

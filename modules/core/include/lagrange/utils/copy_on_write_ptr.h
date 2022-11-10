@@ -15,7 +15,11 @@
 
 #include <lagrange/Logger.h>
 
+<<<<<<< HEAD
 #include <shared_ptr.hpp>
+=======
+#include <lagrange/internal/shared_ptr.h>
+>>>>>>> origin/main
 
 #include <cassert>
 #include <memory>
@@ -48,7 +52,11 @@ private:
 
 public:
     /// Construct a copy-on-write ptr from a shared-pointer
+<<<<<<< HEAD
     copy_on_write_ptr(smart_ptr::shared_ptr<T>&& ptr = nullptr)
+=======
+    copy_on_write_ptr(::lagrange::internal::shared_ptr<T>&& ptr = nullptr)
+>>>>>>> origin/main
         : m_data(std::move(ptr))
     {
         if (m_data) {
@@ -75,9 +83,7 @@ public:
     copy_on_write_ptr& operator=(const copy_on_write_ptr&) = default;
 
     /// Check if this copy-on-write ptr is nullptr.
-    explicit operator bool() const {
-        return bool(m_data);
-    }
+    explicit operator bool() const { return bool(m_data); }
 
     /// Returns a const pointer to the data. Does not require ownership and will not lead to any copy.
     const T* read() const { return m_data.get(); }
@@ -118,7 +124,7 @@ public:
     {
         ensure_unique_owner<Derived>();
         auto ptr = static_cast<Derived*>(m_data.get());
-        assert(dynamic_cast<Derived*>(m_data.get()));
+        la_debug_assert(dynamic_cast<Derived*>(m_data.get()));
         auto ret = std::make_shared<Derived>(std::move(*ptr));
         m_data.reset();
         return ret;
@@ -130,17 +136,17 @@ public:
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    // std::weak_ptr<const T> _get_weak_ptr() const { return m_data; }
+    ::lagrange::internal::weak_ptr<const T> _get_weak_ptr() const { return m_data; }
 
     /// Return a weak pointer to the data.
     ///
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    // std::weak_ptr<T> _get_weak_ptr() { return m_data; }
+    ::lagrange::internal::weak_ptr<T> _get_weak_ptr() { return m_data; }
 
 protected:
-    smart_ptr::shared_ptr<T> m_data;
+    ::lagrange::internal::shared_ptr<T> m_data;
 
     /// If we are not the owner of the shared object, make a private copy of it
     template <typename Derived>
@@ -148,8 +154,8 @@ protected:
     {
         if (m_data.use_count() != 1) {
             auto ptr = static_cast<const Derived*>(m_data.get());
-            assert(dynamic_cast<const Derived*>(m_data.get()));
-            m_data = smart_ptr::make_shared<Derived>(*ptr);
+            la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
+            m_data = ::lagrange::internal::make_shared<Derived>(*ptr);
         }
     }
 };

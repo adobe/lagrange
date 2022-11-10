@@ -22,7 +22,7 @@ namespace lagrange {
 template <typename Scalar, typename Index>
 AttributeId compute_vertex_valence(SurfaceMesh<Scalar, Index>& mesh, VertexValenceOptions options)
 {
-    AttributeId id = internal::find_or_create_attribute<Index, Scalar, Index>(
+    AttributeId id = internal::find_or_create_attribute<Index>(
         mesh,
         options.output_attribute_name,
         Vertex,
