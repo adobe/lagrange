@@ -15,11 +15,7 @@
 
 #include <lagrange/Logger.h>
 
-<<<<<<< HEAD
-#include <shared_ptr.hpp>
-=======
 #include <lagrange/internal/shared_ptr.h>
->>>>>>> origin/main
 
 #include <cassert>
 #include <memory>
@@ -52,11 +48,7 @@ private:
 
 public:
     /// Construct a copy-on-write ptr from a shared-pointer
-<<<<<<< HEAD
-    copy_on_write_ptr(smart_ptr::shared_ptr<T>&& ptr = nullptr)
-=======
     copy_on_write_ptr(::lagrange::internal::shared_ptr<T>&& ptr = nullptr)
->>>>>>> origin/main
         : m_data(std::move(ptr))
     {
         if (m_data) {

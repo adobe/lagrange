@@ -234,14 +234,16 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
 
     [[nodiscard]] internal::weak_ptr<const AttributeBase> _get_weak_ptr(AttributeId id) const
     {
-        return {};
-        // return m_attributes.at(id).second._get_weak_ptr();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return ptr._get_weak_ptr();
     }
 
     [[nodiscard]] internal::weak_ptr<AttributeBase> _ref_weak_ptr(AttributeId id)
     {
-        return {};
-        // return m_attributes.at(id).second._get_weak_ptr();
+        auto& ptr = m_attributes.at(id).second;
+        la_debug_assert(ptr);
+        return ptr._get_weak_ptr();
     }
 
 protected:
@@ -1246,7 +1248,8 @@ Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id)
 }
 
 template <typename Scalar, typename Index>
-internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(std::string_view name)
+internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(
+    std::string_view name)
 {
     return _ref_attribute_ptr(get_attribute_id(name));
 }
