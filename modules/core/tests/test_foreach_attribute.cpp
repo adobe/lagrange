@@ -505,7 +505,7 @@ TEST_CASE("parallel_cow_tbb", "[next]")
 
     std::vector<lagrange::copy_on_write_ptr<ArrayBase>> attrs;
     for (int i = 0; i < N; ++i) {
-        auto ptr = internal::make_shared<Array<Scalar>>();
+        auto ptr = lagrange::internal::make_shared<Array<Scalar>>();
         ptr->data.resize(10);
         attrs.emplace_back(std::move(ptr));
         attrs.push_back(attrs.back());
