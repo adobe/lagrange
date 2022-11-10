@@ -32,7 +32,7 @@ jobs:
             sanitizer: "Thread"
           - os: macos-12
             compiler: gcc
-          - os: ubuntu
+          - os: ubuntu-22.04
             compiler: apple
     steps:
       - name: Checkout repository
