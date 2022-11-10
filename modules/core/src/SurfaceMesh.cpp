@@ -1248,8 +1248,7 @@ Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id)
 }
 
 template <typename Scalar, typename Index>
-internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(
-    std::string_view name)
+internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(std::string_view name)
 {
     return _ref_attribute_ptr(get_attribute_id(name));
 }

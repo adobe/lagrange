@@ -41,11 +41,6 @@ public:
     using const_reference = typename std::add_const<T>::type&;
     using element_type = T;
 
-private:
-    template <class U>
-    using disable_copy =
-        std::enable_if_t<!std::is_same<std::decay_t<U>, copy_on_write_ptr>::value>*;
-
 public:
     /// Construct a copy-on-write ptr from a shared-pointer
     copy_on_write_ptr(::lagrange::internal::shared_ptr<T>&& ptr = nullptr)
