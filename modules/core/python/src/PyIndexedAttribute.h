@@ -16,6 +16,7 @@
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/internal/weak_ptr.h>
 
 #include <memory>
 
@@ -24,14 +25,14 @@ namespace lagrange::python {
 class PyIndexedAttribute
 {
 public:
-    PyIndexedAttribute(std::weak_ptr<AttributeBase> ptr)
+    PyIndexedAttribute(internal::weak_ptr<AttributeBase> ptr)
         : m_attr(ptr)
     {}
 
 public:
-    std::shared_ptr<AttributeBase> operator->() { return ptr(); }
+    internal::shared_ptr<AttributeBase> operator->() { return ptr(); }
 
-    std::shared_ptr<AttributeBase> ptr()
+    internal::shared_ptr<AttributeBase> ptr()
     {
         auto attr = m_attr.lock();
         if (attr == nullptr) throw Error("Indexed attribute is no longer valid!");
@@ -66,7 +67,7 @@ public:
             auto attr = m_attr.lock();
             la_debug_assert(attr != nullptr);
             auto& value_attr = indexed_attr.values();
-            std::shared_ptr<AttributeBase> alias_ptr(attr, &value_attr);
+            internal::shared_ptr<AttributeBase> alias_ptr(attr, &value_attr);
             return PyAttribute(alias_ptr);
         });
     }
@@ -77,13 +78,13 @@ public:
             auto attr = m_attr.lock();
             la_debug_assert(attr != nullptr);
             auto& index_attr = indexed_attr.indices();
-            std::shared_ptr<AttributeBase> alias_ptr(attr, &index_attr);
+            internal::shared_ptr<AttributeBase> alias_ptr(attr, &index_attr);
             return PyAttribute(alias_ptr);
         });
     }
 
 private:
-    std::weak_ptr<AttributeBase> m_attr;
+    ::lagrange::internal::weak_ptr<AttributeBase> m_attr;
 };
 
 } // namespace lagrange::python

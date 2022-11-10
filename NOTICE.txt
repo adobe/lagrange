@@ -169,6 +169,14 @@ This codebase contains a modified portion of code from small_vector which can be
     * https://github.com/KonanM/small_vector/blob/master/LICENSE
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from smart_ptr which can be obtained at:
+  * SOURCE:
+    * https://github.com/X-czh/smart_ptr
+
+  * LICENSE:
+    * https://github.com/X-czh/smart_ptr/blob/master/LICENSE
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from valuable which can be obtained at:
   * SOURCE:
     * https://github.com/LoopPerfect/valuable

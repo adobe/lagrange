@@ -1,5 +1,11 @@
+// Source: https://github.com/ricab/scope_guard
+// SPDX-License-Identifier: CC-PDDC
+//
 // Public domain implementation of the scoped guard concept
-// https://github.com/ricab/scope_guard
+//
+// This file has been modified by Adobe.
+//
+// All modifications are Copyright 2022 Adobe.
 
 #pragma once
 

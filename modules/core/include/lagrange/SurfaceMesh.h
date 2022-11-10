@@ -22,6 +22,13 @@
 
 namespace lagrange {
 
+/// @cond LA_INTERNAL_DOCS
+/// Forward declarations
+namespace internal {
+template <typename T>
+class weak_ptr;
+}
+/// @endcond
 
 /// @defgroup group-surfacemesh SurfaceMesh
 /// @ingroup module-core
@@ -1610,7 +1617,7 @@ public:
     ///
     /// @note This method is for tracking the life span of the attribute object.
     ///
-    [[nodiscard]] std::weak_ptr<const AttributeBase> _get_attribute_ptr(
+    [[nodiscard]] ::lagrange::internal::weak_ptr<const AttributeBase> _get_attribute_ptr(
         std::string_view name) const;
 
     ///
@@ -1622,7 +1629,8 @@ public:
     ///
     /// @note This method is for tracking the life span of the attribute object.
     ///
-    [[nodiscard]] std::weak_ptr<const AttributeBase> _get_attribute_ptr(AttributeId id) const;
+    [[nodiscard]] ::lagrange::internal::weak_ptr<const AttributeBase> _get_attribute_ptr(
+        AttributeId id) const;
 
     ///
     /// Gets a read-only reference to an indexed attribute given its name.
@@ -1685,7 +1693,8 @@ public:
     ///
     /// @note This method is for tracking the life span of the attribute object.
     ///
-    [[nodiscard]] std::weak_ptr<AttributeBase> _ref_attribute_ptr(std::string_view name);
+    [[nodiscard]] ::lagrange::internal::weak_ptr<AttributeBase> _ref_attribute_ptr(
+        std::string_view name);
 
     ///
     /// Gets a weak pointer to the base attribute object.
@@ -1696,7 +1705,7 @@ public:
     ///
     /// @note This method is for tracking the life span of the attribute object.
     ///
-    [[nodiscard]] std::weak_ptr<AttributeBase> _ref_attribute_ptr(AttributeId id);
+    [[nodiscard]] ::lagrange::internal::weak_ptr<AttributeBase> _ref_attribute_ptr(AttributeId id);
 
     ///
     /// Gets a writable reference to an indexed attribute given its name. If the attribute is a

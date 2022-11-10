@@ -50,7 +50,6 @@ DisjointSets<Index> compute_unified_indices(
     const std::vector<bool>& is_cone_vertex)
 {
     DisjointSets<Index> unified_indices(mesh.get_num_corners());
-    logger().info("compute unified indices");
     tbb::parallel_for(Index(0), mesh.get_num_vertices(), [&](Index vi) {
         if (is_cone_vertex[vi]) return;
         mesh.foreach_corner_around_vertex(vi, [&](Index ci) {

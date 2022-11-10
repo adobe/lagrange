@@ -37,6 +37,7 @@ TEST_CASE("compute_vertex_valence", "[surface][attribute][utilities]")
         mesh.add_triangle(0, 1, 2);
 
         auto id = compute_vertex_valence(mesh, opt);
+        REQUIRE(mesh.is_attribute_type<Index>(id));
         const auto& valence_attr = mesh.template get_attribute<Index>(id);
 
         REQUIRE(valence_attr.get_num_elements() == mesh.get_num_vertices());

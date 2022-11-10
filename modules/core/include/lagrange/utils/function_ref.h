@@ -1,5 +1,9 @@
+// Source: https://github.com/TartanLlama/function_ref
+// SPDX-License-Identifier: CC0-1.0
 //
-// Adapted from https://github.com/TartanLlama/function_ref
+// This file has been modified by Adobe.
+//
+// All modifications are Copyright 2022 Adobe.
 //
 // function_ref - A low-overhead non-owning function
 // Written in 2017 by Simon Brand (@TartanLlama)

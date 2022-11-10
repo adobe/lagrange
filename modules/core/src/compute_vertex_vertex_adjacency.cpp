@@ -58,8 +58,9 @@ AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>&
     const Index total_size = adjacency_index.back();
     adjacency_data.resize(total_size);
 
-    // Gather adjacency data with duplicates.
-    tbb::parallel_for(Index(0), num_facets, [&](Index fi) {
+    // Gather adjacency data with duplicates. Note: We could do this loop in parallel by using a
+    // vector of atomic counters for `adjacency_index`
+    for (Index fi = 0; fi < num_facets; ++fi) {
         const Index c_begin = mesh.get_facet_corner_begin(fi);
         const Index c_end = mesh.get_facet_corner_end(fi);
 
@@ -71,7 +72,7 @@ AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>&
             adjacency_data[adjacency_index[v_curr]++] = v_next;
             adjacency_data[adjacency_index[v_next]++] = v_curr;
         }
-    });
+    };
 
     // Remove duplicate data.
     tbb::parallel_for(Index(0), num_vertices, [&](Index vi) {

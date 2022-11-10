@@ -1,8 +1,9 @@
-// From https://github.com/KonanM/small_vector
-// Licensed under the Unlicense <https://unlicense.org/>
+// Source: https://github.com/KonanM/small_vector
 // SPDX-License-Identifier: Unlicense
 //
-// Renamed and formatted to be consistent with Lagrange conventions.
+// This file has been modified by Adobe.
+//
+// All modifications are Copyright 2022 Adobe.
 
 #pragma once
 

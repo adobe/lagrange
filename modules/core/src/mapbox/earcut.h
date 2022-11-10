@@ -1,5 +1,9 @@
-// SPDX-License-Identifier: ISC
 // Source: https://github.com/mapbox/earcut.hpp
+// SPDX-License-Identifier: ISC
+//
+// This file has been modified by Adobe.
+//
+// All modifications are Copyright 2022 Adobe.
 #pragma once
 
 #include <algorithm>

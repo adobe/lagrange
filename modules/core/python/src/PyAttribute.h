@@ -14,6 +14,7 @@
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/internal/weak_ptr.h>
 
 #include <memory>
 
@@ -22,14 +23,14 @@ namespace lagrange::python {
 class PyAttribute
 {
 public:
-    PyAttribute(std::weak_ptr<AttributeBase> ptr)
+    PyAttribute(internal::weak_ptr<AttributeBase> ptr)
         : m_attr(ptr)
     {}
 
 public:
-    std::shared_ptr<AttributeBase> operator->() { return ptr(); }
+    internal::shared_ptr<AttributeBase> operator->() { return ptr(); }
 
-    std::shared_ptr<AttributeBase> ptr()
+    internal::shared_ptr<AttributeBase> ptr()
     {
         auto attr = m_attr.lock();
         if (attr == nullptr) throw Error("Attribute is no longer valid!");
@@ -37,11 +38,11 @@ public:
     }
 
     template <typename ValueType>
-    std::shared_ptr<Attribute<ValueType>> ptr()
+    internal::shared_ptr<Attribute<ValueType>> ptr()
     {
         auto attr = m_attr.lock();
         if (attr == nullptr) throw Error("Attribute is no longer valid!");
-        return std::shared_ptr<Attribute<ValueType>>(attr, dynamic_cast<Attribute<ValueType>*>(attr.get()));
+        return internal::shared_ptr<Attribute<ValueType>>(attr, dynamic_cast<Attribute<ValueType>*>(attr.get()));
     }
 
     template <typename CallBack>
@@ -60,7 +61,7 @@ public:
     }
 
 private:
-    std::weak_ptr<AttributeBase> m_attr;
+    ::lagrange::internal::weak_ptr<AttributeBase> m_attr;
 };
 
 } // namespace lagrange::python

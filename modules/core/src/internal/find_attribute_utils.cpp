@@ -158,7 +158,7 @@ AttributeId find_or_create_attribute(
     AttributeId id;
     la_runtime_assert(!name.empty(), "Attribute name cannot be empty");
     if (!mesh.has_attribute(name)) {
-        id = mesh.template create_attribute<Scalar>(
+        id = mesh.template create_attribute<ExpectedValueType>(
             name,
             expected_element,
             expected_usage,

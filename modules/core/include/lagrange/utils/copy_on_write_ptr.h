@@ -13,6 +13,11 @@
 
 #include <lagrange/utils/assert.h>
 
+#include <lagrange/Logger.h>
+
+#include <lagrange/internal/shared_ptr.h>
+
+#include <cassert>
 #include <memory>
 
 namespace lagrange {
@@ -38,7 +43,7 @@ public:
 
 public:
     /// Construct a copy-on-write ptr from a shared-pointer
-    copy_on_write_ptr(std::shared_ptr<T>&& ptr = nullptr)
+    copy_on_write_ptr(::lagrange::internal::shared_ptr<T>&& ptr = nullptr)
         : m_data(std::move(ptr))
     {
         if (m_data) {
@@ -55,7 +60,7 @@ public:
     /// Move-construct from a derived type.
     template <typename Derived>
     copy_on_write_ptr(copy_on_write_ptr<Derived>&& ptr)
-        : m_data{std::dynamic_pointer_cast<T>(std::move(ptr.m_data))}
+        : m_data{std::move(ptr.m_data)}
     {}
 
     /// Default copy constructor.
@@ -65,9 +70,7 @@ public:
     copy_on_write_ptr& operator=(const copy_on_write_ptr&) = default;
 
     /// Check if this copy-on-write ptr is nullptr.
-    explicit operator bool() const {
-        return bool(m_data);
-    }
+    explicit operator bool() const { return bool(m_data); }
 
     /// Returns a const pointer to the data. Does not require ownership and will not lead to any copy.
     const T* read() const { return m_data.get(); }
@@ -88,18 +91,18 @@ public:
 
     /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
     template <typename Derived>
-    Derived* static_write()
-    {
-        ensure_unique_owner<Derived>();
-        return static_cast<Derived*>(m_data.get());
-    }
-
-    /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
-    template <typename Derived>
     Derived* dynamic_write()
     {
         ensure_unique_owner<Derived>();
         return dynamic_cast<Derived*>(m_data.get());
+    }
+
+    /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
+    template <typename Derived>
+    Derived* static_write()
+    {
+        ensure_unique_owner<Derived>();
+        return static_cast<Derived*>(m_data.get());
     }
 
     /// Returns a writable smart pointer to the data. Will cause a copy if ownership is shared.
@@ -107,7 +110,11 @@ public:
     std::shared_ptr<Derived> release_ptr()
     {
         ensure_unique_owner<Derived>();
-        return std::dynamic_pointer_cast<Derived>(std::move(m_data));
+        auto ptr = static_cast<Derived*>(m_data.get());
+        la_debug_assert(dynamic_cast<Derived*>(m_data.get()));
+        auto ret = std::make_shared<Derived>(std::move(*ptr));
+        m_data.reset();
+        return ret;
     }
 
 public:
@@ -116,31 +123,26 @@ public:
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    std::weak_ptr<const T> _get_weak_ptr() const {
-        return m_data;
-    }
+    ::lagrange::internal::weak_ptr<const T> _get_weak_ptr() const { return m_data; }
 
     /// Return a weak pointer to the data.
     ///
     /// @warning This method is for internal usage purposes.
     ///
     /// @see read() for preferred way of accessing data.
-    std::weak_ptr<T> _get_weak_ptr() {
-        return m_data;
-    }
+    ::lagrange::internal::weak_ptr<T> _get_weak_ptr() { return m_data; }
 
 protected:
-    /// Shared object.
-    std::shared_ptr<T> m_data;
+    ::lagrange::internal::shared_ptr<T> m_data;
 
     /// If we are not the owner of the shared object, make a private copy of it
     template <typename Derived>
     void ensure_unique_owner()
     {
         if (m_data.use_count() != 1) {
-            auto ptr = dynamic_cast<const Derived*>(m_data.get());
-            la_debug_assert(ptr);
-            m_data = std::dynamic_pointer_cast<T>(std::make_shared<Derived>(*ptr));
+            auto ptr = static_cast<const Derived*>(m_data.get());
+            la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
+            m_data = ::lagrange::internal::make_shared<Derived>(*ptr);
         }
     }
 };

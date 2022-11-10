@@ -1,5 +1,5 @@
+// Source: https://github.com/embree/embree/blob/master/tutorials/closest_point/closest_point.cpp
 // SPDX-License-Identifier: Apache-2.0
-// https://github.com/embree/embree/blob/master/tutorials/closest_point/closest_point.cpp
 //
 // This file has been modified by Adobe.
 //
