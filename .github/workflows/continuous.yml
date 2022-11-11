@@ -1,0 +1,149 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  CTEST_OUTPUT_ON_FAILURE: ON
+  CTEST_PARALLEL_LEVEL: 1
+
+jobs:
+  ####################
+  # Linux / macOS
+  ####################
+
+  Unix:
+    name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04, macos-12]
+        config: [RelwithDebInfo, Debug]
+        compiler: [gcc, apple, llvm]
+        sanitizer: ["Address", "Thread"]
+        exclude:
+          - os: macos-12
+            sanitizer: "Thread"
+          - os: macos-12
+            compiler: gcc
+          - os: ubuntu-22.04
+            compiler: apple
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 10
+
+      - name: Dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+            sudo apt-get update
+            if [ "${{ matrix.compiler }}" = "gcc" ]; then
+              sudo apt-get install -y g++
+              echo "CC=gcc" >> $GITHUB_ENV
+              echo "CXX=g++" >> $GITHUB_ENV
+            else
+              sudo apt-get install -y clang
+              echo "CC=clang" >> $GITHUB_ENV
+              echo "CXX=clang++" >> $GITHUB_ENV
+            fi
+            sudo apt-get install ccache
+
+      - name: Dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+            brew install ccache
+            if [ "${{ matrix.compiler }}" = "llvm" ]; then
+              brew install llvm@15
+              echo "CC='$(brew --prefix llvm@15)/bin/clang'" >> $GITHUB_ENV
+              echo "CXX='$(brew --prefix llvm@15)/bin/clang++'" >> $GITHUB_ENV
+            fi
+
+      - name: Cache Build
+        id: cache-build
+        uses: actions/cache@v3
+        with:
+          path: ~/.ccache
+          key: ${{ matrix.name }}-${{ matrix.config }}-cache
+
+      - name: Prepare ccache
+        run: |
+          ccache --max-size=1.0G
+          ccache -V && ccache --show-stats && ccache --zero-stats
+
+      - name: Configure
+        run: |
+          mkdir -p build
+          cd build
+          cmake .. \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
+            -DLAGRANGE_JENKINS=OFF \
+            -DUSE_SANITIZER=${{ matrix.sanitizer }}
+
+      - name: Build
+        run: cd build; make -j2; ccache --show-stats
+
+      - name: Tests
+        run: cd build; ctest --verbose
+
+  ####################
+  # Windows
+  ####################
+
+  Windows:
+    name: windows-2022 (${{ matrix.config }})
+    runs-on: windows-2022
+    strategy:
+      fail-fast: false
+      matrix:
+        config: [Release, Debug]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 10
+
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
+      - name: Set env variable for sccache
+        run: |
+          echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
+
+      - name: Cache build
+        id: cache-build
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.appdata }}\Mozilla\sccache
+          key: ${{ runner.os }}-${{ matrix.config }}-cache
+
+      - name: Prepare sccache
+        run: |
+          iwr -useb 'https://raw.githubusercontent.com/scoopinstaller/install/master/install.ps1' -outfile 'install.ps1'
+          .\install.ps1 -RunAsAdmin
+          scoop install sccache --global
+          # Scoop modifies the PATH so we make it available for the next steps of the job
+          echo "${env:PATH}" >> ${env:GITHUB_PATH}
+
+        # We run configure + build in the same step, since they both need to call VsDevCmd
+        # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
+      - name: Configure and build
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake -G Ninja ^
+            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -B build ^
+            -S .
+          cmake --build build -j2
+
+      - name: Tests
+        run: cd build; ctest --verbose

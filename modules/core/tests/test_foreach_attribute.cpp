@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/utils/copy_on_write_ptr.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -450,6 +451,34 @@ void test_foreach_cow()
     }
 }
 
+struct ArrayBase
+{
+    virtual ~ArrayBase() = default;
+};
+
+template <typename Scalar>
+struct Array : public ArrayBase
+{
+    std::vector<Scalar> data;
+};
+
+template <typename ValueType>
+void test_parallel_cow()
+{
+    using namespace lagrange;
+
+    int N = 100;
+
+    std::vector<copy_on_write_ptr<ArrayBase>> attrs;
+    for (int i = 0; i < N; ++i) {
+        auto ptr = internal::make_shared<Array<ValueType>>();
+        ptr->data.resize(10);
+        attrs.emplace_back(std::move(ptr));
+        attrs.push_back(attrs.back());
+    }
+    tbb::parallel_for(0, N, [&](int i) { attrs[i].static_write<Array<ValueType>>()->data[0] = 1; });
+}
+
 } // namespace
 
 TEST_CASE("SurfaceMesh: Foreach Attributes", "[next]")
@@ -462,4 +491,9 @@ TEST_CASE("SurfaceMesh: Foreach CoW", "[next]")
 {
 #define LA_X_test_foreach_cow(_, Scalar, Index) test_foreach_cow<Scalar, Index>();
     LA_SURFACE_MESH_X(test_foreach_cow, 0)
+}
+
+TEST_CASE("Simple Parallel CoW", "[next]")
+{
+    test_parallel_cow<double>();
 }

@@ -43,18 +43,13 @@ function(lagrange_add_test)
     include(FetchContent)
     target_code_coverage(${test_target} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
 
-    # TSan suppression file to be passed to catch_discover_tests
-    set(LAGRANGE_TESTS_ENVIRONMENT
-        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/scripts/tsan.suppressions"
-    )
-
     # Output directory
     set_target_properties(${test_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
     # Register tests
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/reports")
 
-    if(LAGRANGE_TOPLEVEL_PROJECT AND NOT EMSCRIPTEN)
+    if(LAGRANGE_TOPLEVEL_PROJECT AND NOT EMSCRIPTEN AND NOT USE_SANITIZER MATCHES "([Tt]hread)")
         catch_discover_tests(${test_target}
             REPORTER junit
             OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
