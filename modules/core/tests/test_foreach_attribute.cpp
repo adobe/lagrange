@@ -493,22 +493,7 @@ TEST_CASE("SurfaceMesh: Foreach CoW", "[next]")
     LA_SURFACE_MESH_X(test_foreach_cow, 0)
 }
 
-TEST_CASE("SurfaceMesh: Parallel CoW", "[next]")
+TEST_CASE("Simple Parallel CoW", "[next]")
 {
     test_parallel_cow<double>();
-}
-
-TEST_CASE("parallel_cow_tbb", "[next]")
-{
-    int N = 100;
-    using Scalar = double;
-
-    std::vector<lagrange::copy_on_write_ptr<ArrayBase>> attrs;
-    for (int i = 0; i < N; ++i) {
-        auto ptr = lagrange::internal::make_shared<Array<Scalar>>();
-        ptr->data.resize(10);
-        attrs.emplace_back(std::move(ptr));
-        attrs.push_back(attrs.back());
-    }
-    tbb::parallel_for(0, N, [&](int i) { attrs[i].static_write<Array<Scalar>>()->data[0] = 1; });
 }
