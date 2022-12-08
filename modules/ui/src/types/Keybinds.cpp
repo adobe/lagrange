@@ -22,15 +22,7 @@
 namespace lagrange {
 namespace ui {
 
-Keybinds::Keybinds()
-{
-    for (auto i = 0; i < Keybinds::keymap_size; i++) {
-        m_key_map[i] = false;
-        m_key_map_last[i] = false;
-    }
-}
-
-void Keybinds::end_update()
+void Keybinds::update()
 {
     const auto in_context = [&](const std::string& name) -> std::pair<bool, int> {
         int cur = static_cast<int>(name.length()) - 1;
@@ -81,9 +73,10 @@ void Keybinds::end_update()
     // and collect currently active (pressed or down) keybinds
     for (auto& it : m_mapping) {
         for (auto& keybind : it.second) {
-            bool is_down = m_key_map[keybind.button];
+
+            bool is_down = ImGui::IsKeyDown(keybind.button);
             for (auto i = 0; i < keybind.modifier_count; i++) {
-                is_down &= m_key_map[keybind.modifiers[i]];
+                is_down &= ImGui::IsKeyDown(keybind.modifiers[i]);
             }
 
             bool is_in_context = false;
@@ -150,8 +143,8 @@ void Keybinds::reset_context()
 
 void Keybinds::add(
     const std::string& action,
-    int button,
-    const std::vector<int>& modifiers /*= {}*/)
+    ImGuiKey button,
+    const std::vector<ImGuiKey>& modifiers /*= {}*/)
 {
     m_mapping[action].emplace_back(button, modifiers);
 }
@@ -164,8 +157,8 @@ void Keybinds::add(const std::string& action, const Keybind& keybind)
 
 bool Keybinds::has(
     const std::string& action,
-    int button,
-    const std::vector<int>& modifiers /*= {}*/) const
+    ImGuiKey button,
+    const std::vector<ImGuiKey>& modifiers /*= {}*/) const
 {
     const auto& map_it = m_mapping.find(action);
     if (map_it == m_mapping.end()) return false;
@@ -218,22 +211,10 @@ bool Keybinds::is_pressed(const std::string& action) const
     return is_action_in_state(action, KeyState::PRESSED);
 }
 
-bool Keybinds::is_pressed(int key_code) const
-{
-    if (key_code < 0 || key_code >= keymap_size) return false;
-    return !m_key_map_last[key_code] && m_key_map[key_code];
-}
-
 bool Keybinds::is_down(const std::string& action) const
 {
     return is_action_in_state(action, KeyState::DOWN) ||
            is_action_in_state(action, KeyState::PRESSED);
-}
-
-bool Keybinds::is_down(int key_code) const
-{
-    if (key_code < 0 || key_code >= keymap_size) return false;
-    return m_key_map[key_code];
 }
 
 
@@ -243,16 +224,9 @@ bool Keybinds::is_released(const std::string& action) const
 }
 
 
-bool Keybinds::is_released(int key_code) const
-{
-    if (key_code < 0 || key_code >= keymap_size) return false;
-    return m_key_map_last[key_code] && !m_key_map[key_code];
-}
-
-
-Keybinds::Keybind::Keybind(int btn, const std::vector<int>& modifier_keys)
+Keybinds::Keybind::Keybind(ImGuiKey btn, const std::vector<ImGuiKey>& modifier_keys)
     : button(btn)
-    , modifier_count(std::min(6, int(modifier_keys.size())))
+    , modifier_count((int)std::min(modifiers.size(), modifier_keys.size()))
 {
     for (auto i = 0; i < modifier_count; i++) {
         modifiers[i] = modifier_keys[i];
@@ -305,12 +279,12 @@ bool Keybinds::load(std::istream& in, bool append)
             if (!keybind.contains("button")) continue;
             if (!keybind.contains("modifiers")) continue;
 
-            const auto button = keybind["button"].get<int>();
+            const ImGuiKey button = (ImGuiKey)keybind["button"].get<int>();
 
 
-            std::vector<int> mods;
+            std::vector<ImGuiKey> mods;
             for (auto mod : keybind["modifiers"]) {
-                mods.push_back(mod.get<int>());
+                mods.push_back((ImGuiKey)mod.get<int>());
             }
 
             add(action.key(), button, mods);
@@ -361,50 +335,9 @@ std::string Keybinds::to_string(const Keybind& keybind)
     return result;
 }
 
-std::string Keybinds::to_string(int key)
+std::string Keybinds::to_string(ImGuiKey key)
 {
-    if (key < 0) return "None";
-
-    if (key > GLFW_KEY_SPACE && key <= GLFW_KEY_GRAVE_ACCENT) {
-        return std::string(1, char(key));
-    }
-
-    if (key >= GLFW_KEY_F1 && key <= GLFW_KEY_F25) {
-        return "F" + std::string(1, char(key - GLFW_KEY_F1));
-    }
-
-    if (key >= GLFW_MOUSE_BUTTON_4 && key <= GLFW_MOUSE_BUTTON_8) {
-        return "Mouse Button " + std::string(1, char(key - GLFW_MOUSE_BUTTON_4 + 4));
-    }
-
-    switch (key) {
-    case GLFW_KEY_LEFT_ALT: return "Alt";
-    case GLFW_KEY_LEFT_CONTROL: return "Control";
-    case GLFW_KEY_LEFT_SHIFT: return "Shift";
-    case GLFW_KEY_LEFT_SUPER: return "Super";
-    case GLFW_KEY_RIGHT_ALT: return "Right Alt";
-    case GLFW_KEY_RIGHT_CONTROL: return "Right Control";
-    case GLFW_KEY_RIGHT_SHIFT: return "Right Shift";
-    case GLFW_KEY_RIGHT_SUPER: return "Right Super";
-    case GLFW_KEY_SPACE: return "Space";
-    case GLFW_KEY_BACKSPACE: return "Backspace";
-    case GLFW_KEY_INSERT: return "Insert";
-    case GLFW_KEY_DELETE: return "Delete";
-    case GLFW_KEY_RIGHT: return "Right";
-    case GLFW_KEY_LEFT: return "Left";
-    case GLFW_KEY_UP: return "Up";
-    case GLFW_KEY_DOWN: return "Down";
-    case GLFW_KEY_PAGE_UP: return "Page Up";
-    case GLFW_KEY_PAGE_DOWN: return "Page Down";
-    case GLFW_KEY_HOME: return "Home";
-    case GLFW_KEY_END: return "End";
-    case GLFW_MOUSE_BUTTON_LEFT: return "Left Mouse Button";
-    case GLFW_MOUSE_BUTTON_MIDDLE: return "Middle Mouse Button";
-    case GLFW_MOUSE_BUTTON_RIGHT: return "Right Mouse Button";
-    }
-
-
-    return std::to_string(key);
+    return ImGui::GetKeyName(key);
 }
 
 std::string Keybinds::to_string(const std::string& action, int limit /*= 1*/) const
@@ -421,23 +354,6 @@ std::string Keybinds::to_string(const std::string& action, int limit /*= 1*/) co
     }
 
     return result;
-}
-
-void Keybinds::set_key_state(int key, int action)
-{
-    if (key < 0 || key >= keymap_size) return;
-    if (action == GLFW_REPEAT) return;
-    if (key == GLFW_KEY_UNKNOWN) return;
-
-    bool is_down = (action == GLFW_PRESS);
-    m_key_map[key] = is_down;
-}
-
-void Keybinds::begin_update()
-{
-    for (auto i = 0; i < Keybinds::keymap_size; i++) {
-        m_key_map_last[i] = m_key_map[i];
-    }
 }
 
 } // namespace ui

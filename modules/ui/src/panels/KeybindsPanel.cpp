@@ -188,17 +188,17 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
             if (adding) {
                 ImGui::Separator();
 
-                Keybinds::Keybind tmp_keybind(-1, {});
+                Keybinds::Keybind tmp_keybind(ImGuiKey_None, {});
 
-                for (auto i = 0; i < Keybinds::keymap_size; i++) {
+                for (int i = ImGuiKey_None; i < ImGuiKey_COUNT; ++i) {
                     if (safe_cast<size_t>(tmp_keybind.modifier_count) ==
                         tmp_keybind.modifiers.max_size())
                         break;
+                    
+                    if (i == ImGuiKey_Escape || i == ImGuiKey_Enter) continue;
 
-                    if (i == GLFW_KEY_ESCAPE || i == GLFW_KEY_ENTER) continue;
-
-                    if (ImGui::IsKeyDown(i)) {
-                        tmp_keybind.modifiers[tmp_keybind.modifier_count++] = i;
+                    if (ImGui::IsKeyDown((ImGuiKey)i)) {
+                        tmp_keybind.modifiers[tmp_keybind.modifier_count++] = (ImGuiKey)i;
                     }
                 }
 
@@ -215,11 +215,11 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
                     ImVec4(ImColor(ImGui::Spectrum::GREEN500).Value),
                     "Press Enter to Save");
 
-                if (ImGui::IsKeyReleased(GLFW_KEY_ESCAPE)) {
+                if (ImGui::IsKeyReleased(ImGuiKey_Escape)) {
                     adding = false;
                 }
 
-                if (ImGui::IsKeyReleased(GLFW_KEY_ENTER)) {
+                if (ImGui::IsKeyReleased(ImGuiKey_Enter)) {
                     adding = false;
                     k.add(sel_action, tmp_keybind);
                 }

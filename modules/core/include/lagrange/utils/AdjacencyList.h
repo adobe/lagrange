@@ -18,6 +18,11 @@
 
 namespace lagrange {
 
+///
+/// @ingroup    group-utils
+///
+/// @{
+
 /**
  * Adjacency list.
  *
@@ -87,5 +92,7 @@ private:
     ValueArray m_data;
     IndexArray m_indices;
 };
+
+/// @}
 
 } // namespace lagrange

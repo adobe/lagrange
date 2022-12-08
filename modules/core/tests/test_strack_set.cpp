@@ -11,12 +11,12 @@
  */
 #include <lagrange/testing/common.h>
 
-#include <lagrange/utils/SmallSet.h>
+#include <lagrange/utils/StackSet.h>
 
-TEST_CASE("SmallSet", "[utils]")
+TEST_CASE("StackSet", "[utils]")
 {
     // Create initial set
-    lagrange::SmallSet<int, 5> set = {1, 2, 4, 4, 0};
+    lagrange::StackSet<int, 5> set = {1, 2, 4, 4, 0};
     REQUIRE(set.contains(0));
     REQUIRE(set.contains(1));
     REQUIRE(set.contains(2));

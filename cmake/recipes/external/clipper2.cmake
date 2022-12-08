@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     clipper2
     GIT_REPOSITORY https://github.com/AngusJohnson/Clipper2.git
-    GIT_TAG c222df1f824c45b3d1f85d8708f760f1bce96508
+    GIT_TAG Clipper2_1.0.6
     SOURCE_SUBDIR CPP
 )
 
@@ -30,17 +30,9 @@ FetchContent_MakeAvailable(clipper2)
 
 add_library(Clipper2::Clipper2 ALIAS Clipper2)
 
-# Copy headers into a Clipper2Lib subfolder
-file(GLOB Clipper2_INCLUDE_FILES "${Clipper2_SOURCE_DIR}/Clipper2Lib/*.h")
-file(MAKE_DIRECTORY "${Clipper2_BINARY_DIR}/include/Clipper2Lib")
-foreach(filepath IN ITEMS ${Clipper2_INCLUDE_FILES})
-    get_filename_component(filename ${filepath} NAME)
-    configure_file(${filepath} "${Clipper2_BINARY_DIR}/include/Clipper2Lib/${filename}" COPYONLY)
-endforeach()
-
 include(GNUInstallDirs)
 target_include_directories(Clipper2 PUBLIC
-    $<BUILD_INTERFACE:${Clipper2_BINARY_DIR}/include>
+    $<BUILD_INTERFACE:${Clipper2_SOURCE_DIR}/Clipper2Lib/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 

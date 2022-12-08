@@ -17,6 +17,7 @@
 #include <string>
 #include <vector>
 
+#include <imgui.h>
 #include <lagrange/ui/types/GLContext.h>
 
 namespace lagrange {
@@ -32,11 +33,10 @@ namespace ui {
 class Keybinds
 {
 public:
-    Keybinds();
-
     enum class KeyState { NONE, PRESSED, DOWN, RELEASED };
-    static const int keymap_size = GLFW_KEY_LAST;
 
+    Keybinds() {}
+    
     ///
     /// Key/mouse shortcut
     ///
@@ -44,18 +44,18 @@ public:
     ///
     struct Keybind
     {
-        Keybind(int btn, const std::vector<int>& modifier_keys = {});
-        int button = -1;
+        Keybind(ImGuiKey btn, const std::vector<ImGuiKey>& modifier_keys = {});
+        ImGuiKey button = ImGuiKey_None;
         int modifier_count = 0;
         KeyState previous_state = KeyState::NONE;
         KeyState current_state = KeyState::NONE;
-        std::array<int, 6> modifiers = {
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
-            -1,
+        std::array<ImGuiKey, 6> modifiers = {
+            ImGuiKey_None,
+            ImGuiKey_None,
+            ImGuiKey_None,
+            ImGuiKey_None,
+            ImGuiKey_None,
+            ImGuiKey_None,
         };
     };
 
@@ -63,19 +63,11 @@ public:
     /// Internal map type
     using MapType = std::map<std::string, std::vector<Keybind>>;
 
-    /// @brief Start updating key states
+    /// @brief Updating key states
+    /// 
+    /// Updates keybinds state based on key states
     ///
-    /// Call at the beginning of every frame,
-    /// update with set_key_state
-    /// call end_update when done updating key states.
-    ///
-    void begin_update();
-
-    /// @brief Ends updating key states
-    ///
-    /// Must be called after begin_update
-    ///
-    void end_update();
+    void update();
 
     /// @brief Changes current context
     /// @param context context name
@@ -95,7 +87,8 @@ public:
     /// @param action string identifier
     /// @param button which button
     /// @param modifiers modifier buttons
-    void add(const std::string& action, int button, const std::vector<int>& modifiers = {});
+    void
+    add(const std::string& action, ImGuiKey button, const std::vector<ImGuiKey>& modifiers = {});
 
 
     /// @brief Checks if an exact keybinding exists for given action
@@ -103,7 +96,11 @@ public:
     /// @param action string identifier
     /// @param button which button
     /// @param modifiers modifier buttons
-    bool has(const std::string& action, int button, const std::vector<int>& modifiers = {}) const;
+    bool has(
+        const std::string& action,
+        ImGuiKey button,
+        const std::vector<ImGuiKey>& modifiers = {})
+        const;
 
 
     /// @brief Adds a key binding for given action
@@ -144,9 +141,9 @@ public:
     bool is_pressed(const std::string& action) const;
 
     /// @brief Returns true if key was just pressed
-    /// @param key_code GLFW key code
+    /// @param key_code ImGui key code
     /// @return true if pressed
-    bool is_pressed(int key_code) const;
+    inline bool is_pressed(ImGuiKey key_code) const { return ImGui::IsKeyPressed(key_code); }
 
     /// @brief Returns true if action is held down
     /// @param action string identifier
@@ -154,9 +151,9 @@ public:
     bool is_down(const std::string& action) const;
 
     /// @brief Returns true if key is held down
-    /// @param key_code GLFW key code
+    /// @param key_code ImGui key code
     /// @return true if down or pressed
-    bool is_down(int key_code) const;
+    inline bool is_down(ImGuiKey key_code) const { return ImGui::IsKeyDown(key_code); }
 
     /// @brief Returns true if action was just released
     /// @param action string identifier
@@ -164,9 +161,9 @@ public:
     bool is_released(const std::string& action) const;
 
     /// @brief Returns true if key was just released
-    /// @param key_code GLFW key code
+    /// @param key_code ImGui key code
     /// @return true if pressed
-    bool is_released(int key_code) const;
+    inline bool is_released(ImGuiKey key_code) const { return ImGui::IsKeyReleased(key_code); }
 
     /// @brief Saves to output stream using JSON
     /// @param out any std output stream
@@ -194,20 +191,15 @@ public:
     /// Converts keybind to string
     static std::string to_string(const Keybind& keybind);
 
-    /// Converts GLFW key to string
-    static std::string to_string(int key);
+    /// Converts ImGui key to string
+    static std::string to_string(ImGuiKey key);
 
     /// Creates a string with keybinds for given action, up to a limit
     std::string to_string(const std::string& action, int limit = 1) const;
 
-    /// Updates key map from glfw callback
-    void set_key_state(int key, int action);
-
 private:
     MapType m_mapping;
     bool m_enabled = true;
-    bool m_key_map_last[keymap_size];
-    bool m_key_map[keymap_size];
     std::vector<std::string> m_context_stack;
 
     bool is_action_in_state(const std::string& action, KeyState state) const;

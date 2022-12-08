@@ -30,14 +30,13 @@ namespace lagrange {
 /**
  * Combine multiple meshes into a single mesh.
  *
- * @tparam     Scalar  Mesh scalar type.
- * @tparam     Index   Mesh index type.
- *
  * @param[in]  meshes               The set of input mesh pointers.
- * @param[in]  preserve_attributes  Preserve shared attributes and map them to
- *                                  the output mesh.
+ * @param[in]  preserve_attributes  Preserve shared attributes and map them to the output mesh.
  *
- * @returns The combined mesh.
+ * @tparam     Scalar               Mesh scalar type.
+ * @tparam     Index                Mesh index type.
+ *
+ * @return     The combined mesh.
  */
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> combine_meshes(
@@ -45,11 +44,17 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     bool preserve_attributes = true);
 
 /**
- * Combine multiple meshes into a single mesh, where `meshes` is a span of mesh
- * objects.
+ * Combine multiple meshes into a single mesh.
  *
- * @overload SurfaceMesh<Scalar, Index> combine_meshes(span<const SurfaceMesh<Scalar, Index>*>,
- * bool)
+ * @param[in]  meshes               Meshes to combine.
+ * @param[in]  preserve_attributes  Preserve shared attributes and map them to the output mesh.
+ *
+ * @tparam     Scalar               Mesh scalar type.
+ * @tparam     Index                Mesh index type.
+ *
+ * @return     The combined mesh.
+ *
+ * @overload
  */
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> combine_meshes(
@@ -57,11 +62,19 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     bool preserve_attributes = true);
 
 /**
- * Combine multiple meshes into a single mesh.  This is the most generic
- * version, where `get_mesh(i)` provides the `i`th mesh.
+ * Combine multiple meshes into a single mesh. This is the most generic version, where `get_mesh(i)`
+ * provides the `i`th mesh.
  *
- * @overload SurfaceMesh<Scalar, Index> combine_meshes(span<const SurfaceMesh<Scalar, Index>*>,
- * bool)
+ * @param[in]  num_meshes           Number of meshes to combine.
+ * @param[in]  get_mesh             Retrieve the i-th mesh to combine.
+ * @param[in]  preserve_attributes  Preserve shared attributes and map them to the output mesh.
+ *
+ * @tparam     Scalar               Mesh scalar type.
+ * @tparam     Index                Mesh index type.
+ *
+ * @return     The combined mesh.
+ *
+ * @overload
  */
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> combine_meshes(

@@ -45,7 +45,6 @@ int sign(T val)
     return (T(0) < val) - (val < T(0));
 }
 
-
 /// Simple evaluation of Gaussian function
 template <typename Scalar>
 Scalar gaussian(Scalar x, Scalar sigma, Scalar center = 0)
@@ -54,6 +53,5 @@ Scalar gaussian(Scalar x, Scalar sigma, Scalar center = 0)
     Scalar exponent = x2 / (2 * sigma * sigma);
     return std::exp(-exponent);
 }
-
 
 } // namespace lagrange

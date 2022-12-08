@@ -23,6 +23,14 @@
 namespace lagrange {
 
 ///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
+
+///
 /// Option struct for computing per-vertex mesh normals.
 ///
 struct VertexNormalOptions

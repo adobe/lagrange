@@ -9,18 +9,24 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET imgui::fonts)
-    return()
+
+# The fonts repo does not add any target by default, but it does add this function
+if(NOT COMMAND fonts_add_font)
+
+    message(STATUS "Third-party (external): creating target 'imgui::fonts'")
+
+    include(FetchContent)
+    FetchContent_Declare(
+        imgui_fonts
+        GIT_REPOSITORY https://github.com/HasKha/imgui-fonts.git
+        GIT_TAG 24e4eca2d0e51d5214780391a94663a08f884762
+    )
+    FetchContent_MakeAvailable(imgui_fonts)
+
 endif()
 
-message(STATUS "Third-party (external): creating target 'imgui::fonts'")
+fonts_add_font(fontawesome6)
+fonts_add_font(source_sans_pro_regular)
 
-include(FetchContent)
-FetchContent_Declare(
-    imgui_fonts
-    GIT_REPOSITORY https://github.com/HasKha/imgui-fonts.git
-    GIT_TAG 4b785f4871b651d1d35be6286726d74c5804f04e
-)
-FetchContent_MakeAvailable(imgui_fonts)
-
-set_target_properties(fonts PROPERTIES FOLDER third_party)
+set_target_properties(fonts_fontawesome6 PROPERTIES FOLDER third_party)
+set_target_properties(fonts_source_sans_pro_regular PROPERTIES FOLDER third_party)

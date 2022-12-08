@@ -52,10 +52,10 @@
 
 
 // Imgui and related
-#include <IconsFontAwesome5.h>
+#include <IconsFontAwesome6.h>
 #include <backends/imgui_impl_glfw.h>
 #include <backends/imgui_impl_opengl3.h>
-#include <fonts/fontawesome5.h>
+#include <fonts/fontawesome6.h>
 #include <imgui.h>
 #include <imgui_internal.h> //todo move dock stuff to uiwindow system
 #include <misc/cpp/imgui_stdlib.h>
@@ -74,32 +74,32 @@ namespace lagrange {
 namespace ui {
 
 
-bool Viewer::is_key_down(int key)
+bool Viewer::is_key_down(ImGuiKey key)
 {
     return !ImGui::IsAnyItemActive() && ImGui::IsKeyDown(key);
 }
 
-bool Viewer::is_key_pressed(int key)
+bool Viewer::is_key_pressed(ImGuiKey key)
 {
     return !ImGui::IsAnyItemActive() && ImGui::IsKeyPressed(key);
 }
 
-bool Viewer::is_key_released(int key)
+bool Viewer::is_key_released(ImGuiKey key)
 {
     return !ImGui::IsAnyItemActive() && ImGui::IsKeyReleased(key);
 }
 
-bool Viewer::is_mouse_down(int key)
+bool Viewer::is_mouse_down(ImGuiKey key)
 {
     return !ImGui::IsAnyItemActive() && ImGui::IsMouseDown(key);
 }
 
-bool Viewer::is_mouse_clicked(int key)
+bool Viewer::is_mouse_clicked(ImGuiKey key)
 {
     return !ImGui::IsAnyItemActive() && ImGui::IsMouseClicked(key);
 }
 
-bool Viewer::is_mouse_released(int key)
+bool Viewer::is_mouse_released(ImGuiKey key)
 {
     return !ImGui::IsAnyItemActive() && ImGui::IsMouseReleased(key);
 }
@@ -475,13 +475,12 @@ void Viewer::render_one_frame(const std::function<bool(Registry&)>& main_loop)
     }
 
     {
+        start_imgui_frame();
+
         /*
             Initialization systems
         */
         m_systems.run(Systems::Stage::Init, registry());
-
-
-        start_imgui_frame();
 
         if (m_show_topbar_menu) draw_menu();
         // Dock space
@@ -829,16 +828,7 @@ bool Viewer::init_glfw(const WindowOptions& options)
         input.mouse.position = new_pos;
     });
 
-    glfwSetKeyCallback(
-        m_window,
-        [](GLFWwindow* window, int key, int /*scancode*/, int action, int /*mods*/) {
-            static_cast<Viewer*>(glfwGetWindowUserPointer(window))->m_key_queue.push({key, action});
-        });
-
-    glfwSetMouseButtonCallback(m_window, [](GLFWwindow* window, int button, int action, int) {
-        static_cast<Viewer*>(glfwGetWindowUserPointer(window))
-            ->m_mouse_key_queue.push({button, action});
-    });
+    // We do not call glfwSetkeyCallback or glfwSetMouseButtonCallback, we just read off ImGui
 
     glfwSetScrollCallback(m_window, [](GLFWwindow* window, double x, double y) {
         auto& input = static_cast<Viewer*>(glfwGetWindowUserPointer(window))->get_input();
@@ -893,8 +883,8 @@ bool Viewer::init_imgui_fonts()
     icons_config.PixelSnapH = true;
 
     auto font_awesome = io.Fonts->AddFontFromMemoryCompressedTTF(
-        fontawesome5_compressed_data,
-        fontawesome5_compressed_size,
+        fontawesome6_compressed_data,
+        fontawesome6_compressed_size,
         base_size,
         &icons_config,
         icons_ranges);
@@ -965,25 +955,6 @@ void Viewer::process_input()
     glfwPollEvents();
 
     auto& keybinds = get_keybinds();
-    keybinds.begin_update();
-
-    /*
-        Process one keyboard event at a time
-    */
-    if (!m_key_queue.empty()) {
-        auto event = m_key_queue.front();
-        keybinds.set_key_state(event.first, event.second);
-        m_key_queue.pop();
-    }
-
-    /*
-        Process one mouse key event at a time
-    */
-    if (!m_mouse_key_queue.empty()) {
-        auto event = m_mouse_key_queue.front();
-        keybinds.set_key_state(event.first, event.second);
-        m_mouse_key_queue.pop();
-    }
 
     // If any viewport hovered, set context to "viewport"
     struct AnyViewportHovered
@@ -1004,7 +975,7 @@ void Viewer::process_input()
     }
     vh.previous = vh.current;
 
-    keybinds.end_update();
+    keybinds.update();
 }
 
 void Viewer::update_time()
@@ -1102,7 +1073,7 @@ void Viewer::draw_menu()
             }
         }
 #else
-        ImGui::MenuItem(ICON_FA_WINDOW_CLOSE " Load Scene", nullptr, false, false);
+        ImGui::MenuItem(ICON_FA_FOLDER_OPEN " Load Scene", nullptr, false, false);
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
             ImGui::SetTooltip("Load Scene is only available when Lagrange is compiled with\n"
                               "Assimp support (CMake option: LAGRANGE_WITH_ASSIMP=ON)");
@@ -1124,7 +1095,7 @@ void Viewer::draw_menu()
         // TODO: Add export capabilities once the UI can do useful stuff (mesh cleanup, etc).
 
         ImGui::Separator();
-        if (ImGui::MenuItem(ICON_FA_WINDOW_CLOSE " Quit")) {
+        if (ImGui::MenuItem(ICON_FA_XMARK " Quit")) {
             glfwSetWindowShouldClose(m_window, GL_TRUE);
         }
 
@@ -1238,7 +1209,7 @@ void Viewer::draw_menu()
     ImGui::Text("(%.0f fps)", ImGui::GetIO().Framerate);
     if ((m_initial_window_options.fullscreen || m_initial_window_options.window_fullscreen)) {
         ImGui::PushID("x");
-        if (ImGui::Button(ICON_FA_TIMES)) {
+        if (ImGui::Button(ICON_FA_XMARK)) {
             glfwSetWindowShouldClose(m_window, GL_TRUE);
         }
         ImGui::PopID();

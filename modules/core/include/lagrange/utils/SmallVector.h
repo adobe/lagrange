@@ -14,6 +14,8 @@
 
 namespace lagrange {
 
+/// @cond LA_INTERNAL_DOCS
+
 ///
 /// Allocator that uses the stack upto a maximum size, and the heap beyond that.
 ///
@@ -98,14 +100,23 @@ struct SmallBufferAllocator
     }
 };
 
+/// @endcond
+
 ///
-/// Hybrid vector that uses the stack upto a maximum size, and the heap beyond that.
+/// @ingroup    group-utils
+///
+/// @{
+
+///
+/// Hybrid vector that uses the stack upto a maximum size, and the heap beyond that. This class is
+/// derived from `std::vector<>`, so any public method available for a `std::vector<>` can be used
+/// here.
 ///
 /// @tparam     T     Value type.
 /// @tparam     N     Maximum size.
 ///
-/// @note From https://github.com/KonanM/small_vector, renamed and formatted to be consistent with
-///   Lagrange conventions.
+/// @note       From https://github.com/KonanM/small_vector, renamed and formatted to be consistent
+///             with Lagrange conventions.
 ///
 template <typename T, std::size_t N = 8>
 class SmallVector : public std::vector<T, SmallBufferAllocator<T, N>>
@@ -158,5 +169,7 @@ public:
         swap(static_cast<vectorT&>(a), static_cast<vectorT&>(b));
     }
 };
+
+/// @}
 
 } // namespace lagrange
