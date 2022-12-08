@@ -19,6 +19,14 @@
 
 namespace lagrange {
 
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
+
 /**
  * Compute vertex-vertex adjacency information.
  *
@@ -31,5 +39,7 @@ namespace lagrange {
  */
 template <typename Scalar, typename Index>
 AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange

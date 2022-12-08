@@ -17,6 +17,11 @@
 
 namespace lagrange {
 
+///
+/// @ingroup    group-utils
+///
+/// @{
+
 /**
  * Disjoint sets computation.
  *
@@ -86,6 +91,8 @@ public:
      * Extract disjoint sets.
      *
      * @return A vector of disjoint sets.
+     *
+     * @deprecated This function is deprecated and may be removed in a future version.
      */
     [[deprecated]]
     std::vector<std::vector<IndexType>> extract_disjoint_sets();
@@ -113,5 +120,7 @@ public:
 private:
     std::vector<IndexType> m_parent;
 };
+
+/// @}
 
 } // namespace lagrange

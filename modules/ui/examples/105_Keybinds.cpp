@@ -24,13 +24,13 @@ int main(int argc, char** argv)
     auto& keybinds = ui::get_keybinds(viewer);
 
     // Register single key action that can be later queried
-    keybinds.add("my_global_action", {GLFW_KEY_F});
+    keybinds.add("my_global_action", {ImGuiKey_F});
 
     // Register multi-key action that can be later queried
-    keybinds.add("my_global_action_with_modifier_key", {GLFW_KEY_F, {GLFW_KEY_LEFT_CONTROL}});
+    keybinds.add("my_global_action_with_modifier_key", {ImGuiKey_F, {ImGuiKey_LeftCtrl}});
 
     // Register action specific to the viewport (active only when viewport is hovered)
-    keybinds.add("viewport.my_viewport_action", {GLFW_KEY_F});
+    keybinds.add("viewport.my_viewport_action", {ImGuiKey_F});
 
     // Keybinds can be serialized/deserialized:
     {
@@ -62,8 +62,8 @@ int main(int argc, char** argv)
         }
 
         // Query keys directly
-        if (keybinds.is_pressed(GLFW_KEY_UP)) {
-            lagrange::logger().info("GLFW_KEY_UP was pressed");
+        if (keybinds.is_pressed(ImGuiKey_UpArrow)) {
+            lagrange::logger().info("ImGuiKey_UpArrow was pressed");
         }
 
         return true;

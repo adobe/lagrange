@@ -34,9 +34,11 @@ include(FetchContent)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/adobe/imgui.git
-    GIT_TAG 86e67ae3290b663ea416e224e84fc1af46d5eb43 # docking_v1.88
+    GIT_TAG 27dd81adfa98f203e0bbe9ac6682265fee1644c2 # docking_v1.89.1
 )
 FetchContent_MakeAvailable(imgui)
+
+target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_KEYIO)
 
 set_target_properties(imgui PROPERTIES FOLDER third_party)
 

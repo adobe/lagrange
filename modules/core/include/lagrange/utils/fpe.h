@@ -13,10 +13,19 @@
 
 namespace lagrange {
 
-/// Enable floating-point exceptions (useful for debugging).
+/// @addtogroup group-utils-misc
+/// @{
+
+///
+/// Enable floating-point exceptions (useful for debugging)..
+///
 void enable_fpe();
 
-/// Disable previously-enabled fpe.
+///
+/// Disable previously-enabled fpe..
+///
 void disable_fpe();
+
+/// @}
 
 } // namespace lagrange

@@ -18,43 +18,43 @@
 namespace lagrange {
 namespace ui {
 
-using Scheme = std::unordered_map<std::string, std::pair<int, std::vector<int>>>;
+using Scheme = std::unordered_map<std::string, std::pair<ImGuiKey, std::vector<ImGuiKey>>>;
 
 
 const static std::unordered_map<DefaultCameraScheme, Scheme> default_schemes = {
     {DefaultCameraScheme::DIMENSION,
-     {{"viewport.camera_rotate", {GLFW_MOUSE_BUTTON_2, {}}},
-      {"viewport.camera_pan", {GLFW_MOUSE_BUTTON_3, {}}},
-      {"viewport.camera_pan", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_SPACE}}},
-      {"viewport.camera_dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_SPACE, GLFW_KEY_LEFT_SHIFT}}},
-      {"viewport.camera_center_on_cursor", {GLFW_KEY_X, {}}},
-      {"camera_center_on_selection", {GLFW_KEY_Z, {}}}}},
+     {{"viewport.camera_rotate", {ImGuiKey_MouseRight, {}}},
+      {"viewport.camera_pan", {ImGuiKey_MouseMiddle, {}}},
+      {"viewport.camera_pan", {ImGuiKey_MouseRight, {ImGuiKey_Space}}},
+      {"viewport.camera_dolly", {ImGuiKey_MouseRight, {ImGuiKey_Space, ImGuiKey_LeftShift}}},
+      {"viewport.camera_center_on_cursor", {ImGuiKey_X, {}}},
+      {"camera_center_on_selection", {ImGuiKey_Z, {}}}}},
 
     {DefaultCameraScheme::MAYA,
-     {{"viewport.camera_rotate", {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_ALT}}},
-      {"viewport.camera_pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
-      {"viewport.camera_dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_LEFT_ALT}}},
-      {"viewport.camera_center_on_cursor", {GLFW_KEY_X, {GLFW_KEY_LEFT_ALT}}},
-      {"camera_center_on_selection", {GLFW_KEY_Z, {GLFW_KEY_LEFT_ALT}}},
+     {{"viewport.camera_rotate", {ImGuiKey_MouseLeft, {ImGuiKey_LeftAlt}}},
+      {"viewport.camera_pan", {ImGuiKey_MouseMiddle, {ImGuiKey_LeftAlt}}},
+      {"viewport.camera_dolly", {ImGuiKey_MouseRight, {ImGuiKey_LeftAlt}}},
+      {"viewport.camera_center_on_cursor", {ImGuiKey_X, {ImGuiKey_LeftAlt}}},
+      {"camera_center_on_selection", {ImGuiKey_Z, {ImGuiKey_LeftAlt}}},
       {"viewport.selection_select_erase",
-       {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_ALT}}}}},
+       {ImGuiKey_MouseLeft, {ImGuiKey_LeftCtrl, ImGuiKey_LeftAlt}}}}},
 
 
     {DefaultCameraScheme::BLENDER,
-     {{"viewport.camera_rotate", {GLFW_MOUSE_BUTTON_3, {}}},
-      {"viewport.camera_pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_SHIFT}}},
-      {"viewport.camera_dolly", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_CONTROL}}},
-      {"viewport.camera_center_on_cursor", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
-      {"camera_center_on_selection", {GLFW_KEY_Z, {}}}}},
+     {{"viewport.camera_rotate", {ImGuiKey_MouseMiddle, {}}},
+      {"viewport.camera_pan", {ImGuiKey_MouseMiddle, {ImGuiKey_LeftShift}}},
+      {"viewport.camera_dolly", {ImGuiKey_MouseMiddle, {ImGuiKey_LeftCtrl}}},
+      {"viewport.camera_center_on_cursor", {ImGuiKey_MouseMiddle, {ImGuiKey_LeftAlt}}},
+      {"camera_center_on_selection", {ImGuiKey_Z, {}}}}},
 
     {DefaultCameraScheme::SUBSTANCE,
-     {{"viewport.camera_rotate", {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_ALT}}},
-      {"viewport.camera_pan", {GLFW_MOUSE_BUTTON_3, {GLFW_KEY_LEFT_ALT}}},
-      {"viewport.camera_dolly", {GLFW_MOUSE_BUTTON_2, {GLFW_KEY_LEFT_ALT}}},
-      {"viewport.camera_center_on_cursor", {GLFW_KEY_F, {GLFW_KEY_LEFT_ALT}}},
-      {"camera_center_on_selection", {GLFW_KEY_F, {}}},
+     {{"viewport.camera_rotate", {ImGuiKey_MouseLeft, {ImGuiKey_LeftAlt}}},
+      {"viewport.camera_pan", {ImGuiKey_MouseMiddle, {ImGuiKey_LeftAlt}}},
+      {"viewport.camera_dolly", {ImGuiKey_MouseRight, {ImGuiKey_LeftAlt}}},
+      {"viewport.camera_center_on_cursor", {ImGuiKey_F, {ImGuiKey_LeftAlt}}},
+      {"camera_center_on_selection", {ImGuiKey_F, {}}},
       {"viewport.selection_select_erase",
-       {GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_ALT}}}}}};
+       {ImGuiKey_MouseLeft, {ImGuiKey_LeftCtrl, ImGuiKey_LeftAlt}}}}}};
 
 void set_camera_scheme(Keybinds& keybinds, DefaultCameraScheme camera_scheme)
 {
@@ -74,29 +74,29 @@ void set_camera_scheme(Keybinds& keybinds, DefaultCameraScheme camera_scheme)
 Keybinds initialize_default_keybinds()
 {
     Keybinds k;
-    k.add("manipulation_mode_select", GLFW_KEY_Q);
-    k.add("manipulation_mode_translate", GLFW_KEY_W);
-    k.add("manipulation_mode_rotate", GLFW_KEY_E);
-    k.add("manipulation_mode_scale", GLFW_KEY_R);
+    k.add("manipulation_mode_select", ImGuiKey_Q);
+    k.add("manipulation_mode_translate", ImGuiKey_W);
+    k.add("manipulation_mode_rotate", ImGuiKey_E);
+    k.add("manipulation_mode_scale", ImGuiKey_R);
 
-    k.add("selection_mode_object", GLFW_KEY_Q, {GLFW_KEY_LEFT_ALT});
-    k.add("selection_mode_face", GLFW_KEY_W, {GLFW_KEY_LEFT_ALT});
-    k.add("selection_mode_edge", GLFW_KEY_E, {GLFW_KEY_LEFT_ALT});
-    k.add("selection_mode_vertex", GLFW_KEY_R, {GLFW_KEY_LEFT_ALT});
+    k.add("selection_mode_object", ImGuiKey_Q, {ImGuiKey_LeftAlt});
+    k.add("selection_mode_face", ImGuiKey_W, {ImGuiKey_LeftAlt});
+    k.add("selection_mode_edge", ImGuiKey_E, {ImGuiKey_LeftAlt});
+    k.add("selection_mode_vertex", ImGuiKey_R, {ImGuiKey_LeftAlt});
 
     k.register_action("selection_mode_select_backfaces");
     k.register_action("selection_mode_paint_selection");
 
-    k.add("viewport.selection_select_set", GLFW_MOUSE_BUTTON_1);
-    k.add("viewport.selection_select_add", GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_CONTROL});
-    k.add("viewport.selection_select_erase", GLFW_MOUSE_BUTTON_1, {GLFW_KEY_LEFT_ALT});
+    k.add("viewport.selection_select_set", ImGuiKey_MouseLeft);
+    k.add("viewport.selection_select_add", ImGuiKey_MouseLeft, {ImGuiKey_LeftCtrl});
+    k.add("viewport.selection_select_erase", ImGuiKey_MouseLeft, {ImGuiKey_LeftAlt});
 
-    k.add("scene_open", GLFW_KEY_O, {GLFW_KEY_LEFT_CONTROL});
-    k.add("scene_add", GLFW_KEY_O, {GLFW_KEY_LEFT_CONTROL, GLFW_KEY_LEFT_SHIFT});
+    k.add("scene_open", ImGuiKey_O, {ImGuiKey_LeftCtrl});
+    k.add("scene_add", ImGuiKey_O, {ImGuiKey_LeftCtrl, ImGuiKey_LeftShift});
 
-    k.add("camera_zoom_to_fit", GLFW_KEY_Z, {GLFW_KEY_LEFT_SHIFT});
+    k.add("camera_zoom_to_fit", ImGuiKey_Z, {ImGuiKey_LeftShift});
 
-    k.add("reload", GLFW_KEY_R, {GLFW_KEY_LEFT_SHIFT});
+    k.add("reload", ImGuiKey_R, {ImGuiKey_LeftShift});
 
     set_camera_scheme(k, DefaultCameraScheme::DIMENSION);
 
@@ -115,6 +115,5 @@ bool has_camera_scheme(const Keybinds& keybinds, DefaultCameraScheme camera_sche
 
     return true;
 }
-
 } // namespace ui
 } // namespace lagrange

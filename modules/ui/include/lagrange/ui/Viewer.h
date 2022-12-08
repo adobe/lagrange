@@ -49,12 +49,12 @@ public:
     /*
         IO functions
     */
-    bool is_key_down(int key);
-    bool is_key_pressed(int key);
-    bool is_key_released(int key);
-    bool is_mouse_down(int key);
-    bool is_mouse_clicked(int key);
-    bool is_mouse_released(int key);
+    bool is_key_down(ImGuiKey key);
+    bool is_key_pressed(ImGuiKey key);
+    bool is_key_released(ImGuiKey key);
+    bool is_mouse_down(ImGuiKey key);
+    bool is_mouse_clicked(ImGuiKey key);
+    bool is_mouse_released(ImGuiKey key);
 
     /// Returns keyboard and mouse state
     InputState& get_input() { return lagrange::ui::get_input(registry()); }
@@ -271,9 +271,6 @@ private:
 
     // DPI aware scaling
     float m_ui_scaling = 1.0f;
-
-    std::queue<std::pair<int, int>> m_key_queue;
-    std::queue<std::pair<int, int>> m_mouse_key_queue;
 
 
     std::string m_last_shader_error;

@@ -70,7 +70,11 @@ struct TangentBitangentResult
 };
 
 ///
-/// Compute mesh tangent and bitangent vector based on existing
+/// Compute mesh tangent and bitangent vectors orthogonal to the input mesh normals.
+///
+/// @note       The input mesh must have existing indexed normal and UV attributes. The input UV
+///             attribute is used to orient the resulting T/B vectors coherently wrt to the UV
+///             mapping.
 ///
 /// @param[in]  mesh     The input mesh.
 /// @param[in]  options  Optional arguments to control tangent/bitangent generation.

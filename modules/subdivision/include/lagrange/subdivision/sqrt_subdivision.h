@@ -14,9 +14,13 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <igl/adjacency_list.h>
 #include <igl/barycenter.h>
 #include <igl/triangle_triangle_adjacency.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange {
 namespace subdivision {
@@ -35,10 +39,10 @@ namespace subdivision {
 ///
 template <typename DerivedVI, typename DerivedFI, typename DerivedVO, typename DerivedFO>
 void sqrt_subdivision(
-    const Eigen::MatrixBase<DerivedVI> &VI,
-    const Eigen::MatrixBase<DerivedFI> &FI,
-    Eigen::PlainObjectBase<DerivedVO> &VO,
-    Eigen::PlainObjectBase<DerivedFO> &FO)
+    const Eigen::MatrixBase<DerivedVI>& VI,
+    const Eigen::MatrixBase<DerivedFI>& FI,
+    Eigen::PlainObjectBase<DerivedVO>& VO,
+    Eigen::PlainObjectBase<DerivedFO>& FO)
 {
     using Scalar = typename DerivedVI::Scalar;
     using Index = typename DerivedFI::Scalar;
@@ -54,9 +58,9 @@ void sqrt_subdivision(
     VO.resize(VI.rows() + FI.rows(), VI.cols());
     VO.topRows(VI.rows()) = VI;
     VO.bottomRows(BC.rows()) = BC;
-    std::vector<std::vector<Index> > VV;
+    std::vector<std::vector<Index>> VV;
     igl::adjacency_list(FI, VV);
-    for (Index i = 0; i < (Index) VI.rows(); ++i) {
+    for (Index i = 0; i < (Index)VI.rows(); ++i) {
         Scalar n = static_cast<Scalar>(VV[i].size());
         Scalar an = static_cast<Scalar>((4.0 - 2.0 * std::cos(2.0 * M_PI / n)) / 9.0);
         RowVector3s sum_vi = RowVector3s::Zero();
@@ -68,15 +72,15 @@ void sqrt_subdivision(
 
     // Step 3: compute a new set of faces, and flip edges as required
     FO.resize(3 * FI.rows(), FI.cols());
-    for (Index f = 0; f < (Index) FI.rows(); ++f) {
+    for (Index f = 0; f < (Index)FI.rows(); ++f) {
         FO.row(3 * f + 0) << VI.rows() + f, FI(f, 0), FI(f, 1);
         FO.row(3 * f + 1) << VI.rows() + f, FI(f, 1), FI(f, 2);
         FO.row(3 * f + 2) << VI.rows() + f, FI(f, 2), FI(f, 0);
     }
     MatrixXi TT, TTi;
     igl::triangle_triangle_adjacency(FI, TT, TTi);
-    for (Index f = 0; f < (Index) FI.rows(); ++f) {
-        for (Index i = 0; i < (Index) FI.cols(); ++i) {
+    for (Index f = 0; f < (Index)FI.rows(); ++f) {
+        for (Index i = 0; i < (Index)FI.cols(); ++i) {
             if (TT(f, i) != static_cast<Index>(-1) && TT(f, i) > f) {
                 Index g = TT(f, i);
                 Index j = TTi(f, i);
@@ -103,7 +107,7 @@ void sqrt_subdivision(
 /// @return     Subdivided mesh.
 ///
 template <typename MeshType>
-std::unique_ptr<MeshType> sqrt_subdivision(const MeshType &mesh)
+std::unique_ptr<MeshType> sqrt_subdivision(const MeshType& mesh)
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
 

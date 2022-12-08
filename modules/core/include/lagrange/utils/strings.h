@@ -63,7 +63,18 @@ bool starts_with(std::string_view str, std::string_view prefix);
 ///
 bool ends_with(std::string_view str, std::string_view suffix);
 
-// Can be replaced with std::format in C++20
+///
+/// Format args according to the format string fmt, and return the result as a string.
+///
+/// @note       Can be replaced with std::format in C++20
+///
+/// @param[in]  format  An object that represents the format string.
+/// @param      args    Arguments to be formatted.
+///
+/// @tparam     Args    Types of the arguments to be formatted.
+///
+/// @return     A string object holding the formatted result.
+///
 template <typename... Args>
 std::string string_format(const std::string& format, Args&&... args)
 {

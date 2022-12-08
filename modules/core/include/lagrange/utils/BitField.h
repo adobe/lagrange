@@ -19,10 +19,9 @@ namespace lagrange {
 ///
 /// @ingroup    group-utils
 ///
-/// Bit field utility class.
-///
 /// @{
 
+/// Bit field utility class.
 ///
 /// This class describes a bit field over an enum type.
 ///

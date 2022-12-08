@@ -18,7 +18,11 @@ namespace lagrange {
 /// @addtogroup group-utils-misc
 /// @{
 
-/// Type alias compatible with C++20's std::span<>
+///
+/// A bounds-safe view for sequences of objects.
+///
+/// @note       The current implementation is intended to be compatible with C++20's std::span<>.
+///
 template <class T, ::nonstd::span_lite::extent_t Extent = ::nonstd::dynamic_extent>
 using span = ::nonstd::span<T, Extent>;
 

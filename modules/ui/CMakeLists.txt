@@ -56,7 +56,8 @@ target_link_libraries(lagrange_ui
         glfw::glfw
         imgui::imgui
         imguizmo::imguizmo
-        imgui::fonts
+        fonts::fontawesome6
+        fonts::source_sans_pro_regular
         nlohmann_json::nlohmann_json
         EnTT::EnTT
         nanoflann::nanoflann

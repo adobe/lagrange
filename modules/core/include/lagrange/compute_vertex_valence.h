@@ -21,6 +21,14 @@
 
 namespace lagrange {
 
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
+
 /**
  * Option struct for computing vertex valence.
  */
@@ -47,5 +55,7 @@ template <typename Scalar, typename Index>
 AttributeId compute_vertex_valence(
     SurfaceMesh<Scalar, Index>& mesh,
     VertexValenceOptions options = {});
+
+/// @}
 
 } // namespace lagrange
