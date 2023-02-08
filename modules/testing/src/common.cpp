@@ -16,7 +16,7 @@
 
 #include <lagrange/testing/common.h>
 
-#include <lagrange/io/load_mesh.impl.h>
+#include <lagrange/io/legacy/load_mesh.impl.h>
 #include <lagrange/Mesh.h>
 
 #include <lagrange/Logger.h>

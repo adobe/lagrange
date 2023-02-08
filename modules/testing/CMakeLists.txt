@@ -69,6 +69,7 @@ if(LAGRANGE_USE_PCH)
     target_link_libraries(lagrange_testing_pch INTERFACE lagrange_core_pch)
     target_precompile_headers(lagrange_testing_pch INTERFACE
         <lagrange/testing/common.h>
+        <lagrange/testing/check_mesh.h>
     )
 endif()
 

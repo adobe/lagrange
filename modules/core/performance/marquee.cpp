@@ -14,7 +14,6 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/io/load_mesh.h>
-#include <lagrange/io/save_mesh.h>
 #include <lagrange/select_facets_in_frustum.h>
 #include <lagrange/utils/timing.h>
 

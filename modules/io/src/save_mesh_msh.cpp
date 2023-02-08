@@ -15,6 +15,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/foreach_attribute.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
@@ -86,11 +87,13 @@ void populate_elements(mshio::MshSpec& spec, const SurfaceMesh<Scalar, Index>& m
 template <typename Scalar, typename Index>
 void populate_indexed_attribute(
     mshio::MshSpec& /*spec*/,
-    const SurfaceMesh<Scalar, Index>& /*mesh*/,
-    AttributeId /*id*/)
+    const SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId id)
 {
-    // TODO
-    throw Error("Saving indexed attribute in MSH format is not yet supported.");
+    // TODO add support. 
+    // can reference save_gltf. gltf also does not support indexed attributes. 
+    std::string_view name = mesh.get_attribute_name(id);
+    logger().warn("Skipping attribute {}: unsupported non-indexed", name);
 }
 
 template <typename Scalar, typename Index, typename Value>
@@ -210,7 +213,7 @@ void populate_non_indexed_corner_attribute(
         element_node_data.entries.emplace_back();
         auto& entry = element_node_data.entries.back();
         entry.tag = static_cast<size_t>(i + 1);
-        entry.num_nodes_per_element = vertex_per_facet;
+        entry.num_nodes_per_element = int(vertex_per_facet);
         entry.data.reserve(num_channels * vertex_per_facet);
         for (auto j : range(vertex_per_facet)) {
             for (auto k : range(num_channels)) {
@@ -285,7 +288,7 @@ template <typename Scalar, typename Index>
 void save_mesh_msh(
     std::ostream& output_stream,
     const SurfaceMesh<Scalar, Index>& mesh,
-    const MshSaverOptions& options)
+    const SaveOptions& options)
 {
     if constexpr (sizeof(size_t) != 8) {
         logger().error("MSH format requries `size_t` to be 8 bytes!");
@@ -298,22 +301,45 @@ void save_mesh_msh(
         "Only triangle and quad mesh are supported for now.");
 
     mshio::MshSpec spec;
-    spec.mesh_format.file_type = options.binary ? 1 : 0;
+    spec.mesh_format.file_type = options.encoding == FileEncoding::Binary ? 1 : 0;
     populate_nodes(spec, mesh);
     populate_elements(spec, mesh);
 
-    for (auto id : options.attr_ids) {
+    std::vector<AttributeId> ids;
+    if (options.output_attributes == SaveOptions::OutputAttributes::All) {
+        mesh.seq_foreach_attribute_id([&](std::string_view name, AttributeId id) {
+            if (!mesh.attr_name_is_reserved(name)) {
+                ids.push_back(id);
+            }
+        });
+        ids.push_back(mesh.attr_id_vertex_to_positions());
+        ids.push_back(mesh.attr_id_corner_to_vertex());
+    } else {
+        ids = options.selected_attributes;
+    }
+
+    for (auto id : ids) {
         populate_attribute(spec, mesh, id);
     }
 
     mshio::save_msh(output_stream, spec);
 }
 
+template <typename Scalar, typename Index>
+void save_mesh_msh(
+    const fs::path& filename,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options)
+{
+    fs::ofstream fout(filename);
+    save_mesh_msh(fout, mesh, options);
+}
+
 #define LA_X_save_mesh_msh(_, S, I)    \
     template void save_mesh_msh(       \
-        std::ostream& output_stream,   \
+        const fs::path& filename,      \
         const SurfaceMesh<S, I>& mesh, \
-        const MshSaverOptions& options);
+        const SaveOptions& options);
 LA_SURFACE_MESH_X(save_mesh_msh, 0)
 #undef LA_X_save_mesh_msh
 

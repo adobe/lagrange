@@ -11,35 +11,26 @@
  */
 #pragma once
 
-/*
-* This file does not contain function definition because those require other expensive headers
-* and we want to minimize the size of this header, as it's used in almost all tests.
-*
-* If you have any issues with a load_mesh function not being defined for your specific
-* mesh type, you can #include <lagrange/io/load_mesh.impl.h> instead.
-*/
-
-#include <lagrange/io/load_mesh_obj.h>
+#include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
-#include <lagrange/common.h>
+#include <lagrange/MeshTrait.h>
+#include <lagrange/io/types.h>
 
-#include <memory>
-#include <vector>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#include <lagrange/io/legacy/load_mesh.h>
+#endif
 
-namespace lagrange {
-namespace io {
+namespace lagrange::io {
 
-template <typename MeshType>
-std::unique_ptr<MeshType> load_mesh_basic(const fs::path& filename);
+// The input stream version of load_mesh does not exist because it cannot determine the file type.
+// If you want to load a mesh from an input stream, use a specific `load_mesh_type` function.
 
-template <typename MeshType>
-std::vector<std::unique_ptr<MeshType>> load_obj_meshes(const fs::path& filename);
+/**
+ * Load a mesh from a file. The loader will be chosen depending on the file extension.
+ */
+template <
+    typename MeshType,
+    std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
+MeshType load_mesh(const fs::path& filename, const LoadOptions& = {});
 
-template <typename MeshType>
-std::unique_ptr<MeshType> load_obj_mesh(const fs::path& filename);
-
-template <typename MeshType>
-std::unique_ptr<MeshType> load_mesh(const fs::path& filename);
-
-} // namespace io
-} // namespace lagrange
+} // namespace lagrange::io

@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Adobe. All rights reserved.
+ * Copyright 2022 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,23 +9,48 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/io/load_mesh.impl.h>
 
-namespace lagrange {
-namespace io {
+#include <lagrange/SurfaceMesh.h>
+#include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/io/load_mesh.h>
 
-template std::unique_ptr<TriangleMesh3D> load_mesh_basic(const fs::path&);
-template std::unique_ptr<TriangleMesh3Df> load_mesh_basic(const fs::path&);
+#include <lagrange/io/load_mesh_msh.h>
+#include <lagrange/io/load_mesh_obj.h>
+#include <lagrange/io/load_mesh_ply.h>
+#include <lagrange/io/load_mesh_gltf.h>
+#ifdef LAGRANGE_WITH_ASSIMP
+#include <lagrange/io/load_mesh_assimp.h>
+#endif
 
-template std::vector<std::unique_ptr<TriangleMesh3D>> load_obj_meshes(const fs::path&);
-template std::vector<std::unique_ptr<TriangleMesh3Df>> load_obj_meshes(const fs::path&);
+namespace lagrange::io {
 
-template std::unique_ptr<TriangleMesh3D> load_obj_mesh(const fs::path&);
-template std::unique_ptr<TriangleMesh3Df> load_obj_mesh(const fs::path&);
-
-template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
-template std::unique_ptr<TriangleMesh3Df> load_mesh(const fs::path&);
-template std::unique_ptr<TriangleMesh2D> load_mesh(const fs::path&);
-template std::unique_ptr<Mesh<Eigen::MatrixXf, Eigen::MatrixXi>> load_mesh(const fs::path&);
+template <
+    typename MeshType,
+    std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* /* = nullptr*/>
+MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
+{
+    if (filename.extension() == ".obj") {
+        return load_mesh_obj<MeshType>(filename, options);
+    } else if (filename.extension() == ".ply") {
+        return load_mesh_ply<MeshType>(filename, options);
+    } else if (filename.extension() == ".msh") {
+        return load_mesh_msh<MeshType>(filename, options);
+    } else if (filename.extension() == ".gltf" || filename.extension() == ".glb") {
+        return load_mesh_gltf<MeshType>(filename, options);
+    } else {
+#ifdef LAGRANGE_WITH_ASSIMP
+        return load_mesh_assimp<MeshType>(filename, options);
+#else
+        throw std::runtime_error(
+            "Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
+#endif
+    }
 }
-} // namespace lagrange
+
+#define LA_X_load_mesh(_, S, I) \
+    template SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
+        const fs::path& filename,                                     \
+        const LoadOptions& options);
+LA_SURFACE_MESH_X(load_mesh, 0);
+
+} // namespace lagrange::io

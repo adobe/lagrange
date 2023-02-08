@@ -14,15 +14,17 @@
 #include <lagrange/volume/mesh_to_volume.h>
 #include <lagrange/volume/volume_to_mesh.h>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <igl/bounding_box_diagonal.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include <CLI/CLI.hpp>
 
-using MeshType = lagrange::TriangleMesh3D;
+const std::map<std::string, lagrange::volume::MeshToVolumeOptions::Sign>& signing_types()
+{
+    static std::map<std::string, lagrange::volume::MeshToVolumeOptions::Sign> _methods = {
+        {"FloodFill", lagrange::volume::MeshToVolumeOptions::Sign::FloodFill},
+        {"WindingNumber", lagrange::volume::MeshToVolumeOptions::Sign::WindingNumber},
+    };
+    return _methods;
+}
+
 
 int main(int argc, char** argv)
 {
@@ -30,45 +32,38 @@ int main(int argc, char** argv)
     {
         std::string input;
         std::string output = "output.obj";
-        double voxel_size = 0.001;
-        double isovalue = 0.0;
-        double adaptivity = 0.0;
-        bool relative = true;
     } args;
 
+    lagrange::volume::MeshToVolumeOptions m2v_opt;
+    lagrange::volume::VolumeToMeshOptions v2m_opt;
+
     CLI::App app{argv[0]};
+    app.option_defaults()->always_capture_default();
     app.add_option("input", args.input, "Input mesh.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
-    app.add_option("-s,--voxel-size", args.voxel_size, "Voxel size.");
-    app.add_option("-v,--isovalue", args.isovalue, "Isovalue to mesh.");
-    app.add_option("-a,--adaptivity", args.adaptivity, "Mesh adaptivity between [0, 1].");
     app.add_option(
-        "-r,--relative",
-        args.relative,
-        "Whether to use a voxel size relative to the bbox diagonal.");
+        "-s,--voxel-size",
+        m2v_opt.voxel_size,
+        "Voxel size. Negative means relative to bbox diagonal.");
+    app.add_option("-m,--method", m2v_opt.signing_method, "Grid signing method.")
+        ->transform(CLI::Transformer(signing_types(), CLI::ignore_case));
+    app.add_option("-v,--isovalue", v2m_opt.isovalue, "Isovalue to mesh.");
+    app.add_option("-a,--adaptivity", v2m_opt.adaptivity, "Mesh adaptivity between [0, 1].");
     CLI11_PARSE(app, argc, argv)
 
-    lagrange::logger().info("Loading input mesh: {}", args.input);
-    auto mesh = lagrange::io::load_mesh<MeshType>(args.input);
+    spdlog::set_level(spdlog::level::debug);
 
-    if (args.relative) {
-        double diag = igl::bounding_box_diagonal(mesh->get_vertices());
-        lagrange::logger().info(
-            "Using a relative voxel size of {:.3f} x {:.3f} = {:.3f}",
-            args.voxel_size,
-            diag,
-            args.voxel_size * diag);
-        args.voxel_size *= diag;
-    }
+    lagrange::logger().info("Loading input mesh: {}", args.input);
+    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(args.input);
 
     lagrange::logger().info("Mesh to volume conversion");
-    auto grid = lagrange::volume::mesh_to_volume(*mesh, args.voxel_size);
+    auto grid = lagrange::volume::mesh_to_volume(mesh, m2v_opt);
 
     lagrange::logger().info("Volume to mesh conversion");
-    mesh = lagrange::volume::volume_to_mesh<MeshType>(*grid, args.isovalue, args.adaptivity);
+    mesh = lagrange::volume::volume_to_mesh<lagrange::SurfaceMesh32f>(*grid, v2m_opt);
 
     lagrange::logger().info("Saving result: {}", args.output);
-    lagrange::io::save_mesh(args.output, *mesh);
+    lagrange::io::save_mesh(args.output, mesh);
 
     return 0;
 }

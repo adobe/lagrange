@@ -15,14 +15,16 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/utils/range.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/utils/range.h>
 
 #include <mshio/mshio.h>
 
 #include <algorithm>
 
 namespace lagrange::io {
+
+namespace {
 
 /**
  * @private
@@ -69,10 +71,12 @@ void extract_facets(const mshio::MshSpec& spec, SurfaceMesh<Scalar, Index>& mesh
             element_block.num_elements_in_block,
             static_cast<Index>(nodes_per_element),
             [&](Index fid, span<Index> f) {
-                std::copy_n(
-                    element_block.data.begin() + fid * (nodes_per_element + 1) + 1,
-                    nodes_per_element,
-                    f.begin());
+                Index offset = fid * (nodes_per_element + 1) + 1;
+                std::transform(
+                    element_block.data.begin() + offset,
+                    element_block.data.begin() + offset + nodes_per_element,
+                    f.begin(),
+                    [](int vid) { return static_cast<Index>(vid - 1); });
             });
     }
 }
@@ -86,7 +90,8 @@ template <typename Scalar, typename Index>
 void extract_attribute(
     const mshio::Data& data,
     SurfaceMesh<Scalar, Index>& mesh,
-    AttributeElement element_type)
+    AttributeElement element_type,
+    const LoadOptions& options)
 {
     la_runtime_assert(data.header.string_tags.size() > 0);
     la_runtime_assert(data.header.int_tags.size() > 2);
@@ -97,10 +102,13 @@ void extract_attribute(
 
     AttributeUsage usage = AttributeUsage::Scalar;
     if (attr_name == "@normal") {
+        if (!options.load_normals) return;
         usage = AttributeUsage::Normal;
     } else if (attr_name == "@uv") {
+        if (!options.load_uvs) return;
         usage = AttributeUsage::UV;
     } else if (attr_name == "@color") {
+        if (!options.load_vertex_colors) return;
         usage = AttributeUsage::Color;
     } else if (num_fields > 1) {
         usage = AttributeUsage::Vector;
@@ -137,10 +145,13 @@ void extract_attribute(
  * @private
  */
 template <typename Scalar, typename Index>
-void extract_vertex_attributes(const mshio::MshSpec& spec, SurfaceMesh<Scalar, Index>& mesh)
+void extract_vertex_attributes(
+    const mshio::MshSpec& spec,
+    SurfaceMesh<Scalar, Index>& mesh,
+    const LoadOptions& options)
 {
     for (const auto& data : spec.node_data) {
-        extract_attribute(data, mesh, AttributeElement::Vertex);
+        extract_attribute(data, mesh, AttributeElement::Vertex, options);
     }
 }
 
@@ -148,10 +159,13 @@ void extract_vertex_attributes(const mshio::MshSpec& spec, SurfaceMesh<Scalar, I
  * @private
  */
 template <typename Scalar, typename Index>
-void extract_facet_attributes(const mshio::MshSpec& spec, SurfaceMesh<Scalar, Index>& mesh)
+void extract_facet_attributes(
+    const mshio::MshSpec& spec,
+    SurfaceMesh<Scalar, Index>& mesh,
+    const LoadOptions& options)
 {
     for (const auto& data : spec.element_data) {
-        extract_attribute(data, mesh, AttributeElement::Facet);
+        extract_attribute(data, mesh, AttributeElement::Facet, options);
     }
 }
 
@@ -159,33 +173,43 @@ void extract_facet_attributes(const mshio::MshSpec& spec, SurfaceMesh<Scalar, In
  * @private
  */
 template <typename Scalar, typename Index>
-void extract_corner_attributes(const mshio::MshSpec& spec, SurfaceMesh<Scalar, Index>& mesh)
+void extract_corner_attributes(
+    const mshio::MshSpec& spec,
+    SurfaceMesh<Scalar, Index>& mesh,
+    const LoadOptions& options)
 {
     for (const auto& data : spec.element_node_data) {
-        extract_attribute(data, mesh, AttributeElement::Corner);
+        extract_attribute(data, mesh, AttributeElement::Corner, options);
     }
 }
 
+} // namespace
+
 template <typename MeshType>
-MeshType load_mesh_msh(std::istream& input_stream)
+MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& options)
 {
     mshio::MshSpec spec = mshio::load_msh(input_stream);
     MeshType mesh;
 
     extract_vertices(spec, mesh);
     extract_facets(spec, mesh);
-    extract_vertex_attributes(spec, mesh);
-    extract_facet_attributes(spec, mesh);
-    extract_corner_attributes(spec, mesh);
+    extract_vertex_attributes(spec, mesh, options);
+    extract_facet_attributes(spec, mesh, options);
+    extract_corner_attributes(spec, mesh, options);
 
     return mesh;
 }
 
+template <typename MeshType>
+MeshType load_mesh_msh(const fs::path& filename, const LoadOptions& options)
+{
+    fs::ifstream fin(filename);
+    return load_mesh_msh<MeshType>(fin, options);
+}
+
 #define LA_X_load_mesh_msh(_, S, I) \
-    template SurfaceMesh<S, I> load_mesh_msh(std::istream& input_stream);
+    template SurfaceMesh<S, I> load_mesh_msh(const fs::path& filename, const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_msh, 0)
 #undef LA_X_load_mesh_msh
 
-
 } // namespace lagrange::io
-

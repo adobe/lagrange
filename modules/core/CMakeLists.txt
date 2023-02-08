@@ -12,9 +12,11 @@
 
 # 1. define module
 lagrange_add_module()
-target_compile_features(lagrange_core PUBLIC cxx_std_17)
 
 set_target_properties(lagrange_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set_target_properties(lagrange_core PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
 
 if(LAGRANGE_DISABLE_FPE)
     target_compile_definitions(lagrange_core PRIVATE -DLA_DISABLE_FPE)

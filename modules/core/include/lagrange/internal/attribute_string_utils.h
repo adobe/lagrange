@@ -12,7 +12,9 @@
 #pragma once
 
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/utils/BitField.h>
 
+#include <string>
 #include <string_view>
 
 namespace lagrange::internal {
@@ -25,6 +27,15 @@ namespace lagrange::internal {
 /// @return     String representation.
 ///
 std::string_view to_string(AttributeElement element);
+
+///
+/// Returns a string representation of an attribute element type.
+///
+/// @param[in]  element  Attribute element type.
+///
+/// @return     String representation.
+///
+std::string to_string(BitField<AttributeElement> element);
 
 ///
 /// Returns a string representation of an attribute usage.

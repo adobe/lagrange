@@ -189,21 +189,10 @@ public:
         const Transform& trans = Transform::Identity(),
         RTCBuildQuality build_quality = RTC_BUILD_QUALITY_MEDIUM)
     {
-        m_meshes.push_back(std::move(std::make_unique<RaycasterMeshDerived<MeshType>>(mesh)));
-        m_transforms.push_back(trans);
-        m_mesh_build_qualities.push_back(build_quality);
-        m_visibility.push_back(true);
-        for (auto& f : m_filters) { // per-mesh, not per-instance
-            f.push_back(nullptr);
-        }
-        Index mesh_index = safe_cast<Index>(m_meshes.size() - 1);
-        la_runtime_assert(m_instance_index_ranges.size() > 0);
-        Index instance_index = m_instance_index_ranges.back();
-        la_runtime_assert(instance_index == safe_cast<Index>(m_instance_to_user_mesh.size()));
-        m_instance_index_ranges.push_back(instance_index + 1);
-        m_instance_to_user_mesh.resize(instance_index + 1, mesh_index);
-        m_need_rebuild = true;
-        return mesh_index;
+        return add_raycasting_mesh(
+            std::make_unique<RaycasterMeshDerived<MeshType>>(mesh),
+            trans,
+            build_quality);
     }
 
     /**
@@ -248,13 +237,10 @@ public:
         std::shared_ptr<MeshType> mesh,
         RTCBuildQuality build_quality = RTC_BUILD_QUALITY_MEDIUM)
     {
-        la_runtime_assert(mesh->get_dim() == 3);
-        la_runtime_assert(mesh->get_vertex_per_facet() == 3);
-        la_runtime_assert(index < safe_cast<Index>(m_meshes.size()));
-        m_meshes[index] = std::move(std::make_unique<RaycasterMeshDerived<MeshType>>(mesh));
-        m_mesh_build_qualities[index] = build_quality;
-        m_need_rebuild = true; // TODO: Make this more fine-grained so only the affected part of
-                               // the Embree scene is updated
+        update_raycasting_mesh(
+            index,
+            std::make_unique<RaycasterMeshDerived<MeshType>>(mesh),
+            build_quality);
     }
 
     /**
@@ -762,6 +748,43 @@ public:
 
     /** Use the underlying BVH to find the point closest to a query point. */
     ClosestPoint query_closest_point(const Point& p) const;
+
+/** Add raycasting utilities **/
+    Index add_raycasting_mesh(
+        std::unique_ptr<RaycasterMesh> mesh,
+        const Transform& trans = Transform::Identity(),
+        RTCBuildQuality build_quality = RTC_BUILD_QUALITY_MEDIUM)
+    {
+        m_meshes.push_back(std::move(mesh));
+        m_transforms.push_back(trans);
+        m_mesh_build_qualities.push_back(build_quality);
+        m_visibility.push_back(true);
+        for (auto& f : m_filters) { // per-mesh, not per-instance
+            f.push_back(nullptr);
+        }
+        Index mesh_index = safe_cast<Index>(m_meshes.size() - 1);
+        la_runtime_assert(m_instance_index_ranges.size() > 0);
+        Index instance_index = m_instance_index_ranges.back();
+        la_runtime_assert(instance_index == safe_cast<Index>(m_instance_to_user_mesh.size()));
+        m_instance_index_ranges.push_back(instance_index + 1);
+        m_instance_to_user_mesh.resize(instance_index + 1, mesh_index);
+        m_need_rebuild = true;
+        return mesh_index;
+    }
+
+    void update_raycasting_mesh(
+        Index index,
+        std::unique_ptr<RaycasterMesh> mesh,
+        RTCBuildQuality build_quality = RTC_BUILD_QUALITY_MEDIUM)
+    {
+        la_runtime_assert(mesh->get_dim() == 3);
+        la_runtime_assert(mesh->get_vertex_per_facet() == 3);
+        la_runtime_assert(index < safe_cast<Index>(m_meshes.size()));
+        m_meshes[index] = std::move(mesh);
+        m_mesh_build_qualities[index] = build_quality;
+        m_need_rebuild = true; // TODO: Make this more fine-grained so only the affected part of
+                               // the Embree scene is updated    
+    }
 
 protected:
     /** Get the Embree scene flags. */

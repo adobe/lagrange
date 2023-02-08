@@ -95,8 +95,16 @@ public:
     //   std::set<EdgeType>. Use std::unordered_set<EdgeType> instead.
 
     // allows: for (Index v : edge) { ... }
-    class iterator : std::iterator<std::input_iterator_tag, EdgeType<Index>>
+    class iterator
     {
+    public:
+        // Types needed to make a compatible iterator.
+        using iterator_category = std::input_iterator_tag;
+        using value_type = EdgeType<Index>;
+        using difference_type = std::ptrdiff_t;
+        using pointer = EdgeType<Index>*;
+        using reference = EdgeType<Index>&;
+
     private:
         int m_i;
         const EdgeType<Index>& m_edge;

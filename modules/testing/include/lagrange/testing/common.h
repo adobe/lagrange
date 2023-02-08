@@ -19,8 +19,8 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/io/legacy/load_mesh.h>
 #include <lagrange/io/load_mesh.h>
-#include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/utils/assert.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -125,10 +125,9 @@ extern template std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> load_surface_mesh(const fs::path& relative_path)
 {
-    auto result =
-        lagrange::io::load_mesh_obj<SurfaceMesh<Scalar, Index>>(get_data_path(relative_path));
-    REQUIRE(result.success);
-    return result.mesh;
+    auto full_path = get_data_path(relative_path);
+    REQUIRE(lagrange::fs::exists(full_path));
+    return lagrange::io::load_mesh<SurfaceMesh<Scalar, Index>>(full_path);
 }
 
 ///

@@ -24,3 +24,5 @@ FetchContent_MakeAvailable(mikktspace)
 add_library(mikktspace ${mikktspace_SOURCE_DIR}/mikktspace.c)
 add_library(mikktspace::mikktspace ALIAS mikktspace)
 target_include_directories(mikktspace PUBLIC ${mikktspace_SOURCE_DIR})
+
+set_target_properties(mikktspace PROPERTIES FOLDER third_party)

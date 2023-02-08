@@ -55,7 +55,7 @@ AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>&
 
     std::rotate(adjacency_index.rbegin(), adjacency_index.rbegin() + 1, adjacency_index.rend());
     std::partial_sum(adjacency_index.begin(), adjacency_index.end(), adjacency_index.begin());
-    const Index total_size = adjacency_index.back();
+    const Index total_size = static_cast<Index>(adjacency_index.back());
     adjacency_data.resize(total_size);
 
     // Gather adjacency data with duplicates. Note: We could do this loop in parallel by using a

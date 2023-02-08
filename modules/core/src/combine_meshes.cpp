@@ -42,7 +42,7 @@ bool validate_attribute_metadata(
             logger().warn("combine_meshes: attribute {} has inconsistent ValueType.", name);
             return false;
         }
-        const auto& local_attr = mesh.template get_attribute<ValueType>(name);
+        const auto& local_attr = mesh.get_attribute_base(name);
         if (local_attr.get_usage() != target_usage) {
             logger().warn("combine_meshes: attribute {} has inconsistent usage!", name);
             return false;
@@ -81,14 +81,10 @@ void combine_attributes(
 {
     la_debug_assert(num_meshes > 0);
 
-    auto resize_value_attribute = [&](std::string_view name, auto&& attr) {
-        using AttributeType = std::decay_t<decltype(attr)>;
-        using ValueType = typename AttributeType::ValueType;
-
+    auto resize_value_attribute = [&](auto&& attr, auto mesh_to_attr) {
         size_t num_elements = 0;
         for (size_t i = 0; i < num_meshes; ++i) {
-            const auto& mesh = get_mesh(i);
-            const auto& local_attr = mesh.template get_attribute<ValueType>(name);
+            const auto& local_attr = mesh_to_attr(i);
             num_elements += local_attr.get_num_elements();
         }
         attr.resize_elements(num_elements);
@@ -101,7 +97,9 @@ void combine_attributes(
         AttributeUsage usage = attr.get_usage();
 
         if (attr.get_element_type() == Value) {
-            resize_value_attribute(name, attr);
+            resize_value_attribute(attr, [&](auto i) -> decltype(auto) {
+                return get_mesh(i).template get_attribute<ValueType>(name);
+            });
         }
 
         auto attr_view = matrix_ref(attr);
@@ -128,7 +126,9 @@ void combine_attributes(
         auto& index_attr = attr.indices();
         la_debug_assert(index_attr.get_num_elements() == out_mesh.get_num_corners());
 
-        resize_value_attribute(name, value_attr);
+        resize_value_attribute(value_attr, [&](auto i) -> decltype(auto) {
+            return get_mesh(i).template get_indexed_attribute<ValueType>(name).values();
+        });
 
         auto value_view = matrix_ref(value_attr);
         auto index_view = matrix_ref(index_attr);
@@ -143,7 +143,7 @@ void combine_attributes(
             value_view.middleRows(value_count, local_value_view.rows()) =
                 local_value_view.array() + static_cast<ValueType>(offset);
             index_view.middleRows(index_count, local_index_view.rows()) =
-                local_index_view.array() + value_count;
+                local_index_view.array() + static_cast<Index>(value_count);
             value_count += local_value_view.rows();
             index_count += local_index_view.rows();
             offset += offset_from_usage(mesh, usage);

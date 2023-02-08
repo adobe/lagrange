@@ -238,10 +238,7 @@ void test_map_attribute_all()
         "cube_soup.obj"};
 
     for (fs::path filename : filenames) {
-        fs::path input_path = lagrange::testing::get_data_path("open/core" / filename);
-        REQUIRE(fs::exists(input_path));
-
-        auto mesh = lagrange::io::load_mesh_obj<MeshType>(input_path.string()).mesh;
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
         test_map_attribute_types(mesh, 1);
         test_map_attribute_types(mesh, 4);
         mesh.initialize_edges();
@@ -262,9 +259,7 @@ void test_map_attribute_invalid()
         "cube_soup.obj"};
 
     for (fs::path filename : filenames) {
-        fs::path input_path = lagrange::testing::get_data_path("open/core" / filename);
-        REQUIRE(fs::exists(input_path));
-        auto mesh = lagrange::io::load_mesh_obj<MeshType>(input_path.string()).mesh;
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
         mesh.initialize_edges();
         test_map_attribute_value_invalid<ValueType>(mesh, 1);
     }

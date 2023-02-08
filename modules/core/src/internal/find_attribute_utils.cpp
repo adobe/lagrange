@@ -31,7 +31,7 @@ template <typename ExpectedValueType, typename Scalar, typename Index>
 void check_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     AttributeId id,
-    AttributeElement expected_element,
+    BitField<AttributeElement> expected_element,
     AttributeUsage expected_usage,
     size_t expected_channels,
     ShouldBeWritable expected_writable)
@@ -49,7 +49,7 @@ void check_attribute(
                 to_string(expected_usage),
                 to_string(attr.get_usage())));
         la_runtime_assert(
-            attr.get_element_type() == expected_element,
+            expected_element.test(attr.get_element_type()),
             fmt::format(
                 "Attribute element type should be {}, not {}",
                 to_string(expected_element),
@@ -65,15 +65,49 @@ void check_attribute(
     }
 
     if (expected_writable == ShouldBeWritable::Yes) {
-        if (expected_element != Indexed) {
-            const auto& attr = mesh.template get_attribute<Scalar>(id);
-            la_runtime_assert(!attr.is_read_only(), "Attribute is read only");
-        } else {
+        if (mesh.is_attribute_indexed(id)) {
             const auto& attr = mesh.template get_indexed_attribute<Scalar>(id);
             la_runtime_assert(!attr.values().is_read_only(), "Attribute is read only");
             la_runtime_assert(!attr.indices().is_read_only(), "Attribute is read only");
+        } else {
+            const auto& attr = mesh.template get_attribute<Scalar>(id);
+            la_runtime_assert(!attr.is_read_only(), "Attribute is read only");
         }
     }
+}
+
+template <typename ExpectedValueType, typename Scalar, typename Index>
+AttributeId find_matching_attribute_internal(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const std::unordered_set<AttributeId>* selected_ids,
+    BitField<AttributeElement> expected_element,
+    AttributeUsage expected_usage,
+    size_t expected_channels)
+{
+    AttributeId id = invalid_attribute_id();
+    // No attribute name provided. Iterate until we find the first matching attribute.
+    seq_foreach_named_attribute_read(mesh, [&](auto attr_name, auto&& attr) {
+        auto current_id = mesh.get_attribute_id(attr_name);
+        if (selected_ids && !selected_ids->count(current_id)) {
+            return;
+        }
+        using AttributeType = std::decay_t<decltype(attr)>;
+        using ValueType = typename AttributeType::ValueType;
+        if (id == invalid_attribute_id() && attr.get_usage() == expected_usage &&
+            expected_element.test_any(attr.get_element_type()) &&
+            (expected_channels == 0 || attr.get_num_channels() == expected_channels) &&
+            std::is_same_v<ValueType, ExpectedValueType>) {
+            logger().trace(
+                "Found attribute '{}' with element type {}, usage {}, value type {}.",
+                attr_name,
+                to_string(expected_element),
+                to_string(expected_usage),
+                string_from_scalar<ValueType>());
+            id = mesh.get_attribute_id(attr_name);
+        }
+    });
+
+    return id;
 }
 
 } // namespace
@@ -82,29 +116,19 @@ template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_matching_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view name,
-    AttributeElement expected_element,
+    BitField<AttributeElement> expected_element,
     AttributeUsage expected_usage,
     size_t expected_channels)
 {
     AttributeId id = invalid_attribute_id();
     if (name.empty()) {
         // No attribute name provided. Iterate until we find the first matching attribute.
-        seq_foreach_named_attribute_read(mesh, [&](auto name, auto&& attr) {
-            using AttributeType = std::decay_t<decltype(attr)>;
-            using ValueType = typename AttributeType::ValueType;
-            if (id == invalid_attribute_id() && attr.get_usage() == expected_usage &&
-                attr.get_element_type() == expected_element &&
-                (expected_channels == 0 || attr.get_num_channels() == expected_channels) &&
-                std::is_same_v<ValueType, ExpectedValueType>) {
-                logger().trace(
-                    "Found attribute '{}' with element type {}, usage {}, value type {}.",
-                    name,
-                    to_string(expected_element),
-                    to_string(expected_usage),
-                    string_from_scalar<ValueType>());
-                id = mesh.get_attribute_id(name);
-            }
-        });
+        return find_matching_attribute_internal<ExpectedValueType>(
+            mesh,
+            nullptr,
+            expected_element,
+            expected_usage,
+            expected_channels);
     } else {
         // Check user-provided attribute compatibility
         id = mesh.get_attribute_id(name);
@@ -121,10 +145,26 @@ AttributeId find_matching_attribute(
 }
 
 template <typename ExpectedValueType, typename Scalar, typename Index>
+AttributeId find_matching_attribute(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const std::unordered_set<AttributeId>& selected_ids,
+    BitField<AttributeElement> expected_element,
+    AttributeUsage expected_usage,
+    size_t expected_channels)
+{
+    return find_matching_attribute_internal<ExpectedValueType>(
+        mesh,
+        &selected_ids,
+        expected_element,
+        expected_usage,
+        expected_channels);
+}
+
+template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view name,
-    AttributeElement expected_element,
+    BitField<AttributeElement> expected_element,
     AttributeUsage expected_usage,
     size_t expected_channels)
 {
@@ -192,13 +232,19 @@ AttributeId find_or_create_attribute(
     template AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
         const SurfaceMesh<Scalar, Index>& mesh,                                      \
         std::string_view name,                                                       \
-        AttributeElement expected_element,                                           \
+        BitField<AttributeElement> expected_element,                                 \
+        AttributeUsage expected_usage,                                               \
+        size_t expected_channels);                                                   \
+    template AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
+        const SurfaceMesh<Scalar, Index>& mesh,                                      \
+        const std::unordered_set<AttributeId>& selected_ids,                         \
+        BitField<AttributeElement> expected_element,                                 \
         AttributeUsage expected_usage,                                               \
         size_t expected_channels);                                                   \
     template AttributeId find_attribute<ExpectedValueType, Scalar, Index>(           \
         const SurfaceMesh<Scalar, Index>& mesh,                                      \
         std::string_view name,                                                       \
-        AttributeElement expected_element,                                           \
+        BitField<AttributeElement> expected_element,                                 \
         AttributeUsage expected_usage,                                               \
         size_t expected_channels);                                                   \
     template AttributeId find_or_create_attribute<ExpectedValueType, Scalar, Index>( \

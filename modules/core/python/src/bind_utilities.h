@@ -13,7 +13,9 @@
 
 #include <lagrange/NormalWeightingType.h>
 #include <lagrange/combine_meshes.h>
+#include <lagrange/compute_centroid.h>
 #include <lagrange/compute_components.h>
+#include <lagrange/compute_area.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_tangent_bitangent.h>
@@ -21,9 +23,13 @@
 #include <lagrange/compute_vertex_valence.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
+#include <lagrange/permute_vertices.h>
 #include <lagrange/python/tensor_utils.h>
+#include <lagrange/python/utils/StackVector.h>
+#include <lagrange/remap_vertices.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/invalid.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -229,6 +235,80 @@ void bind_utilities(nanobind::module_& m)
         "mesh"_a,
         "name"_a,
         "new_element"_a);
+    nb::class_<FacetAreaOptions>(m, "FacetAreaOptions")
+        .def(nb::init<>())
+        .def_readwrite("output_attribute_name", &FacetAreaOptions::output_attribute_name);
+    m.def(
+        "compute_facet_area",
+        &lagrange::compute_facet_area<Scalar, Index>,
+        "mesh"_a,
+        "options"_a = FacetAreaOptions());
+    nb::class_<MeshAreaOptions>(m, "MeshAreaOptions")
+        .def(nb::init<>())
+        .def_readwrite("input_attribute_name", &MeshAreaOptions::input_attribute_name);
+    m.def(
+        "compute_mesh_area",
+        &lagrange::compute_mesh_area<Scalar, Index>,
+        "mesh"_a,
+        "options"_a = MeshAreaOptions());
+    nb::class_<FacetCentroidOptions>(m, "FacetCentroidOptions")
+        .def(nb::init<>())
+        .def_readwrite("output_attribute_name", &FacetCentroidOptions::output_attribute_name);
+    m.def(
+        "compute_facet_centroid",
+        &lagrange::compute_facet_centroid<Scalar, Index>,
+        "mesh"_a,
+        "options"_a = FacetCentroidOptions());
+    nb::enum_<MeshCentroidOptions::WeightingType>(m, "CentroidWeightingType")
+        .value("Uniform", MeshCentroidOptions::Uniform)
+        .value("Area", MeshCentroidOptions::Area);
+    nb::class_<MeshCentroidOptions>(m, "MeshCentroidOptions")
+        .def(nb::init<>())
+        .def_readwrite("weighting_type", &MeshCentroidOptions::weighting_type)
+        .def_readwrite(
+            "facet_centroid_attribute_name",
+            &MeshCentroidOptions::facet_centroid_attribute_name)
+        .def_readwrite(
+            "facet_area_attribute_name",
+            &MeshCentroidOptions::facet_area_attribute_name);
+    m.def(
+        "compute_mesh_centroid",
+        [](const SurfaceMesh<Scalar, Index>& mesh, MeshCentroidOptions opt) {
+            const Index dim = mesh.get_dimension();
+            std::vector<Scalar> centroid(dim, invalid<Scalar>());
+            compute_mesh_centroid<Scalar, Index>(mesh, centroid, opt);
+            return centroid;
+        },
+        "mesh"_a,
+        "options"_a = MeshCentroidOptions());
+    m.def(
+        "permute_vertices",
+        [](MeshType& mesh, Tensor<Index> new_to_old) {
+            auto [data, shape, stride] = tensor_to_span(new_to_old);
+            la_runtime_assert(is_dense(shape, stride));
+            permute_vertices<Scalar, Index>(mesh, data);
+        },
+        "mesh"_a,
+        "new_to_old"_a);
+
+    nb::enum_<RemapVerticesOptions::CollisionPolicy>(m, "CollisionPolicy")
+        .value("Average", RemapVerticesOptions::CollisionPolicy::Average)
+        .value("KeepFirst", RemapVerticesOptions::CollisionPolicy::KeepFirst)
+        .value("Error", RemapVerticesOptions::CollisionPolicy::Error);
+    nb::class_<RemapVerticesOptions>(m, "RemapVerticesOptions")
+        .def(nb::init<>())
+        .def_readwrite("collision_policy_float", &RemapVerticesOptions::collision_policy_float)
+        .def_readwrite("collision_policy_integral", &RemapVerticesOptions::collision_policy_integral);
+    m.def(
+        "remap_vertices",
+        [](MeshType& mesh, Tensor<Index> old_to_new, RemapVerticesOptions opt) {
+            auto [data, shape, stride] = tensor_to_span(old_to_new);
+            la_runtime_assert(is_dense(shape, stride));
+            remap_vertices<Scalar, Index>(mesh, data, opt);
+        },
+        "mesh"_a,
+        "old_to_new"_a,
+        "options"_a = RemapVerticesOptions());
 }
 
 } // namespace lagrange::python

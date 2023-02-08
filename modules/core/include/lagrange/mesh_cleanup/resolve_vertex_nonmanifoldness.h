@@ -23,7 +23,7 @@
 #include <lagrange/chain_edges.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
-#include <lagrange/get_opposite_edge.h>
+#include <lagrange/utils/Error.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -62,6 +62,20 @@ std::unique_ptr<MeshType> resolve_vertex_nonmanifoldness(MeshType& mesh)
     const auto& vertices = mesh.get_vertices();
     const auto& facets = mesh.get_facets();
 
+    auto get_opposite_edge = [&](Index fid, Index vid) {
+        const auto& f = facets.row(fid);
+        if (f[0] == vid) {
+            return Edge(f[1], f[2]);
+        } else if (f[1] == vid) {
+            return Edge(f[2], f[0]);
+        } else if (f[2] == vid) {
+            return Edge(f[0], f[1]);
+        } else {
+            throw Error(
+                "Facet " + std::to_string(fid) + " does not contain vertex " + std::to_string(vid));
+        }
+    };
+
     FacetArray out_facets(facets);
     Index vertex_count = mesh.get_num_vertices();
 
@@ -77,7 +91,7 @@ std::unique_ptr<MeshType> resolve_vertex_nonmanifoldness(MeshType& mesh)
         const auto& adj_facets = mesh.get_facets_adjacent_to_vertex(i);
         std::list<Edge> rim_edges;
         for (Index fid : adj_facets) {
-            rim_edges.push_back(get_opposite_edge(facets, fid, i));
+            rim_edges.push_back(get_opposite_edge(fid, i));
         }
         auto chains = chain_edges<Index>(rim_edges);
         if (chains.size() > 1) {

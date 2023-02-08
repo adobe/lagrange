@@ -72,7 +72,7 @@ using RowMatrixView = Eigen::Map<RowMatrix<Scalar>, Eigen::Unaligned>;
 
 /// Type alias for row-major const matrix view.
 template <typename Scalar>
-using ConstRowMatrixView = Eigen::Map<const RowMatrix<Scalar>, Eigen::Unaligned>;
+using ConstRowMatrixView = const Eigen::Map<const RowMatrix<Scalar>, Eigen::Unaligned>;
 
 /// Type alias for one-dimensional column Eigen vectors.
 template <typename Scalar>
@@ -84,7 +84,7 @@ using VectorView = Eigen::Map<Vector<Scalar>, Eigen::Unaligned>;
 
 /// Type alias for row-major const vector view.
 template <typename Scalar>
-using ConstVectorView = Eigen::Map<const Vector<Scalar>, Eigen::Unaligned>;
+using ConstVectorView = const Eigen::Map<const Vector<Scalar>, Eigen::Unaligned>;
 
 ////////////////////////////////////////////////////////////////////////////////
 /// @}

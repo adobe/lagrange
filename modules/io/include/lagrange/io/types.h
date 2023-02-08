@@ -11,10 +11,79 @@
  */
 #pragma once
 
+#include <lagrange/AttributeFwd.h>
+
+#include <vector>
+
 namespace lagrange {
 namespace io {
 
 enum class FileEncoding { Binary, Ascii };
+
+/**
+ * Options used when saving a mesh or a scene.
+ * Note that not all options are supported for all backends or filetypes.
+ */
+struct SaveOptions
+{
+    /**
+     * Whether to encode the file as plain text or binary.
+     * Some filetypes only support Ascii and will ignore this parameter.
+     */
+    FileEncoding encoding = FileEncoding::Binary;
+
+    /**
+     * Which attributes to save with the mesh?
+     */
+    enum class OutputAttributes {
+        /// All attributes (default)
+        All,
+
+        /// Only attributes listed in `selected_attributes`
+        SelectedOnly,
+    };
+    OutputAttributes output_attributes = OutputAttributes::All;
+
+    /// Attributes to output, usage depends on the above.
+    std::vector<AttributeId> selected_attributes;
+};
+
+/**
+ * Options used when loading a mesh or a scene.
+ * Note that not all options are supported for all backends or filetypes.
+ */
+struct LoadOptions
+{
+    /// Triangulate any polygonal facet with > 3 vertices
+    bool triangulate = false;
+
+    /// Load vertex normals as indexed attribute
+    bool load_normals = true;
+
+    /// Load tangents and bitangent as indexed attribute
+    bool load_tangents = true;
+
+    /// Load texture coordinates as indexed attribute
+    bool load_uvs = true;
+
+    /// Load skinning weights attributes (joints id and weight).
+    bool load_weights = true;
+
+    /// Load material ids as facet attribute
+    bool load_materials = true;
+
+    /// Load vertex colors as vertex attribute
+    bool load_vertex_colors = false;
+
+    /// Load object id as facet attribute
+    bool load_object_id = true;
+
+    /**
+     * Search path for related files, such as .mtl, .bin, or image textures.
+     * By default, searches the same folder as the provided filename.
+     */
+    fs::path search_path;
+};
 
 } // namespace io
 } // namespace lagrange

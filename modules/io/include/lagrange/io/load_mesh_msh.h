@@ -13,30 +13,38 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/io/types.h>
 
 namespace lagrange::io {
 
 /**
- * Load a .msh file.
+ * Loads a mesh from a stream in MSH format.
  *
- * @param[in]  input_stream  Input stream
+ * @param[in]  input_stream  Input stream.
+ * @param[in]  options       Load options.
  *
- * @return  The loaded surface mesh.
+ * @tparam     MeshType      Mesh type to load.
+ *
+ * @return     Loaded mesh.
  */
 template <typename MeshType>
-MeshType load_mesh_msh(std::istream& input_stream);
+MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& options = {});
 
 /**
  * @overload
  *
- * @param[in]  filename  Input mesh filename.
+ * Loads a mesh from a file in MSH format.
  *
- * @see load_mesh_msh(std::istream&) for more info.
+ * @param[in]  filename  Input filename.
+ * @param[in]  options   Load options.
+ *
+ * @see        load_mesh_msh(std::istream&) for more info.
+ *
+ * @tparam     MeshType  Mesh type to load.
+ *
+ * @return     Loaded mesh.
  */
 template <typename MeshType>
-MeshType load_mesh_msh(const fs::path& filename) {
-    fs::ifstream fin(filename);
-    return load_mesh_msh<MeshType>(fin);
-}
+MeshType load_mesh_msh(const fs::path& filename, const LoadOptions& options = {});
 
 } // namespace lagrange::io

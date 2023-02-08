@@ -19,7 +19,7 @@ target_link_libraries(lagrange_fs PUBLIC
     lagrange::core
 )
 
-set(LAGRANGE_FS_BACKEND "ghc"
+set(LAGRANGE_FS_BACKEND "std"
     CACHE STRING
     "Which file system backend to use? Options are 'std', 'ghc' and 'boost'.  Default is 'ghc'"
 )
@@ -29,7 +29,7 @@ set_property(CACHE LAGRANGE_FS_BACKEND PROPERTY STRINGS ${LAGRANGE_FS_BACKEND_CH
 string(TOLOWER ${LAGRANGE_FS_BACKEND} LAGRANGE_FS_BACKEND)
 if (LAGRANGE_FS_BACKEND STREQUAL "ghc")
     include(filesystem)
-    target_link_libraries(lagrange_fs PUBLIC filesystem::filesystem)
+    target_link_libraries(lagrange_fs PUBLIC ghcFilesystem::ghc_filesystem)
     target_compile_definitions(lagrange_fs PUBLIC LAGRANGE_USE_GHC_FS)
 elseif (LAGRANGE_FS_BACKEND STREQUAL "std")
     target_compile_features(lagrange_fs PUBLIC cxx_std_17)

@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/io/save_mesh.h>
+#include <lagrange/io/save_mesh_obj.h>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/Logger.h>
@@ -27,7 +27,10 @@ namespace lagrange {
 namespace io {
 
 template <typename Scalar, typename Index>
-void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>& mesh)
+void save_mesh_obj(
+    std::ostream& output_stream,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options)
 {
     la_runtime_assert(output_stream, "Invalid output stream");
 
@@ -67,6 +70,17 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
     std::string found_uv_name;
     const Attribute<Index>* uv_indices = nullptr;
     seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
+        // TODO: change this for the attribute visitor that takes id and simplify this block.
+        if (options.output_attributes == SaveOptions::OutputAttributes::SelectedOnly) {
+            AttributeId id = mesh.get_attribute_id(name);
+            if (std::count(
+                    options.selected_attributes.begin(),
+                    options.selected_attributes.end(),
+                    id)) {
+                return;
+            }
+        }
+
         if (attr.get_usage() != AttributeUsage::UV) {
             return;
         }
@@ -87,7 +101,7 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
             }
             uv_indices = &attr.indices();
         } else {
-            la_runtime_assert(false, "Writing non-indexed UV attr not supported yet");
+            logger().warn("Writing non-indexed UV attr not supported yet");
         }
     });
 
@@ -95,6 +109,17 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
     std::string found_nrm_name;
     const Attribute<Index>* nrm_indices = nullptr;
     seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
+        // TODO: change this for the attribute visitor that takes id and simplify this block.
+        if (options.output_attributes == SaveOptions::OutputAttributes::SelectedOnly) {
+            AttributeId id = mesh.get_attribute_id(name);
+            if (std::count(
+                    options.selected_attributes.begin(),
+                    options.selected_attributes.end(),
+                    id)) {
+                return;
+            }
+        }
+
         if (attr.get_usage() != AttributeUsage::Normal) {
             return;
         }
@@ -115,7 +140,7 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
             }
             nrm_indices = &attr.indices();
         } else {
-            la_runtime_assert(false, "Writing non-indexed Normal attr not supported yet");
+            logger().warn("Writing non-indexed Normal attr not supported yet");
         }
     });
 
@@ -149,17 +174,24 @@ void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>
 }
 
 template <typename Scalar, typename Index>
-void save_mesh_obj(const fs::path& filename, const SurfaceMesh<Scalar, Index>& mesh)
+void save_mesh_obj(
+    const fs::path& filename,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options)
 {
     fs::ofstream output_stream(filename);
-    save_mesh_obj(output_stream, mesh);
+    save_mesh_obj(output_stream, mesh, options);
 }
 
-#define LA_X_save_mesh(_, Scalar, Index)         \
-    template void save_mesh_obj(                 \
-        std::ostream& output_stream,             \
-        const SurfaceMesh<Scalar, Index>& mesh); \
-    template void save_mesh_obj(const fs::path& filename, const SurfaceMesh<Scalar, Index>& mesh);
+#define LA_X_save_mesh(_, Scalar, Index)        \
+    template void save_mesh_obj(                \
+        std::ostream& output_stream,            \
+        const SurfaceMesh<Scalar, Index>& mesh, \
+        const SaveOptions& options);            \
+    template void save_mesh_obj(                \
+        const fs::path& filename,               \
+        const SurfaceMesh<Scalar, Index>& mesh, \
+        const SaveOptions& options);
 LA_SURFACE_MESH_X(save_mesh, 0)
 
 } // namespace io

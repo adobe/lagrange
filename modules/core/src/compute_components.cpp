@@ -18,6 +18,7 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/utils/Error.h>
 
 #include <numeric>
 
@@ -100,6 +101,7 @@ size_t compute_components(SurfaceMesh<Scalar, Index>& mesh, ComponentOptions opt
     case ComponentOptions::ConnectivityType::Vertex:
         return compute_vertex_based_components(mesh, id);
     case ComponentOptions::ConnectivityType::Edge: return compute_edge_based_components(mesh, id);
+    default: throw Error("Unsupported connectivity type");
     }
 }
 

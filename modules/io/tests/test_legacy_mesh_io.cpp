@@ -13,8 +13,8 @@
 #include <lagrange/common.h>
 #include <lagrange/testing/common.h>
 
-#include <lagrange/io/load_mesh.h>
-#include <lagrange/io/save_mesh.h>
+#include <lagrange/io/legacy/load_mesh.h>
+#include <lagrange/io/legacy/save_mesh.h>
 
 #include <catch2/catch_approx.hpp>
 
@@ -23,7 +23,7 @@ TEST_CASE("drop", "[mesh][io]")
     using namespace lagrange;
     auto mesh = lagrange::testing::load_mesh<TriangleMesh3D>("open/core/drop_tri.obj");
     lagrange::io::save_mesh("io_test_drop.obj", *mesh);
-    auto mesh2 = lagrange::io::load_mesh<TriangleMesh3D>("io_test_drop.obj");
+    auto mesh2 = lagrange::io::legacy::load_mesh<TriangleMesh3D>("io_test_drop.obj");
     fs::remove("io_test_drop.obj");
     REQUIRE(mesh->get_num_vertices() == mesh2->get_num_vertices());
     REQUIRE(mesh->get_num_facets() == mesh2->get_num_facets());

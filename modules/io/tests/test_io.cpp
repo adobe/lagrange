@@ -17,6 +17,7 @@
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/utils/safe_cast.h>
+#include <lagrange/attribute_names.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -45,10 +46,7 @@ void test_load_save()
 
     for (int i = 0; i < 8; ++i) {
         fs::path filename = fmt::format("semi{}.obj", i + 1);
-        fs::path input_path = lagrange::testing::get_data_path("open/core/tilings" / filename);
-        REQUIRE(fs::exists(input_path));
-        auto output = io::load_mesh_obj<MeshType>(input_path.string());
-        auto mesh = std::move(output.mesh);
+        auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
         logger().info(
             "Loaded tiling with {} vertices and {} facets",
             mesh.get_num_vertices(),
@@ -57,17 +55,14 @@ void test_load_save()
         for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
             mesh.ref_position(v)[2] = dist(gen);
         }
-        io::save_mesh_obj(filename, mesh);
+        io::save_mesh(filename, mesh);
     }
 
     std::array<std::pair<std::string, int>, 3> test_cases = {
         {{"hexagon", 6}, {"square", 4}, {"triangle", 3}}};
     for (auto kv : test_cases) {
         fs::path filename = fmt::format("{}.obj", kv.first);
-        fs::path input_path = lagrange::testing::get_data_path("open/core/tilings" / filename);
-        REQUIRE(fs::exists(input_path));
-        auto output = io::load_mesh_obj<MeshType>(input_path.string());
-        auto mesh = std::move(output.mesh);
+        auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
         logger().info(
             "Loaded tiling with {} vertices and {} facets",
             mesh.get_num_vertices(),
@@ -77,7 +72,7 @@ void test_load_save()
         for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
             mesh.ref_position(v)[2] = dist(gen);
         }
-        io::save_mesh_obj(filename, mesh);
+        io::save_mesh(filename, mesh);
     }
 }
 
@@ -94,27 +89,21 @@ void test_benchmark_tiles()
 
         for (int i = 0; i < 8; ++i) {
             fs::path filename = fmt::format("semi{}.obj", i + 1);
-            fs::path input_path = lagrange::testing::get_data_path("open/core/tilings" / filename);
-            REQUIRE(fs::exists(input_path));
-            auto output = io::load_mesh_obj<MeshType>(input_path.string());
-            auto mesh = std::move(output.mesh);
+            auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_hybrid());
-            io::save_mesh_obj(filename, mesh);
+            io::save_mesh(filename, mesh);
         }
 
         std::array<std::pair<std::string, int>, 3> test_cases = {
             {{"hexagon", 6}, {"square", 4}, {"triangle", 3}}};
         for (auto kv : test_cases) {
             fs::path filename = fmt::format("{}.obj", kv.first);
-            fs::path input_path = lagrange::testing::get_data_path("open/core/tilings" / filename);
-            REQUIRE(fs::exists(input_path));
-            auto output = io::load_mesh_obj<MeshType>(input_path.string());
-            auto mesh = std::move(output.mesh);
+            auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_regular());
             REQUIRE(mesh.get_vertex_per_facet() == safe_cast<Index>(kv.second));
-            io::save_mesh_obj(filename, mesh);
+            io::save_mesh(filename, mesh);
         }
 
         return n;
@@ -128,15 +117,11 @@ void test_io_blub()
     using MeshType = SurfaceMesh<S, I>;
     using Scalar = typename MeshType::Scalar;
 
-    fs::path path = lagrange::testing::get_data_path("open/core/blub/blub.obj");
-    REQUIRE(fs::exists(path));
-    auto res = io::load_mesh_obj<MeshType>(path.string());
-    REQUIRE(res.success);
-    auto mesh = std::move(res.mesh);
-    io::save_mesh_obj("blub.obj", mesh);
+    auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/blub/blub.obj");
+    io::save_mesh("blub.obj", mesh);
 
     logger().info("Mesh #v {}, #f {}", mesh.get_num_vertices(), mesh.get_num_facets());
-    auto& uv_attr = mesh.template get_indexed_attribute<Scalar>("uv");
+    auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(AttributeName::texcoord);
     logger().info("Mesh #uv {}", uv_attr.values().get_num_elements());
 }
 
@@ -151,13 +136,39 @@ void test_benchmark_large()
         // TODO: Add this guy to our unit test data
         fs::path path = "/Users/jedumas/cloud/adobe/shared/mesh_processing/Modeler - "
                         "Qadremesher/SoylentGreen_FullRes.obj";
-        auto mesh = std::move(io::load_mesh_obj<MeshType>(path.string()).mesh);
+        auto mesh = io::load_mesh<MeshType>(path.string());
         logger().info("Mesh #v {}, #f {}", mesh.get_num_vertices(), mesh.get_num_facets());
         return mesh.get_num_vertices();
         // Uncomment to time obj save as well
         // fs::ofstream output_stream("out.obj");
         // io::save_mesh_obj(output_stream, mesh);
     };
+}
+
+template <typename S, typename I>
+void test_obj_indexing()
+{
+    using namespace lagrange;
+    using MeshType = SurfaceMesh<S, I>;
+    using Index = typename MeshType::Index;
+
+    auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/index-test.obj");
+
+    for (Index f = 0; f < mesh.get_num_facets(); ++f)
+    {
+        const Index first_corner = mesh.get_facet_corner_begin(f);
+        const Index last_corner = mesh.get_facet_corner_end(f);
+
+        bool all_zero = true;
+        for (Index c = first_corner; c < last_corner; ++c)
+        {
+            Index vertexIndex = mesh.get_corner_vertex(c);
+            all_zero = all_zero && (vertexIndex == 0);
+        }
+
+        // Incorrect mesh indexing during obj load will result in uninitialized facets.
+        REQUIRE(!all_zero);
+    }
 }
 
 } // namespace
@@ -184,4 +195,10 @@ TEST_CASE("Mesh IO: Benchmark Large", "[next][!benchmark]" LA_CORP_FLAG)
 {
 #define LA_X_test_benchmark_large(_, S, I) test_benchmark_large<S, I>();
     LA_SURFACE_MESH_X(test_benchmark_large, 0)
+}
+
+TEST_CASE("Mesh IO: Index Test", "[next]")
+{
+#define LA_X_test_obj_indexing(_, S, I) test_obj_indexing<S, I>();
+    LA_SURFACE_MESH_X(test_obj_indexing, 0)
 }

@@ -11,93 +11,52 @@
  */
 #pragma once
 
-#include <openvdb/tools/MeshToVolume.h>
-#include <openvdb/openvdb.h>
+#include <lagrange/SurfaceMesh.h>
+#include <lagrange/volume/types.h>
 
-#include <lagrange/MeshTrait.h>
-#include <lagrange/Logger.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/volume/legacy/mesh_to_volume.h>
+#endif
 
-namespace lagrange {
-namespace volume {
+namespace lagrange::volume {
 
 ///
-/// Adapter class to interface a Lagrange mesh with OpenVDB functions.
+/// Mesh to volume conversion options.
 ///
-template <typename MeshType>
-class MeshAdapter
+struct MeshToVolumeOptions
 {
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-
-public:
     ///
-    /// Constructs a new instance.
+    /// Available methods to compute the sign of the distance field (i.e. which voxels are inside or
+    /// outside of the input volume).
     ///
-    /// @param[in]  mesh       Input mesh.
-    /// @param[in]  transform  World to index transform.
-    ///
-    MeshAdapter(const MeshType &mesh, const openvdb::math::Transform &transform)
-        : m_mesh(mesh)
-        , m_transform(transform)
-    {}
+    enum class Sign {
+        FloodFill, ///< Default voxel flood-fill method used by OpenVDB.
+        WindingNumber, ///< Fast winding number approach based on [Barill et al. 2018].
+    };
 
-    /// Number of mesh facets.
-    size_t polygonCount() const { return static_cast<size_t>(m_mesh.get_num_facets()); }
+    /// Grid voxel size. If the target voxel size is too small, an exception will will be raised. A
+    /// negative value is interpreted as being relative to the mesh bbox diagonal.
+    double voxel_size = -0.01;
 
-    /// Number of mesh vertices.
-    size_t pointCount() const { return static_cast<size_t>(m_mesh.get_num_vertices()); }
-
-    /// Number of vertices for a given facet.
-    size_t vertexCount(size_t /*f*/) const { return static_cast<size_t>(m_mesh.get_vertex_per_facet()); }
-
-    ///
-    /// Return a vertex position in the grid index space.
-    ///
-    /// @param[in]  f     Queried facet index.
-    /// @param[in]  lv    Queried local vertex index.
-    /// @param[out] pos   Vertex position in grid index space.
-    ///
-    void getIndexSpacePoint(size_t f, size_t lv, openvdb::Vec3d &pos) const {
-        Eigen::RowVector3d p = m_mesh.get_vertices().row(m_mesh.get_facets()(f, lv)).template cast<double>();
-        pos = openvdb::Vec3d(p.x(), p.y(), p.z());
-        pos = m_transform.worldToIndex(pos);
-    }
-
-protected:
-    const MeshType & m_mesh;
-    const openvdb::math::Transform &m_transform;
+    /// Method used to compute the sign of the distance field that determines interior voxels.
+    Sign signing_method = Sign::FloodFill;
 };
 
 ///
 /// Converts a triangle mesh to a OpenVDB sparse voxel grid.
 ///
-/// @param[in]  mesh        Input mesh.
-/// @param[in]  voxel_size  Grid voxel size. If the target voxel size is too small, an exception
-///                         will will be raised.
+/// @param[in]  mesh        Input mesh. Must be a triangle mesh, a quad-mesh, or a quad-dominant
+///                         mesh.
+/// @param[in]  options     Conversion options.
 ///
-/// @tparam     MeshType    Mesh type.
-/// @tparam     GridType    OpenVDB grid type.
+/// @tparam     GridScalar  Output OpenVDB Grid scalar type. Only float or double are supported.
+/// @tparam     Scalar      Mesh scalar type.
+/// @tparam     Index       Mesh index type.
 ///
 /// @return     OpenVDB grid.
 ///
-template <typename MeshType, typename GridType = openvdb::FloatGrid>
-auto mesh_to_volume(const MeshType &mesh, double voxel_size) -> typename GridType::Ptr
-{
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
+template <typename GridScalar = float, typename Scalar, typename Index>
+auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh, const MeshToVolumeOptions& options = {})
+    -> typename Grid<GridScalar>::Ptr;
 
-    openvdb::initialize();
-
-    const openvdb::Vec3d offset(voxel_size / 2.0, voxel_size / 2.0, voxel_size / 2.0);
-    auto transform = openvdb::math::Transform::createLinearTransform(voxel_size);
-    transform->postTranslate(offset);
-
-    MeshAdapter<MeshType> adapter(mesh, *transform);
-    try {
-        return openvdb::tools::meshToVolume<GridType, MeshAdapter<MeshType>>(adapter, *transform);
-    } catch (openvdb::ArithmeticError &) {
-        logger().error("Voxel size too small: {}", voxel_size);
-        throw;
-    }
-}
-
-} // namespace volume
-} // namespace lagrange
+} // namespace lagrange::volume

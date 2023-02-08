@@ -60,11 +60,7 @@ void test_basic()
 
     for (fs::path filename : filenames) {
         lagrange::logger().debug("Input path: {}", ("open/core" / filename).string());
-        fs::path input_path = lagrange::testing::get_data_path("open/core" / filename);
-        REQUIRE(fs::exists(input_path));
-
-        auto output = lagrange::io::load_mesh_obj<MeshType>(input_path.string());
-        auto mesh = std::move(output.mesh);
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
         lagrange::logger().debug(
             "Loaded mesh with {} vertices and {} facets",
             mesh.get_num_vertices(),
@@ -117,12 +113,10 @@ void test_2d()
 
     for (fs::path filename : filenames) {
         lagrange::logger().debug("Input path: {}", ("open/core" / filename).string());
-        fs::path input_path = lagrange::testing::get_data_path("open/core" / filename);
-        REQUIRE(fs::exists(input_path));
 
         auto mesh = [&] {
             // TODO: Write utils to go from 2d to 3d, and vice-versa (while preserving attributes)
-            auto mesh_3d = lagrange::io::load_mesh_obj<MeshType>(input_path.string()).mesh;
+            auto mesh_3d = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
             MeshType mesh_2d(2);
             mesh_2d.add_vertices(mesh_3d.get_num_vertices());
             vertex_ref(mesh_2d) = vertex_view(mesh_3d).leftCols(2);
@@ -147,17 +141,7 @@ void test_2d()
 
         // Triangulation does not insert new vertices
         REQUIRE(mesh.get_num_vertices() == old_num_vertices);
-
-        // Because we edit the mesh in place, mesh.is_triangle_mesh() will *not* return true. Once
-        // we implement the method SurfaceMesh::compress_if_regular(), we should be able to use it
-        // instead.
-        bool all_triangles = true;
-        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
-            if (mesh.get_facet_size(f) != 3) {
-                all_triangles = false;
-            }
-        }
-        REQUIRE(all_triangles);
+        REQUIRE(mesh.is_triangle_mesh());
 
         lagrange::logger().debug(
             "Mesh after triangulation has {} vertices and {} facets",
@@ -181,11 +165,7 @@ void test_triangle()
 
     fs::path filename = "bunny_simple.obj";
 
-    fs::path input_path = lagrange::testing::get_data_path("open/core" / filename);
-    REQUIRE(fs::exists(input_path));
-
-    auto output = lagrange::io::load_mesh_obj<MeshType>(input_path.string());
-    auto mesh = std::move(output.mesh);
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
     lagrange::logger().debug(
         "Loaded mesh with {} vertices and {} facets",
         mesh.get_num_vertices(),
@@ -220,12 +200,9 @@ void test_attributes()
 
     fs::path filename = "poly/mixedFaringPart.obj";
 
-    fs::path input_path = lagrange::testing::get_data_path("open/core" / filename);
-    REQUIRE(fs::exists(input_path));
-
     auto mesh = [&] {
         LAGRANGE_ZONE_SCOPED
-        return lagrange::io::load_mesh_obj<MeshType>(input_path.string()).mesh;
+        return lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
     }();
     lagrange::logger().debug(
         "Loaded mesh with {} vertices and {} facets",

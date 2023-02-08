@@ -37,7 +37,7 @@ AttributeId compute_vertex_valence(SurfaceMesh<Scalar, Index>& mesh, VertexValen
     la_debug_assert(
         static_cast<Index>(adjacency_list.get_num_entries()) == mesh.get_num_vertices());
     for (auto i : range(mesh.get_num_vertices())) {
-        valence[i] = adjacency_list.get_num_neighbors(i);
+        valence[i] = static_cast<Index>(adjacency_list.get_num_neighbors(static_cast<size_t>(i)));
     }
 
     return id;

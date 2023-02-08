@@ -9,11 +9,11 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET filesystem::filesystem)
+if(TARGET ghcFilesystem::ghc_filesystem)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating target 'filesystem::filesystem'")
+message(STATUS "Third-party (external): creating target 'ghcFilesystem::ghc_filesystem'")
 
 include(FetchContent)
 FetchContent_Declare(
@@ -24,4 +24,3 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(filesystem)
 
 target_compile_definitions(ghc_filesystem INTERFACE GHC_WIN_WSTRING_STRING_TYPE)
-add_library(filesystem::filesystem ALIAS ghc_filesystem)

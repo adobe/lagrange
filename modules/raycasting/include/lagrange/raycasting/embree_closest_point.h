@@ -9,7 +9,7 @@
 
 #include <lagrange/raycasting/ClosestPointResult.h>
 
-#include <lagrange/point_triangle_squared_distance.h>
+#include <lagrange/utils/point_triangle_squared_distance.h>
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_geometry.h>

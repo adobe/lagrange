@@ -115,7 +115,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
     std::vector<Index> corner_to_vertex(mesh.get_num_corners(), invalid<Index>());
     size_t num_unique_corners = corner_group_indices.size() - 1;
     logger().debug("Unified index buffer: {} vertices", num_unique_corners);
-    output_mesh.add_vertices(num_unique_corners, [&](Index i, span<Scalar> p) {
+    output_mesh.add_vertices(static_cast<Index>(num_unique_corners), [&](Index i, span<Scalar> p) {
         for (size_t j = corner_group_indices[i]; j < corner_group_indices[i + 1]; j++) {
             const auto cid = corner_groups[j];
             corner_to_vertex[cid] = i;
@@ -157,9 +157,11 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         auto& out_attr = output_mesh.template ref_attribute<ValueType>(id);
         out_attr.resize_elements(num_unique_corners);
         for (auto vid : range(num_unique_corners)) {
-            Index cid = corner_groups[corner_group_indices[vid]];
-            Index prev_vid = mesh.get_corner_vertex(cid);
-            out_attr.ref(vid) = attr.get(prev_vid);
+            auto cid = corner_groups[corner_group_indices[vid]];
+            auto prev_vid = mesh.get_corner_vertex(cid);
+            auto source_value = attr.get_row(prev_vid);
+            auto target_value = out_attr.ref_row(vid);
+            std::copy(source_value.begin(), source_value.end(), target_value.begin());
         }
     });
 

@@ -39,8 +39,10 @@ struct GlobalTime
 
 inline std::string get_name(const Registry& r, Entity e)
 {
-    if (!r.valid(e)) return lagrange::string_format("Invalid Entity (ID={})", e);
-    if (!r.all_of<Name>(e)) return lagrange::string_format("Unnamed Entity (ID={})", e);
+    if (!r.valid(e))
+        return lagrange::string_format("Invalid Entity (ID={})", static_cast<uint64_t>(e));
+    if (!r.all_of<Name>(e))
+        return lagrange::string_format("Unnamed Entity (ID={})", static_cast<uint64_t>(e));
     return r.get<Name>(e);
 }
 

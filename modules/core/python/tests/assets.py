@@ -126,9 +126,4 @@ def cube_with_uv(cube):
             ]
         ),
     )
-    uv_attr = mesh.indexed_attribute(id)
-    #uv_attr.values.create_internal_copy()
-    #uv_attr.indices.create_internal_copy()
-    #uv_attr.values.growth_policy = lagrange.AttributeGrowthPolicy.WarnAndCopy
-    #uv_attr.indices.growth_policy = lagrange.AttributeGrowthPolicy.WarnAndCopy
     return mesh

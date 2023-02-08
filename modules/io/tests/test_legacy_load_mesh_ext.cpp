@@ -14,8 +14,8 @@
 #include <string>
 
 #include <lagrange/Logger.h>
-#include <lagrange/io/load_mesh.h>
-#include <lagrange/io/load_mesh_ext.h>
+#include <lagrange/io/legacy/load_mesh.h>
+#include <lagrange/io/legacy/load_mesh_ext.h>
 
 #include "test_load_mesh_data.h"
 
@@ -38,12 +38,12 @@ TEST_CASE("MeshLoad Params", "[Mesh][Load]" LA_CORP_FLAG)
     for (bool load_normals : {true, false}) {
         for (bool load_materials : {true, false}) {
             for (bool load_uvs : {true, false}) {
-                lagrange::io::MeshLoaderParams params;
+                lagrange::io::legacy::MeshLoaderParams params;
                 params.load_materials = load_materials;
                 params.load_normals = load_normals;
                 params.load_uvs = load_uvs;
                 tinyobj::MaterialFileReader mtl_reader(lagrange::testing::get_data_path("corp/core/").string());
-                auto result = lagrange::io::load_mesh_ext<lagrange::TriangleMesh3D>(
+                auto result = lagrange::io::legacy::load_mesh_ext<lagrange::TriangleMesh3D>(
                     lagrange::testing::get_data_path(name),
                     params,
                     &mtl_reader);
@@ -68,12 +68,12 @@ TEST_CASE("MeshLoad Params (open)", "[Mesh][Load]")
     for (bool load_normals : {true, false}) {
         for (bool load_materials : {true, false}) {
             for (bool load_uvs : {true, false}) {
-                lagrange::io::MeshLoaderParams params;
+                lagrange::io::legacy::MeshLoaderParams params;
                 params.load_materials = load_materials;
                 params.load_normals = load_normals;
                 params.load_uvs = load_uvs;
                 tinyobj::MaterialFileReader mtl_reader(lagrange::testing::get_data_path("open/core/").string());
-                auto result = lagrange::io::load_mesh_ext<lagrange::TriangleMesh3D>(
+                auto result = lagrange::io::legacy::load_mesh_ext<lagrange::TriangleMesh3D>(
                     lagrange::testing::get_data_path(name),
                     params,
                     &mtl_reader);
@@ -96,9 +96,9 @@ TEST_CASE("MeshLoad Negative Indices", "[Mesh][Load]")
 {
     const std::string name = "open/core/dragon.obj";
     for (bool load_normals : {true, false}) {
-        lagrange::io::MeshLoaderParams params;
+        lagrange::io::legacy::MeshLoaderParams params;
         params.load_normals = load_normals;
-        auto result = lagrange::io::load_mesh_ext<lagrange::TriangleMesh3D>(
+        auto result = lagrange::io::legacy::load_mesh_ext<lagrange::TriangleMesh3D>(
             lagrange::testing::get_data_path(name),
             params);
         REQUIRE(result.success);
@@ -107,7 +107,7 @@ TEST_CASE("MeshLoad Negative Indices", "[Mesh][Load]")
         REQUIRE(result.meshes[0]->get_facets().minCoeff() >= 0);
         REQUIRE(result.meshes[0]->get_facets().maxCoeff() < result.meshes[0]->get_num_vertices());
         // make sure the loading is consistent (i.e., doesn't contain garbage data)
-        auto result2 = lagrange::io::load_mesh_ext<lagrange::TriangleMesh3D>(
+        auto result2 = lagrange::io::legacy::load_mesh_ext<lagrange::TriangleMesh3D>(
             lagrange::testing::get_data_path(name),
             params);
         REQUIRE(result2.success);
@@ -131,7 +131,7 @@ TEST_CASE("MeshLoad Negative Indices", "[Mesh][Load]")
 TEST_CASE("MeshLoad", "[Mesh][Load]")
 {
     using namespace lagrange;
-    using namespace lagrange::io;
+    using namespace lagrange::io::legacy;
 
     const std::string tmp_filename = "tmp.obj";
 

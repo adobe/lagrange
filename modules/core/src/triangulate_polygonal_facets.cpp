@@ -112,9 +112,9 @@ auto find_best_2d_axes(const SurfaceMesh<Scalar, Index>& mesh, Index f)
     auto nrm = facet_normal(mesh, f);
 
     const Index max_axis = [&] {
-        Eigen::Index max_axis;
-        nrm.cwiseAbs().maxCoeff(&max_axis);
-        return static_cast<Index>(max_axis);
+        Eigen::Index max_axis_;
+        nrm.cwiseAbs().maxCoeff(&max_axis_);
+        return static_cast<Index>(max_axis_);
     }();
 
     std::array<Index, 2> axes;
@@ -302,6 +302,8 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
                 "facets. Please remap them manually.");
         }
     }
+
+    mesh.compress_if_regular();
 }
 
 // Iterate over mesh (scalar, index) types

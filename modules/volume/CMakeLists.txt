@@ -10,16 +10,15 @@
 # governing permissions and limitations under the License.
 #
 # 1. define module
-lagrange_add_module(INTERFACE)
+lagrange_add_module()
 
 # 2. dependencies
-lagrange_include_modules(core)
+lagrange_include_modules(core winding)
 include(openvdb)
-include(winding_number)
-target_link_libraries(lagrange_volume INTERFACE
+target_link_libraries(lagrange_volume PUBLIC
     lagrange::core
+    lagrange::winding
     openvdb::openvdb
-    WindingNumber::WindingNumber
 )
 
 # 3. installation

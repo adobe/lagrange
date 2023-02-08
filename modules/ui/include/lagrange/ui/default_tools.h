@@ -13,7 +13,6 @@
 
 #include <lagrange/ui/Entity.h>
 
-
 namespace lagrange {
 namespace ui {
 
@@ -59,6 +58,7 @@ struct DefaultTools
 
 
 void register_default_tools(Tools& tools);
+void select(Registry& r, const std::function<void(Registry&)>& selection_system);
 
 } // namespace ui
 } // namespace lagrange

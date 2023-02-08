@@ -27,16 +27,16 @@ TEST_CASE("load_mesh_assimp", "[mesh][io]") {
 }
 
 TEST_CASE("load_scene_assimp", "[io]") {
-    auto scene =
-        lagrange::io::load_scene_assimp(lagrange::testing::get_data_path("open/core/drop_tri.obj"));
+    auto scene = lagrange::io::load_scene_assimp(
+        lagrange::testing::get_data_path("open/core/drop_tri.obj"));
     REQUIRE(scene != nullptr);
     REQUIRE(scene->mNumMeshes == 1);
     REQUIRE(scene->mMeshes[0]->mNumFaces > 0);
 }
 
 TEST_CASE("load fbx", "[io]") {
-    auto scene =
-        lagrange::io::load_scene_assimp(lagrange::testing::get_data_path("corp/io/rp_adanna_rigged_001_zup_t.fbx"));
+    auto scene = lagrange::io::load_scene_assimp(
+        lagrange::testing::get_data_path("corp/io/rp_adanna_rigged_001_zup_t.fbx"));
     REQUIRE(scene != nullptr);
     REQUIRE(scene->mNumMeshes == 1); // one mesh with one material, but multiple components
     auto* mesh = scene->mMeshes[0];
@@ -58,11 +58,12 @@ TEST_CASE("load glb", "[io]") {
     REQUIRE(scene->mNumMaterials == 2);
     REQUIRE(scene->mMaterials[mesh->mMaterialIndex]->mNumProperties > 0);
 
-    auto lmeshes = lagrange::io::extract_meshes_assimp<lagrange::TriangleMesh3D>(scene.get());
+    auto lmeshes =
+        lagrange::io::legacy::extract_meshes_assimp<lagrange::TriangleMesh3D>(scene.get());
     REQUIRE(lmeshes.size() == 1);
 
     using Index = lagrange::TriangleMesh3D::Index;
-    auto lmesh = lagrange::io::convert_mesh_assimp<lagrange::TriangleMesh3D>(mesh);
+    auto lmesh = lagrange::io::legacy::convert_mesh_assimp<lagrange::TriangleMesh3D>(mesh);
     REQUIRE(lmesh->get_num_vertices() == lagrange::safe_cast<Index>(mesh->mNumVertices));
     REQUIRE(lmesh->get_num_facets() == lagrange::safe_cast<Index>(mesh->mNumFaces));
     REQUIRE(lmesh->is_uv_initialized());
