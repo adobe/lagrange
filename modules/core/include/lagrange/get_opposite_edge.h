@@ -19,6 +19,7 @@
 namespace lagrange {
 
 template <typename DerivedF>
+[[deprecated]]
 EdgeType<typename DerivedF::Scalar> get_opposite_edge(
     const Eigen::PlainObjectBase<DerivedF>& facets,
     typename DerivedF::Scalar fid,

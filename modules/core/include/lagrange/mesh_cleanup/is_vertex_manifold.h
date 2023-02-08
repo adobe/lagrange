@@ -19,7 +19,6 @@
 #include <lagrange/MeshTrait.h>
 #include <lagrange/chain_edges.h>
 #include <lagrange/common.h>
-#include <lagrange/get_opposite_edge.h>
 #include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {

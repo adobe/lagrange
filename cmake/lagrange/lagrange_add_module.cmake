@@ -37,6 +37,8 @@ function(lagrange_add_module)
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
+    target_compile_features(lagrange_${module_name} ${module_scope} cxx_std_17)
+
     # Target sources
     file(GLOB_RECURSE INC_FILES "include/*.h")
     file(GLOB_RECURSE SRC_FILES "src/*.cpp")

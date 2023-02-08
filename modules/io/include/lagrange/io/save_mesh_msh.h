@@ -13,28 +13,15 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
-
-#include <ostream>
-#include <vector>
+#include <lagrange/io/types.h>
 
 namespace lagrange::io {
 
 /**
- * Config options for saving mesh in .msh format.
- */
-struct MshSaverOptions
-{
-    bool binary = true; ///< Use binary encoding.
-    std::vector<AttributeId> attr_ids; ///< Set of attributes to output.
-};
-
-
-/**
- * Saves a mesh to a stream in MSH format. If the mesh cannot be saved, an
- * exception is raised (e.g., invalid output stream, incorrect mesh dimension,
- * or facet size < 3).
+ * Saves a mesh to a stream in MSH format. If the mesh cannot be saved, an exception is raised
+ * (e.g., invalid output stream, incorrect mesh dimension, or facet size < 3).
  *
- * @param[in,out] output_stream  Output stream to write to.
+ * @param[in,out] output_stream  Output stream.
  * @param[in]     mesh           Input mesh.
  * @param[in]     options        Option settings.
  *
@@ -45,23 +32,28 @@ template <typename Scalar, typename Index>
 void save_mesh_msh(
     std::ostream& output_stream,
     const SurfaceMesh<Scalar, Index>& mesh,
-    const MshSaverOptions& options = {});
+    const SaveOptions& options = {});
 
 /**
  * @overload
  *
- * @param[in]    filename  Output filename.
+ * Saves a mesh to a stream in MSH format. If the mesh cannot be saved, an exception is raised
+ * (e.g., incorrect mesh dimension, or facet size < 3).
  *
- * @see save_mesh_msh(std::ostream&, const SurfaceMesh<S, I>&, const MshOptions&) for more info.
+ * @param[in]  filename  Output filename.
+ * @param[in]  mesh      Mesh to write.
+ * @param[in]  options   Save options.
+ *
+ * @see        save_mesh_msh(std::ostream&, const SurfaceMesh<S, I>&, const MshOptions&) for more
+ *             info.
+ *
+ * @tparam     Scalar    Mesh scalar type.
+ * @tparam     Index     Mesh index type.
  */
 template <typename Scalar, typename Index>
 void save_mesh_msh(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
-    const MshSaverOptions& options = {})
-{
-    fs::ofstream fout(filename);
-    save_mesh_msh(fout, mesh, options);
-}
+    const SaveOptions& options = {});
 
 } // namespace lagrange::io

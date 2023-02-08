@@ -21,7 +21,6 @@
 
 #include <lagrange/chain_edges.h>
 #include <lagrange/extract_boundary_loops.h>
-#include <lagrange/get_opposite_edge.h>
 #include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {

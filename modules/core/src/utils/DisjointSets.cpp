@@ -51,7 +51,7 @@ std::vector<std::vector<IndexType>> DisjointSets<IndexType>::extract_disjoint_se
 
     std::vector<std::vector<IndexType>> disjoint_sets(counter);
     for (auto i : range(num_entries)) {
-        disjoint_sets[index_map[i]].push_back(i);
+        disjoint_sets[index_map[i]].push_back(static_cast<IndexType>(i));
     }
     return disjoint_sets;
 }
@@ -59,7 +59,7 @@ std::vector<std::vector<IndexType>> DisjointSets<IndexType>::extract_disjoint_se
 template <typename IndexType>
 size_t DisjointSets<IndexType>::extract_disjoint_set_indices(std::vector<IndexType>& index_map)
 {
-    const IndexType num_entries = size();
+    const IndexType num_entries = static_cast<IndexType>(size());
     index_map.resize(num_entries, invalid<IndexType>());
     return extract_disjoint_set_indices({index_map.data(), index_map.size()});
 }
@@ -77,13 +77,13 @@ size_t DisjointSets<IndexType>::extract_disjoint_set_indices(span<IndexType> ind
 
     // Assign each roots a unique index.
     for (auto i : range(num_entries)) {
-        const auto root = find(i);
+        const auto root = find(static_cast<IndexType>(i));
         if (static_cast<IndexType>(i) == root) index_map[i] = counter++;
     }
 
     // Assign all members the same index as their root.
     for (auto i : range(num_entries)) {
-        const auto root = find(i);
+        const auto root = find(static_cast<IndexType>(i));
         la_debug_assert(index_map[root] != invalid<IndexType>());
         index_map[i] = index_map[root];
     }

@@ -16,6 +16,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/testing/check_mesh.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/safe_cast.h>
@@ -39,285 +40,6 @@ constexpr E invalid_enum()
 {
     using ValueType = typename std::underlying_type<E>::type;
     return static_cast<E>(std::numeric_limits<ValueType>::max());
-}
-
-// Check whether the function f : X --> Y restricted to the elements that maps onto Y, is
-// surjective. Index.e. each element of [first, last) has an antecedent through f.
-template <typename Index>
-bool is_restriction_surjective(lagrange::span<const Index> func, Index first, Index last)
-{
-    using namespace lagrange;
-    std::vector<Index> inv(last - first, invalid<Index>());
-    for (Index x = 0; x < Index(func.size()); ++x) {
-        const Index y = func[x];
-        if (y >= first && y < last) {
-            inv[y - first] = x;
-        }
-    }
-    // No element in the range [first, last) has no predecessor through the function
-    return std::none_of(inv.begin(), inv.end(), [&](Index y) { return y == invalid<Index>(); });
-}
-
-// Check whether the function f : X --> Y restricted to the elements that maps onto Y, is injective.
-// Index.e. any two elements that maps onto [first, last) map to different values in [first, last).
-template <typename Index>
-bool is_restriction_injective(lagrange::span<const Index> func, Index first, Index last)
-{
-    using namespace lagrange;
-    std::vector<Index> inv(last - first, invalid<Index>());
-    for (Index x = 0; x < Index(func.size()); ++x) {
-        const Index y = func[x];
-        if (y >= first && y < last) {
-            // Just found another x' that maps to the same value y
-            if (inv[y - first] != invalid<Index>() && inv[y - first] != x) {
-                return false;
-            }
-            inv[y - first] = x;
-        }
-    }
-    return true;
-}
-
-// Check whether elements map within [first, last)
-template <typename Index>
-bool is_in_range(lagrange::span<const Index> func, Index first, Index last)
-{
-    return std::all_of(func.begin(), func.end(), [&](Index y) { return first <= y && y < last; });
-}
-
-template <typename Index>
-bool is_in_range_or_invalid(lagrange::span<const Index> func, Index first, Index last)
-{
-    return std::all_of(func.begin(), func.end(), [&](Index y) {
-        return (first <= y && y < last) || y == lagrange::invalid<Index>();
-    });
-}
-
-template <typename Index>
-bool is_surjective(lagrange::span<const Index> func, Index first, Index last)
-{
-    return is_in_range(func, first, last) && is_restriction_surjective(func, first, last);
-}
-
-template <typename Index>
-bool is_injective(lagrange::span<const Index> func, Index first, Index last)
-{
-    return is_in_range(func, first, last) && is_restriction_injective(func, first, last);
-}
-
-template <typename MeshType>
-void check_valid(const MeshType& mesh)
-{
-    using namespace lagrange;
-    using Index = typename MeshType::Index;
-    const Index nv = mesh.get_num_vertices();
-    const Index nf = mesh.get_num_facets();
-    const Index nc = mesh.get_num_corners();
-    const Index ne = mesh.get_num_edges();
-
-    // Ensure that (V, F) is well-formed
-    for (Index f = 0; f < nf; ++f) {
-        const Index c0 = mesh.get_facet_corner_begin(f);
-        const Index c1 = mesh.get_facet_corner_end(f);
-        REQUIRE(c0 < c1);
-        for (Index c = c0; c < c1; ++c) {
-            const Index v = mesh.get_corner_vertex(c);
-            REQUIRE(mesh.get_corner_facet(c) == f);
-            REQUIRE((v >= 0 && v < nv));
-        }
-    }
-
-    // Ensure that each attribute has the correct number of elements
-    seq_foreach_attribute_read<AttributeElement::Vertex>(mesh, [&](auto&& attr) {
-        REQUIRE(attr.get_num_elements() == nv);
-    });
-    seq_foreach_attribute_read<AttributeElement::Facet>(mesh, [&](auto&& attr) {
-        REQUIRE(attr.get_num_elements() == nf);
-    });
-    seq_foreach_attribute_read<AttributeElement::Corner>(mesh, [&](auto&& attr) {
-        REQUIRE(attr.get_num_elements() == nc);
-    });
-
-    // Ensure that each element index is in range (or an invalid index)
-    seq_foreach_attribute_read(mesh, [&](auto&& attr) {
-        using AttributeType = std::decay_t<decltype(attr)>;
-        using ValueType = typename AttributeType::ValueType;
-        Index n = 0;
-        auto usage = attr.get_usage();
-        if (usage == AttributeUsage::VertexIndex) {
-            n = nv;
-        } else if (usage == AttributeUsage::FacetIndex) {
-            n = nf;
-        } else if (usage == AttributeUsage::CornerIndex) {
-            n = nc;
-        } else if (usage == AttributeUsage::EdgeIndex) {
-            n = ne;
-        } else {
-            return;
-        }
-        REQUIRE(std::is_same_v<ValueType, Index>);
-        if constexpr (std::is_same_v<ValueType, Index>) {
-            if constexpr (AttributeType::IsIndexed) {
-                REQUIRE(is_in_range_or_invalid<ValueType>(attr.values().get_all(), 0, n));
-            } else {
-                REQUIRE(is_in_range_or_invalid<ValueType>(attr.get_all(), 0, n));
-            }
-        } else {
-            LA_IGNORE(n);
-        }
-    });
-
-    // Ensure that only hybrid meshes have c <--> f attributes
-    if (mesh.is_hybrid()) {
-        REQUIRE(mesh.attr_id_facet_to_first_corner() != invalid_attribute_id());
-        REQUIRE(mesh.attr_id_corner_to_facet() != invalid_attribute_id());
-    } else {
-        REQUIRE(mesh.is_regular());
-        REQUIRE(mesh.attr_id_facet_to_first_corner() == invalid_attribute_id());
-        REQUIRE(mesh.attr_id_corner_to_facet() == invalid_attribute_id());
-    }
-
-    // Ensure that edge and connectivity information is well-formed
-    if (mesh.has_edges()) {
-        // Check that all facet edges have a single corresponding edge in the global indexing
-        auto c2e = mesh.template get_attribute<Index>(mesh.attr_id_corner_to_edge()).get_all();
-        auto e2c =
-            mesh.template get_attribute<Index>(mesh.attr_id_edge_to_first_corner()).get_all();
-        auto v2c =
-            mesh.template get_attribute<Index>(mesh.attr_id_vertex_to_first_corner()).get_all();
-        auto next_around_edge =
-            mesh.template get_attribute<Index>(mesh.attr_id_next_corner_around_edge()).get_all();
-        auto next_around_vertex =
-            mesh.template get_attribute<Index>(mesh.attr_id_next_corner_around_vertex()).get_all();
-        REQUIRE(is_surjective<Index>(c2e, 0, ne));
-        REQUIRE(is_injective<Index>(e2c, 0, nc));
-        REQUIRE(is_in_range_or_invalid<Index>(v2c, 0, nc));
-        REQUIRE(is_restriction_injective<Index>(
-            v2c,
-            0,
-            nc)); // may have isolated vertices that map to invalid<>()
-
-        // Make sure that e2c contains the name number of edges as the mesh
-        std::set<std::pair<Index, Index>> edges;
-        for (Index f = 0; f < nf; ++f) {
-            for (Index lv0 = 0, s = mesh.get_facet_size(f); lv0 < s; ++lv0) {
-                const Index lv1 = (lv0 + 1) % s;
-                const Index v0 = mesh.get_facet_vertex(f, lv0);
-                const Index v1 = mesh.get_facet_vertex(f, lv1);
-                edges.emplace(std::min(v0, v1), std::max(v0, v1));
-            }
-        }
-        std::vector<std::pair<Index, Index>> mesh_edges;
-        for (Index e = 0; e < ne; ++e) {
-            auto v = mesh.get_edge_vertices(e);
-            mesh_edges.push_back({v[0], v[1]});
-        }
-        REQUIRE(edges.size() == e2c.size());
-        // Make sure we don't have edges that are not in the mesh?
-        edges.clear();
-        for (auto c : e2c) {
-            const Index f = mesh.get_corner_facet(c);
-            const Index first_corner = mesh.get_facet_corner_begin(f);
-            const Index s = mesh.get_facet_size(f);
-            const Index lv0 = c - first_corner;
-            const Index lv1 = (lv0 + 1) % s;
-            const Index v0 = mesh.get_facet_vertex(f, lv0);
-            const Index v1 = mesh.get_facet_vertex(f, lv1);
-            edges.emplace(std::min(v0, v1), std::max(v0, v1));
-        }
-        REQUIRE(edges.size() == e2c.size());
-        // Make sure that every corner points to an edge and back to the same vertex
-        for (Index f = 0; f < nf; ++f) {
-            const Index first_corner = mesh.get_facet_corner_begin(f);
-            for (Index lv0 = 0, s = mesh.get_facet_size(f); lv0 < s; ++lv0) {
-                const Index v0 = mesh.get_facet_vertex(f, lv0);
-                const Index c = first_corner + lv0;
-                const Index e = c2e[c];
-                const Index c_other = e2c[e];
-                const Index v_other = mesh.get_corner_vertex(c_other);
-                REQUIRE(v0 == v_other);
-            }
-        }
-        // Check that for every vertex / every edge, the "chain" of corners around it touches
-        // all the incident corners exactly once (no duplicate).
-        std::vector<std::unordered_set<Index>> corners_around_vertex(nv);
-        std::vector<std::unordered_set<Index>> corners_around_edge(ne);
-        std::vector<std::unordered_set<Index>> facets_around_vertex(nv);
-        std::vector<std::unordered_set<Index>> facets_around_edge(ne);
-        for (Index f = 0; f < nf; ++f) {
-            const Index first_corner = mesh.get_facet_corner_begin(f);
-            for (Index lv = 0, s = mesh.get_facet_size(f); lv < s; ++lv) {
-                const Index v = mesh.get_facet_vertex(f, lv);
-                const Index c = first_corner + lv;
-                const Index e = c2e[c];
-                REQUIRE(mesh.get_edge(f, lv) == e);
-                REQUIRE(mesh.get_corner_edge(c) == e);
-                REQUIRE(corners_around_vertex[v].count(c) == 0);
-                REQUIRE(corners_around_edge[e].count(c) == 0);
-                corners_around_vertex[v].insert(c);
-                corners_around_edge[e].insert(c);
-                facets_around_vertex[v].insert(f);
-                facets_around_edge[e].insert(f);
-            }
-        }
-        std::unordered_set<Index> corners_around;
-        std::unordered_set<Index> facets_around;
-        for (Index v = 0; v < nv; ++v) {
-            corners_around.clear();
-            facets_around.clear();
-            const Index c0 = v2c[v];
-            REQUIRE(mesh.get_first_corner_around_vertex(v) == c0);
-            REQUIRE(mesh.get_one_corner_around_vertex(v) == c0);
-            for (Index ci = c0; ci != invalid<Index>(); ci = next_around_vertex[ci]) {
-                REQUIRE(mesh.get_next_corner_around_vertex(ci) == next_around_vertex[ci]);
-                REQUIRE(corners_around_vertex[v].count(ci));
-                REQUIRE(corners_around.count(ci) == 0);
-                corners_around.insert(ci);
-            }
-            mesh.foreach_corner_around_vertex(v, [&](Index c) {
-                REQUIRE(corners_around.count(c));
-            });
-            mesh.foreach_facet_around_vertex(v, [&](Index f) {
-                REQUIRE(facets_around_vertex[v].count(f));
-                facets_around.insert(f);
-            });
-            REQUIRE(corners_around.size() == corners_around_vertex[v].size());
-            REQUIRE(facets_around.size() == facets_around_vertex[v].size());
-            REQUIRE(
-                corners_around.size() ==
-                safe_cast<size_t>(mesh.count_num_corners_around_vertex(v)));
-        }
-        for (Index e = 0; e < ne; ++e) {
-            corners_around.clear();
-            facets_around.clear();
-            const Index c0 = e2c[e];
-            REQUIRE(mesh.get_first_corner_around_edge(e) == c0);
-            REQUIRE(mesh.get_one_corner_around_edge(e) == c0);
-            for (Index ci = c0; ci != invalid<Index>(); ci = next_around_edge[ci]) {
-                REQUIRE(mesh.get_next_corner_around_edge(ci) == next_around_edge[ci]);
-                REQUIRE(corners_around_edge[e].count(ci));
-                REQUIRE(corners_around.count(ci) == 0);
-                corners_around.insert(ci);
-            }
-            mesh.foreach_corner_around_edge(e, [&](Index c) { REQUIRE(corners_around.count(c)); });
-            Index first_facet = invalid<Index>();
-            mesh.foreach_facet_around_edge(e, [&](Index f) {
-                REQUIRE(facets_around_edge[e].count(f));
-                facets_around.insert(f);
-                if (first_facet == invalid<Index>()) {
-                    first_facet = f;
-                }
-            });
-            REQUIRE(mesh.get_one_facet_around_edge(e) == first_facet);
-            REQUIRE(corners_around.size() == corners_around_edge[e].size());
-            REQUIRE(facets_around.size() == facets_around_edge[e].size());
-            REQUIRE(
-                corners_around.size() == safe_cast<size_t>(mesh.count_num_corners_around_edge(e)));
-            if (mesh.is_boundary_edge(e)) {
-                REQUIRE(corners_around.size() == 1);
-            }
-        }
-    }
 }
 
 // get_edge_vertices for invalid c
@@ -349,7 +71,7 @@ void test_mesh_construction()
         mesh.add_vertex(p3d);
         mesh.add_vertex({Scalar(0.1), Scalar(0.2), Scalar(0.3)});
         nv = mesh.get_num_vertices();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 0; i < nv; ++i) {
             auto p = mesh.get_position(i);
             REQUIRE(p.size() == dim);
@@ -359,7 +81,7 @@ void test_mesh_construction()
         }
 
         mesh.add_vertices(5);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = nv; i < mesh.get_num_vertices(); ++i) {
             auto p = mesh.get_position(i);
             REQUIRE(p.size() == dim);
@@ -372,7 +94,7 @@ void test_mesh_construction()
         std::vector<Scalar> buffer(4 * dim);
         std::iota(buffer.begin(), buffer.end(), 11);
         mesh.add_vertices(4, buffer);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = nv, j = 0; i < mesh.get_num_vertices(); ++i, ++j) {
             auto p = mesh.get_position(i);
             REQUIRE(p.size() == dim);
@@ -389,7 +111,7 @@ void test_mesh_construction()
             p[1] = Scalar(1.2);
             p[2] = Scalar(1.3);
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = nv; i < mesh.get_num_vertices(); ++i) {
             auto p = mesh.get_position(i);
             REQUIRE(p.size() == dim);
@@ -413,7 +135,7 @@ void test_mesh_construction()
         mesh.add_vertex(p2d);
         mesh.add_vertex({Scalar(9.1), Scalar(9.2)});
         nv = mesh.get_num_vertices();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 0; i < nv; ++i) {
             auto p = mesh.get_position(i);
             REQUIRE(p.size() == dim);
@@ -422,7 +144,7 @@ void test_mesh_construction()
         }
 
         mesh.add_vertices(5);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = nv; i < mesh.get_num_vertices(); ++i) {
             auto p = mesh.get_position(i);
             REQUIRE(p.size() == dim);
@@ -437,7 +159,7 @@ void test_mesh_construction()
             p[0] = Scalar(1.1);
             p[1] = Scalar(1.2);
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = nv; i < mesh.get_num_vertices(); ++i) {
             auto p = mesh.get_position(i);
             REQUIRE(p.size() == dim);
@@ -453,7 +175,7 @@ void test_mesh_construction()
 
         mesh.add_triangle(0, 1, 2);
         REQUIRE(mesh.is_triangle_mesh());
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         {
             auto f = mesh.get_facet_vertices(0);
             REQUIRE(f.size() == 3);
@@ -467,7 +189,7 @@ void test_mesh_construction()
 
         mesh.add_quad(0, 1, 2, 3);
         REQUIRE(mesh.is_hybrid());
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         {
             auto f = mesh.get_facet_vertices(1);
             REQUIRE(f.size() == 4);
@@ -478,7 +200,7 @@ void test_mesh_construction()
         }
 
         mesh.add_polygon(5);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_facets() == 3);
         {
             auto f = mesh.get_facet_vertices(2);
@@ -490,7 +212,7 @@ void test_mesh_construction()
 
         const Index poly[5] = {1, 2, 3, 4, 5};
         mesh.add_polygon(poly);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         {
             auto f = mesh.get_facet_vertices(3);
             REQUIRE(f.size() == 5);
@@ -504,7 +226,7 @@ void test_mesh_construction()
                 f[i] = i + 2;
             }
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         {
             auto f = mesh.get_facet_vertices(4);
             REQUIRE(f.size() == 5);
@@ -520,7 +242,7 @@ void test_mesh_construction()
         mesh.add_vertices(10);
 
         mesh.add_triangles(3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 0; i < mesh.get_num_facets(); ++i) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 3);
@@ -531,7 +253,7 @@ void test_mesh_construction()
 
         const Index tri[] = {0, 1, 2, 3, 1, 2, 4, 1, 2};
         mesh.add_triangles(3, tri);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 3, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 3);
@@ -547,7 +269,7 @@ void test_mesh_construction()
                 f[i] = i;
             }
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 6; i < mesh.get_num_facets(); ++i) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 3);
@@ -562,7 +284,7 @@ void test_mesh_construction()
         mesh.add_vertices(10);
 
         mesh.add_quads(3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 0; i < mesh.get_num_facets(); ++i) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 4);
@@ -573,7 +295,7 @@ void test_mesh_construction()
 
         const Index quad[] = {0, 1, 2, 3, 4, 1, 2, 3};
         mesh.add_quads(2, quad);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 3, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 4);
@@ -589,7 +311,7 @@ void test_mesh_construction()
                 f[i] = i;
             }
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 5; i < mesh.get_num_facets(); ++i) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 4);
@@ -604,7 +326,7 @@ void test_mesh_construction()
         mesh.add_vertices(10);
 
         mesh.add_polygons(3, 5);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 0; i < mesh.get_num_facets(); ++i) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 5);
@@ -615,7 +337,7 @@ void test_mesh_construction()
 
         const Index poly[] = {0, 1, 2, 3, 4, 5, 1, 2, 3, 4};
         mesh.add_polygons(2, 5, poly);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 3, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 5);
@@ -631,7 +353,7 @@ void test_mesh_construction()
                 f[i] = i;
             }
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 5; i < mesh.get_num_facets(); ++i) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == 5);
@@ -648,7 +370,7 @@ void test_mesh_construction()
         const Index sizes[] = {3, 5};
         const Index indices[] = {0, 1, 3, 0, 1, 2, 3, 4};
         mesh.add_hybrid(sizes);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 0, o = 0; i < mesh.get_num_facets(); ++i) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == sizes[i]);
@@ -659,7 +381,7 @@ void test_mesh_construction()
         }
 
         mesh.add_hybrid(sizes, indices);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 2, j = 0, o = 0; i < mesh.get_num_facets(); ++i, ++j) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == sizes[j]);
@@ -684,7 +406,7 @@ void test_mesh_construction()
                     t[i] = i;
                 }
             });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         for (Index i = 4, j = 0; i < mesh.get_num_facets(); ++i, ++j) {
             auto f = mesh.get_facet_vertices(i);
             REQUIRE(f.size() == j + 3);
@@ -705,28 +427,28 @@ void test_element_removal(bool with_edges)
         MeshType mesh;
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(20);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 20);
         mesh.remove_vertices({0, 1, 2});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 17);
         {
             Index v[] = {0, 1};
             mesh.remove_vertices(v);
         }
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 15);
         std::vector<Index> v2{0, 1};
         mesh.remove_vertices(v2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 13);
         std::array<Index, 3> v3{{0, 1, 4}};
         mesh.remove_vertices(v3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 10);
         mesh.remove_vertices([](Index v) noexcept { return (v == 0) || (v == 2); });
         REQUIRE(mesh.get_num_vertices() == 8);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 
     // Simple removal test with hybrid storage
@@ -737,30 +459,30 @@ void test_element_removal(bool with_edges)
             REQUIRE(mesh.has_edges());
         }
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.is_regular());
 
         mesh.add_quad(0, 1, 2, 3);
         REQUIRE(mesh.is_hybrid());
         REQUIRE(mesh.get_num_facets() == 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         Index f[] = {1};
         mesh.remove_facets(f);
         REQUIRE(mesh.get_num_facets() == 1);
         REQUIRE(mesh.is_hybrid());
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         Index f2[] = {0};
         mesh.remove_facets(f2);
         REQUIRE(mesh.is_hybrid());
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         mesh.add_triangle(0, 1, 2);
         REQUIRE(mesh.is_hybrid());
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 
     // Facet removal simple
@@ -771,17 +493,17 @@ void test_element_removal(bool with_edges)
             REQUIRE(mesh.has_edges());
         }
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_facets({1});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_facets() == 3);
     }
 
@@ -790,25 +512,25 @@ void test_element_removal(bool with_edges)
         MeshType mesh;
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         const Index num_corners = 3 + 4 + 3 + 5;
         auto id =
             mesh.template create_attribute<double>("color", lagrange::AttributeElement::Corner);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         auto& attr = mesh.template ref_attribute<double>(id);
         std::iota(attr.ref_all().begin(), attr.ref_all().end(), 123);
         REQUIRE(mesh.get_num_facets() == 4);
         mesh.remove_facets([](Index f) noexcept { return f == 1; });
         REQUIRE(mesh.get_num_facets() == 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(attr.get_num_elements() == num_corners - 4);
         // Ensure corner attributes are properly shifted
         for (Index c = 3, i = 7; c < attr.get_num_elements(); ++c, ++i) {
@@ -821,41 +543,41 @@ void test_element_removal(bool with_edges)
         MeshType mesh;
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         LA_REQUIRE_THROWS(mesh.remove_vertices({1, 5, 2}));
 
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         LA_REQUIRE_THROWS(mesh.remove_vertices({1, 5, 100}));
 
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         LA_REQUIRE_THROWS(mesh.remove_facets({2, 1}));
 
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         LA_REQUIRE_THROWS(mesh.remove_facets({0, 1, 100}));
     }
 
@@ -864,17 +586,17 @@ void test_element_removal(bool with_edges)
         MeshType mesh;
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.clear_facets();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_facets() == 0);
         REQUIRE(mesh.get_num_corners() == 0);
         REQUIRE(mesh.get_num_vertices() == 10);
@@ -882,13 +604,13 @@ void test_element_removal(bool with_edges)
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
         mesh.clear_vertices();
         REQUIRE(mesh.get_num_facets() == 0);
@@ -902,14 +624,14 @@ void test_element_removal(bool with_edges)
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
         mesh.remove_vertices([](Index) noexcept { return false; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 10);
 
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
         mesh.remove_vertices({});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 10);
     }
 
@@ -918,33 +640,33 @@ void test_element_removal(bool with_edges)
         MeshType mesh;
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_facets([](Index) noexcept { return false; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_facets() == 4);
 
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_facets({});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_facets() == 4);
     }
 
@@ -953,34 +675,34 @@ void test_element_removal(bool with_edges)
         MeshType mesh;
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_vertices([](Index v) noexcept { return v == 3; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 9);
         REQUIRE(mesh.get_num_facets() == 2);
 
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_vertices({3});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 9);
         REQUIRE(mesh.get_num_facets() == 2);
     }
@@ -990,34 +712,34 @@ void test_element_removal(bool with_edges)
         MeshType mesh;
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(2, 3, 4);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_vertices([](Index v) noexcept { return v == 3; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 9);
         REQUIRE(mesh.get_num_facets() == 2);
 
         mesh = MeshType();
         if (with_edges) mesh.initialize_edges();
         mesh.add_vertices(10);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_quad(0, 1, 2, 3);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_triangle(0, 1, 2);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.add_polygon({0, 1, 2, 3, 4});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_vertices({3});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         REQUIRE(mesh.get_num_vertices() == 9);
         REQUIRE(mesh.get_num_facets() == 2);
     }
@@ -1092,7 +814,7 @@ void test_mesh_storage()
             for (Index f = 0; f < num_facets; ++f) {
                 REQUIRE(mesh.get_facet_size(f) == facet_size);
             }
-            check_valid(mesh);
+            lagrange::testing::check_mesh(mesh);
             REQUIRE(mesh.is_regular());
         }
     }
@@ -1116,7 +838,7 @@ void test_mesh_storage()
             for (Index f = 0; f < num_facets; ++f) {
                 REQUIRE(mesh.get_facet_size(f) == f + facet_size);
             }
-            check_valid(mesh);
+            lagrange::testing::check_mesh(mesh);
             REQUIRE(mesh.is_hybrid());
         }
     }
@@ -1393,7 +1115,7 @@ void test_mesh_attribute()
     REQUIRE(mesh.has_attribute("normals_i"));
     REQUIRE(mesh.has_attribute("normals_x"));
     REQUIRE(mesh.template is_attribute_type<ValueType>("normals_v0"));
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
 
     auto attr_v0 = mesh.template ref_attribute<ValueType>("normals_v0").get_all();
     REQUIRE(attr_v0.size() == mesh.get_num_vertices() * mesh.get_dimension());
@@ -1645,7 +1367,7 @@ void test_wrap_attribute_special()
         REQUIRE(mesh.get_corner_to_vertex().get_all().data() == corner_to_vertex.data());
         REQUIRE(mesh.get_num_facets() == num_facets);
         REQUIRE(mesh.is_triangle_mesh());
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         // Wrap buffer as const facets
         mesh.ref_corner_to_vertex().create_internal_copy();
@@ -1655,7 +1377,7 @@ void test_wrap_attribute_special()
         REQUIRE(mesh.get_num_facets() == num_facets);
         REQUIRE(mesh.is_triangle_mesh());
         LA_REQUIRE_THROWS(mesh.ref_facet_vertices(0));
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 
     {
@@ -1673,7 +1395,7 @@ void test_wrap_attribute_special()
                 .data() == offsets.data());
         REQUIRE(mesh.get_num_facets() == num_facets);
         REQUIRE(mesh.is_hybrid());
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         // Wrap as const facets + indices
         mesh = SurfaceMesh<Scalar, Index>();
@@ -1682,7 +1404,7 @@ void test_wrap_attribute_special()
         REQUIRE(mesh.get_num_facets() == num_facets);
         REQUIRE(mesh.is_hybrid());
         LA_REQUIRE_THROWS(mesh.ref_facet_vertices(0));
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 }
 
@@ -2016,7 +1738,7 @@ void test_resize_attribute_basic()
         mesh.template create_attribute<Scalar>("corner", AttributeElement::Corner);
         mesh.template create_attribute<Scalar>("value", AttributeElement::Value);
         mesh.template create_attribute<Scalar>("indexed", AttributeElement::Indexed);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         const Index num_vertices = 10;
         const Index num_facets = 6;
@@ -2033,7 +1755,7 @@ void test_resize_attribute_basic()
         REQUIRE(
             mesh.template get_indexed_attribute<Scalar>("indexed").indices().get_num_elements() ==
             num_corners);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 
     {
@@ -2062,7 +1784,7 @@ void test_resize_attribute_basic()
         REQUIRE(
             mesh.template get_indexed_attribute<Scalar>("indexed").indices().get_num_elements() ==
             num_corners);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 
     // TODO: Wrap + resize other attr
@@ -2099,7 +1821,7 @@ void test_edit_facets_with_edges()
         mesh.add_triangles(3, [](Index, span<Index> t) {
             std::fill(t.begin(), t.end(), Index(0));
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
     {
         // Add quad
@@ -2107,7 +1829,7 @@ void test_edit_facets_with_edges()
         const Index indices[] = {0, 1, 2, 3, 0, 1, 2, 3};
         mesh.add_quads(2, indices);
         mesh.add_quads(3, [](Index, span<Index> t) { std::fill(t.begin(), t.end(), Index(0)); });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
     {
         // Add polygon
@@ -2119,7 +1841,7 @@ void test_edit_facets_with_edges()
         mesh.add_polygons(3, 5, [](Index, span<Index> t) {
             std::fill(t.begin(), t.end(), Index(0));
         });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
     {
         // Add hybrid
@@ -2132,7 +1854,7 @@ void test_edit_facets_with_edges()
             [](Index, lagrange::span<Index> t) noexcept {
                 std::fill(t.begin(), t.end(), Index(0));
             });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 }
 
@@ -2627,7 +2349,7 @@ void test_element_index_resize()
     mesh.add_triangle(5, 6, 7);
     mesh.add_triangle(6, 7, 8);
     mesh.initialize_edges();
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
 
     auto vid = mesh.template create_attribute<Index>(
         "vid",
@@ -2661,7 +2383,7 @@ void test_element_index_resize()
         "eid_i",
         AttributeElement::Indexed,
         AttributeUsage::EdgeIndex);
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
 
     // Initialize attribute values
     {
@@ -2683,21 +2405,21 @@ void test_element_index_resize()
         auto eattr_i = mesh.template ref_indexed_attribute<Index>(eid_i).values().ref_all();
         std::iota(eattr_i.begin(), eattr_i.end(), 0);
     }
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
 
     // Resize attr
     mesh.remove_facets({1});
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
     mesh.remove_vertices({5});
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
 
     // Clear mesh
     mesh.clear_facets();
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
     mesh.clear_vertices();
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
     mesh.clear_edges();
-    check_valid(mesh);
+    lagrange::testing::check_mesh(mesh);
 }
 
 template <typename ValueType, typename Scalar, typename Index>
@@ -2731,7 +2453,7 @@ void test_resize_attribute_type()
         mesh.add_triangle(5, 6, 7);
         mesh.add_triangle(6, 7, 8);
         mesh.initialize_edges();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         auto vid = mesh.template create_attribute<ValueType>("vid", AttributeElement::Vertex);
         auto fid = mesh.template create_attribute<ValueType>("fid", AttributeElement::Facet);
@@ -2739,7 +2461,7 @@ void test_resize_attribute_type()
         auto eid = mesh.template create_attribute<ValueType>("eid", AttributeElement::Edge);
         auto iid = mesh.template create_attribute<ValueType>("iid", AttributeElement::Indexed);
         auto xid = mesh.template create_attribute<ValueType>("xid", AttributeElement::Value);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         // Ground truth copy of each attributes
         std::vector<ValueType> vgt;
@@ -2775,7 +2497,7 @@ void test_resize_attribute_type()
             egt.assign(eattr.begin(), eattr.end());
             igt.assign(attr_indices.begin(), attr_indices.end());
         }
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         auto check_all_attr = [&]() {
             check_attr(mesh, fid, fgt);
@@ -2816,29 +2538,29 @@ void test_resize_attribute_type()
         // Resize attr
         remove_facets_from_ground_truth([](Index f) noexcept { return f == 1; });
         mesh.remove_facets({1});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         check_all_attr();
 
         remove_facets_from_ground_truth([](Index f) noexcept { return f == 2; });
         mesh.remove_facets([](Index f) noexcept { return f == 2; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         check_all_attr();
 
         remove_vertices_from_ground_truth([](Index v) noexcept { return v == 6; });
         mesh.remove_vertices([](Index v) noexcept { return v == 6; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         remove_vertices_from_ground_truth([](Index v) noexcept { return v == 5; });
         mesh.remove_vertices({5});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         // Clear mesh
         mesh.clear_facets();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.clear_vertices();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.clear_edges();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 
     {
@@ -2851,7 +2573,7 @@ void test_resize_attribute_type()
         mesh.add_triangle(5, 6, 7);
         mesh.add_triangle(6, 7, 8);
         mesh.initialize_edges();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         auto vid = mesh.template create_attribute<ValueType>("vid", AttributeElement::Vertex);
         auto fid = mesh.template create_attribute<ValueType>("fid", AttributeElement::Facet);
@@ -2859,7 +2581,7 @@ void test_resize_attribute_type()
         auto eid = mesh.template create_attribute<ValueType>("eid", AttributeElement::Edge);
         auto iid = mesh.template create_attribute<ValueType>("iid", AttributeElement::Indexed);
         auto xid = mesh.template create_attribute<ValueType>("xid", AttributeElement::Value);
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         // Initialize attribute values
         {
@@ -2876,28 +2598,28 @@ void test_resize_attribute_type()
             auto xattr = mesh.template ref_attribute<ValueType>(xid).ref_all();
             std::iota(xattr.begin(), xattr.end(), ValueType(0));
         }
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         // TODO: Implement "ground truth" attributes & remapping similar to the regular triangle
         // mesh (more complicated due to corner offsets).
 
         // Resize attr
         mesh.remove_facets({1});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_facets([](Index f) noexcept { return f == 2; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_vertices([](Index v) noexcept { return v == 6; });
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.remove_vertices({5});
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
 
         // Clear mesh
         mesh.clear_facets();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.clear_vertices();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
         mesh.clear_edges();
-        check_valid(mesh);
+        lagrange::testing::check_mesh(mesh);
     }
 }
 
@@ -3123,4 +2845,26 @@ TEST_CASE("SurfaceMesh: Shrink And Compress", "[next]")
     SurfaceMesh32f mesh;
     mesh.shrink_to_fit();
     mesh.compress_if_regular();
+}
+
+TEST_CASE("SurfaceMesh: sanity check", "[next]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // Simple cube:
+    //  3 +---+ 2
+    //    | / |
+    //  0 +---+ 1
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(0, 2, 3);
+    mesh.initialize_edges();
+
+    lagrange::testing::check_mesh(mesh);
 }

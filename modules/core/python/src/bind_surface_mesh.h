@@ -61,7 +61,7 @@ void bind_surface_mesh(nanobind::module_& m)
         auto [data, shape, stride] = tensor_to_span(b);
         la_runtime_assert(is_dense(shape, stride));
         la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
-        self.add_vertices(shape[0], data);
+        self.add_vertices(static_cast<Index>(shape[0]), data);
     });
     // TODO: combine all add facet functions into `add_facets`.
     surface_mesh_class.def("add_triangle", &MeshType::add_triangle);
@@ -69,14 +69,14 @@ void bind_surface_mesh(nanobind::module_& m)
         auto [data, shape, stride] = tensor_to_span(b);
         la_runtime_assert(is_dense(shape, stride));
         la_runtime_assert(check_shape(shape, invalid<size_t>(), 3));
-        self.add_triangles(shape[0], data);
+        self.add_triangles(static_cast<Index>(shape[0]), data);
     });
     surface_mesh_class.def("add_quad", &MeshType::add_quad);
     surface_mesh_class.def("add_quads", [](MeshType& self, Tensor<Index> b) {
         auto [data, shape, stride] = tensor_to_span(b);
         la_runtime_assert(is_dense(shape, stride));
         la_runtime_assert(check_shape(shape, invalid<size_t>(), 4));
-        self.add_quads(shape[0], data);
+        self.add_quads(static_cast<Index>(shape[0]), data);
     });
     surface_mesh_class.def("add_polygon", [](MeshType& self, Tensor<Index> b) {
         auto [data, shape, stride] = tensor_to_span(b);
@@ -87,7 +87,7 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def("add_polygons", [](MeshType& self, Tensor<Index> b) {
         auto [data, shape, stride] = tensor_to_span(b);
         la_runtime_assert(is_dense(shape, stride));
-        self.add_polygons(shape[0], shape[1], data);
+        self.add_polygons(static_cast<Index>(shape[0]), static_cast<Index>(shape[1]), data);
     });
     surface_mesh_class.def(
         "add_hybrid",
@@ -162,7 +162,8 @@ void bind_surface_mesh(nanobind::module_& m)
                 auto [index_data, index_shape, index_stride] = tensor_to_span(initial_indices);
                 la_runtime_assert(is_dense(value_shape, value_stride));
                 la_runtime_assert(is_dense(index_shape, index_stride));
-                Index num_channels = value_shape.size() == 1 ? 1 : value_shape[1];
+                Index num_channels =
+                    value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);
                 return self.template create_attribute<ValueType>(
                     name,
                     element,
@@ -198,7 +199,7 @@ void bind_surface_mesh(nanobind::module_& m)
                 using ValueType = typename std::decay_t<decltype(tensor)>::Scalar;
                 auto [data, shape, stride] = tensor_to_span(tensor);
                 la_runtime_assert(is_dense(shape, stride));
-                Index num_channels = shape.size() == 1 ? 1 : shape[1];
+                Index num_channels = shape.size() == 1 ? 1 : static_cast<Index>(shape[1]);
                 AttributeId id;
                 auto owner = std::make_shared<nb::object>(nb::cast(values));
                 if constexpr (std::is_const_v<ValueType>) {
@@ -247,8 +248,9 @@ void bind_surface_mesh(nanobind::module_& m)
                 auto [index_data, index_shape, index_stride] = tensor_to_span(index_tensor);
                 la_runtime_assert(is_dense(value_shape, value_stride));
                 la_runtime_assert(is_dense(index_shape, index_stride));
-                Index num_values = value_shape[0];
-                Index num_channels = value_shape.size() == 1 ? 1 : value_shape[1];
+                Index num_values = static_cast<Index>(value_shape[0]);
+                Index num_channels =
+                    value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);
                 AttributeId id;
 
                 auto value_owner = std::make_shared<nb::object>(nb::cast(values));
@@ -359,7 +361,7 @@ void bind_surface_mesh(nanobind::module_& m)
             auto owner = std::make_shared<nb::object>(nb::cast(tensor));
             auto id = self.wrap_as_vertices(
                 make_shared_span(owner, values.data(), values.size()),
-                num_vertices);
+                static_cast<Index>(num_vertices));
             auto& attr = self.template ref_attribute<Scalar>(id);
             attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
         });
@@ -387,8 +389,8 @@ void bind_surface_mesh(nanobind::module_& m)
             auto owner = std::make_shared<nb::object>(nb::cast(tensor));
             auto id = self.wrap_as_facets(
                 make_shared_span(owner, values.data(), values.size()),
-                num_facets,
-                vertex_per_facet);
+                static_cast<Index>(num_facets),
+                static_cast<Index>(vertex_per_facet));
             auto& attr = self.template ref_attribute<Scalar>(id);
             attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
         });

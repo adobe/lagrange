@@ -50,7 +50,7 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
         const auto num_facets = m1.get_num_facets();
         for (auto fid : range(num_facets)) {
             const auto f1 = m1.get_facet_vertices(fid);
-            const auto f2 = m1.get_facet_vertices(fid);
+            const auto f2 = m2.get_facet_vertices(fid);
 
             REQUIRE(f1.size() == f2.size());
             for (auto i : range(f1.size())) {
@@ -86,8 +86,9 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
     mesh.add_triangle(0, 1, 3);
     mesh.add_triangle(1, 2, 3);
     std::stringstream data;
-    io::MshSaverOptions options;
-    options.binary = false;
+    io::SaveOptions options;
+    options.encoding = io::FileEncoding::Ascii;
+    options.output_attributes = io::SaveOptions::OutputAttributes::SelectedOnly;
 
     SECTION("With vertex attribute")
     {
@@ -104,7 +105,7 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
         buffer[2] = 2.;
         buffer[3] = 3.;
 
-        options.attr_ids.push_back(id);
+        options.selected_attributes.push_back(id);
     }
 
     SECTION("With facet attribute")
@@ -122,7 +123,7 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
         buffer[2] = 2.;
         buffer[3] = 3.;
 
-        options.attr_ids.push_back(id);
+        options.selected_attributes.push_back(id);
     }
 
     SECTION("With corner attribute")
@@ -139,7 +140,7 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
         for (auto i : range(buffer.size())) {
             buffer[i] = static_cast<Scalar>(i);
         }
-        options.attr_ids.push_back(id);
+        options.selected_attributes.push_back(id);
     }
 
     SECTION("With int data")
@@ -157,7 +158,7 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
         buffer[2] = 2;
         buffer[3] = 3;
 
-        options.attr_ids.push_back(id);
+        options.selected_attributes.push_back(id);
     }
 
     REQUIRE_NOTHROW(io::save_mesh_msh(data, mesh, options));

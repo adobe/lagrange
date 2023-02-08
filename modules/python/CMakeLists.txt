@@ -1,5 +1,5 @@
 #
-# Copyright 2022 Adobe. All rights reserved.
+# Copyright 2020 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,20 +10,40 @@
 # governing permissions and limitations under the License.
 #
 
+# 0. Add $loader_path or $ORIGIN to rpath.
+if(SKBUILD)
+    if(APPLE)
+        set(CMAKE_INSTALL_RPATH @loader_path)
+    elseif(UNIX)
+        set(CMAKE_INSTALL_RPATH $ORIGIN)
+    endif()
+endif()
+
 # 1. define module
-include(nanobind)
+include(nanobind tbb)
 nanobind_add_module(lagrange_python NB_STATIC)
 add_library(lagrange::python ALIAS lagrange_python)
-set_target_properties(lagrange_python PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules")
+set_target_properties(lagrange_python PROPERTIES
+    FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules"
+    CXX_VISIBILITY_PRESET default)
+
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set_target_properties(lagrange_python PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
+
 message(STATUS "Lagrange: creating target 'lagrange::python'")
+if(TBB_PREFER_STATIC)
+    message(FATAL_ERROR "TBB must be compiled as shared library for python binding to work.")
+endif()
 
 # 2. installation
 if(SKBUILD)
     # Install python extension directly at ${CMAKE_INSTALL_PREFIX}, which will
     # be set by `setup.py`.
-    install(TARGETS lagrange_python
+    install(TARGETS lagrange_python tbb
         ARCHIVE DESTINATION . COMPONENT Lagrange_Python_Runtime
         LIBRARY DESTINATION . COMPONENT Lagrange_Python_Runtime
+        RUNTIME DESTINATION . COMPONENT Lagrange_Python_Runtime
     )
     add_custom_target(lagrange-python-install-runtime
         ${CMAKE_COMMAND}

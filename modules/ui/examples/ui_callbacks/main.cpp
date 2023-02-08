@@ -84,7 +84,7 @@ int main(int argc, char** argv)
     ui::on<ui::TransformChangedEvent>(viewer, [&](const ui::TransformChangedEvent& e) {
         lagrange::logger().info(
             "Transform of entity {} changed. Position:\n{}",
-            e.entity,
+            static_cast<uint64_t>(e.entity),
             ui::get_transform(viewer, e.entity).global.translation());
     });
 
@@ -93,23 +93,23 @@ int main(int argc, char** argv)
         const auto& cam = ui::get_camera(viewer, e.entity);
         lagrange::logger().info(
             "Camera of entity {} changed. Position:\n{}",
-            e.entity,
+            static_cast<uint64_t>(e.entity),
             cam.get_position());
     });
 
 
     // Selection and hover events
     ui::on<ui::SelectedEvent>(viewer, [](const ui::SelectedEvent& e) {
-        lagrange::logger().info("Entity {} selected", e.entity);
+        lagrange::logger().info("Entity {} selected", static_cast<uint64_t>(e.entity));
     });
     ui::on<ui::DeselectedEvent>(viewer, [](const ui::DeselectedEvent& e) {
-        lagrange::logger().info("Entity {} deselected", e.entity);
+        lagrange::logger().info("Entity {} deselected", static_cast<uint64_t>(e.entity));
     });
     ui::on<ui::HoveredEvent>(viewer, [](const ui::HoveredEvent& e) {
-        lagrange::logger().info("Entity {} hovered", e.entity);
+        lagrange::logger().info("Entity {} hovered", static_cast<uint64_t>(e.entity));
     });
     ui::on<ui::DehoveredEvent>(viewer, [](const ui::DehoveredEvent& e) {
-        lagrange::logger().info("Entity {} dehovered", e.entity);
+        lagrange::logger().info("Entity {} dehovered", static_cast<uint64_t>(e.entity));
     });
 
 

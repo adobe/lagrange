@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     opensubdiv
     GIT_REPOSITORY https://github.com/PixarAnimationStudios/OpenSubdiv.git
-    GIT_TAG tags/v3_4_0
+    GIT_TAG tags/v3_4_4
     GIT_SHALLOW TRUE
 )
 

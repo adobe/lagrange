@@ -38,7 +38,7 @@ void condense_indexed_attribute(
     const std::string& new_attr_name = "")
 {
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
-    la_runtime_assert(mesh.has_indexed_attribute(attr_name));
+    la_runtime_assert(mesh.has_indexed_attribute(attr_name), fmt::format("Missing attribute '{}'", attr_name));
 
     using Index = typename MeshType::Index;
     using AttributeArray = typename MeshType::AttributeArray;

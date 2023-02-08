@@ -22,6 +22,7 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
+#include <lagrange/attribute_names.h>
 
 #include <numeric>
 #include <type_traits>
@@ -126,13 +127,14 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_internal(InputMeshType&& mesh)
 
     // 3rd - Transfer attributes
     auto usage_from_name = [](std::string_view name) {
-        if (starts_with(name, "normal")) {
+        if (starts_with(name, AttributeName::normal)) {
             return AttributeUsage::Normal;
         }
-        if (starts_with(name, "uv")) {
+        // "uv" is for legacy code with hardcoded "uv" name.
+        if (starts_with(name, AttributeName::texcoord) || starts_with(name, "uv")) {
             return AttributeUsage::UV;
         }
-        if (starts_with(name, "color")) {
+        if (starts_with(name, AttributeName::color)) {
             return AttributeUsage::Color;
         }
         return AttributeUsage::Vector;

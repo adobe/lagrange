@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 
             if (!path.empty()) {
                 {
-                    std::ofstream f(path);
+                    lagrange::fs::ofstream f(path.path());
                     f << "Lorem ipsum dolor sit amet";
                 }
             }

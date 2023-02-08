@@ -51,9 +51,11 @@
 # option(LAGRANGE_MODULE_PARTITIONING "Build module lagrange::partitioning" ON)
 # option(LAGRANGE_MODULE_PYTHON       "Build module lagrange::python"       ON)
 # option(LAGRANGE_MODULE_RAYCASTING   "Build module lagrange::raycasting"   ON)
+# option(LAGRANGE_MODULE_SCENE        "Build module lagrange::scene"        ON)
 # option(LAGRANGE_MODULE_SUBDIVISION  "Build module lagrange::subdivision"  ON)
 # option(LAGRANGE_MODULE_UI           "Build module lagrange::ui"           ON)
 # option(LAGRANGE_MODULE_VOLUME       "Build module lagrange::volume"       ON)
+# option(LAGRANGE_MODULE_WINDING      "Build module lagrange::winding"      ON)
 
 # General options
 # option(LAGRANGE_DOCUMENTATION      "Build Doxygen documentation"                          ON)

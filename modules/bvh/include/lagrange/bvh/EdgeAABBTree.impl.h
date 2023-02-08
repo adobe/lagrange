@@ -12,9 +12,9 @@
 #pragma once
 
 #include <lagrange/bvh/EdgeAABBTree.h>
-#include <lagrange/point_segment_squared_distance.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/point_on_segment.h>
+#include <lagrange/utils/point_on_segment.h>
+#include <lagrange/utils/point_segment_squared_distance.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -52,8 +52,8 @@ Scalar sqr(Scalar x)
 ///
 template <typename Scalar, int DIM>
 Scalar inner_point_box_squared_distance(
-    const Eigen::Matrix<Scalar, DIM, 1> &p,
-    const Eigen::AlignedBox<Scalar, DIM> &B)
+    const Eigen::Matrix<Scalar, DIM, 1>& p,
+    const Eigen::AlignedBox<Scalar, DIM>& B)
 {
     assert(B.contains(p));
     Scalar result = sqr(p[0] - B.min()[0]);
@@ -78,8 +78,8 @@ Scalar inner_point_box_squared_distance(
 ///
 template <typename Scalar, int DIM>
 Scalar point_box_signed_squared_distance(
-    const Eigen::Matrix<Scalar, DIM, 1> &p,
-    const Eigen::AlignedBox<Scalar, DIM> &B)
+    const Eigen::Matrix<Scalar, DIM, 1>& p,
+    const Eigen::AlignedBox<Scalar, DIM>& B)
 {
     bool inside = true;
     Scalar result = 0;
@@ -108,8 +108,8 @@ Scalar point_box_signed_squared_distance(
 ///
 template <typename Scalar, int DIM>
 Eigen::AlignedBox<Scalar, DIM> bbox_edge(
-    const Eigen::Matrix<Scalar, 1, DIM> &a,
-    const Eigen::Matrix<Scalar, 1, DIM> &b)
+    const Eigen::Matrix<Scalar, 1, DIM>& a,
+    const Eigen::Matrix<Scalar, 1, DIM>& b)
 {
     Eigen::AlignedBox<Scalar, DIM> bbox;
     bbox.extend(a.transpose());
@@ -122,7 +122,7 @@ Eigen::AlignedBox<Scalar, DIM> bbox_edge(
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename VertexArray, typename EdgeArray, int DIM>
-EdgeAABBTree<VertexArray, EdgeArray, DIM>::EdgeAABBTree(const VertexArray &V, const EdgeArray &E)
+EdgeAABBTree<VertexArray, EdgeArray, DIM>::EdgeAABBTree(const VertexArray& V, const EdgeArray& E)
 {
     la_runtime_assert(DIM == V.cols(), "Dimension mismatch in EdgeAABBTree!");
     // Compute the centroids of all the edges in the input mesh
@@ -177,7 +177,7 @@ EdgeAABBTree<VertexArray, EdgeArray, DIM>::EdgeAABBTree(const VertexArray &V, co
         Index midpoint = (i + j) / 2;
         Index left = top_down(i, midpoint, current);
         Index right = top_down(midpoint, j, current);
-        Node &node = m_nodes[current];
+        Node& node = m_nodes[current];
         node.left = left;
         node.right = right;
         node.parent = parent;
@@ -196,10 +196,10 @@ EdgeAABBTree<VertexArray, EdgeArray, DIM>::EdgeAABBTree(const VertexArray &V, co
 
 template <typename VertexArray, typename EdgeArray, int DIM>
 void EdgeAABBTree<VertexArray, EdgeArray, DIM>::get_element_closest_point(
-    const RowVectorType &p,
+    const RowVectorType& p,
     Index element_id,
-    RowVectorType &closest_point,
-    Scalar &closest_sq_dist) const
+    RowVectorType& closest_point,
+    Scalar& closest_sq_dist) const
 {
     RowVectorType v0 = m_vertices->row((*m_edges)(element_id, 0));
     RowVectorType v1 = m_vertices->row((*m_edges)(element_id, 1));
@@ -215,21 +215,21 @@ void EdgeAABBTree<VertexArray, EdgeArray, DIM>::get_element_closest_point(
 
 template <typename VertexArray, typename EdgeArray, int DIM>
 void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_in_radius(
-    const RowVectorType &p,
+    const RowVectorType& p,
     Scalar sq_dist,
-    std::function<void(Scalar, Index, const RowVectorType &)> func) const
+    std::function<void(Scalar, Index, const RowVectorType&)> func) const
 {
     foreach_element_in_radius_recursive(p, sq_dist, (Index)m_root, func);
 }
 
 template <typename VertexArray, typename EdgeArray, int DIM>
 void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_in_radius_recursive(
-    const RowVectorType &p,
+    const RowVectorType& p,
     Scalar sq_dist,
     Index node_id,
     ActionCallback func) const
 {
-    const auto &node = m_nodes[node_id];
+    const auto& node = m_nodes[node_id];
     if (node.is_leaf()) {
         RowVectorType closest_point;
         Scalar closest_sq_dist;
@@ -257,19 +257,19 @@ void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_in_radius_recurs
 
 template <typename VertexArray, typename EdgeArray, int DIM>
 void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_containing(
-    const RowVectorType &p,
-    std::function<void(Scalar, Index, const RowVectorType &)> func) const
+    const RowVectorType& p,
+    std::function<void(Scalar, Index, const RowVectorType&)> func) const
 {
     foreach_element_containing_recursive(p, (Index)m_root, func);
 }
 
 template <typename VertexArray, typename EdgeArray, int DIM>
 void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_containing_recursive(
-    const RowVectorType &p,
+    const RowVectorType& p,
     Index node_id,
     ActionCallback func) const
 {
-    const auto &node = m_nodes[node_id];
+    const auto& node = m_nodes[node_id];
     if (node.is_leaf()) {
         RowVectorType p0 = m_vertices->row((*m_edges)(node.index, 0));
         RowVectorType p1 = m_vertices->row((*m_edges)(node.index, 1));
@@ -296,10 +296,10 @@ void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_containing_recur
 
 template <typename VertexArray, typename EdgeArray, int DIM>
 void EdgeAABBTree<VertexArray, EdgeArray, DIM>::get_closest_point(
-    const RowVectorType &query_pt,
-    Index &element_id,
-    RowVectorType &closest_point,
-    Scalar &closest_sq_dist,
+    const RowVectorType& query_pt,
+    Index& element_id,
+    RowVectorType& closest_point,
+    Scalar& closest_sq_dist,
     std::function<bool(Index)> filter_func) const
 {
     la_runtime_assert(!empty());
@@ -309,7 +309,7 @@ void EdgeAABBTree<VertexArray, EdgeArray, DIM>::get_closest_point(
 
     std::function<void(Index)> traverse_aabb_tree;
     traverse_aabb_tree = [&](Index node_id) {
-        const auto &node = m_nodes[node_id];
+        const auto& node = m_nodes[node_id];
         if (node.is_leaf()) {
             if (!filter_func || filter_func(node.index)) {
                 RowVectorType _closest_point;

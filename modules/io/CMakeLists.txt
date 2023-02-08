@@ -14,15 +14,20 @@
 lagrange_add_module()
 
 # 2. dependencies
-lagrange_include_modules(core fs)
+lagrange_include_modules(core fs scene)
 include(tinyobjloader)
 include(libigl) # TODO: remove libigl later
 include(mshio)
+include(happly)
+include(tinygltf)
 target_link_libraries(lagrange_io
     PUBLIC
         lagrange::core
         lagrange::fs
+        lagrange::scene
         tinyobjloader::tinyobjloader
+        tinygltf::tinygltf
+        happly::happly
         igl::core
     PRIVATE
         mshio::mshio
@@ -44,4 +49,8 @@ endif()
 # 4. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
+endif()
+
+if(LAGRANGE_EXAMPLES)
+    add_subdirectory(examples)
 endif()

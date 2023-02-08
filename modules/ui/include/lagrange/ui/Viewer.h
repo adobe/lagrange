@@ -220,6 +220,8 @@ public:
         m_main_thread_max_func_per_frame = limit;
     }
 
+    static std::string get_config_folder();
+
 protected:
     virtual void draw_menu();
 
@@ -235,9 +237,6 @@ private:
     void move(int x, int y);
     void update_scale();
     void drop(int count, const char** paths);
-
-
-    static std::string get_config_folder();
 
     void process_input();
 

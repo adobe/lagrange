@@ -1183,6 +1183,7 @@ const AttributeBase& SurfaceMesh<Scalar, Index>::get_attribute_base(std::string_
 template <typename Scalar, typename Index>
 const AttributeBase& SurfaceMesh<Scalar, Index>::get_attribute_base(AttributeId id) const
 {
+    la_debug_assert(id != invalid_attribute_id());
     return m_attributes->read_base(id);
 }
 
@@ -1198,6 +1199,7 @@ template <typename ValueType>
 const Attribute<ValueType>& SurfaceMesh<Scalar, Index>::get_attribute(AttributeId id) const
 {
     la_debug_assert(id != invalid_attribute_id());
+    la_debug_assert(!is_attribute_indexed(id));
     return m_attributes->template read<ValueType>(id);
 }
 
@@ -1213,6 +1215,7 @@ internal::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribu
     AttributeId id) const
 {
     la_debug_assert(id != invalid_attribute_id());
+    la_debug_assert(!is_attribute_indexed(id));
     return m_attributes->_get_weak_ptr(id);
 }
 
@@ -1229,6 +1232,8 @@ template <typename ValueType>
 auto SurfaceMesh<Scalar, Index>::get_indexed_attribute(AttributeId id) const
     -> const IndexedAttribute<ValueType, Index>&
 {
+    la_debug_assert(id != invalid_attribute_id());
+    la_debug_assert(is_attribute_indexed(id));
     return m_attributes->template read_indexed<ValueType>(id);
 }
 
@@ -1244,6 +1249,7 @@ template <typename ValueType>
 Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id)
 {
     la_debug_assert(id != invalid_attribute_id());
+    la_debug_assert(!is_attribute_indexed(id));
     return m_attributes->template write<ValueType>(id);
 }
 
@@ -1257,6 +1263,7 @@ template <typename Scalar, typename Index>
 internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(AttributeId id)
 {
     la_debug_assert(id != invalid_attribute_id());
+    la_debug_assert(!is_attribute_indexed(id));
     return m_attributes->_ref_weak_ptr(id);
 }
 
@@ -1273,6 +1280,8 @@ template <typename ValueType>
 auto SurfaceMesh<Scalar, Index>::ref_indexed_attribute(AttributeId id)
     -> IndexedAttribute<ValueType, Index>&
 {
+    la_debug_assert(id != invalid_attribute_id());
+    la_debug_assert(is_attribute_indexed(id));
     return m_attributes->template write_indexed<ValueType>(id);
 }
 
@@ -1817,9 +1826,30 @@ void SurfaceMesh<Scalar, Index>::shrink_to_fit()
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::compress_if_regular()
 {
-    // TODO
-    // - If all facets have same size, and mesh has hybrid storage, delete facet_to_first_corner +
-    // corner_facet attributes.
+    if (is_regular()) {
+        // Nothing to do
+        return;
+    }
+    // Check whether all facets have the same size
+    Index nvpf = 0;
+    bool same_size = true;
+    for (Index f = 0; f < get_num_facets(); ++f) {
+        const Index nv = get_facet_size(f);
+        if (nvpf == 0) {
+            nvpf = nv;
+        }
+        if (nvpf != nv) {
+            same_size = false;
+        }
+    }
+    // If so, delete hybrid storage attributes
+    if (same_size) {
+        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
+        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
+        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+        m_vertex_per_facet = nvpf;
+    }
+    la_debug_assert(is_regular());
 }
 
 ////////////////////////////////////////////////////////////////////////////////

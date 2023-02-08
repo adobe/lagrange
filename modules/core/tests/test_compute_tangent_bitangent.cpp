@@ -21,6 +21,7 @@
 #include <lagrange/io/load_mesh.impl.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/views.h>
+#include <lagrange/attribute_names.h>
 
 #include <lagrange/testing/common.h>
 
@@ -304,8 +305,8 @@ auto weld_mesh(lagrange::SurfaceMesh<Scalar, Index> mesh)
     // results from Mikktspace implementation, we must weld our input UV and normal attributes
     // as pre-processing.
     auto legacy_mesh = lagrange::to_legacy_mesh<lagrange::TriangleMesh3Df>(mesh);
-    condense_indexed_attribute(*legacy_mesh, "uv");
-    condense_indexed_attribute(*legacy_mesh, "normal");
+    condense_indexed_attribute(*legacy_mesh, std::string(lagrange::AttributeName::texcoord));
+    condense_indexed_attribute(*legacy_mesh, std::string(lagrange::AttributeName::normal));
     return lagrange::to_surface_mesh_copy<Scalar, Index>(*legacy_mesh);
 };
 

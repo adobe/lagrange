@@ -9,12 +9,6 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <string>
-
-
-#include <lagrange/Logger.h>
-#include <lagrange/io/load_mesh_ext.h>
 
 const char* obj_cube_triangles = R"(
 # Blender v2.81 (sub 16) OBJ File: ''

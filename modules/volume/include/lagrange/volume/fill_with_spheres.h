@@ -11,10 +11,12 @@
  */
 #pragma once
 
-#include <lagrange/create_mesh.h>
+#include <lagrange/Logger.h>
 
-#include <openvdb/tools/VolumeToSpheres.h>
 #include <openvdb/openvdb.h>
+#include <openvdb/tools/VolumeToSpheres.h>
+
+#include <Eigen/Dense>
 
 namespace lagrange {
 namespace volume {
@@ -32,8 +34,8 @@ namespace volume {
 ///
 template <typename GridType, typename Derived>
 void fill_with_spheres(
-    const GridType &grid,
-    Eigen::PlainObjectBase<Derived> &spheres,
+    const GridType& grid,
+    Eigen::PlainObjectBase<Derived>& spheres,
     int max_spheres,
     bool overlapping = false)
 {

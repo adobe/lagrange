@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/io/types.h>
 
 #include <ostream>
 #include <vector>
@@ -21,30 +22,40 @@ namespace lagrange {
 namespace io {
 
 ///
-/// Saves a .obj mesh to a stream. If the mesh cannot be saved, an exception is raised (e.g.,
-/// invalid output stream, incorrect mesh dimension, or facet size < 3).
+/// Saves a mesh to a stream in OBJ format. If the mesh cannot be saved, an exception is raised
+/// (e.g., invalid output stream, incorrect mesh dimension, or facet size < 3).
 ///
-/// @param[in,out] output_stream  Output stream to write to.
-/// @param[in]     mesh           Mesh to write as an obj.
+/// @param[in,out] output_stream  Output stream.
+/// @param[in]     mesh           Mesh to write.
+/// @param[in]     options        Save options.
 ///
 /// @tparam        Scalar         Mesh scalar type.
 /// @tparam        Index          Mesh index type.
 ///
 template <typename Scalar, typename Index>
-void save_mesh_obj(std::ostream& output_stream, const SurfaceMesh<Scalar, Index>& mesh);
+void save_mesh_obj(
+    std::ostream& output_stream,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options = {});
 
 ///
-/// Saves a .obj mesh to a file. If the mesh cannot be saved, an exception is raised (e.g., invalid
-/// output stream, incorrect mesh dimension, or facet size < 3).
+/// @overload
 ///
-/// @param[in]  filename  Output filename to write to.
-/// @param[in]  mesh      Mesh to write as an obj.
+/// Saves a mesh to a file in OBJ format. If the mesh cannot be saved, an exception is raised (e.g.,
+/// incorrect mesh dimension, or facet size < 3).
+///
+/// @param[in]  filename  Output filename.
+/// @param[in]  mesh      Mesh to write.
+/// @param[in]  options   Save options.
 ///
 /// @tparam     Scalar    Mesh scalar type.
 /// @tparam     Index     Mesh index type.
 ///
 template <typename Scalar, typename Index>
-void save_mesh_obj(const fs::path& filename, const SurfaceMesh<Scalar, Index>& mesh);
+void save_mesh_obj(
+    const fs::path& filename,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options = {});
 
 } // namespace io
 } // namespace lagrange

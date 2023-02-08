@@ -182,7 +182,7 @@ AttributeId compute_normal_internal(
     auto compute_weighted_corner_normal =
         [&, facet_normal = facet_normal](Index ci) -> Eigen::Matrix<Scalar, 3, 1> {
         auto n = internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
-        Scalar sign = std::copysign(1, n.dot(facet_normal.row(mesh.get_corner_facet(ci))));
+        Scalar sign = std::copysign(1.f, n.dot(facet_normal.row(mesh.get_corner_facet(ci))));
         n *= sign;
         return n;
     };

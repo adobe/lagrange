@@ -12,8 +12,10 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/utils/BitField.h>
 
 #include <string_view>
+#include <unordered_set>
 
 namespace lagrange::internal {
 
@@ -41,7 +43,32 @@ template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_matching_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view name,
-    AttributeElement expected_element,
+    BitField<AttributeElement> expected_element,
+    AttributeUsage expected_usage,
+    size_t expected_channels);
+
+///
+/// Find an attribute from a selected set of ids, ensuring the usage and element type match an
+/// expected target. If the provided name is empty, the first attribute with matching properties is
+/// returned. If no such attribute is found, invalid_attribute_id() is returned instead.
+///
+/// @param      mesh               Mesh where to look for attributes.
+/// @param[in]  selected_ids       Selected attribute ids.
+/// @param[in]  expected_element   Expected element type.
+/// @param[in]  expected_usage     Expected attribute usage.
+/// @param[in]  expected_channels  Expected number of channels. If 0, then the check is skipped.
+///
+/// @tparam     ExpectedValueType  Expected attribute value type.
+/// @tparam     Scalar             Mesh scalar type.
+/// @tparam     Index              Mesh index type.
+///
+/// @return     Attribute id of the first matching attribute.
+///
+template <typename ExpectedValueType, typename Scalar, typename Index>
+AttributeId find_matching_attribute(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const std::unordered_set<AttributeId> &selected_ids,
+    BitField<AttributeElement> expected_element,
     AttributeUsage expected_usage,
     size_t expected_channels);
 
@@ -50,8 +77,7 @@ AttributeId find_matching_attribute(
 /// target. This function does not allow empty names to be provided.
 ///
 /// @param      mesh               Mesh where to look for attributes.
-/// @param[in]  name               Optional name of the attribute to find. If empty, the first
-///                                matching attribute id will be returned.
+/// @param[in]  name               Name of the attribute to find.
 /// @param[in]  expected_element   Expected element type.
 /// @param[in]  expected_usage     Expected attribute usage.
 /// @param[in]  expected_channels  Expected number of channels. If 0, then the check is skipped.
@@ -66,7 +92,7 @@ template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view name,
-    AttributeElement expected_element,
+    BitField<AttributeElement> expected_element,
     AttributeUsage expected_usage,
     size_t expected_channels);
 

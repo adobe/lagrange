@@ -48,7 +48,7 @@ enum AttributeElement : int {
 /// Usage tag indicating how the attribute should behave under mesh transformations. This tag mostly
 /// serves as a hint, and does not impact how the attribute is stored/loaded.
 ///
-/// @todo       Add Tangent, Bitangent + others?
+/// @todo       Add skinning weights + others?
 ///
 enum class AttributeUsage {
     Vector, ///< Mesh attribute can have any number of channels (including 1 channel).

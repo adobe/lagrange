@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 #include <cmath>
-#include <iostream>
 
 #include <lagrange/testing/common.h>
 #include <catch2/catch_approx.hpp>
@@ -21,6 +20,8 @@
 #include <lagrange/compute_mesh_centroid.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/utils/safe_cast.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
 TEST_CASE("ComputeMeshCentroid", "[mesh][centroid]")
 {
@@ -73,3 +74,4 @@ TEST_CASE("ComputeMeshCentroid", "[mesh][centroid]")
 
 
 } // end of TEST
+#endif

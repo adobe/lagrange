@@ -13,79 +13,21 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/io/types.h>
 
-// TODO: Hide in .cpp
-#include <tiny_obj_loader.h>
+namespace lagrange::io {
 
-#include <istream>
-#include <vector>
-
-namespace lagrange {
-namespace io {
-
-///
-/// Config options for the obj mesh loader.
-///
-struct ObjReaderOptions
-{
-    /// Triangulate any polygonal facet with > 3 vertices
-    bool triangulate = false;
-
-    /// Load vertex normals as indexed attributes
-    bool load_normals = true;
-
-    /// Load texture coordinates as indexed attributes
-    bool load_uvs = true;
-
-    /// Load material ids as facet attributes
-    bool load_materials = true;
-
-    /// Load vertex colors as vertex attributes
-    bool load_vertex_colors = false;
-
-    /// Load object id as facet attributes
-    bool load_object_id = true;
-
-    /// Search path for .mtl files. By default, searches the same folder as the provided filename.
-    std::string mtl_search_path;
-};
-
-///
-/// Output of the obj mesh loader.
-///
-/// @tparam     Scalar  Mesh scalar type.
-/// @tparam     Index   Mesh index type.
-///
-template <typename Scalar, typename Index>
-struct ObjReaderResult
-{
-    /// Whether the load operation was successful.
-    bool success = true;
-
-    /// Aggregated mesh containing all elements in the .obj file. To separate the different
-    /// entities, split the mesh facets based on object ids.
-    SurfaceMesh<Scalar, Index> mesh;
-
-    /// Materials associated with the mesh.
-    std::vector<tinyobj::material_t> materials;
-
-    /// Names of each object in the aggregate mesh.
-    std::vector<std::string> names;
-};
-
-///
-/// Loads a .obj mesh from a file.
-///
-/// @param[in]  filename  The file to read data from.
-/// @param[in]  options   Optional configuration for the loader.
-///
-/// @tparam     MeshType  Mesh type to load.
-///
-/// @return     Result of the load.
-///
+/**
+ * Loads a mesh from a file in MSH format.
+ *
+ * @param[in]  filename  Input filename.
+ * @param[in]  options   Load options.
+ *
+ * @tparam     MeshType  Mesh type to load.
+ *
+ * @return     Loaded mesh.
+ */
 template <typename MeshType>
-auto load_mesh_obj(const fs::path& filename, const ObjReaderOptions& options = {})
-    -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>;
+MeshType load_mesh_obj(const fs::path& filename, const LoadOptions& options = {});
 
-} // namespace io
-} // namespace lagrange
+} // namespace lagrange::io

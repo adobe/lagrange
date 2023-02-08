@@ -22,8 +22,15 @@ FetchContent_Declare(
     GIT_TAG v10.0.0
 )
 
-option(OPENVDB_CORE_SHARED "" OFF)
-option(OPENVDB_CORE_STATIC "" ON)
+if(WIN32)
+    # On Windows, prefer shared lib for OpenVDB, otherwise we can run into
+    # linking error LNK1248 in Debug mode (due to lib size exceeding 4GB).
+    option(OPENVDB_CORE_SHARED "" ON)
+    option(OPENVDB_CORE_STATIC "" OFF)
+else()
+    option(OPENVDB_CORE_SHARED "" OFF)
+    option(OPENVDB_CORE_STATIC "" ON)
+endif()
 option(OPENVDB_BUILD_CORE "" ON)
 option(OPENVDB_BUILD_BINARIES "" OF)
 option(OPENVDB_ENABLE_RPATH "" OFF)
@@ -135,4 +142,9 @@ endfunction()
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
 openvdb_import_target()
 
-set_target_properties(openvdb_static PROPERTIES FOLDER third_party)
+# Set folders for MSVC
+foreach(name IN ITEMS openvdb_static openvdb_shared)
+    if(TARGET ${name})
+        set_target_properties(${name} PROPERTIES FOLDER third_party)
+    endif()
+endforeach()

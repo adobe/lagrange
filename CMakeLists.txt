@@ -19,7 +19,7 @@ else()
 endif()
 
 # Check required CMake version
-set(REQUIRED_CMAKE_VERSION "3.20.0")
+set(REQUIRED_CMAKE_VERSION "3.24.0")
 if(LAGRANGE_TOPLEVEL_PROJECT)
     cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
 else()
@@ -32,6 +32,7 @@ endif()
 cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
+set(CMAKE_POLICY_DEFAULT_CMP0135 NEW) # Set the timestamps of all extracted contents to the time of the extraction.
 
 # Include user-provided default options if available. We do that before the main
 # `project()` so that we can define the C/C++ compilers from the option file.
@@ -66,7 +67,7 @@ endif()
 
 # Set default macOS deployment target
 if(LAGRANGE_TOPLEVEL_PROJECT)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 ################################################################################
@@ -82,7 +83,7 @@ else()
 endif()
 
 # Meta target: ALL includes all optional modules and UI.
-option(LAGRANGE_ALL               "Build all lagrange modules" OFF)
+option(LAGRANGE_ALL                "Build all lagrange modules" OFF)
 
 # General CMake options
 option(LAGRANGE_ASSERT_DEBUG_BREAK "Assert will break into debugger on failure"           ${LAGRANGE_TOPLEVEL_PROJECT})
@@ -159,6 +160,11 @@ else()
 endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
 
+# When building python module, compile TBB as a shared library
+if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
+    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
+endif()
+
 # When building anorigami module, defaults to pre-built Arpack and dynamic MKL/TBB
 if(LAGRANGE_MODULE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
@@ -168,10 +174,21 @@ endif()
 
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
 # we need to use the MSVC runtime library flag globally for the whole project.
-if(LAGRANGE_TOPLEVEL_PROJECT AND NOT APPLE)
-    if(LAGRANGE_ALL OR LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_DEFORMERS)
+file(READ "cmake/lagrange/lagrangeMklModules.txt" LAGRANGE_MKL_MODULES)
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    if(LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL)
         # Set MSVC runtime library globally for all targets
+        message(STATUS "Forcing /MD globally due to LAGRANGE_ALL requiring MKL")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL" CACHE STRING "Select the MSVC runtime library")
+    else()
+        foreach(mkl_module_lc IN ITEMS ${LAGRANGE_MKL_MODULES})
+            string(TOUPPER ${mkl_module_lc} mkl_module_uc)
+            if(LAGRANGE_MODULE_${mkl_module_uc})
+                # Set MSVC runtime library globally for all targets
+                message(STATUS "Forcing /MD globally due to lagrange::${mkl_module_lc} requiring MKL")
+                set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL" CACHE STRING "Select the MSVC runtime library")
+            endif()
+        endforeach()
     endif()
 endif()
 

@@ -144,7 +144,7 @@ public:
 
     template <size_t D>
     auto to_tuple() {
-        assert(D == m_size);
+        la_debug_assert(D == m_size);
         static_assert(D <= N, "Invalid size");
         return to_tuple_helper(std::make_index_sequence<D>());
     }

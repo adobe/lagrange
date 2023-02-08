@@ -3,6 +3,55 @@ Lagrange
 The following is a list of sources from which code was used/modified in this codebase.
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from Boost.Functional/Hash which can be obtained at:
+  * SOURCE:
+    * https://www.boost.org/doc/libs/1_64_0/boost/functional/hash/hash.hpp
+
+  * LICENSE:
+    * https://www.boost.org/LICENSE_1_0.txt
+
+-------------------------------------------------------------------------------
+This codebase contains a modified portion of code from Christer Ericson, Real-Time Collision Detection which can be obtained at:
+  * SOURCE:
+    * https://doi.org/10.1201/b14581
+
+  * LICENSE:
+    This project contains code adapted from Real-Time Collision Detection by Christer
+    Ericson, published by Morgan Kaufmann Publishers, (c) 2005 Elsevier Inc. Usage is
+    governed by the following license.
+
+    Software License Agreement
+
+    This Software License Agreement is a legal agreement between the Author and any person
+    or legal entity using or accepting any software governed by this Agreement. The software
+    is available on the CD-ROM in the Book, Real-Time Collision Detection, which is
+    published by Morgan Kaufmann Publishers. "The software" is comprised of all code
+    (fragments and pseudocode) presented in the book. No additional files are on the CD-ROM.
+
+    By installing, copying, or otherwise using the software, you agree to be bound by the
+    terms of this Agreement.
+
+    The parties agree as follows:
+
+    1. Grant of License. We grant you a nonexclusive license to use the software for any
+    purpose, commercial or non-commercial, as long as the following credit is included
+    identifying the original source of the software: "from Real-Time Collision Detection by
+    Christer Ericson, published by Morgan Kaufmann Publishers, (c) 2005 Elsevier Inc".
+
+    2. Disclaimer of Warranty. We make no warranties at all.The software is transferred to
+    you on an "as is" basis. You use the software at your own peril. You assume all risk of
+    loss for all claims or controversies, now existing or hereafter, arising out of use of
+    the software. We shall have no liability based on a claim that your use or combination
+    of the software with products or data not supplied by us infringes any patent,
+    copyright, or proprietary right. All other warranties, expressed or implied, including,
+    without limitation, any warranty of merchantability or fitness for a particular purpose
+    are hereby excluded.
+
+    3. Limitation of Liability. We will have no liability for special, incidental or
+    consequential damages even if advised of the possibility of such damages. We will not be
+    liable for any other damages or loss in any way connected with the software.
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from CMake Scripts which can be obtained at:
   * SOURCE:
     * https://github.com/StableCoder/cmake-scripts

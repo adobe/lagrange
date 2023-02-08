@@ -126,13 +126,19 @@ AttributeId map_attribute_internal(
             num_elements = mesh.get_num_corners();
             switch (old_element) {
             case AttributeElement::Vertex:
-                src_element = [&](size_t c) { return mesh.get_corner_vertex(c); };
+                src_element = [&](size_t c) {
+                    return static_cast<size_t>(mesh.get_corner_vertex(static_cast<Index>(c)));
+                };
                 break;
             case AttributeElement::Facet:
-                src_element = [&](size_t c) { return mesh.get_corner_facet(c); };
+                src_element = [&](size_t c) {
+                    return static_cast<size_t>(mesh.get_corner_facet(static_cast<Index>(c)));
+                };
                 break;
             case AttributeElement::Edge:
-                src_element = [&](size_t c) { return mesh.get_corner_edge(c); };
+                src_element = [&](size_t c) {
+                    return static_cast<size_t>(mesh.get_corner_edge(static_cast<Index>(c)));
+                };
                 break;
             case AttributeElement::Corner: src_element = [](size_t c) { return c; }; break;
             case AttributeElement::Value:
@@ -191,13 +197,19 @@ AttributeId map_attribute_internal(
         } else {
             switch (new_element) {
             case AttributeElement::Vertex:
-                dst_element = [&](size_t c) { return mesh.get_corner_vertex(c); };
+                dst_element = [&](size_t c) {
+                    return static_cast<size_t>(mesh.get_corner_vertex(static_cast<Index>(c)));
+                };
                 break;
             case AttributeElement::Facet:
-                dst_element = [&](size_t c) { return mesh.get_corner_facet(c); };
+                dst_element = [&](size_t c) {
+                    return static_cast<size_t>(mesh.get_corner_facet(static_cast<Index>(c)));
+                };
                 break;
             case AttributeElement::Edge:
-                dst_element = [&](size_t c) { return mesh.get_corner_edge(c); };
+                dst_element = [&](size_t c) {
+                    return static_cast<size_t>(mesh.get_corner_edge(static_cast<Index>(c)));
+                };
                 break;
             case AttributeElement::Corner: break;
             case AttributeElement::Value: new_attr.resize_elements(num_elements); break;

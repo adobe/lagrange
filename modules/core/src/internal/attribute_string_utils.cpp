@@ -26,8 +26,20 @@ std::string_view to_string(AttributeElement element)
         LA_ENUM_CASE(AttributeElement, Corner);
         LA_ENUM_CASE(AttributeElement, Value);
         LA_ENUM_CASE(AttributeElement, Indexed);
-    default: la_debug_assert(false, "Unsupported enum type"); return "";
+    default:
+        la_debug_assert(false, "Unsupported enum type"); return "";
     }
+}
+
+std::string to_string(BitField<AttributeElement> element) {
+    std::string ret;
+    if (element.test_any(AttributeElement::Vertex)) ret += "Vertex;";
+    if (element.test_any(AttributeElement::Facet)) ret += "Facet;";
+    if (element.test_any(AttributeElement::Edge)) ret += "Edge;";
+    if (element.test_any(AttributeElement::Corner)) ret += "Corner;";
+    if (element.test_any(AttributeElement::Value)) ret += "Value;";
+    if (element.test_any(AttributeElement::Indexed)) ret += "Indexed;";
+    return ret;
 }
 
 std::string_view to_string(AttributeUsage usage)

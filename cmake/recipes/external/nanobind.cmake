@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     nanobind
     GIT_REPOSITORY https://github.com/wjakob/nanobind.git
-    GIT_TAG 42db2fdb3292c6851d68d4a56f48e2031666173f
+    GIT_TAG v0.1.0
 )
 
 include(python)

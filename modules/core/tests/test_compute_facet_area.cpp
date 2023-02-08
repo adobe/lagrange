@@ -10,14 +10,204 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
+#include <lagrange/compute_area.h>
 #include <lagrange/compute_facet_area.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/mesh_convert.h>
+#include <lagrange/views.h>
 
-TEST_CASE("2DTriangleFacetArea", "[mesh][triangle][area]")
+TEST_CASE("compute_facet_area", "[core][area][surface]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    constexpr Scalar eps = std::numeric_limits<Scalar>::epsilon();
+    FacetAreaOptions options;
+
+    SECTION("2D triangle")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({0, 1});
+        mesh.add_vertex({1, 1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 1, 3);
+
+        auto id = compute_facet_area(mesh, options);
+        REQUIRE(mesh.template is_attribute_type<Scalar>(id));
+        REQUIRE(!mesh.is_attribute_indexed(id));
+        REQUIRE(mesh.get_attribute_name(id) == options.output_attribute_name);
+
+        const auto& areas = vector_view(mesh.get_attribute<Scalar>(id));
+        REQUIRE_THAT(areas[0], Catch::Matchers::WithinAbs(0.5, eps));
+        REQUIRE_THAT(areas[1], Catch::Matchers::WithinAbs(0.5, eps));
+    }
+
+    SECTION("2D quad")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 1});
+        mesh.add_quad(0, 1, 2, 3);
+
+        auto id = compute_facet_area(mesh, options);
+        REQUIRE(mesh.template is_attribute_type<Scalar>(id));
+        REQUIRE(!mesh.is_attribute_indexed(id));
+        REQUIRE(mesh.get_attribute_name(id) == options.output_attribute_name);
+
+        const auto& areas = vector_view(mesh.get_attribute<Scalar>(id));
+        REQUIRE_THAT(areas[0], Catch::Matchers::WithinAbs(1.0, eps));
+    }
+
+    SECTION("2D polygon")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({2, 0});
+        mesh.add_vertex({2, 1});
+        mesh.add_vertex({2, 2});
+        mesh.add_vertex({1, 2});
+        mesh.add_vertex({0, 2});
+        mesh.add_vertex({0, 1});
+        mesh.add_polygon({0, 1, 2, 3, 4, 5, 6, 7});
+
+        auto id = compute_facet_area(mesh, options);
+        REQUIRE(mesh.template is_attribute_type<Scalar>(id));
+        REQUIRE(!mesh.is_attribute_indexed(id));
+        REQUIRE(mesh.get_attribute_name(id) == options.output_attribute_name);
+
+        const auto& areas = vector_view(mesh.get_attribute<Scalar>(id));
+        REQUIRE_THAT(areas[0], Catch::Matchers::WithinAbs(4.0, eps));
+    }
+
+    SECTION("3D triangle")
+    {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 1, 3);
+
+        auto id = compute_facet_area(mesh, options);
+        REQUIRE(mesh.template is_attribute_type<Scalar>(id));
+        REQUIRE(!mesh.is_attribute_indexed(id));
+        REQUIRE(mesh.get_attribute_name(id) == options.output_attribute_name);
+
+        const auto& areas = vector_view(mesh.get_attribute<Scalar>(id));
+        REQUIRE_THAT(areas[0], Catch::Matchers::WithinAbs(0.5, eps));
+        REQUIRE_THAT(areas[1], Catch::Matchers::WithinAbs(0.5, eps));
+    }
+
+    SECTION("3D quad")
+    {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_quad(0, 1, 2, 3);
+
+        auto id = compute_facet_area(mesh, options);
+        REQUIRE(mesh.template is_attribute_type<Scalar>(id));
+        REQUIRE(!mesh.is_attribute_indexed(id));
+        REQUIRE(mesh.get_attribute_name(id) == options.output_attribute_name);
+
+        const auto& areas = vector_view(mesh.get_attribute<Scalar>(id));
+        REQUIRE_THAT(areas[0], Catch::Matchers::WithinAbs(1.0, eps));
+    }
+
+    SECTION("3D polygon")
+    {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({2, 0, 0});
+        mesh.add_vertex({2, 1, 0});
+        mesh.add_vertex({2, 2, 0});
+        mesh.add_vertex({1, 2, 0});
+        mesh.add_vertex({0, 2, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_polygon({0, 1, 2, 3, 4, 5, 6, 7});
+
+        auto id = compute_facet_area(mesh, options);
+        REQUIRE(mesh.template is_attribute_type<Scalar>(id));
+        REQUIRE(!mesh.is_attribute_indexed(id));
+        REQUIRE(mesh.get_attribute_name(id) == options.output_attribute_name);
+
+        const auto& areas = vector_view(mesh.get_attribute<Scalar>(id));
+        REQUIRE_THAT(areas[0], Catch::Matchers::WithinAbs(4.0, eps));
+    }
+
+    SECTION("3D quad transformed")
+    {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_quad(0, 1, 2, 3);
+
+        auto transformation = Eigen::Transform<Scalar, 3, Eigen::Affine>::Identity();
+        transformation.linear().diagonal().fill(2.);
+
+        auto id = compute_facet_area(mesh, transformation, options);
+        REQUIRE(mesh.template is_attribute_type<Scalar>(id));
+        REQUIRE(!mesh.is_attribute_indexed(id));
+        REQUIRE(mesh.get_attribute_name(id) == options.output_attribute_name);
+
+        const auto& areas = vector_view(mesh.get_attribute<Scalar>(id));
+        REQUIRE_THAT(areas[0], Catch::Matchers::WithinAbs(4.0, eps));
+    }
+}
+
+TEST_CASE("compute_facet_area benchmark", "[surface][attribute][area][!benchmark]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    FacetAreaOptions options;
+    options.output_attribute_name = "facet_area";
+
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
+    compute_facet_area(mesh, options);
+
+    BENCHMARK_ADVANCED("compute_area")(Catch::Benchmark::Chronometer meter)
+    {
+        if (mesh.has_attribute(options.output_attribute_name))
+            mesh.delete_attribute(options.output_attribute_name, AttributeDeletePolicy::Force);
+        meter.measure([&]() { return compute_facet_area(mesh, options); });
+    };
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    using MeshType = TriangleMesh3D;
+    auto legacy_mesh = to_legacy_mesh<MeshType>(mesh);
+
+    BENCHMARK_ADVANCED("legacy::compute_facet_area")(Catch::Benchmark::Chronometer meter)
+    {
+        if (legacy_mesh->has_facet_attribute("area")) legacy_mesh->remove_facet_attribute("area");
+        meter.measure([&]() { return compute_facet_area(*legacy_mesh); });
+    };
+#endif
+}
+
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+TEST_CASE("legacy::compute_facet_area 2DTriangleFacetArea", "[mesh][triangle][area]")
 {
     using namespace lagrange;
 
@@ -36,7 +226,7 @@ TEST_CASE("2DTriangleFacetArea", "[mesh][triangle][area]")
     REQUIRE(areas(1, 0) == Catch::Approx(0.5));
 }
 
-TEST_CASE("3DTriangleFacetArea", "[mesh][triangle][area]")
+TEST_CASE("legacy::compute_facet_area 3DTriangleFacetArea", "[mesh][triangle][area]")
 {
     using namespace lagrange;
 
@@ -55,7 +245,7 @@ TEST_CASE("3DTriangleFacetArea", "[mesh][triangle][area]")
     REQUIRE(areas(1, 0) == Catch::Approx(0.5));
 }
 
-TEST_CASE("2DQuadFacetArea", "[mesh][quad][area]")
+TEST_CASE("legacy::compute_facet_area 2DQuadFacetArea", "[mesh][quad][area]")
 {
     using namespace lagrange;
 
@@ -73,7 +263,7 @@ TEST_CASE("2DQuadFacetArea", "[mesh][quad][area]")
     REQUIRE(areas(0, 0) == Catch::Approx(1.0));
 }
 
-TEST_CASE("3DQuadFacetArea", "[mesh][quad][area]")
+TEST_CASE("legacy::compute_facet_area 3DQuadFacetArea", "[mesh][quad][area]")
 {
     using namespace lagrange;
 
@@ -91,7 +281,7 @@ TEST_CASE("3DQuadFacetArea", "[mesh][quad][area]")
     REQUIRE(areas(0, 0) == Catch::Approx(1.0));
 }
 
-TEST_CASE("SingleUVArea", "[mesh][uv][area]")
+TEST_CASE("legacy::compute_facet_area SingleUVArea", "[mesh][uv][area]")
 {
     Eigen::Matrix<float, 3, 2> uv;
     uv << 0.0, 0.0, 1.0, 0.0, 0.0, 1.0;
@@ -103,7 +293,7 @@ TEST_CASE("SingleUVArea", "[mesh][uv][area]")
     REQUIRE(0.5 == areas[0]);
 }
 
-TEST_CASE("UVArea", "[mesh][uv][area]")
+TEST_CASE("legacy::compute_facet_area UVArea", "[mesh][uv][area]")
 {
     Eigen::Matrix<double, 5, 2, Eigen::RowMajor> uv;
     uv << 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 2.0, 2.0;
@@ -119,3 +309,4 @@ TEST_CASE("UVArea", "[mesh][uv][area]")
     REQUIRE(-0.5 == areas[1]);
     REQUIRE(0.0 == areas[2]);
 }
+#endif

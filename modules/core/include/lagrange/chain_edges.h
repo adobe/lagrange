@@ -13,6 +13,7 @@
 
 #include <list>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <lagrange/Edge.h>
@@ -144,17 +145,55 @@ std::vector<std::list<Index>> chain_edges(const Allocator& edges, bool close_loo
     return chains;
 }
 
+namespace detail {
+
+// Eigen integer matrix with 2 columns, one edge per row
+template <typename EdgeArray>
+size_t get_num_edges(const EdgeArray& edges)
+{
+    return static_cast<size_t>(edges.rows());
+}
+
+// std::vector of edges
+template <typename EdgeType>
+size_t get_num_edges(const std::vector<EdgeType>& edges)
+{
+    return edges.size();
+}
+
+// Eigen integer matrix with 2 columns, one edge per row
+template <typename VertexIndex, typename EdgeArray, typename EdgeIndex>
+std::pair<VertexIndex, VertexIndex> get_edge_endpoints(EdgeArray& edges, EdgeIndex edge_index)
+{
+    return std::make_pair(
+        static_cast<VertexIndex>(edges(static_cast<Eigen::Index>(edge_index), 0)),
+        static_cast<VertexIndex>(edges(static_cast<Eigen::Index>(edge_index), 1)));
+}
+
+// std::vector of edges
+template <typename VertexIndex, typename EdgeType, typename EdgeIndex>
+std::pair<VertexIndex, VertexIndex> get_edge_endpoints(
+    const std::vector<EdgeType>& edges,
+    EdgeIndex edge_index)
+{
+    const auto& e = edges[static_cast<size_t>(edge_index)];
+    return std::make_pair(static_cast<VertexIndex>(e[0]), static_cast<VertexIndex>(e[1]));
+}
+
+} // namespace detail
+
 /**
  * Chain undirected edges into chains and loops.
  *
- * @param[in]  edges       The set of input undirected edges.
+ * @param[in]  edges       The set of input undirected edges. Can be a `std::vector` of 2D integer
+ *                         vectors, or an Eigen integer array with 2 columns (one edge per row).
  * @param[in]  close_loop  Whether to mark closed loops by setting the first and
  *                         last vertex to be the same.
  *
  * @returns The set of edge chains/loops.
  *
- * @note Any vertices with more than 2 connected edges will serve as stopping
- * vertices for the chain growing algorithm.
+ * @note Any vertices with more than 2 connected edges will serve as stopping vertices for the chain
+ * growing algorithm.
  */
 template <typename Index, typename Allocator = std::vector<EdgeType<Index>>>
 std::vector<std::vector<Index>> chain_undirected_edges(
@@ -166,27 +205,25 @@ std::vector<std::vector<Index>> chain_undirected_edges(
     using Chain = std::vector<Index>;
     std::vector<Chain> chains;
     VertexEdgeAdjList adj_list;
-    size_t num_edges = std::distance(edges.begin(), edges.end());
+    size_t num_edges = detail::get_num_edges(edges);
     adj_list.reserve(num_edges);
     std::vector<bool> visited(num_edges, false);
 
     auto add_adj_connection = [&](Index ei) {
-        const auto& e = edges[ei];
-        Index v0 = e[0];
-        Index v1 = e[1];
+        auto v = detail::get_edge_endpoints<Index>(edges, ei);
 
-        auto itr = adj_list.find(v0);
+        auto itr = adj_list.find(v.first);
         if (itr != adj_list.end()) {
             itr->second.push_back(ei);
         } else {
-            adj_list.insert({v0, {ei}});
+            adj_list.insert({v.first, {ei}});
         }
 
-        itr = adj_list.find(v1);
+        itr = adj_list.find(v.second);
         if (itr != adj_list.end()) {
             itr->second.push_back(ei);
         } else {
-            adj_list.insert({v1, {ei}});
+            adj_list.insert({v.second, {ei}});
         }
     };
 
@@ -208,12 +245,12 @@ std::vector<std::vector<Index>> chain_undirected_edges(
             for (auto ei : adj_edges) {
                 if (visited[ei]) continue;
 
-                const auto& e = edges[ei];
-                if (e[0] == curr_v) {
-                    chain.push_back(e[1]);
+                auto v = detail::get_edge_endpoints<Index>(edges, ei);
+                if (v.first == curr_v) {
+                    chain.push_back(v.second);
                 } else {
-                    la_debug_assert(e[1] == curr_v);
-                    chain.push_back(e[0]);
+                    la_debug_assert(v.second == curr_v);
+                    chain.push_back(v.first);
                 }
                 prev_v = curr_v;
                 curr_v = chain.back();
@@ -233,12 +270,12 @@ std::vector<std::vector<Index>> chain_undirected_edges(
     for (auto ei : range(num_edges)) {
         if (visited[ei]) continue;
 
-        const auto& e = edges[ei];
+        auto v = detail::get_edge_endpoints<Index>(edges, ei);
         visited[ei] = true;
         Chain chain;
         chain.reserve(num_edges);
-        chain.push_back(e[0]);
-        chain.push_back(e[1]);
+        chain.push_back(v.first);
+        chain.push_back(v.second);
         grow_chain_forward(chain);
         grow_chain_backward(chain);
 
