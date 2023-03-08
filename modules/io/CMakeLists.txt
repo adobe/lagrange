@@ -12,6 +12,10 @@
 
 # 1. define module
 lagrange_add_module()
+set_target_properties(lagrange_io PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set_target_properties(lagrange_io PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
 
 # 2. dependencies
 lagrange_include_modules(core fs scene)
@@ -53,4 +57,8 @@ endif()
 
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(LAGRANGE_MODULE_PYTHON)
+    add_subdirectory(python)
 endif()

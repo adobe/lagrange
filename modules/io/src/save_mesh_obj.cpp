@@ -66,81 +66,73 @@ void save_mesh_obj(
         fmt::print(output_stream, "v {} {} {}\n", p[0], p[1], dim == 2 ? Scalar(0) : p[2]);
     }
 
-    // Write tex coords
+    // Write normals and texcoords
     std::string found_uv_name;
-    const Attribute<Index>* uv_indices = nullptr;
-    seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
-        // TODO: change this for the attribute visitor that takes id and simplify this block.
-        if (options.output_attributes == SaveOptions::OutputAttributes::SelectedOnly) {
-            AttributeId id = mesh.get_attribute_id(name);
-            if (std::count(
-                    options.selected_attributes.begin(),
-                    options.selected_attributes.end(),
-                    id)) {
-                return;
-            }
-        }
-
-        if (attr.get_usage() != AttributeUsage::UV) {
-            return;
-        }
-        if (!found_uv_name.empty()) {
-            logger().warn(
-                "Found multiple UV attributes. Only '{}' was written to disk",
-                found_uv_name);
-            return;
-        } else {
-            found_uv_name = name;
-        }
-        using AttributeType = std::decay_t<decltype(attr)>;
-        if constexpr (AttributeType::IsIndexed) {
-            la_debug_assert(attr.get_num_channels() == 2);
-            for (Index vt = 0; vt < attr.values().get_num_elements(); ++vt) {
-                auto p = attr.values().get_row(vt);
-                fmt::print(output_stream, "vt {} {}\n", p[0], p[1]);
-            }
-            uv_indices = &attr.indices();
-        } else {
-            logger().warn("Writing non-indexed UV attr not supported yet");
-        }
-    });
-
-    // Write normals
     std::string found_nrm_name;
+    const Attribute<Index>* uv_indices = nullptr;
     const Attribute<Index>* nrm_indices = nullptr;
     seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+
         // TODO: change this for the attribute visitor that takes id and simplify this block.
         if (options.output_attributes == SaveOptions::OutputAttributes::SelectedOnly) {
             AttributeId id = mesh.get_attribute_id(name);
-            if (std::count(
+            if (std::find(
                     options.selected_attributes.begin(),
                     options.selected_attributes.end(),
-                    id)) {
+                    id) == options.selected_attributes.end()) {
                 return;
             }
         }
 
-        if (attr.get_usage() != AttributeUsage::Normal) {
-            return;
+        if (attr.get_usage() == AttributeUsage::UV) {
+            if (!found_uv_name.empty()) {
+                logger().warn(
+                    "Found multiple UV attributes. Only '{}' was written to disk",
+                    found_uv_name);
+                return;
+            } else {
+                found_uv_name = name;
+            }
+
+            const Attribute<typename AttributeType::ValueType>* values = nullptr;
+            if constexpr (AttributeType::IsIndexed) {
+                values = &attr.values();
+                uv_indices = &attr.indices();
+            } else {
+                values = &attr;
+                uv_indices = &mesh.get_corner_to_vertex();
+            }
+            la_runtime_assert(attr.get_num_channels() == 2);
+            for (Index vt = 0; vt < values->get_num_elements(); ++vt) {
+                auto p = values->get_row(vt);
+                fmt::print(output_stream, "vt {} {}\n", p[0], p[1]);
+            }
         }
-        if (!found_nrm_name.empty()) {
-            logger().warn(
-                "Found multiple Normal attributes. Only '{}' was written to disk",
-                found_nrm_name);
-            return;
-        } else {
-            found_nrm_name = name;
-        }
-        using AttributeType = std::decay_t<decltype(attr)>;
-        if constexpr (AttributeType::IsIndexed) {
+
+        if (attr.get_usage() == AttributeUsage::Normal) {
+            if (!found_nrm_name.empty()) {
+                logger().warn(
+                    "Found multiple Normal attributes. Only '{}' was written to disk",
+                    found_nrm_name);
+                return;
+            } else {
+                found_nrm_name = name;
+            }
+
+            const Attribute<typename AttributeType::ValueType>* values = nullptr;
+            if constexpr (AttributeType::IsIndexed) {
+                values = &attr.values();
+                nrm_indices = &attr.indices();
+            } else {
+                values = &attr;
+                nrm_indices = &mesh.get_corner_to_vertex();
+            }
             la_runtime_assert(attr.get_num_channels() == 3);
-            for (Index vn = 0; vn < attr.values().get_num_elements(); ++vn) {
-                auto p = attr.values().get_row(vn);
+            for (Index vn = 0; vn < values->get_num_elements(); ++vn) {
+                auto p = values->get_row(vn);
                 fmt::print(output_stream, "vn {} {} {}\n", p[0], p[1], p[2]);
             }
-            nrm_indices = &attr.indices();
-        } else {
-            logger().warn("Writing non-indexed Normal attr not supported yet");
         }
     });
 

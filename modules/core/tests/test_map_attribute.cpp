@@ -229,8 +229,6 @@ void test_map_attribute_types(lagrange::SurfaceMesh<Scalar, Index> mesh, size_t 
 template <typename Scalar, typename Index>
 void test_map_attribute_all()
 {
-    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
-
     auto filenames = {
         "poly/L-plane.obj",
         "poly/mixedFaringPart.obj",
@@ -250,8 +248,6 @@ void test_map_attribute_all()
 template <typename Scalar, typename Index, typename ValueType>
 void test_map_attribute_invalid()
 {
-    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
-
     auto filenames = {
         "poly/L-plane.obj",
         "poly/mixedFaringPart.obj",

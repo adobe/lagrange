@@ -56,13 +56,18 @@ namespace details {
 enum class Ordering { Sequential, Parallel };
 enum class Access { Write, Read };
 
+void par_foreach_attribute_id(span<const AttributeId> ids, function_ref<void(AttributeId)> cb);
+
 template <
-    typename MeshType,
-    typename Visitor,
     std::underlying_type_t<AttributeElement> mask,
     Ordering ordering,
-    Access access>
-void internal_foreach_named_attribute(MeshType& mesh, Visitor&& vis)
+    Access access,
+    typename MeshType,
+    typename Visitor>
+void internal_foreach_named_attribute(
+    MeshType& mesh,
+    Visitor&& vis,
+    span<const AttributeId> ids = {})
 {
     auto cb = [&](std::string_view name, AttributeId id) {
         constexpr auto filter = BitField<AttributeElement>(mask);
@@ -97,19 +102,31 @@ void internal_foreach_named_attribute(MeshType& mesh, Visitor&& vis)
 #undef LA_X_match_attribute
     };
     if constexpr (ordering == Ordering::Sequential) {
-        mesh.seq_foreach_attribute_id(cb);
+        if (ids.empty()) {
+            mesh.seq_foreach_attribute_id(cb);
+        } else {
+            std::for_each(ids.begin(), ids.end(), [&](AttributeId id) {
+                cb(mesh.get_attribute_name(id), id);
+            });
+        }
     } else {
-        mesh.par_foreach_attribute_id(cb);
+        if (ids.empty()) {
+            mesh.par_foreach_attribute_id(cb);
+        } else {
+            par_foreach_attribute_id(ids, [&](AttributeId id) {
+                cb(mesh.get_attribute_name(id), id);
+            });
+        }
     }
 }
 
 template <
-    typename MeshType,
-    typename Visitor,
     std::underlying_type_t<AttributeElement> mask,
     Ordering ordering,
-    Access access>
-void internal_foreach_attribute(MeshType& mesh, Visitor&& vis)
+    Access access,
+    typename MeshType,
+    typename Visitor>
+void internal_foreach_attribute(MeshType& mesh, Visitor&& vis, span<const AttributeId> ids = {})
 {
     auto cb = [&](AttributeId id) {
         constexpr auto filter = BitField<AttributeElement>(mask);
@@ -144,9 +161,17 @@ void internal_foreach_attribute(MeshType& mesh, Visitor&& vis)
 #undef LA_X_match_attribute
     };
     if constexpr (ordering == Ordering::Sequential) {
-        mesh.seq_foreach_attribute_id(cb);
+        if (ids.empty()) {
+            mesh.seq_foreach_attribute_id(cb);
+        } else {
+            std::for_each(ids.begin(), ids.end(), cb);
+        }
     } else {
-        mesh.par_foreach_attribute_id(cb);
+        if (ids.empty()) {
+            mesh.par_foreach_attribute_id(cb);
+        } else {
+            par_foreach_attribute_id(ids, cb);
+        }
     }
 }
 
@@ -180,12 +205,9 @@ template <
 void seq_foreach_named_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_named_attribute<
-        decltype(mesh),
-        Visitor,
-        mask,
-        Ordering::Sequential,
-        Access::Read>(mesh, std::forward<Visitor>(vis));
+    internal_foreach_named_attribute<mask, Ordering::Sequential, Access::Read>(
+        mesh,
+        std::forward<Visitor>(vis));
 }
 
 ///
@@ -209,7 +231,7 @@ template <
 void seq_foreach_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_attribute<decltype(mesh), Visitor, mask, Ordering::Sequential, Access::Read>(
+    internal_foreach_attribute<mask, Ordering::Sequential, Access::Read>(
         mesh,
         std::forward<Visitor>(vis));
 }
@@ -243,12 +265,9 @@ template <
 void seq_foreach_named_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_named_attribute<
-        decltype(mesh),
-        Visitor,
-        mask,
-        Ordering::Sequential,
-        Access::Write>(mesh, std::forward<Visitor>(vis));
+    internal_foreach_named_attribute<mask, Ordering::Sequential, Access::Write>(
+        mesh,
+        std::forward<Visitor>(vis));
 }
 
 ///
@@ -273,7 +292,7 @@ template <
 void seq_foreach_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_attribute<decltype(mesh), Visitor, mask, Ordering::Sequential, Access::Write>(
+    internal_foreach_attribute<mask, Ordering::Sequential, Access::Write>(
         mesh,
         std::forward<Visitor>(vis));
 }
@@ -306,12 +325,9 @@ template <
 void par_foreach_named_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_named_attribute<
-        decltype(mesh),
-        Visitor,
-        mask,
-        Ordering::Parallel,
-        Access::Read>(mesh, std::forward<Visitor>(vis));
+    internal_foreach_named_attribute<mask, Ordering::Parallel, Access::Read>(
+        mesh,
+        std::forward<Visitor>(vis));
 }
 
 ///
@@ -335,7 +351,7 @@ template <
 void par_foreach_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_attribute<decltype(mesh), Visitor, mask, Ordering::Parallel, Access::Read>(
+    internal_foreach_attribute<mask, Ordering::Parallel, Access::Read>(
         mesh,
         std::forward<Visitor>(vis));
 }
@@ -369,12 +385,9 @@ template <
 void par_foreach_named_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_named_attribute<
-        decltype(mesh),
-        Visitor,
-        mask,
-        Ordering::Parallel,
-        Access::Write>(mesh, std::forward<Visitor>(vis));
+    internal_foreach_named_attribute<mask, Ordering::Parallel, Access::Write>(
+        mesh,
+        std::forward<Visitor>(vis));
 }
 
 ///
@@ -399,7 +412,7 @@ template <
 void par_foreach_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis)
 {
     using namespace details;
-    internal_foreach_attribute<decltype(mesh), Visitor, mask, Ordering::Parallel, Access::Write>(
+    internal_foreach_attribute<mask, Ordering::Parallel, Access::Write>(
         mesh,
         std::forward<Visitor>(vis));
 }

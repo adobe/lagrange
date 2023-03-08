@@ -11,7 +11,9 @@
  */
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
+#include <lagrange/create_mesh.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/mesh_convert.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/range.h>
@@ -429,5 +431,19 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
             REQUIRE(mesh2.get_num_vertices() == 6);
             check_for_consistency(mesh, mesh2);
         }
+    }
+
+    SECTION("Ensure all index attribute are unified") {
+        std::unique_ptr<TriangleMesh3D> legacy = create_cube();
+        SurfaceMesh32d mesh = to_surface_mesh_copy<double, uint32_t, TriangleMesh3D>(*legacy);
+        REQUIRE(mesh.has_attribute("uv"));
+        REQUIRE(mesh.is_attribute_indexed("uv"));
+
+        SurfaceMesh32d uni = unify_index_buffer(mesh);
+        REQUIRE(!uni.is_attribute_indexed("uv"));
+        seq_foreach_attribute_read(uni, [&](auto&& attr) {
+            using AttributeType = std::decay_t<decltype(attr)>;
+            REQUIRE(!AttributeType::IsIndexed);
+        });
     }
 }

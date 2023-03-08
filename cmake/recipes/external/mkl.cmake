@@ -359,7 +359,11 @@ else()
     mkl_add_imported_library(core)
 
     # Interface library
-    mkl_add_imported_library(intel_${MKL_INTERFACE} NO_DLL)
+    if(WIN32)
+        mkl_add_imported_library(intel_${MKL_INTERFACE} NO_DLL)
+    else()
+        mkl_add_imported_library(intel_${MKL_INTERFACE})
+    endif()
 
     # Thread library
     if(MKL_THREADING STREQUAL sequential)

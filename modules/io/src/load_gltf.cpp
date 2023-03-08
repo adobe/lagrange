@@ -11,21 +11,21 @@
  */
 
 // this .cpp provides implementations for functions defined in those headers:
+#include <lagrange/io/internal/load_gltf.h>
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
-#include <lagrange/io/internal/load_gltf.h>
 // ====
 
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/combine_meshes.h>
 #include <lagrange/internal/skinning.h>
+#include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
-#include <lagrange/combine_meshes.h>
-#include <Eigen/Geometry>
 
 #include <tiny_gltf.h>
+#include <Eigen/Geometry>
 
 namespace lagrange::io {
 namespace internal {
@@ -77,7 +77,6 @@ std::vector<Target_t> load_buffer_data_internal(
         } else {
             return Target_t(x);
         }
-        
     });
     return ret;
 }
@@ -120,7 +119,13 @@ tinygltf::Model load_tinygltf(const fs::path& filename)
     tinygltf::TinyGLTF loader;
     std::string err;
     std::string warn;
-    bool ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename.string());
+    bool ret;
+    if (to_lower(filename.extension().string()) == ".gltf") {
+        ret = loader.LoadASCIIFromFile(&model, &err, &warn, filename.string());
+    } else {
+        la_runtime_assert(to_lower(filename.extension().string()) == ".glb");
+        ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename.string());
+    }
 
     if (!warn.empty()) logger().warn("%s", warn.c_str());
     if (!ret || !err.empty()) {
@@ -282,7 +287,8 @@ MeshType load_mesh_gltf(const tinygltf::Model& model, const LoadOptions& options
     } else {
         std::vector<MeshType> meshes(model.meshes.size());
         for (size_t i = 0; i < model.meshes.size(); ++i) {
-            meshes[i] = convert_mesh_tinygltf_to_lagrange<MeshType>(model, model.meshes[i], options);
+            meshes[i] =
+                convert_mesh_tinygltf_to_lagrange<MeshType>(model, model.meshes[i], options);
         }
         constexpr bool preserve_attributes = true;
         return lagrange::combine_meshes<typename MeshType::Scalar, typename MeshType::Index>(
@@ -315,14 +321,8 @@ SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions
         lscene.add_mesh(convert_mesh_tinygltf_to_lagrange<MeshType>(model, mesh, options));
     }
 
-    std::function<void(
-        const tinygltf::Model& model,
-        const tinygltf::Node& node,
-        const AffineTransform& parent_transform)>
-        visit_node;
-    visit_node = [&](const tinygltf::Model& model,
-                     const tinygltf::Node& node,
-                     const AffineTransform& parent_transform) -> void {
+    std::function<void(const tinygltf::Node&, const AffineTransform&)> visit_node;
+    visit_node = [&](const tinygltf::Node& node, const AffineTransform& parent_transform) -> void {
         AffineTransform node_transform = AffineTransform::Identity();
         if constexpr (SceneType::Dim == 3) {
             if (!node.matrix.empty()) {
@@ -366,7 +366,7 @@ SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions
         }
 
         for (int child_idx : node.children) {
-            visit_node(model, model.nodes[child_idx], global_transform);
+            visit_node(model.nodes[child_idx], global_transform);
         }
     };
 
@@ -380,14 +380,14 @@ SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions
         }
         for (int node_idx : model.scenes[scene_id].nodes) {
             AffineTransform root_transform = AffineTransform::Identity();
-            visit_node(model, model.nodes[node_idx], root_transform);
+            visit_node(model.nodes[node_idx], root_transform);
         }
     }
 
     return lscene;
 }
 
-#define LA_X_load_simple_scene_gltf(_, S, I, D) \
+#define LA_X_load_simple_scene_gltf(_, S, I, D)                  \
     template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
         const tinygltf::Model& model,                            \
         const LoadOptions& options);
@@ -422,7 +422,7 @@ SceneType load_simple_scene_gltf(const fs::path& filename, const LoadOptions& op
     tinygltf::Model model = internal::load_tinygltf(filename);
     return internal::load_simple_scene_gltf<SceneType>(model, options);
 }
-#define LA_X_load_simple_scene_gltf(_, S, I, D) \
+#define LA_X_load_simple_scene_gltf(_, S, I, D)                  \
     template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
         const fs::path& filename,                                \
         const LoadOptions& options);

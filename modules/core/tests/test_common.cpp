@@ -11,9 +11,9 @@
  */
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
+#include <lagrange/testing/common.h>
 #include <lagrange/utils/range.h>
 #include <Eigen/Core>
-#include <lagrange/testing/common.h>
 
 TEST_CASE("INVALID", "")
 {
@@ -25,8 +25,9 @@ TEST_CASE("INVALID", "")
     REQUIRE(invalid<Index>() == std::numeric_limits<Index>::max());
     REQUIRE(invalid<Index>() == std::numeric_limits<int>::max());
     REQUIRE(
-        invalid<Index>() != std::numeric_limits<unsigned int>::max()); // different types can have
-                                                                       // different INVALID values.
+        invalid<Index>() !=
+        static_cast<int>(std::numeric_limits<unsigned int>::max())); // different types can have
+                                                                     // different INVALID values.
     REQUIRE(std::is_arithmetic<Index>::value);
 }
 

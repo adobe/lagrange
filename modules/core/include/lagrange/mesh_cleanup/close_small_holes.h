@@ -102,8 +102,8 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
     }
 
     auto get_from_corner = [](const auto& matrix, Index c) {
-        const Index nvpf = matrix.cols();
-        return matrix(c / nvpf, c % nvpf);
+        const Index _nvpf = static_cast<Index>(matrix.cols());
+        return matrix(c / _nvpf, c % _nvpf);
     };
 
     // Compute which hole can be filled with a single triangle,
@@ -318,7 +318,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                         vals.row(shared_corner) += vals.row(c[1]);
                         counter++;
                     }
-                    vals.row(shared_corner) /= 2 * loop.size();
+                    vals.row(shared_corner) /= static_cast<Scalar>(2 * loop.size());
                     for (Index i = 0; i < (Index)loop.size(); ++i) {
                         vals.row(shared_corner + i * nvpf) = vals.row(shared_corner);
                     }
@@ -338,7 +338,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
     std::vector<Scalar> group_means;
     for (const auto& name : mesh.get_indexed_attribute_names()) {
         const auto& attr = mesh.get_indexed_attribute(name);
-        const Index num_coords = std::get<0>(attr).cols();
+        const Index num_coords = static_cast<Index>(std::get<0>(attr).cols());
         logger().trace("[close_small_holes] remaping indexed attribute: {}", name);
         eigen_to_flat_vector(std::get<0>(attr), values, Eigen::RowMajor);
         eigen_to_flat_vector(std::get<1>(attr), indices, Eigen::RowMajor);
@@ -356,17 +356,18 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                     groups.init(2 * nv); // number of loop corners
                     for (size_t i = 0; i < loop.size(); ++i) {
                         const size_t j = (i + 1) % loop.size();
-                        const Index lci = 2 * i + 1;
-                        const Index lcj = 2 * j + 0;
+                        const Index lci = static_cast<Index>(2 * i + 1);
+                        const Index lcj = static_cast<Index>(2 * j + 0);
                         const Index ci = boundary_corners[loop[i]][1];
                         const Index cj = boundary_corners[loop[j]][0];
-                        groups.merge(2 * i, 2 * i + 1);
+                        groups.merge(static_cast<Index>(2 * i), static_cast<Index>(2 * i + 1));
                         if (indices[ci] == indices[cj]) {
                             groups.merge(lci, lcj);
                         }
                     }
                     // Compute average attribute value per group
-                    const Index num_groups = groups.extract_disjoint_set_indices(group_color);
+                    const Index num_groups =
+                        static_cast<Index>(groups.extract_disjoint_set_indices(group_color));
                     logger().trace("num groups: {}", num_groups);
                     group_sizes.assign(num_groups, 0);
                     group_means.assign(num_groups * num_coords, 0);
@@ -391,7 +392,7 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
                     }
                     // Allocate new attribute indices
                     for (size_t i = 0; i < loop.size(); ++i) {
-                        const Index lci = 2 * i + 0;
+                        const Index lci = static_cast<Index>(2 * i + 0);
                         const Index idxi = indices[boundary_corners[loop[i]][0]];
                         const Index idxj = indices[boundary_corners[loop[i]][1]];
                         indices.push_back(idxi);

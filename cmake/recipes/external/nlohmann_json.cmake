@@ -16,13 +16,13 @@ endif()
 message(STATUS "Third-party (external): creating target 'nlohmann_json::nlohmann_json'")
 
 # nlohmann_json is a big repo for a single header, so we just download the release archive
-set(NLOHMANNJSON_VERSION "v3.7.3")
+set(NLOHMANNJSON_VERSION "v3.11.2")
 
 include(FetchContent)
 FetchContent_Declare(
     nlohmann_json
     URL "https://github.com/nlohmann/json/releases/download/${NLOHMANNJSON_VERSION}/include.zip"
-    URL_HASH SHA256=87b5884741427220d3a33df1363ae0e8b898099fbc59f1c451113f6732891014
+    URL_HASH SHA256=e5c7a9f49a16814be27e4ed0ee900ecd0092bfb7dbfca65b5a421b774dccaaed
 )
 FetchContent_MakeAvailable(nlohmann_json)
 

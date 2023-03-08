@@ -19,6 +19,8 @@ include(FetchContent)
 FetchContent_Declare(
     cli11
     GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-    GIT_TAG v2.1.2
+    GIT_TAG v2.3.2
 )
 FetchContent_MakeAvailable(cli11)
+
+set_target_properties(CLI11 PROPERTIES FOLDER third_party)

@@ -13,9 +13,9 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/utils/BitField.h>
+#include <lagrange/utils/span.h>
 
 #include <string_view>
-#include <unordered_set>
 
 namespace lagrange::internal {
 
@@ -49,8 +49,10 @@ AttributeId find_matching_attribute(
 
 ///
 /// Find an attribute from a selected set of ids, ensuring the usage and element type match an
-/// expected target. If the provided name is empty, the first attribute with matching properties is
-/// returned. If no such attribute is found, invalid_attribute_id() is returned instead.
+/// expected target. If the provided `selected_ids` is empty, it will search all attributes.
+/// Otherwise, only attributes corresponding to `selected_ids` are searched.  The first attribute
+/// with matching properties is returned. If no such attribute is found, invalid_attribute_id() is
+/// returned instead.
 ///
 /// @param      mesh               Mesh where to look for attributes.
 /// @param[in]  selected_ids       Selected attribute ids.
@@ -67,7 +69,7 @@ AttributeId find_matching_attribute(
 template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_matching_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
-    const std::unordered_set<AttributeId> &selected_ids,
+    span<const AttributeId> selected_ids,
     BitField<AttributeElement> expected_element,
     AttributeUsage expected_usage,
     size_t expected_channels);

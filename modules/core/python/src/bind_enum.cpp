@@ -26,6 +26,7 @@ void bind_enum(nb::module_& m)
     nb::enum_<AttributeElement>(m, "AttributeElement")
         .value("Vertex", Vertex)
         .value("Facet", Facet)
+        .value("Edge", Edge)
         .value("Corner", Corner)
         .value("Value", Value)
         .value("Indexed", Indexed);

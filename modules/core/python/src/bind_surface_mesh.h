@@ -27,6 +27,7 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/foreach_attribute.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
@@ -538,6 +539,34 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def("get_one_corner_around_edge", &MeshType::get_one_corner_around_edge);
     surface_mesh_class.def("get_one_corner_around_vertex", &MeshType::get_one_corner_around_vertex);
     surface_mesh_class.def("is_boundary_edge", &MeshType::is_boundary_edge);
+
+    surface_mesh_class.def(
+        "get_matching_attribute_ids",
+        [](MeshType& self, AttributeElement* element, AttributeUsage* usage, Index num_channels) {
+            std::vector<AttributeId> attr_ids;
+            attr_ids.reserve(4);
+            self.seq_foreach_attribute_id([&](AttributeId attr_id) {
+                const auto name = self.get_attribute_name(attr_id);
+                if (self.attr_name_is_reserved(name)) return;
+                const auto& attr = self.get_attribute_base(attr_id);
+                if (element != nullptr && attr.get_element_type() != *element) return;
+                if (usage != nullptr && attr.get_usage() != *usage) return;
+                if (num_channels != 0 && attr.get_num_channels() != num_channels) return;
+                attr_ids.push_back(attr_id);
+            });
+            return attr_ids;
+        },
+        "element"_a = nb::none(),
+        "usage"_a = nb::none(),
+        "num_channels"_a = 0,
+        R"(Get all matching attribute ids with the desired element type, usage and number of channels.
+
+:param element:       The target element type. None matches all element types.
+:param usage:         The target usage type.  None matches all usage types.
+:param num_channels:  The target number of channels. 0 matches arbitrary number of channels.
+
+:returns: A list of attribute ids matching the target element, usage and number of channels.
+)");
 }
 
 } // namespace lagrange::python

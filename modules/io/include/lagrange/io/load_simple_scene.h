@@ -13,20 +13,20 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
-#include <lagrange/scene/SimpleScene.h>
 #include <lagrange/io/types.h>
+#include <lagrange/scene/SimpleScene.h>
 
 namespace lagrange::io {
 
 /**
  * Load a simple scene.
- * 
- * @param[in] filename      path to file
- * @param[in] options
- * 
- * @return SceneType    scene.
+ *
+ * @param[in] filename  Input scene file.
+ * @param[in] options   Extra options related to loading.
+ *
+ * @return    A `SimpleScene` object created from the input scene file.
  */
 template <typename SceneType>
 SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options = {});
 
-}
+} // namespace lagrange::io

@@ -14,6 +14,7 @@ if(TARGET Eigen3::Eigen)
 endif()
 
 option(EIGEN_WITH_MKL "Use Eigen with MKL" OFF)
+option(EIGEN_DONT_VECTORIZE "Disable Eigen vectorization" OFF)
 
 if(EIGEN_ROOT)
     message(STATUS "Third-party (external): creating target 'Eigen3::Eigen' for external path: ${EIGEN_ROOT}")
@@ -48,6 +49,10 @@ target_include_directories(Eigen3_Eigen SYSTEM INTERFACE
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_compile_definitions(Eigen3_Eigen INTERFACE EIGEN_MPL2_ONLY)
+
+if(EIGEN_DONT_VECTORIZE)
+    target_compile_definitions(Eigen3_Eigen INTERFACE EIGEN_DONT_VECTORIZE)
+endif()
 
 if(EIGEN_WITH_MKL)
     # TODO: Checks that, on 64bits systems, `mkl::mkl` is using the LP64 interface

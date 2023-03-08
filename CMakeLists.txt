@@ -82,6 +82,16 @@ else()
     set(LAGRANGE_NO_INTERNAL ON)
 endif()
 
+# Define this first since other options defaults depend on this
+option(LAGRANGE_JENKINS "Enable specific configs when building on Jenkins" OFF)
+
+# Whether to enable compilation tests by default
+if(WIN32 AND NOT LAGRANGE_JENKINS)
+    set(LAGRANGE_COMPILE_TESTS_DEFAULT NO)
+else()
+    set(LAGRANGE_COMPILE_TESTS_DEFAULT ${LAGRANGE_TOPLEVEL_PROJECT})
+endif()
+
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL                "Build all lagrange modules" OFF)
 
@@ -92,15 +102,16 @@ option(LAGRANGE_DISABLE_FPE        "Disable floating point exception code"      
 option(LAGRANGE_DOCUMENTATION      "Build Doxygen documentation"                          OFF)
 option(LAGRANGE_EXAMPLES           "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_INSTALL            "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_JENKINS            "Enable specific configs when building on Jenkins"     OFF)
 option(LAGRANGE_LIMIT_PARALLELISM  "Limit parallelism according to available cpu/memory"  OFF)
 option(LAGRANGE_MORE_WARNINGS      "Increase the level of warnings when compiling"        OFF)
 option(LAGRANGE_PERFORMANCE_TESTS  "Build all performance tests"                          OFF)
 option(LAGRANGE_UNIT_TESTS         "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_COMPILE_TESTS      "Enable compilation tests"                             ${LAGRANGE_COMPILE_TESTS_DEFAULT})
 option(LAGRANGE_USE_PCH            "Enable precompiled headers"                           OFF)
 option(LAGRANGE_WITH_ONETBB        "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY         "Build tracy client with Lagrange"                     OFF)
 option(LAGRANGE_ENABLE_LEGACY_FUNCTIONS "Enable support for legacy functions."            ON)
+option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"       OFF)
 
 # Specific override for building on Jenkins
 if(LAGRANGE_JENKINS)
@@ -131,9 +142,9 @@ set(LAGRANGE_WEBSITE_REPO "" CACHE FILEPATH "Path to the website repository for 
 
 # Set default minimum C++ standard
 if(LAGRANGE_TOPLEVEL_PROJECT)
-    set(CMAKE_CXX_STANDARD 17)
-    set(CMAKE_CXX_STANDARD_REQUIRED ON)
-    set(CMAKE_CXX_EXTENSIONS OFF)
+    set(CMAKE_CXX_STANDARD 17 CACHE STRING "C++ standard version to compile with")
+    set(CMAKE_CXX_STANDARD_REQUIRED ON CACHE BOOL "Whether the C++ standard version is a requirement")
+    set(CMAKE_CXX_EXTENSIONS OFF CACHE BOOL "Whether compiler specific extensions are requested")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.14" CACHE STRING "Minimum OS X deployment version")
 endif()
 
@@ -160,13 +171,9 @@ else()
 endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
 
-# When building python module, compile TBB as a shared library
-if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
-    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
-endif()
-
 # When building anorigami module, defaults to pre-built Arpack and dynamic MKL/TBB
-if(LAGRANGE_MODULE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+# When building python module, compile MKL/TBB as a shared library
+if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_PYTHON OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
     option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
@@ -198,6 +205,7 @@ set_property(GLOBAL PROPERTY __lagrange_source_dir ${PROJECT_SOURCE_DIR})
 set_property(GLOBAL PROPERTY __lagrange_binary_dir ${PROJECT_BINARY_DIR})
 set_property(GLOBAL PROPERTY __lagrange_module_path ${CMAKE_MODULE_PATH})
 
+include(lagrange_add_compile_test)
 include(lagrange_add_example)
 include(lagrange_add_executable)
 include(lagrange_add_module)
@@ -211,8 +219,8 @@ include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
 include(lagrange_warnings)
-include(sanitizers)
 include(code-coverage)
+include(sanitizers)
 
 set(CMAKE_MACOSX_RPATH 1) # Set rpath for mac
 

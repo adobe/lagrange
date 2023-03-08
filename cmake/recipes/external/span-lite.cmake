@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     span-lite
     GIT_REPOSITORY https://github.com/martinmoene/span-lite.git
-    GIT_TAG 1d79b2325f176979aea526fb76a3692e011049a5
+    GIT_TAG bc08bf87258d881aaa83b50c54dea67ea33d0e8e
 )
 FetchContent_MakeAvailable(span-lite)
 

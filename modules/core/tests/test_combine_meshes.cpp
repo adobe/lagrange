@@ -73,7 +73,7 @@ TEST_CASE("combine_meshes", "[surface][utilities]")
         const auto attr_value_view = matrix_view(attr.values());
         const auto attr_index_view = matrix_view(attr.indices());
 
-        for (auto ci : range(attr_index_view.rows())) {
+        for (auto ci : range(static_cast<Index>(attr_index_view.rows()))) {
             Index i = attr_index_view(ci);
             Index fi = out_mesh.get_corner_facet(ci);
             if (fi == 0) {

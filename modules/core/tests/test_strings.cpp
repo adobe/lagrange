@@ -32,3 +32,11 @@ TEST_CASE("String", "[next]")
     REQUIRE(!starts_with("", "bar"));
     REQUIRE(!ends_with("", "foo"));
 }
+
+TEST_CASE("String Format", "[next]")
+{
+    using namespace lagrange;
+    std::string unused = string_format("Hello {}", "World");
+    (void)unused;
+    SUCCEED();
+}

@@ -28,7 +28,7 @@ void bfs_orient(
     lagrange::internal::orientable_patches(F, C, A);
 
     // number of faces
-    const int m = F.rows();
+    const int m = static_cast<int>(F.rows());
     // number of patches
     const int num_cc = C.maxCoeff() + 1;
     Eigen::VectorXi seen = Eigen::VectorXi::Zero(m);
@@ -63,7 +63,7 @@ void bfs_orient(
                  ++it) {
                 // might be some lingering zeros, and skip self-adjacency
                 if (it.value() != 0 && it.row() != f) {
-                    const int n = it.row();
+                    const int n = static_cast<int>(it.row());
                     assert(n != f);
                     // loop over edges of f
                     for (int efi = 0; efi < 3; efi++) {

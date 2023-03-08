@@ -36,16 +36,28 @@ struct SaveOptions
      * Which attributes to save with the mesh?
      */
     enum class OutputAttributes {
-        /// All attributes (default)
-        All,
-
-        /// Only attributes listed in `selected_attributes`
-        SelectedOnly,
+        All, ///< All attributes (default)
+        SelectedOnly, ///< Only attributes listed in `selected_attributes`
     };
+
     OutputAttributes output_attributes = OutputAttributes::All;
 
     /// Attributes to output, usage depends on the above.
     std::vector<AttributeId> selected_attributes;
+
+    /**
+     * While Lagrange SurfaceMesh supports vertex, facet, corner, edge and indexed attributes, many
+     * filetypes only support a subset of these attribute types. The `AttributeConversionPolicy`
+     * provides the options to handle non-supported attributes when saving them.
+     */
+    enum class AttributeConversionPolicy {
+        ExactMatchOnly, ///< Ignore mismatched attributes and print a warning
+        ConvertAsNeeded, ///< Convert attribute to supported attribute type when possible.
+    };
+
+    /// The attribute conversion policy to use.
+    AttributeConversionPolicy attribute_conversion_policy =
+        AttributeConversionPolicy::ExactMatchOnly;
 };
 
 /**
@@ -57,13 +69,13 @@ struct LoadOptions
     /// Triangulate any polygonal facet with > 3 vertices
     bool triangulate = false;
 
-    /// Load vertex normals as indexed attribute
+    /// Load vertex normals
     bool load_normals = true;
 
-    /// Load tangents and bitangent as indexed attribute
+    /// Load tangents and bitangent
     bool load_tangents = true;
 
-    /// Load texture coordinates as indexed attribute
+    /// Load texture coordinates
     bool load_uvs = true;
 
     /// Load skinning weights attributes (joints id and weight).

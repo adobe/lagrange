@@ -15,6 +15,8 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
 
 /**

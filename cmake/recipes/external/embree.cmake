@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     embree
     GIT_REPOSITORY https://github.com/embree/embree.git
-    GIT_TAG        v3.13.4
+    GIT_TAG        v3.13.5
     GIT_SHALLOW    TRUE
 )
 
@@ -112,6 +112,12 @@ function(embree_import_target)
         #
         # The issue should be fixed for gcc 9.2.1 and later.
         target_compile_options(embree PRIVATE "-Wno-array-bounds")
+    endif()
+
+    # Warning setting
+    set(unix_compilers "AppleClang;Clang;GNU")
+    if(CMAKE_CXX_COMPILER_ID IN_LIST unix_compilers) # IN_LIST wants the second arg to be a var
+        target_compile_options(embree PRIVATE "-Wno-unused-private-field")
     endif()
 
     # Now we need to do some juggling to propagate the include directory properties

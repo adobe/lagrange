@@ -178,7 +178,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         if (mesh.attr_name_is_reserved(name)) return;
         auto attr_id = mesh.get_attribute_id(name);
 
-        if (!attribute_ids.empty() &&
+        if (attribute_ids.empty() ||
             std::find(attribute_ids.begin(), attribute_ids.end(), attr_id) != attribute_ids.end()) {
             logger().debug(
                 "Unified index buffer: mapping indexed attribute \"{}\" as vertex attribute",

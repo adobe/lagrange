@@ -120,8 +120,8 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
 
     SMikkTSpaceInterface mk_interface;
     mk_interface.m_getNumFaces = [](const SMikkTSpaceContext* pContext) {
-        auto data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
-        return data->num_facets;
+        auto _data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
+        return _data->num_facets;
     };
     mk_interface.m_getNumVerticesOfFace = [](const SMikkTSpaceContext* pContext, const int iFace) {
         (void)pContext;
@@ -130,9 +130,9 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
     };
     mk_interface.m_getPosition =
         [](const SMikkTSpaceContext* pContext, float fvPosOut[], const int iFace, const int iVert) {
-            auto data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
-            const Index v = data->position_indices[iFace * NVPF + iVert];
-            auto pos = data->position_values.subspan(v * DIM, DIM);
+            auto _data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
+            const Index v = _data->position_indices[iFace * NVPF + iVert];
+            auto pos = _data->position_values.subspan(v * DIM, DIM);
             fvPosOut[0] = static_cast<float>(pos[0]);
             fvPosOut[1] = static_cast<float>(pos[1]);
             fvPosOut[2] = static_cast<float>(pos[2]);
@@ -141,9 +141,9 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
                                   float fvNormOut[],
                                   const int iFace,
                                   const int iVert) {
-        auto data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
-        const Index v = data->normal_indices[iFace * NVPF + iVert];
-        auto nrm = data->normal_values.subspan(v * DIM, DIM);
+        auto _data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
+        const Index v = _data->normal_indices[iFace * NVPF + iVert];
+        auto nrm = _data->normal_values.subspan(v * DIM, DIM);
         fvNormOut[0] = static_cast<float>(nrm[0]);
         fvNormOut[1] = static_cast<float>(nrm[1]);
         fvNormOut[2] = static_cast<float>(nrm[2]);
@@ -152,9 +152,9 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
                                     float fvTexcOut[],
                                     const int iFace,
                                     const int iVert) {
-        auto data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
-        const Index v = data->uv_indices[iFace * NVPF + iVert];
-        auto uv = data->uv_values.subspan(v * UV_DIM, UV_DIM);
+        auto _data = reinterpret_cast<const LocalData*>(pContext->m_pUserData);
+        const Index v = _data->uv_indices[iFace * NVPF + iVert];
+        auto uv = _data->uv_values.subspan(v * UV_DIM, UV_DIM);
         fvTexcOut[0] = static_cast<float>(uv[0]);
         fvTexcOut[1] = static_cast<float>(uv[1]);
     };
@@ -163,9 +163,9 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
                                        const float fSign,
                                        const int iFace,
                                        const int iVert) {
-        auto data = reinterpret_cast<LocalData*>(pContext->m_pUserData);
+        auto _data = reinterpret_cast<LocalData*>(pContext->m_pUserData);
         auto tangent =
-            data->tangents.subspan((iFace * NVPF + iVert) * data->num_channels, data->num_channels);
+            _data->tangents.subspan((iFace * NVPF + iVert) * _data->num_channels, _data->num_channels);
         tangent[0] = static_cast<Scalar>(fvTangent[0]);
         tangent[1] = static_cast<Scalar>(fvTangent[1]);
         tangent[2] = static_cast<Scalar>(fvTangent[2]);
@@ -183,11 +183,11 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
                                   const int iVert) {
         (void)fMagS;
         (void)fMagT;
-        auto data = reinterpret_cast<LocalData*>(pContext->m_pUserData);
+        auto _data = reinterpret_cast<LocalData*>(pContext->m_pUserData);
         const float fSign = bIsOrientationPreserving ? 1.0f : (-1.0f);
 
         auto tangent =
-            data->tangents.subspan((iFace * NVPF + iVert) * data->num_channels, data->num_channels);
+            _data->tangents.subspan((iFace * NVPF + iVert) * _data->num_channels, _data->num_channels);
         tangent[0] = static_cast<Scalar>(fvTangent[0]);
         tangent[1] = static_cast<Scalar>(fvTangent[1]);
         tangent[2] = static_cast<Scalar>(fvTangent[2]);
@@ -195,9 +195,9 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
             tangent[3] = static_cast<Scalar>(fSign);
         }
 
-        auto bitangent = data->bitangents.subspan(
-            (iFace * NVPF + iVert) * data->num_channels,
-            data->num_channels);
+        auto bitangent = _data->bitangents.subspan(
+            (iFace * NVPF + iVert) * _data->num_channels,
+            _data->num_channels);
         bitangent[0] = static_cast<Scalar>(fvBiTangent[0]);
         bitangent[1] = static_cast<Scalar>(fvBiTangent[1]);
         bitangent[2] = static_cast<Scalar>(fvBiTangent[2]);

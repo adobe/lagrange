@@ -58,6 +58,12 @@ if(EMSCRIPTEN)
 
     # Use "-pthread" to allow multi-threading. See https://emscripten.org/docs/porting/pthreads.html.
 
-    add_compile_options(-fexceptions -pthread)
-    add_link_options(-fexceptions -pthread)
+    if(LAGRANGE_USE_WASM_EXCEPTIONS)
+        set(EMSCRIPTEN_EXCEPTION_HANDLER_FLAG "-fwasm-exceptions")
+    else()
+        set(EMSCRIPTEN_EXCEPTION_HANDLER_FLAG "-fexceptions")
+    endif()
+
+    add_compile_options(${EMSCRIPTEN_EXCEPTION_HANDLER_FLAG} -pthread)
+    add_link_options(${EMSCRIPTEN_EXCEPTION_HANDLER_FLAG} -pthread)
 endif()

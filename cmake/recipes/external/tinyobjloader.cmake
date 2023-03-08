@@ -19,37 +19,31 @@ message(STATUS "Third-party (external): creating target 'tinyobjloader::tinyobjl
 include(FetchContent)
 set(TINYOBJLOADER_VERSION "8322e00ae685ea623ab6ac5a6cebcfa2d22fbf93")
 set(TINYOBJLOADER_URL "https://raw.githubusercontent.com/tinyobjloader/tinyobjloader/${TINYOBJLOADER_VERSION}/tiny_obj_loader.h")
-set(TINYOBJLOADER_SOURCE_DIR "${FETCHCONTENT_BASE_DIR}/tinyobjloader-src/${TINYOBJLOADER_VERSION}")
-set(TINYOBJLOADER_BINARY_DIR "${FETCHCONTENT_BASE_DIR}/tinyobjloader-build")
-set(TINYOBJLOADER_FILE "${TINYOBJLOADER_SOURCE_DIR}/tiny_obj_loader.h")
 
-if(NOT EXISTS ${TINYOBJLOADER_FILE})
-    # Note: Once we move to CMake 3.18, we can use FetchContent with the DOWNLOAD_NO_EXTRACT option
-    message(STATUS "Downloading ${TINYOBJLOADER_URL} to ${TINYOBJLOADER_FILE}")
-    file(MAKE_DIRECTORY ${TINYOBJLOADER_SOURCE_DIR})
-    file(
-        DOWNLOAD ${TINYOBJLOADER_URL} ${TINYOBJLOADER_FILE}
-        TIMEOUT 60
-        TLS_VERIFY ON
-        EXPECTED_MD5 fca8189f03970f1dbb9544579b5bda08
-    )
-endif()
+FetchContent_Declare(
+    tinyobjloader
+    URL ${TINYOBJLOADER_URL}
+    URL_HASH MD5=fca8189f03970f1dbb9544579b5bda08
+    DOWNLOAD_NO_EXTRACT 1
+)
+FetchContent_Populate(tinyobjloader)
 
 # Generate implementation file
-file(WRITE "${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp.in" [[
-    #define TINYOBJLOADER_IMPLEMENTATION
-    #include <tiny_obj_loader.h>
+file(WRITE "${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp.in" [[
+#define TINYOBJLOADER_IMPLEMENTATION
+#include <tiny_obj_loader.h>
 ]])
 
-configure_file(${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp.in ${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp COPYONLY)
+configure_file(${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp.in ${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp COPYONLY)
 
 # Define tinyobjloader library
-add_library(tinyobjloader ${TINYOBJLOADER_BINARY_DIR}/tiny_obj_loader.cpp)
+add_library(tinyobjloader ${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp)
 add_library(tinyobjloader::tinyobjloader ALIAS tinyobjloader)
+set_target_properties(tinyobjloader PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 include(GNUInstallDirs)
 target_include_directories(tinyobjloader PUBLIC
-    $<BUILD_INTERFACE:${TINYOBJLOADER_SOURCE_DIR}>
+    $<BUILD_INTERFACE:${tinyobjloader_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 

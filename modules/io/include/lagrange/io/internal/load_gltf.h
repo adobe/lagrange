@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/io/types.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/assert.h>
 #include <tiny_gltf.h>
@@ -45,4 +46,4 @@ MeshType load_mesh_gltf(const tinygltf::Model& model, const LoadOptions& options
 template <typename SceneType>
 SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions& options = {});
 
-} // namespace lagrange::io
+} // namespace lagrange::io::internal

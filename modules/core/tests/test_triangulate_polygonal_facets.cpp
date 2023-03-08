@@ -37,8 +37,6 @@ namespace {
 template <typename Scalar, typename Index>
 void test_basic()
 {
-    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
-
     auto filenames = {
         "blub/blub_quadrangulated.obj",
         "poly/L-plane.obj",
@@ -161,8 +159,6 @@ void test_2d()
 template <typename Scalar, typename Index>
 void test_triangle()
 {
-    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
-
     fs::path filename = "bunny_simple.obj";
 
     auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
@@ -196,7 +192,6 @@ template <typename Scalar, typename Index, typename ValueType>
 void test_attributes()
 {
     using namespace lagrange;
-    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
 
     fs::path filename = "poly/mixedFaringPart.obj";
 

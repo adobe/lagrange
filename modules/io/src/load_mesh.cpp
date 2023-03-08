@@ -13,13 +13,14 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/utils/strings.h>
 
+#include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_mesh_ply.h>
-#include <lagrange/io/load_mesh_gltf.h>
 #ifdef LAGRANGE_WITH_ASSIMP
-#include <lagrange/io/load_mesh_assimp.h>
+    #include <lagrange/io/load_mesh_assimp.h>
 #endif
 
 namespace lagrange::io {
@@ -29,13 +30,14 @@ template <
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* /* = nullptr*/>
 MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
 {
-    if (filename.extension() == ".obj") {
+    std::string ext = to_lower(filename.extension().string());
+    if (ext == ".obj") {
         return load_mesh_obj<MeshType>(filename, options);
-    } else if (filename.extension() == ".ply") {
+    } else if (ext == ".ply") {
         return load_mesh_ply<MeshType>(filename, options);
-    } else if (filename.extension() == ".msh") {
+    } else if (ext == ".msh") {
         return load_mesh_msh<MeshType>(filename, options);
-    } else if (filename.extension() == ".gltf" || filename.extension() == ".glb") {
+    } else if (ext == ".gltf" || ext == ".glb") {
         return load_mesh_gltf<MeshType>(filename, options);
     } else {
 #ifdef LAGRANGE_WITH_ASSIMP
@@ -47,7 +49,7 @@ MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
     }
 }
 
-#define LA_X_load_mesh(_, S, I) \
+#define LA_X_load_mesh(_, S, I)                                       \
     template SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
         const fs::path& filename,                                     \
         const LoadOptions& options);

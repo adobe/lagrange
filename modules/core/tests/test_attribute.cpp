@@ -52,8 +52,8 @@ lagrange::Attribute<ValueType> make_attr(
         auto elems = attr.ref_all();
         std::iota(elems.begin(), elems.end(), ValueType(0));
     }
-    // Attribute move/copy constructor is marked as explicit.
-    return lagrange::Attribute<ValueType>(std::move(attr));
+    // Return by value is possible because the move constructor is not explicit.
+    return attr;
 }
 
 template <typename S, typename I>
@@ -74,8 +74,8 @@ lagrange::IndexedAttribute<S, I> make_indexed_attr(
         auto values = attr.values().ref_all();
         std::iota(values.begin(), values.end(), S(0));
     }
-    // Attribute move/copy constructor is marked as explicit.
-    return lagrange::IndexedAttribute<S, I>(std::move(attr));
+    // Return by value is possible because the move constructor is not explicit.
+    return attr;
 }
 
 template <typename ValueType>
@@ -969,7 +969,7 @@ void test_ownership()
 
     using Buffer = std::vector<ValueType>;
 
-    auto data = std::make_shared<Buffer>(num_elements, 0);
+    auto data = std::make_shared<Buffer>(num_elements, ValueType(0));
     auto buffer_ptr = make_shared_span(data, data->data(), data->size());
     auto owner = buffer_ptr.owner();
 

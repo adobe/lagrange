@@ -11,6 +11,8 @@
  */
 #include <lagrange/utils/strings.h>
 
+#include <algorithm>
+#include <cctype>
 #include <sstream>
 
 namespace lagrange {
@@ -36,6 +38,22 @@ bool ends_with(std::string_view str, std::string_view suffix)
 bool starts_with(std::string_view str, std::string_view prefix)
 {
     return (str.rfind(prefix, 0) == 0);
+}
+
+std::string to_lower(std::string str)
+{
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) {
+        return std::tolower(c);
+    });
+    return str;
+}
+
+std::string to_upper(std::string str)
+{
+    std::transform(str.begin(), str.end(), str.begin(), [](unsigned char c) {
+        return std::toupper(c);
+    });
+    return str;
 }
 
 } // namespace lagrange

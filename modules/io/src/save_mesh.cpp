@@ -10,38 +10,43 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/io/save_mesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/io/save_mesh.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/strings.h>
 
+#include <lagrange/io/save_mesh_gltf.h>
+#include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/io/save_mesh_obj.h>
 #include <lagrange/io/save_mesh_ply.h>
-#include <lagrange/io/save_mesh_msh.h>
-#include <lagrange/io/save_mesh_gltf.h>
 
 namespace lagrange::io {
 
 template <typename Scalar, typename Index>
-void save_mesh(const fs::path& filename, const SurfaceMesh<Scalar, Index>& mesh, const SaveOptions& options)
+void save_mesh(
+    const fs::path& filename,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options)
 {
-    if (filename.extension() == ".obj") {
+    std::string ext = to_lower(filename.extension().string());
+    if (ext == ".obj") {
         save_mesh_obj(filename, mesh, options);
-    } else if (filename.extension() == ".ply") {
+    } else if (ext == ".ply") {
         save_mesh_ply(filename, mesh, options);
-    } else if (filename.extension() == ".msh") {
+    } else if (ext == ".msh") {
         save_mesh_msh(filename, mesh, options);
-    } else if (filename.extension() == ".gltf" || filename.extension() == ".glb") {
-        la_runtime_assert(
-            (options.encoding == FileEncoding::Binary && filename.extension() == ".glb") ||
-            (options.encoding == FileEncoding::Ascii && filename.extension() == ".gltf"));
+    } else if (ext == ".gltf" || ext == ".glb") {
         save_mesh_gltf(filename, mesh, options);
     } else {
-        la_runtime_assert(false, "Unrecognized filetype!");
+        la_runtime_assert(false, string_format("Unrecognized filetype: {}!", ext));
     }
 }
 
-#define LA_X_save_mesh(_, S, I) \
-    template void save_mesh(const fs::path& filename, const SurfaceMesh<S, I>& mesh, const SaveOptions& options);
+#define LA_X_save_mesh(_, S, I)        \
+    template void save_mesh(           \
+        const fs::path& filename,      \
+        const SurfaceMesh<S, I>& mesh, \
+        const SaveOptions& options);
 LA_SURFACE_MESH_X(save_mesh, 0);
 
-}
+} // namespace lagrange::io

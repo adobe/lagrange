@@ -11,77 +11,295 @@
  */
 #include <lagrange/io/load_mesh_ply.h>
 
+#include <lagrange/Attribute.h>
+#include <lagrange/AttributeTypes.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
-#include <igl/readPLY.h>
+#include <happly.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
 namespace lagrange::io {
+
+std::string_view get_suffix(std::string_view name)
+{
+    size_t pos = name.rfind("_");
+    if (pos == std::string_view::npos) {
+        return "";
+    } else {
+        return name.substr(pos);
+    }
+}
+
+template <typename Scalar, typename Index, typename ValueType, AttributeElement element>
+void extract_normal(
+    happly::Element& ply_element,
+    const std::string_view name,
+    SurfaceMesh<Scalar, Index>& mesh)
+{
+    std::string_view suffix = get_suffix(name);
+    auto nx = ply_element.getProperty<ValueType>(fmt::format("nx{}", suffix));
+    auto ny = ply_element.getProperty<ValueType>(fmt::format("ny{}", suffix));
+    auto nz = ply_element.getProperty<ValueType>(fmt::format("nz{}", suffix));
+
+    Index num_entries = static_cast<Index>(nx.size());
+    auto usage = AttributeUsage::Normal;
+    std::string attr_name =
+        fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
+
+    auto id = mesh.template create_attribute<ValueType>(attr_name, element, usage, 3);
+    auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
+    la_runtime_assert(static_cast<Index>(attr.size()) == num_entries * 3);
+    for (Index i = 0; i < num_entries; ++i) {
+        attr[i * 3 + 0] = nx[i];
+        attr[i * 3 + 1] = ny[i];
+        attr[i * 3 + 2] = nz[i];
+    }
+}
+
+template <typename Scalar, typename Index, typename ValueType>
+void extract_vertex_uv(
+    happly::Element& vertex_element,
+    const std::string_view name,
+    SurfaceMesh<Scalar, Index>& mesh)
+{
+    std::string_view suffix = get_suffix(name);
+    auto u = vertex_element.getProperty<ValueType>(fmt::format("s{}", suffix));
+    auto v = vertex_element.getProperty<ValueType>(fmt::format("t{}", suffix));
+
+    Index num_vertices = static_cast<Index>(u.size());
+    auto element = AttributeElement::Vertex;
+    auto usage = AttributeUsage::UV;
+    std::string attr_name =
+        fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
+
+    auto id = mesh.template create_attribute<ValueType>(attr_name, element, usage, 2);
+    auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
+    for (Index i = 0; i < num_vertices; ++i) {
+        attr[i * 2 + 0] = u[i];
+        attr[i * 2 + 1] = v[i];
+    }
+}
+
+template <typename Scalar, typename Index, typename ValueType, AttributeElement element>
+void extract_color(
+    happly::Element& ply_element,
+    const std::string_view name,
+    SurfaceMesh<Scalar, Index>& mesh)
+{
+    std::string_view suffix = get_suffix(name);
+    auto red = ply_element.getProperty<ValueType>(fmt::format("red{}", suffix));
+    auto green = ply_element.getProperty<ValueType>(fmt::format("green{}", suffix));
+    auto blue = ply_element.getProperty<ValueType>(fmt::format("blue{}", suffix));
+    bool has_alpha = ply_element.hasPropertyType<ValueType>(fmt::format("alpha{}", suffix));
+
+    Index num_entries = static_cast<Index>(red.size());
+    auto usage = AttributeUsage::Color;
+    std::string attr_name =
+        fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
+    Index num_channels = has_alpha ? 4 : 3;
+
+    auto id = mesh.template create_attribute<ValueType>(attr_name, element, usage, num_channels);
+    auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
+    la_debug_assert(static_cast<Index>(attr.size()) == num_entries * num_channels);
+    for (Index i = 0; i < num_entries; ++i) {
+        attr[i * num_channels + 0] = red[i];
+        attr[i * num_channels + 1] = green[i];
+        attr[i * num_channels + 2] = blue[i];
+    }
+
+    if (has_alpha) {
+        auto alpha = ply_element.getProperty<ValueType>(fmt::format("alpha{}", suffix));
+        for (Index i = 0; i < num_entries; ++i) {
+            attr[i * num_channels + 3] = alpha[i];
+        }
+    }
+}
+
+template <AttributeElement element, typename Scalar, typename Index>
+void extract_property(
+    happly::Element& ply_element,
+    const std::string& name,
+    SurfaceMesh<Scalar, Index>& mesh)
+{
+    auto process_property = [&](auto&& data) {
+        if (data.empty()) return;
+        using ValueType = typename std::decay_t<decltype(data)>::value_type;
+        mesh.template create_attribute<ValueType>(
+            name,
+            element,
+            AttributeUsage::Scalar,
+            1,
+            {data.data(), data.size()});
+    };
+
+    auto process_list_property = [&](auto&& data) {
+        if (data.empty()) return;
+        using ValueType = typename std::decay_t<decltype(data[0])>::value_type;
+        la_runtime_assert(static_cast<Index>(data.size()) == mesh.get_num_vertices());
+        Index num_channels = static_cast<Index>(data[0].size());
+        auto id = mesh.template create_attribute<ValueType>(
+            name,
+            element,
+            AttributeUsage::Vector,
+            num_channels);
+        auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
+        la_runtime_assert(data.size() * num_channels == attr.size());
+
+        const Index num_entries = static_cast<Index>(data.size());
+        for (Index i = 0; i < num_entries; i++) {
+            la_runtime_assert(static_cast<Index>(data[i].size()) == num_channels);
+            for (Index j = 0; j < num_channels; j++) {
+                attr[i * num_channels + j] = data[i][j];
+            }
+        }
+    };
+
+    // Try interpret property as single channel property.
+#define LA_X_try_ValueType(_, T)                         \
+    if (ply_element.template hasPropertyType<T>(name)) { \
+        auto data = ply_element.getProperty<T>(name);    \
+        process_property(data);                          \
+        return;                                          \
+    }
+    LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
+
+    // Try interpret property as multi-channel list property.
+#define LA_X_try_ValueType(_, T)                          \
+    if (ply_element.template hasPropertyType<T>(name)) {  \
+        auto data = ply_element.getListProperty<T>(name); \
+        process_list_property(data);                      \
+        return;                                           \
+    }
+    LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
+}
+
+template <typename Scalar, typename Index>
+void extract_vertex_properties(
+    happly::Element& vertex_element,
+    SurfaceMesh<Scalar, Index>& mesh,
+    const LoadOptions& options)
+{
+    for (const auto& name : vertex_element.getPropertyNames()) {
+        if (options.load_normals && (name == "nx" || starts_with(name, "nx_"))) {
+#define LA_X_try_ValueType(_, T)                          \
+    if (vertex_element.template hasPropertyType<T>(name)) \
+        extract_normal<Scalar, Index, T, AttributeElement::Vertex>(vertex_element, name, mesh);
+            LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
+        } else if (options.load_vertex_colors && (name == "red" || starts_with(name, "red_"))) {
+#define LA_X_try_ValueType(_, T)                          \
+    if (vertex_element.template hasPropertyType<T>(name)) \
+        extract_color<Scalar, Index, T, AttributeElement::Vertex>(vertex_element, name, mesh);
+            LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
+        } else if (options.load_uvs && (name == "s" || starts_with(name, "s_"))) {
+#define LA_X_try_ValueType(_, T)                          \
+    if (vertex_element.template hasPropertyType<T>(name)) \
+        extract_vertex_uv<Scalar, Index, T>(vertex_element, name, mesh);
+            LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
+        } else {
+            // Skip other known channels.
+            if (name == "x") continue;
+            if (name == "y") continue;
+            if (name == "z") continue;
+            if (name == "ny" || starts_with(name, "ny_")) continue;
+            if (name == "nz" || starts_with(name, "nz_")) continue;
+            if (name == "green" || starts_with(name, "green_")) continue;
+            if (name == "blue" || starts_with(name, "blue_")) continue;
+            if (name == "alpha" || starts_with(name, "alpha_")) continue;
+            if (name == "t" || starts_with(name, "t_")) continue;
+            extract_property<AttributeElement::Vertex>(vertex_element, name, mesh);
+        }
+    }
+}
+
+template <typename Scalar, typename Index>
+void extract_facet_properties(
+    happly::Element& facet_element,
+    SurfaceMesh<Scalar, Index>& mesh,
+    const LoadOptions& options)
+{
+    for (const auto& name : facet_element.getPropertyNames()) {
+        if (options.load_normals && (name == "nx" || starts_with(name, "nx_"))) {
+#define LA_X_try_ValueType(_, T)                          \
+    if (facet_element.template hasPropertyType<T>(name)) \
+        extract_normal<Scalar, Index, T, AttributeElement::Facet>(facet_element, name, mesh);
+            LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
+        } else if (name == "red" || starts_with(name, "red_")) {
+#define LA_X_try_ValueType(_, T)                          \
+    if (facet_element.template hasPropertyType<T>(name)) \
+        extract_color<Scalar, Index, T, AttributeElement::Facet>(facet_element, name, mesh);
+            LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
+        } else {
+            // Skip other known channels.
+            if (name == "ny" || starts_with(name, "ny_")) continue;
+            if (name == "nz" || starts_with(name, "nz_")) continue;
+            if (name == "green" || starts_with(name, "green_")) continue;
+            if (name == "blue" || starts_with(name, "blue_")) continue;
+            extract_property<AttributeElement::Facet>(facet_element, name, mesh);
+        }
+    }
+}
 
 template <typename MeshType>
 MeshType load_mesh_ply(std::istream& input_stream, const LoadOptions& options)
 {
     using Scalar = typename MeshType::Scalar;
     using Index = typename MeshType::Index;
-    using VertexArray = Eigen::Matrix<Scalar, Eigen::Dynamic, 3, Eigen::RowMajor>;
-    using FacetArray = Eigen::Matrix<Index, Eigen::Dynamic, 3, Eigen::RowMajor>;
-    using AttributeArray = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
-    VertexArray V;
-    FacetArray F;
-    Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic> E;
-    AttributeArray N;
-    AttributeArray UV;
-
-    AttributeArray VD;
-    std::vector<std::string> VDheader;
-
-    AttributeArray FD;
-    std::vector<std::string> FDheader;
-
-    AttributeArray ED;
-    std::vector<std::string> EDheader;
-    std::vector<std::string> comments;
-
-    // TODO: libigl's wrapper around tinyply doesn't allow to load attributes of different tyeps
-    // (e.g. char for colors + float for normals).
-    bool success = igl::
-        readPLY(input_stream, V, F, E, N, UV, VD, VDheader, FD, FDheader, ED, EDheader, comments);
-    if (!success) throw std::runtime_error("Error reading ply!");
+    happly::PLYData ply(input_stream);
+    ply.validate();
 
     MeshType mesh;
-    mesh.add_vertices(V.rows());
-    mesh.add_triangles(F.rows());
-    vertex_ref(mesh) = V;
-    facet_ref(mesh) = F;
 
-    // TODO we should replace this whole file with happly, rather than implementing the stuff below.
-
-    if (Scalar(UV.rows()) == mesh.get_num_vertices() && options.load_uvs) {
-        // TODO load uvs
+    happly::Element& vertex_element = ply.getElement("vertex");
+    const Index num_vertices = Index(vertex_element.count);
+    {
+        const std::vector<Scalar>& xPos = vertex_element.getProperty<Scalar>("x");
+        const std::vector<Scalar>& yPos = vertex_element.getProperty<Scalar>("y");
+        const std::vector<Scalar>& zPos = vertex_element.getProperty<Scalar>("z");
+        mesh.add_vertices(num_vertices, [&](Index v, span<Scalar> p) -> void {
+            p[0] = xPos[v];
+            p[1] = yPos[v];
+            p[2] = zPos[v];
+        });
     }
 
-    if (Scalar(N.rows()) == mesh.get_num_vertices() && options.load_normals) {
-        // TODO load normals
-    }
+    const std::vector<std::vector<Index>>& facets = ply.getFaceIndices<Index>();
+    mesh.add_hybrid(
+        Index(facets.size()),
+        [&](Index f) -> Index { return Index(facets[f].size()); },
+        [&](Index f, span<Index> t) -> void {
+            const auto& face = facets[f];
+            for (size_t i = 0; i < face.size(); ++i) {
+                t[i] = Index(face[i]);
+            }
+        });
 
-    if (Scalar(VD.rows()) == mesh.get_num_vertices() && options.load_vertex_colors) {
-        // TODO load vertex colors
-    }
-
+    extract_vertex_properties(vertex_element, mesh, options);
+    extract_facet_properties(ply.getElement("face"), mesh, options);
     return mesh;
 }
 
 template <typename MeshType>
 MeshType load_mesh_ply(const fs::path& filename, const LoadOptions& options)
 {
-    fs::ifstream fin(filename);
+    fs::ifstream fin(filename, std::ios::binary);
+    la_runtime_assert(fin.good(), fmt::format("Unable to open file {}", filename.string()));
     return load_mesh_ply<MeshType>(fin, options);
 }
 

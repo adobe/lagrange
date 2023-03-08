@@ -23,10 +23,10 @@ namespace lagrange::io {
 
 /**
  * Save a mesh to a file.
- * 
+ *
  * @param[in] filename  path to output
  * @param[in] mesh      mesh to save
- * @param[in] encoding  If supported, pick whether to save binary or plain text.
+ * @param[in] options   Extra options related to saving.
  */
 template <typename Scalar, typename Index>
 void save_mesh(
@@ -34,4 +34,4 @@ void save_mesh(
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
 
-}
+} // namespace lagrange::io

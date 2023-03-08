@@ -15,6 +15,8 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
 
 ///
@@ -29,7 +31,7 @@ namespace lagrange::io {
 ///
 template <typename Scalar, typename Index>
 void save_mesh_ply(
-    std::ofstream& output_stream,
+    std::ostream& output_stream,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
 

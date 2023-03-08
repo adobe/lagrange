@@ -16,10 +16,15 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/views.h>
+
+#include "internal/convert_attribute_utils.h"
 
 #include <mshio/mshio.h>
 
@@ -27,6 +32,20 @@ namespace lagrange {
 namespace io {
 
 namespace {
+
+struct AttributeCounts
+{
+    size_t vertex_normal_count = 0;
+    size_t vertex_uv_count = 0;
+    size_t vertex_color_count = 0;
+
+    size_t facet_normal_count = 0;
+    size_t facet_color_count = 0;
+
+    size_t corner_normal_count = 0;
+    size_t corner_uv_count = 0;
+    size_t corner_color_count = 0;
+};
 
 template <typename Scalar, typename Index>
 void populate_nodes(mshio::MshSpec& spec, const SurfaceMesh<Scalar, Index>& mesh)
@@ -44,10 +63,11 @@ void populate_nodes(mshio::MshSpec& spec, const SurfaceMesh<Scalar, Index>& mesh
     auto& node_block = spec.nodes.entity_blocks.front();
     node_block.entity_dim = 2; // Encoding surfaces.
     node_block.entity_tag = 1;
-    node_block.parametric = 0; // TODO for UV.
+    node_block.parametric = 0; // We store uv as attribute.
     node_block.num_nodes_in_block = num_vertices;
     node_block.data.reserve(dim * num_vertices);
     node_block.tags.reserve(num_vertices);
+
     for (Index i = 0; i < num_vertices; i++) {
         auto p = mesh.get_position(i);
         node_block.tags.push_back(i + 1);
@@ -88,10 +108,11 @@ template <typename Scalar, typename Index>
 void populate_indexed_attribute(
     mshio::MshSpec& /*spec*/,
     const SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id)
+    AttributeId id,
+    AttributeCounts& /*counts*/)
 {
-    // TODO add support. 
-    // can reference save_gltf. gltf also does not support indexed attributes. 
+    // TODO add support.
+    // can reference save_gltf. gltf also does not support indexed attributes.
     std::string_view name = mesh.get_attribute_name(id);
     logger().warn("Skipping attribute {}: unsupported non-indexed", name);
 }
@@ -100,19 +121,51 @@ template <typename Scalar, typename Index, typename Value>
 void populate_non_indexed_vertex_attribute(
     mshio::MshSpec& spec,
     const SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id)
+    AttributeId id,
+    AttributeCounts& counts)
 {
+    // Special counts for vertex normal and uv attributes in case there are multiple of them.
+    size_t& normal_count = counts.vertex_normal_count;
+    size_t& uv_count = counts.vertex_uv_count;
+    size_t& color_count = counts.vertex_color_count;
+
     la_debug_assert(mesh.template is_attribute_type<Value>(id));
     const auto& attr = mesh.template get_attribute<Value>(id);
-    assert(attr.get_element_type() == AttributeElement::Vertex);
-    const auto name = mesh.get_attribute_name(id);
+    const AttributeElement element = attr.get_element_type();
+    const AttributeUsage usage = attr.get_usage();
+    assert(element == AttributeElement::Vertex);
+    std::string name;
+    switch (usage) {
+    case AttributeUsage::UV:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            uv_count++);
+        break;
+    case AttributeUsage::Normal:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            normal_count++);
+        break;
+    case AttributeUsage::Color:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            color_count++);
+        break;
+    default: name = mesh.get_attribute_name(id);
+    }
 
     const auto num_vertices = mesh.get_num_vertices();
     const auto num_channels = attr.get_num_channels();
 
     spec.node_data.emplace_back();
     auto& node_data = spec.node_data.back();
-    node_data.header.string_tags.emplace_back(name);
+    node_data.header.string_tags.emplace_back(std::move(name));
     node_data.header.real_tags.push_back(0); // Time value.
     node_data.header.int_tags = {
         0, // Time step.
@@ -138,12 +191,36 @@ template <typename Scalar, typename Index, typename Value>
 void populate_non_indexed_facet_attribute(
     mshio::MshSpec& spec,
     const SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id)
+    AttributeId id,
+    AttributeCounts& counts)
 {
+    // Special count for facet normal and uv attributes in case there are multiple of them.
+    size_t& normal_count = counts.facet_normal_count;
+    size_t& color_count = counts.facet_color_count;
+
     la_debug_assert(mesh.template is_attribute_type<Value>(id));
     const auto& attr = mesh.template get_attribute<Value>(id);
-    assert(attr.get_element_type() == AttributeElement::Facet);
-    const auto name = mesh.get_attribute_name(id);
+    const AttributeElement element = attr.get_element_type();
+    const AttributeUsage usage = attr.get_usage();
+    assert(element == AttributeElement::Facet);
+    std::string name;
+    switch (usage) {
+    case AttributeUsage::Normal:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            normal_count++);
+        break;
+    case AttributeUsage::Color:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            color_count++);
+        break;
+    default: name = mesh.get_attribute_name(id);
+    }
 
     const auto num_facets = mesh.get_num_facets();
     const auto num_channels = attr.get_num_channels();
@@ -176,7 +253,8 @@ template <typename Scalar, typename Index, typename Value>
 void populate_non_indexed_edge_attribute(
     mshio::MshSpec& /*spec*/,
     const SurfaceMesh<Scalar, Index>& /*mesh*/,
-    AttributeId /*id*/)
+    AttributeId /*id*/,
+    AttributeCounts& /*counts*/)
 {
     throw Error("Saving edge attribute in MSH format is not yet supported.");
 }
@@ -185,12 +263,44 @@ template <typename Scalar, typename Index, typename Value>
 void populate_non_indexed_corner_attribute(
     mshio::MshSpec& spec,
     const SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id)
+    AttributeId id,
+    AttributeCounts& counts)
 {
+    // Special count for facet normal and uv attributes in case there are multiple of them.
+    size_t& normal_count = counts.corner_normal_count;
+    size_t& uv_count = counts.corner_uv_count;
+    size_t& color_count = counts.corner_color_count;
+
     la_debug_assert(mesh.template is_attribute_type<Value>(id));
     const auto& attr = mesh.template get_attribute<Value>(id);
-    assert(attr.get_element_type() == AttributeElement::Corner);
-    const auto name = mesh.get_attribute_name(id);
+    const AttributeElement element = attr.get_element_type();
+    const AttributeUsage usage = attr.get_usage();
+    assert(element == AttributeElement::Corner);
+    std::string name;
+    switch (usage) {
+    case AttributeUsage::UV:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            uv_count++);
+        break;
+    case AttributeUsage::Normal:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            normal_count++);
+        break;
+    case AttributeUsage::Color:
+        name = fmt::format(
+            "{}_{}_{}",
+            internal::to_string(element),
+            internal::to_string(usage),
+            color_count++);
+        break;
+    default: name = mesh.get_attribute_name(id);
+    }
 
     const auto num_facets = mesh.get_num_facets();
     const auto vertex_per_facet = mesh.get_vertex_per_facet();
@@ -227,7 +337,8 @@ template <typename Scalar, typename Index>
 void populate_non_indexed_attribute(
     mshio::MshSpec& spec,
     const SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id)
+    AttributeId id,
+    AttributeCounts& counts)
 {
     la_runtime_assert(!mesh.is_attribute_indexed(id));
     const auto& attr_base = mesh.get_attribute_base(id);
@@ -236,7 +347,7 @@ void populate_non_indexed_attribute(
     case AttributeElement::Vertex: {
 #define LA_X_try_attribute(_, T)                \
     if (mesh.template is_attribute_type<T>(id)) \
-        populate_non_indexed_vertex_attribute<Scalar, Index, T>(spec, mesh, id);
+        populate_non_indexed_vertex_attribute<Scalar, Index, T>(spec, mesh, id, counts);
         LA_ATTRIBUTE_X(try_attribute, 0)
 #undef LA_X_try_attribute
         break;
@@ -244,7 +355,7 @@ void populate_non_indexed_attribute(
     case AttributeElement::Facet: {
 #define LA_X_try_attribute(_, T)                \
     if (mesh.template is_attribute_type<T>(id)) \
-        populate_non_indexed_facet_attribute<Scalar, Index, T>(spec, mesh, id);
+        populate_non_indexed_facet_attribute<Scalar, Index, T>(spec, mesh, id, counts);
         LA_ATTRIBUTE_X(try_attribute, 0)
 #undef LA_X_try_attribute
         break;
@@ -252,7 +363,7 @@ void populate_non_indexed_attribute(
     case AttributeElement::Edge: {
 #define LA_X_try_attribute(_, T)                \
     if (mesh.template is_attribute_type<T>(id)) \
-        populate_non_indexed_edge_attribute<Scalar, Index, T>(spec, mesh, id);
+        populate_non_indexed_edge_attribute<Scalar, Index, T>(spec, mesh, id, counts);
         LA_ATTRIBUTE_X(try_attribute, 0)
 #undef LA_X_try_attribute
         break;
@@ -260,7 +371,7 @@ void populate_non_indexed_attribute(
     case AttributeElement::Corner: {
 #define LA_X_try_attribute(_, T)                \
     if (mesh.template is_attribute_type<T>(id)) \
-        populate_non_indexed_corner_attribute<Scalar, Index, T>(spec, mesh, id);
+        populate_non_indexed_corner_attribute<Scalar, Index, T>(spec, mesh, id, counts);
         LA_ATTRIBUTE_X(try_attribute, 0)
 #undef LA_X_try_attribute
         break;
@@ -273,12 +384,13 @@ template <typename Scalar, typename Index>
 void populate_attribute(
     mshio::MshSpec& spec,
     const SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id)
+    AttributeId id,
+    AttributeCounts& counts)
 {
     if (mesh.is_attribute_indexed(id)) {
-        populate_indexed_attribute(spec, mesh, id);
+        populate_indexed_attribute(spec, mesh, id, counts);
     } else {
-        populate_non_indexed_attribute(spec, mesh, id);
+        populate_non_indexed_attribute(spec, mesh, id, counts);
     }
 }
 
@@ -295,6 +407,22 @@ void save_mesh_msh(
         throw Error("Incompatible size_t size detected!");
     }
 
+    // Hanlde index attribute conversion if necessary.
+    if (span<const AttributeId> attr_ids{
+            options.selected_attributes.data(),
+            options.selected_attributes.size()};
+        options.attribute_conversion_policy ==
+            SaveOptions::AttributeConversionPolicy::ConvertAsNeeded &&
+        involve_indexed_attribute(mesh, attr_ids)) {
+        auto [mesh2, attr_ids_2] = remap_indexed_attributes(mesh, attr_ids);
+
+        SaveOptions options2 = options;
+        options2.attribute_conversion_policy =
+            SaveOptions::AttributeConversionPolicy::ExactMatchOnly;
+        options2.selected_attributes.swap(attr_ids_2);
+        return save_mesh_msh(output_stream, mesh2, options2);
+    }
+
     la_runtime_assert(output_stream, "Invalid output stream");
     la_runtime_assert(
         mesh.is_triangle_mesh() || mesh.is_quad_mesh(),
@@ -305,21 +433,18 @@ void save_mesh_msh(
     populate_nodes(spec, mesh);
     populate_elements(spec, mesh);
 
-    std::vector<AttributeId> ids;
-    if (options.output_attributes == SaveOptions::OutputAttributes::All) {
-        mesh.seq_foreach_attribute_id([&](std::string_view name, AttributeId id) {
+    AttributeCounts counts;
+    if (options.selected_attributes.empty()) {
+        mesh.seq_foreach_attribute_id([&](AttributeId id) {
+            auto name = mesh.get_attribute_name(id);
             if (!mesh.attr_name_is_reserved(name)) {
-                ids.push_back(id);
+                populate_attribute(spec, mesh, id, counts);
             }
         });
-        ids.push_back(mesh.attr_id_vertex_to_positions());
-        ids.push_back(mesh.attr_id_corner_to_vertex());
     } else {
-        ids = options.selected_attributes;
-    }
-
-    for (auto id : ids) {
-        populate_attribute(spec, mesh, id);
+        for (auto id : options.selected_attributes) {
+            populate_attribute(spec, mesh, id, counts);
+        }
     }
 
     mshio::save_msh(output_stream, spec);
@@ -331,7 +456,9 @@ void save_mesh_msh(
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options)
 {
-    fs::ofstream fout(filename);
+    fs::ofstream fout(
+        filename,
+        (options.encoding == io::FileEncoding::Binary ? std::ios::binary : std::ios::out));
     save_mesh_msh(fout, mesh, options);
 }
 

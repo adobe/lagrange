@@ -27,6 +27,11 @@ namespace lagrange::io {
 
 /**
  * Load a mesh from a file. The loader will be chosen depending on the file extension.
+ *
+ * @param[in]  filename  Input file name.
+ * @param[in]  options   Extra options related to loading.
+ *
+ * @return A `SurfaceMesh` object loaded from the input file.
  */
 template <
     typename MeshType,

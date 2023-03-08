@@ -23,7 +23,7 @@ namespace lagrange {
 ///
 /// @note       The current implementation is intended to be compatible with C++20's std::span<>.
 ///
-template <class T, ::nonstd::span_lite::extent_t Extent = ::nonstd::dynamic_extent>
+template <class T, span_CONFIG_EXTENT_TYPE Extent = ::nonstd::dynamic_extent>
 using span = ::nonstd::span<T, Extent>;
 
 /// @}

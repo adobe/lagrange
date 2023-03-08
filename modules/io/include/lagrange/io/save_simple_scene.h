@@ -11,15 +11,15 @@
  */
 #pragma once
 
-#include <lagrange/scene/SimpleScene.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
+#include <lagrange/scene/SimpleScene.h>
 
 namespace lagrange::io {
 
 /**
  * Save a mesh to a file.
- * 
+ *
  * @param[in] filename  path to output
  * @param[in] scene     mesh to save
  * @param[in] options   SaveOptions, check the struct for more details.
@@ -30,4 +30,4 @@ void save_simple_scene(
     const scene::SimpleScene<Scalar, Index, Dimension>& scene,
     const SaveOptions& options = {});
 
-}
+} // namespace lagrange::io
