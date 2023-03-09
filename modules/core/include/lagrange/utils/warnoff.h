@@ -66,6 +66,7 @@
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
+#pragma GCC diagnostic ignored "-Wunused-result"
 #elif defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4005) // macro redefintion.
