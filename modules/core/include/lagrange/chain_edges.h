@@ -235,7 +235,6 @@ std::vector<std::vector<Index>> chain_undirected_edges(
 
     auto grow_chain_forward = [&](Chain& chain) {
         Index curr_v = chain.back();
-        Index prev_v = chain[chain.size() - 2];
 
         while (true) {
             const auto& adj_edges = adj_list[curr_v];
@@ -252,7 +251,6 @@ std::vector<std::vector<Index>> chain_undirected_edges(
                     la_debug_assert(v.second == curr_v);
                     chain.push_back(v.first);
                 }
-                prev_v = curr_v;
                 curr_v = chain.back();
                 visited[ei] = true;
                 updated = true;
