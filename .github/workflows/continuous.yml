@@ -40,6 +40,9 @@ jobs:
         with:
           fetch-depth: 10
 
+      - name: Install Ninja
+        uses: seanmiddleditch/gha-setup-ninja@master
+
       - name: Dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -65,6 +68,10 @@ jobs:
               echo "CXX='$(brew --prefix llvm@15)/bin/clang++'" >> $GITHUB_ENV
             fi
 
+      - name: Get number of CPU cores
+        uses: SimenB/github-actions-cpu-cores@v1
+        id: cpu-cores
+
       - name: Cache Build
         id: cache-build
         uses: actions/cache@v3
@@ -81,7 +88,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
-          cmake .. \
+          cmake .. -G Ninja \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
             -DLAGRANGE_JENKINS=ON \
@@ -89,10 +96,12 @@ jobs:
             -DUSE_SANITIZER=${{ matrix.sanitizer }}
 
       - name: Build
-        run: cd build; make -j2; ccache --show-stats
+        run: |
+          cmake --build build -j ${{ steps.cpu-cores.outputs.count }}
+          ccache --show-stats
 
       - name: Tests
-        run: cd build; ctest --verbose
+        run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
   ####################
   # Windows
@@ -117,6 +126,10 @@ jobs:
       - name: Set env variable for sccache
         run: |
           echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
+
+      - name: Get number of CPU cores
+        uses: SimenB/github-actions-cpu-cores@v1
+        id: cpu-cores
 
       - name: Cache build
         id: cache-build
@@ -146,7 +159,7 @@ jobs:
             -DLAGRANGE_ALL=ON ^
             -B build ^
             -S .
-          cmake --build build -j2
+          cmake --build build ${{ steps.cpu-cores.outputs.count }}
 
       - name: Tests
-        run: cd build; ctest --verbose
+        run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
