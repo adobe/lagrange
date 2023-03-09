@@ -159,7 +159,7 @@ jobs:
             -DLAGRANGE_ALL=ON ^
             -B build ^
             -S .
-          cmake --build build ${{ steps.cpu-cores.outputs.count }}
+          cmake --build build -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Tests
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
