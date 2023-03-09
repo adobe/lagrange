@@ -24,11 +24,19 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         add_compile_options(/external:W1)
     endif()
 
-    # When building in parallel, MSVC sometimes fails with the following error:
-    # > fatal error C1090: PDB API call failed, error code '23'
-    # To avoid this problem, we force PDB write to be synchronous with /FS.
-    # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
-    add_compile_options(/FS)
+    if(LAGRANGE_JENKINS)
+        # We want to use /Z7 when using sccache with Ninja on GitHub Actions.
+        # Note that sccache does not allow the /FS flag, so we disable it in
+        # this mode.
+        # https://gitlab.kitware.com/cmake/cmake/-/issues/22529
+        add_compile_options($<$<CONFIG:Debug>:/Z7>)
+    else()
+        # When building in parallel, MSVC sometimes fails with the following error:
+        # > fatal error C1090: PDB API call failed, error code '23'
+        # To avoid this problem, we force PDB write to be synchronous with /FS.
+        # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
+        add_compile_options(/FS)
+    endif()
 else()
     include(lagrange_filter_flags)
     set(LAGRANGE_GLOBAL_FLAGS
