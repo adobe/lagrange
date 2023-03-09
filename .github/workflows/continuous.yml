@@ -84,7 +84,8 @@ jobs:
           cmake .. \
             -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
-            -DLAGRANGE_JENKINS=OFF \
+            -DLAGRANGE_JENKINS=ON \
+            -DLAGRANGE_ALL=ON \
             -DUSE_SANITIZER=${{ matrix.sanitizer }}
 
       - name: Build
@@ -141,6 +142,8 @@ jobs:
           cmake -G Ninja ^
             -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+            -DLAGRANGE_JENKINS=ON ^
+            -DLAGRANGE_ALL=ON ^
             -B build ^
             -S .
           cmake --build build -j2
