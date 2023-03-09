@@ -36,7 +36,7 @@ void ensure_attributes_exist(const SurfaceMesh32d& mesh, bool texcoord, bool nor
     REQUIRE(found_normal == normal);
 }
 
-TEST_CASE("save_mesh_attributes_all", "[io]")
+TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
 {
     auto cube_indexed = testing::create_test_cube<double, uint32_t>();
     using Scalar = decltype(cube_indexed)::Scalar;
@@ -129,7 +129,7 @@ TEST_CASE("save_mesh_attributes_all", "[io]")
     }
 }
 
-TEST_CASE("save_mesh_attributes_selected", "[io]")
+TEST_CASE("save_mesh_attributes_selected", "[io]" LA_SLOW_DEBUG_FLAG)
 {
     auto cube_indexed = testing::create_test_cube<double, uint32_t>();
     using Scalar = decltype(cube_indexed)::Scalar;
@@ -220,7 +220,7 @@ TEST_CASE("save_mesh_attributes_selected", "[io]")
     }
 }
 
-TEST_CASE("save_mesh_indexed_attributes", "[io]")
+TEST_CASE("save_mesh_indexed_attributes", "[io]" LA_SLOW_DEBUG_FLAG)
 {
     auto cube = testing::create_test_cube<double, uint32_t>();
     using Scalar = decltype(cube)::Scalar;
