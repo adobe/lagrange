@@ -13,10 +13,13 @@
 #include <lagrange/Attribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/attribute_names.h>
+#include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/utils/strings.h>
 
 #include <mshio/mshio.h>
 
@@ -34,20 +37,51 @@ namespace {
 template <typename Scalar, typename Index>
 void extract_vertices(const mshio::MshSpec& spec, SurfaceMesh<Scalar, Index>& mesh)
 {
+    std::vector<Scalar> uvs;
     for (const auto& node_block : spec.nodes.entity_blocks) {
         if (node_block.entity_dim != 2) {
             logger().warn("Skipping non-surface vertex blocks.");
             continue; // Surface mesh only.
         }
 
-        if constexpr (std::is_same<double, Scalar>::value) {
-            mesh.add_vertices(node_block.num_nodes_in_block, node_block.data);
+        if (!node_block.parametric) {
+            if constexpr (std::is_same<double, Scalar>::value) {
+                mesh.add_vertices(
+                    static_cast<Index>(node_block.num_nodes_in_block),
+                    node_block.data);
+            } else {
+                if (!node_block.parametric) {
+                    mesh.add_vertices(
+                        static_cast<Index>(node_block.num_nodes_in_block),
+                        [&](Index i, span<Scalar> buffer) {
+                            buffer[0] = static_cast<Scalar>(node_block.data[i * 3]);
+                            buffer[1] = static_cast<Scalar>(node_block.data[i * 3 + 1]);
+                            buffer[2] = static_cast<Scalar>(node_block.data[i * 3 + 2]);
+                        });
+                }
+            }
         } else {
-            mesh.add_vertices(node_block.num_nodes_in_block, [&](Index i, span<Scalar> buffer) {
-                buffer[0] = static_cast<Scalar>(node_block.data[i * 3]);
-                buffer[1] = static_cast<Scalar>(node_block.data[i * 3 + 1]);
-                buffer[2] = static_cast<Scalar>(node_block.data[i * 3 + 2]);
-            });
+            mesh.add_vertices(
+                static_cast<Index>(node_block.num_nodes_in_block),
+                [&](Index i, span<Scalar> buffer) {
+                    buffer[0] = static_cast<Scalar>(node_block.data[i * 5]);
+                    buffer[1] = static_cast<Scalar>(node_block.data[i * 5 + 1]);
+                    buffer[2] = static_cast<Scalar>(node_block.data[i * 5 + 2]);
+                    uvs.push_back(static_cast<Scalar>(node_block.data[i * 5 + 3]));
+                    uvs.push_back(static_cast<Scalar>(node_block.data[i * 5 + 4]));
+                });
+        }
+    }
+    if (!uvs.empty()) {
+        if (static_cast<Index>(uvs.size()) == mesh.get_num_vertices() * 2) {
+            mesh.template create_attribute<Scalar>(
+                AttributeName::texcoord,
+                AttributeElement::Vertex,
+                AttributeUsage::UV,
+                2,
+                uvs);
+        } else {
+            logger().warn("The number of uvs does not match the number of vertices");
         }
     }
 }
@@ -65,18 +99,19 @@ void extract_facets(const mshio::MshSpec& spec, SurfaceMesh<Scalar, Index>& mesh
             logger().warn("Skipping non-surface element blocks.");
             continue; // Surface mesh only.
         }
-        size_t nodes_per_element = mshio::nodes_per_element(element_block.element_type);
+        Index nodes_per_element =
+            static_cast<Index>(mshio::nodes_per_element(element_block.element_type));
 
         mesh.add_polygons(
-            element_block.num_elements_in_block,
-            static_cast<Index>(nodes_per_element),
+            static_cast<Index>(element_block.num_elements_in_block),
+            nodes_per_element,
             [&](Index fid, span<Index> f) {
                 Index offset = fid * (nodes_per_element + 1) + 1;
                 std::transform(
                     element_block.data.begin() + offset,
                     element_block.data.begin() + offset + nodes_per_element,
                     f.begin(),
-                    [](int vid) { return static_cast<Index>(vid - 1); });
+                    [](size_t vid) { return static_cast<Index>(vid - 1); });
             });
     }
 }
@@ -100,17 +135,29 @@ void extract_attribute(
     const int num_entries = data.header.int_tags[2];
     la_runtime_assert(num_entries == static_cast<int>(data.entries.size()));
 
+    // Determine attribute usage from attribute name prefix.
     AttributeUsage usage = AttributeUsage::Scalar;
-    if (attr_name == "@normal") {
+    for (auto special_usage : {AttributeUsage::Normal, AttributeUsage::UV, AttributeUsage::Color}) {
+        if (starts_with(
+                attr_name,
+                fmt::format("{}_{}", internal::to_string(element_type), internal::to_string(special_usage)))) {
+            usage = special_usage;
+        }
+    }
+    switch (usage) {
+    case AttributeUsage::Normal:
         if (!options.load_normals) return;
-        usage = AttributeUsage::Normal;
-    } else if (attr_name == "@uv") {
+        break;
+    case AttributeUsage::UV:
         if (!options.load_uvs) return;
-        usage = AttributeUsage::UV;
-    } else if (attr_name == "@color") {
-        if (!options.load_vertex_colors) return;
-        usage = AttributeUsage::Color;
-    } else if (num_fields > 1) {
+        break;
+    case AttributeUsage::Color:
+        if (element_type == AttributeElement::Vertex && !options.load_vertex_colors) return;
+        break;
+    default:
+        break;
+    }
+    if (usage == AttributeUsage::Scalar && num_fields > 1) {
         usage = AttributeUsage::Vector;
     }
 
@@ -124,7 +171,11 @@ void extract_attribute(
         la_debug_assert(i + 1 == static_cast<int>(entry.tag));
         if (element_type != AttributeElement::Corner) {
             // Node or element data.
-            std::copy_n(entry.data.begin(), num_fields, buffer.begin() + i * num_fields);
+            std::transform(
+                entry.data.begin(),
+                entry.data.end(),
+                buffer.begin() + i * num_fields,
+                [](double val) { return static_cast<Scalar>(val); });
         } else {
             // Node-element data.
             if (num_nodes_per_element == invalid<int>()) {
@@ -133,10 +184,11 @@ void extract_attribute(
                 throw Error("Invalid mixed element detected in node-element data.");
             }
 
-            std::copy_n(
+            std::transform(
                 entry.data.begin(),
-                num_nodes_per_element * num_fields,
-                buffer.begin() + i * num_nodes_per_element * num_fields);
+                entry.data.end(),
+                buffer.begin() + i * num_nodes_per_element * num_fields,
+                [](double val) { return static_cast<Scalar>(val); });
         }
     }
 }
@@ -203,7 +255,8 @@ MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& options)
 template <typename MeshType>
 MeshType load_mesh_msh(const fs::path& filename, const LoadOptions& options)
 {
-    fs::ifstream fin(filename);
+    fs::ifstream fin(filename, std::ios::binary);
+    la_runtime_assert(fin.good(), fmt::format("Unable to open file {}", filename.string()));
     return load_mesh_msh<MeshType>(fin, options);
 }
 

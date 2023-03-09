@@ -14,6 +14,7 @@ lagrange_add_test()
 include(mikktspace)
 target_link_libraries(test_lagrange_core PUBLIC mikktspace::mikktspace)
 target_compile_definitions(test_lagrange_core PUBLIC LAGRANGE_WITH_MIKKTSPACE)
+set_target_properties(test_lagrange_core PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 
 if(LAGRANGE_USE_PCH)
     # Use precompiled headers in core tests since there are a lot of cpp files in core tests.
@@ -21,3 +22,5 @@ if(LAGRANGE_USE_PCH)
     target_link_libraries(test_lagrange_core PRIVATE lagrange_testing_pch)
     set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/main.cpp" PROPERTIES SKIP_PRECOMPILE_HEADERS ON)
 endif()
+
+add_subdirectory(compile_errors)

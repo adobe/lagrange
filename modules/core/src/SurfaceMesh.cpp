@@ -33,6 +33,7 @@
 // clang-format on
 
 #include <string>
+#include <array>
 #include <unordered_map>
 
 namespace lagrange {

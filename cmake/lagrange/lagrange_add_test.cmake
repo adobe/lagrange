@@ -22,6 +22,7 @@ function(lagrange_add_test)
 
     # Create test executable
     file(GLOB_RECURSE SRC_FILES "*.cpp" "*.h")
+    list(FILTER SRC_FILES EXCLUDE REGEX "compile_errors/.*.cpp$")
     include(lagrange_add_executable)
     set(test_target "test_lagrange_${module_name}")
     lagrange_add_executable(${test_target} ${SRC_FILES})

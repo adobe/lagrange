@@ -75,12 +75,12 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
     auto compute_vertex = [](const Vector3s& vertex,
                              const Vector3s& offset_vector,
                              const Vector3s& mirror_vector,
-                             const Vector3s& direction,
-                             bool use_direction_and_mirror,
+                             const Vector3s& target_direction,
+                             bool with_direction_and_mirror,
                              Scalar amount) {
         Vector3s offset_vertex = vertex + amount * offset_vector;
-        if (use_direction_and_mirror) {
-            offset_vertex -= (offset_vertex.dot(direction) * amount) * mirror_vector;
+        if (with_direction_and_mirror) {
+            offset_vertex -= (offset_vertex.dot(target_direction) * amount) * mirror_vector;
         }
         return offset_vertex;
     };
@@ -155,7 +155,7 @@ std::unique_ptr<MeshType> thicken_and_close_mesh(
         offset_vertices.row(num_input_vertices + v) = offset_vertex;
 
         // is this a boundary vertex? Add intermediate vertices for the stitch
-        Scalar segment_increment = 1.0 / static_cast<Scalar>(num_segments);
+        Scalar segment_increment = Scalar(1) / static_cast<Scalar>(num_segments);
         if (num_segments > 1) {
             auto vb = boundary_vertices.find(v);
             if (vb != boundary_vertices.end()) {

@@ -51,7 +51,15 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         # Adding /bigobj. This is currently required to build Lagrange on
         # windows with debug info.
         # https://docs.microsoft.com/en-us/cpp/build/reference/bigobj-increase-number-of-sections-in-dot-obj-file
-        "/bigobj")
+        "/bigobj"
+    )
+    if(LAGRANGE_TOPLEVEL_PROJECT)
+        list(APPEND options
+            # Ensures better conformance to the C++ standard
+            # https://devblogs.microsoft.com/cppblog/permissive-switch/
+            "/permissive-"
+        )
+    endif()
     lagrange_filter_flags(options)
     target_compile_options(lagrange_warnings INTERFACE ${options})
 else()

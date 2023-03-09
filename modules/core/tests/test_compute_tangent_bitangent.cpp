@@ -338,7 +338,7 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
                 "Computing indexed normals with angle thres={}",
                 angle_threshold_deg);
             mesh.delete_attribute("normal");
-            const Scalar EPS = 1e-3;
+            const Scalar EPS = static_cast<Scalar>(1e-3);
             lagrange::compute_normal(mesh, angle_threshold_deg * Scalar(M_PI / 180.0) - EPS);
             mesh.rename_attribute("@normal", "normal");
             mesh = weld_mesh(std::move(mesh));
@@ -392,9 +392,9 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
 
     for (auto normal_type : {NormalType::Original, NormalType::Vertex, NormalType::Indexed}) {
         if (normal_type == NormalType::Indexed) {
-            for (Scalar angle_threshold_deg : {0, 45, 90, 180}) {
+            for (int angle_threshold_deg : {0, 45, 90, 180}) {
                 auto mesh = original_mesh;
-                compute_normals(mesh, normal_type, angle_threshold_deg);
+                compute_normals(mesh, normal_type, static_cast<Scalar>(angle_threshold_deg));
                 compare_tangent_bitangent(mesh);
             }
         } else {

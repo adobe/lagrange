@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,13 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <lagrange/io/load_mesh_ply.h>
+#include <lagrange/mesh_convert.h>
 
-TEST_CASE("load_ply", "[io][ply]") {
-	using namespace lagrange;
-    auto mesh =
-        io::load_mesh_ply<SurfaceMesh32d>(testing::get_data_path("open/subdivision/sphere.ply"));
-    REQUIRE(mesh.get_num_vertices() == 42);
-    REQUIRE(mesh.get_num_facets() == 80);
+void test_to_surface_mesh()
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // Trying to wrap a mesh with column-major storage should not compile
+    lagrange::Mesh<Eigen::MatrixXd, Eigen::Matrix<Index, Eigen::Dynamic, 3, Eigen::RowMajor>> mesh;
+    auto res = lagrange::to_surface_mesh_wrap<Scalar, Index>(mesh);
 }

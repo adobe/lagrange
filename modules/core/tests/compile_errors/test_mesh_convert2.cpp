@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,26 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <lagrange/io/save_mesh.h>
-
-#include <lagrange/create_mesh.h>
+#include <lagrange/common.h>
 #include <lagrange/mesh_convert.h>
-#include <lagrange/unify_index_buffer.h>
 
-
-namespace lagrange::io::testing {
-
-SurfaceMesh32d create_surfacemesh_cube()
+void test_to_surface_mesh()
 {
-    std::unique_ptr<TriangleMesh3D> legacy = create_cube();
-    return to_surface_mesh_copy<double, uint32_t, TriangleMesh3D>(*legacy);
-}
+    using Scalar = double;
+    using Index = uint32_t;
+    using Triangles32 = Eigen::Matrix<uint32_t, Eigen::Dynamic, 3, Eigen::RowMajor>;
+    using TriangleMesh3D32 = lagrange::Mesh<lagrange::Vertices3D, Triangles32>;
+    using MeshType = TriangleMesh3D32;
 
-SurfaceMesh32d create_surfacemesh_sphere()
-{
-    std::unique_ptr<TriangleMesh3D> legacy = create_sphere();
-    return to_surface_mesh_copy<double, uint32_t, TriangleMesh3D>(*legacy);
-}
-
+    // Trying to wrap a temporary should not compile
+    auto res = lagrange::to_surface_mesh_wrap<Scalar, Index>(MeshType());
 }

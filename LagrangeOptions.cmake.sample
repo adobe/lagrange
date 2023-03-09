@@ -58,11 +58,12 @@
 # option(LAGRANGE_MODULE_WINDING      "Build module lagrange::winding"      ON)
 
 # General options
+# option(LAGRANGE_COMPILE_TESTS      "Enable compilation tests"                             ON)
 # option(LAGRANGE_DOCUMENTATION      "Build Doxygen documentation"                          ON)
 # option(LAGRANGE_EXAMPLES           "Build all examples"                                   ON)
-# option(LAGRANGE_UNIT_TESTS         "Build all unit tests"                                 ON)
-# option(LAGRANGE_PERFORMANCE_TESTS  "Build all performance tests"                          ON)
 # option(LAGRANGE_INSTALL            "Enable installation"                                  OFF)
+# option(LAGRANGE_PERFORMANCE_TESTS  "Build all performance tests"                          ON)
+# option(LAGRANGE_UNIT_TESTS         "Build all unit tests"                                 ON)
 
 # Specific options
 # option(LAGRANGE_ASSERT_DEBUG_BREAK "Assert will break into debugger on failure"           OFF)

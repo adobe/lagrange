@@ -86,7 +86,11 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
     const Index num_vertices = safe_cast<Index>(attrib.vertices.size()) / dim;
     mesh.add_vertices(num_vertices, [&](Index v, span<Scalar> p) {
         la_debug_assert(dim == p.size());
-        std::copy_n(attrib.vertices.begin() + static_cast<ptrdiff_t>(v * dim), dim, p.begin());
+        std::transform(
+            attrib.vertices.begin() + static_cast<ptrdiff_t>(v * dim),
+            attrib.vertices.begin() + static_cast<ptrdiff_t>(v * dim + dim),
+            p.begin(),
+            [](tinyobj::real_t val) { return static_cast<Scalar>(val); });
     });
 
     // Copy texcoord values
@@ -101,10 +105,11 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
             uv_dim);
         uv_attr = &mesh.template ref_indexed_attribute<Scalar>(id);
         uv_attr->values().resize_elements(attrib.texcoords.size() / uv_dim);
-        std::copy(
+        std::transform(
             attrib.texcoords.begin(),
             attrib.texcoords.end(),
-            uv_attr->values().ref_all().begin());
+            uv_attr->values().ref_all().begin(),
+            [](tinyobj::real_t val) { return static_cast<Scalar>(val); });
     }
 
     // Copy normal values
@@ -119,10 +124,11 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
             dim);
         nrm_attr = &mesh.template ref_indexed_attribute<Scalar>(id);
         nrm_attr->values().resize_elements(attrib.normals.size() / dim);
-        std::copy(
+        std::transform(
             attrib.normals.begin(),
             attrib.normals.end(),
-            nrm_attr->values().ref_all().begin());
+            nrm_attr->values().ref_all().begin(),
+            [](tinyobj::real_t val) { return static_cast<Scalar>(val); });
     }
 
     // Copy vertex colors
@@ -135,7 +141,11 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
             AttributeUsage::Color,
             dim);
         auto& attr = mesh.template ref_attribute<Scalar>(id);
-        std::copy(attrib.colors.begin(), attrib.colors.end(), attr.ref_all().begin());
+        std::transform(
+            attrib.colors.begin(),
+            attrib.colors.end(),
+            attr.ref_all().begin(),
+            [](tinyobj::real_t val) { return static_cast<Scalar>(val); });
     }
 
     // Reserve facet indices
@@ -147,7 +157,7 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
             facet_sizes.end(),
             shape.mesh.num_face_vertices.begin(),
             shape.mesh.num_face_vertices.end());
-        facet_counts.push_back(shape.mesh.num_face_vertices.size());
+        facet_counts.push_back(static_cast<Index>(shape.mesh.num_face_vertices.size()));
         result.names.push_back(shape.name);
     }
     mesh.add_hybrid(facet_sizes);

@@ -24,3 +24,4 @@ FetchContent_Declare(
 FetchContent_MakeAvailable(mshio)
 
 set_target_properties(mshio PROPERTIES FOLDER third_party)
+set_target_properties(mshio PROPERTIES POSITION_INDEPENDENT_CODE ON)

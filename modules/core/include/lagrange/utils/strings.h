@@ -64,19 +64,41 @@ bool starts_with(std::string_view str, std::string_view prefix);
 bool ends_with(std::string_view str, std::string_view suffix);
 
 ///
+/// Convert a string to lowercase.
+///
+/// @param[in]  str     The input string.
+///
+/// @return     The same string converted to lowercase.
+///
+/// @note This method assumes the input string is ASCII.
+///
+std::string to_lower(std::string str);
+
+///
+/// Convert a string to uppercase.
+///
+/// @param[in]  str     The input string.
+///
+/// @return     The same string converted to uppercase.
+///
+/// @note This method assumes the input string is ASCII.
+///
+std::string to_upper(std::string str);
+
+///
 /// Format args according to the format string fmt, and return the result as a string.
 ///
 /// @note       Can be replaced with std::format in C++20
 ///
 /// @param[in]  format  An object that represents the format string.
-/// @param      args    Arguments to be formatted.
+/// @param[in]  args    Arguments to be formatted.
 ///
 /// @tparam     Args    Types of the arguments to be formatted.
 ///
 /// @return     A string object holding the formatted result.
 ///
 template <typename... Args>
-std::string string_format(const std::string& format, Args&&... args)
+std::string string_format(fmt::format_string<Args...> format, Args&&... args)
 {
     return fmt::format(format, std::forward<Args>(args)...);
 }

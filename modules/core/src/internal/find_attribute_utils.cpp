@@ -76,40 +76,6 @@ void check_attribute(
     }
 }
 
-template <typename ExpectedValueType, typename Scalar, typename Index>
-AttributeId find_matching_attribute_internal(
-    const SurfaceMesh<Scalar, Index>& mesh,
-    const std::unordered_set<AttributeId>* selected_ids,
-    BitField<AttributeElement> expected_element,
-    AttributeUsage expected_usage,
-    size_t expected_channels)
-{
-    AttributeId id = invalid_attribute_id();
-    // No attribute name provided. Iterate until we find the first matching attribute.
-    seq_foreach_named_attribute_read(mesh, [&](auto attr_name, auto&& attr) {
-        auto current_id = mesh.get_attribute_id(attr_name);
-        if (selected_ids && !selected_ids->count(current_id)) {
-            return;
-        }
-        using AttributeType = std::decay_t<decltype(attr)>;
-        using ValueType = typename AttributeType::ValueType;
-        if (id == invalid_attribute_id() && attr.get_usage() == expected_usage &&
-            expected_element.test_any(attr.get_element_type()) &&
-            (expected_channels == 0 || attr.get_num_channels() == expected_channels) &&
-            std::is_same_v<ValueType, ExpectedValueType>) {
-            logger().trace(
-                "Found attribute '{}' with element type {}, usage {}, value type {}.",
-                attr_name,
-                to_string(expected_element),
-                to_string(expected_usage),
-                string_from_scalar<ValueType>());
-            id = mesh.get_attribute_id(attr_name);
-        }
-    });
-
-    return id;
-}
-
 } // namespace
 
 template <typename ExpectedValueType, typename Scalar, typename Index>
@@ -123,9 +89,9 @@ AttributeId find_matching_attribute(
     AttributeId id = invalid_attribute_id();
     if (name.empty()) {
         // No attribute name provided. Iterate until we find the first matching attribute.
-        return find_matching_attribute_internal<ExpectedValueType>(
+        id = find_matching_attribute<ExpectedValueType>(
             mesh,
-            nullptr,
+            span<AttributeId>(),
             expected_element,
             expected_usage,
             expected_channels);
@@ -147,18 +113,32 @@ AttributeId find_matching_attribute(
 template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_matching_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
-    const std::unordered_set<AttributeId>& selected_ids,
+    span<const AttributeId> selected_ids,
     BitField<AttributeElement> expected_element,
     AttributeUsage expected_usage,
     size_t expected_channels)
 {
-    return find_matching_attribute_internal<ExpectedValueType>(
-        mesh,
-        &selected_ids,
-        expected_element,
-        expected_usage,
-        expected_channels);
+    AttributeId output_id = invalid_attribute_id();
+    auto match_attribute = [&](AttributeId id) {
+        if (output_id != invalid_attribute_id()) return;
+        if (!mesh.template is_attribute_type<ExpectedValueType>(id)) return;
+
+        auto& attr = mesh.get_attribute_base(id);
+        if (!expected_element.test(attr.get_element_type())) return;
+        if (attr.get_usage() != expected_usage) return;
+        if (expected_channels != 0 && attr.get_num_channels() != expected_channels) return;
+
+        output_id = id;
+    };
+
+    if (selected_ids.empty()) {
+        mesh.seq_foreach_attribute_id(match_attribute);
+    } else {
+        std::for_each(selected_ids.begin(), selected_ids.end(), match_attribute);
+    }
+    return output_id;
 }
+
 
 template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_attribute(
@@ -237,7 +217,7 @@ AttributeId find_or_create_attribute(
         size_t expected_channels);                                                   \
     template AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
         const SurfaceMesh<Scalar, Index>& mesh,                                      \
-        const std::unordered_set<AttributeId>& selected_ids,                         \
+        span<const AttributeId>,                                                     \
         BitField<AttributeElement> expected_element,                                 \
         AttributeUsage expected_usage,                                               \
         size_t expected_channels);                                                   \

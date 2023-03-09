@@ -9,16 +9,16 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include "io_common.h"
-
-#include <lagrange/testing/common.h>
 #include <lagrange/io/save_simple_scene.h>
+#include <lagrange/testing/common.h>
+#include <lagrange/testing/create_test_mesh.h>
 
 using namespace lagrange;
 
-scene::SimpleScene32d3 create_simple_scene() {
-    auto cube = io::testing::create_surfacemesh_cube();
-    auto sphere = io::testing::create_surfacemesh_sphere();
+scene::SimpleScene32d3 create_simple_scene()
+{
+    auto cube = testing::create_test_cube<double, uint32_t>();
+    auto sphere = testing::create_test_sphere<double, uint32_t>();
 
     scene::SimpleScene32d3 scene;
     auto cube_idx = scene.add_mesh(std::move(cube));

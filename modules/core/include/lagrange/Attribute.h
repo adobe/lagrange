@@ -147,11 +147,11 @@ public:
     ~Attribute() override;
 
     ///
-    /// Move constructor. Declared as explicit to avoid accidental moves.
+    /// Move constructor.
     ///
     /// @param      other  Instance to move from.
     ///
-    explicit Attribute(Attribute&& other) noexcept;
+    Attribute(Attribute&& other) noexcept;
 
     ///
     /// Assignment move operator.

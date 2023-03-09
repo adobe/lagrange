@@ -9,15 +9,22 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/common.h>
-#include <lagrange/testing/common.h>
-
 #include <lagrange/Attribute.h>
+#include <lagrange/common.h>
+#include <lagrange/compute_facet_normal.h>
+#include <lagrange/compute_vertex_normal.h>
+#include <lagrange/compute_weighted_corner_normal.h>
+#include <lagrange/foreach_attribute.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/save_mesh_msh.h>
+#include <lagrange/testing/check_mesh.h>
+#include <lagrange/testing/common.h>
+#include <lagrange/testing/equivalence_check.h>
 #include <lagrange/utils/range.h>
-#include <lagrange/foreach_attribute.h>
+#include <lagrange/views.h>
 
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <limits>
 #include <sstream>
 
 
@@ -26,55 +33,6 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
     using namespace lagrange;
     using Scalar = double;
     using Index = uint32_t;
-
-    auto assert_same_attribute = [](const auto& attr1, const auto& attr2) {
-        auto buffer1 = attr1.get_all();
-        auto buffer2 = attr2.get_all();
-
-        REQUIRE(buffer1.size() == buffer2.size());
-        for (size_t i = 0; i < buffer1.size(); i++) {
-            REQUIRE(buffer1[i] == buffer2[i]);
-        }
-    };
-
-    auto assert_same_vertices = [&](const auto& m1, const auto& m2) {
-        REQUIRE(m1.get_num_vertices() == m2.get_num_vertices());
-        auto& vertices1 = m1.get_vertex_to_position();
-        auto& vertices2 = m2.get_vertex_to_position();
-        assert_same_attribute(vertices1, vertices2);
-    };
-
-    auto assert_same_facets = [&](const auto& m1, const auto& m2) {
-        REQUIRE(m1.get_num_facets() == m2.get_num_facets());
-
-        const auto num_facets = m1.get_num_facets();
-        for (auto fid : range(num_facets)) {
-            const auto f1 = m1.get_facet_vertices(fid);
-            const auto f2 = m2.get_facet_vertices(fid);
-
-            REQUIRE(f1.size() == f2.size());
-            for (auto i : range(f1.size())) {
-                REQUIRE(f1[i] == f2[i]);
-            }
-        }
-    };
-
-    auto assert_same = [&](const auto& m1, const auto& m2) {
-        assert_same_vertices(m1, m2);
-        assert_same_facets(m1, m2);
-
-        m1.seq_foreach_attribute_id([&](AttributeId id) {
-            if (!m1.template is_attribute_type<Scalar>(id)) return;
-
-            auto attr_name = m1.get_attribute_name(id);
-            REQUIRE(m2.has_attribute(attr_name));
-            REQUIRE(m2.template is_attribute_type<Scalar>(attr_name));
-
-            auto& attr1 = m1.template get_attribute<Scalar>(id);
-            auto& attr2 = m2.template get_attribute<Scalar>(attr_name);
-            assert_same_attribute(attr1, attr2);
-        });
-    };
 
     SurfaceMesh<Scalar, Index> mesh;
     mesh.add_vertex({0, 0, 0});
@@ -161,7 +119,41 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
         options.selected_attributes.push_back(id);
     }
 
+    SECTION("Multiple UV sets")
+    {
+        std::string name = "uv_0";
+        auto id = mesh.template create_attribute<Scalar>(
+            name,
+            AttributeElement::Vertex,
+            AttributeUsage::UV,
+            2);
+        auto attr = attribute_matrix_ref<Scalar>(mesh, id);
+        attr.setZero();
+        options.selected_attributes.push_back(id);
+
+        name = "uv_1";
+        id = mesh.template create_attribute<Scalar>(
+            name,
+            AttributeElement::Vertex,
+            AttributeUsage::UV,
+            2);
+        attr = attribute_matrix_ref<Scalar>(mesh, id);
+        attr.setOnes();
+        options.selected_attributes.push_back(id);
+    }
+
+    SECTION("With vertex, facet and corner normal")
+    {
+        auto id0 = compute_weighted_corner_normal(mesh);
+        auto id1 = compute_facet_normal(mesh);
+        auto id2 = compute_vertex_normal(mesh);
+        options.selected_attributes.push_back(id0);
+        options.selected_attributes.push_back(id1);
+        options.selected_attributes.push_back(id2);
+    }
+
     REQUIRE_NOTHROW(io::save_mesh_msh(data, mesh, options));
     auto mesh2 = io::load_mesh_msh<SurfaceMesh<Scalar, Index>>(data);
-    assert_same(mesh, mesh2);
+    testing::check_mesh(mesh2);
+    testing::ensure_approx_equivalent_mesh(mesh, mesh2);
 }

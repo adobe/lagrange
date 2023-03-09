@@ -147,7 +147,9 @@ TEST_CASE("compute_components benchmark", "[surface][components][utilities][!ben
 
     auto wrap_copy = [&]() {
         SurfaceMesh<Scalar, Index> tmp_mesh;
-        tmp_mesh.wrap_as_const_vertices(vertex_attr.get_all(), vertex_attr.get_num_elements());
+        tmp_mesh.wrap_as_const_vertices(
+            vertex_attr.get_all(),
+            static_cast<Index>(vertex_attr.get_num_elements()));
         tmp_mesh.wrap_as_const_facets(
             facet_attr.get_all(),
             mesh.get_num_facets(),
@@ -173,9 +175,7 @@ TEST_CASE("compute_components benchmark", "[surface][components][utilities][!ben
         {
             auto tmp_mesh = wrap_with_mesh(legacy_mesh->get_vertices(), legacy_mesh->get_facets());
             tmp_mesh->initialize_connectivity();
-            meter.measure([&]() {
-                return tmp_mesh->initialize_components();
-            });
+            meter.measure([&]() { return tmp_mesh->initialize_components(); });
         };
 #endif
     }

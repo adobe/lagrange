@@ -17,7 +17,9 @@
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/quad_area.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/utils/triangle_area.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -32,45 +34,6 @@
 namespace lagrange {
 
 namespace {
-
-template <typename Scalar>
-Scalar triangle_area_3D(span<const Scalar> a, span<const Scalar> b, span<const Scalar> c)
-{
-    const Scalar n0 = (a[1] - b[1]) * (a[2] - c[2]) - (a[1] - c[1]) * (a[2] - b[2]);
-    const Scalar n1 = -(a[0] - b[0]) * (a[2] - c[2]) + (a[0] - c[0]) * (a[2] - b[2]);
-    const Scalar n2 = (a[0] - b[0]) * (a[1] - c[1]) - (a[0] - c[0]) * (a[1] - b[1]);
-
-    return std::sqrt(n0 * n0 + n1 * n1 + n2 * n2) / 2;
-}
-
-template <typename Scalar>
-Scalar triangle_area_2D(span<const Scalar> a, span<const Scalar> b, span<const Scalar> c)
-{
-    return ((a[0] - b[0]) * (a[1] - c[1]) - (a[0] - c[0]) * (a[1] - b[1])) / 2;
-}
-
-template <typename Scalar>
-Scalar
-quad_area_2D(span<const Scalar> a, span<const Scalar> b, span<const Scalar> c, span<const Scalar> d)
-{
-    Scalar _center[2]{(a[0] + b[0] + c[0] + d[0]) / 4, (a[1] + b[1] + c[1] + d[1]) / 4};
-    span<const Scalar> center(_center, 2);
-    return triangle_area_2D(a, b, center) + triangle_area_2D(b, c, center) +
-           triangle_area_2D(c, d, center) + triangle_area_2D(d, a, center);
-}
-
-template <typename Scalar>
-Scalar
-quad_area_3D(span<const Scalar> a, span<const Scalar> b, span<const Scalar> c, span<const Scalar> d)
-{
-    Scalar _center[3]{
-        (a[0] + b[0] + c[0] + d[0]) / 4,
-        (a[1] + b[1] + c[1] + d[1]) / 4,
-        (a[2] + b[2] + c[2] + d[2]) / 4};
-    span<const Scalar> center(_center, 3);
-    return triangle_area_3D(a, b, center) + triangle_area_3D(b, c, center) +
-           triangle_area_3D(c, d, center) + triangle_area_3D(d, a, center);
-}
 
 template <typename Scalar, typename Index>
 class FacetPositionsView
@@ -149,12 +112,12 @@ void compute_triangle_area(
     if (dim == 3) {
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = triangle_area_3D(p(0), p(1), p(2));
+            attr_ref(fid) = triangle_area_3d<Scalar>(p(0), p(1), p(2));
         });
     } else if (dim == 2) {
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = triangle_area_2D(p(0), p(1), p(2));
+            attr_ref(fid) = triangle_area_2d<Scalar>(p(0), p(1), p(2));
         });
         if (!use_signed_area) attr_ref = attr_ref.array().abs();
     } else {
@@ -182,12 +145,12 @@ void compute_quad_area(
     if (dim == 3) {
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = quad_area_3D(p(0), p(1), p(2), p(3));
+            attr_ref(fid) = quad_area_3d<Scalar>(p(0), p(1), p(2), p(3));
         });
     } else if (dim == 2) {
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = quad_area_2D(p(0), p(1), p(2), p(3));
+            attr_ref(fid) = quad_area_2d<Scalar>(p(0), p(1), p(2), p(3));
         });
         if (!use_signed_area) attr_ref = attr_ref.array().abs();
     } else {
@@ -230,7 +193,7 @@ void compute_polygon_area(
             for (Index i = 0; i < n; i++) {
                 Index prev = (i + n - 1) % n;
                 Index curr = i;
-                attr_ref(fid) += triangle_area_3D(p(prev), p(curr), center);
+                attr_ref(fid) += triangle_area_3d<Scalar>(p(prev), p(curr), center);
             }
         });
     } else if (dim == 2) {
@@ -244,7 +207,7 @@ void compute_polygon_area(
             for (Index i = 0; i < n; i++) {
                 Index prev = (i + n - 1) % n;
                 Index curr = i;
-                attr_ref(fid) += triangle_area_2D(p(prev), p(curr), O);
+                attr_ref(fid) += triangle_area_2d<Scalar>(p(prev), p(curr), O);
             }
         });
         if (!use_signed_area) attr_ref = attr_ref.array().abs();

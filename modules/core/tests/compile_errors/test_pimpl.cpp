@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,15 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/create_mesh.h>
-#include <lagrange/mesh_convert.h>
+#include <lagrange/utils/value_ptr.h>
 
-// TODO move this elsewhere
+void test_pimpl()
+{
+    const lagrange::value_ptr<int> pimpl_ptr = lagrange::value_ptr<int>(10);
 
-namespace lagrange::io::testing {
-
-SurfaceMesh32d create_surfacemesh_cube();
-
-SurfaceMesh32d create_surfacemesh_sphere();
-
+    // This should not compile because our value_ptr respects const-ness
+    *pimpl_ptr = 30;
 }

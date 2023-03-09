@@ -165,7 +165,7 @@ std::unique_ptr<MeshType> create_legacy_mesh(bool with_edges, bool duplicate_nam
     if (with_edges) {
         mesh->initialize_edge_data();
         AttributeArray lengths(mesh->get_num_edges(), 1);
-        std::uniform_real_distribution<Scalar> dist_values(0.1, 1);
+        std::uniform_real_distribution<Scalar> dist_values(Scalar(0.1), Scalar(1));
         lengths = lengths.unaryExpr([&](auto) { return dist_values(gen); });
         std::string name = (duplicate_names ? "vector" : "length");
         mesh->add_edge_attribute(name);
@@ -276,7 +276,9 @@ lagrange::SurfaceMesh<Scalar, Index> create_surface_mesh(int dim, int nvpf, bool
             AttributeElement::Edge,
             AttributeUsage::Scalar,
             1);
-        std::uniform_real_distribution<Scalar> dist_values(0.1, 1);
+        std::uniform_real_distribution<Scalar> dist_values(
+            static_cast<Scalar>(0.1),
+            static_cast<Scalar>(1));
         for (auto& x : mesh.template ref_attribute<Scalar>(id).ref_all()) {
             x = dist_values(gen);
         }
@@ -711,9 +713,7 @@ void edge_sort_fast(std::vector<std::array<int, 2>>& edges)
     auto ids = lagrange::mesh_convert_detail::fast_edge_sort<int>(
         num_edges,
         num_vertices,
-        [&](int e) -> std::array<int, 2> {
-            return edges[e];
-        },
+        [&](int e) -> std::array<int, 2> { return edges[e]; },
         buckets);
     std::vector<std::array<int, 2>> new_edges(num_edges);
     for (size_t i = 0; i < ids.size(); ++i) {
@@ -724,7 +724,7 @@ void edge_sort_fast(std::vector<std::array<int, 2>>& edges)
     edges = new_edges;
 }
 
-void test_edge_sort(const std::vector<std::array<int, 2>> &edges)
+void test_edge_sort(const std::vector<std::array<int, 2>>& edges)
 {
     std::vector<std::array<int, 2>> edges_fast = edges;
     std::vector<std::array<int, 2>> edges_naive = edges;

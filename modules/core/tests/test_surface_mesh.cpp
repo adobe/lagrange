@@ -92,7 +92,7 @@ void test_mesh_construction()
         nv = mesh.get_num_vertices();
 
         std::vector<Scalar> buffer(4 * dim);
-        std::iota(buffer.begin(), buffer.end(), 11);
+        std::iota(buffer.begin(), buffer.end(), Scalar(11));
         mesh.add_vertices(4, buffer);
         lagrange::testing::check_mesh(mesh);
         for (Index i = nv, j = 0; i < mesh.get_num_vertices(); ++i, ++j) {
@@ -526,7 +526,7 @@ void test_element_removal(bool with_edges)
             mesh.template create_attribute<double>("color", lagrange::AttributeElement::Corner);
         lagrange::testing::check_mesh(mesh);
         auto& attr = mesh.template ref_attribute<double>(id);
-        std::iota(attr.ref_all().begin(), attr.ref_all().end(), 123);
+        std::iota(attr.ref_all().begin(), attr.ref_all().end(), double(123));
         REQUIRE(mesh.get_num_facets() == 4);
         mesh.remove_facets([](Index f) noexcept { return f == 1; });
         REQUIRE(mesh.get_num_facets() == 3);
@@ -1266,7 +1266,10 @@ void test_wrap_attribute()
             buffer,
             indices);
         auto& attr = mesh.template ref_indexed_attribute<ValueType>(id);
-        std::iota(attr.values().ref_all().begin(), attr.values().ref_all().end(), 23);
+        std::iota(
+            attr.values().ref_all().begin(),
+            attr.values().ref_all().end(),
+            safe_cast<ValueType>(23));
         for (size_t i = 0; i < num_values * num_channels; ++i) {
             REQUIRE(buffer[i] == safe_cast<ValueType>(23 + i));
         }
@@ -1340,7 +1343,7 @@ void test_wrap_attribute_special()
 
     // Wrap buffer as vertices
     std::vector<Scalar> points(num_vertices * mesh.get_dimension());
-    std::iota(points.begin(), points.end(), 9);
+    std::iota(points.begin(), points.end(), Scalar(9));
     mesh.wrap_as_vertices(points, num_vertices);
     REQUIRE(mesh.get_vertex_to_position().get_all().data() == points.data());
     REQUIRE(mesh.get_num_vertices() == num_vertices);
@@ -1351,7 +1354,7 @@ void test_wrap_attribute_special()
     }
 
     // Wrap buffer as const vertices
-    std::iota(points.begin(), points.end(), 11);
+    std::iota(points.begin(), points.end(), Scalar(11));
     mesh.wrap_as_const_vertices(points, num_vertices);
     REQUIRE(mesh.get_vertex_to_position().get_all().data() == points.data());
     REQUIRE(mesh.get_num_vertices() == num_vertices);
@@ -1362,7 +1365,7 @@ void test_wrap_attribute_special()
         const Index nvpf = 3;
         const Index num_facets = 4;
         std::vector<Index> corner_to_vertex(num_facets * nvpf);
-        std::iota(corner_to_vertex.begin(), corner_to_vertex.end(), 0);
+        std::iota(corner_to_vertex.begin(), corner_to_vertex.end(), Index(0));
         mesh.wrap_as_facets(corner_to_vertex, num_facets, nvpf);
         REQUIRE(mesh.get_corner_to_vertex().get_all().data() == corner_to_vertex.data());
         REQUIRE(mesh.get_num_facets() == num_facets);
@@ -1386,7 +1389,7 @@ void test_wrap_attribute_special()
         std::vector<Index> offsets({0, 3, 3 + 4});
         const Index num_facets = static_cast<Index>(offsets.size());
         const Index num_corners = static_cast<Index>(corner_to_vertex.size());
-        std::iota(corner_to_vertex.begin(), corner_to_vertex.end(), 0);
+        std::iota(corner_to_vertex.begin(), corner_to_vertex.end(), Index(0));
         mesh.wrap_as_facets(offsets, num_facets, corner_to_vertex, num_corners);
         REQUIRE(mesh.get_corner_to_vertex().get_all().data() == corner_to_vertex.data());
         REQUIRE(
@@ -1428,7 +1431,7 @@ void test_export_attribute()
                 mesh.template create_attribute<ValueType>("normals", elem, usage, num_channels);
             auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
             REQUIRE(attr.size() == mesh.get_num_vertices() * mesh.get_dimension());
-            std::iota(attr.begin(), attr.end(), 23);
+            std::iota(attr.begin(), attr.end(), ValueType(23));
             const void* old_ptr = attr.data();
 
             auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>("normals");
@@ -1446,7 +1449,7 @@ void test_export_attribute()
                 mesh.template create_attribute<ValueType>("normals", elem, usage, num_channels);
             auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
             REQUIRE(attr.size() == mesh.get_num_vertices() * mesh.get_dimension());
-            std::iota(attr.begin(), attr.end(), 23);
+            std::iota(attr.begin(), attr.end(), ValueType(23));
 
             auto attr_ptr = mesh.template delete_and_export_const_attribute<ValueType>("normals");
             REQUIRE(!mesh.has_attribute("normals"));
@@ -1466,7 +1469,7 @@ void test_export_attribute()
                 num_channels);
             auto& attr = mesh.template ref_indexed_attribute<ValueType>(id);
             attr.values().resize_elements(num_values);
-            std::iota(attr.values().ref_all().begin(), attr.values().ref_all().end(), 23);
+            std::iota(attr.values().ref_all().begin(), attr.values().ref_all().end(), ValueType(23));
             const void* values_ptr = attr.values().get_all().data();
             const void* indices_ptr = attr.indices().get_all().data();
 
@@ -1491,7 +1494,7 @@ void test_export_attribute()
                 num_channels);
             auto& attr = mesh.template ref_indexed_attribute<ValueType>(id);
             attr.values().resize_elements(num_values);
-            std::iota(attr.values().ref_all().begin(), attr.values().ref_all().end(), 23);
+            std::iota(attr.values().ref_all().begin(), attr.values().ref_all().end(), ValueType(23));
             const void* values_ptr = attr.values().get_all().data();
             const void* indices_ptr = attr.indices().get_all().data();
 
@@ -1516,7 +1519,7 @@ void test_export_attribute()
 
         // Export external attr
         std::vector<ValueType> buffer(mesh.get_num_vertices() * num_channels);
-        std::iota(buffer.begin(), buffer.end(), 12);
+        std::iota(buffer.begin(), buffer.end(), ValueType(12));
 
         // Copy if external (default)
         {
@@ -2388,22 +2391,22 @@ void test_element_index_resize()
     // Initialize attribute values
     {
         auto vattr = mesh.template ref_attribute<Index>(vid).ref_all();
-        std::iota(vattr.begin(), vattr.end(), 0);
+        std::iota(vattr.begin(), vattr.end(), Index(0));
         auto fattr = mesh.template ref_attribute<Index>(fid).ref_all();
-        std::iota(fattr.begin(), fattr.end(), 0);
+        std::iota(fattr.begin(), fattr.end(), Index(0));
         auto cattr = mesh.template ref_attribute<Index>(cid).ref_all();
-        std::iota(cattr.begin(), cattr.end(), 0);
+        std::iota(cattr.begin(), cattr.end(), Index(0));
         auto eattr = mesh.template ref_attribute<Index>(eid).ref_all();
-        std::iota(eattr.begin(), eattr.end(), 0);
+        std::iota(eattr.begin(), eattr.end(), Index(0));
 
         auto vattr_i = mesh.template ref_indexed_attribute<Index>(vid_i).values().ref_all();
-        std::iota(vattr_i.begin(), vattr_i.end(), 0);
+        std::iota(vattr_i.begin(), vattr_i.end(), Index(0));
         auto fattr_i = mesh.template ref_indexed_attribute<Index>(fid_i).values().ref_all();
-        std::iota(fattr_i.begin(), fattr_i.end(), 0);
+        std::iota(fattr_i.begin(), fattr_i.end(), Index(0));
         auto cattr_i = mesh.template ref_indexed_attribute<Index>(cid_i).values().ref_all();
-        std::iota(cattr_i.begin(), cattr_i.end(), 0);
+        std::iota(cattr_i.begin(), cattr_i.end(), Index(0));
         auto eattr_i = mesh.template ref_indexed_attribute<Index>(eid_i).values().ref_all();
-        std::iota(eattr_i.begin(), eattr_i.end(), 0);
+        std::iota(eattr_i.begin(), eattr_i.end(), Index(0));
     }
     lagrange::testing::check_mesh(mesh);
 
@@ -2437,7 +2440,7 @@ void test_resize_attribute_type()
 
     auto check_indexed_attr = [](const SurfaceMesh<Scalar, Index>& mesh,
                                  AttributeId id,
-                                 const std::vector<ValueType>& gt) {
+                                 const std::vector<Index>& gt) {
         auto attr = mesh.template get_indexed_attribute<ValueType>(id).indices().get_all();
         REQUIRE(attr.size() == gt.size());
         REQUIRE(std::equal(gt.begin(), gt.end(), attr.begin()));
@@ -2468,7 +2471,7 @@ void test_resize_attribute_type()
         std::vector<ValueType> fgt;
         std::vector<ValueType> cgt;
         std::vector<ValueType> egt;
-        std::vector<ValueType> igt;
+        std::vector<Index> igt;
 
         // Initialize attribute values
         {
@@ -2489,7 +2492,7 @@ void test_resize_attribute_type()
             auto attr_values = attr.values().ref_all();
             auto attr_indices = attr.indices().ref_all();
             std::iota(attr_values.begin(), attr_values.end(), ValueType(0));
-            std::iota(attr_indices.begin(), attr_indices.end(), ValueType(0));
+            std::iota(attr_indices.begin(), attr_indices.end(), Index(0));
 
             vgt.assign(vattr.begin(), vattr.end());
             fgt.assign(fattr.begin(), fattr.end());

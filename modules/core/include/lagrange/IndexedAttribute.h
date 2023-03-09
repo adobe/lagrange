@@ -56,11 +56,11 @@ public:
     ~IndexedAttribute() override;
 
     ///
-    /// Move constructor. Declared as explicit to avoid accidental moves.
+    /// Move constructor.
     ///
     /// @param      other  Instance to move from.
     ///
-    explicit IndexedAttribute(IndexedAttribute&& other) noexcept;
+    IndexedAttribute(IndexedAttribute&& other) noexcept;
 
     ///
     /// Assignment move operator.

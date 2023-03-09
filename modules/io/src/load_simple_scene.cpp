@@ -10,23 +10,24 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/Logger.h>
 #include <lagrange/io/load_simple_scene.h>
+#include <lagrange/io/load_simple_scene_gltf.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
-#include <lagrange/Logger.h>
-#include <lagrange/io/load_simple_scene_gltf.h>
+#include <lagrange/utils/strings.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
-#include <lagrange/io/load_simple_scene_assimp.h>
+    #include <lagrange/io/load_simple_scene_assimp.h>
 #endif
 
 namespace lagrange::io {
 
 template <typename SceneType>
-SceneType load_simple_scene(
-    const fs::path& filename, const LoadOptions& options)
+SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options)
 {
-    if (filename.extension() == ".gltf" || filename.extension() == ".glb") {
+    std::string ext = to_lower(filename.extension().string());
+    if (ext == ".gltf" || ext == ".glb") {
         return load_simple_scene_gltf<SceneType>(filename, options);
     } else {
 #ifdef LAGRANGE_WITH_ASSIMP
@@ -37,10 +38,10 @@ SceneType load_simple_scene(
     }
     return SceneType();
 }
-#define LA_X_load_simple_scene(_, S, I, D) \
+#define LA_X_load_simple_scene(_, S, I, D)                  \
     template scene::SimpleScene<S, I, D> load_simple_scene( \
         const fs::path& filename,                           \
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene, 0);
 
-}
+} // namespace lagrange::io

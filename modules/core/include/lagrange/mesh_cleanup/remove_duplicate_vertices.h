@@ -93,12 +93,12 @@ std::unique_ptr<MeshType> remove_duplicate_vertices(
     Index num_cols = dim;
     for (const auto& attr_name : vertex_attribute_names) {
         la_runtime_assert(mesh.has_vertex_attribute(attr_name));
-        num_cols += mesh.get_vertex_attribute(attr_name).cols();
+        num_cols += static_cast<Index>(mesh.get_vertex_attribute(attr_name).cols());
     }
     for (const auto& attr_name : indexed_attribute_names) {
         la_runtime_assert(mesh.has_indexed_attribute(attr_name));
         auto attr = mesh.get_indexed_attribute(attr_name);
-        num_cols += std::get<0>(attr).cols();
+        num_cols += static_cast<Index>(std::get<0>(attr).cols());
     }
 
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> vertices_and_keys;
@@ -109,7 +109,7 @@ std::unique_ptr<MeshType> remove_duplicate_vertices(
     for (const auto& attr_name : vertex_attribute_names) {
         const auto& attr = mesh.get_vertex_attribute(attr_name);
         vertices_and_keys.block(0, col_count, num_vertices, attr.cols()) = attr;
-        col_count += attr.cols();
+        col_count += static_cast<Index>(attr.cols());
     }
     for (const auto& attr_name : indexed_attribute_names) {
         const auto attr = mesh.get_indexed_attribute(attr_name);
@@ -123,7 +123,7 @@ std::unique_ptr<MeshType> remove_duplicate_vertices(
             vertices_and_keys.row(facets(i, 2)).segment(col_count, attr_values.cols()) =
                 attr_values.row(attr_indices(i, 2));
         }
-        col_count += attr_values.cols();
+        col_count += static_cast<Index>(attr_values.cols());
     }
 
     Entries unique_vertices_and_keys;

@@ -14,6 +14,22 @@ project(LagrangeDocs)
 
 find_package(Doxygen REQUIRED)
 
+# Doxygen Awesome for fancy CSS theme
+include(ExternalProject)
+include(FetchContent)
+ExternalProject_Add(
+    doxygen-awesome
+    PREFIX "${FETCHCONTENT_BASE_DIR}/doxygen-awesome"
+    GIT_REPOSITORY https://github.com/jothepro/doxygen-awesome-css.git
+    GIT_TAG v2.1.0
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND ""
+    INSTALL_COMMAND ""
+    LOG_DOWNLOAD ON
+)
+ExternalProject_Get_property(doxygen-awesome SOURCE_DIR)
+set(DOXYGEN_AWESOME_DIR "${SOURCE_DIR}")
+
 # Collect module names
 file(GLOB module_paths "${CMAKE_CURRENT_SOURCE_DIR}/../modules/*")
 unset(module_names)
@@ -47,6 +63,7 @@ set(DOXYGEN_OUTPUT_DIR ${CMAKE_BINARY_DIR} CACHE PATH "Output base dir for doxyg
 set(DOXYGEN_OUTPUT_HTML html CACHE STRING "Output subdir for doxygen html")
 set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.in)
 set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+set(DOXYFILE_HEADER ${CMAKE_CURRENT_SOURCE_DIR}/header.html)
 
 # Replace variables inside @@ with the current values
 configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
@@ -57,3 +74,5 @@ add_custom_target(doc
                   COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYFILE_OUT}
                   WORKING_DIRECTORY ${DOXYGEN_WORKING_DIR}
                   COMMENT "Generating docs")
+
+add_dependencies(doc doxygen-awesome)

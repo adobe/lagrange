@@ -34,7 +34,7 @@ include(FetchContent)
 FetchContent_Declare(
     imgui
     GIT_REPOSITORY https://github.com/adobe/imgui.git
-    GIT_TAG 27dd81adfa98f203e0bbe9ac6682265fee1644c2 # docking_v1.89.1
+    GIT_TAG 447d0a713c635584471bd5bed3ebecdf953c0b5c # docking_v1.89.3
 )
 FetchContent_MakeAvailable(imgui)
 
