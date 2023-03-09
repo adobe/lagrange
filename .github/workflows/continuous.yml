@@ -53,7 +53,7 @@ jobs:
               echo "CC=clang" >> $GITHUB_ENV
               echo "CXX=clang++" >> $GITHUB_ENV
             fi
-            sudo apt-get install ccache
+            sudo apt-get install xorg-dev ccache
 
       - name: Dependencies (macOS)
         if: runner.os == 'macOS'
