@@ -29,6 +29,13 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # To avoid this problem, we force PDB write to be synchronous with /FS.
     # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
     add_compile_options(/FS)
+
+    # Enable faster PDB generation. May be required when using parallel build
+    # processes with Ninja.
+    # https://learn.microsoft.com/en-us/cpp/build/reference/zf?view=msvc-170
+    if(LAGRANGE_JENKINS)
+        add_compile_options($<$<CONFIG:Debug>:/Zf>)
+    endif()
 else()
     include(lagrange_filter_flags)
     set(LAGRANGE_GLOBAL_FLAGS
