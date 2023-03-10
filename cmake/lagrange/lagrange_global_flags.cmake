@@ -30,11 +30,10 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
     add_compile_options(/FS)
 
-    # Enable faster PDB generation. May be required when using parallel build
-    # processes with Ninja.
-    # https://learn.microsoft.com/en-us/cpp/build/reference/zf?view=msvc-170
+    # Don't generate debug database
     if(LAGRANGE_JENKINS)
-        add_compile_options($<$<CONFIG:Debug>:/Zf>)
+        add_compile_options($<$<CONFIG:Debug>:/Z7>)
+        add_compile_options($<$<CONFIG:Debug>:/DEBUG:NONE>)
     endif()
 else()
     include(lagrange_filter_flags)
