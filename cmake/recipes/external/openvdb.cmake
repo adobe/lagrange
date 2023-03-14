@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     openvdb
     GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
-    GIT_TAG v10.0.0
+    GIT_TAG v10.0.1
 )
 
 if(WIN32)
