@@ -93,8 +93,6 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
             -DLAGRANGE_JENKINS=ON \
             -DLAGRANGE_ALL=ON \
-            -DOPENVDB_CORE_SHARED=ON \
-            -DOPENVDB_CORE_STATIC=OFF \
             -DUSE_SANITIZER=${{ matrix.sanitizer }}
 
       - name: Build
