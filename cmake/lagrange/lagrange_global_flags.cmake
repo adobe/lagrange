@@ -32,7 +32,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
     # Don't generate debug database
     if(LAGRANGE_JENKINS)
-        add_compile_options($<$<CONFIG:Debug>:/Z7>)
         add_compile_options($<$<CONFIG:Debug>:/DEBUG:NONE>)
     endif()
 else()
