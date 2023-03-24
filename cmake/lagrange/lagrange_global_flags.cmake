@@ -32,6 +32,9 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
 
     # Don't generate debug database
     if(LAGRANGE_JENKINS)
+        if(POLICY CMP0141)
+            set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+        endif()
         add_compile_options($<$<CONFIG:Debug>:/DEBUG:NONE>)
     endif()
 else()
