@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -33,25 +33,13 @@ namespace lagrange::io {
 namespace internal {
 
 template <typename MeshType>
-auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
-    -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>
+auto extract_mesh(tinyobj::ObjReader& reader, const LoadOptions& options)
 {
-    ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> result;
-
     using Scalar = typename MeshType::Scalar;
     using Index = typename MeshType::Index;
     using SignedIndex = typename MeshType::SignedIndex;
 
-    tinyobj::ObjReader reader;
-    {
-        logger().trace("[load_mesh_obj] Parsing obj file: {}", filename.string());
-        tinyobj::ObjReaderConfig config;
-        config.triangulate = options.triangulate;
-        config.vertex_color = options.load_vertex_colors;
-        config.mtl_search_path = options.search_path.string();
-        reader.ParseFromFile(filename.string(), config);
-    }
-
+    ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> result;
     result.success = reader.Valid();
     if (!reader.Warning().empty()) {
         auto lines = string_split(reader.Warning(), '\n');
@@ -241,9 +229,60 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
     return result;
 }
 
+tinyobj::ObjReader load_obj(const fs::path& filename, const LoadOptions& options)
+{
+    tinyobj::ObjReader reader;
+
+    logger().trace("[load_mesh_obj] Parsing obj file: {}", filename.string());
+    tinyobj::ObjReaderConfig config;
+    config.triangulate = options.triangulate;
+    config.vertex_color = options.load_vertex_colors;
+    config.mtl_search_path = options.search_path.string();
+    reader.ParseFromFile(filename.string(), config);
+
+    return reader;
+}
+
+tinyobj::ObjReader load_obj(std::istream& input_stream, const LoadOptions& options)
+{
+    tinyobj::ObjReader reader;
+
+    logger().trace("[load_mesh_obj] Parsing obj from stream");
+    tinyobj::ObjReaderConfig config;
+    config.triangulate = options.triangulate;
+    config.vertex_color = options.load_vertex_colors;
+    config.mtl_search_path = options.search_path.string();
+
+    std::istreambuf_iterator<char> data_itr(input_stream), end_of_stream;
+    std::string obj_data(data_itr, end_of_stream);
+    std::string mtl_data;
+    reader.ParseFromString(obj_data, mtl_data, config);
+
+    return reader;
+}
+
+template <typename MeshType>
+auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
+    -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>
+{
+    auto reader = load_obj(filename, options);
+    return extract_mesh<MeshType>(reader, options);
+}
+
+template <typename MeshType>
+auto load_mesh_obj(std::istream& input_stream, const LoadOptions& options)
+    -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>
+{
+    auto reader = load_obj(input_stream, options);
+    return extract_mesh<MeshType>(reader, options);
+}
+
 #define LA_X_load_mesh(_, Scalar, Index)                                               \
     template ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
         const fs::path& filename,                                                      \
+        const LoadOptions& options);                                                   \
+    template ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
+        std::istream&,                                                                 \
         const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh, 0)
 

@@ -1,5 +1,5 @@
 #
-# Copyright 2022 Adobe. All rights reserved.
+# Copyright 2023 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -41,7 +41,7 @@ configure_file(${tinygltf_BINARY_DIR}/tinygltf.cpp.in ${tinygltf_BINARY_DIR}/tin
 # define library
 add_library(tinygltf ${tinygltf_BINARY_DIR}/tinygltf.cpp)
 add_library(tinygltf::tinygltf ALIAS tinygltf)
-target_compile_definitions(tinygltf PRIVATE 
+target_compile_definitions(tinygltf PRIVATE
     TINYGLTF_NO_INCLUDE_JSON
     TINYGLTF_NO_INCLUDE_STB_IMAGE
     TINYGLTF_NO_INCLUDE_STB_IMAGE_WRITE)
@@ -49,7 +49,7 @@ set_target_properties(tinygltf PROPERTIES FOLDER third_party)
 set_target_properties(tinygltf PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 include(GNUInstallDirs)
-target_include_directories(tinygltf PUBLIC 
+target_include_directories(tinygltf PUBLIC
     $<BUILD_INTERFACE:${tinygltf_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )

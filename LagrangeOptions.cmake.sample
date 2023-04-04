@@ -66,15 +66,18 @@
 # option(LAGRANGE_UNIT_TESTS         "Build all unit tests"                                 ON)
 
 # Specific options
-# option(LAGRANGE_ASSERT_DEBUG_BREAK "Assert will break into debugger on failure"           OFF)
-# option(LAGRANGE_DISABLE_FPE        "Disable floating point exception code"                OFF)
-# option(LAGRANGE_MORE_WARNINGS      "Increase the level of warnings when compiling"        OFF)
-# option(LAGRANGE_SLOW_TESTS         "Enable slow unit tests"                               ON)
-# option(LAGRANGE_UI_USE_MDL         "Use Material Definition Library"                      ON)
-# option(LAGRANGE_USE_PCH            "Enable precompiled headers"                           ON)
-# option(LAGRANGE_WITH_ASSIMP        "Add assimp functionality to lagrange::io"             ON)
-# option(LAGRANGE_WITH_ONETBB        "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
-# option(LAGRANGE_WITH_TRACY         "Build tracy client with Lagrange"                     ON)
+# option(LAGRANGE_ASSERT_DEBUG_BREAK   "Assert will break into debugger on failure"           OFF)
+# option(LAGRANGE_COMPILE_TESTS         "Enable compilation tests"                            ON)
+# option(LAGRANGE_DISABLE_FPE          "Disable floating point exception code"                OFF)
+# option(LAGRANGE_ENABLE_GPU_TESTS     "Enable unit tests that run on the GPU"                ON)
+# option(LAGRANGE_MORE_WARNINGS        "Increase the level of warnings when compiling"        OFF)
+# option(LAGRANGE_SLOW_TESTS           "Enable slow unit tests"                               ON)
+# option(LAGRANGE_UI_USE_MDL           "Use Material Definition Library"                      ON)
+# option(LAGRANGE_USE_PCH              "Enable precompiled headers"                           ON)
+# option(LAGRANGE_USE_WASM_EXCEPTIONS  "Use -fwasm-exception flag with Emscripten"            OFF)
+# option(LAGRANGE_WITH_ASSIMP          "Add assimp functionality to lagrange::io"             ON)
+# option(LAGRANGE_WITH_ONETBB          "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
+# option(LAGRANGE_WITH_TRACY           "Build tracy client with Lagrange"                     ON)
 
 # Non-boolean options
 # set(LAGRANGE_DATA_FOLDER "<path/to/data>" CACHE PATH   "Where to download or find test data")

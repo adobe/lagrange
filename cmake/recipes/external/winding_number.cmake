@@ -18,7 +18,7 @@ message(STATUS "Third-party (internal): creating target 'WindingNumber::WindingN
 include(FetchContent)
 FetchContent_Declare(
     WindingNumber
-    GIT_REPOSITORY git@git.corp.adobe.com:CTL-third-party/WindingNumber.git
+    GIT_REPOSITORY https://github.com/jdumas/WindingNumber.git
     GIT_TAG        d0083297a9c3459a61573c0a0b4c0586ea84b727
 )
 

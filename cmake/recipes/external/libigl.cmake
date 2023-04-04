@@ -24,3 +24,5 @@ FetchContent_Declare(
 include(eigen)
 option(LIBIGL_INSTALL "Enable installation of libigl targets" ON)
 FetchContent_MakeAvailable(libigl)
+
+set_target_properties(igl_core PROPERTIES FOLDER third_party/libigl)

@@ -9,8 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_for.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange {
 namespace experimental {

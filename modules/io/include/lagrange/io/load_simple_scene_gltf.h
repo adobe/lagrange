@@ -15,7 +15,20 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
+
+/**
+ * Load a simple scene with gltf..
+ * 
+ * @param[in] filename input file
+ * @param[in] options
+ * 
+ * @return  scene
+ */
+template <typename SceneType>
+SceneType load_simple_scene_gltf(std::ifstream& input_stream, const LoadOptions& options = {});
 
 /**
  * Load a simple scene with gltf..

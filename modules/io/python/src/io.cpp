@@ -15,14 +15,14 @@
 #include <lagrange/io/load_simple_scene.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/io/save_simple_scene.h>
-#include <lagrange/python/utils/path.h>
 #include <lagrange/scene/SimpleScene.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
-#include <nanobind/stl/vector.h>
+#include <nanobind/stl/filesystem.h>
 #include <nanobind/stl/string.h>
+#include <nanobind/stl/vector.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -96,12 +96,10 @@ attribute_conversion_policy: {})",
                     fmt::join(self.selected_attributes, ","),
                     to_string(self.attribute_conversion_policy));
             })
-        .def_readwrite("encoding", &io::SaveOptions::encoding)
-        .def_readwrite("output_attributes", &io::SaveOptions::output_attributes)
-        .def_readwrite("selected_attributes", &io::SaveOptions::selected_attributes)
-        .def_readwrite(
-            "attribute_conversion_policy",
-            &io::SaveOptions::attribute_conversion_policy);
+        .def_rw("encoding", &io::SaveOptions::encoding)
+        .def_rw("output_attributes", &io::SaveOptions::output_attributes)
+        .def_rw("selected_attributes", &io::SaveOptions::selected_attributes)
+        .def_rw("attribute_conversion_policy", &io::SaveOptions::attribute_conversion_policy);
 
     nb::class_<io::LoadOptions>(m, "LoadOptions")
         .def(nb::init<>())
@@ -129,14 +127,14 @@ search_path: {}
                     self.load_object_id,
                     self.search_path.string());
             })
-        .def_readwrite("triangulate", &io::LoadOptions::triangulate)
-        .def_readwrite("load_normals", &io::LoadOptions::load_normals)
-        .def_readwrite("load_tangents", &io::LoadOptions::load_tangents)
-        .def_readwrite("load_uvs", &io::LoadOptions::load_uvs)
-        .def_readwrite("load_materials", &io::LoadOptions::load_materials)
-        .def_readwrite("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
-        .def_readwrite("load_object_id", &io::LoadOptions::load_object_id)
-        .def_readwrite("search_path", &io::LoadOptions::search_path);
+        .def_rw("triangulate", &io::LoadOptions::triangulate)
+        .def_rw("load_normals", &io::LoadOptions::load_normals)
+        .def_rw("load_tangents", &io::LoadOptions::load_tangents)
+        .def_rw("load_uvs", &io::LoadOptions::load_uvs)
+        .def_rw("load_materials", &io::LoadOptions::load_materials)
+        .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
+        .def_rw("load_object_id", &io::LoadOptions::load_object_id)
+        .def_rw("search_path", &io::LoadOptions::search_path);
 
     m.def("load_mesh", &io::load_mesh<MeshType>, "filename"_a, "options"_a = io::LoadOptions());
     m.def(

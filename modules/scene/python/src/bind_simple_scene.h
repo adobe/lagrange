@@ -34,10 +34,8 @@ void bind_simple_scene(nb::module_& m)
     using MeshInstance3D = lagrange::scene::MeshInstance<Scalar, Index, 3>;
     nb::class_<MeshInstance3D>(m, "MeshInstance3D", "A single mesh instance in a scene")
         .def(nb::init<>())
-        .def_readwrite(
-            "mesh_index",
-            &MeshInstance3D::mesh_index)
-        .def_property(
+        .def_rw("mesh_index", &MeshInstance3D::mesh_index)
+        .def_prop_rw(
             "transform",
             [](MeshInstance3D& self) {
                 auto& M = self.transform.matrix();
@@ -87,48 +85,23 @@ void bind_simple_scene(nb::module_& m)
     using SimpleScene3D = lagrange::scene::SimpleScene<Scalar, Index, 3>;
     nb::class_<SimpleScene3D>(m, "SimpleScene3D", "Simple scene container for instanced meshes")
         .def(nb::init<>())
-        .def_property_readonly(
-            "num_meshes",
-            &SimpleScene3D::get_num_meshes,
-            "Number of meshes in the scene")
-        .def(
-            "num_instances",
-            &SimpleScene3D::get_num_instances,
-            "mesh_index"_a)
-        .def_property_readonly(
+        .def_prop_ro("num_meshes", &SimpleScene3D::get_num_meshes, "Number of meshes in the scene")
+        .def("num_instances", &SimpleScene3D::get_num_instances, "mesh_index"_a)
+        .def_prop_ro(
             "total_num_instances",
             &SimpleScene3D::compute_num_instances,
             "Total number of instances for all meshes in the scene")
-        .def(
-            "get_mesh",
-            &SimpleScene3D::get_mesh,
-            "mesh_index"_a)
-        .def(
-            "ref_mesh",
-            &SimpleScene3D::ref_mesh,
-            "mesh_index"_a)
-        .def(
-            "get_instance",
-            &SimpleScene3D::get_instance,
-            "mesh_index"_a,
-            "instance_index"_a)
-        .def(
-            "reserve_meshes",
-            &SimpleScene3D::reserve_meshes,
-            "num_meshes"_a)
-        .def(
-            "add_mesh",
-            &SimpleScene3D::add_mesh,
-            "mesh"_a)
+        .def("get_mesh", &SimpleScene3D::get_mesh, "mesh_index"_a)
+        .def("ref_mesh", &SimpleScene3D::ref_mesh, "mesh_index"_a)
+        .def("get_instance", &SimpleScene3D::get_instance, "mesh_index"_a, "instance_index"_a)
+        .def("reserve_meshes", &SimpleScene3D::reserve_meshes, "num_meshes"_a)
+        .def("add_mesh", &SimpleScene3D::add_mesh, "mesh"_a)
         .def(
             "reserve_instances",
             &SimpleScene3D::reserve_instances,
             "mesh_index"_a,
             "num_instances"_a)
-        .def(
-            "add_instance",
-            &SimpleScene3D::add_instance,
-            "instance"_a);
+        .def("add_instance", &SimpleScene3D::add_instance, "instance"_a);
 }
 
 } // namespace lagrange::python

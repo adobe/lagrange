@@ -20,10 +20,10 @@ endif()
 # 2. dependencies
 lagrange_include_modules(core fs scene)
 include(tinyobjloader)
+include(tinygltf)
 include(libigl) # TODO: remove libigl later
 include(mshio)
 include(happly)
-include(tinygltf)
 target_link_libraries(lagrange_io
     PUBLIC
         lagrange::core
@@ -37,7 +37,7 @@ target_link_libraries(lagrange_io
         mshio::mshio
 )
 
-option(LAGRANGE_WITH_ASSIMP "Add assimp functionality to lagrange::io" FALSE)
+option(LAGRANGE_WITH_ASSIMP "Add assimp functionality to lagrange::io" OFF)
 if(LAGRANGE_WITH_ASSIMP)
     include(assimp)
     target_link_libraries(lagrange_io PUBLIC assimp::assimp)

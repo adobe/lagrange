@@ -24,7 +24,6 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
-#include <nanobind/tensor.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -36,15 +35,15 @@ void bind_attribute(nanobind::module_& m)
     using namespace nb::literals;
 
     auto attr_class = nb::class_<PyAttribute>(m, "Attribute");
-    attr_class.def_property_readonly("element_type", [](PyAttribute& self) {
+    attr_class.def_prop_ro("element_type", [](PyAttribute& self) {
         return self->get_element_type();
     });
-    attr_class.def_property_readonly("usage", [](PyAttribute& self) { return self->get_usage(); });
-    attr_class.def_property_readonly("num_channels", [](PyAttribute& self) {
+    attr_class.def_prop_ro("usage", [](PyAttribute& self) { return self->get_usage(); });
+    attr_class.def_prop_ro("num_channels", [](PyAttribute& self) {
         return self->get_num_channels();
     });
 
-    attr_class.def_property(
+    attr_class.def_prop_rw(
         "default_value",
         [](PyAttribute& self) {
             return self.process([](auto& attr) { return nb::cast(attr.get_default_value()); });
@@ -55,7 +54,7 @@ void bind_attribute(nanobind::module_& m)
                 attr.set_default_value(static_cast<ValueType>(val));
             });
         });
-    attr_class.def_property(
+    attr_class.def_prop_rw(
         "growth_policy",
         [](PyAttribute& self) {
             return self.process([](auto& attr) { return attr.get_growth_policy(); });
@@ -63,7 +62,7 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self, AttributeGrowthPolicy policy) {
             self.process([&](auto& attr) { attr.set_growth_policy(policy); });
         });
-    attr_class.def_property(
+    attr_class.def_prop_rw(
         "write_policy",
         [](PyAttribute& self) {
             return self.process([](auto& attr) { return attr.get_write_policy(); });
@@ -71,7 +70,7 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self, AttributeWritePolicy policy) {
             self.process([&](auto& attr) { attr.set_write_policy(policy); });
         });
-    attr_class.def_property(
+    attr_class.def_prop_rw(
         "copy_policy",
         [](PyAttribute& self) {
             return self.process([](auto& attr) { return attr.get_copy_policy(); });
@@ -112,20 +111,20 @@ void bind_attribute(nanobind::module_& m)
     attr_class.def("empty", [](PyAttribute& self) {
         return self.process([](auto& attr) { return attr.empty(); });
     });
-    attr_class.def_property_readonly("num_elements", [](PyAttribute& self) {
+    attr_class.def_prop_ro("num_elements", [](PyAttribute& self) {
         return self.process([](auto& attr) { return attr.get_num_elements(); });
     });
-    attr_class.def_property_readonly("external", [](PyAttribute& self) {
+    attr_class.def_prop_ro("external", [](PyAttribute& self) {
         return self.process([](auto& attr) { return attr.is_external(); });
     });
-    attr_class.def_property_readonly("readonly", [](PyAttribute& self) {
+    attr_class.def_prop_ro("readonly", [](PyAttribute& self) {
         return self.process([](auto& attr) { return attr.is_read_only(); });
     });
-    attr_class.def_property(
+    attr_class.def_prop_rw(
         "data",
         [](PyAttribute& self) {
             return self.process(
-                [&](auto& attr) { return attribute_to_tensor(attr, nb::cast(&self)); });
+                [&](auto& attr) { return attribute_to_tensor(attr, nb::find(&self)); });
         },
         [](PyAttribute& self, GenericTensor tensor) {
             auto wrap_tensor = [&](auto& attr) {
@@ -142,7 +141,7 @@ void bind_attribute(nanobind::module_& m)
                 la_runtime_assert(shape.size() == 2 ? shape[1] == attr.get_num_channels() : true);
                 const size_t num_elements = shape[0];
 
-                auto owner = std::make_shared<nb::object>(nb::cast(tensor));
+                auto owner = std::make_shared<nb::object>(nb::find(tensor));
                 attr.wrap(make_shared_span(owner, data.data(), data.size()), num_elements);
             };
             self.process(wrap_tensor);

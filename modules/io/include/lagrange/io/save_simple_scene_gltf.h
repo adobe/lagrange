@@ -15,7 +15,22 @@
 #include <lagrange/io/types.h>
 #include <lagrange/scene/SimpleScene.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
+
+/**
+ * Save a simple scene to a gltf or glb file.
+ *
+ * @param output_stream Stream to output data
+ * @param scene         Scene to save
+ * @param options       SaveOptions, check the struct for more details.
+ */
+template <typename Scalar, typename Index, size_t Dimension = 3>
+void save_simple_scene_gltf(
+    std::ostream& output_stream,
+    const scene::SimpleScene<Scalar, Index, Dimension>& scene,
+    const SaveOptions& options = {});
 
 /**
  * Save a simple scene to a gltf or glb file.

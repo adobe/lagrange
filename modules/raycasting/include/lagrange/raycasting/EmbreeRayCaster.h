@@ -119,11 +119,7 @@ public:
     /** Destructor. */
     virtual ~EmbreeRayCaster()
     {
-        for (auto& s : m_embree_mesh_scenes) {
-            rtcReleaseScene(s);
-        }
-
-        rtcReleaseScene(m_embree_world_scene);
+        release_scenes();
         rtcReleaseDevice(m_device);
     }
 
@@ -783,10 +779,18 @@ public:
         m_meshes[index] = std::move(mesh);
         m_mesh_build_qualities[index] = build_quality;
         m_need_rebuild = true; // TODO: Make this more fine-grained so only the affected part of
-                               // the Embree scene is updated    
+                               // the Embree scene is updated
     }
 
 protected:
+    /** Release internal Embree scenes */
+    void release_scenes() {
+        for (auto& s : m_embree_mesh_scenes) {
+            rtcReleaseScene(s);
+        }
+        rtcReleaseScene(m_embree_world_scene);
+    }
+
     /** Get the Embree scene flags. */
     virtual RTCSceneFlags get_scene_flags() const
     {
@@ -819,7 +823,7 @@ protected:
         if (!m_need_rebuild) return;
 
         // Scene needs to be updated
-        rtcReleaseScene(m_embree_world_scene);
+        release_scenes();
         m_embree_world_scene = rtcNewScene(m_device);
         auto scene_flags = get_scene_flags(); // FIXME: or just m_scene_flags?
         auto scene_build_quality = get_scene_build_quality(); // FIXME: or just m_build_quality?

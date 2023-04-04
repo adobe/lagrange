@@ -108,7 +108,7 @@ Viewer::Viewer(const std::string& window_title, int window_width, int window_hei
     : Viewer(WindowOptions{window_title, -1, -1, window_width, window_height})
 {}
 
-Viewer::Viewer(int argc, char** argv)
+Viewer::Viewer(int /*argc*/, char** argv)
     : Viewer(lagrange::fs::path(argv[0]).stem().string(), 1024, 768)
 {}
 
@@ -794,10 +794,12 @@ bool Viewer::init_glfw(const WindowOptions& options)
 
 
     logger().info("OpenGL Driver");
-    logger().info("Vendor: {}", glGetString(GL_VENDOR));
-    logger().info("Renderer: {}", glGetString(GL_RENDERER));
-    logger().info("Version: {}", glGetString(GL_VERSION));
-    logger().info("Shading language version: {}", glGetString(GL_SHADING_LANGUAGE_VERSION));
+    logger().info("Vendor: {}", reinterpret_cast<const char*>(glGetString(GL_VENDOR)));
+    logger().info("Renderer: {}", reinterpret_cast<const char*>(glGetString(GL_RENDERER)));
+    logger().info("Version: {}", reinterpret_cast<const char*>(glGetString(GL_VERSION)));
+    logger().info(
+        "Shading language version: {}",
+        reinterpret_cast<const char*>(glGetString(GL_SHADING_LANGUAGE_VERSION)));
 
     /**
      * Set up callbacks

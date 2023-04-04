@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -11,119 +11,81 @@
  */
 #pragma once
 
-#include <memory>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/legacy/extract_submesh.h>
+#endif
 
-#include <lagrange/Mesh.h>
-#include <lagrange/MeshTrait.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/utils/range.h>
-#include <lagrange/utils/safe_cast.h>
+#include <lagrange/SurfaceMesh.h>
+#include <lagrange/utils/span.h>
+
+#include <string_view>
 
 namespace lagrange {
+///
+/// @defgroup   group-surfacemesh-attr-utils Attributes utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various attribute processing utilities
+///
+/// @{
 
-template <typename MeshType>
-std::vector<std::unique_ptr<MeshType>> extract_component_submeshes(
-    MeshType& mesh,
-    std::vector<std::vector<typename MeshType::Index>>* vertex_mappings = nullptr,
-    std::vector<std::vector<typename MeshType::Index>>* facet_mappings = nullptr)
+///
+/// Options for extract submesh.
+///
+struct SubmeshOptions
 {
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
+    /// The name of the output attribute holding source vertex indices.
+    ///
+    /// @note If empty, source vertex mapping will not be computed.
+    std::string_view source_vertex_attr_name;
 
-    if (!mesh.is_components_initialized()) {
-        mesh.initialize_components();
+    /// The name of the output attribute holding source facet indices.
+    ///
+    /// @note If empty, source facet mapping will not be computed.
+    std::string_view source_facet_attr_name;
+
+    /// Map all attributes over to submesh.
+    bool map_attributes = false;
+
+    SubmeshOptions() = default;
+    SubmeshOptions(const SubmeshOptions&) = default;
+    SubmeshOptions(SubmeshOptions&&) = default;
+    SubmeshOptions& operator=(const SubmeshOptions&) = default;
+    SubmeshOptions& operator=(SubmeshOptions&&) = default;
+
+    ///
+    /// Explicit conversion from other compatible option structs.
+    ///
+    template <typename T>
+    explicit SubmeshOptions(const T& options)
+    {
+        source_vertex_attr_name = options.source_vertex_attr_name;
+        source_facet_attr_name = options.source_facet_attr_name;
+        map_attributes = options.map_attributes;
     }
+};
 
-    return extract_submeshes(mesh, mesh.get_components(), vertex_mappings, facet_mappings);
-}
+///
+/// Extract a submesh that consists of a subset of the facets of the source mesh.
+///
+/// @tparam Scalar              The scalar type.
+/// @tparam Index               The index type.
+///
+/// @param[in]  mesh            The source mesh.
+/// @param[in]  selected_facets The set of selected facets to extract.
+/// @param[in]  options         Extraction options.
+///
+/// @return The mesh containing the selected facets.
+///
+/// @see `SubmeshOptions`
+///
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> extract_submesh(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    span<const Index> selected_facets,
+    const SubmeshOptions& options = {});
 
-template <typename MeshType, typename Index>
-std::vector<std::unique_ptr<MeshType>> extract_submeshes(
-    const MeshType& mesh,
-    const std::vector<std::vector<Index>>& facet_groups,
-    std::vector<std::vector<Index>>* vertex_mappings = nullptr,
-    std::vector<std::vector<Index>>* facet_mappings = nullptr)
-{
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
 
-    if (vertex_mappings) {
-        vertex_mappings->resize(facet_groups.size());
-    }
-    if (facet_mappings) {
-        facet_mappings->resize(facet_groups.size());
-    }
+/// @}
 
-    std::vector<std::unique_ptr<MeshType>> extracted_meshes;
-    for (auto i : range(facet_groups.size())) {
-        extracted_meshes.emplace_back(extract_submesh(
-            mesh,
-            facet_groups[i],
-            vertex_mappings ? &((*vertex_mappings)[i]) : nullptr,
-            facet_mappings ? &((*facet_mappings)[i]) : nullptr));
-    }
-    return extracted_meshes;
-}
-
-template <typename MeshType, typename Index>
-std::unique_ptr<MeshType> extract_submesh(
-    const MeshType& mesh,
-    const std::vector<Index>& selected_facets,
-    std::vector<Index>* vertex_mapping = nullptr,
-    std::vector<Index>* facet_mapping = nullptr)
-{
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
-
-    using MeshIndex = typename MeshType::Index;
-    using VertexArray = typename MeshType::VertexArray;
-    using FacetArray = typename MeshType::FacetArray;
-    const MeshIndex num_selected_facets = safe_cast<MeshIndex>(selected_facets.size());
-    const auto vertex_per_facet = mesh.get_vertex_per_facet();
-
-    const auto& vertices = mesh.get_vertices();
-    const auto& facets = mesh.get_facets();
-    const auto num_facets = mesh.get_num_facets();
-    const MeshIndex min_num_vertices = std::min(
-        safe_cast<MeshIndex>(num_selected_facets * vertex_per_facet),
-        mesh.get_num_vertices());
-
-    FacetArray sub_facets(num_selected_facets, vertex_per_facet);
-    std::unordered_map<MeshIndex, MeshIndex> sub_vertex_indices;
-    sub_vertex_indices.reserve(min_num_vertices);
-
-    if (facet_mapping) {
-        facet_mapping->resize(num_selected_facets);
-    }
-
-    MeshIndex count = 0;
-    for (auto i : range(num_selected_facets)) {
-        la_runtime_assert(
-            selected_facets[i] >= 0 && safe_cast<MeshIndex>(selected_facets[i]) < num_facets,
-            "Facet index out of bound for submesh extraction");
-        for (auto j : range(vertex_per_facet)) {
-            const MeshIndex idx = facets(selected_facets[i], j);
-            if (sub_vertex_indices.find(idx) == sub_vertex_indices.end()) {
-                sub_vertex_indices[idx] = count;
-                count++;
-            }
-            sub_facets(i, j) = sub_vertex_indices[idx];
-        }
-        if (facet_mapping) {
-            (*facet_mapping)[i] = selected_facets[i];
-        }
-    }
-
-    VertexArray sub_vertices(count, mesh.get_dim());
-    if (vertex_mapping) {
-        vertex_mapping->resize(count);
-    }
-    for (const auto& item : sub_vertex_indices) {
-        // item.second = index in submesh
-        // item.first = index in original mesh
-        sub_vertices.row(item.second) = vertices.row(item.first);
-        if (vertex_mapping) {
-            (*vertex_mapping)[item.second] = item.first;
-        }
-    }
-
-    return lagrange::create_mesh(std::move(sub_vertices), std::move(sub_facets));
-}
 } // namespace lagrange
