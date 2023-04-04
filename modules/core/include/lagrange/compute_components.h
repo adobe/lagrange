@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/types/ConnectivityType.h>
 
 namespace lagrange {
 
@@ -28,14 +29,10 @@ namespace lagrange {
  */
 struct ComponentOptions
 {
+    using ConnectivityType = lagrange::ConnectivityType;
+
     /// Ouptut component id attribute name.
     std::string_view output_attribute_name = "@component_id";
-
-    /// Connectivity types
-    enum class ConnectivityType {
-        Vertex, ///< Two facets are considered connected if they share a vertex.
-        Edge ///< Two facets are considered connected if they share an edge.
-    };
 
     /// Connectivity type used for component computation.
     ConnectivityType connectivity_type = ConnectivityType::Edge;
@@ -55,7 +52,7 @@ struct ComponentOptions
  *
  * @return     The total number of connected components.
  *
- * @see        `ComopnentOptions`
+ * @see        `ComponentOptions`
  */
 template <typename Scalar, typename Index>
 size_t compute_components(

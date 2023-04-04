@@ -48,9 +48,11 @@ endif()
 if(LAGRANGE_ASSERT_DEBUG_BREAK)
     target_compile_definitions(lagrange_core PRIVATE -DLA_ENABLE_ASSERT_DEBUG_BREAK)
 endif()
+
 if (LAGRANGE_ENABLE_LEGACY_FUNCTIONS)
     target_compile_definitions(lagrange_core PUBLIC
-        -DLAGRANGE_ENABLE_LEGACY_FUNCTIONS)
+        -DLAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    )
 endif()
 
 # 2. dependencies

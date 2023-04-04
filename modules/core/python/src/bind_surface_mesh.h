@@ -119,21 +119,21 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def("clear_facets", &MeshType::clear_facets);
     surface_mesh_class.def("shrink_to_fit", &MeshType::shrink_to_fit);
     surface_mesh_class.def("compress_if_regular", &MeshType::compress_if_regular);
-    surface_mesh_class.def_property_readonly("is_triangle_mesh", &MeshType::is_triangle_mesh);
-    surface_mesh_class.def_property_readonly("is_quad_mesh", &MeshType::is_quad_mesh);
-    surface_mesh_class.def_property_readonly("is_regular", &MeshType::is_regular);
-    surface_mesh_class.def_property_readonly("is_hybrid", &MeshType::is_hybrid);
-    surface_mesh_class.def_property_readonly("dimension", &MeshType::get_dimension);
-    surface_mesh_class.def_property_readonly("vertex_per_facet", &MeshType::get_vertex_per_facet);
-    surface_mesh_class.def_property_readonly("num_vertices", &MeshType::get_num_vertices);
-    surface_mesh_class.def_property_readonly("num_facets", &MeshType::get_num_facets);
-    surface_mesh_class.def_property_readonly("num_corners", &MeshType::get_num_corners);
-    surface_mesh_class.def_property_readonly("num_edges", &MeshType::get_num_edges);
+    surface_mesh_class.def_prop_ro("is_triangle_mesh", &MeshType::is_triangle_mesh);
+    surface_mesh_class.def_prop_ro("is_quad_mesh", &MeshType::is_quad_mesh);
+    surface_mesh_class.def_prop_ro("is_regular", &MeshType::is_regular);
+    surface_mesh_class.def_prop_ro("is_hybrid", &MeshType::is_hybrid);
+    surface_mesh_class.def_prop_ro("dimension", &MeshType::get_dimension);
+    surface_mesh_class.def_prop_ro("vertex_per_facet", &MeshType::get_vertex_per_facet);
+    surface_mesh_class.def_prop_ro("num_vertices", &MeshType::get_num_vertices);
+    surface_mesh_class.def_prop_ro("num_facets", &MeshType::get_num_facets);
+    surface_mesh_class.def_prop_ro("num_corners", &MeshType::get_num_corners);
+    surface_mesh_class.def_prop_ro("num_edges", &MeshType::get_num_edges);
     surface_mesh_class.def("get_position", [](MeshType& self, Index i) {
-        return span_to_tensor(self.get_position(i), nb::cast(&self));
+        return span_to_tensor(self.get_position(i), nb::find(&self));
     });
     surface_mesh_class.def("ref_position", [](MeshType& self, Index i) {
-        return span_to_tensor(self.ref_position(i), nb::cast(&self));
+        return span_to_tensor(self.ref_position(i), nb::find(&self));
     });
     surface_mesh_class.def("get_facet_size", &MeshType::get_facet_size);
     surface_mesh_class.def("get_facet_vertex", &MeshType::get_facet_vertex);
@@ -142,10 +142,10 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def("get_corner_vertex", &MeshType::get_corner_vertex);
     surface_mesh_class.def("get_corner_facet", &MeshType::get_corner_facet);
     surface_mesh_class.def("get_facet_vertices", [](MeshType& self, Index f) {
-        return span_to_tensor(self.get_facet_vertices(f), nb::cast(&self));
+        return span_to_tensor(self.get_facet_vertices(f), nb::find(&self));
     });
     surface_mesh_class.def("ref_facet_vertices", [](MeshType& self, Index f) {
-        return span_to_tensor(self.ref_facet_vertices(f), nb::cast(&self));
+        return span_to_tensor(self.ref_facet_vertices(f), nb::find(&self));
     });
     surface_mesh_class.def("get_attribute_id", &MeshType::get_attribute_id);
     surface_mesh_class.def("get_attribute_name", &MeshType::get_attribute_name);
@@ -202,7 +202,7 @@ void bind_surface_mesh(nanobind::module_& m)
                 la_runtime_assert(is_dense(shape, stride));
                 Index num_channels = shape.size() == 1 ? 1 : static_cast<Index>(shape[1]);
                 AttributeId id;
-                auto owner = std::make_shared<nb::object>(nb::cast(values));
+                auto owner = std::make_shared<nb::object>(nb::find(values));
                 if constexpr (std::is_const_v<ValueType>) {
                     id = self.wrap_as_const_attribute(
                         name,
@@ -254,8 +254,8 @@ void bind_surface_mesh(nanobind::module_& m)
                     value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);
                 AttributeId id;
 
-                auto value_owner = std::make_shared<nb::object>(nb::cast(values));
-                auto index_owner = std::make_shared<nb::object>(nb::cast(indices));
+                auto value_owner = std::make_shared<nb::object>(nb::find(values));
+                auto index_owner = std::make_shared<nb::object>(nb::find(indices));
 
                 if constexpr (std::is_const_v<ValueType>) {
                     id = self.wrap_as_const_indexed_attribute(
@@ -347,26 +347,29 @@ void bind_surface_mesh(nanobind::module_& m)
         auto ptr = self._get_attribute_ptr(id);
         return ptr.use_count();
     });
-    surface_mesh_class.def_property(
+    surface_mesh_class.def_prop_rw(
         "vertices",
         [](const MeshType& self) {
             const auto& attr = self.get_vertex_to_position();
-            return attribute_to_tensor(attr, nb::cast(&self));
+            logger().warn("{}", fmt::ptr(attr.get_all().data()));
+            return attribute_to_tensor(attr, nb::find(&self));
         },
         [](MeshType& self, Tensor<Scalar> tensor) {
             auto [values, shape, stride] = tensor_to_span(tensor);
             la_runtime_assert(is_dense(shape, stride));
             la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
+            logger().warn("{}", fmt::ptr(values.data()));
 
             size_t num_vertices = shape.size() == 1 ? 1 : shape[0];
-            auto owner = std::make_shared<nb::object>(nb::cast(tensor));
+            auto owner = std::make_shared<nb::object>(nb::find(tensor));
             auto id = self.wrap_as_vertices(
                 make_shared_span(owner, values.data(), values.size()),
                 static_cast<Index>(num_vertices));
             auto& attr = self.template ref_attribute<Scalar>(id);
             attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            logger().warn("{}", fmt::ptr(attr.get_all().data()));
         });
-    surface_mesh_class.def_property(
+    surface_mesh_class.def_prop_rw(
         "facets",
         [](const MeshType& self) {
             if (self.is_regular()) {
@@ -374,11 +377,11 @@ void bind_surface_mesh(nanobind::module_& m)
                 const size_t shape[2] = {
                     static_cast<size_t>(self.get_num_facets()),
                     static_cast<size_t>(self.get_vertex_per_facet())};
-                return attribute_to_tensor(attr, shape, nb::cast(&self));
+                return attribute_to_tensor(attr, shape, nb::find(&self));
             } else {
                 logger().warn("Mesh is not regular, returning the flattened facets.");
                 const auto& attr = self.get_corner_to_vertex();
-                return attribute_to_tensor(attr, nb::cast(&self));
+                return attribute_to_tensor(attr, nb::find(&self));
             }
         },
         [](MeshType& self, Tensor<Index> tensor) {
@@ -387,7 +390,7 @@ void bind_surface_mesh(nanobind::module_& m)
 
             const size_t num_facets = shape.size() == 1 ? 1 : shape[0];
             const size_t vertex_per_facet = shape.size() == 1 ? shape[0] : shape[1];
-            auto owner = std::make_shared<nb::object>(nb::cast(tensor));
+            auto owner = std::make_shared<nb::object>(nb::find(tensor));
             auto id = self.wrap_as_facets(
                 make_shared_span(owner, values.data(), values.size()),
                 static_cast<Index>(num_facets),
@@ -402,7 +405,7 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(is_dense(shape, stride));
             la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
 
-            auto owner = std::make_shared<nb::object>(nb::cast(tensor));
+            auto owner = std::make_shared<nb::object>(nb::find(tensor));
             auto id = self.wrap_as_vertices(
                 make_shared_span(owner, values.data(), values.size()),
                 num_vertices);
@@ -416,7 +419,7 @@ void bind_surface_mesh(nanobind::module_& m)
             auto [values, shape, stride] = tensor_to_span(tensor);
             la_runtime_assert(is_dense(shape, stride));
 
-            auto owner = std::make_shared<nb::object>(nb::cast(tensor));
+            auto owner = std::make_shared<nb::object>(nb::find(tensor));
             auto id = self.wrap_as_facets(
                 make_shared_span(owner, values.data(), values.size()),
                 num_facets,
@@ -437,8 +440,8 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(is_dense(offsets_shape, offsets_stride));
             la_runtime_assert(is_dense(facets_shape, facets_stride));
 
-            auto offsets_owner = std::make_shared<nb::object>(nb::cast(offsets));
-            auto facets_owner = std::make_shared<nb::object>(nb::cast(facets));
+            auto offsets_owner = std::make_shared<nb::object>(nb::find(offsets));
+            auto facets_owner = std::make_shared<nb::object>(nb::find(facets));
 
             auto id = self.wrap_as_facets(
                 make_shared_span(offsets_owner, offsets_data.data(), offsets_data.size()),
@@ -450,58 +453,52 @@ void bind_surface_mesh(nanobind::module_& m)
             return id;
         });
     surface_mesh_class.def_static("attr_name_is_reserved", &MeshType::attr_name_is_reserved);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_vertex_to_position",
         &MeshType::attr_name_vertex_to_position);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_corner_to_vertex",
         &MeshType::attr_name_corner_to_vertex);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_facet_to_first_corner",
         &MeshType::attr_name_facet_to_first_corner);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_corner_to_facet",
         &MeshType::attr_name_corner_to_facet);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_corner_to_edge",
         &MeshType::attr_name_corner_to_edge);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_edge_to_first_corner",
         &MeshType::attr_name_edge_to_first_corner);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_next_corner_around_edge",
         &MeshType::attr_name_next_corner_around_edge);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_vertex_to_first_corner",
         &MeshType::attr_name_vertex_to_first_corner);
-    surface_mesh_class.def_property_readonly_static(
+    surface_mesh_class.def_prop_ro_static(
         "attr_name_next_corner_around_vertex",
         &MeshType::attr_name_next_corner_around_vertex);
-    surface_mesh_class.def_property_readonly(
+    surface_mesh_class.def_prop_ro(
         "attr_id_vertex_to_positions",
         &MeshType::attr_id_vertex_to_positions);
-    surface_mesh_class.def_property_readonly(
-        "attr_id_corner_to_vertex",
-        &MeshType::attr_id_corner_to_vertex);
-    surface_mesh_class.def_property_readonly(
+    surface_mesh_class.def_prop_ro("attr_id_corner_to_vertex", &MeshType::attr_id_corner_to_vertex);
+    surface_mesh_class.def_prop_ro(
         "attr_id_facet_to_first_corner",
         &MeshType::attr_id_facet_to_first_corner);
-    surface_mesh_class.def_property_readonly(
-        "attr_id_corner_to_facet",
-        &MeshType::attr_id_corner_to_facet);
-    surface_mesh_class.def_property_readonly(
-        "attr_id_corner_to_edge",
-        &MeshType::attr_id_corner_to_edge);
-    surface_mesh_class.def_property_readonly(
+    surface_mesh_class.def_prop_ro("attr_id_corner_to_facet", &MeshType::attr_id_corner_to_facet);
+    surface_mesh_class.def_prop_ro("attr_id_corner_to_edge", &MeshType::attr_id_corner_to_edge);
+    surface_mesh_class.def_prop_ro(
         "attr_id_edge_to_first_corner",
         &MeshType::attr_id_edge_to_first_corner);
-    surface_mesh_class.def_property_readonly(
+    surface_mesh_class.def_prop_ro(
         "attr_id_next_corner_around_edge",
         &MeshType::attr_id_next_corner_around_edge);
-    surface_mesh_class.def_property_readonly(
+    surface_mesh_class.def_prop_ro(
         "attr_id_vertex_to_first_corner",
         &MeshType::attr_id_vertex_to_first_corner);
-    surface_mesh_class.def_property_readonly(
+    surface_mesh_class.def_prop_ro(
         "attr_id_next_corner_around_vertex",
         &MeshType::attr_id_next_corner_around_vertex);
     surface_mesh_class.def("initialize_edges", [](MeshType& self) { self.initialize_edges(); });
@@ -517,7 +514,7 @@ void bind_surface_mesh(nanobind::module_& m)
         },
         "edges"_a = create_empty_tensor<Index>());
     surface_mesh_class.def("clear_edges", &MeshType::clear_edges);
-    surface_mesh_class.def_property_readonly("has_edges", &MeshType::has_edges);
+    surface_mesh_class.def_prop_ro("has_edges", &MeshType::has_edges);
     surface_mesh_class.def("get_edge", &MeshType::get_edge);
     surface_mesh_class.def("get_corner_edge", &MeshType::get_corner_edge);
     surface_mesh_class.def("get_edge_vertices", &MeshType::get_edge_vertices);

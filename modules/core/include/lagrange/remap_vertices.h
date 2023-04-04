@@ -13,6 +13,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/types/MappingPolicy.h>
 #include <lagrange/utils/span.h>
 
 namespace lagrange {
@@ -29,18 +30,7 @@ namespace lagrange {
  */
 struct RemapVerticesOptions
 {
-    /// Collision policy control the behavior when two or more vertices are mapped into the same
-    /// output vertex.
-    enum class CollisionPolicy {
-        /// Take the average of all involved vertices.
-        Average,
-
-        /// Keep the value of the first vertex.
-        KeepFirst,
-
-        /// Throw error if collision is detected.
-        Error,
-    };
+    using CollisionPolicy = MappingPolicy;
 
     /// Collision policy for float or double valued attributes
     CollisionPolicy collision_policy_float = CollisionPolicy::Average;
@@ -56,14 +46,18 @@ struct RemapVerticesOptions
  * @param[in]      forward_mapping  Vertex mapping where vertex `i` will be remapped to
  *                                  vertex `forward_mapping[i]`.
  *
- * @note
+ * @pre
+ *   * `forward_mapping` must be surjective.
+ *   * Edge information cannot be updated, thus its presence will cause an exception.
+ *
+ * @post
  *   * All vertex attributes will be updated.
  *   * The order of facets are unchanged.
- *   * If two vertices are mapped to the same index, they will be merged.
- *   * `forward_mapping` must be surjective.
- *   * Edge information will be recomputed if present.
+ *   * If two vertices are mapped to the same index, they will be merged based on the collision
+ *     policy specified in `options`.
  *
- * @see permute_vertices for simply permuting the vertex order.
+ * @see `permute_vertices` for simply permuting the vertex order.
+ * @see `RemapVerticesOptions`.
  */
 template <typename Scalar, typename Index>
 void remap_vertices(

@@ -15,9 +15,13 @@
 #include <stdexcept>
 #include <vector>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/blocked_range.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <tbb/parallel_reduce.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <lagrange/chain_edges.h>
 #include <lagrange/extract_boundary_loops.h>

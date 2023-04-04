@@ -39,7 +39,7 @@ function(stb_make_target header target_name macro_definition)
         ${stb_BINARY_DIR}/stb_${target_name}.cpp
     )
     add_library(${TARGET_ALIAS} ALIAS ${FULL_TARGET})
-    set_target_properties(${FULL_TARGET} PROPERTIES FOLDER third_party)
+    set_target_properties(${FULL_TARGET} PROPERTIES FOLDER third_party/stb)
     set_target_properties(${FULL_TARGET} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     target_include_directories(
         ${FULL_TARGET} PUBLIC $<BUILD_INTERFACE:${stb_SOURCE_DIR}>
@@ -48,7 +48,7 @@ function(stb_make_target header target_name macro_definition)
 
     # Install rules
     set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ${FULL_TARGET})
-    install(DIRECTORY ${stb_SOURCE_DIR} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+    install(FILES "${stb_SOURCE_DIR}/stb_${target_name}.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
     list(PREPEND STB_TARGETS "${FULL_TARGET}")
     set(STB_TARGETS
@@ -97,7 +97,7 @@ stb_make_target_simple("truetype")
 # Set install for all the stb targets
 #
 include(GNUInstallDirs)
-install(TARGETS ${STB_TARGETS} EXPORT STB_TARGETS)
+install(TARGETS ${STB_TARGETS} EXPORT STB_TARGETS OPTIONAL)
 install(
     EXPORT STB_TARGETS
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/stb

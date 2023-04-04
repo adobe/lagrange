@@ -24,9 +24,16 @@ FetchContent_Declare(
 )
 
 option(CATCH_CONFIG_CPP17_STRING_VIEW "Enable support for std::string_view" ON)
+option(CATCH_INSTALL_DOCS "Install documentation alongside library" OFF)
+option(CATCH_INSTALL_EXTRAS "Install extras alongside library" OFF)
 FetchContent_MakeAvailable(catch2)
 
 target_compile_features(Catch2 PUBLIC cxx_std_17)
+
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 10)
+    # See https://github.com/catchorg/Catch2/issues/2654
+    target_compile_options(Catch2 PUBLIC -Wno-parentheses)
+endif()
 
 set_target_properties(Catch2 PROPERTIES FOLDER third_party)
 set_target_properties(Catch2WithMain PROPERTIES FOLDER third_party)

@@ -27,6 +27,8 @@
 #include <tiny_gltf.h>
 #include <Eigen/Geometry>
 
+#include <istream>
+
 namespace lagrange::io {
 namespace internal {
 
@@ -113,6 +115,45 @@ std::vector<T> load_buffer_data_as(const tinygltf::Model& model, const tinygltf:
 // =====================================
 // internal/load_gltf.h
 // =====================================
+tinygltf::Model load_tinygltf(std::istream& input_stream)
+{
+    tinygltf::Model model;
+    tinygltf::TinyGLTF loader;
+    std::string err;
+    std::string warn;
+    bool ret;
+
+    std::istreambuf_iterator<char> data_itr(input_stream), end_of_stream;
+    std::string data(data_itr, end_of_stream);
+
+    if (data.substr(0, 4) == "glTF") {
+        // Binary
+        ret = loader.LoadBinaryFromMemory(
+            &model,
+            &err,
+            &warn,
+            reinterpret_cast<unsigned char*>(data.data()),
+            static_cast<unsigned int>(data.size()));
+    } else {
+        // ASCII
+        std::string base_dir;
+        ret = loader.LoadASCIIFromString(
+            &model,
+            &err,
+            &warn,
+            data.data(),
+            static_cast<unsigned int>(data.size()),
+            base_dir);
+    }
+
+    if (!warn.empty()) logger().warn("%s", warn.c_str());
+    if (!ret || !err.empty()) {
+        throw std::runtime_error(err);
+    }
+
+    return model;
+}
+
 tinygltf::Model load_tinygltf(const fs::path& filename)
 {
     tinygltf::Model model;
@@ -402,13 +443,22 @@ LA_SIMPLE_SCENE_X(load_simple_scene_gltf, 0);
 // load_mesh_gltf.h
 // =====================================
 template <typename MeshType>
+MeshType load_mesh_gltf(std::istream& input_stream, const LoadOptions& options)
+{
+    tinygltf::Model model = internal::load_tinygltf(input_stream);
+    return internal::load_mesh_gltf<MeshType>(model, options);
+}
+
+template <typename MeshType>
 MeshType load_mesh_gltf(const fs::path& filename, const LoadOptions& options)
 {
     tinygltf::Model model = internal::load_tinygltf(filename);
     return internal::load_mesh_gltf<MeshType>(model, options);
 }
-#define LA_X_load_mesh_gltf(_, S, I) \
-    template SurfaceMesh<S, I> load_mesh_gltf(const fs::path& filename, const LoadOptions& options);
+
+#define LA_X_load_mesh_gltf(_, S, I)                                                \
+    template SurfaceMesh<S, I> load_mesh_gltf(const fs::path&, const LoadOptions&); \
+    template SurfaceMesh<S, I> load_mesh_gltf(std::istream&, const LoadOptions&);
 LA_SURFACE_MESH_X(load_mesh_gltf, 0);
 #undef LA_X_load_mesh_gltf
 
@@ -422,9 +472,18 @@ SceneType load_simple_scene_gltf(const fs::path& filename, const LoadOptions& op
     tinygltf::Model model = internal::load_tinygltf(filename);
     return internal::load_simple_scene_gltf<SceneType>(model, options);
 }
+template <typename SceneType>
+SceneType load_simple_scene_gltf(std::istream& input_stream, const LoadOptions& options)
+{
+    tinygltf::Model model = internal::load_tinygltf(input_stream);
+    return internal::load_simple_scene_gltf<SceneType>(model, options);
+}
 #define LA_X_load_simple_scene_gltf(_, S, I, D)                  \
     template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
         const fs::path& filename,                                \
+        const LoadOptions& options);                             \
+    template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
+        std::istream&,                                           \
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene_gltf, 0);
 #undef LA_X_load_simple_scene_gltf

@@ -146,13 +146,13 @@ void remap_vertices(
 
             if constexpr (std::is_integral_v<ValueType>) {
                 switch (options.collision_policy_integral) {
-                case RemapVerticesOptions::CollisionPolicy::Average:
+                case MappingPolicy::Average:
                     remap_average(std::forward<AttributeType>(attr));
                     break;
-                case RemapVerticesOptions::CollisionPolicy::KeepFirst:
+                case MappingPolicy::KeepFirst:
                     remap_keep_first(std::forward<AttributeType>(attr));
                     break;
-                case RemapVerticesOptions::CollisionPolicy::Error:
+                case MappingPolicy::Error:
                     remap_injective(std::forward<AttributeType>(attr));
                     break;
                 default:
@@ -162,13 +162,13 @@ void remap_vertices(
                 }
             } else {
                 switch (options.collision_policy_float) {
-                case RemapVerticesOptions::CollisionPolicy::Average:
+                case MappingPolicy::Average:
                     remap_average(std::forward<AttributeType>(attr));
                     break;
-                case RemapVerticesOptions::CollisionPolicy::KeepFirst:
+                case MappingPolicy::KeepFirst:
                     remap_keep_first(std::forward<AttributeType>(attr));
                     break;
-                case RemapVerticesOptions::CollisionPolicy::Error:
+                case MappingPolicy::Error:
                     remap_injective(std::forward<AttributeType>(attr));
                     break;
                 default:

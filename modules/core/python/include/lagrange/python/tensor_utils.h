@@ -21,7 +21,7 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
-#include <nanobind/tensor.h>
+#include <nanobind/ndarray.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -33,8 +33,8 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 template <typename ValueType>
-using Tensor = nb::tensor<ValueType, nb::numpy, nb::c_contig, nb::device::cpu>;
-using GenericTensor = nb::tensor<nb::c_contig, nb::numpy, nb::device::cpu>;
+using Tensor = nb::ndarray<ValueType, nb::numpy, nb::c_contig, nb::device::cpu>;
+using GenericTensor = nb::ndarray<nb::c_contig, nb::numpy, nb::device::cpu>;
 using Shape = SmallVector<size_t, 2>;
 using Stride = SmallVector<int64_t, 2>;
 
