@@ -10,3 +10,14 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_test()
+
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set_target_properties(test_lagrange_io PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
+
+# link to stb to make sure the tinygltf dependency does not cause a conflict
+include(stb)
+target_link_libraries(test_lagrange_io PRIVATE 
+    stb::image
+    stb::image_write
+)

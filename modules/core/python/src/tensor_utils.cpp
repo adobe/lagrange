@@ -20,7 +20,7 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
-#include <nanobind/tensor.h>
+#include <nanobind/ndarray.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -154,9 +154,6 @@ template <typename ValueType>
 nb::object
 attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, nb::handle base)
 {
-    //auto owner = attr.get_owner();
-    //if (owner) return owner;
-
     auto data = attr.get_all();
 
     size_t num_elements = attr.get_num_elements();
@@ -170,11 +167,11 @@ attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, 
 
     if (num_channels == 1) {
         auto tensor = span_to_tensor(data, base);
-        return nb::cast(tensor);
+        return nb::cast(tensor, nb::rv_policy::reference);
     } else {
         size_t tmp_shape[2]{num_elements, num_channels};
         auto tensor = span_to_tensor(data, tmp_shape, base);
-        return nb::cast(tensor);
+        return nb::cast(tensor, nb::rv_policy::reference);
     }
 }
 

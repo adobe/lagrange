@@ -9,14 +9,10 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/testing/common.h>
+
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <catch2/catch_test_macros.hpp>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <unordered_set>
 

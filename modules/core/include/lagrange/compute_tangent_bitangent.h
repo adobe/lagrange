@@ -84,7 +84,7 @@ struct TangentBitangentResult
 ///
 /// @return     A struct containing the id of the generated tangent/bitangent attributes.
 ///
-/// @see        `NormalOptions`.
+/// @see        `TangentBitangentOptions`.
 ///
 template <typename Scalar, typename Index>
 TangentBitangentResult compute_tangent_bitangent(

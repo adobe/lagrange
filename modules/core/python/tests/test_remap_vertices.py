@@ -73,20 +73,20 @@ class TestRemapVertices:
             lagrange.AttributeElement.Vertex,
             lagrange.AttributeUsage.Scalar,
             np.arange(8, dtype=np.uint32),
-            np.array([])
+            np.array([]),
         )
         mapping = np.array([0, 0, 0, 0, 1, 2, 3, 4], dtype=np.intc)
         options = lagrange.RemapVerticesOptions()
-        options.collision_policy_float = lagrange.CollisionPolicy.Average
-        options.collision_policy_integral = lagrange.CollisionPolicy.KeepFirst
+        options.collision_policy_float = lagrange.MappingPolicy.Average
+        options.collision_policy_integral = lagrange.MappingPolicy.KeepFirst
 
         lagrange.remap_vertices(mesh, mapping)
         id_attr = mesh.attribute(id)
         assert np.all(mesh.vertices[0] == [0.5, 0.5, 0])
         assert id_attr.data[0] == 0
 
-        options.collision_policy_float = lagrange.CollisionPolicy.KeepFirst
+        options.collision_policy_float = lagrange.MappingPolicy.KeepFirst
 
-        options.collision_policy_float = lagrange.CollisionPolicy.Error
+        options.collision_policy_float = lagrange.MappingPolicy.Error
         with pytest.raises(Exception):
             lagrange.remap_vertices(mesh, mapping)

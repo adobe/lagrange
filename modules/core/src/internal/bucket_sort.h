@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/internal/invert_mapping.h>
+
 #include <numeric>
 
 namespace lagrange::internal {
@@ -74,30 +76,9 @@ BucketSortResult<Index> bucket_sort(
         element_representative[e] = element_representative[r];
     }
 
-    // Count number of items in each bucket
-    representative_offsets.assign(num_representatives + 1, 0);
-    for (Index e = 0; e < num_elements; ++e) {
-        representative_offsets[element_representative[e] + 1]++;
-    }
-
-    // Prefix sum to compute offsets into each bucket
-    std::partial_sum(
-        representative_offsets.begin(),
-        representative_offsets.end(),
-        representative_offsets.begin());
-
-    // Bucket sort element indices
-    sorted_elements.resize(num_elements);
-    for (Index e = 0; e < num_elements; ++e) {
-        sorted_elements[representative_offsets[element_representative[e]]++] = e;
-    }
-
-    // Shift back the offset buffer (can use std::shift_right in C++20 :p)
-    std::rotate(
-        representative_offsets.rbegin(),
-        representative_offsets.rbegin() + 1,
-        representative_offsets.rend());
-    representative_offsets.front() = 0;
+    std::tie(sorted_elements, representative_offsets) = invert_mapping(
+        {element_representative.data(), element_representative.size()},
+        num_representatives);
 
     return result;
 }

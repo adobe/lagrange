@@ -15,7 +15,25 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
+
+/**
+ * Saves a mesh to an output stream in glTF or GLB format.
+ *
+ * @param[in]  output_stream Output data stream.
+ * @param[in]  mesh          Mesh to write.
+ * @param[in]  options       Save options.
+ *
+ * @tparam     Scalar        Mesh scalar type.
+ * @tparam     Index         Mesh index type.
+ */
+template <typename Scalar, typename Index>
+void save_mesh_gltf(
+    std::ostream& output_stream,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options = {});
 
 /**
  * Saves a mesh to a file in glTF or GLB format.
@@ -32,6 +50,5 @@ void save_mesh_gltf(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
-
 
 } // namespace lagrange::io

@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,7 +9,6 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/io/save_mesh.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/testing/create_test_mesh.h>
 #include <lagrange/testing/equivalence_check.h>
@@ -18,8 +17,19 @@
 #include <lagrange/compute_area.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/internal/find_attribute_utils.h>
+#include <lagrange/io/load_mesh_gltf.h>
+#include <lagrange/io/load_mesh_msh.h>
+#include <lagrange/io/load_mesh_obj.h>
+#include <lagrange/io/load_mesh_ply.h>
+#include <lagrange/io/save_mesh.h>
+#include <lagrange/io/save_mesh_gltf.h>
+#include <lagrange/io/save_mesh_msh.h>
+#include <lagrange/io/save_mesh_obj.h>
+#include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/unify_index_buffer.h>
+
+#include <sstream>
 
 using namespace lagrange;
 
@@ -36,7 +46,7 @@ void ensure_attributes_exist(const SurfaceMesh32d& mesh, bool texcoord, bool nor
     REQUIRE(found_normal == normal);
 }
 
-TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
+TEST_CASE("save_mesh_attributes_all", "[io]")
 {
     auto cube_indexed = testing::create_test_cube<double, uint32_t>();
     using Scalar = decltype(cube_indexed)::Scalar;
@@ -47,16 +57,14 @@ TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
     // make sure we have uvs and normals
     ensure_attributes_exist(cube, true, true);
 
-    lagrange::fs::path filename("save_mesh_attributes_all");
-
     io::SaveOptions opt;
 
     SECTION("gltf")
     {
-        filename.replace_extension(".gltf");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_gltf(buffer, cube, opt));
+        auto loaded = io::load_mesh_gltf<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, true, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
@@ -64,10 +72,10 @@ TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
 
     SECTION("glb")
     {
-        filename.replace_extension(".glb");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_gltf(buffer, cube, opt));
+        auto loaded = io::load_mesh_gltf<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, true, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
@@ -75,10 +83,10 @@ TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
 
     SECTION("msh ascii")
     {
-        filename.replace_extension(".msh");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_msh(buffer, cube, opt));
+        auto loaded = io::load_mesh_msh<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, true, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
@@ -86,10 +94,10 @@ TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
 
     SECTION("msh binary")
     {
-        filename.replace_extension(".msh");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_msh(buffer, cube, opt));
+        auto loaded = io::load_mesh_msh<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, true, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
@@ -97,10 +105,10 @@ TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
 
     SECTION("obj")
     {
-        filename.replace_extension(".obj");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_obj(buffer, cube, opt));
+        auto loaded = io::load_mesh_obj<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, true, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
@@ -108,10 +116,10 @@ TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
 
     SECTION("ply ascii")
     {
-        filename.replace_extension(".ply");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_ply(buffer, cube, opt));
+        auto loaded = io::load_mesh_ply<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, true, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
@@ -119,17 +127,17 @@ TEST_CASE("save_mesh_attributes_all", "[io]" LA_SLOW_DEBUG_FLAG)
 
     SECTION("ply binary")
     {
-        filename.replace_extension(".ply");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_ply(buffer, cube, opt));
+        auto loaded = io::load_mesh_ply<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, true, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 }
 
-TEST_CASE("save_mesh_attributes_selected", "[io]" LA_SLOW_DEBUG_FLAG)
+TEST_CASE("save_mesh_attributes_selected", "[io]")
 {
     auto cube_indexed = testing::create_test_cube<double, uint32_t>();
     using Scalar = decltype(cube_indexed)::Scalar;
@@ -147,80 +155,79 @@ TEST_CASE("save_mesh_attributes_selected", "[io]" LA_SLOW_DEBUG_FLAG)
     io::SaveOptions opt;
     opt.output_attributes = io::SaveOptions::OutputAttributes::SelectedOnly;
     opt.selected_attributes = {normal_id};
-    lagrange::fs::path filename("save_mesh_attributes_selected");
 
     SECTION("gltf")
     {
-        filename.replace_extension(".gltf");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_gltf(buffer, cube, opt));
+        auto loaded = io::load_mesh_gltf<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("glb")
     {
-        filename.replace_extension(".glb");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_gltf(buffer, cube, opt));
+        auto loaded = io::load_mesh_gltf<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("msh ascii")
     {
-        filename.replace_extension(".msh");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_msh(buffer, cube, opt));
+        auto loaded = io::load_mesh_msh<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("msh binary")
     {
-        filename.replace_extension(".msh");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_msh(buffer, cube, opt));
+        auto loaded = io::load_mesh_msh<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("obj")
     {
-        filename.replace_extension(".obj");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_obj(buffer, cube, opt));
+        auto loaded = io::load_mesh_obj<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("ply ascii")
     {
-        filename.replace_extension(".ply");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_ply(buffer, cube, opt));
+        auto loaded = io::load_mesh_ply<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true); // same as above
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("ply binary")
     {
-        filename.replace_extension(".ply");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_ply(buffer, cube, opt));
+        auto loaded = io::load_mesh_ply<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true); // same as above
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 }
 
-TEST_CASE("save_mesh_indexed_attributes", "[io]" LA_SLOW_DEBUG_FLAG)
+TEST_CASE("save_mesh_indexed_attributes", "[io]")
 {
     auto cube = testing::create_test_cube<double, uint32_t>();
     using Scalar = decltype(cube)::Scalar;
@@ -231,74 +238,73 @@ TEST_CASE("save_mesh_indexed_attributes", "[io]" LA_SLOW_DEBUG_FLAG)
     opt.output_attributes = io::SaveOptions::OutputAttributes::SelectedOnly;
     opt.attribute_conversion_policy = io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
     opt.selected_attributes = {normal_id};
-    lagrange::fs::path filename("save_mesh_indexed_attributes");
 
     SECTION("gltf")
     {
-        filename.replace_extension(".gltf");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_gltf(buffer, cube, opt));
+        auto loaded = io::load_mesh_gltf<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("glb")
     {
-        filename.replace_extension(".glb");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_gltf(buffer, cube, opt));
+        auto loaded = io::load_mesh_gltf<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("msh ascii")
     {
-        filename.replace_extension(".msh");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_msh(buffer, cube, opt));
+        auto loaded = io::load_mesh_msh<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("msh binary")
     {
-        filename.replace_extension(".msh");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_msh(buffer, cube, opt));
+        auto loaded = io::load_mesh_msh<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("obj")
     {
-        filename.replace_extension(".obj");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_obj(buffer, cube, opt));
+        auto loaded = io::load_mesh_obj<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("ply ascii")
     {
-        filename.replace_extension(".ply");
         opt.encoding = io::FileEncoding::Ascii;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_ply(buffer, cube, opt));
+        auto loaded = io::load_mesh_ply<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
     SECTION("ply binary")
     {
-        filename.replace_extension(".ply");
         opt.encoding = io::FileEncoding::Binary;
-        REQUIRE_NOTHROW(io::save_mesh(filename, cube, opt));
-        auto loaded = io::load_mesh<SurfaceMesh32d>(filename);
+        std::stringstream buffer;
+        REQUIRE_NOTHROW(io::save_mesh_ply(buffer, cube, opt));
+        auto loaded = io::load_mesh_ply<SurfaceMesh32d>(buffer);
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }

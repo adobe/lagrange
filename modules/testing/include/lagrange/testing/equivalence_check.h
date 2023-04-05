@@ -19,7 +19,11 @@
 #include <lagrange/map_attribute.h>
 #include <lagrange/views.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <catch2/catch_test_macros.hpp>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange::testing {
 

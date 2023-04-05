@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -28,6 +28,8 @@
 #include "internal/convert_attribute_utils.h"
 
 #include <tiny_gltf.h>
+
+#include <ostream>
 
 namespace lagrange::io {
 
@@ -63,6 +65,17 @@ void save_gltf(const fs::path& filename, const tinygltf::Model& model, const Sav
         embed_buffers,
         pretty_print,
         binary);
+}
+
+void save_gltf(
+    std::ostream& output_stream,
+    const tinygltf::Model& model,
+    const SaveOptions& options)
+{
+    bool binary = options.encoding == FileEncoding::Binary;
+    tinygltf::TinyGLTF loader;
+    constexpr bool pretty_print = true;
+    loader.WriteGltfSceneToStream(&model, output_stream, pretty_print, binary);
 }
 
 // returns data, tmp
@@ -298,10 +311,7 @@ void populate_attributes(
         int accessor_index = int(model.accessors.size());
         model.accessors.push_back(accessor);
 
-        std::string name_uppercase;
-        std::transform(name.begin(), name.end(), name_uppercase.begin(), [](unsigned char c) {
-            return std::toupper(c);
-        });
+        std::string name_uppercase = to_upper(std::string(name));
         if (attr.get_usage() == AttributeUsage::Normal) {
             if (found_normal) {
                 name_uppercase = "_" + name_uppercase;
@@ -398,9 +408,28 @@ void save_mesh_gltf(
     save_simple_scene_gltf<Scalar, Index>(filename, scene, options);
 }
 
+template <typename Scalar, typename Index>
+void save_mesh_gltf(
+    std::ostream& output_stream,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const SaveOptions& options)
+{
+    scene::SimpleScene<Scalar, Index> scene;
+    using AffineTransform = typename decltype(scene)::AffineTransform;
+
+    AffineTransform t = AffineTransform::Identity();
+    scene.add_instance({scene.add_mesh(mesh), t});
+
+    save_simple_scene_gltf<Scalar, Index>(output_stream, scene, options);
+}
+
 #define LA_X_save_mesh_gltf(_, S, I)   \
     template void save_mesh_gltf(      \
         const fs::path& filename,      \
+        const SurfaceMesh<S, I>& mesh, \
+        const SaveOptions& options);   \
+    template void save_mesh_gltf(      \
+        std::ostream&,                 \
         const SurfaceMesh<S, I>& mesh, \
         const SaveOptions& options);
 LA_SURFACE_MESH_X(save_mesh_gltf, 0)
@@ -409,9 +438,9 @@ LA_SURFACE_MESH_X(save_mesh_gltf, 0)
 // =====================================
 // save_simple_scene_gltf.h
 // =====================================
+
 template <typename Scalar, typename Index, size_t Dimension>
-void save_simple_scene_gltf(
-    const fs::path& filename,
+tinygltf::Model scene2model(
     const scene::SimpleScene<Scalar, Index, Dimension>& lscene,
     const SaveOptions& options)
 {
@@ -454,12 +483,36 @@ void save_simple_scene_gltf(
         }
     }
 
+    return model;
+}
+
+template <typename Scalar, typename Index, size_t Dimension>
+void save_simple_scene_gltf(
+    const fs::path& filename,
+    const scene::SimpleScene<Scalar, Index, Dimension>& lscene,
+    const SaveOptions& options)
+{
+    auto model = scene2model(lscene, options);
     save_gltf(filename, model, options);
+}
+
+template <typename Scalar, typename Index, size_t Dimension>
+void save_simple_scene_gltf(
+    std::ostream& output_stream,
+    const scene::SimpleScene<Scalar, Index, Dimension>& lscene,
+    const SaveOptions& options)
+{
+    auto model = scene2model(lscene, options);
+    save_gltf(output_stream, model, options);
 }
 
 #define LA_X_save_simple_scene_gltf(_, S, I, D)   \
     template void save_simple_scene_gltf(         \
         const fs::path& filename,                 \
+        const scene::SimpleScene<S, I, D>& scene, \
+        const SaveOptions& options);              \
+    template void save_simple_scene_gltf(         \
+        std::ostream&,                            \
         const scene::SimpleScene<S, I, D>& scene, \
         const SaveOptions& options);
 LA_SIMPLE_SCENE_X(save_simple_scene_gltf, 0);

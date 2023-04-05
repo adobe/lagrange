@@ -37,7 +37,7 @@ function(lagrange_add_test)
 
     # Use Catch2's provided main() by default
     if(NOT OPTIONS_CUSTOM_MAIN)
-        target_link_libraries(${test_target} PUBLIC Catch2::Catch2WithMain)
+        target_link_libraries(${test_target} PUBLIC lagrange::testing::main)
     endif()
 
     # Disable ASan container-overflow due to non-instrumented libstdc++

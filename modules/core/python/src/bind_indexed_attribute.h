@@ -30,18 +30,18 @@ void bind_indexed_attribute(nanobind::module_& m)
 
     auto indexed_attr_class = nb::class_<PyIndexedAttribute>(m, "IndexedAttribute");
 
-    indexed_attr_class.def_property_readonly("element_type", [](PyIndexedAttribute& self) {
+    indexed_attr_class.def_prop_ro("element_type", [](PyIndexedAttribute& self) {
         return self->get_element_type();
     });
-    indexed_attr_class.def_property_readonly("usage", [](PyIndexedAttribute& self) {
+    indexed_attr_class.def_prop_ro("usage", [](PyIndexedAttribute& self) {
         return self->get_usage();
     });
-    indexed_attr_class.def_property_readonly("num_channels", [](PyIndexedAttribute& self) {
+    indexed_attr_class.def_prop_ro("num_channels", [](PyIndexedAttribute& self) {
         return self->get_num_channels();
     });
 
-    indexed_attr_class.def_property_readonly("values", &PyIndexedAttribute::values);
-    indexed_attr_class.def_property_readonly("indices", &PyIndexedAttribute::indices);
+    indexed_attr_class.def_prop_ro("values", &PyIndexedAttribute::values);
+    indexed_attr_class.def_prop_ro("indices", &PyIndexedAttribute::indices);
 }
 
 } // namespace lagrange::python

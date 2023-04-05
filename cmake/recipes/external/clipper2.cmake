@@ -19,7 +19,7 @@ include(FetchContent)
 FetchContent_Declare(
     clipper2
     GIT_REPOSITORY https://github.com/AngusJohnson/Clipper2.git
-    GIT_TAG Clipper2_1.0.6
+    GIT_TAG Clipper2_1.2.0
     SOURCE_SUBDIR CPP
 )
 

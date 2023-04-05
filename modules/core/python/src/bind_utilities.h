@@ -13,20 +13,23 @@
 
 #include <lagrange/NormalWeightingType.h>
 #include <lagrange/combine_meshes.h>
+#include <lagrange/compute_area.h>
 #include <lagrange/compute_centroid.h>
 #include <lagrange/compute_components.h>
-#include <lagrange/compute_area.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_tangent_bitangent.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/compute_vertex_valence.h>
+#include <lagrange/extract_submesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
 #include <lagrange/permute_vertices.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/python/utils/StackVector.h>
 #include <lagrange/remap_vertices.h>
+#include <lagrange/separate_by_components.h>
+#include <lagrange/separate_by_facet_groups.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
@@ -54,17 +57,15 @@ void bind_utilities(nanobind::module_& m)
 
     nb::class_<VertexNormalOptions>(m, "VertexNormalOptions")
         .def(nb::init<>())
-        .def_readwrite("output_attribute_name", &VertexNormalOptions::output_attribute_name)
-        .def_readwrite("weight_type", &VertexNormalOptions::weight_type)
-        .def_readwrite(
+        .def_rw("output_attribute_name", &VertexNormalOptions::output_attribute_name)
+        .def_rw("weight_type", &VertexNormalOptions::weight_type)
+        .def_rw(
             "weighted_corner_normal_attribute_name",
             &VertexNormalOptions::weighted_corner_normal_attribute_name)
-        .def_readwrite(
+        .def_rw(
             "recompute_weighted_corner_normals",
             &VertexNormalOptions::recompute_weighted_corner_normals)
-        .def_readwrite(
-            "keep_weighted_corner_normals",
-            &VertexNormalOptions::keep_weighted_corner_normals);
+        .def_rw("keep_weighted_corner_normals", &VertexNormalOptions::keep_weighted_corner_normals);
 
     m.def(
         "compute_vertex_normal",
@@ -74,7 +75,7 @@ void bind_utilities(nanobind::module_& m)
 
     nb::class_<FacetNormalOptions>(m, "FacetNormalOptions")
         .def(nb::init<>())
-        .def_readwrite("output_attribute_name", &FacetNormalOptions::output_attribute_name);
+        .def_rw("output_attribute_name", &FacetNormalOptions::output_attribute_name);
 
     m.def(
         "compute_facet_normal",
@@ -84,11 +85,11 @@ void bind_utilities(nanobind::module_& m)
 
     nb::class_<NormalOptions>(m, "NormalOptions")
         .def(nb::init<>())
-        .def_readwrite("output_attribute_name", &NormalOptions::output_attribute_name)
-        .def_readwrite("weight_type", &NormalOptions::weight_type)
-        .def_readwrite("facet_normal_attribute_name", &NormalOptions::facet_normal_attribute_name)
-        .def_readwrite("recompute_facet_normals", &NormalOptions::recompute_facet_normals)
-        .def_readwrite("keep_facet_normals", &NormalOptions::keep_facet_normals);
+        .def_rw("output_attribute_name", &NormalOptions::output_attribute_name)
+        .def_rw("weight_type", &NormalOptions::weight_type)
+        .def_rw("facet_normal_attribute_name", &NormalOptions::facet_normal_attribute_name)
+        .def_rw("recompute_facet_normals", &NormalOptions::recompute_facet_normals)
+        .def_rw("keep_facet_normals", &NormalOptions::keep_facet_normals);
 
     m.def(
         "compute_normal",
@@ -157,8 +158,8 @@ void bind_utilities(nanobind::module_& m)
 
     nb::class_<ComponentOptions>(m, "ComponentOptions")
         .def(nb::init<>())
-        .def_readwrite("output_attribute_name", &ComponentOptions::output_attribute_name)
-        .def_readwrite("connectivity_type", &ComponentOptions::connectivity_type);
+        .def_rw("output_attribute_name", &ComponentOptions::output_attribute_name)
+        .def_rw("connectivity_type", &ComponentOptions::connectivity_type);
 
     m.def(
         "compute_components",
@@ -168,7 +169,7 @@ void bind_utilities(nanobind::module_& m)
 
     nb::class_<VertexValenceOptions>(m, "VertexValenceOptions")
         .def(nb::init<>())
-        .def_readwrite("output_attribute_name", &VertexValenceOptions::output_attribute_name);
+        .def_rw("output_attribute_name", &VertexValenceOptions::output_attribute_name);
 
     m.def(
         "compute_vertex_valence",
@@ -178,19 +179,17 @@ void bind_utilities(nanobind::module_& m)
 
     nb::class_<TangentBitangentOptions>(m, "TangentBitangentOptions")
         .def(nb::init<>())
-        .def_readwrite("tangent_attribute_name", &TangentBitangentOptions::tangent_attribute_name)
-        .def_readwrite(
-            "bitangent_attribute_name",
-            &TangentBitangentOptions::bitangent_attribute_name)
-        .def_readwrite("uv_attribute_name", &TangentBitangentOptions::uv_attribute_name)
-        .def_readwrite("normal_attribute_name", &TangentBitangentOptions::normal_attribute_name)
-        .def_readwrite("output_element_type", &TangentBitangentOptions::output_element_type)
-        .def_readwrite("pad_with_sign", &TangentBitangentOptions::pad_with_sign);
+        .def_rw("tangent_attribute_name", &TangentBitangentOptions::tangent_attribute_name)
+        .def_rw("bitangent_attribute_name", &TangentBitangentOptions::bitangent_attribute_name)
+        .def_rw("uv_attribute_name", &TangentBitangentOptions::uv_attribute_name)
+        .def_rw("normal_attribute_name", &TangentBitangentOptions::normal_attribute_name)
+        .def_rw("output_element_type", &TangentBitangentOptions::output_element_type)
+        .def_rw("pad_with_sign", &TangentBitangentOptions::pad_with_sign);
 
     nb::class_<TangentBitangentResult>(m, "TangentBitangentResult")
         .def(nb::init<>())
-        .def_readwrite("tangent_id", &TangentBitangentResult::tangent_id)
-        .def_readwrite("bitangent_id", &TangentBitangentResult::bitangent_id);
+        .def_rw("tangent_id", &TangentBitangentResult::tangent_id)
+        .def_rw("bitangent_id", &TangentBitangentResult::bitangent_id);
 
     m.def(
         "compute_tangent_bitangent",
@@ -237,7 +236,7 @@ void bind_utilities(nanobind::module_& m)
         "new_element"_a);
     nb::class_<FacetAreaOptions>(m, "FacetAreaOptions")
         .def(nb::init<>())
-        .def_readwrite("output_attribute_name", &FacetAreaOptions::output_attribute_name);
+        .def_rw("output_attribute_name", &FacetAreaOptions::output_attribute_name);
     m.def(
         "compute_facet_area",
         &lagrange::compute_facet_area<Scalar, Index>,
@@ -245,7 +244,7 @@ void bind_utilities(nanobind::module_& m)
         "options"_a = FacetAreaOptions());
     nb::class_<MeshAreaOptions>(m, "MeshAreaOptions")
         .def(nb::init<>())
-        .def_readwrite("input_attribute_name", &MeshAreaOptions::input_attribute_name);
+        .def_rw("input_attribute_name", &MeshAreaOptions::input_attribute_name);
     m.def(
         "compute_mesh_area",
         &lagrange::compute_mesh_area<Scalar, Index>,
@@ -253,7 +252,7 @@ void bind_utilities(nanobind::module_& m)
         "options"_a = MeshAreaOptions());
     nb::class_<FacetCentroidOptions>(m, "FacetCentroidOptions")
         .def(nb::init<>())
-        .def_readwrite("output_attribute_name", &FacetCentroidOptions::output_attribute_name);
+        .def_rw("output_attribute_name", &FacetCentroidOptions::output_attribute_name);
     m.def(
         "compute_facet_centroid",
         &lagrange::compute_facet_centroid<Scalar, Index>,
@@ -264,13 +263,11 @@ void bind_utilities(nanobind::module_& m)
         .value("Area", MeshCentroidOptions::Area);
     nb::class_<MeshCentroidOptions>(m, "MeshCentroidOptions")
         .def(nb::init<>())
-        .def_readwrite("weighting_type", &MeshCentroidOptions::weighting_type)
-        .def_readwrite(
+        .def_rw("weighting_type", &MeshCentroidOptions::weighting_type)
+        .def_rw(
             "facet_centroid_attribute_name",
             &MeshCentroidOptions::facet_centroid_attribute_name)
-        .def_readwrite(
-            "facet_area_attribute_name",
-            &MeshCentroidOptions::facet_area_attribute_name);
+        .def_rw("facet_area_attribute_name", &MeshCentroidOptions::facet_area_attribute_name);
     m.def(
         "compute_mesh_centroid",
         [](const SurfaceMesh<Scalar, Index>& mesh, MeshCentroidOptions opt) {
@@ -291,14 +288,14 @@ void bind_utilities(nanobind::module_& m)
         "mesh"_a,
         "new_to_old"_a);
 
-    nb::enum_<RemapVerticesOptions::CollisionPolicy>(m, "CollisionPolicy")
-        .value("Average", RemapVerticesOptions::CollisionPolicy::Average)
-        .value("KeepFirst", RemapVerticesOptions::CollisionPolicy::KeepFirst)
-        .value("Error", RemapVerticesOptions::CollisionPolicy::Error);
+    nb::enum_<MappingPolicy>(m, "MappingPolicy")
+        .value("Average", MappingPolicy::Average)
+        .value("KeepFirst", MappingPolicy::KeepFirst)
+        .value("Error", MappingPolicy::Error);
     nb::class_<RemapVerticesOptions>(m, "RemapVerticesOptions")
         .def(nb::init<>())
-        .def_readwrite("collision_policy_float", &RemapVerticesOptions::collision_policy_float)
-        .def_readwrite("collision_policy_integral", &RemapVerticesOptions::collision_policy_integral);
+        .def_rw("collision_policy_float", &RemapVerticesOptions::collision_policy_float)
+        .def_rw("collision_policy_integral", &RemapVerticesOptions::collision_policy_integral);
     m.def(
         "remap_vertices",
         [](MeshType& mesh, Tensor<Index> old_to_new, RemapVerticesOptions opt) {
@@ -309,6 +306,98 @@ void bind_utilities(nanobind::module_& m)
         "mesh"_a,
         "old_to_new"_a,
         "options"_a = RemapVerticesOptions());
+
+    m.def(
+        "separate_by_facet_groups",
+        [](MeshType& mesh,
+           Tensor<Index> facet_group_indices,
+           std::string_view source_vertex_attr_name,
+           std::string_view source_facet_attr_name,
+           bool map_attributes) {
+            SeparateByFacetGroupsOptions options;
+            options.source_vertex_attr_name = source_vertex_attr_name;
+            options.source_facet_attr_name = source_facet_attr_name;
+            options.map_attributes = map_attributes;
+            auto [data, shape, stride] = tensor_to_span(facet_group_indices);
+            la_runtime_assert(is_dense(shape, stride));
+            return separate_by_facet_groups<Scalar, Index>(mesh, data, options);
+        },
+        "mesh"_a,
+        "facet_group_indices"_a,
+        "source_vertex_attr_name"_a = "",
+        "source_facet_attr_name"_a = "",
+        "map_attributes"_a = false,
+        R"(Extract a set of submeshes based on facet groups.
+
+:param mesh:                    The source mesh.
+:param facet_group_indices:     The group index for each facet. Each group index must be
+                                in the range of [0, max(facet_group_indices)]
+:param source_vertex_attr_name: The optional attribute name to track source vertices.
+:param source_facet_attr_name:  The optional attribute name to track source facets.
+
+:returns: A list of meshes, one for each facet group.
+)");
+
+    m.def(
+        "separate_by_components",
+        [](MeshType& mesh,
+           std::string_view source_vertex_attr_name,
+           std::string_view source_facet_attr_name,
+           bool map_attributes,
+           ConnectivityType connectivity_type) {
+            SeparateByComponentsOptions options;
+            options.source_vertex_attr_name = source_vertex_attr_name;
+            options.source_facet_attr_name = source_facet_attr_name;
+            options.map_attributes = map_attributes;
+            options.connectivity_type = connectivity_type;
+            return separate_by_components(mesh, options);
+        },
+        "mesh"_a,
+        "source_vertex_attr_name"_a = "",
+        "source_facet_attr_name"_a = "",
+        "map_attributes"_a = false,
+        "connectivity_type"_a = ConnectivityType::Edge,
+        R"(Extract a set of submeshes based on connected components.
+
+:param mesh:                    The source mesh.
+:param source_vertex_attr_name: The optional attribute name to track source vertices.
+:param source_facet_attr_name:  The optional attribute name to track source facets.
+:param map_attributes:          Map attributes from the source to target meshes.
+:param connectivity_type:       The connectivity used for component compuation.
+
+:returns: A list of meshes, one for each connected component.
+)");
+
+    m.def(
+        "extract_submesh",
+        [](MeshType& mesh,
+           Tensor<Index> selected_facets,
+           std::string_view source_vertex_attr_name,
+           std::string_view source_facet_attr_name,
+           bool map_attributes) {
+            SubmeshOptions options;
+            options.source_vertex_attr_name = source_vertex_attr_name;
+            options.source_facet_attr_name = source_facet_attr_name;
+            options.map_attributes = map_attributes;
+            auto [data, shape, stride] = tensor_to_span(selected_facets);
+            la_runtime_assert(is_dense(shape, stride));
+            return extract_submesh<Scalar, Index>(mesh, data, options);
+        },
+        "mesh"_a,
+        "selected_facets"_a,
+        "source_vertex_attr_name"_a = "",
+        "source_facet_attr_name"_a = "",
+        "map_attributes"_a = false,
+        R"(Extract a submesh based on the selected facets.
+
+:param mesh:                    The source mesh.
+:param selected_facets:         A listed of facet ids to extract.
+:param source_vertex_attr_name: The optional attribute name to track source vertices.
+:param source_facet_attr_name:  The optional attribute name to track source facets.
+:param map_attributes:          Map attributes from the source to target meshes.
+
+:returns: A mesh that contains only the selected facets.
+)");
 }
 
 } // namespace lagrange::python

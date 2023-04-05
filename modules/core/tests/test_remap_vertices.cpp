@@ -55,7 +55,7 @@ TEST_CASE("remap_vertices", "[core][surface][utilities]")
         SECTION("keep first")
         {
             RemapVerticesOptions options;
-            options.collision_policy_float = RemapVerticesOptions::CollisionPolicy::KeepFirst;
+            options.collision_policy_float = MappingPolicy::KeepFirst;
             remap_vertices<Scalar, Index>(mesh, old_to_new, options);
 
             auto vertices = vertex_view(mesh);
@@ -67,7 +67,7 @@ TEST_CASE("remap_vertices", "[core][surface][utilities]")
         SECTION("average")
         {
             RemapVerticesOptions options;
-            options.collision_policy_float = RemapVerticesOptions::CollisionPolicy::Average;
+            options.collision_policy_float = MappingPolicy::Average;
             remap_vertices<Scalar, Index>(mesh, old_to_new, options);
 
             auto vertices = vertex_view(mesh);
@@ -154,8 +154,8 @@ TEST_CASE("remap_vertices", "[core][surface][utilities]")
         SECTION("mixed")
         {
             RemapVerticesOptions options;
-            options.collision_policy_float = RemapVerticesOptions::CollisionPolicy::Average;
-            options.collision_policy_integral = RemapVerticesOptions::CollisionPolicy::KeepFirst;
+            options.collision_policy_float = MappingPolicy::Average;
+            options.collision_policy_integral = MappingPolicy::KeepFirst;
             remap_vertices<Scalar, Index>(mesh, old_to_new, options);
 
             auto& attr = mesh.get_attribute<Index>(id);
@@ -166,8 +166,8 @@ TEST_CASE("remap_vertices", "[core][surface][utilities]")
         SECTION("keep first")
         {
             RemapVerticesOptions options;
-            options.collision_policy_float = RemapVerticesOptions::CollisionPolicy::KeepFirst;
-            options.collision_policy_integral = RemapVerticesOptions::CollisionPolicy::KeepFirst;
+            options.collision_policy_float = MappingPolicy::KeepFirst;
+            options.collision_policy_integral = MappingPolicy::KeepFirst;
             remap_vertices<Scalar, Index>(mesh, old_to_new, options);
 
             auto& attr = mesh.get_attribute<Index>(id);
@@ -178,16 +178,16 @@ TEST_CASE("remap_vertices", "[core][surface][utilities]")
         SECTION("average")
         {
             RemapVerticesOptions options;
-            options.collision_policy_float = RemapVerticesOptions::CollisionPolicy::Average;
-            options.collision_policy_integral = RemapVerticesOptions::CollisionPolicy::Average;
+            options.collision_policy_float = MappingPolicy::Average;
+            options.collision_policy_integral = MappingPolicy::Average;
             LA_REQUIRE_THROWS(remap_vertices<Scalar, Index>(mesh, old_to_new, options));
         }
 
         SECTION("error")
         {
             RemapVerticesOptions options;
-            options.collision_policy_float = RemapVerticesOptions::CollisionPolicy::Error;
-            options.collision_policy_integral = RemapVerticesOptions::CollisionPolicy::Error;
+            options.collision_policy_float = MappingPolicy::Error;
+            options.collision_policy_integral = MappingPolicy::Error;
             LA_REQUIRE_THROWS(remap_vertices<Scalar, Index>(mesh, old_to_new, options));
 
             old_to_new = {3, 2, 1, 0};

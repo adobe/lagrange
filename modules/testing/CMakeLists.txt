@@ -64,6 +64,10 @@ target_compile_definitions(lagrange_testing
         TEST_DATA_DIR="${LAGRANGE_DATA_FOLDER}"
 )
 
+if(LAGRANGE_ENABLE_GPU_TESTS)
+    target_compile_definitions(lagrange_testing PUBLIC LAGRANGE_ENABLE_GPU_TESTS)
+endif()
+
 if(LAGRANGE_USE_PCH)
     add_library(lagrange_testing_pch INTERFACE)
     target_link_libraries(lagrange_testing_pch INTERFACE lagrange_core_pch)
@@ -96,3 +100,9 @@ else()
         LA_SLOW_DEBUG_FLAG=$<IF:$<CONFIG:Debug>,\"[.slow-debug]\",\"[slow-debug]\">
     )
 endif()
+
+# Generate main target
+add_library(lagrange_testing_main ${CMAKE_CURRENT_SOURCE_DIR}/main/main.cpp)
+target_link_libraries(lagrange_testing_main PUBLIC lagrange::core lagrange::testing)
+add_library(lagrange::testing::main ALIAS lagrange_testing_main)
+set_target_properties(lagrange_testing_main PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")

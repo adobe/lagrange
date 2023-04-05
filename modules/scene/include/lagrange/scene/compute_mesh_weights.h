@@ -11,23 +11,12 @@
  */
 #pragma once
 
+#include <lagrange/scene/RemeshingOptions.h>
 #include <lagrange/scene/SimpleScene.h> // FIXME: forward declare
 
 #include <vector>
 
 namespace lagrange::scene {
-
-///
-/// Facet allocation strategy.
-///
-enum class FacetAllocationStrategy {
-    /// Split facet budget evenly between all meshes in a scene.
-    EvenSplit,
-    /// Allocate facet budget according to the mesh area in the scene.
-    RelativeToMeshArea,
-    /// Allocate facet budget according to the mesh number of facets.
-    RelativeToNumFacets
-};
 
 ///
 /// Computes mesh weights of a scene

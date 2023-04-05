@@ -15,7 +15,23 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
+
+/**
+ * Loads a mesh from an input stream in glTF or GLB format. If the scene contains multiple meshes,
+ * they will be merged into one.
+ *
+ * @param input_stream   Input data stream.
+ * @param options        Load options.
+ *
+ * @tparam MeshType      Mesh type to load.
+ *
+ * @return               Loaded mesh.
+ */
+template <typename MeshType>
+MeshType load_mesh_gltf(std::istream& input_stream, const LoadOptions& options = {});
 
 /**
  * Loads a mesh from a file in glTF or GLB format. If the scene contains multiple meshes, they will
