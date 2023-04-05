@@ -1,0 +1,35 @@
+name: Python wheel
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  wheel:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-22.04', 'macos-12', 'windows-2022']
+        python: ['3.8', '3.9', '3.10', '3.11']
+
+    name: "py${{matrix.python}} ${{matrix.os}}"
+    runs-on: ${{matrix.os}}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{matrix.python}}
+
+      - name: Build wheel
+        run: |
+          python -m pip wheel --no-deps . -w dist
+
+      - name: Deploy wheel
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          password: ${{ secrets.PYPI_API_TOKEN }}
