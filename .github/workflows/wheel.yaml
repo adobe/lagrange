@@ -30,7 +30,7 @@ jobs:
           CIBW_TEST_REQUIRES: pytest
           CIBW_TEST_COMMAND: "pytest {project}/modules"
           CIBW_SKIP: pp*
-          MACOSX_DEPLOYMENT_TARGET: 10.14
+          MACOSX_DEPLOYMENT_TARGET: 10.15
 
       - uses: actions/upload-artifact@v3
         with:
