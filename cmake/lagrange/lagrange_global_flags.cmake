@@ -29,14 +29,6 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # To avoid this problem, we force PDB write to be synchronous with /FS.
     # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
     add_compile_options(/FS)
-
-    # Don't generate debug database
-    if(LAGRANGE_JENKINS)
-        if(POLICY CMP0141)
-            set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
-        endif()
-        add_compile_options($<$<CONFIG:Debug>:/DEBUG:NONE>)
-    endif()
 else()
     include(lagrange_filter_flags)
     set(LAGRANGE_GLOBAL_FLAGS
