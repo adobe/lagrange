@@ -115,6 +115,9 @@ jobs:
       matrix:
         config: [Release, Debug]
     steps:
+      - name: Show disk space
+        run: Get-PSDrive
+
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
