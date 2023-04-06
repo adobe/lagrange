@@ -12,7 +12,7 @@ jobs:
       matrix:
         os: ['ubuntu-22.04', 'macos-12', 'windows-2022']
 
-    name: "py${{matrix.python}} ${{matrix.os}}"
+    name: ${{matrix.os}}
     runs-on: ${{matrix.os}}
 
     steps:
@@ -27,10 +27,14 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.12.1
         env:
-          CIBW_TEST_REQUIRES: pytest
+          CIBW_ARCHS_LINUX: auto64
+          CIBW_ARCHS_WINDOWS: auto64
+          CIBW_MANYLINUX_X86_64_IMAGE: manylinux2014
+          CIBW_SKIP: "*-musllinux* pp*"
           CIBW_TEST_COMMAND: "pytest {project}/modules"
-          CIBW_SKIP: pp*
+          CIBW_TEST_REQUIRES: pytest
           MACOSX_DEPLOYMENT_TARGET: 10.15
+          CIBW_BUILD_VERBOSITY_MACOS: 2
 
       - uses: actions/upload-artifact@v3
         with:
