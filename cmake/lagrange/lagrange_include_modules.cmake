@@ -13,7 +13,7 @@ function(lagrange_include_modules)
     get_property(lagrange_module_path GLOBAL PROPERTY __lagrange_module_path)
     set(CMAKE_MODULE_PATH ${lagrange_module_path})
     foreach(name IN ITEMS ${ARGN})
-        if(name MATCHES "volume")
+        if(name MATCHES "(volume|raycasting)")
             continue()
         endif()
 
