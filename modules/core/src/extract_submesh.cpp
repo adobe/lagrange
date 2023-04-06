@@ -94,7 +94,7 @@ SurfaceMesh<Scalar, Index> extract_submesh(
             AttributeElement::Vertex,
             AttributeUsage::Scalar,
             1,
-            {vertex_new2old.data(), num_output_vertices});
+            {vertex_new2old.data(), static_cast<size_t>(num_output_vertices}));
     }
     if (!options.source_facet_attr_name.empty()) {
         output_mesh.template create_attribute<Index>(
