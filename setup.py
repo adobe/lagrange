@@ -9,11 +9,11 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
+import sys
+
 try:
     from skbuild import setup
 except ImportError:
-    import sys
-
     print(
         "The preferred way to invoke 'setup.py' is via pip, as in 'pip "
         "install .'. If you wish to run the setup script directly, you must "
@@ -37,6 +37,7 @@ setup(
         "-DLAGRANGE_INSTALL=Off",
         "-DLAGRANGE_ASSERT_DEBUG_BREAK=Off",
         "-DTBB_PREFER_STATIC=Off",
+        "-DPython_EXECUTABLE=" + sys.executable,
         # Debugging options.
         #'-DCMAKE_BUILD_TYPE=Debug',
         #'-DUSE_SANITIZER=Address',
