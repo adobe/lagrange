@@ -47,6 +47,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         "/wd4068" # disable: "Unknown pragma" warnings
         "/wd26812" # disable: Prefer 'enum class' over 'enum'
         "/wd26439" # disable: This kind of function may not throw (issues with Catch2)
+        "/wd4244" # disable: Conversion from 'type1' to 'type2', possible loss of data
 
         # Adding /bigobj. This is currently required to build Lagrange on
         # windows with debug info.
