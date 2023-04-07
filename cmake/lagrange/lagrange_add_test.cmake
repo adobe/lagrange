@@ -42,8 +42,8 @@ function(lagrange_add_test)
 
     # Disable ASan container-overflow due to non-instrumented libstdc++
     # https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow
-    set(LAGRANGE_TESTS_ENVIRONMENT
-        "ASAN_OPTIONS=detect_container_overflow=0"
+    set(LAGRANGE_TESTS_ENVIRONMENT ""
+        # "ASAN_OPTIONS=detect_container_overflow=0"
     )
 
     # Enable code coverage
