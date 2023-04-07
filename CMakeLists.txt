@@ -180,7 +180,8 @@ endif()
 
 # When building anorigami module, we also need to compile tbbmalloc
 if(LAGRANGE_MODULE_ANORIGAMI OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
-    option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
+    option(TBB_BUILD_TBBMALLOC "Build TBB malloc library"  ON) # TBB 2020 option
+    option(TBBMALLOC_BUILD "Enable tbbmalloc build" ON) # OneTBB 2021 option
 endif()
 
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
@@ -222,6 +223,7 @@ include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
+include(lagrange_tbb_sanitizer)
 include(lagrange_warnings)
 include(code-coverage)
 include(sanitizers)
