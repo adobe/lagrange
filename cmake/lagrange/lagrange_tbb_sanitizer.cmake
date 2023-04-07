@@ -11,8 +11,6 @@
 #
 
 # Set TBB_SANITIZE based on the USE_SANITIZER option
-set_property(CACHE TBB_SANITIZE PROPERTY STRINGS "thread" "memory" "leak" "address -fno-omit-frame-pointer")
-
 set(LAGRANGE_TBB_SANITIZE "")
 if(USE_SANITIZER)
     if(UNIX)
