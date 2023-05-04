@@ -15,17 +15,13 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'nanoflann::nanoflann'")
 
-include(FetchContent)
-FetchContent_Declare(
-    nanoflann
-    GIT_REPOSITORY https://github.com/jlblancoc/nanoflann.git
+include(CPM)
+CPMAddPackage(
+    NAME nanoflann
+    GITHUB_REPOSITORY jlblancoc/nanoflann
     GIT_TAG v1.3.2
+    DOWNLOAD_ONLY ON
 )
-
-FetchContent_GetProperties(nanoflann)
-if(NOT nanoflann_POPULATED)
-    FetchContent_Populate(nanoflann)
-endif()
 
 add_library(nanoflann INTERFACE)
 add_library(nanoflann::nanoflann ALIAS nanoflann)

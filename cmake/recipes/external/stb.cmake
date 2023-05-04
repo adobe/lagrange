@@ -13,13 +13,12 @@ if(TARGET stb::image)
     return()
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-    stb
-    GIT_REPOSITORY https://github.com/nothings/stb.git
+include(CPM)
+CPMAddPackage(
+    NAME stb
+    GITHUB_REPOSITORY nothings/stb
     GIT_TAG 5736b15f7ea0ffb08dd38af21067c314d6a3aae9
 )
-FetchContent_MakeAvailable(stb)
 
 #
 # In order to support multiple downstream includes of STB a single macro

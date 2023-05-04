@@ -15,13 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'pcg::pcg'")
 
-include(FetchContent)
-FetchContent_Declare(
-    pcg
-    GIT_REPOSITORY https://github.com/imneme/pcg-cpp.git
+include(CPM)
+CPMAddPackage(
+    NAME pcg
+    GITHUB_REPOSITORY imneme/pcg-cpp
     GIT_TAG 5b5cac8d61339e810c5dbb4692d868a1d7ca1b2d
 )
-FetchContent_MakeAvailable(pcg)
 
 add_library(pcg::pcg INTERFACE IMPORTED GLOBAL)
 target_include_directories(pcg::pcg INTERFACE "${pcg_SOURCE_DIR}/include")

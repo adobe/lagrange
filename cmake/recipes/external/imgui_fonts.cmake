@@ -15,13 +15,12 @@ if(NOT COMMAND fonts_add_font)
 
     message(STATUS "Third-party (external): creating target 'imgui::fonts'")
 
-    include(FetchContent)
-    FetchContent_Declare(
-        imgui_fonts
-        GIT_REPOSITORY https://github.com/HasKha/imgui-fonts.git
+    include(CPM)
+    CPMAddPackage(
+        NAME imgui_fonts
+        GITHUB_REPOSITORY HasKha/imgui-fonts
         GIT_TAG 24e4eca2d0e51d5214780391a94663a08f884762
     )
-    FetchContent_MakeAvailable(imgui_fonts)
 
 endif()
 

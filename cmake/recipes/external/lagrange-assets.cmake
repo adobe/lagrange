@@ -13,14 +13,14 @@ if(TARGET lagrange::assets)
     return()
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-    lagrange-assets
-    GIT_REPOSITORY https://github.com/adobe/lagrange-assets.git
+message(STATUS "Lagrange: creating target 'lagrange::assets'")
+
+include(CPM)
+CPMAddPackage(
+    NAME lagrange-assets
+    GITHUB_REPOSITORY adobe/lagrange-assets
     GIT_TAG f3407b0eb8266111c720b28577050e9a8f7901a5
 )
-message(STATUS "Lagrange: creating target 'lagrange::assets'")
-FetchContent_MakeAvailable(lagrange-assets)
 
 add_library(lagrange::assets INTERFACE IMPORTED GLOBAL)
 target_include_directories(lagrange::assets INTERFACE "${lagrange-assets_SOURCE_DIR}")

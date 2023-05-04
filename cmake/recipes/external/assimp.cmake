@@ -15,13 +15,6 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'assimp::assimp'")
 
-include(FetchContent)
-FetchContent_Declare(
-    assimp
-    GIT_REPOSITORY https://github.com/assimp/assimp.git
-    GIT_TAG 0fdae2879d78864693ee730610dcf8ee10707875
-)
-
 option(BUILD_SHARED_LIBS "Build package with shared libraries." OFF)
 option(BUILD_TESTING "" OFF)
 option(ASSIMP_BUILD_FRAMEWORK "Build package as Mac OS X Framework bundle." OFF)
@@ -36,16 +29,21 @@ option(ASSIMP_INSTALL_PBD "" OFF)
 option(ASSIMP_INJECT_DEBUG_POSTFIX "Inject debug postfix in .a/.so/.dll lib names" OFF)
 option(ASSIMP_BUILD_PBRT_EXPORTER "Build Assimp with PBRT importer" OFF)
 
+# Disable 3MF exporter, since it requires kuba--/zip (which wraps a modified version of miniz)
+option(ASSIMP_BUILD_3MF_EXPORTER "Build Assimp with 3MF exporter" OFF)
+
 # Use a CACHE variable to prevent Assimp from building with its embedded clipper
 set(Clipper_SRCS "" CACHE STRING "" FORCE)
 
 # Disable IFC importer, since it requires clipper
 option(ASSIMP_BUILD_IFC_IMPORTER "Build Assimp with IFC importer" OFF)
 
-# Disable 3MF exporter, since it requires kuba--/zip (which wraps a modified version of miniz)
-option(ASSIMP_BUILD_3MF_EXPORTER "Build Assimp with 3MF exporter" OFF)
-
-FetchContent_MakeAvailable(assimp)
+include(CPM)
+CPMAddPackage(
+    NAME assimp
+    GITHUB_REPOSITORY assimp/assimp
+    GIT_TAG 0fdae2879d78864693ee730610dcf8ee10707875
+)
 
 set_target_properties(assimp PROPERTIES FOLDER third_party//assimp)
 if(TARGET UpdateAssimpLibsDebugSymbolsAndDLLs)

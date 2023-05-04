@@ -16,13 +16,11 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'EnTT::EnTT'")
 
-include(FetchContent)
-FetchContent_Declare(
-    entt
-    GIT_REPOSITORY https://github.com/skypjack/entt.git
-    GIT_TAG        v3.9.0
+include(CPM)
+CPMAddPackage(
+    NAME entt
+    GITHUB_REPOSITORY skypjack/entt
+    GIT_TAG v3.9.0
 )
-
-FetchContent_MakeAvailable(entt)
 
 set_target_properties(aob PROPERTIES FOLDER third_party)

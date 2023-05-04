@@ -123,6 +123,36 @@ function(lagrange_populate_runtime_dependencies target)
                 "\"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
             "endif()\n"
         )
+
+        # Found a list of usd resource files to copy
+        get_target_property(USD_RESOURCES ${DEPENDENCY} USD_RESOURCES)
+        if(USD_RESOURCES)
+            foreach(resourceFile IN ITEMS ${USD_RESOURCES})
+                string(REPLACE "@" ";" resourceFile "${resourceFile}")
+                list(GET resourceFile 0 resourceSrc)
+                list(GET resourceFile 1 resourceDst)
+                string(REPLACE "lib/" "" resourceDst "${resourceDst}")
+                get_filename_component(resourceDir resourceDst DIRECTORY)
+                string(APPEND COPY_SCRIPT_CONTENT
+                    "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
+                    "    execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "
+                        "\"$<TARGET_FILE_DIR:${target}>/${resourceDir}\")\n"
+                    "    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different "
+                        "\"${resourceSrc}\" "
+                        "\"$<TARGET_FILE_DIR:${target}>/${resourceDst}\")\n"
+                    "endif()\n"
+                )
+            endforeach()
+            string(APPEND COPY_SCRIPT_CONTENT
+                "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
+                "    execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "
+                    "\"$<TARGET_FILE_DIR:${target}>/usd\")\n"
+                "    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different "
+                    "\"${usd_BINARY_DIR}/usd_plugInfo.json\" "
+                    "\"$<TARGET_FILE_DIR:${target}>/usd/plugInfo.json\")\n"
+                "endif()\n"
+            )
+        endif()
     endforeach()
 
     # Finally generate one script for each configuration supported by this generator

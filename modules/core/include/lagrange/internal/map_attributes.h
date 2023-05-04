@@ -33,7 +33,7 @@ struct MapAttributesOptions
 
 
 ///
-/// Map vertex attributes from the source mesh to the target mesh.
+/// Map attributes from the source mesh to the target mesh.
 ///
 /// This is the most general version that supports many-to-many mapping. Collision policy settings
 /// in `options` define the behavior when multiple source vertices are mapped to the same target
@@ -44,12 +44,12 @@ struct MapAttributesOptions
 ///
 /// @param source_mesh          The source mesh.
 /// @param target_mesh          The target mesh.
-/// @param mapping_data         A flat array of source vertex indices.
-/// @param mapping_offsets      The offset index array into the `mapping_data`. Source vertices with
+/// @param mapping_data         A flat array of source element indices.
+/// @param mapping_offsets      The offset index array into the `mapping_data`. Source element with
 ///                             index listed from `mapping_data[mapping_offset[i]]` to
-///                             `mapping_data[mapping_offset[i+1]]` are mapped to target vertex `i`.
-///                             If empty, source vertex with index `mapping_data[i]` is mapped to
-///                             target vertex `i`.
+///                             `mapping_data[mapping_offset[i+1]]` are mapped to target element `i`.
+///                             If empty, source element with index `mapping_data[i]` is mapped to
+///                             target element `i`.
 /// @param options              Option settings.
 ///
 /// @see `MapAttributesOptions`.

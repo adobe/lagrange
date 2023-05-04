@@ -15,17 +15,13 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'GKlib::GKlib'")
 
-include(FetchContent)
-FetchContent_Declare(
-    gklib
-    GIT_REPOSITORY https://github.com/KarypisLab/GKlib.git
-    GIT_TAG        67c6e4322bb326a04727995775c3eafc47d7a252
+include(CPM)
+CPMAddPackage(
+    NAME gklib
+    GITHUB_REPOSITORY KarypisLab/GKlib
+    GIT_TAG 67c6e4322bb326a04727995775c3eafc47d7a252
+    DOWNLOAD_ONLY ON
 )
-
-FetchContent_GetProperties(gklib)
-if(NOT gklib_POPULATED)
-    FetchContent_Populate(gklib)
-endif()
 
 file(GLOB INC_FILES "${gklib_SOURCE_DIR}/*.h" )
 file(GLOB SRC_FILES "${gklib_SOURCE_DIR}/*.c" )

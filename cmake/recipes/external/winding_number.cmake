@@ -15,13 +15,14 @@ endif()
 
 message(STATUS "Third-party (internal): creating target 'WindingNumber::WindingNumber'")
 
-include(FetchContent)
-FetchContent_Declare(
-    WindingNumber
-    GIT_REPOSITORY https://github.com/jdumas/WindingNumber.git
-    GIT_TAG        d0083297a9c3459a61573c0a0b4c0586ea84b727
+include(tbb)
+include(simde)
+
+include(CPM)
+CPMAddPackage(
+    NAME WindingNumber
+    GITHUB_REPOSITORY jdumas/WindingNumber
+    GIT_TAG d0083297a9c3459a61573c0a0b4c0586ea84b727
 )
 
-include(tbb)
-FetchContent_MakeAvailable(WindingNumber)
 set_target_properties(WindingNumber PROPERTIES FOLDER third_party)

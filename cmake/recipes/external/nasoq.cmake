@@ -42,14 +42,13 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'nasoq::nasoq'")
 
-include(FetchContent)
-FetchContent_Declare(
-    nasoq
-    GIT_REPOSITORY https://github.com/sympiler/nasoq.git
+set(CMAKE_DISABLE_FIND_PACKAGE_OpenMP TRUE)
+include(CPM)
+CPMAddPackage(
+    NAME nasoq
+    GITHUB_REPOSITORY sympiler/nasoq
     GIT_TAG 3565bba5c984e24a1e22f3555e2ba09e31c4486f
 )
-set(CMAKE_DISABLE_FIND_PACKAGE_OpenMP TRUE)
-FetchContent_MakeAvailable(nasoq)
 
 target_link_libraries(nasoq PUBLIC BLAS::BLAS)
 

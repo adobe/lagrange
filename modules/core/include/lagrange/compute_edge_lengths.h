@@ -11,35 +11,44 @@
  */
 #pragma once
 
-#include <memory>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/legacy/compute_edge_lengths.h>
+#endif
 
-#include <lagrange/Edge.h>
-#include <lagrange/Mesh.h>
-#include <lagrange/MeshTrait.h>
-#include <lagrange/attributes/eval_as_attribute.h>
+#include <lagrange/SurfaceMesh.h>
+#include <string_view>
 
 namespace lagrange {
-/*
-Fills the edge attribute "length" with edge lengths.
 
-Initializes the mesh edge data map if needed.
-*/
-template <typename MeshType>
-void compute_edge_lengths(MeshType& mesh)
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
+
+struct EdgeLengthOptions
 {
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
+    /// Output attribute name. If the attribute already exists, it will be overwritten.
+    std::string_view output_attribute_name = "@edge_length";
+};
 
-    using Index = typename MeshType::Index;
+///
+/// Computes edge lengths attribute.
+///
+/// @tparam Scalar  Mesh scalar type
+/// @tparam Index   Mesh index type
+///
+/// @param mesh     The input mesh
+/// @param options  Options for computing edge lengths.
+///
+/// @return         Attribute ID of the computed edge lengths attribute.
+///
+template <typename Scalar, typename Index>
+AttributeId compute_edge_lengths(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const EdgeLengthOptions& options = {});
 
-    mesh.initialize_edge_data();
-
-    const auto& vertices = mesh.get_vertices();
-
-    eval_as_edge_attribute_new(mesh, "length", [&](Index e_idx) {
-        auto v = mesh.get_edge_vertices(e_idx);
-        auto p0 = vertices.row(v[0]);
-        auto p1 = vertices.row(v[1]);
-        return (p0 - p1).norm();
-    });
-}
+/// @}
 } // namespace lagrange

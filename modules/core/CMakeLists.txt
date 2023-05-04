@@ -13,7 +13,6 @@
 # 1. define module
 lagrange_add_module()
 
-set_target_properties(lagrange_core PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_core PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()

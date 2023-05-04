@@ -11,3 +11,6 @@
 #
 from .lagrange import *
 from .lagrange.core import *
+from ._logging import logger
+
+del _logging, lagrange

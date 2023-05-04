@@ -19,7 +19,24 @@
     #include <lagrange/io/legacy/save_mesh.h>
 #endif
 
+#include <iosfwd>
+
 namespace lagrange::io {
+
+/**
+ * Save a mesh to a stream.
+ *
+ * @param[in] output_stream  Stream to output
+ * @param[in] mesh           Mesh to save
+ * @param[in] format         Mesh format to use.
+ * @param[in] options        Extra options related to saving.
+ */
+template <typename Scalar, typename Index>
+void save_mesh(
+    std::ostream& output_stream,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    FileFormat format,
+    const SaveOptions& options = {});
 
 /**
  * Save a mesh to a file.

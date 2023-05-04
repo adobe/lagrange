@@ -95,6 +95,12 @@ endif()
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL                "Build all lagrange modules" OFF)
 
+# When building the usd module, we need to use TBB 2020
+if(LAGRANGE_MODULE_USD OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+    option(LAGRANGE_WITH_ONETBB "Build Lagrange with OneTBB 2021 rather than TBB 2020" OFF)
+    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
+endif()
+
 # General CMake options
 option(LAGRANGE_ASSERT_DEBUG_BREAK      "Assert will break into debugger on failure"           ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_COMPILE_TESTS           "Enable compilation tests"                             ${LAGRANGE_COMPILE_TESTS_DEFAULT})
@@ -205,6 +211,7 @@ set_property(GLOBAL PROPERTY __lagrange_source_dir ${PROJECT_SOURCE_DIR})
 set_property(GLOBAL PROPERTY __lagrange_binary_dir ${PROJECT_BINARY_DIR})
 set_property(GLOBAL PROPERTY __lagrange_module_path ${CMAKE_MODULE_PATH})
 
+include(code-coverage)
 include(lagrange_add_compile_test)
 include(lagrange_add_example)
 include(lagrange_add_executable)
@@ -212,6 +219,7 @@ include(lagrange_add_module)
 include(lagrange_add_performance)
 include(lagrange_add_python_binding)
 include(lagrange_add_test)
+include(lagrange_cpm_cache)
 include(lagrange_download_data)
 include(lagrange_global_flags)
 include(lagrange_has_onetbb)
@@ -219,7 +227,6 @@ include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
 include(lagrange_warnings)
-include(code-coverage)
 include(sanitizers)
 
 set(CMAKE_MACOSX_RPATH 1) # Set rpath for mac

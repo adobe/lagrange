@@ -12,14 +12,17 @@
 #include <catch2/catch_session.hpp>
 
 #include <lagrange/Logger.h>
+#include <lagrange/utils/fpe.h>
 
 int main(int argc, char* argv[])
 {
     Catch::Session session;
     int log_level = spdlog::level::warn;
+    bool fpe_flag = false;
 
     auto cli = session.cli()
-        | Catch::Clara::Opt(log_level, "log level")["--log-level"]("Log level");
+        | Catch::Clara::Opt(log_level, "log level")["--log-level"]("Log level")
+        | Catch::Clara::Opt(fpe_flag, "use fpe")["--enable-fpe"]("Enable FPE");
 
     session.cli(cli);
 
@@ -29,6 +32,11 @@ int main(int argc, char* argv[])
 
     log_level = std::max(0, std::min(6, log_level));
     lagrange::logger().set_level(static_cast<spdlog::level::level_enum>(log_level));
+
+    if (fpe_flag) {
+        lagrange::logger().info("Enabling floating point exceptions");
+        lagrange::enable_fpe();
+    }
 
     const auto session_ret = session.run();
 

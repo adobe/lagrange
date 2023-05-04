@@ -15,12 +15,11 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'ghcFilesystem::ghc_filesystem'")
 
-include(FetchContent)
-FetchContent_Declare(
-    filesystem
-    GIT_REPOSITORY https://github.com/gulrak/filesystem.git
-    GIT_TAG        v1.5.4
+include(CPM)
+CPMAddPackage(
+    NAME filesystem
+    GITHUB_REPOSITORY gulrak/filesystem
+    GIT_TAG v1.5.4
 )
-FetchContent_MakeAvailable(filesystem)
 
 target_compile_definitions(ghc_filesystem INTERFACE GHC_WIN_WSTRING_STRING_TYPE)

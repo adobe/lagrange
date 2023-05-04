@@ -12,6 +12,8 @@
 
 #include "bind_simple_scene.h"
 
+#include <lagrange/scene/RemeshingOptions.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
@@ -27,6 +29,20 @@ void populate_scene_module(nb::module_& m)
     using Index = uint32_t;
 
     bind_simple_scene<Scalar, Index>(m);
+
+    nb::enum_<lagrange::scene::FacetAllocationStrategy>(m, "FacetAllocationStrategy")
+        .value("EvenSplit", lagrange::scene::FacetAllocationStrategy::EvenSplit)
+        .value("RelativeToMeshArea", lagrange::scene::FacetAllocationStrategy::RelativeToMeshArea)
+        .value(
+            "RelativeToNumFacets",
+            lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets);
+
+    nb::class_<lagrange::scene::RemeshingOptions>(m, "RemeshingOptions")
+        .def(nb::init<>())
+        .def_rw(
+            "facet_allocation_strategy",
+            &lagrange::scene::RemeshingOptions::facet_allocation_strategy)
+        .def_rw("min_facets", &lagrange::scene::RemeshingOptions::min_facets);
 }
 
 } // namespace lagrange::python

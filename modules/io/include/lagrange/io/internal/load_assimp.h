@@ -20,14 +20,23 @@
 #include <assimp/mesh.h>
 #include <assimp/postprocess.h>
 #include <assimp/scene.h>
+#include <iosfwd>
 #include <memory>
 
 namespace lagrange::io::internal {
 /**
- * Load an assimp scene.
+ * Load an assimp scene from file.
  */
 std::unique_ptr<aiScene> load_assimp(
     const fs::path& filename,
+    unsigned int flags = aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
+                         aiProcess_GenUVCoords | aiProcess_PopulateArmatureData);
+
+/**
+ * Load an assimp scene from stream.
+ */
+std::unique_ptr<aiScene> load_assimp(
+    std::istream& input_stream,
     unsigned int flags = aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
                          aiProcess_GenUVCoords | aiProcess_PopulateArmatureData);
 

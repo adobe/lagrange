@@ -15,13 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'mshio::mshio'")
 
-include(FetchContent)
-FetchContent_Declare(
-    mshio
-    GIT_REPOSITORY https://github.com/qnzhou/MshIO.git
+include(CPM)
+CPMAddPackage(
+    NAME mshio
+    GITHUB_REPOSITORY qnzhou/MshIO
     GIT_TAG 2a897f96ee76497d90dd8560325c232278aaea9d
 )
-FetchContent_MakeAvailable(mshio)
 
 set_target_properties(mshio PROPERTIES FOLDER third_party)
 set_target_properties(mshio PROPERTIES POSITION_INDEPENDENT_CODE ON)

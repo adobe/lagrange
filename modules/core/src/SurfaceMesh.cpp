@@ -32,8 +32,8 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <string>
 #include <array>
+#include <string>
 #include <unordered_map>
 
 namespace lagrange {
@@ -1034,6 +1034,11 @@ void check_export_policy(Attribute<ValueType>& attr, AttributeExportPolicy polic
     if (attr.is_external()) {
         switch (policy) {
         case AttributeExportPolicy::CopyIfExternal: attr.create_internal_copy(); return;
+        case AttributeExportPolicy::CopyIfUnmanaged:
+            if (!attr.is_managed()) {
+                attr.create_internal_copy();
+            }
+            return;
         case AttributeExportPolicy::KeepExternalPtr:
             logger().warn("Exporting an Attribute pointing to an external buffer. It is the user's "
                           "responsibility to guarantee the lifetime of the pointed data in that "
@@ -1255,7 +1260,8 @@ Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id)
 }
 
 template <typename Scalar, typename Index>
-internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(std::string_view name)
+internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(
+    std::string_view name)
 {
     return _ref_attribute_ptr(get_attribute_id(name));
 }
@@ -1819,9 +1825,15 @@ void SurfaceMesh<Scalar, Index>::clear_facets()
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::shrink_to_fit()
 {
-    // TODO
-    // - Add a Attribute::capacity() method and use that for unit testing (deleting elements +
-    // calling shrink_to_fit should reduce attribute capacity).
+    seq_foreach_attribute_write(*this, [](auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+        if constexpr (AttributeType::IsIndexed) {
+            attr.values().shrink_to_fit();
+            attr.indices().shrink_to_fit();
+        } else {
+            attr.shrink_to_fit();
+        }
+    });
 }
 
 template <typename Scalar, typename Index>

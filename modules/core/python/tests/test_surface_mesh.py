@@ -62,7 +62,6 @@ class TestSurfaceMesh:
         v = mesh.get_position(0)  # Read only span.
         assert isinstance(v, np.ndarray)
         assert not v.flags["OWNDATA"]
-        #assert not v.flags["WRITEABLE"]
 
         v2 = mesh.ref_position(0)  # Writeable span.
         assert isinstance(v2, np.ndarray)
@@ -101,6 +100,46 @@ class TestSurfaceMesh:
 
         with pytest.raises(RuntimeError) as e:
             data = attr.data
+
+    def test_create_attribute_without_init_values(self, single_triangle):
+        mesh = single_triangle
+
+        with pytest.raises(Exception):
+            # Without initial values, num_channels and dtype arguments are required.
+            id = mesh.create_attribute(
+                name="index",
+                element=lagrange.AttributeElement.Vertex,
+                usage=lagrange.AttributeUsage.Scalar,
+            )
+
+        for t in [
+            float,
+            np.float32,
+            np.float64,
+            np.int8,
+            np.int16,
+            np.int32,
+            np.int64,
+            np.uint8,
+            np.uint16,
+            np.uint32,
+            np.uint64,
+        ]:
+            id = mesh.create_attribute(
+                name=f"{t} type",
+                element=lagrange.AttributeElement.Vertex,
+                usage=lagrange.AttributeUsage.Scalar,
+                dtype=t,
+                num_channels=1,
+            )
+
+            attr = mesh.attribute(id)
+            assert attr.usage == lagrange.AttributeUsage.Scalar
+            assert attr.element_type == lagrange.AttributeElement.Vertex
+            assert attr.num_channels == 1
+            assert attr.data.dtype == t
+            attr.data = np.ones(mesh.num_vertices, dtype=t)
+            assert np.all(attr.data == 1)
 
     def test_edges(self, single_triangle, cube):
         mesh = single_triangle
@@ -141,9 +180,7 @@ class TestSurfaceMesh:
 
         # update vertex growth policy
         attr = mesh.attribute(mesh.attr_id_vertex_to_positions)
-        attr.growth_policy = (
-            lagrange.AttributeGrowthPolicy.AllowWithinCapacity
-        )
+        attr.growth_policy = lagrange.AttributeGrowthPolicy.AllowWithinCapacity
 
         assert np.all(mesh.vertices == np.eye(3))
         mesh.add_vertex(np.array([1, 2, 3], dtype=float))
@@ -159,13 +196,11 @@ class TestSurfaceMesh:
 
         mesh.wrap_as_facets(facets_buffer, 2, 3)
         assert mesh.num_facets == 2
-        assert(address(facets_buffer) == address(mesh.facets))
+        assert address(facets_buffer) == address(mesh.facets)
 
         # update facet growth policy
         attr = mesh.attribute(mesh.attr_id_corner_to_vertex)
-        attr.growth_policy = (
-            lagrange.AttributeGrowthPolicy.AllowWithinCapacity
-        )
+        attr.growth_policy = lagrange.AttributeGrowthPolicy.AllowWithinCapacity
 
         mesh.add_triangle(7, 8, 9)
         assert mesh.num_facets == 3
@@ -174,9 +209,9 @@ class TestSurfaceMesh:
     def test_wrap_facets_hybrid(self):
         mesh = lagrange.SurfaceMesh()
         facets_buffer = np.arange(10, dtype=np.uint32)
-        offsets_buffer = np.array([0, 3, 7], dtype=np.uint32);
+        offsets_buffer = np.array([0, 3, 7], dtype=np.uint32)
 
-        mesh.wrap_as_facets(offsets_buffer, 2, facets_buffer, 7);
+        mesh.wrap_as_facets(offsets_buffer, 2, facets_buffer, 7)
         assert mesh.is_hybrid
         assert mesh.num_facets == 2
         assert mesh.get_facet_size(0) == 3

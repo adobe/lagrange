@@ -15,13 +15,13 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'gl3w::gl3w'")
 
-include(FetchContent)
-FetchContent_Declare(
-    gl3w
-    GIT_REPOSITORY https://github.com/adobe/lagrange-gl3w.git
+include(CPM)
+CPMAddPackage(
+    NAME gl3w
+    GITHUB_REPOSITORY adobe/lagrange-gl3w
     GIT_TAG a9e41479e30266cecb72df413f4f6d71b0228a71
 )
-FetchContent_MakeAvailable(gl3w)
+
 add_library(gl3w::gl3w ALIAS gl3w)
 
 set_target_properties(gl3w PROPERTIES FOLDER third_party)

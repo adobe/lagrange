@@ -21,13 +21,6 @@ if(EMSCRIPTEN)
     set(CMAKE_SYSTEM_PROCESSOR "WASM")
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-    tbb
-    GIT_REPOSITORY https://github.com/oneapi-src/oneTBB.git
-    GIT_TAG v2021.8.0
-)
-
 option(TBB_TEST "Enable testing" OFF)
 option(TBB_EXAMPLES "Enable examples" OFF)
 option(TBB_STRICT "Treat compiler warnings as errors" OFF)
@@ -68,7 +61,12 @@ function(onetbb_import_target)
     endif()
 
     set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME tbb)
-    FetchContent_MakeAvailable(tbb)
+    include(CPM)
+    CPMAddPackage(
+        NAME tbb
+        GITHUB_REPOSITORY oneapi-src/oneTBB
+        GIT_TAG v2021.8.0
+    )
 
     pop_variable(BUILD_SHARED_LIBS)
 endfunction()

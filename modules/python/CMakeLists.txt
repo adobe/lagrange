@@ -45,11 +45,24 @@ if(SKBUILD)
         LIBRARY DESTINATION . COMPONENT Lagrange_Python_Runtime
         RUNTIME DESTINATION . COMPONENT Lagrange_Python_Runtime
     )
-    add_custom_target(lagrange-python-install-runtime
-        ${CMAKE_COMMAND}
+    # Install python and tbb libraries to ${CMAKE_INSTALL_PREFIX}/lagrange
+    # which is under _skbuild/<platform>/cmake-install/modules/python/lagrange by default.
+    add_custom_target(lagrange-python-install
+        COMMAND ${CMAKE_COMMAND}
         -DCMAKE_INSTALL_COMPONENT=Lagrange_Python_Runtime
         -P "${PROJECT_BINARY_DIR}/cmake_install.cmake"
         DEPENDS lagrange_python
+    )
+    # Generate stubs for python binding within the install location.
+    add_custom_target(lagrange-python-stubgen
+        COMMAND ${Python_EXECUTABLE} -m nanobind_stubgen lagrange
+        COMMAND ${Python_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/stubfix.py" lagrange
+        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
+        DEPENDS lagrange-python-install
+    )
+    # A pseudo target to kick start the installation process.
+    add_custom_target(lagrange-python-install-runtime
+        DEPENDS lagrange-python-install lagrange-python-stubgen
     )
 endif()
 

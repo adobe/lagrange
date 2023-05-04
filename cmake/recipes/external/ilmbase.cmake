@@ -18,17 +18,13 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'IlmBase::Half'")
 
-include(FetchContent)
-FetchContent_Declare(
-    ilmbase
-    GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openexr.git
+include(CPM)
+CPMAddPackage(
+    NAME ilmbase
+    GITHUB_REPOSITORY AcademySoftwareFoundation/openexr
     GIT_TAG v2.5.4
+    DOWNLOAD_ONLY ON
 )
-FetchContent_GetProperties(ilmbase)
-if(ilmbase_POPULATED)
-    return()
-endif()
-FetchContent_Populate(ilmbase)
 
 file(GLOB SRC_FILES "${ilmbase_SOURCE_DIR}/IlmBase/Half/*.cpp")
 file(GLOB INC_FILES "${ilmbase_SOURCE_DIR}/IlmBase/Half/*.h")

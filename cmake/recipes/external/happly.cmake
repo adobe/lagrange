@@ -15,13 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'happly::happly'")
 
-include(FetchContent)
-FetchContent_Declare(
-    happly
-    GIT_REPOSITORY https://github.com/nmwsharp/happly.git
+include(CPM)
+CPMAddPackage(
+    NAME happly
+    GITHUB_REPOSITORY nmwsharp/happly
     GIT_TAG cfa2611550bc7da65855a78af0574b65deb81766
 )
-FetchContent_MakeAvailable(happly)
 
 # Define happly library
 add_library(happly INTERFACE ${happly_SOURCE_DIR}/happly.h)
