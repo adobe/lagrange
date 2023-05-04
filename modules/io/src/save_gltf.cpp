@@ -459,6 +459,11 @@ tinygltf::Model scene2model(
 
     for (Index i = 0; i < lscene.get_num_meshes(); ++i) {
         const auto& lmesh = lscene.get_mesh(i);
+
+        // Skip empty meshes and meshes with no instances.
+        if (lmesh.get_num_vertices() == 0) continue;
+        if (lscene.get_num_instances(i) == 0) continue;
+
         la_runtime_assert(lmesh.get_vertex_per_facet() == 3); // only support triangles
         model.meshes.push_back(create_gltf_mesh(model, lmesh, options));
 

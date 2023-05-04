@@ -29,7 +29,7 @@ void permute_vertices(SurfaceMesh<Scalar, Index>& mesh, span<const Index> new_to
     const Index num_vertices = mesh.get_num_vertices();
     constexpr int invalid_index = -1; // Eigen::PermutationMatrix::Scalar is int.
 
-    // Initialize permuation matrix
+    // Initialize permutation matrix
     Eigen::PermutationMatrix<Eigen::Dynamic> P(num_vertices);
     auto& old_to_new = P.indices();
     old_to_new.setConstant(invalid_index);

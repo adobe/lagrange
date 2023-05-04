@@ -15,14 +15,6 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'embree::embree'")
 
-include(FetchContent)
-FetchContent_Declare(
-    embree
-    GIT_REPOSITORY https://github.com/embree/embree.git
-    GIT_TAG        v3.13.5
-    GIT_SHALLOW    TRUE
-)
-
 # Set Embree's default options
 option(EMBREE_ISPC_SUPPORT   "Build Embree with support for ISPC applications." OFF)
 option(EMBREE_TUTORIALS      "Enable to build Embree tutorials"                 OFF)
@@ -100,7 +92,12 @@ function(embree_import_target)
     set(TBB_LIBRARIES TBB)
 
     # Ready to include embree's atrocious CMake
-    FetchContent_MakeAvailable(embree)
+    include(CPM)
+    CPMAddPackage(
+        NAME embree
+        GITHUB_REPOSITORY embree/embree
+        GIT_TAG v3.13.5
+    )
 
     unignore_package(TBB)
 

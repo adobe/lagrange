@@ -15,13 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'imguizmo::imguizmo'")
 
-include(FetchContent)
-FetchContent_Declare(
-    imguizmo
-    GIT_REPOSITORY https://github.com/CedricGuillemet/ImGuizmo.git
+include(CPM)
+CPMAddPackage(
+    NAME imguizmo
+    GITHUB_REPOSITORY CedricGuillemet/ImGuizmo
     GIT_TAG e3174578bdc99c715e51c5ad88e7d50b4eeb19b0
 )
-FetchContent_MakeAvailable(imguizmo)
 
 add_library(imguizmo
     "${imguizmo_SOURCE_DIR}/ImGuizmo.h"

@@ -15,18 +15,17 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'Clipper2::Clipper2'")
 
-include(FetchContent)
-FetchContent_Declare(
-    clipper2
-    GIT_REPOSITORY https://github.com/AngusJohnson/Clipper2.git
-    GIT_TAG Clipper2_1.2.0
-    SOURCE_SUBDIR CPP
-)
-
 option(CLIPPER2_UTILS "Build utilities" OFF)
 option(CLIPPER2_EXAMPLES "Build examples" OFF)
 option(CLIPPER2_TESTS "Build tests" OFF)
-FetchContent_MakeAvailable(clipper2)
+
+include(CPM)
+CPMAddPackage(
+    NAME clipper2
+    GITHUB_REPOSITORY AngusJohnson/Clipper2
+    GIT_TAG Clipper2_1.2.0
+    SOURCE_SUBDIR CPP
+)
 
 add_library(Clipper2::Clipper2 ALIAS Clipper2)
 

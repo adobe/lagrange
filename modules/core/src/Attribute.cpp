@@ -227,7 +227,9 @@ void Attribute<ValueType>::wrap_const(lagrange::span<const ValueType> buffer, si
 }
 
 template <typename ValueType>
-void Attribute<ValueType>::wrap_const(SharedSpan<const ValueType> shared_buffer, size_t num_elements)
+void Attribute<ValueType>::wrap_const(
+    SharedSpan<const ValueType> shared_buffer,
+    size_t num_elements)
 {
     m_view = {};
     m_const_view = shared_buffer.get();
@@ -251,6 +253,7 @@ void Attribute<ValueType>::create_internal_copy()
     la_runtime_assert(is_external());
     m_data.reserve(m_const_view.size());
     m_data.assign(get_all().begin(), get_all().end());
+    la_debug_assert(m_data.capacity() == m_const_view.size());
     m_is_external = false;
     m_is_read_only = false;
     m_owner.reset();
@@ -266,6 +269,39 @@ void Attribute<ValueType>::clear()
         update_views();
     } else {
         m_num_elements = 0;
+    }
+}
+
+template <typename ValueType>
+void Attribute<ValueType>::shrink_to_fit()
+{
+    if (is_external()) {
+        auto new_cap = get_num_elements() * get_num_channels();
+        if (new_cap == m_const_view.size()) {
+            // Capacity is exactly the number of entries: nothing to do
+            return;
+        }
+        la_debug_assert(new_cap <= m_const_view.size());
+        // Capacity is too big for the number of entries: check shrink policy
+        switch (m_shrink_policy) {
+        case AttributeShrinkPolicy::ErrorIfExternal:
+            throw Error("Attribute policy prevents shrinking external buffer");
+        case AttributeShrinkPolicy::IgnoreIfExternal: break;
+        case AttributeShrinkPolicy::WarnAndCopy:
+            logger().warn("Requested growth of an attribute pointing to external data. An internal "
+                          "copy will be created.");
+            [[fallthrough]];
+        case AttributeShrinkPolicy::SilentCopy:
+            // Avoid reserving extra elements in the newly allocated internal buffer
+            m_const_view = {m_const_view.data(), new_cap};
+            // Now allocate the actual internal copy
+            create_internal_copy();
+            break;
+        default: throw Error("Unsupported case");
+        }
+    } else {
+        m_data.shrink_to_fit();
+        update_views();
     }
 }
 
@@ -314,7 +350,8 @@ void Attribute<ValueType>::insert_elements(lagrange::span<const ValueType> value
 }
 
 template <typename ValueType>
-void Attribute<ValueType>::insert_elements(std::initializer_list<const ValueType> values) {
+void Attribute<ValueType>::insert_elements(std::initializer_list<const ValueType> values)
+{
     insert_elements(span<const ValueType>(values.begin(), values.end()));
 }
 
@@ -458,8 +495,7 @@ void Attribute<ValueType>::growth_check(size_t new_cap)
         case AttributeGrowthPolicy::WarnAndCopy:
             logger().warn("Requested growth of an attribute pointing to external data. An internal "
                           "copy will be created.");
-            create_internal_copy();
-            break;
+            [[fallthrough]];
         case AttributeGrowthPolicy::SilentCopy: create_internal_copy(); break;
         default: throw Error("Unsupported case");
         }
@@ -476,8 +512,7 @@ void Attribute<ValueType>::write_check()
         case AttributeWritePolicy::WarnAndCopy:
             logger().warn("Requested write access to an attribute pointing to read-only data. An "
                           "internal copy will be created.");
-            create_internal_copy();
-            break;
+            [[fallthrough]];
         case AttributeWritePolicy::SilentCopy: create_internal_copy(); break;
         default: throw Error("Unsupported case");
         }

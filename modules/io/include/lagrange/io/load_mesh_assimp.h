@@ -22,6 +22,8 @@
     #include <lagrange/io/legacy/load_mesh_assimp.h>
 #endif
 
+#include <iosfwd>
+
 namespace lagrange::io {
 
 /**
@@ -35,6 +37,18 @@ namespace lagrange::io {
 template <typename MeshType, 
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options = {});
+
+/**
+ * Load a mesh using assimp. If the scene contains multiple meshes, they will be combined into one.
+ *
+ * @param[in] input_stream  Input stream containing the mesh data
+ * @param[in] options
+ *
+ * @return loaded mesh
+ */
+template <typename MeshType, 
+    std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
+MeshType load_mesh_assimp(std::istream& input_stream, const LoadOptions& options = {});
 
 } // namespace lagrange::io
 

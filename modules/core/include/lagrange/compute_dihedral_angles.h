@@ -11,72 +11,66 @@
  */
 #pragma once
 
-#include <lagrange/Edge.h>
-#include <lagrange/Logger.h>
-#include <lagrange/Mesh.h>
-#include <lagrange/MeshTrait.h>
-#include <lagrange/attributes/eval_as_attribute.h>
-#include <lagrange/compute_triangle_normal.h>
-#include <lagrange/utils/geometry3d.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/legacy/compute_dihedral_angles.h>
+#endif
+
+#include <string_view>
+
+#include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
-/*
-Fills the edge attribute "dihedral_angle" with dihedral angles.
-Boundary edges will have value 0.
 
-Requires 3D mesh.
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
 
-Computes facet normals (mesh facet attribute "normal") and
-initializes the mesh edge data if needed.
-*/
-
-template <typename MeshType>
-void compute_dihedral_angles(MeshType& mesh)
+///
+/// Option struct for computing dihedral angles.
+///
+struct DihedralAngleOptions
 {
-    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
+    /// Output attribute name. If the attribute already exists, it will be overwritten.
+    std::string_view output_attribute_name = "@dihedral_angle";
 
-    if (mesh.get_dim() != 3) {
-        throw std::runtime_error("Input mesh is not 3D.");
-    }
+    /// Precomputed facet normal attribute name. If the attribute does not exist, the algorithm will
+    /// compute it.
+    std::string_view facet_normal_attribute_name = "@facet_normal";
 
-    using Index = typename MeshType::Index;
-    using Scalar = typename MeshType::Scalar;
+    /// Whether to recompute the facet normal attribute, or reuse existing cached values if present.
+    bool recompute_facet_normals = false;
 
-    mesh.initialize_edge_data();
+    /// Whether to keep any newly added facet normal attribute. If such an attribute is already
+    /// present in the input mesh, it will not be removed, even if this argument is set to false.
+    bool keep_facet_normals = false;
+};
 
-    if (!mesh.has_facet_attribute("normal")) {
-        compute_triangle_normal(mesh);
-    }
+///
+/// Computes dihedral angles for each edge in the mesh.
+///
+/// The dihedral angle of an edge is defined as the angle between the __normals__ of two facets
+/// adjacent to the edge. The dihedral angle is always in the range @f$[0, \pi]@f$ for manifold
+/// edges. For boundary edges, the dihedral angle defaults to 0.  For non-manifold edges, the
+/// dihedral angle is not well-defined and will be set to the special value @f$ 2\pi @f$.
+///
+/// @tparam Scalar      Mesh scalar type
+/// @tparam Index       Mesh index type
+///
+/// @param[in] mesh     The input mesh.
+/// @param[in] options  Options for computing dihedral angles.
+///
+/// @return             The id of the dihedral angle attribute.
+///
+/// @see DihedralAngleOptions
+///
+template <typename Scalar, typename Index>
+AttributeId compute_dihedral_angles(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const DihedralAngleOptions& options = {});
 
-    const auto& facet_normals = mesh.get_facet_attribute("normal");
-    bool non_manifold = false;
-    eval_as_edge_attribute_new(mesh, "dihedral_angle", [&](Index i) -> Scalar {
-        const auto num_adj_facets = mesh.get_num_facets_around_edge(i);
-        if (num_adj_facets > 2) {
-            non_manifold = true;
-        }
-
-        if (num_adj_facets <= 1) {
-            return 0;
-        } else if (num_adj_facets == 2) {
-            Eigen::Matrix<Scalar, 2, 3, Eigen::RowMajor> normals(num_adj_facets, 3);
-            Index index = 0;
-            mesh.foreach_facets_around_edge(i, [&](Index fid) {
-                normals.row(index) = facet_normals.row(fid);
-                index++;
-            });
-
-            const Eigen::Matrix<Scalar, 1, 3>& n1 = normals.row(0);
-            const Eigen::Matrix<Scalar, 1, 3>& n2 = normals.row(1);
-            return angle_between(n1, n2);
-        } else {
-            // Non-manifold edge encountered.  Default to 2 * M_PI.
-            return 2 * M_PI;
-        }
-    });
-
-    if (non_manifold) {
-        lagrange::logger().warn("Computing dihedral angles on a non-manifold mesh!");
-    }
-}
+/// @}
 } // namespace lagrange

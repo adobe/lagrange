@@ -13,13 +13,12 @@ if(TARGET mikktspace::mikktspace)
     return()
 endif()
 
-include(FetchContent)
-FetchContent_Declare(
-    mikktspace
-    GIT_REPOSITORY https://github.com/mmikk/MikkTSpace.git
+include(CPM)
+CPMAddPackage(
+    NAME mikktspace
+    GITHUB_REPOSITORY mmikk/MikkTSpace
     GIT_TAG 3e895b49d05ea07e4c2133156cfa94369e19e409
 )
-FetchContent_MakeAvailable(mikktspace)
 
 add_library(mikktspace ${mikktspace_SOURCE_DIR}/mikktspace.c)
 add_library(mikktspace::mikktspace ALIAS mikktspace)

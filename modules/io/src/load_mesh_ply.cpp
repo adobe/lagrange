@@ -233,13 +233,13 @@ void extract_facet_properties(
 {
     for (const auto& name : facet_element.getPropertyNames()) {
         if (options.load_normals && (name == "nx" || starts_with(name, "nx_"))) {
-#define LA_X_try_ValueType(_, T)                          \
+#define LA_X_try_ValueType(_, T)                         \
     if (facet_element.template hasPropertyType<T>(name)) \
         extract_normal<Scalar, Index, T, AttributeElement::Facet>(facet_element, name, mesh);
             LA_ATTRIBUTE_X(try_ValueType, 0)
 #undef LA_X_try_ValueType
         } else if (name == "red" || starts_with(name, "red_")) {
-#define LA_X_try_ValueType(_, T)                          \
+#define LA_X_try_ValueType(_, T)                         \
     if (facet_element.template hasPropertyType<T>(name)) \
         extract_color<Scalar, Index, T, AttributeElement::Facet>(facet_element, name, mesh);
             LA_ATTRIBUTE_X(try_ValueType, 0)
@@ -303,7 +303,8 @@ MeshType load_mesh_ply(const fs::path& filename, const LoadOptions& options)
     return load_mesh_ply<MeshType>(fin, options);
 }
 
-#define LA_X_load_mesh_ply(_, S, I) \
+#define LA_X_load_mesh_ply(_, S, I)                                                      \
+    template SurfaceMesh<S, I> load_mesh_ply(std::istream&, const LoadOptions& options); \
     template SurfaceMesh<S, I> load_mesh_ply(const fs::path& filename, const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_ply, 0)
 

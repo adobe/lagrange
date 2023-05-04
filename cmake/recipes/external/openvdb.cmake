@@ -15,13 +15,6 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'openvdb::openvdb'")
 
-include(FetchContent)
-FetchContent_Declare(
-    openvdb
-    GIT_REPOSITORY https://github.com/AcademySoftwareFoundation/openvdb.git
-    GIT_TAG v10.0.0
-)
-
 if(WIN32)
     # On Windows, prefer shared lib for OpenVDB, otherwise we can run into
     # linking error LNK1248 in Debug mode (due to lib size exceeding 4GB).
@@ -114,7 +107,6 @@ function(openvdb_import_target)
     # Import our own targets
     ignore_package(TBB)
     ignore_package(Boost)
-    ignore_package(IlmBase)
     include(tbb)
     include(boost)
     include(ilmbase)
@@ -123,11 +115,15 @@ function(openvdb_import_target)
     set(IlmBase_VERSION 2.4 CACHE STRING "" FORCE)
 
     # Ready to include openvdb CMake
-    FetchContent_MakeAvailable(openvdb)
+    include(CPM)
+    CPMAddPackage(
+        NAME openvdb
+        GITHUB_REPOSITORY AcademySoftwareFoundation/openvdb
+        GIT_TAG v10.0.0
+    )
 
     unignore_package(TBB)
     unignore_package(Boost)
-    unignore_package(IlmBase)
 
     # Forward ALIAS target for openvdb
     get_target_property(_aliased openvdb ALIASED_TARGET)

@@ -31,6 +31,8 @@ function(lagrange_add_module)
     add_library(lagrange::${module_name} ALIAS lagrange_${module_name})
     message(STATUS "Lagrange: creating target 'lagrange::${module_name}'")
 
+    set_target_properties(lagrange_${module_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
     include(GNUInstallDirs)
     target_include_directories(lagrange_${module_name} ${module_scope}
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

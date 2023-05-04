@@ -434,7 +434,7 @@ void save_mesh_msh(
     populate_elements(spec, mesh);
 
     AttributeCounts counts;
-    if (options.selected_attributes.empty()) {
+    if (options.output_attributes == SaveOptions::OutputAttributes::All) {
         mesh.seq_foreach_attribute_id([&](AttributeId id) {
             auto name = mesh.get_attribute_name(id);
             if (!mesh.attr_name_is_reserved(name)) {
@@ -463,6 +463,10 @@ void save_mesh_msh(
 }
 
 #define LA_X_save_mesh_msh(_, S, I)    \
+    template void save_mesh_msh(       \
+        std::ostream&,                 \
+        const SurfaceMesh<S, I>& mesh, \
+        const SaveOptions& options);   \
     template void save_mesh_msh(       \
         const fs::path& filename,      \
         const SurfaceMesh<S, I>& mesh, \

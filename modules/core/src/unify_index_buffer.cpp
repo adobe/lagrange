@@ -221,8 +221,8 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         seq_foreach_attribute_read<Edge>(mesh, [&](auto&&) { has_edge_attr = true; });
         if (has_edge_attr) {
             logger().warn(
-                "Mesh has edge attributes. Those will not be remapped to the new triangular "
-                "facets. Please remap them manually.");
+                "Mesh has edge attributes. Those will be dropped in the new unified mesh."
+                "Please remap them manually.");
         }
     }
 

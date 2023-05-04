@@ -15,18 +15,13 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'opensubdiv::opensubdiv'")
 
-include(FetchContent)
-FetchContent_Declare(
-    opensubdiv
-    GIT_REPOSITORY https://github.com/PixarAnimationStudios/OpenSubdiv.git
+include(CPM)
+CPMAddPackage(
+    NAME opensubdiv
+    GITHUB_REPOSITORY PixarAnimationStudios/OpenSubdiv
     GIT_TAG tags/v3_4_4
-    GIT_SHALLOW TRUE
+    DOWNLOAD_ONLY ON
 )
-
-FetchContent_GetProperties(opensubdiv)
-if(NOT opensubdiv_POPULATED)
-    FetchContent_Populate(opensubdiv)
-endif()
 
 add_library(opensubdiv)
 add_library(opensubdiv::opensubdiv ALIAS opensubdiv)

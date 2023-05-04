@@ -17,6 +17,8 @@
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/io/types.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
 
 /**
@@ -29,6 +31,17 @@ namespace lagrange::io {
  */
 template <typename SceneType>
 SceneType load_simple_scene_assimp(const fs::path& filename, const LoadOptions& options = {});
+
+/**
+ * Load a simple scene using assimp.
+ *
+ * @param[in] input_stream  Input stream containing the scene data
+ * @param[in] options
+ *
+ * @return loaded scene
+ */
+template <typename SceneType>
+SceneType load_simple_scene_assimp(std::istream& input_stream, const LoadOptions& options = {});
 
 } // namespace lagrange::io
 

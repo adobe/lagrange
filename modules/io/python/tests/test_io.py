@@ -11,6 +11,7 @@
 #
 import lagrange
 
+import datetime
 import numpy as np
 import tempfile
 import pathlib
@@ -102,71 +103,67 @@ def assert_same_attribute(mesh, mesh2, usage, required):
 
 
 class TestIO:
-    @property
-    def tmp_dir(self):
-        return pathlib.Path(tempfile.gettempdir())
+    def __save_and_load__(
+        self, suffix, mesh, binary, exact_match, selected_attributes
+    ):
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir_path = pathlib.Path(tmp_dir)
+            stamp = datetime.datetime.now().isoformat().replace(":", ".")
+            filename = tmp_dir_path / f"{stamp}{suffix}"
+            lagrange.io.save_mesh(
+                filename,
+                mesh,
+                binary=binary,
+                exact_match=exact_match,
+                selected_attributes=selected_attributes,
+            )
+            mesh2 = lagrange.io.load_mesh(filename)
 
-    def __save_and_load__(self, filename, mesh, save_options):
-        print(filename)
-        lagrange.io.save_mesh(filename, mesh, save_options)
-        load_options = lagrange.io.LoadOptions()
-        load_options.load_vertex_colors = True
-        mesh2 = lagrange.io.load_mesh(filename, load_options)
+            assert_same_vertices_and_facets(mesh, mesh2)
 
-        assert_same_vertices_and_facets(mesh, mesh2)
-
-        required = (
-            save_options.attribute_conversion_policy
-            == lagrange.io.AttributeConversionPolicy.ConvertAsNeeded
-        )
-        # Check special attributes.
-        assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.UV, required)
-        assert_same_attribute(
-            mesh, mesh2, lagrange.AttributeUsage.Normal, required
-        )
-        if filename.suffix != ".obj":
+            required = not exact_match
+            # Check special attributes.
             assert_same_attribute(
-                mesh, mesh2, lagrange.AttributeUsage.Color, required
+                mesh, mesh2, lagrange.AttributeUsage.UV, required
             )
-
-        if (
-            save_options.output_attributes
-            == lagrange.io.OutputAttributes.SelectedOnly
-        ):
-            for attr_id in save_options.selected_attributes:
-                if mesh.is_attribute_indexed(attr_id):
-                    pass
-                else:
-                    attr_name = mesh.get_attribute_name(attr_id)
-                    attr = mesh.attribute(attr_id)
-                    assert mesh2.has_attribute(attr_name)
-
-    def save_and_load(self, mesh, attribute_ids=[]):
-        save_options = lagrange.io.SaveOptions()
-        if len(attribute_ids) > 0:
-            save_options.output_attributes = (
-                lagrange.io.OutputAttributes.SelectedOnly
+            assert_same_attribute(
+                mesh, mesh2, lagrange.AttributeUsage.Normal, required
             )
-            save_options.selected_attributes = attribute_ids
-        else:
-            save_options.output_attributes = lagrange.io.OutputAttributes.All
+            if filename.suffix != ".obj":
+                assert_same_attribute(
+                    mesh, mesh2, lagrange.AttributeUsage.Color, required
+                )
 
-        for policy in [
-            lagrange.io.AttributeConversionPolicy.ExactMatchOnly,
-            lagrange.io.AttributeConversionPolicy.ConvertAsNeeded,
-        ]:
-            save_options.attribute_conversion_policy = policy
+            if selected_attributes is not None:
+                for attr_id in selected_attributes:
+                    if mesh.is_attribute_indexed(attr_id):
+                        pass
+                    else:
+                        attr_name = mesh.get_attribute_name(attr_id)
+                        attr = mesh.attribute(attr_id)
+                        assert mesh2.has_attribute(attr_name)
+
+    def save_and_load(self, mesh, attribute_ids=None):
+        for exact_match in [True, False]:
             # For ascii formats.
             for ext in [".obj", ".ply", ".msh"]:
-                save_options.encoding = lagrange.io.FileEncoding.Ascii
-                filename = self.tmp_dir / f"test{ext}"
-                self.__save_and_load__(filename, mesh, save_options)
+                self.__save_and_load__(
+                    ext,
+                    mesh,
+                    binary=False,
+                    exact_match=exact_match,
+                    selected_attributes=attribute_ids,
+                )
 
             # For binary formats
             for ext in [".ply", ".msh"]:
-                save_options.encoding = lagrange.io.FileEncoding.Binary
-                filename = self.tmp_dir / f"test{ext}"
-                self.__save_and_load__(filename, mesh, save_options)
+                self.__save_and_load__(
+                    ext,
+                    mesh,
+                    binary=True,
+                    exact_match=exact_match,
+                    selected_attributes=attribute_ids,
+                )
 
     def test_single_triangle(self, triangle):
         mesh = triangle
@@ -185,3 +182,52 @@ class TestIO:
         attr_ids = mesh.get_matching_attribute_ids()
         assert len(attr_ids) != 0
         self.save_and_load(mesh, attr_ids)
+
+    def test_mesh_string_conversion(self, triangle_with_uv_normal_color):
+        mesh = triangle_with_uv_normal_color
+
+        ply_data = lagrange.io.mesh_to_string(mesh, "ply")
+        mesh2 = lagrange.io.string_to_mesh(ply_data)
+        assert_same_vertices_and_facets(mesh, mesh2)
+
+        obj_data = lagrange.io.mesh_to_string(mesh, "obj")
+        mesh2 = lagrange.io.string_to_mesh(obj_data)
+        assert_same_vertices_and_facets(mesh, mesh2)
+
+        msh_data = lagrange.io.mesh_to_string(mesh, "msh")
+        mesh2 = lagrange.io.string_to_mesh(msh_data)
+        assert_same_vertices_and_facets(mesh, mesh2)
+
+        gltf_data = lagrange.io.mesh_to_string(mesh, "gltf")
+        mesh2 = lagrange.io.string_to_mesh(gltf_data)
+        assert_same_vertices_and_facets(mesh, mesh2)
+
+        gltf_data = lagrange.io.mesh_to_string(mesh, "glb")
+        mesh2 = lagrange.io.string_to_mesh(gltf_data)
+        assert_same_vertices_and_facets(mesh, mesh2)
+
+    def test_io_with_selected_attributed(self, triangle):
+        mesh = triangle
+        selected_attributes = [
+            mesh.create_attribute(
+                "vertex_id",
+                element=lagrange.AttributeElement.Vertex,
+                usage=lagrange.AttributeUsage.Scalar,
+                initial_values=np.array([0, 1, 2]),
+            ),
+            mesh.create_attribute(
+                "facet_id",
+                element=lagrange.AttributeElement.Facet,
+                usage=lagrange.AttributeUsage.Scalar,
+                initial_values=np.array([0]),
+            ),
+        ]
+
+        for mesh_format in ["ply", "msh", "gltf", "glb"]:
+            data = lagrange.io.mesh_to_string(
+                mesh, mesh_format, selected_attributes=selected_attributes
+            )
+            mesh2 = lagrange.io.string_to_mesh(data)
+            assert_same_vertices_and_facets(mesh, mesh2)
+            assert mesh2.has_attribute("vertex_id")
+            assert mesh2.has_attribute("facet_id")
