@@ -12,16 +12,18 @@
 
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
+#include <lagrange/chain_edges_into_simple_loops.h>
 #include <lagrange/common.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/mesh_cleanup/close_small_holes.h>
+#include <lagrange/utils/warning.h>
 
 #include <lagrange/testing/common.h>
 
 namespace {
 
 template <typename MeshType>
-int count_boundary_edges(MeshType &mesh)
+int count_boundary_edges(MeshType& mesh)
 {
     static_assert(lagrange::MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
     using Index = typename MeshType::Index;
@@ -37,13 +39,18 @@ int count_boundary_edges(MeshType &mesh)
 }
 
 template <typename MeshType>
-bool has_holes(MeshType &mesh) { return count_boundary_edges(mesh) != 0; }
+bool has_holes(MeshType& mesh)
+{
+    return count_boundary_edges(mesh) != 0;
+}
 
 } // namespace
 
+LA_IGNORE_DEPRECATION_WARNING_BEGIN
 TEST_CASE("chain_edges_into_simple_loops", "[cleanup][close_small_holes]")
 {
-    SECTION("graph_1") {
+    SECTION("graph_1")
+    {
         Eigen::MatrixXi edges(4, 2);
         // clang-format off
         edges <<
@@ -66,7 +73,8 @@ TEST_CASE("chain_edges_into_simple_loops", "[cleanup][close_small_holes]")
         REQUIRE(remaining == expected_remaining);
     }
 
-    SECTION("graph_2") {
+    SECTION("graph_2")
+    {
         Eigen::MatrixXi edges(4, 2);
         // clang-format off
         edges <<
@@ -88,7 +96,8 @@ TEST_CASE("chain_edges_into_simple_loops", "[cleanup][close_small_holes]")
         REQUIRE(remaining == expected_remaining);
     }
 
-    SECTION("graph_3") {
+    SECTION("graph_3")
+    {
         Eigen::MatrixXi edges(7, 2);
         // clang-format off
         edges <<
@@ -114,7 +123,8 @@ TEST_CASE("chain_edges_into_simple_loops", "[cleanup][close_small_holes]")
         REQUIRE(remaining == expected_remaining);
     }
 
-    SECTION("graph_4") {
+    SECTION("graph_4")
+    {
         Eigen::MatrixXi edges(6, 2);
         // clang-format off
         edges <<
@@ -139,10 +149,12 @@ TEST_CASE("chain_edges_into_simple_loops", "[cleanup][close_small_holes]")
         REQUIRE(remaining == expected_remaining);
     }
 }
+LA_IGNORE_DEPRECATION_WARNING_END
 
 TEST_CASE("close_small_holes (simple)", "[cleanup][close_small_holes]" LA_SLOW_DEBUG_FLAG)
 {
-    auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/stanford-bunny.obj");
+    auto mesh =
+        lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/stanford-bunny.obj");
     REQUIRE(mesh);
 
     REQUIRE(has_holes(*mesh));
@@ -162,7 +174,7 @@ TEST_CASE("close_small_holes (complex)", "[cleanup][close_small_holes]")
     lagrange::logger().info("num boundary edges: {}", count_boundary_edges(*mesh));
 
     auto mesh1 = lagrange::close_small_holes(*mesh, 20);
-    REQUIRE(count_boundary_edges(*mesh1) == 8*8 + 15);
+    REQUIRE(count_boundary_edges(*mesh1) == 8 * 8 + 15);
     auto mesh2 = lagrange::close_small_holes(*mesh, 100);
     REQUIRE(count_boundary_edges(*mesh2) == 15);
 }
@@ -193,7 +205,8 @@ TEST_CASE("close_small_holes (with uv)", "[cleanup][close_small_holes]")
     auto mesh2 = lagrange::close_small_holes(*mesh, 100);
     REQUIRE(count_boundary_edges(*mesh2) == 0);
 
-    auto mesh0 = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/blub_open_filled.obj");
+    auto mesh0 =
+        lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/blub_open_filled.obj");
     REQUIRE(mesh2->get_vertices().isApprox(mesh0->get_vertices()));
     REQUIRE(mesh2->get_facets() == mesh0->get_facets());
     REQUIRE(mesh2->get_uv().isApprox(mesh0->get_uv()));
@@ -229,15 +242,16 @@ TEST_CASE("close_small_holes (with attributes)", "[cleanup][close_small_holes]" 
     auto mesh1 = lagrange::close_small_holes(*mesh, 100);
     REQUIRE(count_boundary_edges(*mesh1) == 0);
 
-    const auto &vertex_attr1 = mesh1->get_vertex_attribute("color");
-    const auto &facet_attr1 = mesh1->get_facet_attribute("normal");
-    const auto &corner_attr1 = mesh1->get_corner_attribute("kwak");
-    const auto &edge_new_attr1 = mesh1->get_edge_attribute("bary");
+    const auto& vertex_attr1 = mesh1->get_vertex_attribute("color");
+    const auto& facet_attr1 = mesh1->get_facet_attribute("normal");
+    const auto& corner_attr1 = mesh1->get_corner_attribute("kwak");
+    const auto& edge_new_attr1 = mesh1->get_edge_attribute("bary");
     REQUIRE(vertex_attr == vertex_attr1.topRows(vertex_attr.rows()));
     REQUIRE(facet_attr == facet_attr1.topRows(facet_attr.rows()));
     REQUIRE(corner_attr == corner_attr1.topRows(corner_attr.rows()));
 
-    // New edges might be indexed differently, so let's iterate over facet corners and compare values
+    // New edges might be indexed differently, so let's iterate over facet corners and compare
+    // values
     bool all_same = true;
     for (Index f = 0; f < mesh->get_num_facets(); ++f) {
         for (Index lv = 0; lv < 3; ++lv) {

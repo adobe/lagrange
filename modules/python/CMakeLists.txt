@@ -22,6 +22,7 @@ endif()
 # 1. define module
 include(nanobind tbb)
 nanobind_add_module(lagrange_python NB_STATIC)
+set_target_properties(nanobind-static PROPERTIES FOLDER third_party)
 add_library(lagrange::python ALIAS lagrange_python)
 set_target_properties(lagrange_python PROPERTIES
     FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules"

@@ -110,14 +110,16 @@ void compute_triangle_area(
     auto attr_ref = matrix_ref(attr);
 
     if (dim == 3) {
+        using S = span<const Scalar, 3>;
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = triangle_area_3d<Scalar>(p(0), p(1), p(2));
+            attr_ref(fid) = triangle_area_3d<Scalar>(S(p(0)), S(p(1)), S(p(2)));
         });
     } else if (dim == 2) {
+        using S = span<const Scalar, 2>;
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = triangle_area_2d<Scalar>(p(0), p(1), p(2));
+            attr_ref(fid) = triangle_area_2d<Scalar>(S(p(0)), S(p(1)), S(p(2)));
         });
         if (!use_signed_area) attr_ref = attr_ref.array().abs();
     } else {
@@ -143,14 +145,16 @@ void compute_quad_area(
     auto attr_ref = matrix_ref(attr);
 
     if (dim == 3) {
+        using S = span<const Scalar, 3>;
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = quad_area_3d<Scalar>(p(0), p(1), p(2), p(3));
+            attr_ref(fid) = quad_area_3d<Scalar>(S(p(0)), S(p(1)), S(p(2)), S(p(3)));
         });
     } else if (dim == 2) {
+        using S = span<const Scalar, 2>;
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
-            attr_ref(fid) = quad_area_2d<Scalar>(p(0), p(1), p(2), p(3));
+            attr_ref(fid) = quad_area_2d<Scalar>(S(p(0)), S(p(1)), S(p(2)), S(p(3)));
         });
         if (!use_signed_area) attr_ref = attr_ref.array().abs();
     } else {
@@ -175,6 +179,7 @@ void compute_polygon_area(
     auto attr_ref = matrix_ref(attr);
 
     if (dim == 3) {
+        using S = span<const Scalar, 3>;
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
             const auto n = static_cast<Index>(mesh.get_facet_size(fid));
@@ -193,10 +198,11 @@ void compute_polygon_area(
             for (Index i = 0; i < n; i++) {
                 Index prev = (i + n - 1) % n;
                 Index curr = i;
-                attr_ref(fid) += triangle_area_3d<Scalar>(p(prev), p(curr), center);
+                attr_ref(fid) += triangle_area_3d<Scalar>(S(p(prev)), S(p(curr)), S(center));
             }
         });
     } else if (dim == 2) {
+        using S = span<const Scalar, 2>;
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             FacetPositions p(mesh, fid, std::forward<FacetPositionsArgs>(args)...);
             const auto n = static_cast<Index>(mesh.get_facet_size(fid));
@@ -207,7 +213,7 @@ void compute_polygon_area(
             for (Index i = 0; i < n; i++) {
                 Index prev = (i + n - 1) % n;
                 Index curr = i;
-                attr_ref(fid) += triangle_area_2d<Scalar>(p(prev), p(curr), O);
+                attr_ref(fid) += triangle_area_2d<Scalar>(S(p(prev)), S(p(curr)), S(O));
             }
         });
         if (!use_signed_area) attr_ref = attr_ref.array().abs();

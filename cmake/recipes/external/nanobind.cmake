@@ -29,3 +29,4 @@ set(NB_SHARED OFF CACHE INTERNAL "")
 # Note that we do not use FetchContent_MakeAvailable here because nanobind's cmake changes
 # CMAKE_CXX_FLAGS and attempts to refind python, which can leads to cmake error.
 find_package(nanobind PATHS ${nanobind_SOURCE_DIR}/cmake NO_DEFAULT_PATH)
+

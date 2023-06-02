@@ -15,10 +15,10 @@
 #include <lagrange/MeshTrait.h>
 #include <lagrange/attributes/map_attributes.h>
 #include <lagrange/chain_corners_around_edges.h>
-#include <lagrange/chain_edges_into_simple_loops.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/utils/DisjointSets.h>
+#include <lagrange/utils/chain_edges.h>
 #include <lagrange/utils/stl_eigen.h>
 
 #include <vector>
@@ -92,13 +92,12 @@ std::unique_ptr<MeshType> close_small_holes(MeshType& mesh, size_t max_hole_size
     logger().trace("[close_small_holes] chain edges into simple loops");
     std::vector<std::vector<Index>> loops;
     {
-        Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> remaining_edges;
-        Eigen::Map<const Eigen::Matrix<Index, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>>
-            edges_map(
-                reinterpret_cast<const Index*>(boundary_edges.data()),
-                boundary_edges.size(),
-                2);
-        chain_edges_into_simple_loops(edges_map, loops, remaining_edges);
+        ChainEdgesOptions opt;
+        opt.output_edge_index = true;
+        auto result = chain_directed_edges<Index>(
+            {reinterpret_cast<Index*>(boundary_edges.data()), boundary_edges.size() * 2},
+            opt);
+        loops = std::move(result.loops);
     }
 
     auto get_from_corner = [](const auto& matrix, Index c) {

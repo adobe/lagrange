@@ -36,3 +36,4 @@ target_include_directories(Clipper2 PUBLIC
 )
 
 set_target_properties(Clipper2 PROPERTIES FOLDER third_party)
+set_target_properties(Clipper2Z PROPERTIES FOLDER third_party)

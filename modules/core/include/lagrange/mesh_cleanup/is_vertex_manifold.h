@@ -11,27 +11,7 @@
  */
 #pragma once
 
-#include <exception>
-#include <unordered_set>
-
-#include <lagrange/Edge.h>
-#include <lagrange/Mesh.h>
-#include <lagrange/MeshTrait.h>
-#include <lagrange/chain_edges.h>
-#include <lagrange/common.h>
-#include <lagrange/utils/safe_cast.h>
-
-namespace lagrange {
-
-/**
- * Check if the input mesh is vertex manifold for all vertices.
- *
- * @deprecated Use `mesh.is_vertex_manifold()` instead.
- */
-template <typename MeshType>
-[[deprecated("Use `mesh.is_vertex_manifold()` instead.")]]
-bool is_vertex_manifold(const MeshType& mesh)
-{
-    return mesh.is_vertex_manifold();
-}
-} // namespace lagrange
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    // Use `topology.h` instead.
+    #include <lagrange/mesh_cleanup/legacy/is_vertex_manifold.h>
+#endif
