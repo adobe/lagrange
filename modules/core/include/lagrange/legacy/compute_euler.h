@@ -11,7 +11,22 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-    // Use `topology.h` instead.
-    #include <lagrange/legacy/compute_euler.h>
-#endif
+#include <lagrange/Edge.h>
+#include <lagrange/MeshTrait.h>
+#include <lagrange/legacy/inline.h>
+
+namespace lagrange {
+LAGRANGE_LEGACY_INLINE
+namespace legacy {
+/*
+return Euler characteristic of the mesh
+*/
+template <typename MeshType>
+int compute_euler(MeshType& mesh)
+{
+    static_assert(MeshTrait<MeshType>::is_mesh(), "Input type is not Mesh");
+    mesh.initialize_edge_data();
+    return (int)mesh.get_num_vertices() + (int)mesh.get_num_facets() - (int)mesh.get_num_edges();
+}
+} // namespace legacy
+} // namespace lagrange

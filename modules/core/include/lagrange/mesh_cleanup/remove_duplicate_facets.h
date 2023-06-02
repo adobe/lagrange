@@ -11,14 +11,15 @@
  */
 #pragma once
 
-#include <array>
-#include <cassert>
-#include <unordered_map>
-
 #include <lagrange/MeshTrait.h>
 #include <lagrange/attributes/map_attributes.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
+
+#include <array>
+#include <cassert>
+#include <list>
+#include <unordered_map>
 
 namespace lagrange {
 

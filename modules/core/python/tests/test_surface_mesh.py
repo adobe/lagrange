@@ -165,6 +165,10 @@ class TestSurfaceMesh:
         for ei in range(12):
             assert not mesh.is_boundary_edge(ei)
             assert mesh.count_num_corners_around_edge(ei) == 2
+            v = mesh.get_edge_vertices(ei)
+            assert len(v) == 2
+            assert v[0] < mesh.num_vertices
+            assert v[1] < mesh.num_vertices
         for vi in range(8):
             assert mesh.count_num_corners_around_vertex(vi) == 3
 

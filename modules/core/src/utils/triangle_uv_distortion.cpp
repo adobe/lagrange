@@ -18,7 +18,7 @@
 
 namespace lagrange {
 
-namespace detail {
+namespace {
 
 template <typename Scalar, size_t dim>
 Scalar dot(span<const Scalar, dim> a, span<const Scalar, dim> b)
@@ -242,7 +242,7 @@ Scalar triangle_MIPS(
         return dirichlet / area_ratio;
 }
 
-} // namespace detail
+} // namespace
 
 template <DistortionMetric metric, typename Scalar>
 Scalar triangle_uv_distortion(
@@ -254,15 +254,15 @@ Scalar triangle_uv_distortion(
     span<const Scalar, 2> v2)
 {
     if constexpr (metric == DistortionMetric::Dirichlet) {
-        return detail::triangle_dirichlet(V0, V1, V2, v0, v1, v2);
+        return triangle_dirichlet(V0, V1, V2, v0, v1, v2);
     } else if constexpr (metric == DistortionMetric::InverseDirichlet) {
-        return detail::triangle_inverse_dirichlet(V0, V1, V2, v0, v1, v2);
+        return triangle_inverse_dirichlet(V0, V1, V2, v0, v1, v2);
     } else if constexpr (metric == DistortionMetric::SymmetricDirichlet) {
-        return detail::triangle_symmetric_dirichlet(V0, V1, V2, v0, v1, v2);
+        return triangle_symmetric_dirichlet(V0, V1, V2, v0, v1, v2);
     } else if constexpr (metric == DistortionMetric::AreaRatio) {
-        return detail::triangle_area_ratio(V0, V1, V2, v0, v1, v2);
+        return triangle_area_ratio(V0, V1, V2, v0, v1, v2);
     } else if constexpr (metric == DistortionMetric::MIPS) {
-        return detail::triangle_MIPS(V0, V1, V2, v0, v1, v2);
+        return triangle_MIPS(V0, V1, V2, v0, v1, v2);
     } else {
         static_assert(StaticAssertableBool<Scalar>::False, "Unsupported metric!");
     }
@@ -279,13 +279,13 @@ Scalar triangle_uv_distortion(
     DistortionMetric metric)
 {
     switch (metric) {
-    case DistortionMetric::Dirichlet: return detail::triangle_dirichlet(V0, V1, V2, v0, v1, v2);
+    case DistortionMetric::Dirichlet: return triangle_dirichlet(V0, V1, V2, v0, v1, v2);
     case DistortionMetric::InverseDirichlet:
-        return detail::triangle_inverse_dirichlet(V0, V1, V2, v0, v1, v2);
+        return triangle_inverse_dirichlet(V0, V1, V2, v0, v1, v2);
     case DistortionMetric::SymmetricDirichlet:
-        return detail::triangle_symmetric_dirichlet(V0, V1, V2, v0, v1, v2);
-    case DistortionMetric::AreaRatio: return detail::triangle_area_ratio(V0, V1, V2, v0, v1, v2);
-    case DistortionMetric::MIPS: return detail::triangle_MIPS(V0, V1, V2, v0, v1, v2);
+        return triangle_symmetric_dirichlet(V0, V1, V2, v0, v1, v2);
+    case DistortionMetric::AreaRatio: return triangle_area_ratio(V0, V1, V2, v0, v1, v2);
+    case DistortionMetric::MIPS: return triangle_MIPS(V0, V1, V2, v0, v1, v2);
     default: throw Error("Unkown distortion measure!");
     }
 }

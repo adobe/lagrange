@@ -17,6 +17,8 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/utils/BitField.h>
 
+#include <algorithm>
+
 namespace lagrange {
 
 ///
