@@ -11,38 +11,34 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-    #include <lagrange/mesh_cleanup/legacy/remove_duplicate_vertices.h>
-#endif
-
 #include <lagrange/SurfaceMesh.h>
-
-#include <vector>
 
 namespace lagrange {
 
 ///
-/// Option struct for remove_duplicate_vertices.
+/// Option struct for remove_null_area_facets.
 ///
-struct RemoveDuplicateVerticesOptions
+struct RemoveNullAreaFacetsOptions
 {
-    /// Additional attributes to include for duplicate vertex detection.
-    /// Two vertices are duplicates if their positions and all the extra attributes are the same.
-    std::vector<AttributeId> extra_attributes = {};
+    /// Facets with area <= null_area_threshold will be removed.
+    double null_area_threshold = 0;
+
+    /// If true, also remove isolated vertices after removing null area facets.
+    bool remove_isolated_vertices = false;
 };
 
 ///
-/// Removes duplicate vertices from a mesh.
+/// Removes all facets with unsigned area <= options.null_area_threshold.
 ///
-/// @tparam Scalar          Mesh scalar type
-/// @tparam Index           Mesh index type
+/// @tparam Scalar         Mesh scalar type.
+/// @tparam Index          Mesh index type.
 ///
-/// @param[in,out] mesh     The mesh to remove duplicate vertices from.
-/// @param         options  The options for duplicate vertex detection.
+/// @param[in,out] mesh    Input mesh.
+/// @param[in]     options Options settings for removing null area facets.
 ///
 template <typename Scalar, typename Index>
-void remove_duplicate_vertices(
+void remove_null_area_facets(
     SurfaceMesh<Scalar, Index>& mesh,
-    const RemoveDuplicateVerticesOptions& options = {});
+    const RemoveNullAreaFacetsOptions& options = {});
 
 } // namespace lagrange
