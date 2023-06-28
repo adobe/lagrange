@@ -27,12 +27,14 @@
 #include <lagrange/extract_submesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
+#include <lagrange/permute_facets.h>
 #include <lagrange/permute_vertices.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/python/utils/StackVector.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/separate_by_components.h>
 #include <lagrange/separate_by_facet_groups.h>
+#include <lagrange/topology.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
@@ -339,7 +341,24 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
             permute_vertices<Scalar, Index>(mesh, data);
         },
         "mesh"_a,
-        "new_to_old"_a);
+        "new_to_old"_a,
+        R"(Reorder vertices of a mesh in place based on a permutation.
+
+:param mesh: input mesh
+:param new_to_old: permutation vector for vertices)");
+    m.def(
+        "permute_facets",
+        [](MeshType& mesh, Tensor<Index> new_to_old) {
+            auto [data, shape, stride] = tensor_to_span(new_to_old);
+            la_runtime_assert(is_dense(shape, stride));
+            permute_facets<Scalar, Index>(mesh, data);
+        },
+        "mesh"_a,
+        "new_to_old"_a,
+        R"(Reorder facets of a mesh in place based on a permutation.
+
+:param mesh: input mesh
+:param new_to_old: permutation vector for facets)");
 
     nb::enum_<MappingPolicy>(m, "MappingPolicy")
         .value("Average", MappingPolicy::Average)
@@ -522,6 +541,11 @@ well-defined and will be set to the special value 2 * M_PI.
 
 :param mesh:         The source mesh.
 :param attribute_id: The indexed attribute id to weld.)");
+
+    m.def("compute_euler", &compute_euler<Scalar, Index>, "mesh"_a);
+    m.def("is_vertex_manifold", &is_vertex_manifold<Scalar, Index>, "mesh"_a);
+    m.def("is_edge_manifold", &is_edge_manifold<Scalar, Index>, "mesh"_a);
+    m.def("is_manifold", &is_manifold<Scalar, Index>, "mesh"_a);
 }
 
 } // namespace lagrange::python

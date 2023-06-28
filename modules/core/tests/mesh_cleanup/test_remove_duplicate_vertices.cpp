@@ -10,14 +10,138 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <catch2/benchmark/catch_benchmark.hpp>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/attributes/attribute_utils.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
+#include <lagrange/combine_meshes.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
+#include <lagrange/mesh_convert.h>
+#include <lagrange/testing/check_mesh.h>
+#include <lagrange/views.h>
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/attributes/attribute_utils.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+#endif
 
+TEST_CASE("remove_duplicate_vertices", "[mesh_cleanup][surface][duplicate]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SECTION("empty mesh")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+
+        remove_duplicate_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 0);
+        REQUIRE(mesh.get_num_facets() == 0);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("point cloud")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 0});
+
+        remove_duplicate_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_facets() == 0);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("quad")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+
+        remove_duplicate_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_facets() == 2);
+        lagrange::testing::check_mesh(mesh);
+
+        // Repeated call.
+        remove_duplicate_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_facets() == 2);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("quad with uv")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(3, 4, 5);
+
+        SECTION("wihtout uv")
+        {
+            remove_duplicate_vertices(mesh);
+            REQUIRE(mesh.get_num_vertices() == 4);
+            REQUIRE(mesh.get_num_facets() == 2);
+            lagrange::testing::check_mesh(mesh);
+        }
+
+        SECTION("with uv")
+        {
+            auto id = mesh.create_attribute<Scalar>(
+                "uv",
+                AttributeElement::Vertex,
+                AttributeUsage::UV,
+                2);
+            auto uv = attribute_matrix_ref<Scalar>(mesh, "uv");
+            uv << 0, 0, 1, 0, 1, 1, 0, 0, 2, 2, 0, 1;
+
+            RemoveDuplicateVerticesOptions opts;
+            opts.extra_attributes.push_back(id);
+            remove_duplicate_vertices(mesh, opts);
+            REQUIRE(mesh.get_num_vertices() == 5);
+            REQUIRE(mesh.get_num_facets() == 2);
+            lagrange::testing::check_mesh(mesh);
+        }
+    }
+}
+
+TEST_CASE("remove_duplicate_vertices benchmark", "[surface][mesh_cleanup][duplicate][!benchmark]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
+    mesh = combine_meshes({&mesh, &mesh});
+
+    BENCHMARK("remove_duplicate_vertices")
+    {
+        remove_duplicate_vertices(mesh);
+    };
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    using MeshType = TriangleMesh3D;
+    auto legacy_mesh = to_legacy_mesh<MeshType>(mesh);
+    BENCHMARK("legacy::remove_duplicate_vertices")
+    {
+        legacy::remove_duplicate_vertices(*legacy_mesh, {}, {});
+    };
+#endif
+}
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 TEST_CASE("RemoveDuplicateVerticesTest", "[duplicate][duplicate_vertices][cleanup]")
 {
     using namespace lagrange;
@@ -225,3 +349,4 @@ TEST_CASE("RemoveDuplicateVerticesTest", "[duplicate][duplicate_vertices][cleanu
         }
     }
 }
+#endif
