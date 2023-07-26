@@ -19,6 +19,7 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
+#include <lagrange/utils/invalid.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -176,6 +177,7 @@ auto extract_mesh(tinyobj::ObjReader& reader, const LoadOptions& options)
 
     logger().trace("[load_mesh_obj] Copy facet indices");
     std::partial_sum(facet_counts.begin(), facet_counts.end(), facet_counts.begin());
+    std::atomic_size_t num_invalid_uv = 0;
     tbb::parallel_for(Index(0), Index(shapes.size()), [&](Index i) {
         const auto& shape = shapes[i];
         const Index first_facet = (i == 0 ? 0 : facet_counts[i - 1]);
@@ -213,7 +215,12 @@ auto extract_mesh(tinyobj::ObjReader& reader, const LoadOptions& options)
                 const auto& index = shape.mesh.indices[local_corner];
                 vtx_indices[c] = safe_cast<Index>(index.vertex_index);
                 if (!uv_indices.empty()) {
-                    uv_indices[c] = safe_cast<Index>(index.texcoord_index);
+                    if (index.texcoord_index < 0) {
+                        uv_indices[c] = invalid<Index>();
+                        ++num_invalid_uv;
+                    } else {
+                        uv_indices[c] = safe_cast<Index>(index.texcoord_index);
+                    }
                 }
                 if (!nrm_indices.empty()) {
                     nrm_indices[c] = safe_cast<Index>(index.normal_index);
@@ -224,6 +231,11 @@ auto extract_mesh(tinyobj::ObjReader& reader, const LoadOptions& options)
         // TODO: Support smoothing groups + subd tags
     });
 
+    if (num_invalid_uv) {
+        logger().warn(
+            "Found {} vertices without UV indices. UV attribute will have invalid values.",
+            num_invalid_uv);
+    }
     logger().trace("[load_mesh_obj] Loading complete");
 
     return result;

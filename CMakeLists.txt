@@ -179,7 +179,8 @@ set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder pref
 
 # When building anorigami module, defaults to pre-built Arpack and dynamic MKL/TBB
 # When building python module, compile MKL/TBB as a shared library
-if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_PYTHON OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_MESHPROC OR LAGRANGE_MODULE_PYTHON
+    OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
     option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)

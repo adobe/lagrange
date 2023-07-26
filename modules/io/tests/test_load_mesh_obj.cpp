@@ -12,4 +12,10 @@
 #include <lagrange/testing/common.h>
 #include <lagrange/io/load_mesh_obj.h>
 
-// TODO
+#include <catch2/catch_approx.hpp>
+
+TEST_CASE("Grenade_H", "[mesh][io]" LA_CORP_FLAG)
+{
+    using namespace lagrange;
+    auto mesh = io::load_mesh_obj<SurfaceMesh32d>(testing::get_data_path("corp/io/Grenade_H.obj"));
+}

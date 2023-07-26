@@ -430,7 +430,7 @@ MeshType convert_mesh_tinygltf_to_lagrange(
                 accessor_to_attribute(
                     model,
                     accessor,
-                    AttributeName::indexed_joint,
+                    name_lowercase,
                     AttributeUsage::Vector,
                     lmesh);
             } else if (starts_with(name, "WEIGHTS") && options.load_weights) {
@@ -442,14 +442,14 @@ MeshType convert_mesh_tinygltf_to_lagrange(
                 accessor_to_attribute(
                     model,
                     accessor,
-                    AttributeName::indexed_weight,
+                    name_lowercase,
                     AttributeUsage::Vector,
                     lmesh);
             } else if (starts_with(name, "TEXCOORD") && options.load_uvs) {
                 accessor_to_attribute(
                     model,
                     accessor,
-                    AttributeName::texcoord,
+                    name_lowercase,
                     AttributeUsage::UV,
                     lmesh);
             } else {

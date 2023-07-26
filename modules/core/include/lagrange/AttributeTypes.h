@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <cstdint>
+
 // clang-format off
 
 /// @addtogroup group-surfacemesh-attr
