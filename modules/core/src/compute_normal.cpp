@@ -24,6 +24,7 @@
 
 #include "internal/bucket_sort.h"
 #include "internal/compute_weighted_corner_normal.h"
+#include "internal/recompute_facet_normal_if_needed.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -114,30 +115,6 @@ DisjointSets<Index> compute_unified_indices(
     return unified_indices;
 }
 
-template <typename Scalar, typename Index>
-auto recompute_facet_normal_if_needed(
-    SurfaceMesh<Scalar, Index>& mesh,
-    const NormalOptions& options)
-{
-    AttributeId facet_normal_id;
-    bool had_facet_normals = mesh.has_attribute(options.facet_normal_attribute_name);
-    if (options.recompute_facet_normals || !had_facet_normals) {
-        FacetNormalOptions facet_normal_options;
-        facet_normal_options.output_attribute_name = options.facet_normal_attribute_name;
-        facet_normal_id = compute_facet_normal(mesh, facet_normal_options);
-    } else {
-        facet_normal_id = internal::find_attribute<Scalar>(
-            mesh,
-            options.facet_normal_attribute_name,
-            Facet,
-            AttributeUsage::Normal,
-            3);
-    }
-    return std::make_pair(
-        matrix_view(mesh.template get_attribute<Scalar>(facet_normal_id)),
-        had_facet_normals);
-}
-
 template <typename Scalar, typename Index, typename Func>
 AttributeId compute_normal_internal(
     SurfaceMesh<Scalar, Index>& mesh,
@@ -148,7 +125,11 @@ AttributeId compute_normal_internal(
     la_runtime_assert(mesh.get_dimension() == 3, "Only 3D meshes are supported.");
     if (!mesh.has_edges()) mesh.initialize_edges();
 
-    auto [facet_normal, had_facet_normals] = recompute_facet_normal_if_needed(mesh, options);
+    auto [facet_normal_id, had_facet_normals] = internal::recompute_facet_normal_if_needed(
+        mesh,
+        options.facet_normal_attribute_name,
+        options.recompute_facet_normals);
+    auto facet_normal = attribute_matrix_view<Scalar>(mesh, facet_normal_id);
 
     const auto num_vertices = mesh.get_num_vertices();
 
@@ -242,7 +223,11 @@ AttributeId compute_normal(
 
     if (!mesh.has_edges()) mesh.initialize_edges();
 
-    auto [facet_normal, had_facet_normals] = recompute_facet_normal_if_needed(mesh, options);
+    auto [facet_normal_id, had_facet_normals] = internal::recompute_facet_normal_if_needed(
+        mesh,
+        options.facet_normal_attribute_name,
+        options.recompute_facet_normals);
+    auto facet_normal = attribute_matrix_view<Scalar>(mesh, facet_normal_id);
 
     auto is_smooth = [&, facet_normal = facet_normal](Index fi, Index fj) -> bool {
         const Eigen::Matrix<Scalar, 1, 3> ni = facet_normal.row(fi);
@@ -251,6 +236,9 @@ AttributeId compute_normal(
         const auto theta = angle_between(ni, nj);
         return theta < feature_angle_threshold;
     };
+
+    // No need to recompute facet normals again as they are already recomputed.
+    options.recompute_facet_normals = false;
 
     auto attr_id = compute_normal<Scalar, Index>(mesh, is_smooth, cone_vertices, options);
     if (!options.keep_facet_normals && !had_facet_normals) {

@@ -272,6 +272,20 @@ public:
     AttributeGrowthPolicy get_growth_policy() const { return m_growth_policy; }
 
     ///
+    /// Sets the shrink policy for external buffers.
+    ///
+    /// @param[in]  policy  New policy.
+    ///
+    void set_shrink_policy(AttributeShrinkPolicy policy) { m_shrink_policy = policy; }
+
+    ///
+    /// Gets the shrink policy for external buffers.
+    ///
+    /// @return     The shrink policy.
+    ///
+    AttributeShrinkPolicy get_shrink_policy() const { return m_shrink_policy; }
+
+    ///
     /// Sets the write policy for read-only external buffers.
     ///
     /// @param[in]  policy  New policy.
@@ -310,6 +324,13 @@ public:
     /// Clears the attribute buffer (new number of elements is 0).
     ///
     void clear();
+
+    ///
+    /// Shrink attribute buffer to fit the current number of entries. If the attribute points to an
+    /// external buffer, an internal copy will be created if the external buffer capacity exceeds
+    /// the number of entries in the attribute.
+    ///
+    void shrink_to_fit();
 
     ///
     /// Reserve enough memory for @p new_cap entries. The new capacity does not need to be a
@@ -380,6 +401,15 @@ public:
     /// @return     True if the buffer is external, False otherwise.
     ///
     [[nodiscard]] bool is_external() const { return m_is_external; }
+
+    ///
+    /// Checks whether the attribute is managing the lifetime of the underlying buffer. This is true
+    /// for internal attributes (the buffer is allocated by the attribute itself), or for external
+    /// attributes created by wrapping a SharedSpan object.
+    ///
+    /// @return     True if the buffer is managed, False otherwise.
+    ///
+    [[nodiscard]] bool is_managed() const { return !is_external() || m_owner; }
 
     ///
     /// Checks whether the attribute is external and pointing to a const buffer. If the attribute
@@ -574,6 +604,9 @@ protected:
 
     /// Growth policy for external buffers.
     AttributeGrowthPolicy m_growth_policy = AttributeGrowthPolicy::ErrorIfExternal;
+
+    /// Shrink policy for external buffers.
+    AttributeShrinkPolicy m_shrink_policy = AttributeShrinkPolicy::ErrorIfExternal;
 
     /// Policy for write access to read-only external buffers.
     AttributeWritePolicy m_write_policy = AttributeWritePolicy::ErrorIfReadOnly;

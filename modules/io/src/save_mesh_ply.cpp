@@ -17,6 +17,7 @@
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 
 #include "internal/convert_attribute_utils.h"
@@ -27,6 +28,8 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <algorithm>
+
 namespace lagrange::io {
 
 namespace {
@@ -34,8 +37,17 @@ namespace {
 template <typename T, typename Derived>
 std::vector<T> to_vector(const Eigen::DenseBase<Derived>& src)
 {
-    std::vector<T> dst(src.size());
-    Eigen::VectorX<T>::Map(dst.data(), dst.size()) = src.template cast<T>();
+    size_t n = src.size();
+    std::vector<T> dst(n);
+    if constexpr (std::is_same_v<T, typename Derived::Scalar>) {
+        for (size_t i = 0; i < n; i++) {
+            dst[i] = src(i);
+        }
+    } else {
+        for (size_t i = 0; i < n; i++) {
+            dst[i] = safe_cast<T>(src(i));
+        }
+    }
     return dst;
 }
 
@@ -46,7 +58,11 @@ std::vector<std::vector<T>> to_vector_2d(const Eigen::DenseBase<Derived>& src)
     for (auto i : range(src.rows())) {
         dst[i].resize(src.cols());
         for (auto j : range(src.cols())) {
-            dst[i][j] = static_cast<T>(src(i, j));
+            if constexpr (std::is_same_v<T, typename Derived::Scalar>) {
+                dst[i][j] = static_cast<T>(src(i, j));
+            } else {
+                dst[i][j] = safe_cast<T>(src(i, j));
+            }
         }
     }
     return dst;
@@ -82,12 +98,13 @@ void register_normal(happly::Element& element, std::string_view name, T&& attr, 
         element.addProperty<ValueType>(fmt::format("ny{}", suffix), ny);
         element.addProperty<ValueType>(fmt::format("nz{}", suffix), nz);
     } else {
-        auto nx = to_vector<double>(nrm.col(0));
-        auto ny = to_vector<double>(nrm.col(1));
-        auto nz = to_vector<double>(nrm.col(2));
-        element.addProperty<double>(fmt::format("nx{}", suffix), nx);
-        element.addProperty<double>(fmt::format("ny{}", suffix), ny);
-        element.addProperty<double>(fmt::format("nz{}", suffix), nz);
+        using ValueType2 = std::conditional_t<std::is_signed_v<ValueType>, int32_t, uint32_t>;
+        auto nx = to_vector<ValueType2>(nrm.col(0));
+        auto ny = to_vector<ValueType2>(nrm.col(1));
+        auto nz = to_vector<ValueType2>(nrm.col(2));
+        element.addProperty<ValueType2>(fmt::format("nx{}", suffix), nx);
+        element.addProperty<ValueType2>(fmt::format("ny{}", suffix), ny);
+        element.addProperty<ValueType2>(fmt::format("nz{}", suffix), nz);
     }
     ++count;
 }
@@ -106,10 +123,11 @@ void register_uv(happly::Element& element, std::string_view name, T&& attr, size
         element.addProperty<ValueType>(fmt::format("s{}", suffix), s);
         element.addProperty<ValueType>(fmt::format("t{}", suffix), t);
     } else {
-        auto s = to_vector<double>(uv.col(0));
-        auto t = to_vector<double>(uv.col(1));
-        element.addProperty<double>(fmt::format("s{}", suffix), s);
-        element.addProperty<double>(fmt::format("t{}", suffix), t);
+        using ValueType2 = std::conditional_t<std::is_signed_v<ValueType>, int32_t, uint32_t>;
+        auto s = to_vector<ValueType2>(uv.col(0));
+        auto t = to_vector<ValueType2>(uv.col(1));
+        element.addProperty<ValueType2>(fmt::format("s{}", suffix), s);
+        element.addProperty<ValueType2>(fmt::format("t{}", suffix), t);
     }
     ++count;
 }
@@ -124,29 +142,38 @@ void register_color(happly::Element& element, std::string_view name, T&& attr, s
     auto num_elements = attr.get_num_elements();
     std::string suffix = count == 0 ? "" : fmt::format("_{}", count);
 
-    auto to_unsigned_char = [](ValueType val) -> unsigned char {
-        if constexpr (std::is_floating_point_v<ValueType>) {
-            return static_cast<unsigned char>(std::round(val * 255));
-        } else {
-            return static_cast<unsigned char>(val);
-        }
-    };
-
     logger().debug("Writing color attribute '{}'", name);
-    std::vector<unsigned char> buf;
-    buf.resize(num_elements);
-    auto add_channel = [&](std::string channel_name, size_t channel_index) {
+
+    auto add_channel = [&](std::string channel_name, size_t channel_index, auto&& buf) {
+        using DataType = typename std::decay_t<decltype(buf)>::value_type;
+        buf.resize(num_elements);
         for (auto i : range(num_elements)) {
-            buf[i] = to_unsigned_char(attr.get(i, channel_index));
+            if constexpr (std::is_same_v<ValueType, DataType>) {
+                buf[i] = attr.get(i, channel_index);
+            } else {
+                buf[i] = safe_cast<DataType>(attr.get(i, channel_index));
+            }
         }
-        element.addProperty<unsigned char>(channel_name, buf);
+        element.addProperty<DataType>(channel_name, buf);
     };
 
-    add_channel(fmt::format("red{}", suffix), 0);
-    add_channel(fmt::format("green{}", suffix), 1);
-    add_channel(fmt::format("blue{}", suffix), 2);
-    if (num_channels == 4) {
-        add_channel(fmt::format("alpha{}", suffix), 3);
+    if constexpr (is_valid_ply_type<ValueType>()) {
+        std::vector<ValueType> buf;
+        add_channel(fmt::format("red{}", suffix), 0, buf);
+        add_channel(fmt::format("green{}", suffix), 1, buf);
+        add_channel(fmt::format("blue{}", suffix), 2, buf);
+        if (num_channels == 4) {
+            add_channel(fmt::format("alpha{}", suffix), 3, buf);
+        }
+    } else {
+        using ValueType2 = std::conditional_t<std::is_signed_v<ValueType>, int32_t, uint32_t>;
+        std::vector<ValueType2> buf;
+        add_channel(fmt::format("red{}", suffix), 0, buf);
+        add_channel(fmt::format("green{}", suffix), 1, buf);
+        add_channel(fmt::format("blue{}", suffix), 2, buf);
+        if (num_channels == 4) {
+            add_channel(fmt::format("alpha{}", suffix), 3, buf);
+        }
     }
 
     ++count;
@@ -168,12 +195,13 @@ void register_attribute(happly::Element& element, std::string_view name, T&& att
             element.addListProperty<ValueType>(std::string(name), data2);
         }
     } else {
+        using ValueType2 = std::conditional_t<std::is_signed_v<ValueType>, int32_t, uint32_t>;
         if (attr.get_num_channels() == 1) {
-            auto data2 = to_vector<double>(data);
-            element.addProperty<double>(std::string(name), data2);
+            auto data2 = to_vector<ValueType2>(data);
+            element.addProperty<ValueType2>(std::string(name), data2);
         } else {
-            auto data2 = to_vector_2d<double>(data);
-            element.addListProperty<double>(std::string(name), data2);
+            auto data2 = to_vector_2d<ValueType2>(data);
+            element.addListProperty<ValueType2>(std::string(name), data2);
         }
     }
 }
@@ -290,38 +318,43 @@ void save_mesh_ply(
 
     // Facet indices
     {
-        std::vector<std::vector<uint32_t>> facet_indices(mesh.get_num_facets());
+        std::vector<std::vector<Index>> facet_indices(mesh.get_num_facets());
         for (Index f = 0; f < mesh.get_num_facets(); ++f) {
             facet_indices[f].reserve(mesh.get_facet_size(f));
             for (Index v : mesh.get_facet_vertices(f)) {
-                facet_indices[f].push_back(static_cast<uint32_t>(v));
+                facet_indices[f].push_back(v);
             }
         }
-        ply.getElement("face").addListProperty<uint32_t>("vertex_indices", facet_indices);
+        ply.getElement("face").addListProperty<Index>("vertex_indices", facet_indices);
     }
 
     // Edge indices
     if (mesh.has_edges()) {
-        std::vector<uint32_t> v1(mesh.get_num_edges());
-        std::vector<uint32_t> v2(mesh.get_num_edges());
+        std::vector<Index> v1(mesh.get_num_edges());
+        std::vector<Index> v2(mesh.get_num_edges());
         for (Index e = 0; e < mesh.get_num_edges(); ++e) {
             auto verts = mesh.get_edge_vertices(e);
-            v1[e] = uint32_t(verts[0]);
-            v2[e] = uint32_t(verts[1]);
+            v1[e] = verts[0];
+            v2[e] = verts[1];
         }
-        ply.getElement("edge").addProperty<uint32_t>("vertex1", v1);
-        ply.getElement("edge").addProperty<uint32_t>("vertex2", v2);
+        ply.getElement("edge").addProperty<Index>("vertex1", v1);
+        ply.getElement("edge").addProperty<Index>("vertex2", v2);
     }
 
-    details::internal_foreach_named_attribute<
-        AttributeElement::Vertex,
-        details::Ordering::Sequential,
-        details::Access::Read>(mesh, register_vertex_attribute, options.selected_attributes);
+    if (options.output_attributes == io::SaveOptions::OutputAttributes::All) {
+        seq_foreach_named_attribute_read<AttributeElement::Vertex>(mesh, register_vertex_attribute);
+        seq_foreach_named_attribute_read<AttributeElement::Facet>(mesh, register_facet_attribute);
+    } else if (!options.selected_attributes.empty()) {
+        details::internal_foreach_named_attribute<
+            AttributeElement::Vertex,
+            details::Ordering::Sequential,
+            details::Access::Read>(mesh, register_vertex_attribute, options.selected_attributes);
 
-    details::internal_foreach_named_attribute<
-        AttributeElement::Facet,
-        details::Ordering::Sequential,
-        details::Access::Read>(mesh, register_facet_attribute, options.selected_attributes);
+        details::internal_foreach_named_attribute<
+            AttributeElement::Facet,
+            details::Ordering::Sequential,
+            details::Access::Read>(mesh, register_facet_attribute, options.selected_attributes);
+    }
 
     // Write the object to file
     happly::DataFormat format;
@@ -348,6 +381,10 @@ void save_mesh_ply(
 }
 
 #define LA_X_save_mesh_ply(_, Scalar, Index)    \
+    template void save_mesh_ply(                \
+        std::ostream&,                          \
+        const SurfaceMesh<Scalar, Index>& mesh, \
+        const SaveOptions& options);            \
     template void save_mesh_ply(                \
         const fs::path& filename,               \
         const SurfaceMesh<Scalar, Index>& mesh, \

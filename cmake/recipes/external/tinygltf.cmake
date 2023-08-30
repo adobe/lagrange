@@ -20,13 +20,13 @@ message(STATUS "Third-party (external): creating target 'tinygltf::tinygltf'")
 set(TINYGLTF_VERSION "v2.8.3")
 set(TINYGLTF_URL "https://raw.githubusercontent.com/syoyo/tinygltf/${TINYGLTF_VERSION}/tiny_gltf.h")
 
-include(FetchContent)
-FetchContent_Declare(
-    tinygltf
+include(CPM)
+CPMAddPackage(
+    NAME tinygltf
     URL ${TINYGLTF_URL}
     DOWNLOAD_NO_EXTRACT 1
+    DOWNLOAD_ONLY ON
 )
-FetchContent_Populate(tinygltf)
 
 # Implementation file
 file(WRITE "${tinygltf_BINARY_DIR}/tinygltf.cpp.in" [[

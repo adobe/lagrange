@@ -15,13 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'miniz::miniz'")
 
-include(FetchContent)
-FetchContent_Declare(
-    miniz
+include(CPM)
+CPMAddPackage(
+    NAME miniz
     URL https://github.com/richgel999/miniz/releases/download/2.2.0/miniz-2.2.0.zip
     URL_MD5 bc866f2def5214188cd6481e2694bd3c
 )
-FetchContent_MakeAvailable(miniz)
 
 add_library(miniz ${miniz_SOURCE_DIR}/miniz.c)
 add_library(miniz::miniz ALIAS miniz)

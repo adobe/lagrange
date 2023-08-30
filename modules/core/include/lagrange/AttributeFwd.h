@@ -100,6 +100,19 @@ enum class AttributeGrowthPolicy {
 };
 
 ///
+/// Policy for shrinking external attribute buffers. This policy controls what happens when calling
+/// `shrink_to_fit()` to save memory. Shrinkage can happen either when mesh elements have been
+/// removed by another operation, or if the attribute has been created with additional capacity.
+///
+enum class AttributeShrinkPolicy {
+    ErrorIfExternal, ///< Throws an exception when trying to shrink an external buffer (even if the new size is
+    ///< still within the buffer capacity). This is the default policy.
+    IgnoreIfExternal, ///< Ignore external buffers when trying to shrink an attribute.
+    WarnAndCopy, ///< Logs a warning and creates an internal copy of the buffer data when shrinking below capacity.
+    SilentCopy, ///< Silently copy the buffer data when shrinking below capacity.
+};
+
+///
 /// Policy for attempting to write to read-only external buffers. By default any write operation on
 /// a read-only external buffer will throw an exception. Alternatively, we can issue a warning a
 /// perform a copy of the buffer data.
@@ -117,6 +130,7 @@ enum class AttributeWritePolicy {
 ///
 enum class AttributeExportPolicy {
     CopyIfExternal, ///< Copy the buffer during export if the attribute points to an external buffer.
+    CopyIfUnmanaged, ///< Copy the buffer during export if the attribute points to an unmanaged external buffer.
     KeepExternalPtr, ///< Keep the raw pointer to the external buffer data. Use with caution.
     ErrorIfExternal, ///< Throw an exception if the attribute points to an external buffer.
 };

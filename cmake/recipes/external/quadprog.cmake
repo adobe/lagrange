@@ -15,13 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'quadprog::quadprog'")
 
-include(FetchContent)
-FetchContent_Declare(
-    quadprog
-    GIT_REPOSITORY https://github.com/ggael/QuadProg.git
+include(CPM)
+CPMAddPackage(
+    NAME quadprog
+    GITHUB_REPOSITORY ggael/QuadProg
     GIT_TAG c031c027671488fd13ef3569f9d6319b4e2fec5c
 )
-FetchContent_MakeAvailable(quadprog)
 
 add_library(quadprog
     ${quadprog_SOURCE_DIR}/QuadProgPP.cpp

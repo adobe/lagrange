@@ -49,6 +49,7 @@ target_link_libraries(lagrange_ui
     PRIVATE
         lagrange::assets
         stb::image
+        stb::image_write
         portable_file_dialogs::portable_file_dialogs
     PUBLIC
         lagrange::core

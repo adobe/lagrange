@@ -379,7 +379,7 @@ std::unique_ptr<MeshType> to_legacy_mesh(const SurfaceMesh<Scalar, Index>& mesh)
     std::vector<Index> old_edge_ids;
     std::vector<MeshIndex> new_edge_ids;
     if (mesh.has_edges()) {
-        logger().warn("Mesh contain edges information. A possible reordering may occur.");
+        logger().warn("Mesh contains edges information. A possible reordering may occur.");
         new_mesh->initialize_edge_data();
         la_runtime_assert(
             mesh.get_num_edges() == static_cast<Index>(new_mesh->get_num_edges()),

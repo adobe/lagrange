@@ -28,7 +28,7 @@ SurfaceMesh<Scalar, Index> extract_submesh(
     span<const Index> selected_facets,
     const SubmeshOptions& options)
 {
-    SurfaceMesh<Scalar, Index> output_mesh;
+    SurfaceMesh<Scalar, Index> output_mesh(mesh.get_dimension());
 
     // Compute vertex mapping.
     const auto num_vertices = mesh.get_num_vertices();

@@ -15,13 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'nanosvg::nanosvg'")
 
-include(FetchContent)
-FetchContent_Declare(
-    nanosvg
-    GIT_REPOSITORY https://github.com/memononen/nanosvg.git
+include(CPM)
+CPMAddPackage(
+    NAME nanosvg
+    GITHUB_REPOSITORY memononen/nanosvg
     GIT_TAG 25241c5a8f8451d41ab1b02ab2d865b01600d949
 )
-FetchContent_MakeAvailable(nanosvg)
 
 # Generate implementation file
 file(WRITE "${nanosvg_BINARY_DIR}/nanosvg.cpp.in" [[

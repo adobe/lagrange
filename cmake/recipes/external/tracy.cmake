@@ -15,14 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'tracy::client'")
 
-include(FetchContent)
-FetchContent_Declare(
-    tracy
-    GIT_REPOSITORY https://github.com/wolfpld/tracy.git
-    GIT_TAG  v0.7.7
-    GIT_SHALLOW TRUE
+include(CPM)
+CPMAddPackage(
+    NAME tracy
+    GITHUB_REPOSITORY wolfpld/tracy
+    GIT_TAG v0.7.7
 )
-FetchContent_MakeAvailable(tracy)
 
 ################################################################################
 # Client

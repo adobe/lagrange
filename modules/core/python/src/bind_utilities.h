@@ -11,11 +11,14 @@
  */
 #pragma once
 
+#include <lagrange/AttributeTypes.h>
 #include <lagrange/NormalWeightingType.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/compute_area.h>
 #include <lagrange/compute_centroid.h>
 #include <lagrange/compute_components.h>
+#include <lagrange/compute_dihedral_angles.h>
+#include <lagrange/compute_edge_lengths.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_tangent_bitangent.h>
@@ -24,19 +27,24 @@
 #include <lagrange/extract_submesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
+#include <lagrange/permute_facets.h>
 #include <lagrange/permute_vertices.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/python/utils/StackVector.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/separate_by_components.h>
 #include <lagrange/separate_by_facet_groups.h>
+#include <lagrange/topology.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/weld_indexed_attribute.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
@@ -95,30 +103,48 @@ void bind_utilities(nanobind::module_& m)
         "compute_normal",
         [](MeshType& mesh,
            Scalar feature_angle_threshold,
-           Tensor<Index> cone_vertices,
-           NormalOptions options) {
-            auto [data, shape, stride] = tensor_to_span(cone_vertices);
-            la_runtime_assert(is_dense(shape, stride));
-            return compute_normal<Scalar, Index>(mesh, feature_angle_threshold, data, options);
+           nb::object cone_vertices,
+           std::optional<NormalOptions> normal_options) {
+            NormalOptions options;
+            if (normal_options.has_value()) {
+                options = std::move(normal_options.value());
+            }
+
+            if (cone_vertices.is_none()) {
+                return compute_normal<Scalar, Index>(mesh, feature_angle_threshold, {}, options);
+            } else if (nb::isinstance<nb::list>(cone_vertices)) {
+                auto cone_vertices_list = nb::cast<std::vector<Index>>(cone_vertices);
+                span<const Index> data{cone_vertices_list.data(), cone_vertices_list.size()};
+                return compute_normal<Scalar, Index>(mesh, feature_angle_threshold, data, options);
+            } else if (nb::isinstance<Tensor<Index>>(cone_vertices)) {
+                auto cone_vertices_tensor = nb::cast<Tensor<Index>>(cone_vertices);
+                auto [data, shape, stride] = tensor_to_span(cone_vertices_tensor);
+                la_runtime_assert(is_dense(shape, stride));
+                return compute_normal<Scalar, Index>(mesh, feature_angle_threshold, data, options);
+            } else {
+                throw std::runtime_error("Invalid cone_vertices type");
+            }
         },
         "mesh"_a,
         "feature_angle_threshold"_a = M_PI / 4,
-        "cone_vertices"_a,
-        "options"_a = NormalOptions());
-    // Overload to support python list and default empty array.
-    m.def(
-        "compute_normal",
-        [](MeshType& mesh,
-           Scalar feature_angle_threshold,
-           const std::vector<Index>& cone_vertices,
-           NormalOptions options) {
-            span<const Index> data{cone_vertices.data(), cone_vertices.size()};
-            return compute_normal<Scalar, Index>(mesh, feature_angle_threshold, data, options);
-        },
-        "mesh"_a,
-        "feature_angle_threshold"_a = M_PI / 4,
-        "cone_vertices"_a = std::vector<Index>(),
-        "options"_a = NormalOptions());
+        "cone_vertices"_a = nb::none(),
+        "options"_a = nb::none(),
+        R"(Compute indexed normal attribute.
+
+Edge with dihedral angles larger than `feature_angle_threshold` are considered as sharp edges.
+Vertices listed in `cone_vertices` are considered as cone vertices, which is alwayse sharp.
+
+:param mesh: input mesh
+:type mesh: SurfaceMesh
+:param feature_angle_threshold: feature angle threshold
+:type feature_angle_threshold: float, optional
+:param cone_vertices: cone vertices
+:type cone_vertices: list[int] or numpy.ndarray, optional
+:param options: normal options
+:type optionas: NormalOptions, optional
+
+:returns: the id of the indexed normal attribute.
+)");
 
     m.def("normalize_mesh", &normalize_mesh<Scalar, Index>);
     m.def("normalize_meshes", [](std::vector<SurfaceMesh<Scalar, Index>*> meshes) {
@@ -139,14 +165,43 @@ void bind_utilities(nanobind::module_& m)
 
     m.def(
         "unify_index_buffer",
+        [](MeshType& mesh) { return unify_index_buffer(mesh); },
+        "mesh"_a,
+        R"(Unify the index buffer of the mesh.  All indexed attributes will be unified.
+
+:param mesh: The mesh to unify.
+:type mesh: SurfaceMesh
+
+:returns: The unified mesh.)");
+
+    m.def(
+        "unify_index_buffer",
         &lagrange::unify_index_buffer<Scalar, Index>,
         "mesh"_a,
-        "attribute_ids"_a);
+        "attribute_ids"_a,
+        R"(Unify the index buffer of the mesh for selected attributes.
+
+:param mesh: The mesh to unify.
+:type mesh: SurfaceMesh
+:param attribute_ids: The selected attribute ids to unify.
+:type attribute_ids: list of int
+
+:returns: The unified mesh.)");
+
     m.def(
         "unify_index_buffer",
         &lagrange::unify_named_index_buffer<Scalar, Index>,
         "mesh"_a,
-        "attribute_names"_a);
+        "attribute_names"_a,
+        R"(Unify the index buffer of the mesh for selected attributes.
+
+:param mesh: The mesh to unify.
+:type mesh: SurfaceMesh
+:param attribute_names: The selected attribute names to unify.
+:type attribute_names: list of str
+
+:returns: The unified mesh.)");
+
     m.def(
         "triangulate_polygonal_facets",
         &lagrange::triangulate_polygonal_facets<Scalar, Index>,
@@ -286,7 +341,24 @@ void bind_utilities(nanobind::module_& m)
             permute_vertices<Scalar, Index>(mesh, data);
         },
         "mesh"_a,
-        "new_to_old"_a);
+        "new_to_old"_a,
+        R"(Reorder vertices of a mesh in place based on a permutation.
+
+:param mesh: input mesh
+:param new_to_old: permutation vector for vertices)");
+    m.def(
+        "permute_facets",
+        [](MeshType& mesh, Tensor<Index> new_to_old) {
+            auto [data, shape, stride] = tensor_to_span(new_to_old);
+            la_runtime_assert(is_dense(shape, stride));
+            permute_facets<Scalar, Index>(mesh, data);
+        },
+        "mesh"_a,
+        "new_to_old"_a,
+        R"(Reorder facets of a mesh in place based on a permutation.
+
+:param mesh: input mesh
+:param new_to_old: permutation vector for facets)");
 
     nb::enum_<MappingPolicy>(m, "MappingPolicy")
         .value("Average", MappingPolicy::Average)
@@ -398,6 +470,82 @@ void bind_utilities(nanobind::module_& m)
 
 :returns: A mesh that contains only the selected facets.
 )");
+
+    m.def(
+        "compute_dihedral_angles",
+        [](MeshType& mesh,
+           std::optional<std::string_view> output_attribute_name,
+           std::optional<std::string_view> facet_normal_attribute_name,
+           std::optional<bool> recompute_facet_normals,
+           std::optional<bool> keep_facet_normals) {
+            DihedralAngleOptions options;
+            if (output_attribute_name.has_value()) {
+                options.output_attribute_name = output_attribute_name.value();
+            }
+            if (facet_normal_attribute_name.has_value()) {
+                options.facet_normal_attribute_name = facet_normal_attribute_name.value();
+            }
+            if (recompute_facet_normals.has_value()) {
+                options.recompute_facet_normals = recompute_facet_normals.value();
+            }
+            if (keep_facet_normals.has_value()) {
+                options.keep_facet_normals = keep_facet_normals.value();
+            }
+            return compute_dihedral_angles(mesh, options);
+        },
+        "mesh"_a,
+        "output_attribute_name"_a = nb::none(),
+        "facet_normal_attribute_name"_a = nb::none(),
+        "recompute_facet_normals"_a = nb::none(),
+        "keep_facet_normals"_a = nb::none(),
+        R"(Compute dihedral angles for each edge.
+
+The dihedral angle of an edge is defined as the angle between the __normals__ of two facets adjacent
+to the edge. The dihedral angle is always in the range [0, pi] for manifold edges. For boundary
+edges, the dihedral angle defaults to 0.  For non-manifold edges, the dihedral angle is not
+well-defined and will be set to the special value 2 * M_PI.
+
+:param mesh:                        The source mesh.
+:param output_attribute_name:       The optional edge attribute name to store the dihedral angles.
+:param facet_normal_attribute_name: The optional attribute name to store the facet normals.
+:param recompute_facet_normals:     Whether to recompute facet normals.
+:param keep_facet_normals:          Whether to keep newly computed facet normals. It has no effect
+                                    on pre-existing facet normals.
+
+:return: The edge attribute id of dihedral angles.)");
+
+    m.def(
+        "compute_edge_lengths",
+        [](MeshType& mesh, std::optional<std::string_view> output_attribute_name) {
+            EdgeLengthOptions options;
+            if (output_attribute_name.has_value())
+                options.output_attribute_name = output_attribute_name.value();
+            return compute_edge_lengths(mesh, options);
+        },
+        "mesh"_a,
+        "output_attribute_name"_a = nb::none(),
+        R"(Compute edge lengths.
+
+:param mesh:                  The source mesh.
+:param output_attribute_name: The optional edge attribute name to store the edge lengths.
+
+:return: The edge attribute id of edge lengths.)");
+
+    m.def(
+        "weld_indexed_attribute",
+        nb::overload_cast<SurfaceMesh<Scalar, Index>&, AttributeId>(
+            &weld_indexed_attribute<Scalar, Index>),
+        "mesh"_a,
+        "attribute_id"_a,
+        R"(Weld indexed attribute.
+
+:param mesh:         The source mesh.
+:param attribute_id: The indexed attribute id to weld.)");
+
+    m.def("compute_euler", &compute_euler<Scalar, Index>, "mesh"_a);
+    m.def("is_vertex_manifold", &is_vertex_manifold<Scalar, Index>, "mesh"_a);
+    m.def("is_edge_manifold", &is_edge_manifold<Scalar, Index>, "mesh"_a);
+    m.def("is_manifold", &is_manifold<Scalar, Index>, "mesh"_a);
 }
 
 } // namespace lagrange::python

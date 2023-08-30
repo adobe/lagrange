@@ -14,7 +14,9 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_uv_tile_list.h>
 #include <lagrange/foreach_attribute.h>
+
 #include <unordered_set>
+#include <array>
 
 namespace lagrange {
 

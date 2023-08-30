@@ -15,18 +15,16 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'Catch2::Catch2'")
 
-include(FetchContent)
-FetchContent_Declare(
-    catch2
-    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-    GIT_TAG v3.3.2
-    GIT_SHALLOW TRUE
-)
-
 option(CATCH_CONFIG_CPP17_STRING_VIEW "Enable support for std::string_view" ON)
 option(CATCH_INSTALL_DOCS "Install documentation alongside library" OFF)
 option(CATCH_INSTALL_EXTRAS "Install extras alongside library" OFF)
-FetchContent_MakeAvailable(catch2)
+
+include(CPM)
+CPMAddPackage(
+    NAME catch2
+    GITHUB_REPOSITORY catchorg/Catch2
+    GIT_TAG v3.2.1
+)
 
 target_compile_features(Catch2 PUBLIC cxx_std_17)
 

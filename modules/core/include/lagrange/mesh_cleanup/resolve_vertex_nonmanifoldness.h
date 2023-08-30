@@ -17,19 +17,12 @@
 #include <unordered_map>
 
 #include <lagrange/Edge.h>
-#include <lagrange/Logger.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/attributes/map_attributes.h>
-#include <lagrange/chain_edges.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/utils/Error.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <spdlog/fmt/ostr.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/utils/chain_edges.h>
 
 namespace lagrange {
 
@@ -89,14 +82,23 @@ std::unique_ptr<MeshType> resolve_vertex_nonmanifoldness(MeshType& mesh)
 
     for (Index i = 0; i < num_vertices; i++) {
         const auto& adj_facets = mesh.get_facets_adjacent_to_vertex(i);
-        std::list<Edge> rim_edges;
+        std::vector<Index> rim_edges;
+        rim_edges.reserve(adj_facets.size() * 2);
         for (Index fid : adj_facets) {
-            rim_edges.push_back(get_opposite_edge(fid, i));
+            const auto e = get_opposite_edge(fid, i);
+            rim_edges.push_back(e[0]);
+            rim_edges.push_back(e[1]);
         }
-        auto chains = chain_edges<Index>(rim_edges);
-        if (chains.size() > 1) {
+        auto [loops, chains] = chain_directed_edges<Index>({rim_edges.data(), rim_edges.size()});
+        if (loops.size() + chains.size() > 1) {
             std::unordered_map<Index, Index> comp_map;
             Index comp_count = 0;
+            for (const auto& loop : loops) {
+                for (const auto vid : loop) {
+                    comp_map[vid] = comp_count;
+                }
+                comp_count++;
+            }
             for (const auto& chain : chains) {
                 for (const auto vid : chain) {
                     comp_map[vid] = comp_count;
@@ -114,10 +116,6 @@ std::unique_ptr<MeshType> resolve_vertex_nonmanifoldness(MeshType& mesh)
                         assert(comp_map.find(f[next]) != comp_map.end());
                         assert(comp_map.find(f[prev]) != comp_map.end());
                         if (comp_map[f[next]] != comp_map[f[prev]]) {
-                            logger().trace("vertex: {}", i);
-                            for (auto fi : adj_facets) {
-                                logger().trace("{}", facets.row(fi));
-                            }
                             throw std::runtime_error(
                                 "Complex edge loop detected.  Vertex " + std::to_string(i) +
                                 "'s one ring neighborhood must contain nonmanifold_edges!");
@@ -136,7 +134,7 @@ std::unique_ptr<MeshType> resolve_vertex_nonmanifoldness(MeshType& mesh)
                     }
                 }
             }
-            vertex_count += safe_cast<Index>(chains.size()) - 1;
+            vertex_count += safe_cast<Index>(loops.size() + chains.size()) - 1;
         }
     }
     assert(out_facets.rows() == 0 || out_facets.maxCoeff() == vertex_count - 1);

@@ -15,11 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'nanobind::nanobind'")
 
-include(FetchContent)
-FetchContent_Declare(
-    nanobind
-    GIT_REPOSITORY https://github.com/wjakob/nanobind.git
+include(CPM)
+CPMAddPackage(
+    NAME nanobind
+    GITHUB_REPOSITORY wjakob/nanobind
     GIT_TAG v1.0.0
+    DOWNLOAD_ONLY ON
 )
 
 include(python)
@@ -27,5 +28,5 @@ set(NB_SHARED OFF CACHE INTERNAL "")
 
 # Note that we do not use FetchContent_MakeAvailable here because nanobind's cmake changes
 # CMAKE_CXX_FLAGS and attempts to refind python, which can leads to cmake error.
-FetchContent_Populate(nanobind)
 find_package(nanobind PATHS ${nanobind_SOURCE_DIR}/cmake NO_DEFAULT_PATH)
+

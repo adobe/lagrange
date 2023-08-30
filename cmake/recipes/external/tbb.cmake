@@ -30,17 +30,6 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'TBB::tbb'")
 
-# Using wjakob's fork as it has a better cmake build system
-# Change it back to intel's once they fix it
-# https://github.com/intel/tbb/issues/6
-include(FetchContent)
-FetchContent_Declare(
-    tbb
-    GIT_REPOSITORY https://github.com/wjakob/tbb.git
-    GIT_TAG 9e219e24fe223b299783200f217e9d27790a87b0
-    GIT_SHALLOW FALSE
-)
-
 option(TBB_PREFER_STATIC         "Use the static version of TBB for the alias target" ON)
 option(TBB_BUILD_SHARED          "Build TBB shared library" OFF)
 option(TBB_BUILD_STATIC          "Build TBB static library" OFF)
@@ -62,24 +51,33 @@ else()
 endif()
 
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME TBB)
-FetchContent_MakeAvailable(tbb)
+
+# Using wjakob's fork as it has a better cmake build system
+# Change it back to intel's once they fix it
+# https://github.com/intel/tbb/issues/6
+include(CPM)
+CPMAddPackage(
+    NAME tbb
+    GITHUB_REPOSITORY wjakob/tbb
+    GIT_TAG 9e219e24fe223b299783200f217e9d27790a87b0
+)
 
 # Install rules for the tbb_static target (not defined by upstream CMakeLists.txt)
 if(TBB_INSTALL_TARGETS AND TBB_BUILD_STATIC)
     if(NOT TBB_INSTALL_RUNTIME_DIR)
-      set(TBB_INSTALL_RUNTIME_DIR bin)
+        set(TBB_INSTALL_RUNTIME_DIR bin)
     endif()
     if(NOT TBB_INSTALL_LIBRARY_DIR)
-      set(TBB_INSTALL_LIBRARY_DIR lib)
+        set(TBB_INSTALL_LIBRARY_DIR lib)
     endif()
     if(NOT TBB_INSTALL_ARCHIVE_DIR)
-      set(TBB_INSTALL_ARCHIVE_DIR lib)
+        set(TBB_INSTALL_ARCHIVE_DIR lib)
     endif()
     if(NOT TBB_INSTALL_INCLUDE_DIR)
-      set(TBB_INSTALL_INCLUDE_DIR include)
+        set(TBB_INSTALL_INCLUDE_DIR include)
     endif()
     if(NOT TBB_CMAKE_PACKAGE_INSTALL_DIR)
-      set(TBB_CMAKE_PACKAGE_INSTALL_DIR lib/cmake/tbb)
+        set(TBB_CMAKE_PACKAGE_INSTALL_DIR lib/cmake/tbb)
     endif()
     if(TARGET tbb_interface)
         install(TARGETS tbb_interface EXPORT TBB)
@@ -113,6 +111,19 @@ function(tbb_fix_include_dirs)
     endforeach()
 endfunction()
 
+# For some reason tbb_tbb's INTERFACE_INCLUDE_DIRECTORIES are empty?!
+function(tbb_copy_interface_dirs target)
+    foreach(name IN ITEMS ${ARGN})
+        if(NOT TARGET ${name})
+            message(FATAL_ERROR "'${name}' is not a CMake target")
+        endif()
+        get_target_property(__include_dirs ${name} INTERFACE_INCLUDE_DIRECTORIES)
+        if(__include_dirs)
+            set_property(TARGET ${target} PROPERTY INTERFACE_INCLUDE_DIRECTORIES ${__include_dirs})
+        endif()
+    endforeach()
+endfunction()
+
 # Generate a dummy .cpp so we can create a "real" target that depends on both tbb and tbbmalloc
 # This is needed to trick embree 3.13.0 on Windows, which tries to access the location of the target TBB::tbb
 # https://github.com/embree/embree/blob/12b99393438a4cc9e478e33459eed78bec6233fd/common/tasking/CMakeLists.txt#L42
@@ -128,11 +139,13 @@ configure_file(${tbb_BINARY_DIR}/tbb_dummy.cpp.in ${tbb_BINARY_DIR}/tbb_dummy.cp
 add_library(tbb_tbb ${tbb_BINARY_DIR}/tbb_dummy.cpp)
 add_library(TBB::tbb ALIAS tbb_tbb)
 if(TBB_PREFER_STATIC)
-    target_link_libraries(tbb_tbb INTERFACE tbb_static tbbmalloc_static)
+    target_link_libraries(tbb_tbb PUBLIC tbb_static tbbmalloc_static)
     tbb_fix_include_dirs(tbb_static)
+    tbb_copy_interface_dirs(tbb_tbb tbb_static tbbmalloc_static)
 else()
-    target_link_libraries(tbb_tbb INTERFACE tbb tbbmalloc)
+    target_link_libraries(tbb_tbb PUBLIC tbb tbbmalloc)
     tbb_fix_include_dirs(tbb)
+    tbb_copy_interface_dirs(tbb_tbb tbb tbbmalloc)
 endif()
 
 # Install rules

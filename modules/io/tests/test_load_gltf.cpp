@@ -24,7 +24,7 @@ TEST_CASE("load_mesh_gltf", "[io]")
     REQUIRE(mesh.get_num_vertices() == 24);
     REQUIRE(mesh.get_num_facets() == 12);
     REQUIRE(mesh.has_attribute(AttributeName::normal));
-    REQUIRE(mesh.has_attribute(AttributeName::texcoord));
+    REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
 }
 
 TEST_CASE("load_simple_scene_gltf", "[io]")
@@ -50,7 +50,7 @@ TEST_CASE("load_mesh_gltf_animated_cube", "[io]")
     REQUIRE(mesh.get_num_vertices() == 36);
     REQUIRE(mesh.get_num_facets() == 12);
     REQUIRE(mesh.has_attribute(AttributeName::normal));
-    REQUIRE(mesh.has_attribute(AttributeName::texcoord));
+    REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
 }
 
 
@@ -62,10 +62,27 @@ TEST_CASE("load_gltf_avocado", "[io]")
     REQUIRE(mesh.get_num_vertices() > 0);
     REQUIRE(mesh.get_num_facets() > 0);
     REQUIRE(mesh.has_attribute(AttributeName::normal));
-    REQUIRE(mesh.has_attribute(AttributeName::texcoord));
+    REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
 
     auto scene = io::load_simple_scene_gltf<lagrange::scene::SimpleScene32f3>(
         testing::get_data_path("open/io/gltf_avocado/Avocado.gltf"));
+    REQUIRE(scene.get_num_meshes() == 1);
+    REQUIRE(scene.get_num_instances(0) == 1);
+}
+
+// this file contains a single mesh with two texcoords.
+TEST_CASE("load_gltf_multi_uv", "[io]")
+{
+    auto mesh = io::load_mesh_gltf<lagrange::SurfaceMesh32f>(
+        testing::get_data_path("open/io/MultiUVTest.glb"));
+    REQUIRE(mesh.get_num_vertices() > 0);
+    REQUIRE(mesh.get_num_facets() > 0);
+    REQUIRE(mesh.has_attribute(AttributeName::normal));
+    REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
+    REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_1"));
+
+    auto scene = io::load_simple_scene_gltf<lagrange::scene::SimpleScene32f3>(
+        testing::get_data_path("open/io/MultiUVTest.glb"));
     REQUIRE(scene.get_num_meshes() == 1);
     REQUIRE(scene.get_num_instances(0) == 1);
 }

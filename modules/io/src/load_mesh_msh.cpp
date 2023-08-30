@@ -140,7 +140,10 @@ void extract_attribute(
     for (auto special_usage : {AttributeUsage::Normal, AttributeUsage::UV, AttributeUsage::Color}) {
         if (starts_with(
                 attr_name,
-                fmt::format("{}_{}", internal::to_string(element_type), internal::to_string(special_usage)))) {
+                fmt::format(
+                    "{}_{}",
+                    internal::to_string(element_type),
+                    internal::to_string(special_usage)))) {
             usage = special_usage;
         }
     }
@@ -154,8 +157,7 @@ void extract_attribute(
     case AttributeUsage::Color:
         if (element_type == AttributeElement::Vertex && !options.load_vertex_colors) return;
         break;
-    default:
-        break;
+    default: break;
     }
     if (usage == AttributeUsage::Scalar && num_fields > 1) {
         usage = AttributeUsage::Vector;
@@ -260,7 +262,8 @@ MeshType load_mesh_msh(const fs::path& filename, const LoadOptions& options)
     return load_mesh_msh<MeshType>(fin, options);
 }
 
-#define LA_X_load_mesh_msh(_, S, I) \
+#define LA_X_load_mesh_msh(_, S, I)                                                      \
+    template SurfaceMesh<S, I> load_mesh_msh(std::istream&, const LoadOptions& options); \
     template SurfaceMesh<S, I> load_mesh_msh(const fs::path& filename, const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_msh, 0)
 #undef LA_X_load_mesh_msh

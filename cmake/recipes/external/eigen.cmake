@@ -22,17 +22,13 @@ if(EIGEN_ROOT)
 else()
     message(STATUS "Third-party (external): creating target 'Eigen3::Eigen'")
 
-    include(FetchContent)
-    FetchContent_Declare(
-        eigen
+    include(CPM)
+    CPMAddPackage(
+        NAME eigen
         GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
         GIT_TAG 3.4.0
-        GIT_SHALLOW TRUE
+        DOWNLOAD_ONLY ON
     )
-    FetchContent_GetProperties(eigen)
-    if(NOT eigen_POPULATED)
-        FetchContent_Populate(eigen)
-    endif()
     set(EIGEN_INCLUDE_DIRS ${eigen_SOURCE_DIR})
 
     install(DIRECTORY ${EIGEN_INCLUDE_DIRS}/Eigen

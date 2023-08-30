@@ -21,6 +21,7 @@
 #include <lagrange/combine_meshes.h>
 #include <lagrange/internal/skinning.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 
@@ -28,11 +29,26 @@
 #include <Eigen/Geometry>
 
 #include <istream>
+#include <optional>
 
 namespace lagrange::io {
 namespace internal {
 
 namespace {
+
+size_t get_num_channels(int type)
+{
+    switch (type) {
+    case TINYGLTF_TYPE_SCALAR: return 1;
+    case TINYGLTF_TYPE_VEC2: return 2;
+    case TINYGLTF_TYPE_VEC3: return 3;
+    case TINYGLTF_TYPE_VEC4: return 4;
+    case TINYGLTF_TYPE_MAT2: return 4;
+    case TINYGLTF_TYPE_MAT3: return 9;
+    case TINYGLTF_TYPE_MAT4: return 16;
+    }
+    return invalid<size_t>();
+}
 
 template <typename Orig_t, typename Target_t>
 std::vector<Target_t> load_buffer_data_internal(
@@ -42,10 +58,7 @@ std::vector<Target_t> load_buffer_data_internal(
     const tinygltf::BufferView& buffer_view = model.bufferViews[accessor.bufferView];
     const tinygltf::Buffer& buffer = model.buffers[buffer_view.buffer];
 
-    int size = 1;
-    if (accessor.type != TINYGLTF_TYPE_SCALAR) {
-        size = accessor.type;
-    }
+    size_t size = get_num_channels(accessor.type);
 
     std::vector<Orig_t> data(accessor.count * size);
 
@@ -81,6 +94,48 @@ std::vector<Target_t> load_buffer_data_internal(
         }
     });
     return ret;
+}
+
+///
+/// Load accessor buffer data as a span of ValueType without any copy.
+///
+/// @tparam ValueType      The value type of the span.
+/// @param model           The glTF model object.
+/// @param accessor        The accessor object.
+/// @param working_buffer  A working buffer to store the data if necessary.
+///
+/// @return A span of ValueType that points to the buffer data stored in the accessor.
+///
+template <typename ValueType>
+span<const ValueType> load_buffer(
+    const tinygltf::Model& model,
+    const tinygltf::Accessor& accessor,
+    std::vector<ValueType>& working_buffer)
+{
+    const tinygltf::BufferView& buffer_view = model.bufferViews[accessor.bufferView];
+    const tinygltf::Buffer& buffer = model.buffers[buffer_view.buffer];
+
+    size_t num_channels = get_num_channels(accessor.type);
+    if (num_channels == invalid<size_t>())
+        throw Error(fmt::format("Unsupported accessor type {}", accessor.type));
+
+    const size_t start = accessor.byteOffset + buffer_view.byteOffset;
+
+    if (buffer_view.byteStride != 0) {
+        working_buffer.resize(accessor.count * num_channels);
+        for (size_t i = 0; i < accessor.count; ++i) {
+            size_t buf_idx = start + buffer_view.byteStride * i;
+            std::copy_n(
+                reinterpret_cast<const ValueType*>(buffer.data.data() + buf_idx),
+                num_channels,
+                working_buffer.data() + i * num_channels);
+        }
+        return {working_buffer.data(), working_buffer.size()};
+    } else {
+        return {
+            reinterpret_cast<const ValueType*>(buffer.data.data() + start),
+            accessor.count * num_channels};
+    }
 }
 
 template <typename T>
@@ -176,6 +231,121 @@ tinygltf::Model load_tinygltf(const fs::path& filename)
     return model;
 }
 
+///
+/// Convert a tinygltf accessor to a lagrange mesh attribute.
+///
+/// @tparam ValueType   The desired attribute value type.
+/// @tparam Scalar      The mesh scalar type.
+/// @tparam Index       The mesh index type.
+///
+/// @param model        The gltf model object.
+/// @param accessor     The gltf accessor object.
+/// @param name         The attribute name.
+/// @param target_usage The target attribute usage if any.
+/// @param mesh         The lagrange mesh.
+///
+template <typename ValueType, typename Scalar, typename Index>
+void accessor_to_attribute_internal(
+    const tinygltf::Model& model,
+    const tinygltf::Accessor& accessor,
+    std::string_view name,
+    std::optional<AttributeUsage> target_usage,
+    SurfaceMesh<Scalar, Index>& mesh)
+{
+    std::vector<ValueType> working_buffer;
+    span<const ValueType> data = load_buffer<ValueType>(model, accessor, working_buffer);
+    Index num_channels = static_cast<Index>(data.size() / accessor.count);
+    AttributeElement element = AttributeElement::Vertex;
+    AttributeUsage usage = AttributeUsage::Scalar;
+
+    if (accessor.count == mesh.get_num_vertices()) {
+        element = AttributeElement::Vertex;
+    } else if (accessor.count == mesh.get_num_facets()) {
+        element = AttributeElement::Facet;
+    } else {
+        logger().error("Unknown mesh property {}!", name);
+        return;
+    }
+
+    if (target_usage.has_value()) {
+        usage = target_usage.value();
+    } else {
+        switch (accessor.type) {
+        case TINYGLTF_TYPE_SCALAR: usage = AttributeUsage::Scalar; break;
+        case TINYGLTF_TYPE_VEC2: [[fallthrough]];
+        case TINYGLTF_TYPE_VEC3: [[fallthrough]];
+        case TINYGLTF_TYPE_VEC4: [[fallthrough]];
+        case TINYGLTF_TYPE_VECTOR: usage = AttributeUsage::Vector; break;
+        case TINYGLTF_TYPE_MAT2: [[fallthrough]];
+        case TINYGLTF_TYPE_MAT3: [[fallthrough]];
+        case TINYGLTF_TYPE_MAT4: [[fallthrough]];
+        case TINYGLTF_TYPE_MATRIX:
+            // Matrices are flattend as vectors for now.
+            usage = AttributeUsage::Vector;
+            break;
+        default: logger().error("Unknown mesh property {}!", name); return;
+        }
+    }
+
+    mesh.template create_attribute<ValueType>(name, element, usage, num_channels, data);
+}
+
+///
+/// Convert a tinygltf accessor to a lagrange mesh attribute.
+///
+/// The attribute value type will be deduced from the accessor component type.
+/// If target usage is not specified, it will be deduced from the accessor type.
+///
+/// @tparam Scalar      The mesh scalar type.
+/// @tparam Index       The mesh index type.
+///
+/// @param model        The gltf model object.
+/// @param accessor     The gltf accessor object.
+/// @param name         The attribute name.
+/// @param target_usage The target attribute usage if any.
+/// @param mesh         The lagrange mesh.
+///
+template <typename Scalar, typename Index>
+void accessor_to_attribute(
+    const tinygltf::Model& model,
+    const tinygltf::Accessor& accessor,
+    std::string_view name,
+    std::optional<AttributeUsage> target_usage,
+    SurfaceMesh<Scalar, Index>& mesh)
+{
+    switch (accessor.componentType) {
+    case TINYGLTF_COMPONENT_TYPE_BYTE:
+        accessor_to_attribute_internal<int8_t>(model, accessor, name, target_usage, mesh);
+        break;
+    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+        accessor_to_attribute_internal<uint8_t>(model, accessor, name, target_usage, mesh);
+        break;
+    case TINYGLTF_COMPONENT_TYPE_SHORT:
+        accessor_to_attribute_internal<int16_t>(model, accessor, name, target_usage, mesh);
+        break;
+    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+        accessor_to_attribute_internal<uint16_t>(model, accessor, name, target_usage, mesh);
+        break;
+    case TINYGLTF_COMPONENT_TYPE_INT:
+        accessor_to_attribute_internal<int32_t>(model, accessor, name, target_usage, mesh);
+        break;
+    case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+        accessor_to_attribute_internal<uint32_t>(model, accessor, name, target_usage, mesh);
+        break;
+    case TINYGLTF_COMPONENT_TYPE_FLOAT:
+        accessor_to_attribute_internal<float>(model, accessor, name, target_usage, mesh);
+        break;
+    case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+        accessor_to_attribute_internal<double>(model, accessor, name, target_usage, mesh);
+        break;
+    default:
+        logger().warn(
+            "Unsupported component type {} for accessor {}",
+            accessor.componentType,
+            name);
+    }
+}
+
 template <typename MeshType>
 MeshType convert_mesh_tinygltf_to_lagrange(
     const tinygltf::Model& model,
@@ -222,13 +392,6 @@ MeshType convert_mesh_tinygltf_to_lagrange(
 
             const tinygltf::Accessor& accessor = model.accessors[attribute.second];
 
-            int size = 1;
-            if (accessor.type != TINYGLTF_TYPE_SCALAR) {
-                size = accessor.type;
-            }
-            std::vector<Scalar> data = load_buffer_data_as<Scalar>(model, accessor);
-            la_debug_assert(data.size() == accessor.count * size);
-
             const std::string& name = attribute.first;
             std::string name_lowercase = attribute.first;
             std::transform(
@@ -238,62 +401,59 @@ MeshType convert_mesh_tinygltf_to_lagrange(
                 [](unsigned char c) { return std::tolower(c); });
 
             // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes
-            if (name == "POSITION") {
-                la_runtime_assert(false); // done earlier, should never get here
-            } else if (name == "NORMAL" && options.load_normals) {
-                lmesh.template create_attribute<Scalar>(
+            if (starts_with(name, "NORMAL") && options.load_normals) {
+                accessor_to_attribute(
+                    model,
+                    accessor,
                     name_lowercase,
-                    AttributeElement::Vertex,
                     AttributeUsage::Normal,
-                    size,
-                    data);
-            } else if (name == "TANGENT" && options.load_tangents) {
-                lmesh.template create_attribute<Scalar>(
+                    lmesh);
+            } else if (starts_with(name, "TANGENT") && options.load_tangents) {
+                accessor_to_attribute(
+                    model,
+                    accessor,
                     name_lowercase,
-                    AttributeElement::Vertex,
                     AttributeUsage::Tangent,
-                    size,
-                    data);
+                    lmesh);
             } else if (starts_with(name, "COLOR") && options.load_vertex_colors) {
-                lmesh.template create_attribute<Scalar>(
+                accessor_to_attribute(
+                    model,
+                    accessor,
                     name_lowercase,
-                    AttributeElement::Vertex,
                     AttributeUsage::Color,
-                    size,
-                    data);
+                    lmesh);
             } else if (starts_with(name, "JOINTS") && options.load_weights) {
                 la_runtime_assert(accessor.type == TINYGLTF_TYPE_VEC4);
                 la_runtime_assert(
                     accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE ||
                     accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
-                // note: should we change to integer type?
-                lmesh.template create_attribute<Scalar>(
-                    AttributeName::indexed_joint,
-                    AttributeElement::Vertex,
+                accessor_to_attribute(
+                    model,
+                    accessor,
+                    name_lowercase,
                     AttributeUsage::Vector,
-                    size,
-                    data);
+                    lmesh);
             } else if (starts_with(name, "WEIGHTS") && options.load_weights) {
                 la_runtime_assert(accessor.type == TINYGLTF_TYPE_VEC4);
                 la_runtime_assert(
                     accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT ||
                     accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE ||
                     accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
-                lmesh.template create_attribute<Scalar>(
-                    AttributeName::indexed_weight,
-                    AttributeElement::Vertex,
+                accessor_to_attribute(
+                    model,
+                    accessor,
+                    name_lowercase,
                     AttributeUsage::Vector,
-                    size,
-                    data);
+                    lmesh);
             } else if (starts_with(name, "TEXCOORD") && options.load_uvs) {
-                lmesh.template create_attribute<Scalar>(
-                    AttributeName::texcoord,
-                    AttributeElement::Vertex,
+                accessor_to_attribute(
+                    model,
+                    accessor,
+                    name_lowercase,
                     AttributeUsage::UV,
-                    size,
-                    data);
+                    lmesh);
             } else {
-                logger().error("Unknown mesh property {}!", name);
+                accessor_to_attribute(model, accessor, name_lowercase, {}, lmesh);
             }
         }
 

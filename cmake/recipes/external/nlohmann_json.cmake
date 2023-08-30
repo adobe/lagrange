@@ -18,13 +18,12 @@ message(STATUS "Third-party (external): creating target 'nlohmann_json::nlohmann
 # nlohmann_json is a big repo for a single header, so we just download the release archive
 set(NLOHMANNJSON_VERSION "v3.11.2")
 
-include(FetchContent)
-FetchContent_Declare(
-    nlohmann_json
+include(CPM)
+CPMAddPackage(
+    NAME nlohmann_json
     URL "https://github.com/nlohmann/json/releases/download/${NLOHMANNJSON_VERSION}/include.zip"
     URL_HASH SHA256=e5c7a9f49a16814be27e4ed0ee900ecd0092bfb7dbfca65b5a421b774dccaaed
 )
-FetchContent_MakeAvailable(nlohmann_json)
 
 add_library(nlohmann_json INTERFACE)
 add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)

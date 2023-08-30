@@ -11,19 +11,35 @@
  */
 #pragma once
 
+#include <lagrange/MeshTrait.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
-#include <lagrange/MeshTrait.h>
 #include <lagrange/io/types.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-#include <lagrange/io/legacy/load_mesh.h>
+    #include <lagrange/io/legacy/load_mesh.h>
 #endif
+
+#include <iosfwd>
 
 namespace lagrange::io {
 
-// The input stream version of load_mesh does not exist because it cannot determine the file type.
-// If you want to load a mesh from an input stream, use a specific `load_mesh_type` function.
+/**
+ * Load a mesh from a stream.
+ *
+ * A mesh loader will automatically be selected based on the contents of the stream.
+ *
+ * @tparam MeshType  The mesh type to load.
+ *
+ * @param[in] input_stream  The input stream.
+ * @param[in] options       Extra options related to loading.
+ *
+ * @return A `SurfaceMesh` object loaded from the input stream.
+ */
+template <
+    typename MeshType,
+    std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
+MeshType load_mesh(std::istream& input_stream, const LoadOptions& options = {});
 
 /**
  * Load a mesh from a file. The loader will be chosen depending on the file extension.
@@ -37,5 +53,6 @@ template <
     typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 MeshType load_mesh(const fs::path& filename, const LoadOptions& = {});
+
 
 } // namespace lagrange::io

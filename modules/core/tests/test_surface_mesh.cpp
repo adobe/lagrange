@@ -1469,7 +1469,10 @@ void test_export_attribute()
                 num_channels);
             auto& attr = mesh.template ref_indexed_attribute<ValueType>(id);
             attr.values().resize_elements(num_values);
-            std::iota(attr.values().ref_all().begin(), attr.values().ref_all().end(), ValueType(23));
+            std::iota(
+                attr.values().ref_all().begin(),
+                attr.values().ref_all().end(),
+                ValueType(23));
             const void* values_ptr = attr.values().get_all().data();
             const void* indices_ptr = attr.indices().get_all().data();
 
@@ -1494,7 +1497,10 @@ void test_export_attribute()
                 num_channels);
             auto& attr = mesh.template ref_indexed_attribute<ValueType>(id);
             attr.values().resize_elements(num_values);
-            std::iota(attr.values().ref_all().begin(), attr.values().ref_all().end(), ValueType(23));
+            std::iota(
+                attr.values().ref_all().begin(),
+                attr.values().ref_all().end(),
+                ValueType(23));
             const void* values_ptr = attr.values().get_all().data();
             const void* indices_ptr = attr.indices().get_all().data();
 
@@ -2438,13 +2444,12 @@ void test_resize_attribute_type()
         REQUIRE(std::equal(gt.begin(), gt.end(), attr.begin()));
     };
 
-    auto check_indexed_attr = [](const SurfaceMesh<Scalar, Index>& mesh,
-                                 AttributeId id,
-                                 const std::vector<Index>& gt) {
-        auto attr = mesh.template get_indexed_attribute<ValueType>(id).indices().get_all();
-        REQUIRE(attr.size() == gt.size());
-        REQUIRE(std::equal(gt.begin(), gt.end(), attr.begin()));
-    };
+    auto check_indexed_attr =
+        [](const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, const std::vector<Index>& gt) {
+            auto attr = mesh.template get_indexed_attribute<ValueType>(id).indices().get_all();
+            REQUIRE(attr.size() == gt.size());
+            REQUIRE(std::equal(gt.begin(), gt.end(), attr.begin()));
+        };
 
     {
         // Regular mesh
@@ -2678,6 +2683,145 @@ void test_copy_attribute()
     }
 }
 
+template <typename Scalar, typename Index>
+void test_compress_if_regular()
+{
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertices(10);
+    mesh.add_triangles(3); // f0 f1 f2
+    mesh.add_quads(2); // f3 f4
+    mesh.add_triangles(5);
+    REQUIRE(mesh.is_hybrid());
+    mesh.remove_facets({3, 4});
+    REQUIRE(!mesh.is_triangle_mesh());
+    REQUIRE(mesh.is_hybrid());
+    mesh.compress_if_regular();
+    REQUIRE(mesh.is_triangle_mesh());
+    REQUIRE(!mesh.is_hybrid());
+}
+
+template <typename Scalar, typename Index>
+void test_shrink_to_fit()
+{
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertices(10);
+    mesh.add_triangles(5);
+    const Index* facet_ptr0 = mesh.get_corner_to_vertex().get_all().data();
+    mesh.remove_facets({3, 4});
+    const Index* facet_ptr1 = mesh.get_corner_to_vertex().get_all().data();
+    REQUIRE(facet_ptr0 == facet_ptr1);
+    mesh.shrink_to_fit();
+    const Index* facet_ptr2 = mesh.get_corner_to_vertex().get_all().data();
+    REQUIRE(facet_ptr0 != facet_ptr2);
+}
+
+template <typename Scalar, typename Index>
+void test_1_and_2_facets()
+{
+    SECTION("add_polygon(facet_size)")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0.0f, 0.0f, 0.0f});
+        mesh.add_vertex({1.0f, 0.0f, 0.0f});
+        mesh.add_vertex({0.0f, 1.0f, 0.0f});
+        mesh.add_polygon(1);
+        mesh.add_polygon(2);
+        mesh.add_polygon(3);
+        mesh.add_polygon(4);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("add_polygon(span<> facet_indices)")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0.0f, 0.0f, 0.0f});
+        mesh.add_vertex({1.0f, 0.0f, 0.0f});
+        mesh.add_vertex({0.0f, 1.0f, 0.0f});
+
+        const Index a[]{0};
+        const Index b[]{0, 1};
+        const Index c[]{1, 2};
+        const Index d[]{2, 0};
+        mesh.add_polygon(a);
+        mesh.add_polygon(b);
+        mesh.add_polygon(c);
+        mesh.add_polygon(d);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("add_polygon(initializer_list<> facet_indices)")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0.0f, 0.0f, 0.0f});
+        mesh.add_vertex({1.0f, 0.0f, 0.0f});
+        mesh.add_vertex({0.0f, 1.0f, 0.0f});
+
+        mesh.add_polygon({0});
+        mesh.add_polygon({0, 1});
+        mesh.add_polygon({1, 2});
+        mesh.add_polygon({2, 0});
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("add_polygon(facet_size, set_func)")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0.0f, 0.0f, 0.0f});
+        mesh.add_vertex({1.0f, 0.0f, 0.0f});
+        mesh.add_vertex({0.0f, 1.0f, 0.0f});
+
+        mesh.add_polygon(1, [](lagrange::span<Index> t) { t[0] = 0; });
+        mesh.add_polygon(2, [](lagrange::span<Index> t) {
+            t[0] = 0;
+            t[1] = 1;
+        });
+        mesh.add_polygon(2, [](lagrange::span<Index> t) {
+            t[0] = 1;
+            t[1] = 2;
+        });
+        mesh.add_polygon(2, [](lagrange::span<Index> t) {
+            t[0] = 2;
+            t[1] = 0;
+        });
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("add_polygons(facet_num, facet_size, span)")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0.0f, 0.0f, 0.0f});
+        mesh.add_vertex({1.0f, 0.0f, 0.0f});
+        mesh.add_vertex({0.0f, 1.0f, 0.0f});
+
+        const Index a[]{0};
+        mesh.add_polygons(1, 1, a);
+
+        const Index b[]{0, 1, 1, 2, 2, 0};
+        mesh.add_polygons(3, 2, b);
+
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("add_polygons(facet_num, facet_size, fn)")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0.0f, 0.0f, 0.0f});
+        mesh.add_vertex({1.0f, 0.0f, 0.0f});
+        mesh.add_vertex({0.0f, 1.0f, 0.0f});
+
+        // Three 2-facets
+        mesh.add_polygons(3, 2, [](Index f, lagrange::span<Index> t) {
+            t[0] = f % 3;
+            t[1] = (f + 1) % 3;
+        });
+
+        // Two 1-facets
+        mesh.add_polygons(2, 1, [](Index /*f*/, lagrange::span<Index> t) { t[0] = 0; });
+
+        lagrange::testing::check_mesh(mesh);
+    }
+}
+
 } // namespace
 
 TEST_CASE("SurfaceMesh Construction", "[next]")
@@ -2840,15 +2984,24 @@ TEST_CASE("SurfaceMesh: Copy Attribute", "[next]")
     LA_ATTRIBUTE_X(test_copy_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Shrink And Compress", "[next]")
+TEST_CASE("SurfaceMesh: Shrink To Fit", "[next]")
 {
-    // TODO
-    using namespace lagrange;
-
-    SurfaceMesh32f mesh;
-    mesh.shrink_to_fit();
-    mesh.compress_if_regular();
+#define LA_X_test_shrink_to_fit(_, Scalar, Index) test_shrink_to_fit<Scalar, Index>();
+    LA_SURFACE_MESH_X(test_shrink_to_fit, 0)
 }
+
+TEST_CASE("SurfaceMesh: Compress If Regular", "[next]")
+{
+#define LA_X_test_compress_if_regular(_, Scalar, Index) test_compress_if_regular<Scalar, Index>();
+    LA_SURFACE_MESH_X(test_compress_if_regular, 0)
+}
+
+TEST_CASE("SurfaceMesh: Test facets of size 1 and 2", "[next]")
+{
+#define LA_X_test_1_and_2_facets(_, Scalar, Index) test_1_and_2_facets<Scalar, Index>();
+    LA_SURFACE_MESH_X(test_1_and_2_facets, 0)
+}
+
 
 TEST_CASE("SurfaceMesh: sanity check", "[next]")
 {

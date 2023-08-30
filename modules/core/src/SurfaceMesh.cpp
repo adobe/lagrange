@@ -32,8 +32,8 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <string>
 #include <array>
+#include <string>
 #include <unordered_map>
 
 namespace lagrange {
@@ -266,7 +266,7 @@ protected:
                 m_attributes.emplace_back();
             }
         } else {
-            la_runtime_assert(false, "Attribute name already exist!");
+            la_runtime_assert(false, fmt::format("Attribute '{}' already exist!", name));
         }
         return it->second;
     }
@@ -481,11 +481,13 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
 }
 
 template <typename Scalar, typename Index>
+template <typename OtherScalar, typename OtherIndex>
 AttributeId SurfaceMesh<Scalar, Index>::create_attribute_from(
     std::string_view name,
-    const SurfaceMesh& source_mesh,
+    const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,
     std::string_view source_name)
 {
+    // TODO: Allow copy-on-write of reserved attributes in the future.
     la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
     if (source_name.empty()) source_name = name;
     const AttributeId source_id = source_mesh.get_attribute_id(source_name);
@@ -1034,6 +1036,11 @@ void check_export_policy(Attribute<ValueType>& attr, AttributeExportPolicy polic
     if (attr.is_external()) {
         switch (policy) {
         case AttributeExportPolicy::CopyIfExternal: attr.create_internal_copy(); return;
+        case AttributeExportPolicy::CopyIfUnmanaged:
+            if (!attr.is_managed()) {
+                attr.create_internal_copy();
+            }
+            return;
         case AttributeExportPolicy::KeepExternalPtr:
             logger().warn("Exporting an Attribute pointing to an external buffer. It is the user's "
                           "responsibility to guarantee the lifetime of the pointed data in that "
@@ -1255,7 +1262,8 @@ Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id)
 }
 
 template <typename Scalar, typename Index>
-internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(std::string_view name)
+internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(
+    std::string_view name)
 {
     return _ref_attribute_ptr(get_attribute_id(name));
 }
@@ -1433,7 +1441,7 @@ void SurfaceMesh<Scalar, Index>::add_quad(Index v0, Index v1, Index v2, Index v3
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_polygon(Index facet_size)
 {
-    la_runtime_assert(facet_size > 2);
+    la_runtime_assert(facet_size > 0);
     reserve_indices_internal(1, facet_size);
     update_edges_last_internal(1);
 }
@@ -1441,7 +1449,7 @@ void SurfaceMesh<Scalar, Index>::add_polygon(Index facet_size)
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_polygon(span<const Index> facet_indices)
 {
-    la_runtime_assert(facet_indices.size() > 2);
+    la_runtime_assert(facet_indices.size() > 0);
     auto new_corners = reserve_indices_internal(1, Index(facet_indices.size()));
     std::copy(facet_indices.begin(), facet_indices.end(), new_corners.begin());
     update_edges_last_internal(1);
@@ -1450,7 +1458,7 @@ void SurfaceMesh<Scalar, Index>::add_polygon(span<const Index> facet_indices)
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_polygon(std::initializer_list<const Index> facet_indices)
 {
-    la_runtime_assert(facet_indices.size() > 2);
+    la_runtime_assert(facet_indices.size() > 0);
     auto new_corners = reserve_indices_internal(1, Index(facet_indices.size()));
     std::copy(facet_indices.begin(), facet_indices.end(), new_corners.begin());
     update_edges_last_internal(1);
@@ -1461,7 +1469,7 @@ void SurfaceMesh<Scalar, Index>::add_polygon(
     Index facet_size,
     SetSingleFacetIndicesFunction set_facet_indices)
 {
-    la_runtime_assert(facet_size > 2);
+    la_runtime_assert(facet_size > 0);
     la_debug_assert(set_facet_indices);
     auto new_corners = reserve_indices_internal(1, facet_size);
     set_facet_indices(new_corners);
@@ -1520,7 +1528,7 @@ void SurfaceMesh<Scalar, Index>::add_polygons(
 {
     // TODO: If num_facets == 0, this should not trigger any write operation to a mesh attr (need to
     // add a unit test for this!).
-    la_runtime_assert(facet_size > 2); // TODO: remove this assert
+    la_runtime_assert(facet_size > 0);
     la_runtime_assert(
         !facet_indices.empty() || !has_edges(),
         "Cannot add facets without indices if mesh has edge/connectivity information");
@@ -1550,7 +1558,7 @@ void SurfaceMesh<Scalar, Index>::add_polygons(
     Index facet_size,
     SetMultiFacetsIndicesFunction set_facets_indices)
 {
-    la_runtime_assert(facet_size > 2);
+    la_runtime_assert(facet_size > 0);
     la_runtime_assert(set_facets_indices);
     auto new_corners = reserve_indices_internal(num_facets, facet_size);
     for (Index i = 0; i < num_facets; ++i) {
@@ -1819,9 +1827,15 @@ void SurfaceMesh<Scalar, Index>::clear_facets()
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::shrink_to_fit()
 {
-    // TODO
-    // - Add a Attribute::capacity() method and use that for unit testing (deleting elements +
-    // calling shrink_to_fit should reduce attribute capacity).
+    seq_foreach_attribute_write(*this, [](auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+        if constexpr (AttributeType::IsIndexed) {
+            attr.values().shrink_to_fit();
+            attr.indices().shrink_to_fit();
+        } else {
+            attr.shrink_to_fit();
+        }
+    });
 }
 
 template <typename Scalar, typename Index>
@@ -2751,7 +2765,7 @@ auto SurfaceMesh<Scalar, Index>::reserve_indices_internal(
         span<Index> new_facet_to_first_corner;
         for (Index i = 0; i < num_facets; ++i) {
             const Index facet_size = get_facets_size(i);
-            la_runtime_assert(facet_size > 2);
+            la_runtime_assert(facet_size > 0);
 
             // Mesh has been switched to hybrid, need to insert offset index for each newly
             // inserted facet
@@ -2940,11 +2954,11 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
     }
 }
 
-
 ////////////////////////////////////////////////////////////////////////////////
 // Explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
+// Explicit instantiation of the templated mesh attribute methods.
 #define LA_X_surface_mesh_attr(ValueType, Scalar, Index)                                           \
     template AttributeId SurfaceMesh<Scalar, Index>::create_attribute(                             \
         std::string_view name,                                                                     \
@@ -3082,6 +3096,26 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
 #define LA_X_surface_mesh_aux(_, ValueType) LA_SURFACE_MESH_X(surface_mesh_attr, ValueType)
 LA_ATTRIBUTE_X(surface_mesh_aux, 0)
 
+// Explicit instantiation of the SurfaceMesh::create_attribute_from() method.
+#define fst(first, second) first
+#define snd(first, second) second
+#define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex)                           \
+    template AttributeId SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::create_attribute_from( \
+        std::string_view name,                                                                 \
+        const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,                               \
+        std::string_view source_name);
+
+#define LA_SURFACE_MESH2_X(mode, data) \
+    LA_X_##mode(data, float, uint32_t) \
+    LA_X_##mode(data, double, uint32_t) \
+    LA_X_##mode(data, float, uint64_t) \
+    LA_X_##mode(data, double, uint64_t)
+
+#define LA_X_surface_mesh_mesh_aux(_, Scalar, Index) \
+    LA_SURFACE_MESH2_X(surface_mesh_mesh_other, (Scalar, Index))
+LA_SURFACE_MESH_X(surface_mesh_mesh_aux, 0)
+
+// Explicit instantiation of the SurfaceMesh class
 #define LA_X_surface_mesh_class(_, Scalar, Index) template class SurfaceMesh<Scalar, Index>;
 LA_SURFACE_MESH_X(surface_mesh_class, 0)
 

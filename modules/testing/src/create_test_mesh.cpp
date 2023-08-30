@@ -59,7 +59,7 @@ SurfaceMesh<Scalar, Index> create_test_cube(CreateOptions options)
     }
 
     if (options.with_indexed_normal) {
-        compute_normal<Scalar, Index>(cube, M_PI / 4);
+        compute_normal<Scalar, Index>(cube, static_cast<Scalar>(M_PI / 4));
     }
 
     return cube;

@@ -12,12 +12,14 @@
 #include <lagrange/testing/common.h>
 
 #include <lagrange/chain_edges.h>
+#include <lagrange/utils/warning.h>
 
 #include <array>
 #include <vector>
 
 TEST_CASE("chain_edges", "[core]")
 {
+    LA_IGNORE_DEPRECATION_WARNING_BEGIN
     using namespace lagrange;
 
     auto get_num_edges_in_chains = [](const auto& chains) -> size_t {
@@ -100,4 +102,5 @@ TEST_CASE("chain_edges", "[core]")
         REQUIRE(chains[0].size() + chains[1].size() == 6);
         REQUIRE(get_num_edges_in_chains(chains) == edges.size());
     }
+    LA_IGNORE_DEPRECATION_WARNING_END
 }

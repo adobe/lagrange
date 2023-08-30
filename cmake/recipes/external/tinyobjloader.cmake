@@ -16,17 +16,17 @@ endif()
 message(STATUS "Third-party (external): creating target 'tinyobjloader::tinyobjloader'")
 
 # Tinyobjloader is a big repo for a single header, so we just download the header...
-include(FetchContent)
 set(TINYOBJLOADER_VERSION "8322e00ae685ea623ab6ac5a6cebcfa2d22fbf93")
 set(TINYOBJLOADER_URL "https://raw.githubusercontent.com/tinyobjloader/tinyobjloader/${TINYOBJLOADER_VERSION}/tiny_obj_loader.h")
 
-FetchContent_Declare(
-    tinyobjloader
+include(CPM)
+CPMAddPackage(
+    NAME tinyobjloader
     URL ${TINYOBJLOADER_URL}
     URL_HASH MD5=fca8189f03970f1dbb9544579b5bda08
     DOWNLOAD_NO_EXTRACT 1
+    DOWNLOAD_ONLY ON
 )
-FetchContent_Populate(tinyobjloader)
 
 # Generate implementation file
 file(WRITE "${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp.in" [[

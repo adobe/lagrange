@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/utils/assert.h>
+#include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
 
 #include <algorithm>

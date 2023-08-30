@@ -836,11 +836,15 @@ public:
     /// @param[in]  source_name  Attribute name to copy from. If left empty, the target attribute
     ///                          name will be used.
     ///
+    /// @tparam     OtherScalar  Source mesh scalar type.
+    /// @tparam     OtherIndex   Source mesh index type.
+    ///
     /// @return     The attribute identifier.
     ///
+    template<typename OtherScalar, typename OtherIndex>
     AttributeId create_attribute_from(
         std::string_view name,
-        const SurfaceMesh& source_mesh,
+        const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,
         std::string_view source_name = {});
 
     ///
@@ -2477,6 +2481,9 @@ protected:
 
 protected:
     /// @cond LA_INTERNAL_DOCS
+
+    /// It's ok to be friend with meshes of different types.
+    template<typename, typename> friend class SurfaceMesh;
 
     ///
     /// Hidden attribute manager class.

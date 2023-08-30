@@ -18,6 +18,8 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
+#include <list>
+
 namespace lagrange {
 
 // sample_points_on_surface()

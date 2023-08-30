@@ -20,7 +20,25 @@
 #include <lagrange/io/save_mesh_obj.h>
 #include <lagrange/io/save_mesh_ply.h>
 
+#include <ostream>
+
 namespace lagrange::io {
+
+template <typename Scalar, typename Index>
+void save_mesh(
+    std::ostream& output_stream,
+    const SurfaceMesh<Scalar, Index>& mesh,
+    FileFormat format,
+    const SaveOptions& options)
+{
+    switch (format) {
+    case FileFormat::Obj: save_mesh_obj(output_stream, mesh, options); break;
+    case FileFormat::Ply: save_mesh_ply(output_stream, mesh, options); break;
+    case FileFormat::Msh: save_mesh_msh(output_stream, mesh, options); break;
+    case FileFormat::Gltf: save_mesh_gltf(output_stream, mesh, options); break;
+    default: la_runtime_assert(false, "Unrecognized file format!");
+    }
+}
 
 template <typename Scalar, typename Index>
 void save_mesh(
@@ -42,11 +60,13 @@ void save_mesh(
     }
 }
 
-#define LA_X_save_mesh(_, S, I)        \
-    template void save_mesh(           \
-        const fs::path& filename,      \
-        const SurfaceMesh<S, I>& mesh, \
-        const SaveOptions& options);
+#define LA_X_save_mesh(_, S, I)   \
+    template void save_mesh(      \
+        std::ostream&,            \
+        const SurfaceMesh<S, I>&, \
+        FileFormat,               \
+        const SaveOptions&);      \
+    template void save_mesh(const fs::path&, const SurfaceMesh<S, I>&, const SaveOptions&);
 LA_SURFACE_MESH_X(save_mesh, 0);
 
 } // namespace lagrange::io

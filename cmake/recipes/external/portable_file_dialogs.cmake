@@ -15,17 +15,13 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'portable_file_dialogs::portable_file_dialogs'")
 
-include(FetchContent)
-FetchContent_Declare(
-    portable_file_dialogs
-    GIT_REPOSITORY https://github.com/samhocevar/portable-file-dialogs.git
+include(CPM)
+CPMAddPackage(
+    NAME portable_file_dialogs
+    GITHUB_REPOSITORY samhocevar/portable-file-dialogs
     GIT_TAG 5652fbd0df05f001aa2e92d86c22f762a03c1fd9
+    DOWNLOAD_ONLY ON
 )
-FetchContent_GetProperties(portable_file_dialogs)
-if(portable_file_dialogs_POPULATED)
-    return()
-endif()
-FetchContent_Populate(portable_file_dialogs)
 
 # Define portable_file_dialogs library
 add_library(portable_file_dialogs INTERFACE)

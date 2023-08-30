@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/fs/filesystem.h>
 
 #include <vector>
 
@@ -19,6 +20,7 @@ namespace lagrange {
 namespace io {
 
 enum class FileEncoding { Binary, Ascii };
+enum class FileFormat { Obj, Ply, Gltf, Msh, Unknown };
 
 /**
  * Options used when saving a mesh or a scene.
@@ -85,7 +87,7 @@ struct LoadOptions
     bool load_materials = true;
 
     /// Load vertex colors as vertex attribute
-    bool load_vertex_colors = false;
+    bool load_vertex_colors = true;
 
     /// Load object id as facet attribute
     bool load_object_id = true;

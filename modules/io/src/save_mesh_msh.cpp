@@ -51,7 +51,6 @@ template <typename Scalar, typename Index>
 void populate_nodes(mshio::MshSpec& spec, const SurfaceMesh<Scalar, Index>& mesh)
 {
     const Index dim = mesh.get_dimension();
-    la_runtime_assert(dim == 3, "Only 3D meshes are supported!");
 
     const Index num_vertices = mesh.get_num_vertices();
     spec.nodes.num_entity_blocks = 1;
@@ -65,15 +64,27 @@ void populate_nodes(mshio::MshSpec& spec, const SurfaceMesh<Scalar, Index>& mesh
     node_block.entity_tag = 1;
     node_block.parametric = 0; // We store uv as attribute.
     node_block.num_nodes_in_block = num_vertices;
-    node_block.data.reserve(dim * num_vertices);
+    node_block.data.reserve(3 * num_vertices);
     node_block.tags.reserve(num_vertices);
 
-    for (Index i = 0; i < num_vertices; i++) {
-        auto p = mesh.get_position(i);
-        node_block.tags.push_back(i + 1);
-        node_block.data.push_back(p[0]);
-        node_block.data.push_back(p[1]);
-        node_block.data.push_back(p[2]);
+    if (dim == 3) {
+        for (Index i = 0; i < num_vertices; i++) {
+            auto p = mesh.get_position(i);
+            node_block.tags.push_back(i + 1);
+            node_block.data.push_back(p[0]);
+            node_block.data.push_back(p[1]);
+            node_block.data.push_back(p[2]);
+        }
+    } else if (dim == 2) {
+        for (Index i = 0; i < num_vertices; i++) {
+            auto p = mesh.get_position(i);
+            node_block.tags.push_back(i + 1);
+            node_block.data.push_back(p[0]);
+            node_block.data.push_back(p[1]);
+            node_block.data.push_back(0);
+        }
+    } else {
+        throw Error("Only 2D and 3D mesh are supported!");
     }
 }
 
@@ -434,7 +445,7 @@ void save_mesh_msh(
     populate_elements(spec, mesh);
 
     AttributeCounts counts;
-    if (options.selected_attributes.empty()) {
+    if (options.output_attributes == SaveOptions::OutputAttributes::All) {
         mesh.seq_foreach_attribute_id([&](AttributeId id) {
             auto name = mesh.get_attribute_name(id);
             if (!mesh.attr_name_is_reserved(name)) {
@@ -463,6 +474,10 @@ void save_mesh_msh(
 }
 
 #define LA_X_save_mesh_msh(_, S, I)    \
+    template void save_mesh_msh(       \
+        std::ostream&,                 \
+        const SurfaceMesh<S, I>& mesh, \
+        const SaveOptions& options);   \
     template void save_mesh_msh(       \
         const fs::path& filename,      \
         const SurfaceMesh<S, I>& mesh, \

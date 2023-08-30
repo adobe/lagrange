@@ -12,18 +12,40 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/io/internal/detect_file_format.h>
 #include <lagrange/io/load_mesh.h>
-#include <lagrange/utils/strings.h>
-
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_mesh_ply.h>
+#include <lagrange/utils/strings.h>
 #ifdef LAGRANGE_WITH_ASSIMP
     #include <lagrange/io/load_mesh_assimp.h>
 #endif
 
+#include <istream>
+
 namespace lagrange::io {
+
+template <
+    typename MeshType,
+    std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* /* = nullptr*/>
+MeshType load_mesh(std::istream& input_stream, const LoadOptions& options)
+{
+    switch (internal::detect_file_format(input_stream)) {
+    case FileFormat::Msh: return load_mesh_msh<MeshType>(input_stream, options);
+    case FileFormat::Gltf: return load_mesh_gltf<MeshType>(input_stream, options);
+    case FileFormat::Ply: return load_mesh_ply<MeshType>(input_stream, options);
+    case FileFormat::Obj: return load_mesh_obj<MeshType>(input_stream, options);
+    default:
+#ifdef LAGRANGE_WITH_ASSIMP
+        return load_mesh_assimp<MeshType>(input_stream, options);
+#else
+        throw std::runtime_error("Unsupported format.");
+#endif
+    }
+}
+
 
 template <
     typename MeshType,
@@ -51,8 +73,11 @@ MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
 
 #define LA_X_load_mesh(_, S, I)                                       \
     template SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
-        const fs::path& filename,                                     \
-        const LoadOptions& options);
+        std::istream&,                                                \
+        const LoadOptions&);                                          \
+    template SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
+        const fs::path&,                                              \
+        const LoadOptions&);
 LA_SURFACE_MESH_X(load_mesh, 0);
 
 } // namespace lagrange::io

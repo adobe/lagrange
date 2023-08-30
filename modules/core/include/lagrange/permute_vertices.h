@@ -28,11 +28,11 @@ namespace lagrange {
 /**
  * Reorder vertices of a mesh based on a given permutation. i.e. rearrangement vertices so that they
  * are ordered as specified by the `new_to_old` index array. The total number of vertices is
- * unchnaged.
+ * unchanged.
  *
  * @param[in,out]  mesh        The target mesh whose vertices will be reordered in place.
  * @param[in]      new_to_old  The permutation index array specifying the new vertex order.
- *                             This array can often be obteined via index-based sorting of the
+ *                             This array can often be obtained via index-based sorting of the
  *                             vertices with customized comparison.
  *
  * @see `remap_vertices` if two or more vertices may be combined.

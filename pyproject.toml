@@ -4,6 +4,7 @@ requires = [
     "wheel>=0.36.0",
     "scikit-build==0.14.0",
     "cmake>=3.24.2",
+    "nanobind-stubgen==0.1.1",
     "ninja; platform_system!='Windows'"
 ]
 
@@ -18,6 +19,7 @@ readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
     "numpy>=1.23",
+    "colorama>=0.4.5",
 ]
 dynamic = ["version"]
 
