@@ -2263,6 +2263,33 @@ auto SurfaceMesh<Scalar, Index>::get_edge_vertices(Index e) const -> std::array<
 }
 
 template <typename Scalar, typename Index>
+Index SurfaceMesh<Scalar, Index>::find_edge_from_vertices(Index v0, Index v1) const
+{
+    Index ei = invalid<Index>();
+
+    // Look for edge (vi, vj) in facets.
+    auto search_edge = [&](Index vi, Index vj) {
+        foreach_corner_around_vertex(vi, [&](Index ci) {
+            la_debug_assert(get_corner_vertex(ci) == vi);
+            Index f = get_corner_facet(ci);
+            Index cb = get_facet_corner_begin(f);
+            Index lv = ci - cb;
+            Index nv = get_facet_size(f);
+            Index cj = cb + (lv + 1) % nv;
+            Index ck = cb + (lv + nv -1) % nv;
+            if (get_corner_vertex(cj) == vj) {
+                ei = get_edge(f, lv);
+            } else if (get_corner_vertex(ck) == vj) {
+                ei = get_edge(f, (lv + nv -1) % nv);
+            }
+        });
+    };
+
+    search_edge(v0, v1);
+    return ei;
+}
+
+template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_first_corner_around_edge(Index e) const -> Index
 {
     return get_attribute<Index>(m_edge_to_first_corner_id).get(e);
@@ -3099,17 +3126,15 @@ LA_ATTRIBUTE_X(surface_mesh_aux, 0)
 // Explicit instantiation of the SurfaceMesh::create_attribute_from() method.
 #define fst(first, second) first
 #define snd(first, second) second
-#define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex)                           \
+#define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex)                     \
     template AttributeId SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::create_attribute_from( \
         std::string_view name,                                                                 \
         const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,                               \
         std::string_view source_name);
 
-#define LA_SURFACE_MESH2_X(mode, data) \
-    LA_X_##mode(data, float, uint32_t) \
-    LA_X_##mode(data, double, uint32_t) \
-    LA_X_##mode(data, float, uint64_t) \
-    LA_X_##mode(data, double, uint64_t)
+#define LA_SURFACE_MESH2_X(mode, data)                                     \
+    LA_X_##mode(data, float, uint32_t) LA_X_##mode(data, double, uint32_t) \
+        LA_X_##mode(data, float, uint64_t) LA_X_##mode(data, double, uint64_t)
 
 #define LA_X_surface_mesh_mesh_aux(_, Scalar, Index) \
     LA_SURFACE_MESH2_X(surface_mesh_mesh_other, (Scalar, Index))

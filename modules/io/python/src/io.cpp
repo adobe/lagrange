@@ -112,14 +112,44 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 
 :return SurfaceMesh: The mesh object extracted from the input string.)");
 
-    m.def("load_simple_scene", &io::load_simple_scene<SceneType>, "filename"_a, "optinos"_a);
+    m.def(
+        "load_simple_scene",
+        [](const fs::path& filename, bool triangulate, std::optional<fs::path> search_path) {
+            io::LoadOptions opts;
+            opts.triangulate = triangulate;
+            if (search_path.has_value()) {
+                opts.search_path = std::move(search_path.value());
+            }
+            return io::load_simple_scene<SceneType>(filename, opts);
+        },
+        "filename"_a,
+        "triangulate"_a = false,
+        "search_path"_a = nb::none(),
+        R"(Load a simple scene from file.
+
+:param filename:    The input file name.
+:param triangulate: Whether to triangulate the scene if it is not already triangulated.
+                    Defaults to False.
+:param search_path: Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
+
+:return SimpleScene: The scene object extracted from the input string.)");
 
     m.def(
         "save_simple_scene",
-        &io::save_simple_scene<Scalar, Index, 3>,
+        [](const fs::path& filename, const SceneType& scene, bool binary) {
+            io::SaveOptions opts;
+            opts.encoding = binary ? io::FileEncoding::Binary : io::FileEncoding::Ascii;
+            io::save_simple_scene(filename, scene, opts);
+        },
         "filename"_a,
         "scene"_a,
-        "options"_a);
+        "binary"_a = true,
+        R"(Save a simple scene to file.
+
+:param filename: The output file name.
+:param scene:    The input scene.
+:param binary:   Whether to save the scene in binary format if supported. Defaults to True.
+                 Only `glb` supports binary format.)");
 
     m.def(
         "mesh_to_string",

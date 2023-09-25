@@ -67,7 +67,7 @@ endif()
 
 # Set default macOS deployment target
 if(LAGRANGE_TOPLEVEL_PROJECT)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "10.15" CACHE STRING "Minimum OS X deployment version")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 ################################################################################

@@ -196,7 +196,7 @@ void test_attributes()
     fs::path filename = "poly/mixedFaringPart.obj";
 
     auto mesh = [&] {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         return lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
     }();
     lagrange::logger().debug(
@@ -205,7 +205,7 @@ void test_attributes()
         mesh.get_num_facets());
     REQUIRE(!mesh.is_triangle_mesh());
     {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         mesh.initialize_edges();
     }
 
@@ -219,7 +219,7 @@ void test_attributes()
 
     // Initialize attribute values
     {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
 
         auto vattr = mesh.template ref_attribute<ValueType>(vid).ref_all();
         std::iota(vattr.begin(), vattr.end(), ValueType(1));
@@ -254,7 +254,7 @@ void test_attributes()
     // indices. Verifying the correctness of the facet remapping basically means reimplementing this
     // remapping manually in this unit test, which is kind of pointless I guess?
 
-    LAGRANGE_ZONE_SCOPED
+    LAGRANGE_ZONE_SCOPED;
 
     auto vattr = mesh.template get_attribute<ValueType>(vid).get_all();
     auto cattr = mesh.template get_attribute<ValueType>(cid).get_all();
@@ -283,7 +283,7 @@ void test_attributes()
         REQUIRE(attr.get_num_elements() == mesh.get_num_edges());
     });
 
-    LAGRANGE_FRAME_MARK
+    LAGRANGE_FRAME_MARK;
 }
 
 } // namespace

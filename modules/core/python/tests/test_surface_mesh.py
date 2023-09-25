@@ -226,3 +226,76 @@ class TestSurfaceMesh:
         assert address(mesh.facets) == address(facets_buffer)
         offsets_attr = mesh.attribute(mesh.attr_id_facet_to_first_corner)
         assert address(offsets_attr.data) == address(offsets_buffer)
+
+    def test_clone(self):
+        mesh = lagrange.SurfaceMesh()
+        mesh.add_vertex([0, 0, 0])
+        mesh.add_vertex([1, 0, 0])
+        mesh.add_vertex([0, 1, 0])
+        mesh.add_vertex([1, 1, 0])
+        mesh.add_triangle(0, 1, 2)
+        mesh.add_triangle(2, 1, 3)
+
+        mesh.create_attribute(
+            "vertex_index",
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Scalar,
+            initial_values=np.arange(mesh.num_vertices, dtype=np.uint32),
+        )
+        mesh.create_attribute(
+            "facet_index",
+            element=lagrange.AttributeElement.Facet,
+            usage=lagrange.AttributeUsage.Scalar,
+            initial_values=np.arange(mesh.num_facets, dtype=np.uint32),
+        )
+        mesh.create_attribute(
+            "uv",
+            element=lagrange.AttributeElement.Indexed,
+            usage=lagrange.AttributeUsage.UV,
+            initial_values=mesh.vertices[:, :2].copy(),
+            initial_indices=mesh.facets,
+        )
+
+        mesh2 = mesh.clone()
+        assert mesh is not mesh2
+
+        mesh.vertices.fill(0)
+        assert np.amax(mesh2.vertices) != 0
+        mesh.facets[[0, 1]] = mesh.facets[[1, 0]]
+        assert np.all(mesh2.facets[0] == mesh.facets[1])
+        assert np.all(mesh2.facets[1] == mesh.facets[0])
+
+        assert mesh2.has_attribute("vertex_index")
+        assert mesh2.has_attribute("facet_index")
+        assert mesh2.has_attribute("uv")
+
+        vertex_index = mesh2.attribute("vertex_index")
+        facet_index = mesh2.attribute("facet_index")
+        uv = mesh2.indexed_attribute("uv")
+
+        assert not vertex_index.external
+        assert not facet_index.external
+        assert not uv.values.external
+        assert not uv.indices.external
+
+    def test_copy_and_deepcopy(self, single_triangle_with_index):
+        from copy import copy, deepcopy
+
+        mesh = single_triangle_with_index
+        shallow_copy = copy(mesh)
+
+        assert shallow_copy is not mesh
+        assert_sharing_raw_data(mesh.vertices, shallow_copy.vertices)
+        assert_sharing_raw_data(mesh.facets, shallow_copy.facets)
+        assert_sharing_raw_data(
+            mesh.attribute("vertex_index").data,
+            shallow_copy.attribute("vertex_index").data,
+        )
+
+        deep_copy = deepcopy(mesh)
+        assert deep_copy is not mesh
+        assert address(mesh.vertices) != address(deep_copy.vertices)
+        assert address(mesh.facets) != address(deep_copy.facets)
+        assert address(mesh.attribute("vertex_index").data) != address(
+            deep_copy.attribute("vertex_index").data
+        )

@@ -9,23 +9,25 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <stack>
-
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_components.h>
 #include <lagrange/utils/DisjointSets.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/range.h>
-#include <lagrange/utils/Error.h>
 
+#include <algorithm>
 #include <numeric>
 
 namespace lagrange {
 
 template <typename Scalar, typename Index>
-size_t compute_vertex_based_components(SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
+size_t compute_vertex_based_components(
+    SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId id,
+    span<const Index> blocker_vertices)
 {
     constexpr Index invalid_index = invalid<Index>();
     auto& attr = mesh.template ref_attribute<Index>(id);
@@ -34,8 +36,14 @@ size_t compute_vertex_based_components(SurfaceMesh<Scalar, Index>& mesh, Attribu
     const auto num_facets = mesh.get_num_facets();
     la_debug_assert(component_id.size() == static_cast<size_t>(num_facets));
 
+    std::vector<bool> is_blocked(num_vertices, false);
+    std::for_each(blocker_vertices.begin(), blocker_vertices.end(), [&](Index vi) {
+        is_blocked[vi] = true;
+    });
+
     DisjointSets<Index> components(num_facets);
     for (auto vi : range(num_vertices)) {
+        if (is_blocked[vi]) continue;
         Index rep_facet_id = invalid_index;
         for (Index ci = mesh.get_first_corner_around_vertex(vi); ci != invalid_index;
              ci = mesh.get_next_corner_around_vertex(ci)) {
@@ -52,7 +60,10 @@ size_t compute_vertex_based_components(SurfaceMesh<Scalar, Index>& mesh, Attribu
 };
 
 template <typename Scalar, typename Index>
-size_t compute_edge_based_components(SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
+size_t compute_edge_based_components(
+    SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId id,
+    span<const Index> blocker_edges)
 {
     constexpr Index invalid_index = invalid<Index>();
     auto& attr = mesh.template ref_attribute<Index>(id);
@@ -61,8 +72,14 @@ size_t compute_edge_based_components(SurfaceMesh<Scalar, Index>& mesh, Attribute
     const auto num_facets = mesh.get_num_facets();
     la_debug_assert(component_id.size() == static_cast<size_t>(num_facets));
 
+    std::vector<bool> is_blocked(num_edges, false);
+    std::for_each(blocker_edges.begin(), blocker_edges.end(), [&](Index ei) {
+        is_blocked[ei] = true;
+    });
+
     DisjointSets<Index> components(num_facets);
     for (auto ei : range(num_edges)) {
+        if (is_blocked[ei]) continue;
         Index rep_facet_id = invalid_index;
         for (Index ci = mesh.get_first_corner_around_edge(ei); ci != invalid_index;
              ci = mesh.get_next_corner_around_edge(ci)) {
@@ -80,6 +97,15 @@ size_t compute_edge_based_components(SurfaceMesh<Scalar, Index>& mesh, Attribute
 
 template <typename Scalar, typename Index>
 size_t compute_components(SurfaceMesh<Scalar, Index>& mesh, ComponentOptions options)
+{
+    return compute_components(mesh, {}, std::move(options));
+}
+
+template <typename Scalar, typename Index>
+size_t compute_components(
+    SurfaceMesh<Scalar, Index>& mesh,
+    span<const Index> blocker_elements,
+    ComponentOptions options)
 {
     AttributeId id;
 
@@ -99,8 +125,9 @@ size_t compute_components(SurfaceMesh<Scalar, Index>& mesh, ComponentOptions opt
 
     switch (options.connectivity_type) {
     case ComponentOptions::ConnectivityType::Vertex:
-        return compute_vertex_based_components(mesh, id);
-    case ComponentOptions::ConnectivityType::Edge: return compute_edge_based_components(mesh, id);
+        return compute_vertex_based_components(mesh, id, blocker_elements);
+    case ComponentOptions::ConnectivityType::Edge:
+        return compute_edge_based_components(mesh, id, blocker_elements);
     default: throw Error("Unsupported connectivity type");
     }
 }
@@ -108,6 +135,10 @@ size_t compute_components(SurfaceMesh<Scalar, Index>& mesh, ComponentOptions opt
 #define LA_X_compute_components(_, Scalar, Index)      \
     template size_t compute_components<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                   \
+        ComponentOptions);                             \
+    template size_t compute_components<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index>&,                   \
+        span<const Index>,                             \
         ComponentOptions);
 LA_SURFACE_MESH_X(compute_components, 0)
 

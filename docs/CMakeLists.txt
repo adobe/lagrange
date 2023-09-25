@@ -52,7 +52,6 @@ list(JOIN DOXYGEN_INCLUDE_PATHS " " DOXYGEN_INCLUDE_PATHS)
 set(DOXYGEN_EXCLUDE_FOLDERS
     modules/ui/ibls/
     modules/ui/shaders/
-    modules/ui/adobe_mdl/
 )
 list(JOIN DOXYGEN_EXCLUDE_FOLDERS " " DOXYGEN_EXCLUDE_FOLDERS)
 

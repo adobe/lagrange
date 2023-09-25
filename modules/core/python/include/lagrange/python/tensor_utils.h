@@ -109,12 +109,12 @@ Tensor<std::decay_t<ValueType>> span_to_tensor(
     nb::handle base);
 
 template <typename ValueType>
-nb::object attribute_to_tensor(
+Tensor<std::decay_t<ValueType>> attribute_to_tensor(
     const Attribute<ValueType>& attr,
     nb::handle base);
 
 template <typename ValueType>
-nb::object attribute_to_tensor(
+Tensor<std::decay_t<ValueType>> attribute_to_tensor(
     const Attribute<ValueType>& attr,
     span<const size_t> shape,
     nb::handle base);

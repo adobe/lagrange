@@ -132,7 +132,7 @@ void bind_utilities(nanobind::module_& m)
         R"(Compute indexed normal attribute.
 
 Edge with dihedral angles larger than `feature_angle_threshold` are considered as sharp edges.
-Vertices listed in `cone_vertices` are considered as cone vertices, which is alwayse sharp.
+Vertices listed in `cone_vertices` are considered as cone vertices, which is always sharp.
 
 :param mesh: input mesh
 :type mesh: SurfaceMesh
@@ -211,16 +211,46 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         .value("Vertex", ComponentOptions::ConnectivityType::Vertex)
         .value("Edge", ComponentOptions::ConnectivityType::Edge);
 
-    nb::class_<ComponentOptions>(m, "ComponentOptions")
-        .def(nb::init<>())
-        .def_rw("output_attribute_name", &ComponentOptions::output_attribute_name)
-        .def_rw("connectivity_type", &ComponentOptions::connectivity_type);
-
     m.def(
         "compute_components",
-        &lagrange::compute_components<Scalar, Index>,
+        [](MeshType& mesh,
+           std::optional<std::string_view> output_attribute_name,
+           std::optional<lagrange::ConnectivityType> connectivity_type,
+           std::optional<nb::list>& blocker_elements) {
+            lagrange::ComponentOptions opt;
+            if (output_attribute_name.has_value()) {
+                opt.output_attribute_name = output_attribute_name.value();
+            }
+            if (connectivity_type.has_value()) {
+                opt.connectivity_type = connectivity_type.value();
+            }
+            std::vector<Index> blocker_elements_vec;
+            if (blocker_elements.has_value()) {
+                for (auto val : blocker_elements.value()) {
+                    blocker_elements_vec.push_back(nb::cast<Index>(val));
+                }
+            }
+            return lagrange::compute_components<Scalar, Index>(mesh, blocker_elements_vec, opt);
+        },
         "mesh"_a,
-        "options"_a = ComponentOptions());
+        "output_attribute_name"_a = nb::none(),
+        "connectivity_type"_a = nb::none(),
+        "blocker_elements"_a = nb::none(),
+        R"(Compute connected components.
+
+This method will create a per-facet component id attribute named by the `output_attribute_name`
+argument. Each component id is in [0, num_components-1] range.
+
+:param mesh                 : The input mesh.
+:param output_attribute_name: The name of the output attribute.
+:param connectivity_type    : The connectivity type.  Either "Vertex" or "Edge".
+:param blocker_elements     : The list of blocker element indices.
+                              If `connectivity_type` is `Edge`, facets adjacent to a blocker edge are
+                              not considered as connected through this edge.
+                              If `connectivity_type` is `Vertex`, facets sharing a blocker vertex are
+                              not considered as connected through this vertex.
+
+:returns: The total number of components.)");
 
     nb::class_<VertexValenceOptions>(m, "VertexValenceOptions")
         .def(nb::init<>())
@@ -435,7 +465,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :param source_vertex_attr_name: The optional attribute name to track source vertices.
 :param source_facet_attr_name:  The optional attribute name to track source facets.
 :param map_attributes:          Map attributes from the source to target meshes.
-:param connectivity_type:       The connectivity used for component compuation.
+:param connectivity_type:       The connectivity used for component computation.
 
 :returns: A list of meshes, one for each connected component.
 )");

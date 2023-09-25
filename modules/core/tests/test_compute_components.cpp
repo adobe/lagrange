@@ -133,6 +133,173 @@ TEST_CASE("compute_components", "[surface][components][utilities]")
         REQUIRE(attr_id.get(0) == 0);
         REQUIRE(attr_id.get(1) == 0);
     }
+
+    SECTION("manifold cross")
+    {
+        // 0 ---- 1
+        // | \  / |
+        // |  4   |
+        // | /  \ |
+        // 3----- 2
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({0.5, 0.5, 0});
+        mesh.add_triangle(3, 2, 4);
+        mesh.add_triangle(2, 1, 4);
+        mesh.add_triangle(1, 0, 4);
+        mesh.add_triangle(3, 4, 0);
+        mesh.initialize_edges();
+
+        SECTION("all edges passable")
+        {
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components(mesh, opt);
+            REQUIRE(num_components == 1);
+        }
+
+        SECTION("no edges are passable")
+        {
+            std::vector<Index> blocker_edges(mesh.get_num_edges());
+            std::iota(blocker_edges.begin(), blocker_edges.end(), 0);
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 4);
+        }
+
+        auto get_edge_id = [&](Index v0, Index v1) -> Index {
+            return mesh.find_edge_from_vertices(v0, v1);
+        };
+
+        SECTION("one edge not passable")
+        {
+            std::vector<Index> blocker_edges = {get_edge_id(1, 4)};
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 1);
+        }
+
+        SECTION("two edges not passable")
+        {
+            std::vector<Index> blocker_edges = {get_edge_id(1, 4), get_edge_id(0, 4)};
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 2);
+        }
+
+        SECTION("three edges not passable")
+        {
+            std::vector<Index> blocker_edges = {
+                get_edge_id(1, 4),
+                get_edge_id(0, 4),
+                get_edge_id(2, 4)};
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 3);
+        }
+    }
+
+    SECTION("nonmanifold cross")
+    {
+        // I had to draw 3 and 4 two times because of ascii art
+        // shortcomings :D
+        // 0 ---- 1------5---3
+        // | \  / |      |
+        // |  4   |      4
+        // | /  \ |
+        // 3----- 2
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({0.5, 0.5, 0});
+        mesh.add_vertex({1.5, 0.5, 0});
+        mesh.add_vertex({1.5, 1, 0});
+        mesh.add_vertex({2, 1, 0});
+        mesh.add_triangle(3, 2, 4);
+        mesh.add_triangle(2, 1, 4);
+        mesh.add_triangle(1, 0, 4);
+        mesh.add_triangle(3, 4, 0);
+        mesh.add_triangle(5, 1, 0);
+        mesh.add_triangle(5, 4, 3);
+        mesh.initialize_edges();
+
+        SECTION("all edges passable")
+        {
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components(mesh, opt);
+            REQUIRE(num_components == 1);
+        }
+
+        SECTION("no edges are passable")
+        {
+            std::vector<Index> blocker_edges(mesh.get_num_edges());
+            std::iota(blocker_edges.begin(), blocker_edges.end(), 0);
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 6);
+        }
+
+        auto get_edge_id = [&](Index v0, Index v1) -> Index {
+            return mesh.find_edge_from_vertices(v0, v1);
+        };
+
+        SECTION("two edges not passable")
+        {
+            std::vector<Index> blocker_edges = {get_edge_id(1, 4), get_edge_id(3, 4)};
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 3);
+        }
+
+        SECTION("two edges not passable case 2")
+        {
+            std::vector<Index> blocker_edges = {get_edge_id(1, 4), get_edge_id(0, 4)};
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 2);
+        }
+
+        SECTION("three edges not passable")
+        {
+            std::vector<Index> blocker_edges = {
+                get_edge_id(1, 4),
+                get_edge_id(0, 4),
+                get_edge_id(2, 4)};
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_edges, opt);
+            REQUIRE(num_components == 3);
+        }
+    }
+
+    SECTION("Blocker vertices")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({2, 2, 0});
+        mesh.add_vertex({2, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 4, 3);
+
+        SECTION("No blocker")
+        {
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Vertex;
+            auto num_components = compute_components<Scalar, Index>(mesh, opt);
+            REQUIRE(num_components == 1);
+        }
+        SECTION("With blocker vertex")
+        {
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Vertex;
+            std::vector<Index> blocker_vertex = {2};
+            auto num_components = compute_components<Scalar, Index>(mesh, blocker_vertex, opt);
+            REQUIRE(num_components == 2);
+        }
+    }
 }
 
 TEST_CASE("compute_components benchmark", "[surface][components][utilities][!benchmark]")

@@ -60,6 +60,14 @@ This codebase contains a modified portion of code from CMake Scripts which can b
     * https://github.com/StableCoder/cmake-scripts/blob/master/LICENSE
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from CPM which can be obtained at:
+  * SOURCE:
+    * https://github.com/cpm-cmake/CPM.cmake
+
+  * LICENSE:
+    * https://github.com/cpm-cmake/CPM.cmake/blob/master/LICENSE
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from Earcut which can be obtained at:
   * SOURCE:
     * https://github.com/mapbox/earcut.hpp

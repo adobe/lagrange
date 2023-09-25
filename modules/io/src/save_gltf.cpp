@@ -464,7 +464,7 @@ tinygltf::Model scene2model(
         if (lmesh.get_num_vertices() == 0) continue;
         if (lscene.get_num_instances(i) == 0) continue;
 
-        la_runtime_assert(lmesh.get_vertex_per_facet() == 3); // only support triangles
+        la_runtime_assert(lmesh.is_triangle_mesh()); // only support triangles
         model.meshes.push_back(create_gltf_mesh(model, lmesh, options));
 
         for (Index j = 0; j < lscene.get_num_instances(i); ++j) {

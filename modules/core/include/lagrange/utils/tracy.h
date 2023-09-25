@@ -12,7 +12,7 @@
 #pragma once
 
 #ifdef TRACY_ENABLE
-#include <Tracy.hpp>
+#include <tracy/Tracy.hpp>
 
 // Alias Tracy macros used in Lagrange
 #define LAGRANGE_ZONE_SCOPED ZoneScoped
@@ -21,7 +21,7 @@
 #else
 
 // Empty placeholders when Tracy is disabled
-#define LAGRANGE_ZONE_SCOPED
-#define LAGRANGE_FRAME_MARK
+#define LAGRANGE_ZONE_SCOPED do {} while (false)
+#define LAGRANGE_FRAME_MARK do {} while (false)
 
 #endif

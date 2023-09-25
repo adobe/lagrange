@@ -31,6 +31,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/python/tensor_utils.h>
+#include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -128,12 +129,30 @@ void bind_surface_mesh(nanobind::module_& m)
         la_runtime_assert(is_vector(shape));
         self.remove_vertices(data);
     });
+    surface_mesh_class.def("remove_vertices", [](MeshType& self, nb::list b) {
+        std::vector<Index> indices;
+        for (auto i : b) {
+            indices.push_back(nb::cast<Index>(i));
+        }
+        self.remove_vertices(indices);
+    }, "vertices"_a, R"(Remove selected vertices from the mesh.
+
+:param vertices: list of vertex indices to remove)");
     surface_mesh_class.def("remove_facets", [](MeshType& self, Tensor<Index> b) {
         auto [data, shape, stride] = tensor_to_span(b);
         la_runtime_assert(is_dense(shape, stride));
         la_runtime_assert(is_vector(shape));
         self.remove_facets(data);
     });
+    surface_mesh_class.def("remove_facets", [](MeshType& self, nb::list b) {
+        std::vector<Index> indices;
+        for (auto i : b) {
+            indices.push_back(nb::cast<Index>(i));
+        }
+        self.remove_facets(indices);
+    }, "facets"_a, R"(Remove selected facets from the mesh.
+
+:param facets: list of facet indices to remove)");
     surface_mesh_class.def("clear_vertices", &MeshType::clear_vertices);
     surface_mesh_class.def("clear_facets", &MeshType::clear_facets);
     surface_mesh_class.def("shrink_to_fit", &MeshType::shrink_to_fit);
@@ -746,6 +765,7 @@ If not provided, the edges are initialized in an arbitrary order.
     surface_mesh_class.def("get_edge", &MeshType::get_edge);
     surface_mesh_class.def("get_corner_edge", &MeshType::get_corner_edge);
     surface_mesh_class.def("get_edge_vertices", &MeshType::get_edge_vertices);
+    surface_mesh_class.def("find_edge_from_vertices", &MeshType::find_edge_from_vertices);
     surface_mesh_class.def("get_first_corner_around_edge", &MeshType::get_first_corner_around_edge);
     surface_mesh_class.def("get_next_corner_around_edge", &MeshType::get_next_corner_around_edge);
     surface_mesh_class.def(
@@ -792,6 +812,52 @@ If not provided, the edges are initialized in an arbitrary order.
 
 :returns: A list of attribute ids matching the target element, usage and number of channels.
 )");
+
+    surface_mesh_class.def(
+        "__copy__",
+        [](MeshType& self) -> MeshType {
+            MeshType mesh = self;
+            return mesh;
+        },
+        R"(Create a shallow copy of this mesh.)");
+
+    surface_mesh_class.def(
+        "__deepcopy__",
+        [](MeshType& self, [[maybe_unused]] std::optional<nb::dict> memo) -> MeshType {
+            MeshType mesh = self;
+            par_foreach_attribute_write(mesh, [](auto&& attr) {
+                // For most of the attributes, just getting a writable reference will trigger a copy
+                // of the buffer thanks to the copy-on-write mechanism and the default
+                // CopyIfExternal copy policy.
+
+                using AttributeType = std::decay_t<decltype(attr)>;
+                if constexpr (AttributeType::IsIndexed) {
+                    auto& value_attr = attr.values();
+                    if (value_attr.is_external()) {
+                        value_attr.create_internal_copy();
+                    }
+                    auto& index_attr = attr.indices();
+                    if (index_attr.is_external()) {
+                        index_attr.create_internal_copy();
+                    }
+                } else {
+                    if (attr.is_external()) {
+                        attr.create_internal_copy();
+                    }
+                }
+            });
+            return mesh;
+        },
+        "memo"_a = nb::none(),
+        R"(Create a deep copy of this mesh.)");
+
+    surface_mesh_class.def(
+        "clone",
+        [](MeshType& self) {
+            auto py_self = nb::find(self);
+            return py_self.attr("__deepcopy__")();
+        },
+        R"(Create a deep copy of this mesh.)");
 }
 
 } // namespace lagrange::python
