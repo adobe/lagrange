@@ -19,7 +19,7 @@ else()
 endif()
 
 # Check required CMake version
-set(REQUIRED_CMAKE_VERSION "3.24.0")
+set(REQUIRED_CMAKE_VERSION "3.25.0")
 if(LAGRANGE_TOPLEVEL_PROJECT)
     cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
 else()
@@ -46,14 +46,41 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
     endif()
 endif()
 
-# Enable ccache if available
-find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
-    option(LAGRANGE_WITH_CCACHE "Enable ccache when building Lagrange" ${LAGRANGE_TOPLEVEL_PROJECT})
-else()
-    option(LAGRANGE_WITH_CCACHE "Enable ccache when building Lagrange" OFF)
+# Set default macOS deployment target
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
 endif()
-if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
+
+#########################################
+# Enable sccache or ccache if available #
+#########################################
+
+set(LAGRANGE_CACHE_DESCRIPTION "Cache program to use when building Lagrange (none, ccache or sccache)")
+
+# Set compiler cache default based on available programs
+find_program(SCCACHE_PROGRAM sccache)
+if(SCCACHE_PROGRAM)
+    set(LAGRANGE_CACHE_PROGRAM "sccache" CACHE STRING ${LAGRANGE_CACHE_DESCRIPTION})
+else()
+    find_program(CCACHE_PROGRAM ccache)
+    if(CACHE_PROGRAM)
+        set(LAGRANGE_CACHE_PROGRAM "ccache" CACHE STRING ${LAGRANGE_CACHE_DESCRIPTION})
+    else()
+        set(LAGRANGE_CACHE_PROGRAM "none" CACHE STRING ${LAGRANGE_CACHE_DESCRIPTION})
+    endif()
+endif()
+set(LAGRANGE_CACHE_CHOICES none ccache sccache)
+set_property(CACHE LAGRANGE_CACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CACHE_CHOICES})
+message(STATUS "Compile cache program: ${LAGRANGE_CACHE_PROGRAM}")
+
+# Now enable compiler cache based on requested option
+if(LAGRANGE_CACHE_PROGRAM STREQUAL "sccache")
+    find_program(SCCACHE_PROGRAM sccache REQUIRED)
+    set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
+    set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
+elseif(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
+    find_program(CCACHE_PROGRAM ccache REQUIRED)
     set(ccacheEnv
         CCACHE_BASEDIR=${CMAKE_BINARY_DIR}
         CCACHE_SLOPPINESS=clang_index_store,include_file_ctime,include_file_mtime,locale,pch_defines,time_macros
@@ -63,11 +90,6 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
             ${CMAKE_COMMAND} -E env ${ccacheEnv} ${CCACHE_PROGRAM}
         )
     endforeach()
-endif()
-
-# Set default macOS deployment target
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 ################################################################################
