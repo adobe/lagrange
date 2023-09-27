@@ -57,7 +57,6 @@ if(SKBUILD)
     # Generate stubs for python binding within the install location.
     add_custom_target(lagrange-python-stubgen
         COMMAND ${Python_EXECUTABLE} -m nanobind_stubgen lagrange
-        COMMAND ${Python_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/stubfix.py" lagrange
         WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
         DEPENDS lagrange-python-install
     )

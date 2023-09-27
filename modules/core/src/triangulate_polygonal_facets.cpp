@@ -38,13 +38,13 @@ void append_triangles_from_quad(
     std::vector<Index>& new_to_old_corners,
     std::vector<Index>& new_to_old_facets)
 {
-    LAGRANGE_ZONE_SCOPED
+    LAGRANGE_ZONE_SCOPED;
 
     // Collect coordinates in a padded matrix
     Eigen::Matrix<Scalar, 4, 3, Eigen::RowMajor> points;
     points.setZero();
     {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         const auto& vertex_positions = vertex_view(mesh);
         const auto facet_vertices = mesh.get_facet_vertices(f);
         const auto dim = mesh.get_dimension();
@@ -54,7 +54,7 @@ void append_triangles_from_quad(
     }
 
     auto sq_area = [&](Index v0, Index v1, Index v2) -> Scalar {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         return Scalar(0.25) * (points.row(v1) - points.row(v0))
                                   .cross(points.row(v2) - points.row(v0))
                                   .squaredNorm();
@@ -69,7 +69,7 @@ void append_triangles_from_quad(
         }
     }();
     {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         const auto corner_begin = mesh.get_facet_corner_begin(f);
         for (Index lf : {0, 1}) {
             for (Index k = 0; k < 3; ++k) {
@@ -83,7 +83,7 @@ void append_triangles_from_quad(
 template <typename Scalar, typename Index>
 Eigen::Vector3<Scalar> facet_normal(const SurfaceMesh<Scalar, Index>& mesh, Index f)
 {
-    LAGRANGE_ZONE_SCOPED
+    LAGRANGE_ZONE_SCOPED;
 
     if (mesh.get_dimension() == 2) {
         return {0, 0, 1};
@@ -107,7 +107,7 @@ Eigen::Vector3<Scalar> facet_normal(const SurfaceMesh<Scalar, Index>& mesh, Inde
 template <typename Scalar, typename Index>
 auto find_best_2d_axes(const SurfaceMesh<Scalar, Index>& mesh, Index f)
 {
-    LAGRANGE_ZONE_SCOPED
+    LAGRANGE_ZONE_SCOPED;
 
     auto nrm = facet_normal(mesh, f);
 
@@ -137,7 +137,7 @@ void append_triangles_from_polygon(
     std::vector<Index>& new_to_old_corners,
     std::vector<Index>& new_to_old_facets)
 {
-    LAGRANGE_ZONE_SCOPED
+    LAGRANGE_ZONE_SCOPED;
 
     // Compute projection axes
     auto axes = find_best_2d_axes(mesh, f);
@@ -160,7 +160,7 @@ void append_triangles_from_polygon(
 
     // Append new triangles
     {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         const Index num_triangles = static_cast<Index>(earcut.indices.size() / 3);
         const auto corner_begin = mesh.get_facet_corner_begin(f);
         for (Index lf = 0; lf < num_triangles; ++lf) {
@@ -175,7 +175,7 @@ void append_triangles_from_polygon(
 template <typename Scalar, typename Index>
 void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
 {
-    LAGRANGE_ZONE_SCOPED
+    LAGRANGE_ZONE_SCOPED;
 
     const Index dim = mesh.get_dimension();
     la_runtime_assert(dim == 2 || dim == 3, "Mesh dimension must be 2 or 3");
@@ -218,7 +218,7 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
         // It is more efficient to add all triangles all at once. This is especially true if the
         // mesh has edge information/attributes, since adding new triangles involves sorting &
         // indexing new edges.
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         std::vector<Index> new_vertices;
         {
             new_vertices.reserve(new_to_old_corners.size());
@@ -255,7 +255,7 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
 
     // Remap facet, corner, and indexed attributes
     if (mesh.get_num_facets() != old_num_facets) {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         par_foreach_named_attribute_write<
             AttributeElement::Indexed | AttributeElement::Facet | AttributeElement::Corner>(
             mesh,
@@ -278,7 +278,7 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
 
     // Finally, cleanup facets marked for removal
     if (need_removal) {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         mesh.remove_facets([&](Index f) -> bool {
             if (f < old_num_facets) {
                 return to_remove[f];
@@ -291,7 +291,7 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
     // We do not automatically remap edge attributes, as we don't have a way to interpret how to
     // remap those attributes
     {
-        LAGRANGE_ZONE_SCOPED
+        LAGRANGE_ZONE_SCOPED;
         bool has_edge_attr = false;
         seq_foreach_attribute_read<AttributeElement::Edge>(mesh, [&](auto&&) {
             has_edge_attr = true;

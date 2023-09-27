@@ -31,7 +31,7 @@
 # set(CMAKE_CXX_COMPILER "/usr/local/opt/llvm/bin/clang++" CACHE STRING "C++ compiler")
 
 # Set deployment platform for macOS
-# set(CMAKE_OSX_DEPLOYMENT_TARGET 10.12 CACHE STRING "macOS deployment target")
+# set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0 CACHE STRING "macOS deployment target")
 
 # Always add colored output (e.g. when using Ninja)
 # list(APPEND CMAKE_CXX_FLAGS -fdiagnostics-color=always) # GCC
@@ -72,7 +72,6 @@
 # option(LAGRANGE_ENABLE_GPU_TESTS     "Enable unit tests that run on the GPU"                ON)
 # option(LAGRANGE_MORE_WARNINGS        "Increase the level of warnings when compiling"        OFF)
 # option(LAGRANGE_SLOW_TESTS           "Enable slow unit tests"                               ON)
-# option(LAGRANGE_UI_USE_MDL           "Use Material Definition Library"                      ON)
 # option(LAGRANGE_USE_PCH              "Enable precompiled headers"                           ON)
 # option(LAGRANGE_USE_WASM_EXCEPTIONS  "Use -fwasm-exception flag with Emscripten"            OFF)
 # option(LAGRANGE_WITH_ASSIMP          "Add assimp functionality to lagrange::io"             ON)

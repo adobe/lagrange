@@ -33,9 +33,8 @@ void populate_scene_module(nb::module_& m)
     nb::enum_<lagrange::scene::FacetAllocationStrategy>(m, "FacetAllocationStrategy")
         .value("EvenSplit", lagrange::scene::FacetAllocationStrategy::EvenSplit)
         .value("RelativeToMeshArea", lagrange::scene::FacetAllocationStrategy::RelativeToMeshArea)
-        .value(
-            "RelativeToNumFacets",
-            lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets);
+        .value("RelativeToNumFacets", lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets)
+        .value("Synchronized", lagrange::scene::FacetAllocationStrategy::Synchronized);
 
     nb::class_<lagrange::scene::RemeshingOptions>(m, "RemeshingOptions")
         .def(nb::init<>())

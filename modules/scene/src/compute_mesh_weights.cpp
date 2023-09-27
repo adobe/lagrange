@@ -17,7 +17,6 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
-
 namespace lagrange::scene {
 
 namespace {
@@ -85,6 +84,9 @@ std::vector<double> compute_mesh_weights(
         weights_map /= weights_map.sum();
         break;
     }
+    case FacetAllocationStrategy::Synchronized:
+        throw std::runtime_error("Simplification code using a synchronized facet allocation "
+                                 "strategy should not call `compute_mesh_weights()`.");
     }
 
     la_debug_assert(weights.size() == scene.get_num_meshes());

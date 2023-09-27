@@ -145,13 +145,15 @@ Tensor<std::decay_t<ValueType>> span_to_tensor(
 }
 
 template <typename ValueType>
-nb::object attribute_to_tensor(const Attribute<ValueType>& attr, nb::handle base)
+Tensor<std::decay_t<ValueType>> attribute_to_tensor(
+    const Attribute<ValueType>& attr,
+    nb::handle base)
 {
     return attribute_to_tensor(attr, {}, base);
 }
 
 template <typename ValueType>
-nb::object
+Tensor<std::decay_t<ValueType>>
 attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, nb::handle base)
 {
     auto data = attr.get_all();
@@ -166,12 +168,10 @@ attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, 
     }
 
     if (num_channels == 1) {
-        auto tensor = span_to_tensor(data, base);
-        return nb::cast(tensor, nb::rv_policy::reference);
+        return span_to_tensor(data, base);
     } else {
         size_t tmp_shape[2]{num_elements, num_channels};
-        auto tensor = span_to_tensor(data, tmp_shape, base);
-        return nb::cast(tensor, nb::rv_policy::reference);
+        return span_to_tensor(data, tmp_shape, base);
     }
 }
 
@@ -203,10 +203,10 @@ attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, 
         span<const size_t>,                                                        \
         span<const int64_t>,                                                       \
         nb::handle);                                                               \
-    template nb::object attribute_to_tensor<ValueType>(                            \
+    template Tensor<std::decay_t<ValueType>> attribute_to_tensor<ValueType>(       \
         const Attribute<ValueType>&,                                               \
         nb::handle base);                                                          \
-    template nb::object attribute_to_tensor<ValueType>(                            \
+    template Tensor<std::decay_t<ValueType>> attribute_to_tensor<ValueType>(       \
         const Attribute<ValueType>&,                                               \
         span<const size_t>,                                                        \
         nb::handle base);

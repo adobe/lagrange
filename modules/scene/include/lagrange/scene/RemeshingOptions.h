@@ -26,11 +26,29 @@ enum class FacetAllocationStrategy {
     /// Allocate facet budget according to the mesh area in the scene.
     RelativeToMeshArea,
     /// Allocate facet budget according to the mesh number of facets.
-    RelativeToNumFacets
+    RelativeToNumFacets,
+    /// Synchronize simplification between multiple meshes in a scene by computing a conservative
+    /// threshold on the QEF error of all edges in the scene. This option gives the best result in
+    /// terms of facet budget allocation, but is a bit slower than other options. This strategy is
+    /// only supported by edge-collapse decimation, and is not available for quadrangulation.
+    Synchronized,
 };
 
 ///
-/// Options that define how remeshing algorithms (tessellate, decimate, quadrangulate) treat meshes within a scene.
+/// Strategy for processing meshes without instances in a scene.
+///
+enum class UninstanciatedMeshesStrategy {
+    /// Use backend-specific default behavior.
+    None,
+    /// Skip meshes with zero instances, leaving the original in the output scene.
+    Skip,
+    /// Replace meshes with zero instances with an empty mesh instead.
+    ReplaceWithEmpty,
+};
+
+///
+/// Options that define how remeshing algorithms (tessellate, decimate, quadrangulate) treat meshes
+/// within a scene.
 ///
 struct RemeshingOptions
 {
@@ -40,6 +58,9 @@ struct RemeshingOptions
     /// Minimum amount of facets for meshes in the scene.
     /// Set to lagrange::invalid to use backend-specific default value.
     size_t min_facets = lagrange::invalid<size_t>();
+
+    /// Behavior for meshes without instances in the scene.
+    UninstanciatedMeshesStrategy uninstanciated_meshes_strategy = UninstanciatedMeshesStrategy::None;
 };
 
 } // namespace lagrange::scene

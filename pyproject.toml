@@ -4,7 +4,7 @@ requires = [
     "wheel>=0.36.0",
     "scikit-build==0.14.0",
     "cmake>=3.24.2",
-    "nanobind-stubgen==0.1.1",
+    "nanobind-stubgen==0.1.2",
     "ninja; platform_system!='Windows'"
 ]
 

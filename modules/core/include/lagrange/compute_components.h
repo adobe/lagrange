@@ -31,7 +31,7 @@ struct ComponentOptions
 {
     using ConnectivityType = lagrange::ConnectivityType;
 
-    /// Ouptut component id attribute name.
+    /// Output component id attribute name.
     std::string_view output_attribute_name = "@component_id";
 
     /// Connectivity type used for component computation.
@@ -41,8 +41,8 @@ struct ComponentOptions
 /**
  * Compute connected components of an input mesh.
  *
- * This methods will create a per-facet component id in an attributed named
- * `ComponentOptions::output_attribute_name`.  Each component id is in [0, num_components).
+ * This method will create a per-facet component id in an attribute named
+ * `ComponentOptions::output_attribute_name`.  Each component id is in [0, num_components-1].
  *
  * @param      mesh     Input mesh.
  * @param      options  Options to control component computation.
@@ -55,8 +55,36 @@ struct ComponentOptions
  * @see        `ComponentOptions`
  */
 template <typename Scalar, typename Index>
+size_t compute_components(SurfaceMesh<Scalar, Index>& mesh, ComponentOptions options = {});
+
+/**
+ * Compute connected components of an input mesh.
+ *
+ * This method will create a per-facet component id in an attribute named
+ * `ComponentOptions::output_attribute_name`.  Each component id is in [0, num_components-1].
+ *
+ * @param      mesh             Input mesh.
+ * @param      blocker_elements An array of blocker element indices. The blocker element index is
+ *                              either a vertex index or an edge index depending on
+ *                              `options.connectivity_type`. If `options.connectivity_type` is
+ *                              `ConnectivityType::Edge`, facets adjacent to a blocker edge are not
+ *                              considered as connected through this edge. If
+ *                              `options.connectivity_type` is `ConnectivityType::Vertex`, facets
+ *                              sharing a blocker vertex are not considered as connected through
+ *                              this vertex. If empty, no blocker elements are used.
+ * @param      options          Options to control component computation.
+ *
+ * @tparam     Scalar   Mesh scalar type.
+ * @tparam     Index    Mesh index type.
+ *
+ * @return     The total number of connected components.
+ *
+ * @see        `ComponentOptions`
+ */
+template <typename Scalar, typename Index>
 size_t compute_components(
     SurfaceMesh<Scalar, Index>& mesh,
+    span<const Index> blocker_elements,
     ComponentOptions options = {});
 
 /// @}

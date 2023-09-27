@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME pcg
     GITHUB_REPOSITORY imneme/pcg-cpp
-    GIT_TAG 5b5cac8d61339e810c5dbb4692d868a1d7ca1b2d
+    GIT_TAG 428802d1a5634f96bcd0705fab379ff0113bcf13
 )
 
 add_library(pcg::pcg INTERFACE IMPORTED GLOBAL)
