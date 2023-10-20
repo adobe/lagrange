@@ -49,7 +49,7 @@ function(lagrange_download_data)
             list(GET entry 1 remote_path)
             list(GET entry 2 checksum)
             set(local_path "${LAGRANGE_DATA_FOLDER}/${local_relpath}")
-            set(keyfile_option "${LAGRANGE_ARTIFACTORY_KEYFILE}")
+            set(keyfile_option "${ARTIFACTORY_KEYFILE}")
 
             add_custom_command(
                 OUTPUT

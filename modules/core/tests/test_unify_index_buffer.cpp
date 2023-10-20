@@ -446,4 +446,19 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
             REQUIRE(!AttributeType::IsIndexed);
         });
     }
+
+    SECTION("Value attributes") {
+        auto mesh = generate_square<Scalar, Index>();
+
+        mesh.create_attribute<float>("total_area", Value, AttributeUsage::Scalar, 1);
+        auto& attr = mesh.ref_attribute<float>("total_area");
+        attr.resize_elements(1);
+        attr.ref(0) = 1.0f;
+        REQUIRE(mesh.has_attribute("total_area"));
+
+        auto mesh2 = unify_index_buffer(mesh);
+
+        REQUIRE(mesh2.has_attribute("total_area"));
+        REQUIRE(mesh2.get_attribute<float>("total_area").get(0) == attr.get(0));
+    }
 }

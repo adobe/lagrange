@@ -70,8 +70,14 @@ public:
     void set_num_iterations(size_t num_iterations);
 
     ///
-    /// Updates the current iteration number, and sends a notification. It is safe to call this
-    /// method from multiple threads.
+    /// Updates the current iteration number by a fixed amount, and sends a notification. It is safe
+    /// to call this method from multiple threads.
+    ///
+    void advance(size_t increment);
+
+    ///
+    /// Updates the current iteration number by one, and sends a notification. It is safe to call
+    /// this method from multiple threads.
     ///
     void update();
 
@@ -102,6 +108,9 @@ private:
 
     /// Current iteration number.
     std::atomic_size_t m_current_iteration = {0};
+
+    /// Record last progress to ensure callback is called with ascending values.
+    float m_last_progress = 0.f;
 
     /// Mutex to be tentatively locked before calling the callback function.
     tbb::spin_mutex m_mutex;

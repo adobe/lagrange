@@ -39,31 +39,18 @@ endif()
 
 # 2. installation
 if(SKBUILD)
+    message(STATUS "Lagrange: installing python binding to ${SKBUILD_PLATLIB_DIR}/lagrange")
     # Install python extension directly at ${CMAKE_INSTALL_PREFIX}, which will
     # be set by `setup.py`.
     install(TARGETS lagrange_python tbb
-        ARCHIVE DESTINATION . COMPONENT Lagrange_Python_Runtime
-        LIBRARY DESTINATION . COMPONENT Lagrange_Python_Runtime
-        RUNTIME DESTINATION . COMPONENT Lagrange_Python_Runtime
-    )
-    # Install python and tbb libraries to ${CMAKE_INSTALL_PREFIX}/lagrange
-    # which is under _skbuild/<platform>/cmake-install/modules/python/lagrange by default.
-    add_custom_target(lagrange-python-install
-        COMMAND ${CMAKE_COMMAND}
-        -DCMAKE_INSTALL_COMPONENT=Lagrange_Python_Runtime
-        -P "${PROJECT_BINARY_DIR}/cmake_install.cmake"
-        DEPENDS lagrange_python
+        ARCHIVE DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange COMPONENT Lagrange_Python_Runtime
+        LIBRARY DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange COMPONENT Lagrange_Python_Runtime
+        RUNTIME DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange COMPONENT Lagrange_Python_Runtime
     )
     # Generate stubs for python binding within the install location.
-    add_custom_target(lagrange-python-stubgen
-        COMMAND ${Python_EXECUTABLE} -m nanobind_stubgen lagrange
-        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
-        DEPENDS lagrange-python-install
-    )
-    # A pseudo target to kick start the installation process.
-    add_custom_target(lagrange-python-install-runtime
-        DEPENDS lagrange-python-install lagrange-python-stubgen
-    )
+    install(CODE
+        "execute_process(COMMAND ${Python_EXECUTABLE} -m nanobind_stubgen lagrange WORKING_DIRECTORY ${SKBUILD_PLATLIB_DIR}/lagrange)"
+        COMPONENT Lagrange_Python_Runtime)
 endif()
 
 # 3. output location

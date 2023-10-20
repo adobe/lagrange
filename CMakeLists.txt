@@ -19,7 +19,7 @@ else()
 endif()
 
 # Check required CMake version
-set(REQUIRED_CMAKE_VERSION "3.25.0")
+set(REQUIRED_CMAKE_VERSION "3.24.0")
 if(LAGRANGE_TOPLEVEL_PROJECT)
     cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
 else()
@@ -46,41 +46,14 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
     endif()
 endif()
 
-# Set default macOS deployment target
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
-endif()
-
-#########################################
-# Enable sccache or ccache if available #
-#########################################
-
-set(LAGRANGE_CACHE_DESCRIPTION "Cache program to use when building Lagrange (none, ccache or sccache)")
-
-# Set compiler cache default based on available programs
-find_program(SCCACHE_PROGRAM sccache)
-if(SCCACHE_PROGRAM)
-    set(LAGRANGE_CACHE_PROGRAM "sccache" CACHE STRING ${LAGRANGE_CACHE_DESCRIPTION})
+# Enable ccache if available
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    option(LAGRANGE_WITH_CCACHE "Enable ccache when building Lagrange" ${LAGRANGE_TOPLEVEL_PROJECT})
 else()
-    find_program(CCACHE_PROGRAM ccache)
-    if(CACHE_PROGRAM)
-        set(LAGRANGE_CACHE_PROGRAM "ccache" CACHE STRING ${LAGRANGE_CACHE_DESCRIPTION})
-    else()
-        set(LAGRANGE_CACHE_PROGRAM "none" CACHE STRING ${LAGRANGE_CACHE_DESCRIPTION})
-    endif()
+    option(LAGRANGE_WITH_CCACHE "Enable ccache when building Lagrange" OFF)
 endif()
-set(LAGRANGE_CACHE_CHOICES none ccache sccache)
-set_property(CACHE LAGRANGE_CACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CACHE_CHOICES})
-message(STATUS "Compile cache program: ${LAGRANGE_CACHE_PROGRAM}")
-
-# Now enable compiler cache based on requested option
-if(LAGRANGE_CACHE_PROGRAM STREQUAL "sccache")
-    find_program(SCCACHE_PROGRAM sccache REQUIRED)
-    set(CMAKE_C_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
-    set(CMAKE_CXX_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT Embedded)
-elseif(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
-    find_program(CCACHE_PROGRAM ccache REQUIRED)
+if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
     set(ccacheEnv
         CCACHE_BASEDIR=${CMAKE_BINARY_DIR}
         CCACHE_SLOPPINESS=clang_index_store,include_file_ctime,include_file_mtime,locale,pch_defines,time_macros
@@ -90,6 +63,11 @@ elseif(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
             ${CMAKE_COMMAND} -E env ${ccacheEnv} ${CCACHE_PROGRAM}
         )
     endforeach()
+endif()
+
+# Set default macOS deployment target
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 ################################################################################
@@ -141,6 +119,7 @@ option(LAGRANGE_USE_PCH                 "Enable precompiled headers"            
 option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            OFF)
 option(LAGRANGE_WITH_ONETBB             "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)
+option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt and eigen"     OFF)
 
 # Specific override for building on Jenkins
 if(LAGRANGE_JENKINS)
@@ -164,7 +143,7 @@ option(LAGRANGE_EXTERNAL_FIRST    "Third-party libs: prefer public mirrors over 
 option(LAGRANGE_EXTERNAL_ONLY     "Third-party libs: only download from public mirrors"         ${LAGRANGE_NO_INTERNAL})
 
 # Artifactory key file
-set(LAGRANGE_ARTIFACTORY_KEYFILE "" CACHE FILEPATH "Path to secret artifactory key.")
+set(ARTIFACTORY_KEYFILE "" CACHE FILEPATH "Path to secret artifactory key.")
 
 # Website repository (extract & check code)
 set(LAGRANGE_WEBSITE_REPO "" CACHE FILEPATH "Path to the website repository for markdown code extraction")
@@ -244,13 +223,16 @@ include(lagrange_add_python_binding)
 include(lagrange_add_test)
 include(lagrange_cpm_cache)
 include(lagrange_download_data)
-include(lagrange_global_flags)
 include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
 include(lagrange_warnings)
 include(sanitizers)
+
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    include(lagrange_global_flags)
+endif()
 
 set(CMAKE_MACOSX_RPATH 1) # Set rpath for mac
 

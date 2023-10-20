@@ -30,6 +30,9 @@ class PythonLoggingSink : public spdlog::sinks::base_sink<std::mutex>
 protected:
     void sink_it_(const spdlog::details::log_msg& msg) override
     {
+        // Logging in python requires the current thread to hold the GIL.
+        if (!PyGILState_Check()) return;
+
         namespace nb = nanobind;
         auto payload = msg.payload;
         auto res = nb::str(payload.data(), payload.size());
@@ -37,7 +40,7 @@ protected:
         auto py_logger = logging.attr("getLogger")("lagrange");
 
         switch (msg.level) {
-        case spdlog::level::trace: py_logger.attr("trace")(res); break;
+        case spdlog::level::trace: py_logger.attr("debug")(res); break;
         case spdlog::level::debug: py_logger.attr("debug")(res); break;
         case spdlog::level::info: py_logger.attr("info")(res); break;
         case spdlog::level::warn: py_logger.attr("warning")(res); break;
@@ -50,10 +53,16 @@ protected:
 
     void flush_() override
     {
+        // Logging in python requires the current thread to hold the GIL.
+        if (!PyGILState_Check()) return;
+
         namespace nb = nanobind;
         nb::module_ logging = nb::module_::import_("logging");
         auto py_logger = logging.attr("getLogger")("lagrange");
-        py_logger.attr("flush")();
+        auto handlers = py_logger.attr("handlers");
+        for (auto handler : handlers) {
+            handler.attr("flush")();
+        }
     }
 };
 
@@ -62,6 +71,7 @@ void register_python_logger()
     auto& logger = lagrange::logger();
     logger.sinks().clear();
     logger.sinks().emplace_back(std::make_shared<PythonLoggingSink>());
+    logger.set_level(spdlog::level::trace); // Log level will be controlled by Python.
 }
 
 } // namespace lagrange::python

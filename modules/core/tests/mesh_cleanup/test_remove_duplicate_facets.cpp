@@ -9,17 +9,154 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/compute_facet_area.h>
-#include <lagrange/create_mesh.h>
+#include <lagrange/combine_meshes.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_facets.h>
-#include <lagrange/utils/safe_cast.h>
+#include <lagrange/mesh_convert.h>
+#include <lagrange/testing/check_mesh.h>
+#include <lagrange/testing/common.h>
+#include <lagrange/topology.h>
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/compute_facet_area.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/utils/safe_cast.h>
+#endif
+
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
 
+TEST_CASE("remove_duplicate_facets", "[surface][duplicate][mesh_cleanup]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SECTION("empty mesh")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+
+        remove_duplicate_facets(mesh);
+        REQUIRE(mesh.get_num_vertices() == 0);
+        REQUIRE(mesh.get_num_facets() == 0);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("quad")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 1});
+        mesh.add_triangle(0, 1, 2); // positively oriented
+        mesh.add_triangle(0, 2, 3);
+
+        mesh.add_triangle(0, 1, 2); // duplicate
+        remove_duplicate_facets(mesh);
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(mesh.get_num_vertices() == 4);
+        REQUIRE(mesh.get_num_facets() == 2);
+        lagrange::testing::check_mesh(mesh);
+
+        mesh.add_triangle(2, 1, 0); // duplicate but opposite orientation
+        remove_duplicate_facets(mesh);
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(mesh.get_num_vertices() == 4);
+        REQUIRE(mesh.get_num_facets() == 1);
+        lagrange::testing::check_mesh(mesh);
+
+        mesh.add_triangle(0, 1, 2); // positively oriented
+        mesh.add_triangle(2, 1, 0); // duplicate but opposite orientation
+        mesh.add_triangle(0, 1, 2); // another positively oriented
+        // Positive orientation wins.
+        remove_duplicate_facets(mesh);
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(mesh.get_num_vertices() == 4);
+        REQUIRE(mesh.get_num_facets() == 2);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("quad")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 1});
+        mesh.add_quad(1, 0, 2, 1); // positively oriented
+        mesh.add_quad(1, 1, 0, 2); // duplicate
+
+        remove_duplicate_facets(mesh);
+        REQUIRE(mesh.get_num_facets() == 1);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("fully degenerate facet")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 1});
+        mesh.add_triangle(1, 1, 1);
+        mesh.add_triangle(1, 1, 1);
+        mesh.add_quad(1, 1, 0, 2);
+
+        remove_duplicate_facets(mesh);
+        REQUIRE(mesh.get_num_facets() == 2);
+        lagrange::testing::check_mesh(mesh);
+    }
+
+    SECTION("polynomial facets")
+    {
+        SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertices(10);
+        mesh.add_polygon({0, 1, 0, 2, 3});
+        mesh.add_polygon({0, 2, 3, 0, 1});
+        mesh.add_polygon({3, 2, 0, 1, 0});
+
+        auto mesh1 = mesh;
+        remove_duplicate_facets(mesh1);
+        REQUIRE(mesh1.get_num_facets() == 1);
+        lagrange::testing::check_mesh(mesh1);
+
+        RemoveDuplicateFacetOptions options;
+        options.consider_orientation = true;
+        auto mesh2 = mesh;
+        remove_duplicate_facets(mesh2, options);
+        REQUIRE(mesh2.get_num_facets() == 2);
+        lagrange::testing::check_mesh(mesh2);
+    }
+}
+
+TEST_CASE("remove_duplicate_facets benchmark", "[surface][mesh_cleanup][duplicate][!benchmark]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
+    mesh = combine_meshes({&mesh, &mesh});
+
+    BENCHMARK("remove_duplicate_facets")
+    {
+        remove_duplicate_facets(mesh);
+    };
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    using MeshType = TriangleMesh3D;
+    auto legacy_mesh = to_legacy_mesh<MeshType>(mesh);
+    BENCHMARK("legacy::remove_duplicate_facets")
+    {
+        return legacy::remove_duplicate_facets(*legacy_mesh);
+    };
+#endif
+}
+
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 TEST_CASE("RemoveDuplicateFacetsTest", "[duplicate][cleanup][mesh]")
 {
     using namespace lagrange;
@@ -192,3 +329,4 @@ TEST_CASE("RemoveDuplicateFacetsTest_slow", "[duplicate][cleanup][mesh]" LA_SLOW
         }
     }
 }
+#endif

@@ -165,11 +165,11 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         }
     });
 
-    // Map facet and corner attributes.
-    seq_foreach_named_attribute_read<Facet | Corner>(mesh, [&](std::string_view name, auto&& attr) {
+    // Map facet, corner and value attributes.
+    seq_foreach_named_attribute_read<Facet | Corner | Value>(mesh, [&](std::string_view name, auto&& attr) {
         LA_IGNORE(attr);
         if (mesh.attr_name_is_reserved(name)) return;
-        logger().debug("Unified index buffer: mapping facet attribute {}", name);
+        logger().debug("Unified index buffer: mapping facet/corner/value attribute {}", name);
         output_mesh.create_attribute_from(name, mesh);
     });
 

@@ -1,5 +1,5 @@
 #
-# Copyright 2023 Adobe. All rights reserved.
+# Copyright 2021 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -39,15 +39,6 @@ option(PXR_ENABLE_PTEX_SUPPORT "Enable Ptex support" OFF)
 option(PXR_ENABLE_PYTHON_SUPPORT "Enable Python based components for USD" OFF)
 option(PXR_ENABLE_VULKAN_SUPPORT "Enable Vulkan based components" OFF)
 option(PXR_ENABLE_PRECOMPILED_HEADERS "Enable precompiled headers." OFF)
-
-# Fix include directories to not explicitly reference the build directory, otherwise install() will complain
-function(usd_fix_include_dirs var)
-    set(fixed_dirs)
-    foreach(name IN ITEMS ${${var}})
-        list(APPEND fixed_dirs "$<BUILD_INTERFACE:${name}>")
-    endforeach()
-    set(${var} ${fixed_dirs} PARENT_SCOPE)
-endfunction()
 
 # We want to compile USD with TBB support, so we need to overwrite USD's
 # `find_package()` and provide variables. The following discussion provide some
@@ -97,10 +88,10 @@ function(usd_import_target)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
     # Import our own targets
-    ignore_package(TBB)
-    ignore_package(Boost)
     include(tbb)
     include(boost)
+    ignore_package(TBB)
+    ignore_package(Boost)
     set(Tbb_VERSION 2019.0 CACHE STRING "" FORCE)
     set(Boost_LIB_VERSION 1.70 CACHE STRING "" FORCE)
 
@@ -110,12 +101,11 @@ function(usd_import_target)
     # - TBB_tbb_LIBRARY
     # - TBB_INCLUDE_DIRS
     # - PYTHON_INCLUDE_DIRS
-    get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
     set(TBB_tbb_LIBRARY TBB::tbb)
-    get_target_property(Boost_INCLUDE_DIRS Boost::boost INTERFACE_INCLUDE_DIRECTORIES)
-    usd_fix_include_dirs(Boost_INCLUDE_DIRS)
+    set(TBB_INCLUDE_DIRS "")
     set(Boost_PYTHON_LIBRARY "")
     set(PYTHON_INCLUDE_DIRS "")
+    set(Boost_INCLUDE_DIRS "")
 
     # Always build USD as shared libraries to allow for plugins. Calling functions such as
     # pxr::UsdStage::IsSupportedFile will call Sdf_GetExtension in fileFormat.cpp, which triggers
@@ -138,7 +128,7 @@ endfunction()
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
 usd_import_target()
 
-# Set IDE folder for targets + add usd:: alias
+# List potential USD targets
 set(USD_base_TARGETS arch tf gf js trace work plug vt)
 set(USD_usd_TARGETS ar kind sdf ndr sdr pcp usd usdGeom
     usdVol usdMedia usdShade usdLux usdProc usdRender
@@ -148,6 +138,41 @@ set(USD_headers_TARGETS arch tf gf js trace work plug
     usdShade usdLux usdProc usdRender usdHydra usdRi usdSkel
     usdUI usdUtils usdPhysics)
 
+# Manually inject Boost dependencies after the fact. We bulk inject all the relevant libraries we
+# found in the USD repo. This is ugly, but since USD is in the process of "de-boostifying" their
+# codebase, we can't be bothered to fix their upstream CMake in the meantime.
+add_library(usd_boost INTERFACE IMPORTED GLOBAL)
+target_link_libraries(usd_boost INTERFACE
+    Boost::any
+    Boost::assign
+    Boost::bind
+    Boost::callable_traits
+    Boost::container
+    Boost::crc
+    Boost::function
+    Boost::functional
+    Boost::iterator
+    Boost::lexical_cast
+    Boost::mpl
+    Boost::multi_index
+    Boost::numeric_conversion
+    Boost::optional
+    Boost::preprocessor
+    Boost::ptr_container
+    Boost::range
+    Boost::smart_ptr
+    Boost::type_traits
+    Boost::utility
+    Boost::variant
+    Boost::vmd
+)
+foreach(name IN ITEMS ${USD_base_TARGETS} ${USD_usd_TARGETS})
+    if(TARGET ${name})
+        target_link_libraries(${name} usd_boost)
+    endif()
+endforeach()
+
+# Set IDE folder for targets + add usd:: alias
 foreach(name IN ITEMS ${USD_headers_TARGETS})
     if(TARGET ${name}_headerfiles)
         set_target_properties(${name}_headerfiles PROPERTIES FOLDER third_party/pxr/headerfiles)

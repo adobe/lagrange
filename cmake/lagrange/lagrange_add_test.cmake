@@ -44,6 +44,11 @@ function(lagrange_add_test)
     include(FetchContent)
     target_code_coverage(${test_target} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
 
+    # TSan suppression file to be passed to catch_discover_tests
+    set(LAGRANGE_TESTS_ENVIRONMENT
+        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/tsan.suppression.ini"
+    )
+
     # Output directory
     set_target_properties(${test_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
 
