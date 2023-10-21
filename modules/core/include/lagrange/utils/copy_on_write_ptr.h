@@ -19,6 +19,7 @@
 
 #include <cassert>
 #include <memory>
+#include <mutex>
 
 namespace lagrange {
 
@@ -135,14 +136,26 @@ public:
 protected:
     ::lagrange::internal::shared_ptr<T> m_data;
 
+    /// Protect from data races when acquiring ownership to the same object from multiple threads
+    // std::mutex m_ownership_mutex;
+
     /// If we are not the owner of the shared object, make a private copy of it
     template <typename Derived>
     void ensure_unique_owner()
     {
+        // Only mutex lock if we are not the owner. This prevents having to lock mutexes when we are
+        // already the unique owner of the data.
         if (m_data.use_count() != 1) {
-            auto ptr = static_cast<const Derived*>(m_data.get());
-            la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
-            m_data = ::lagrange::internal::make_shared<Derived>(*ptr);
+            // TODO: We should be using a mutex here, but this causes the copy-on-write pointer to
+            // not be movable/copyable. We need to fix this before we can use a mutex.
+            // std::lock_guard<std::mutex> lock(m_ownership_mutex);
+            // Test again in protected section to ensure we don't copy the data twice for the same
+            // object.
+            // if (m_data.use_count() != 1) {
+                auto ptr = static_cast<const Derived*>(m_data.get());
+                la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
+                m_data = ::lagrange::internal::make_shared<Derived>(*ptr);
+            // }
         }
     }
 };

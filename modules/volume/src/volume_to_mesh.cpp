@@ -51,18 +51,18 @@ auto volume_to_mesh(const Grid<GridScalar>& grid, const VolumeToMeshOptions& opt
 
     SurfaceMesh<Scalar, Index> mesh;
 
-    mesh.add_vertices(points.size(), [&](Index v, auto p) {
+    mesh.add_vertices(static_cast<Index>(points.size()), [&](Index v, auto p) {
         std::copy_n(points[v].asV(), 3, p.data());
     });
 
-    mesh.add_triangles(triangles.size(), [&](Index f, auto t) {
+    mesh.add_triangles(static_cast<Index>(triangles.size()), [&](Index f, auto t) {
         std::copy_n(triangles[f].asV(), 3, t.data());
         if (need_flip) {
             std::reverse(t.begin(), t.end());
         }
     });
 
-    mesh.add_quads(quads.size(), [&](Index f, auto t) {
+    mesh.add_quads(static_cast<Index>(quads.size()), [&](Index f, auto t) {
         std::copy_n(quads[f].asV(), 4, t.data());
         if (need_flip) {
             std::reverse(t.begin(), t.end());

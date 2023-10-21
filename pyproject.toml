@@ -1,20 +1,15 @@
 [build-system]
 requires = [
-    "setuptools>=42",
-    "wheel>=0.36.0",
-    "scikit-build==0.14.0",
-    "cmake>=3.24.2",
+    "scikit-build-core==0.5.1",
     "nanobind-stubgen==0.1.2",
-    "ninja; platform_system!='Windows'"
 ]
 
-build-backend = "setuptools.build_meta"
+build-backend = "scikit_build_core.build"
 
 [project]
 name = "lagrange-open"
 maintainers = [{name = "Lagrange Core Team", email = "lagrange-core@adobe.com"}]
 description = "A robust geometry processing engine"
-license = {file = "LISENCE"}
 readme = "README.md"
 requires-python = ">=3.8"
 dependencies = [
@@ -23,9 +18,27 @@ dependencies = [
 ]
 dynamic = ["version"]
 
-[tool.setuptools.dynamic]
-version = {file = "VERSION"}
-
 [project.urls]
 repo = "https://github.com/adobe/lagrange"
 doc = "https://opensource.adobe.com/lagrange-docs"
+
+[tool.scikit-build]
+install.components = ["Lagrange_Python_Runtime"]
+wheel.packages = ["modules/python/lagrange"]
+
+
+[tool.scikit-build.cmake.define]
+LAGRANGE_ASSERT_DEBUG_BREAK = "Off"
+LAGRANGE_EXAMPLES = "Off"
+LAGRANGE_INSTALL = "Off"
+LAGRANGE_MODULE_IO = "On"
+LAGRANGE_MODULE_PYTHON = "On"
+LAGRANGE_MODULE_SCENE = "On"
+LAGRANGE_UNIT_TESTS = "Off"
+LAGRANGE_WITH_ASSIMP = "On"
+TBB_PREFER_STATIC = "Off"
+
+[tool.scikit-build.metadata.version]
+provider = "scikit_build_core.metadata.regex"
+input = "VERSION"
+regex = "(?P<value>\\d+\\.\\d+\\.\\d+)"

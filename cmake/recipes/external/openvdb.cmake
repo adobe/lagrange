@@ -31,6 +31,7 @@ option(OPENVDB_ENABLE_RPATH "" OFF)
 include(CMakeDependentOption)
 cmake_dependent_option(OPENVDB_INSTALL_CMAKE_MODULES "" OFF "OPENVDB_BUILD_CORE" OFF)
 
+# TODO: Enable Blosc/Zlib
 option(USE_BLOSC "" OFF) # maybe later
 option(USE_ZLIB "" OFF) # maybe later
 option(USE_LOG4CPLUS "" OFF) # maybe later
@@ -105,13 +106,13 @@ function(openvdb_import_target)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
     # Import our own targets
-    ignore_package(TBB)
-    ignore_package(Boost)
     include(tbb)
     include(boost)
     include(ilmbase)
+    ignore_package(TBB)
+    ignore_package(Boost)
     set(Tbb_VERSION 2021.0 CACHE STRING "" FORCE)
-    set(Boost_LIB_VERSION 1.76 CACHE STRING "" FORCE)
+    set(Boost_LIB_VERSION 1.82 CACHE STRING "" FORCE)
     set(IlmBase_VERSION 2.4 CACHE STRING "" FORCE)
 
     # Ready to include openvdb CMake
@@ -119,11 +120,27 @@ function(openvdb_import_target)
     CPMAddPackage(
         NAME openvdb
         GITHUB_REPOSITORY AcademySoftwareFoundation/openvdb
-        GIT_TAG v10.0.0
+        GIT_TAG v10.0.1
     )
 
     unignore_package(TBB)
     unignore_package(Boost)
+
+    # Inject real Boost dependencies instead of dummy Boost:headers one
+    foreach(name IN ITEMS openvdb_static openvdb_shared)
+        if(TARGET ${name})
+            target_link_libraries(${name}
+                PUBLIC
+                    Boost::algorithm
+                    Boost::any
+                    Boost::numeric_conversion
+                    Boost::uuid
+                PRIVATE
+                    Boost::interprocess
+            )
+            target_compile_definitions(${name} PRIVATE BOOST_ALL_NO_LIB)
+        endif()
+    endforeach()
 
     # Forward ALIAS target for openvdb
     get_target_property(_aliased openvdb ALIASED_TARGET)

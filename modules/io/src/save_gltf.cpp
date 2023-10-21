@@ -248,12 +248,13 @@ void populate_attributes(
         } else if constexpr (std::is_same_v<ValueType, uint16_t>) {
             accessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
         } else if constexpr (
-            std::is_same_v<ValueType, int> || std::is_same_v<ValueType, int32_t> ||
-            std::is_same_v<ValueType, int64_t>) {
-            accessor.componentType = TINYGLTF_COMPONENT_TYPE_INT;
+            std::is_same_v<ValueType, unsigned int> || std::is_same_v<ValueType, uint32_t>) {
+            accessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
         } else if constexpr (
-            std::is_same_v<ValueType, unsigned int> || std::is_same_v<ValueType, uint32_t> ||
-            std::is_same_v<ValueType, uint64_t> || std::is_same_v<ValueType, size_t>) {
+            std::is_same_v<ValueType, int> || std::is_same_v<ValueType, int32_t> ||
+            std::is_same_v<ValueType, int64_t> || std::is_same_v<ValueType, uint64_t> ||
+            std::is_same_v<ValueType, size_t>) {
+            // special case: convert signed to unsigned, and 64 bits to 32 bits
             accessor.componentType = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
         } else if constexpr (std::is_same_v<ValueType, float>) {
             accessor.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
@@ -290,6 +291,15 @@ void populate_attributes(
             std::vector<float> tmp;
             span<const float> data = get_attribute_as<ValueType, float>(values.get_all(), tmp);
             std::tie(buffer_index, byte_offset, byte_length) = write_to_buffer<float>(model, data);
+        } else if constexpr (
+            std::is_same_v<ValueType, int> || std::is_same_v<ValueType, int32_t> ||
+            std::is_same_v<ValueType, int64_t> || std::is_same_v<ValueType, uint64_t> ||
+            std::is_same_v<ValueType, size_t>) {
+            std::vector<uint32_t> tmp;
+            span<const uint32_t> data =
+                get_attribute_as<ValueType, uint32_t>(values.get_all(), tmp);
+            std::tie(buffer_index, byte_offset, byte_length) =
+                write_to_buffer<uint32_t>(model, data);
         } else {
             std::vector<ValueType> tmp;
             span<const ValueType> data =

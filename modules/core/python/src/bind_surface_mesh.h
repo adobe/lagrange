@@ -129,13 +129,17 @@ void bind_surface_mesh(nanobind::module_& m)
         la_runtime_assert(is_vector(shape));
         self.remove_vertices(data);
     });
-    surface_mesh_class.def("remove_vertices", [](MeshType& self, nb::list b) {
-        std::vector<Index> indices;
-        for (auto i : b) {
-            indices.push_back(nb::cast<Index>(i));
-        }
-        self.remove_vertices(indices);
-    }, "vertices"_a, R"(Remove selected vertices from the mesh.
+    surface_mesh_class.def(
+        "remove_vertices",
+        [](MeshType& self, nb::list b) {
+            std::vector<Index> indices;
+            for (auto i : b) {
+                indices.push_back(nb::cast<Index>(i));
+            }
+            self.remove_vertices(indices);
+        },
+        "vertices"_a,
+        R"(Remove selected vertices from the mesh.
 
 :param vertices: list of vertex indices to remove)");
     surface_mesh_class.def("remove_facets", [](MeshType& self, Tensor<Index> b) {
@@ -144,13 +148,17 @@ void bind_surface_mesh(nanobind::module_& m)
         la_runtime_assert(is_vector(shape));
         self.remove_facets(data);
     });
-    surface_mesh_class.def("remove_facets", [](MeshType& self, nb::list b) {
-        std::vector<Index> indices;
-        for (auto i : b) {
-            indices.push_back(nb::cast<Index>(i));
-        }
-        self.remove_facets(indices);
-    }, "facets"_a, R"(Remove selected facets from the mesh.
+    surface_mesh_class.def(
+        "remove_facets",
+        [](MeshType& self, nb::list b) {
+            std::vector<Index> indices;
+            for (auto i : b) {
+                indices.push_back(nb::cast<Index>(i));
+            }
+            self.remove_facets(indices);
+        },
+        "facets"_a,
+        R"(Remove selected facets from the mesh.
 
 :param facets: list of facet indices to remove)");
     surface_mesh_class.def("clear_vertices", &MeshType::clear_vertices);
@@ -464,73 +472,107 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def(
         "is_attribute_indexed",
         static_cast<bool (MeshType::*)(std::string_view) const>(&MeshType::is_attribute_indexed));
+
+    // This is a helper method for trigger copy-on-write mechanism for a given attribute.
+    auto ensure_attribute_is_not_shared = [](MeshType& mesh, AttributeId id) {
+        auto& attr_base = mesh.get_attribute_base(id);
+#define LA_X_trigger_copy_on_write(_, ValueType)                                              \
+    if (mesh.is_attribute_indexed(id)) {                                                      \
+        if (dynamic_cast<const IndexedAttribute<ValueType, Index>*>(&attr_base)) {            \
+            [[maybe_unused]] auto& attr = mesh.template ref_indexed_attribute<ValueType>(id); \
+        }                                                                                     \
+    } else {                                                                                  \
+        if (dynamic_cast<const Attribute<ValueType>*>(&attr_base)) {                          \
+            [[maybe_unused]] auto& attr = mesh.template ref_attribute<ValueType>(id);         \
+        }                                                                                     \
+    }
+        LA_ATTRIBUTE_X(trigger_copy_on_write, 0)
+#undef LA_X_trigger_copy_on_write
+    };
+
     surface_mesh_class.def(
         "attribute",
-        [](MeshType& self, AttributeId id) {
+        [&](MeshType& self, AttributeId id, bool sharing) {
             la_runtime_assert(
                 !self.is_attribute_indexed(id),
                 fmt::format(
                     "Attribute {} is indexed!  Please use `indexed_attribute` property instead.",
                     id));
+            if (!sharing) ensure_attribute_is_not_shared(self, id);
             return PyAttribute(self._ref_attribute_ptr(id));
         },
         "id"_a,
+        "sharing"_a = true,
         R"(Get an attribute by id.
 
 :param id: Id of the attribute.
 :type id: AttributeId
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :returns: The attribute.)");
     surface_mesh_class.def(
         "attribute",
-        [](MeshType& self, std::string_view name) {
+        [&](MeshType& self, std::string_view name, bool sharing) {
             la_runtime_assert(
                 !self.is_attribute_indexed(name),
                 fmt::format(
                     "Attribute \"{}\" is indexed!  Please use `indexed_attribute` property "
                     "instead.",
                     name));
+            if (!sharing) ensure_attribute_is_not_shared(self, self.get_attribute_id(name));
             return PyAttribute(self._ref_attribute_ptr(name));
         },
         "name"_a,
+        "sharing"_a = true,
         R"(Get an attribute by name.
 
 :param name: Name of the attribute.
 :type name: str
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :return: The attribute.)");
     surface_mesh_class.def(
         "indexed_attribute",
-        [](MeshType& self, AttributeId id) {
+        [&](MeshType& self, AttributeId id, bool sharing) {
             la_runtime_assert(
                 self.is_attribute_indexed(id),
                 fmt::format(
                     "Attribute {} is not indexed!  Please use `attribute` property instead.",
                     id));
+            if (!sharing) ensure_attribute_is_not_shared(self, id);
             return PyIndexedAttribute(self._ref_attribute_ptr(id));
         },
         "id"_a,
+        "sharing"_a = true,
         R"(Get an indexed attribute by id.
 
 :param id: Id of the attribute.
 :type id: AttributeId
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :returns: The indexed attribute.)");
     surface_mesh_class.def(
         "indexed_attribute",
-        [](MeshType& self, std::string_view name) {
+        [&](MeshType& self, std::string_view name, bool sharing) {
             la_runtime_assert(
                 self.is_attribute_indexed(name),
                 fmt::format(
                     "Attribute \"{}\"is not indexed!  Please use `attribute` property instead.",
                     name));
+            if (!sharing) ensure_attribute_is_not_shared(self, self.get_attribute_id(name));
             return PyIndexedAttribute(self._ref_attribute_ptr(name));
         },
         "name"_a,
+        "sharing"_a = true,
         R"(Get an indexed attribute by name.
 
 :param name: Name of the attribute.
 :type name: str
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :returns: The indexed attribute.)");
     surface_mesh_class.def("__attribute_ref_count__", [](MeshType& self, AttributeId id) {

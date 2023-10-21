@@ -462,8 +462,10 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
     } else {
         // Non-indexed attribute
         const size_t num_elements = get_num_elements_internal(element);
-        la_runtime_assert(
-            initial_values.empty() || initial_values.size() == num_elements * num_channels);
+        if (element != AttributeElement::Value) {
+            la_runtime_assert(
+                initial_values.empty() || initial_values.size() == num_elements * num_channels);
+        }
         la_runtime_assert(
             initial_indices.empty(),
             "Cannot provide non-empty index buffer for non-indexed attribute");
@@ -475,7 +477,9 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
         } else {
             attr.insert_elements(initial_values);
         }
-        la_debug_assert(get_attribute<ValueType>(id).get_num_elements() == num_elements);
+        if (element != AttributeElement::Value) {
+            la_debug_assert(get_attribute<ValueType>(id).get_num_elements() == num_elements);
+        }
         return id;
     }
 }
@@ -1272,7 +1276,6 @@ template <typename Scalar, typename Index>
 internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(AttributeId id)
 {
     la_debug_assert(id != invalid_attribute_id());
-    la_debug_assert(!is_attribute_indexed(id));
     return m_attributes->_ref_weak_ptr(id);
 }
 
@@ -2276,11 +2279,11 @@ Index SurfaceMesh<Scalar, Index>::find_edge_from_vertices(Index v0, Index v1) co
             Index lv = ci - cb;
             Index nv = get_facet_size(f);
             Index cj = cb + (lv + 1) % nv;
-            Index ck = cb + (lv + nv -1) % nv;
+            Index ck = cb + (lv + nv - 1) % nv;
             if (get_corner_vertex(cj) == vj) {
                 ei = get_edge(f, lv);
             } else if (get_corner_vertex(ck) == vj) {
-                ei = get_edge(f, (lv + nv -1) % nv);
+                ei = get_edge(f, (lv + nv - 1) % nv);
             }
         });
     };

@@ -54,6 +54,12 @@ if (LAGRANGE_ENABLE_LEGACY_FUNCTIONS)
     )
 endif()
 
+if (LAGRANGE_FMT_EIGEN_FIX)
+    target_compile_definitions(lagrange_core PUBLIC
+        -DLAGRANGE_FMT_EIGEN_FIX
+    )
+endif()
+
 # 2. dependencies
 include(eigen)
 include(span-lite)

@@ -13,8 +13,8 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
-#include <lagrange/utils/Error.h>
 #include <lagrange/internal/weak_ptr.h>
+#include <lagrange/utils/Error.h>
 
 #include <memory>
 
@@ -42,7 +42,9 @@ public:
     {
         auto attr = m_attr.lock();
         if (attr == nullptr) throw Error("Attribute is no longer valid!");
-        return internal::shared_ptr<Attribute<ValueType>>(attr, dynamic_cast<Attribute<ValueType>*>(attr.get()));
+        return internal::shared_ptr<Attribute<ValueType>>(
+            attr,
+            dynamic_cast<Attribute<ValueType>*>(attr.get()));
     }
 
     template <typename CallBack>

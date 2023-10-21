@@ -2822,6 +2822,38 @@ void test_1_and_2_facets()
     }
 }
 
+template <typename ValueType, typename Scalar, typename Index>
+void test_value_attribute()
+{
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertices(10);
+    mesh.add_triangles(5);
+
+    ValueType values[6] = {1, 2, 3, 4, 5, 6};
+
+    auto id = mesh.template create_attribute<ValueType>(
+        "value",
+        lagrange::AttributeElement::Value,
+        lagrange::AttributeUsage::Vector,
+        2,
+        {values, 6});
+    REQUIRE(mesh.has_attribute("value"));
+    REQUIRE(mesh.get_attribute_id("value") == id);
+
+    auto& attr = mesh.template get_attribute<ValueType>(id);
+    REQUIRE(attr.get_num_elements() == 3);
+    REQUIRE(attr.get_num_channels() == 2);
+    REQUIRE(attr.get_usage() == lagrange::AttributeUsage::Vector);
+    REQUIRE(attr.get_element_type() == lagrange::AttributeElement::Value);
+
+    for (ValueType i = 0; i < 3; i++) {
+        REQUIRE(attr.get(i, 0) == i * 2 + 1);
+        REQUIRE(attr.get(i, 1) == i * 2 + 2);
+    }
+
+    lagrange::testing::check_mesh(mesh);
+}
+
 } // namespace
 
 TEST_CASE("SurfaceMesh Construction", "[next]")
@@ -3000,6 +3032,15 @@ TEST_CASE("SurfaceMesh: Test facets of size 1 and 2", "[next]")
 {
 #define LA_X_test_1_and_2_facets(_, Scalar, Index) test_1_and_2_facets<Scalar, Index>();
     LA_SURFACE_MESH_X(test_1_and_2_facets, 0)
+}
+
+TEST_CASE("SurfaceMesh: Value Attribute", "[next]")
+{
+#define LA_X_test_value_attribute(ValueType, Scalar, Index) \
+    test_value_attribute<ValueType, Scalar, Index>();
+#define LA_X_test_value_attribute_aux(_, ValueType) \
+    LA_SURFACE_MESH_X(test_value_attribute, ValueType)
+    LA_ATTRIBUTE_X(test_value_attribute_aux, 0)
 }
 
 

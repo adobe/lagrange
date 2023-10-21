@@ -37,7 +37,7 @@ enum class FacetAllocationStrategy {
 ///
 /// Strategy for processing meshes without instances in a scene.
 ///
-enum class UninstanciatedMeshesStrategy {
+enum class UninstantiatedMeshesStrategy {
     /// Use backend-specific default behavior.
     None,
     /// Skip meshes with zero instances, leaving the original in the output scene.
@@ -60,7 +60,7 @@ struct RemeshingOptions
     size_t min_facets = lagrange::invalid<size_t>();
 
     /// Behavior for meshes without instances in the scene.
-    UninstanciatedMeshesStrategy uninstanciated_meshes_strategy = UninstanciatedMeshesStrategy::None;
+    UninstantiatedMeshesStrategy uninstantiated_meshes_strategy = UninstantiatedMeshesStrategy::None;
 };
 
 } // namespace lagrange::scene

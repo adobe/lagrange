@@ -33,6 +33,9 @@
 # Set deployment platform for macOS
 # set(CMAKE_OSX_DEPLOYMENT_TARGET 12.0 CACHE STRING "macOS deployment target")
 
+# Compile universal binaries on macOS
+# set(CMAKE_OSX_ARCHITECTURES "arm64;x86_64" CACHE STRING "macOS architectures")
+
 # Always add colored output (e.g. when using Ninja)
 # list(APPEND CMAKE_CXX_FLAGS -fdiagnostics-color=always) # GCC
 # list(APPEND CMAKE_CXX_FLAGS -fcolor-diagnostics) # Clang

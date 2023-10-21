@@ -68,6 +68,14 @@ This codebase contains a modified portion of code from CPM which can be obtained
     * https://github.com/cpm-cmake/CPM.cmake/blob/master/LICENSE
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from e-maxx.ru which can be obtained at:
+  * SOURCE:
+    * https://e-maxx.ru/algo/duval_algorithm
+
+  * LICENSE:
+    * https://e-maxx.ru/about.php
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from Earcut which can be obtained at:
   * SOURCE:
     * https://github.com/mapbox/earcut.hpp

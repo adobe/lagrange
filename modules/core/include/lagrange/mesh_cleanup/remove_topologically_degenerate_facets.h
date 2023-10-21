@@ -1,5 +1,5 @@
 /*
- * Copyright 2016 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,6 +10,22 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-    #include <lagrange/mesh_cleanup/legacy/remove_topologically_degenerate_triangles.h>
-#endif
+
+#include <lagrange/SurfaceMesh.h>
+
+namespace lagrange {
+
+///
+/// Remove topologically degenerate facets (i.e. triangles like (0, 1, 1)).
+///
+/// Non-triangle polygons are not handled at the moment.
+///
+/// @tparam Scalar The surface mesh scalar type.
+/// @tparam Index  The surface mesh index type.
+///
+/// @param[in,out] mesh The surface mesh (for in-place modification).
+///
+template <typename Scalar, typename Index>
+void remove_topologically_degenerate_facets(SurfaceMesh<Scalar, Index>& mesh);
+
+} // namespace lagrange

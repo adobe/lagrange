@@ -123,11 +123,10 @@ void bind_attribute(nanobind::module_& m)
     attr_class.def_prop_rw(
         "data",
         [](PyAttribute& self) {
-            auto obj = self.process([&](auto& attr) {
+            return self.process([&](auto& attr) {
                 auto tensor = attribute_to_tensor(attr, nb::find(&self));
-                return nb::cast(tensor, nb::rv_policy::reference);
+                return nb::find(tensor);
             });
-            return nb::cast<GenericTensor>(obj);
         },
         [](PyAttribute& self, GenericTensor tensor) {
             auto wrap_tensor = [&](auto& attr) {
