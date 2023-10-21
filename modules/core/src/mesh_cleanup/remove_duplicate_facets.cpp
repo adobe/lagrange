@@ -145,7 +145,8 @@ void remove_duplicate_facets(
             }
         });
 
-    std::vector<uint8_t> keep(num_facets, 0);
+    std::vector<std::atomic<uint8_t>> keep(num_facets);
+    std::fill(keep.begin(), keep.end(), 0);
     auto check_facet = [&](Index i) {
         if (keep[i] != 0) return;
         auto [range_begin, range_end] = facet_set.equal_range(i);
