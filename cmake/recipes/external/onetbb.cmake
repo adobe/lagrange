@@ -38,7 +38,7 @@ function(onetbb_import_target)
         else()
             set(ONETBB_OLD_${var}_TYPE NONE_TYPE)
         endif()
-        set(${var} "${value}" CACHE PATH "" FORCE)
+        set(${var} "${value}")
     endmacro()
 
     macro(pop_variable var)

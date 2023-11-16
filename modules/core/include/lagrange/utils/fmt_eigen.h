@@ -11,6 +11,7 @@
  */
 
 #pragma once
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <spdlog/spdlog.h>

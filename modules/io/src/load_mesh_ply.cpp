@@ -13,7 +13,6 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
-#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/attribute_string_utils.h>
@@ -123,6 +122,25 @@ void extract_color(
         }
     }
 }
+namespace {
+
+// Happly's hasPropertyType() doesn't support list properties, so this is a workaround.
+template <class T>
+bool has_list_property_type(happly::Element& ply_element, const std::string& name)
+{
+    auto& prop = ply_element.getPropertyPtr(name);
+    if (!prop) {
+        return false;
+    }
+    happly::TypedListProperty<T>* casted_prop =
+        dynamic_cast<happly::TypedListProperty<T>*>(prop.get());
+    if (casted_prop) {
+        return true;
+    }
+    return false;
+}
+
+} // namespace
 
 template <AttributeElement element, typename Scalar, typename Index>
 void extract_property(
@@ -141,10 +159,18 @@ void extract_property(
             {data.data(), data.size()});
     };
 
+    const Index expected_num_elements = [&] {
+        switch (element) {
+        case AttributeElement::Vertex: return mesh.get_num_vertices();
+        case AttributeElement::Facet: return mesh.get_num_facets();
+        default: return Index(0);
+        }
+    }();
+
     auto process_list_property = [&](auto&& data) {
         if (data.empty()) return;
         using ValueType = typename std::decay_t<decltype(data[0])>::value_type;
-        la_runtime_assert(static_cast<Index>(data.size()) == mesh.get_num_vertices());
+        la_runtime_assert(static_cast<Index>(data.size()) == expected_num_elements);
         Index num_channels = static_cast<Index>(data[0].size());
         auto id = mesh.template create_attribute<ValueType>(
             name,
@@ -175,7 +201,7 @@ void extract_property(
 
     // Try interpret property as multi-channel list property.
 #define LA_X_try_ValueType(_, T)                          \
-    if (ply_element.template hasPropertyType<T>(name)) {  \
+    if (has_list_property_type<T>(ply_element, name)) {   \
         auto data = ply_element.getListProperty<T>(name); \
         process_list_property(data);                      \
         return;                                           \
@@ -250,6 +276,8 @@ void extract_facet_properties(
             if (name == "nz" || starts_with(name, "nz_")) continue;
             if (name == "green" || starts_with(name, "green_")) continue;
             if (name == "blue" || starts_with(name, "blue_")) continue;
+            if (name == "vertex_indices" || starts_with(name, "vertex_indices_")) continue;
+            if (name == "vertex_index" || starts_with(name, "vertex_index_")) continue;
             extract_property<AttributeElement::Facet>(facet_element, name, mesh);
         }
     }

@@ -19,7 +19,7 @@ else()
 endif()
 
 # Check required CMake version
-set(REQUIRED_CMAKE_VERSION "3.24.0")
+set(REQUIRED_CMAKE_VERSION "3.25.0")
 if(LAGRANGE_TOPLEVEL_PROJECT)
     cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
 else()
@@ -33,6 +33,8 @@ cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or ke
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW) # Set the timestamps of all extracted contents to the time of the extraction.
+set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # Avoid overriding normal variables with option()
+set(CMAKE_POLICY_DEFAULT_CMP0126 NEW) # Avoid overriding normal variables with set(CACHE)
 
 # Include user-provided default options if available. We do that before the main
 # `project()` so that we can define the C/C++ compilers from the option file.
@@ -58,6 +60,8 @@ if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
         CCACHE_BASEDIR=${CMAKE_BINARY_DIR}
         CCACHE_SLOPPINESS=clang_index_store,include_file_ctime,include_file_mtime,locale,pch_defines,time_macros
     )
+    message(STATUS "Using CCache: ${CCACHE_PROGRAM}")
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER
             ${CMAKE_COMMAND} -E env ${ccacheEnv} ${CCACHE_PROGRAM}
@@ -92,6 +96,29 @@ else()
     set(LAGRANGE_COMPILE_TESTS_DEFAULT ${LAGRANGE_TOPLEVEL_PROJECT})
 endif()
 
+# Python defaults
+if(SKBUILD)
+    if(LINUX)
+        # MKL doesn't support building Python modules with individual shared libraries. On Linux dlopen()
+        # would fail with the following error:
+        #
+        #   INTEL MKL ERROR: <...>/libmkl_def.so.1: undefined symbol: mkl_sparse_optimize_bsr_trsm_i8.
+        #   Intel MKL FATAL ERROR: Cannot load libmkl_def.so.1.
+        #
+        # The reason is that the three libraries libmkl_core, libmkl_intel and libmkl_thread need to be
+        # dlopened with RTLD_GLOBAL first. One needs to link against libmkl_rt instead. See this issue for
+        # more details:
+        #
+        # https://gitlab.kitware.com/cmake/cmake/-/issues/20491
+        #
+        # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
+        # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
+        #
+        set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+        option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
+    endif()
+endif()
+
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL                "Build all lagrange modules" OFF)
 
@@ -110,6 +137,7 @@ option(LAGRANGE_DOCUMENTATION           "Build Doxygen documentation"           
 option(LAGRANGE_ENABLE_GPU_TESTS        "Enable unit tests that run on the GPU"                ON)
 option(LAGRANGE_ENABLE_LEGACY_FUNCTIONS "Enable support for legacy functions."                 ON)
 option(LAGRANGE_EXAMPLES                "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
+option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt and eigen"     OFF)
 option(LAGRANGE_INSTALL                 "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_LIMIT_PARALLELISM       "Limit parallelism according to available cpu/memory"  OFF)
 option(LAGRANGE_MORE_WARNINGS           "Increase the level of warnings when compiling"        OFF)
@@ -119,7 +147,13 @@ option(LAGRANGE_USE_PCH                 "Enable precompiled headers"            
 option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            OFF)
 option(LAGRANGE_WITH_ONETBB             "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)
-option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt and eigen"     OFF)
+
+# Set build type as a normal variable to prevent subprojects from overriding it as a option/CACHE variable (thanks to CMP0077/CMP0126)
+if(DEFINED BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+else()
+    set(BUILD_SHARED_LIBS OFF)
+endif()
 
 # Specific override for building on Jenkins
 if(LAGRANGE_JENKINS)

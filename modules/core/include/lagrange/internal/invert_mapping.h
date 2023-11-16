@@ -24,32 +24,33 @@ namespace lagrange::internal {
 /// Compute the target-to-source (i.e. backward) mapping from an input source-to-target (i.e.
 /// forward) mapping.
 ///
-/// @note The input source-to-target mapping may be a 1-to-many mapping, where multiple source
-/// elements may be mapped to a single target element.
+/// @note       The input source-to-target mapping may be a 1-to-many mapping, where multiple source
+///             elements may be mapped to a single target element.
 ///
-/// @tparam Index             The index type.
+/// @param[in]  num_source_entries  The number source entries.
+/// @param[in]  old2new             Source-to-target mapping function.
+/// @param[in]  num_target_entries  The total number of target elements.
 ///
-/// @param source2target      The source-to-target element mapping.
-/// @param num_target_entries The total number of target elements.
+/// @tparam     Index               The index type.
+/// @tparam     Function            Mapping function type.
 ///
-/// @return The target-to-source mapping, which is a tuple consists of 2 index arrays, mapping_data
-/// and mapping_offsets.
+/// @return     The target-to-source mapping, which is a tuple consists of 2 index arrays,
+///             mapping_data and mapping_offsets.
 ///
 /// `mapping_data` is a flat array of indices of the source elements. `mapping_offsets` is an array
 /// of `mapping_data` offset indices. It is of size `num_target_entires + 1`.  Target element `i` is
 /// mapped to source elements with index in the range from `mapping_data[mapping_offsets[i]]` to
 /// `mapping_data[mapping_offsets[i+1]]`.
 ///
-template <typename Index>
-auto invert_mapping(span<Index> old2new, Index num_target_entries)
+template <typename Index, typename Function>
+auto invert_mapping(Index num_source_entries, Function old2new, Index num_target_entries)
     -> std::tuple<std::vector<Index>, std::vector<Index>>
 {
-    Index num_source_entries = static_cast<Index>(old2new.size());
     std::vector<Index> mapping_offsets(num_target_entries + 1, 0);
     std::vector<Index> mapping_data;
 
     for (Index i = 0; i < num_source_entries; ++i) {
-        Index j = old2new[i];
+        Index j = old2new(i);
         if (j == invalid<Index>()) continue;
         la_runtime_assert(
             j < num_target_entries,
@@ -60,7 +61,7 @@ auto invert_mapping(span<Index> old2new, Index num_target_entries)
     std::partial_sum(mapping_offsets.begin(), mapping_offsets.end(), mapping_offsets.begin());
     mapping_data.resize(mapping_offsets.back());
     for (Index i = 0; i < num_source_entries; i++) {
-        Index j = old2new[i];
+        Index j = old2new(i);
         if (j == invalid<Index>()) continue;
         mapping_data[mapping_offsets[j]++] = i;
     }
@@ -69,6 +70,39 @@ auto invert_mapping(span<Index> old2new, Index num_target_entries)
     mapping_offsets[0] = 0;
 
     return {std::move(mapping_data), std::move(mapping_offsets)};
+}
+
+///
+/// Compute the target-to-source (i.e. backward) mapping from an input source-to-target (i.e.
+/// forward) mapping.
+///
+/// @note       The input source-to-target mapping may be a 1-to-many mapping, where multiple source
+///             elements may be mapped to a single target element.
+///
+/// @param[in]  old2new             Source-to-target mapping.
+/// @param[in]  num_target_entries  The total number of target elements.
+///
+/// @tparam     Index               The index type.
+///
+/// @return     The target-to-source mapping, which is a tuple consists of 2 index arrays,
+///             mapping_data and mapping_offsets.
+///
+/// `mapping_data` is a flat array of indices of the source elements. `mapping_offsets` is an array
+/// of `mapping_data` offset indices. It is of size `num_target_entires + 1`.  Target element `i` is
+/// mapped to source elements with index in the range from `mapping_data[mapping_offsets[i]]` to
+/// `mapping_data[mapping_offsets[i+1]]`.
+///
+/// @overload
+///
+template <typename Index>
+auto invert_mapping(span<Index> old2new, Index num_target_entries)
+    -> std::tuple<std::vector<Index>, std::vector<Index>>
+{
+    Index num_source_entries = static_cast<Index>(old2new.size());
+    return invert_mapping(
+        num_source_entries,
+        [&](Index i) { return old2new[i]; },
+        num_target_entries);
 }
 
 } // namespace lagrange::internal

@@ -43,7 +43,7 @@ void weld_indexed_attribute(
     auto& attr = mesh.template ref_indexed_attribute<ValueType>(attr_id);
     auto& attr_values = attr.values();
     auto values = matrix_view(attr_values);
-    auto indices = matrix_ref(attr.indices());
+    auto indices = reshaped_ref(attr.indices(), 3);
 
     const Index num_vertices = mesh.get_num_vertices();
     const Index num_values = static_cast<Index>(values.rows());

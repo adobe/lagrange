@@ -25,8 +25,10 @@ else()
     option(OPENVDB_CORE_STATIC "" ON)
 endif()
 option(OPENVDB_BUILD_CORE "" ON)
-option(OPENVDB_BUILD_BINARIES "" OF)
+option(OPENVDB_BUILD_BINARIES "" OFF)
 option(OPENVDB_ENABLE_RPATH "" OFF)
+
+# option(USE_EXPLICIT_INSTANTIATION "" ON)
 
 include(CMakeDependentOption)
 cmake_dependent_option(OPENVDB_INSTALL_CMAKE_MODULES "" OFF "OPENVDB_BUILD_CORE" OFF)
@@ -40,10 +42,10 @@ option(USE_CCACHE "" OFF)
 option(USE_STATIC_DEPENDENCIES "" OFF)
 option(DISABLE_CMAKE_SEARCH_PATHS "" ON)
 option(DISABLE_DEPENDENCY_VERSION_CHECKS "" ON)
-option(OPENVDB_FUTURE_DEPRECATION "" ON)
 option(USE_PKGCONFIG "" OFF)
 option(OPENVDB_DISABLE_BOOST_IMPLICIT_LINKING "" OFF)
 option(OPENVDB_ENABLE_UNINSTALL "Adds a CMake uninstall target." OFF)
+option(OPENVDB_FUTURE_DEPRECATION "Generate messages for upcoming deprecation" OFF)
 
 if(NOT EMSCRIPTEN)
     set(OPENVDB_SIMD AVX CACHE STRING "")
@@ -74,7 +76,7 @@ function(openvdb_import_target)
         else()
             set(OPENVDB_OLD_${var}_TYPE NONE_TYPE)
         endif()
-        set(${var} "${value}" CACHE PATH "" FORCE)
+        set(${var} "${value}")
     endmacro()
 
     macro(pop_variable var)
@@ -111,16 +113,13 @@ function(openvdb_import_target)
     include(ilmbase)
     ignore_package(TBB)
     ignore_package(Boost)
-    set(Tbb_VERSION 2021.0 CACHE STRING "" FORCE)
-    set(Boost_LIB_VERSION 1.82 CACHE STRING "" FORCE)
-    set(IlmBase_VERSION 2.4 CACHE STRING "" FORCE)
 
     # Ready to include openvdb CMake
     include(CPM)
     CPMAddPackage(
         NAME openvdb
         GITHUB_REPOSITORY AcademySoftwareFoundation/openvdb
-        GIT_TAG v10.0.1
+        GIT_TAG v10.1.0
     )
 
     unignore_package(TBB)
@@ -159,5 +158,6 @@ openvdb_import_target()
 foreach(name IN ITEMS openvdb_static openvdb_shared)
     if(TARGET ${name})
         set_target_properties(${name} PROPERTIES FOLDER third_party)
+        set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
     endif()
 endforeach()

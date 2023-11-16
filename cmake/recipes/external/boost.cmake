@@ -54,11 +54,27 @@ set(BOOST_INCLUDE_LIBRARIES
     vmd
 )
 
-if(APPLE AND (arm64 IN_LIST CMAKE_OSX_ARCHITECTURES) AND (x86_64 IN_LIST CMAKE_OSX_ARCHITECTURES))
-    # Build universal binaries on macOS
-    set(BOOST_CONTEXT_ARCHITECTURE "combined" CACHE STRING "Boost.Context architecture")
-    set(BOOST_CONTEXT_ABI "sysv" CACHE STRING "Boost.Context ABI")
+if(APPLE)
+    if((arm64 IN_LIST CMAKE_OSX_ARCHITECTURES) AND (x86_64 IN_LIST CMAKE_OSX_ARCHITECTURES))
+        # Build universal binaries on macOS
+        set(BOOST_CONTEXT_ARCHITECTURE "combined" CACHE STRING "Boost.Context architecture")
+        set(BOOST_CONTEXT_ABI "sysv" CACHE STRING "Boost.Context ABI")
+    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
+        # Build for arm64 architecture on macOS
+        set(BOOST_CONTEXT_ARCHITECTURE "arm64" CACHE STRING "Boost.Context architecture")
+        set(BOOST_CONTEXT_ABI "aapcs" CACHE STRING "Boost.Context ABI")
+    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
+        # Build for x86_64 architecture on macOS
+        set(BOOST_CONTEXT_ARCHITECTURE "x86_64" CACHE STRING "Boost.Context architecture")
+        set(BOOST_CONTEXT_ABI "sysv" CACHE STRING "Boost.Context ABI")
+    endif()
 endif()
+
+# Let's limit the external libs pulled by Boost...
+option(BOOST_IOSTREAMS_ENABLE_ZLIB "Boost.Iostreams: Enable ZLIB support" OFF)
+option(BOOST_IOSTREAMS_ENABLE_BZIP2 "Boost.Iostreams: Enable BZip2 support" OFF)
+option(BOOST_IOSTREAMS_ENABLE_LZMA "Boost.Iostreams: Enable LZMA support" OFF)
+option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
 
 # Needed by Boost::accumulators. See:
 # https://github.com/boostorg/ublas/pull/142
@@ -117,7 +133,11 @@ endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ${OLD_CMAKE_POSITION_INDEPENDENT_CODE})
 
-foreach(name IN ITEMS ${BOOST_INCLUDE_LIBRARIES})
+# Indirect deps pulled by other boost targets
+set(Boost_Deps
+    assert context core coroutine exception random serialization variant2
+)
+foreach(name IN ITEMS ${BOOST_INCLUDE_LIBRARIES} ${Boost_Deps})
     if(TARGET boost_${name})
         set_target_properties(boost_${name} PROPERTIES FOLDER third_party/boost)
     endif()

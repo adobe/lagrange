@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/internal/invert_mapping.h>
+#include <lagrange/utils/DisjointSets.h>
 
 #include <numeric>
 
@@ -80,6 +81,49 @@ BucketSortResult<Index> bucket_sort(
         {element_representative.data(), element_representative.size()},
         num_representatives);
 
+    return result;
+}
+
+///
+/// Bucket sort offset infos.
+///
+/// @tparam     Index  Index type.
+///
+template <typename Index>
+struct BucketSortOffset
+{
+    /// Number of representatives in the input disjoint set.
+    Index num_representatives;
+
+    /// Vector of size num_representatives + 1 storing the start/end of each disjoint set in the
+    /// sorted element vector.
+    std::vector<Index> representative_offsets;
+};
+
+///
+/// Perform a bucket sort over a range of elements in place.
+///
+/// @param[in,out] elements            Elements to sort.
+/// @param[in]     num_buckets         Number of buckets (max element in the range + 1).
+/// @param[in]     get_representative  Function to get the representative bucket for a given
+///                                    element.
+///
+/// @tparam        Index               Index type.
+/// @tparam        Function            Callback function type.
+///
+/// @return        Info about the sorted buckets.
+///
+template <typename Index, typename Function>
+BucketSortOffset<Index>
+bucket_sort(std::vector<Index>& elements, Index num_buckets, Function get_representative)
+{
+    BucketSortOffset<Index> result;
+
+    auto& num_representatives = result.num_representatives;
+    auto& representative_offsets = result.representative_offsets;
+    num_representatives = num_buckets;
+    std::tie(elements, representative_offsets) =
+        invert_mapping<Index>(static_cast<Index>(elements.size()), get_representative, num_representatives);
     return result;
 }
 

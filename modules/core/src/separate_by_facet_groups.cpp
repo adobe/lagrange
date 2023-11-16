@@ -54,8 +54,8 @@ std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups(
     SubmeshOptions submesh_options(options);
     tbb::parallel_for((size_t)0, num_groups, [&](size_t i) {
         span<const Index> selected_facets(
-            facet_indices.begin() + group_offsets[i],
-            facet_indices.begin() + group_offsets[i + 1]);
+            facet_indices.data() + group_offsets[i],
+            static_cast<size_t>(group_offsets[i + 1] - group_offsets[i]));
         results[i] = extract_submesh(mesh, selected_facets, submesh_options);
     });
     return results;

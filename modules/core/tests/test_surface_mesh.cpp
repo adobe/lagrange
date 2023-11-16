@@ -1015,6 +1015,11 @@ void test_copy_move(bool with_edges)
 template <typename ValueType, typename Scalar, typename Index>
 void test_normal_attribute()
 {
+    if constexpr (std::is_integral_v<ValueType>) {
+        // Normal attributes have to be floating point
+        return;
+    }
+
     using namespace lagrange;
 
     for (size_t dim = 1; dim < 9u; ++dim) {
@@ -1049,7 +1054,7 @@ void test_mesh_attribute()
     using namespace lagrange;
 
     const size_t num_channels = 3;
-    const AttributeUsage usage = AttributeUsage::Normal;
+    const AttributeUsage usage = AttributeUsage::Color;
 
     SurfaceMesh<Scalar, Index> mesh;
     mesh.add_vertices(10);
@@ -1064,75 +1069,75 @@ void test_mesh_attribute()
 
     // Create attribute
     auto id_v0 = mesh.template create_attribute<ValueType>(
-        "normals_v0",
+        "colors_v0",
         AttributeElement::Vertex,
         usage,
         num_channels,
         buffer);
     auto id_v1 = mesh.template create_attribute<ValueType>(
-        "normals_v1",
+        "colors_v1",
         AttributeElement::Vertex,
         usage,
         num_channels);
     auto id_f = mesh.template create_attribute<ValueType>(
-        "normals_f",
+        "colors_f",
         AttributeElement::Facet,
         usage,
         num_channels);
     auto id_c = mesh.template create_attribute<ValueType>(
-        "normals_c",
+        "colors_c",
         AttributeElement::Corner,
         usage,
         num_channels);
     auto id_e = mesh.template create_attribute<ValueType>(
-        "normals_e",
+        "colors_e",
         AttributeElement::Edge,
         usage,
         num_channels);
     mesh.template create_attribute<ValueType>(
-        "normals_i",
+        "colors_i",
         AttributeElement::Indexed,
         usage,
         num_channels);
     mesh.template create_attribute<ValueType>(
-        "normals_i_init",
+        "colors_i_init",
         AttributeElement::Indexed,
         usage,
         num_channels,
         buffer,
         indices);
     LA_REQUIRE_THROWS(mesh.template create_attribute<ValueType>(
-        "normals_v0",
+        "colors_v0",
         AttributeElement::Vertex,
         usage,
         num_channels));
     mesh.template create_attribute<ValueType>(
-        "normals_x",
+        "colors_x",
         AttributeElement::Value,
         usage,
         num_channels);
-    REQUIRE(mesh.has_attribute("normals_e"));
-    REQUIRE(mesh.has_attribute("normals_i"));
-    REQUIRE(mesh.has_attribute("normals_x"));
-    REQUIRE(mesh.template is_attribute_type<ValueType>("normals_v0"));
+    REQUIRE(mesh.has_attribute("colors_e"));
+    REQUIRE(mesh.has_attribute("colors_i"));
+    REQUIRE(mesh.has_attribute("colors_x"));
+    REQUIRE(mesh.template is_attribute_type<ValueType>("colors_v0"));
     lagrange::testing::check_mesh(mesh);
 
-    auto attr_v0 = mesh.template ref_attribute<ValueType>("normals_v0").get_all();
+    auto attr_v0 = mesh.template ref_attribute<ValueType>("colors_v0").get_all();
     REQUIRE(attr_v0.size() == mesh.get_num_vertices() * mesh.get_dimension());
     for (size_t i = 0; i < attr_v0.size(); ++i) {
         REQUIRE(attr_v0[i] == buffer[i]);
         REQUIRE(attr_v0[i] == lagrange::safe_cast<ValueType>(11 + i));
     }
 
-    auto attr_v1 = mesh.template ref_attribute<ValueType>("normals_v1").ref_all();
+    auto attr_v1 = mesh.template ref_attribute<ValueType>("colors_v1").ref_all();
     REQUIRE(attr_v1.size() == mesh.get_num_vertices() * mesh.get_dimension());
     std::iota(attr_v1.begin(), attr_v1.end(), lagrange::safe_cast<ValueType>(23));
 
     SurfaceMesh<Scalar, Index> other;
-    LA_REQUIRE_THROWS(other.create_attribute_from("normals_v0", mesh, "normals_v1"));
+    LA_REQUIRE_THROWS(other.create_attribute_from("colors_v0", mesh, "colors_v1"));
     other.add_vertices(10);
-    other.create_attribute_from("normals_v0", mesh, "normals_v1");
-    auto other_v0 = other.template get_attribute<ValueType>("normals_v0").get_all();
+    other.create_attribute_from("colors_v0", mesh, "colors_v1");
+    auto other_v0 = other.template get_attribute<ValueType>("colors_v0").get_all();
     REQUIRE(other_v0.size() == other.get_num_vertices() * other.get_dimension());
     for (size_t i = 0; i < other_v0.size(); ++i) {
         REQUIRE(other_v0[i] == attr_v1[i]);
@@ -1140,41 +1145,41 @@ void test_mesh_attribute()
     }
 
     // Get id
-    REQUIRE(id_v0 == mesh.get_attribute_id("normals_v0"));
-    REQUIRE(id_v1 == mesh.get_attribute_id("normals_v1"));
-    REQUIRE(id_f == mesh.get_attribute_id("normals_f"));
-    REQUIRE(id_c == mesh.get_attribute_id("normals_c"));
-    REQUIRE(id_e == mesh.get_attribute_id("normals_e"));
+    REQUIRE(id_v0 == mesh.get_attribute_id("colors_v0"));
+    REQUIRE(id_v1 == mesh.get_attribute_id("colors_v1"));
+    REQUIRE(id_f == mesh.get_attribute_id("colors_f"));
+    REQUIRE(id_c == mesh.get_attribute_id("colors_c"));
+    REQUIRE(id_e == mesh.get_attribute_id("colors_e"));
     LA_REQUIRE_THROWS(mesh.get_attribute_id("bogus_name"));
 
     // Get name
-    REQUIRE("normals_v0" == mesh.get_attribute_name(id_v0));
-    REQUIRE("normals_v1" == mesh.get_attribute_name(id_v1));
-    REQUIRE("normals_f" == mesh.get_attribute_name(id_f));
-    REQUIRE("normals_c" == mesh.get_attribute_name(id_c));
-    REQUIRE("normals_e" == mesh.get_attribute_name(id_e));
+    REQUIRE("colors_v0" == mesh.get_attribute_name(id_v0));
+    REQUIRE("colors_v1" == mesh.get_attribute_name(id_v1));
+    REQUIRE("colors_f" == mesh.get_attribute_name(id_f));
+    REQUIRE("colors_c" == mesh.get_attribute_name(id_c));
+    REQUIRE("colors_e" == mesh.get_attribute_name(id_e));
     LA_REQUIRE_THROWS(mesh.get_attribute_name(invalid_attribute_id()));
 
     // Delete attr
     LA_REQUIRE_THROWS(mesh.delete_attribute(mesh.attr_name_vertex_to_position()));
     LA_REQUIRE_THROWS(mesh.delete_attribute("bogus_name"));
-    mesh.delete_attribute("normals_v1");
-    REQUIRE(!mesh.has_attribute("normals_v1"));
-    REQUIRE(id_v0 == mesh.get_attribute_id("normals_v0"));
-    REQUIRE(id_f == mesh.get_attribute_id("normals_f"));
-    REQUIRE(id_c == mesh.get_attribute_id("normals_c"));
-    REQUIRE(id_e == mesh.get_attribute_id("normals_e"));
+    mesh.delete_attribute("colors_v1");
+    REQUIRE(!mesh.has_attribute("colors_v1"));
+    REQUIRE(id_v0 == mesh.get_attribute_id("colors_v0"));
+    REQUIRE(id_f == mesh.get_attribute_id("colors_f"));
+    REQUIRE(id_c == mesh.get_attribute_id("colors_c"));
+    REQUIRE(id_e == mesh.get_attribute_id("colors_e"));
 
     // Create again (old id should be valid, new id should reuse delete id)
     auto new_id_v1 = mesh.template create_attribute<ValueType>(
-        "normals_v1",
+        "colors_v1",
         AttributeElement::Facet,
-        AttributeUsage::Normal,
+        usage,
         3);
-    REQUIRE(id_v0 == mesh.get_attribute_id("normals_v0"));
-    REQUIRE(id_f == mesh.get_attribute_id("normals_f"));
-    REQUIRE(id_c == mesh.get_attribute_id("normals_c"));
-    REQUIRE(id_e == mesh.get_attribute_id("normals_e"));
+    REQUIRE(id_v0 == mesh.get_attribute_id("colors_v0"));
+    REQUIRE(id_f == mesh.get_attribute_id("colors_f"));
+    REQUIRE(id_c == mesh.get_attribute_id("colors_c"));
+    REQUIRE(id_e == mesh.get_attribute_id("colors_e"));
 
     // Not strictly required by the API, but given the current implementation this should be true
     REQUIRE(id_v1 == new_id_v1);
@@ -1185,22 +1190,22 @@ void test_mesh_attribute()
 
     // Rename attr
     LA_REQUIRE_THROWS(mesh.rename_attribute("bogus_name", "new_name"));
-    LA_REQUIRE_THROWS(mesh.rename_attribute("normals_f", "normals_v0"));
-    REQUIRE(mesh.has_attribute("normals_f"));
-    REQUIRE(mesh.has_attribute("normals_v0"));
-    mesh.rename_attribute("normals_f", "normals_f1");
-    REQUIRE(!mesh.has_attribute("normals_f"));
-    REQUIRE(mesh.has_attribute("normals_f1"));
+    LA_REQUIRE_THROWS(mesh.rename_attribute("colors_f", "colors_v0"));
+    REQUIRE(mesh.has_attribute("colors_f"));
+    REQUIRE(mesh.has_attribute("colors_v0"));
+    mesh.rename_attribute("colors_f", "colors_f1");
+    REQUIRE(!mesh.has_attribute("colors_f"));
+    REQUIRE(mesh.has_attribute("colors_f1"));
 
     // Duplicate attr
-    LA_REQUIRE_THROWS(mesh.duplicate_attribute("normals_v0", "normals_v1"));
-    LA_REQUIRE_THROWS(mesh.duplicate_attribute("normals_v3", "normals_v4"));
-    mesh.duplicate_attribute("normals_v0", "normals_v2");
-    mesh.duplicate_attribute("normals_i", "normals_i2");
-    mesh.duplicate_attribute("normals_x", "normals_x2");
+    LA_REQUIRE_THROWS(mesh.duplicate_attribute("colors_v0", "colors_v1"));
+    LA_REQUIRE_THROWS(mesh.duplicate_attribute("colors_v3", "colors_v4"));
+    mesh.duplicate_attribute("colors_v0", "colors_v2");
+    mesh.duplicate_attribute("colors_i", "colors_i2");
+    mesh.duplicate_attribute("colors_x", "colors_x2");
     REQUIRE(
-        mesh.template get_attribute<ValueType>("normals_v0").get_all().data() ==
-        mesh.template get_attribute<ValueType>("normals_v2").get_all().data());
+        mesh.template get_attribute<ValueType>("colors_v0").get_all().data() ==
+        mesh.template get_attribute<ValueType>("colors_v2").get_all().data());
 
     // While this would leave the mesh in an unsafe state, it is possible to delete those attributes
     // too
@@ -1224,7 +1229,7 @@ void test_wrap_attribute()
 
     const size_t num_channels = 3;
     const AttributeElement elem = AttributeElement::Vertex;
-    const AttributeUsage usage = AttributeUsage::Normal;
+    const AttributeUsage usage = AttributeUsage::Color;
 
     SurfaceMesh<Scalar, Index> mesh;
     mesh.add_vertices(10);
@@ -1243,7 +1248,7 @@ void test_wrap_attribute()
     // Wrap buffer as attribute
     {
         auto id = mesh.template wrap_as_attribute<ValueType>(
-            "normals",
+            "colors",
             elem,
             usage,
             num_channels,
@@ -1259,7 +1264,7 @@ void test_wrap_attribute()
     // Wrap indexed attribute
     {
         auto id = mesh.template wrap_as_indexed_attribute<ValueType>(
-            "indexed_normals",
+            "indexed_colors",
             usage,
             num_values,
             num_channels,
@@ -1279,32 +1284,32 @@ void test_wrap_attribute()
 
     // Already exists
     LA_REQUIRE_THROWS(
-        mesh.template wrap_as_attribute<ValueType>("normals", elem, usage, num_channels, buffer));
+        mesh.template wrap_as_attribute<ValueType>("colors", elem, usage, num_channels, buffer));
 
     // Wrap a smaller buffer
     std::vector<ValueType> buffer_small(buffer.size() / 2);
     LA_REQUIRE_THROWS(mesh.template wrap_as_attribute<ValueType>(
-        "normals2",
+        "colors2",
         elem,
         usage,
         num_channels,
         buffer_small));
-    REQUIRE(!mesh.has_attribute("normals2"));
+    REQUIRE(!mesh.has_attribute("colors2"));
 
     // Wrap a larger buffer
     std::vector<ValueType> buffer_large(buffer.size() * 2);
     REQUIRE_NOTHROW(mesh.template wrap_as_attribute<ValueType>(
-        "normals2",
+        "colors2",
         elem,
         usage,
         num_channels,
         buffer_large));
-    REQUIRE(mesh.has_attribute("normals2"));
+    REQUIRE(mesh.has_attribute("colors2"));
 
     // Wrap as const attr
     {
         auto id = mesh.template wrap_as_const_attribute<ValueType>(
-            "normals3",
+            "colors3",
             elem,
             usage,
             num_channels,
@@ -1317,7 +1322,7 @@ void test_wrap_attribute()
     // Wrap as const indexed attr
     {
         auto id = mesh.template wrap_as_const_indexed_attribute<ValueType>(
-            "indexed_normals3",
+            "indexed_colors3",
             usage,
             num_values,
             num_channels,
@@ -1417,7 +1422,7 @@ void test_export_attribute()
     using namespace lagrange;
     const size_t num_channels = 3;
     const AttributeElement elem = AttributeElement::Vertex;
-    const AttributeUsage usage = AttributeUsage::Normal;
+    const AttributeUsage usage = AttributeUsage::Color;
 
     {
         SurfaceMesh<Scalar, Index> mesh;
@@ -1428,14 +1433,14 @@ void test_export_attribute()
         // Export regular attr
         {
             auto id =
-                mesh.template create_attribute<ValueType>("normals", elem, usage, num_channels);
+                mesh.template create_attribute<ValueType>("colors", elem, usage, num_channels);
             auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
             REQUIRE(attr.size() == mesh.get_num_vertices() * mesh.get_dimension());
             std::iota(attr.begin(), attr.end(), ValueType(23));
             const void* old_ptr = attr.data();
 
-            auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>("normals");
-            REQUIRE(!mesh.has_attribute("normals"));
+            auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>("colors");
+            REQUIRE(!mesh.has_attribute("colors"));
             auto span = attr_ptr->get_all();
             REQUIRE(span.data() == old_ptr);
             for (size_t i = 0; i < span.size(); ++i) {
@@ -1446,13 +1451,13 @@ void test_export_attribute()
         // Export regular attr (as const)
         {
             auto id =
-                mesh.template create_attribute<ValueType>("normals", elem, usage, num_channels);
+                mesh.template create_attribute<ValueType>("colors", elem, usage, num_channels);
             auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
             REQUIRE(attr.size() == mesh.get_num_vertices() * mesh.get_dimension());
             std::iota(attr.begin(), attr.end(), ValueType(23));
 
-            auto attr_ptr = mesh.template delete_and_export_const_attribute<ValueType>("normals");
-            REQUIRE(!mesh.has_attribute("normals"));
+            auto attr_ptr = mesh.template delete_and_export_const_attribute<ValueType>("colors");
+            REQUIRE(!mesh.has_attribute("colors"));
             auto span = attr_ptr->get_all();
             for (size_t i = 0; i < span.size(); ++i) {
                 REQUIRE(span[i] == safe_cast<ValueType>(i + 23));
@@ -1463,7 +1468,7 @@ void test_export_attribute()
         const size_t num_values = 13;
         {
             auto id = mesh.template create_attribute<ValueType>(
-                "indexed_normals",
+                "indexed_colors",
                 AttributeElement::Indexed,
                 usage,
                 num_channels);
@@ -1477,8 +1482,8 @@ void test_export_attribute()
             const void* indices_ptr = attr.indices().get_all().data();
 
             auto attr_ptr =
-                mesh.template delete_and_export_indexed_attribute<ValueType>("indexed_normals");
-            REQUIRE(!mesh.has_attribute("indexed_normals"));
+                mesh.template delete_and_export_indexed_attribute<ValueType>("indexed_colors");
+            REQUIRE(!mesh.has_attribute("indexed_colors"));
             auto values = attr_ptr->values().get_all();
             auto indices = attr_ptr->indices().get_all();
             REQUIRE(values.data() == values_ptr);
@@ -1491,7 +1496,7 @@ void test_export_attribute()
         // Export indexed attr (as const)
         {
             auto id = mesh.template create_attribute<ValueType>(
-                "indexed_normals",
+                "indexed_colors",
                 AttributeElement::Indexed,
                 usage,
                 num_channels);
@@ -1505,8 +1510,8 @@ void test_export_attribute()
             const void* indices_ptr = attr.indices().get_all().data();
 
             auto attr_ptr = mesh.template delete_and_export_const_indexed_attribute<ValueType>(
-                "indexed_normals");
-            REQUIRE(!mesh.has_attribute("indexed_normals"));
+                "indexed_colors");
+            REQUIRE(!mesh.has_attribute("indexed_colors"));
             auto values = attr_ptr->values().get_all();
             auto indices = attr_ptr->indices().get_all();
             REQUIRE(values.data() == values_ptr);
@@ -1530,14 +1535,14 @@ void test_export_attribute()
         // Copy if external (default)
         {
             auto id = mesh.template wrap_as_attribute<ValueType>(
-                "normals",
+                "colors",
                 elem,
                 usage,
                 num_channels,
                 buffer);
             REQUIRE(mesh.template get_attribute<ValueType>(id).get_all().data() == buffer.data());
-            auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>("normals");
-            REQUIRE(!mesh.has_attribute("normals"));
+            auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>("colors");
+            REQUIRE(!mesh.has_attribute("colors"));
             auto span = attr_ptr->get_all();
             REQUIRE(span.data() != buffer.data());
             for (size_t i = 0; i < span.size(); ++i) {
@@ -1548,17 +1553,17 @@ void test_export_attribute()
         // Keep external ptr
         {
             auto id = mesh.template wrap_as_attribute<ValueType>(
-                "normals",
+                "colors",
                 elem,
                 usage,
                 num_channels,
                 buffer);
             REQUIRE(mesh.template get_attribute<ValueType>(id).get_all().data() == buffer.data());
             auto attr_ptr = mesh.template delete_and_export_attribute<ValueType>(
-                "normals",
+                "colors",
                 AttributeDeletePolicy::ErrorIfReserved,
                 AttributeExportPolicy::KeepExternalPtr);
-            REQUIRE(!mesh.has_attribute("normals"));
+            REQUIRE(!mesh.has_attribute("colors"));
             auto span = attr_ptr->get_all();
             REQUIRE(span.data() == buffer.data());
         }
@@ -1566,30 +1571,30 @@ void test_export_attribute()
         // Error if external
         {
             auto id = mesh.template wrap_as_attribute<ValueType>(
-                "normals",
+                "colors",
                 elem,
                 usage,
                 num_channels,
                 buffer);
             REQUIRE(mesh.template get_attribute<ValueType>(id).get_all().data() == buffer.data());
             LA_REQUIRE_THROWS(mesh.template delete_and_export_attribute<ValueType>(
-                "normals",
+                "colors",
                 AttributeDeletePolicy::ErrorIfReserved,
                 AttributeExportPolicy::ErrorIfExternal));
-            mesh.delete_attribute("normals");
+            mesh.delete_attribute("colors");
         }
 
         // Copy if external (default)
         {
             auto id = mesh.template wrap_as_attribute<ValueType>(
-                "normals",
+                "colors",
                 elem,
                 usage,
                 num_channels,
                 buffer);
             REQUIRE(mesh.template get_attribute<ValueType>(id).get_all().data() == buffer.data());
-            auto attr_ptr = mesh.template delete_and_export_const_attribute<ValueType>("normals");
-            REQUIRE(!mesh.has_attribute("normals"));
+            auto attr_ptr = mesh.template delete_and_export_const_attribute<ValueType>("colors");
+            REQUIRE(!mesh.has_attribute("colors"));
             auto span = attr_ptr->get_all();
             REQUIRE(span.data() != buffer.data());
             for (size_t i = 0; i < span.size(); ++i) {
@@ -1600,17 +1605,17 @@ void test_export_attribute()
         // Keep external ptr
         {
             auto id = mesh.template wrap_as_attribute<ValueType>(
-                "normals",
+                "colors",
                 elem,
                 usage,
                 num_channels,
                 buffer);
             REQUIRE(mesh.template get_attribute<ValueType>(id).get_all().data() == buffer.data());
             auto attr_ptr = mesh.template delete_and_export_const_attribute<ValueType>(
-                "normals",
+                "colors",
                 AttributeDeletePolicy::ErrorIfReserved,
                 AttributeExportPolicy::KeepExternalPtr);
-            REQUIRE(!mesh.has_attribute("normals"));
+            REQUIRE(!mesh.has_attribute("colors"));
             auto span = attr_ptr->get_all();
             REQUIRE(span.data() == buffer.data());
         }
@@ -1618,32 +1623,32 @@ void test_export_attribute()
         // Error if external
         {
             auto id = mesh.template wrap_as_attribute<ValueType>(
-                "normals",
+                "colors",
                 elem,
                 usage,
                 num_channels,
                 buffer);
             REQUIRE(mesh.template get_attribute<ValueType>(id).get_all().data() == buffer.data());
             LA_REQUIRE_THROWS(mesh.template delete_and_export_const_attribute<ValueType>(
-                "normals",
+                "colors",
                 AttributeDeletePolicy::ErrorIfReserved,
                 AttributeExportPolicy::ErrorIfExternal));
-            mesh.delete_attribute("normals");
+            mesh.delete_attribute("colors");
         }
 
         // Invalid export policy
         {
             mesh.template wrap_as_attribute<ValueType>(
-                "normals",
+                "colors",
                 elem,
                 usage,
                 num_channels,
                 buffer);
             LA_REQUIRE_THROWS(mesh.template delete_and_export_const_attribute<ValueType>(
-                "normals",
+                "colors",
                 AttributeDeletePolicy::ErrorIfReserved,
                 invalid_enum<AttributeExportPolicy>()));
-            mesh.delete_attribute("normals");
+            mesh.delete_attribute("colors");
         }
     }
 }
@@ -3042,7 +3047,6 @@ TEST_CASE("SurfaceMesh: Value Attribute", "[next]")
     LA_SURFACE_MESH_X(test_value_attribute, ValueType)
     LA_ATTRIBUTE_X(test_value_attribute_aux, 0)
 }
-
 
 TEST_CASE("SurfaceMesh: sanity check", "[next]")
 {

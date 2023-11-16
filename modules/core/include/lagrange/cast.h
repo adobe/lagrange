@@ -22,6 +22,15 @@
 namespace lagrange {
 
 ///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various attribute processing utilities
+///
+/// @{
+///
+
+///
 /// Cast a mesh to a mesh of different scalar and/or index type.
 ///
 /// @tparam ToScalar     Scalar type of the output mesh.
@@ -131,6 +140,7 @@ SurfaceMesh<ToScalar, ToIndex> cast(const SurfaceMesh<FromScalar, FromIndex>& me
     seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
         if (mesh.attr_name_is_reserved(name)) return;
         switch (attr.get_usage()) {
+        case AttributeUsage::Position:
         case AttributeUsage::UV:
         case AttributeUsage::Normal:
         case AttributeUsage::Tangent:
@@ -145,5 +155,9 @@ SurfaceMesh<ToScalar, ToIndex> cast(const SurfaceMesh<FromScalar, FromIndex>& me
 
     return result;
 }
+
+///
+/// @}
+///
 
 } // namespace lagrange

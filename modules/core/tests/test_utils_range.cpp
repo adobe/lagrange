@@ -166,6 +166,9 @@ TEST_CASE("range", "[range]")
             REQUIRE(i == 0);
         }
 
+        #if EIGEN_VERSION_AT_LEAST(3, 4, 1)
+        // Eigen 3.4 has UBSan issue when iterating over empty matrices:
+        // https://godbolt.org/z/1aPxPcWvq
         SECTION("Empty matrix 2")
         {
             Eigen::MatrixXi Z(3, 0);
@@ -175,5 +178,6 @@ TEST_CASE("range", "[range]")
             }
             REQUIRE(i == 3);
         }
+        #endif
     }
 }

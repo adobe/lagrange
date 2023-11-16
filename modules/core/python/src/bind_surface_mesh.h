@@ -326,6 +326,24 @@ void bind_surface_mesh(nanobind::module_& m)
 
 :returns: The id of the created attribute.
 )");
+
+    surface_mesh_class.def(
+        "create_attribute_from",
+        &MeshType::template create_attribute_from<Scalar, Index>,
+        "name"_a,
+        "source_mesh"_a,
+        "source_name"_a = "",
+        R"(Shallow copy an attribute from another mesh.
+
+:param name: Name of the attribute.
+:type name: str
+:param source_mesh: Source mesh.
+:type source_mesh: SurfaceMesh
+:param source_name: Name of the attribute in the source mesh. If empty, use the same name as `name`.
+:type source_name: str, optional
+
+:returns: The id of the created attribute.)");
+
     surface_mesh_class.def(
         "wrap_as_attribute",
         [](MeshType& self,

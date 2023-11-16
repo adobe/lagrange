@@ -46,4 +46,16 @@ std::string to_string(BitField<AttributeElement> element);
 ///
 std::string_view to_string(AttributeUsage usage);
 
+///
+/// Returns a string representation of the attribute value type.
+///
+/// @param[in]  attr       Input attribute.
+///
+/// @tparam     ValueType  Attribute value type.
+///
+/// @return     String representation.
+///
+template <typename ValueType>
+std::string_view value_type_name(const lagrange::Attribute<ValueType>& attr);
+
 } // namespace lagrange::internal

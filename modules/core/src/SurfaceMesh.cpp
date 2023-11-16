@@ -33,8 +33,8 @@
 // clang-format on
 
 #include <array>
+#include <map>
 #include <string>
-#include <unordered_map>
 
 namespace lagrange {
 
@@ -281,8 +281,15 @@ protected:
     // inside the attribute class directly, but we would still need to store duplicated storage for
     // the map name -> attr id.
 
-    /// Map attribute names -> attribute ids
-    std::unordered_map<std::string, AttributeId> m_name_to_id;
+    ///
+    /// Map attribute names -> attribute ids.
+    ///
+    /// @note       We use an ordered map to guarantee a consistent traversal order by our
+    ///             `seq_foreach_attribute_id()` method. If performance becomes an issue, we should
+    ///             switch to a third-party implementation of an unordered_map (but we should avoid
+    ///             the STL implementation due to inconsistencies between macOS/Linux/Windows).
+    ///
+    std::map<std::string, AttributeId> m_name_to_id;
 
     /// Direct addressing of attributes using attribute ids.
     std::vector<std::pair<std::string, copy_on_write_ptr<AttributeBase>>> m_attributes;
@@ -423,6 +430,15 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
     span<const ValueType> initial_values,
     span<const Index> initial_indices)
 {
+    // If usage tag indicates a "position", check that num_channels == dim
+    if (usage == AttributeUsage::Position) {
+        la_runtime_assert(
+            num_channels == get_dimension(),
+            fmt::format(
+                "Invalid number of channels for {} attribute: should be {}.",
+                internal::to_string(usage),
+                get_dimension()));
+    }
     // If usage tag indicates a "normal/tangent/bitangent", check that num_channels == dim or dim + 1
     if (usage == AttributeUsage::Normal || usage == AttributeUsage::Tangent ||
         usage == AttributeUsage::Bitangent) {
@@ -1344,7 +1360,7 @@ SurfaceMesh<Scalar, Index>::SurfaceMesh(Index dimension)
     m_vertex_to_position_id = create_attribute_internal<Scalar>(
         s_vertex_to_position,
         AttributeElement::Vertex,
-        AttributeUsage::Vector,
+        AttributeUsage::Position,
         m_dimension);
     m_corner_to_vertex_id = create_attribute_internal<Index>(
         s_corner_to_vertex,

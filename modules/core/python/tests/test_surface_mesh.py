@@ -299,3 +299,8 @@ class TestSurfaceMesh:
         assert address(mesh.attribute("vertex_index").data) != address(
             deep_copy.attribute("vertex_index").data
         )
+
+    def test_position_usage(self, single_triangle):
+        mesh = single_triangle
+        position_attr = mesh.attribute(mesh.attr_id_vertex_to_positions)
+        assert position_attr.usage == lagrange.AttributeUsage.Position
