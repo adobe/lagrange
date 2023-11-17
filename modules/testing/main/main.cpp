@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     bool fpe_flag = false;
 
     auto cli = session.cli()
-        | Catch::Clara::Opt(log_level, "log level")["--log-level"]("Log level")
+        | Catch::Clara::Opt(log_level, "log level")["-l"]["--log-level"]("Log level")
         | Catch::Clara::Opt(fpe_flag, "use fpe")["--enable-fpe"]("Enable FPE");
 
     session.cli(cli);

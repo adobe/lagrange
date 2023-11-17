@@ -35,6 +35,7 @@
 #include <lagrange/separate_by_components.h>
 #include <lagrange/separate_by_facet_groups.h>
 #include <lagrange/topology.h>
+#include <lagrange/transform_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
@@ -43,6 +44,7 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/eigen/dense.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
@@ -576,6 +578,41 @@ well-defined and will be set to the special value 2 * M_PI.
     m.def("is_vertex_manifold", &is_vertex_manifold<Scalar, Index>, "mesh"_a);
     m.def("is_edge_manifold", &is_edge_manifold<Scalar, Index>, "mesh"_a);
     m.def("is_manifold", &is_manifold<Scalar, Index>, "mesh"_a);
+
+    m.def(
+        "transform_mesh",
+        [](MeshType& mesh,
+           Eigen::Matrix<Scalar, 4, 4> affine_transform,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents,
+           bool in_place) -> std::optional<MeshType> {
+            Eigen::Transform<Scalar, 3, Eigen::Affine> M(affine_transform);
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+
+            std::optional<MeshType> result;
+            if (in_place) {
+                transform_mesh(mesh, M, options);
+            } else {
+                result = transformed_mesh(mesh, M, options);
+            }
+            return result;
+        },
+        "mesh"_a,
+        "affine_transform"_a,
+        "normalize_normals"_a = true,
+        "normalize_tangents_bitangents"_a = true,
+        "in_place"_a = true,
+        R"(Apply affine transformation to a mesh.
+
+:param mesh:                          The source mesh.
+:param affine_transform:              The affine transformation matrix.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
+:param in_place:                      Whether to apply the transformation in place.
+
+:return: The transformed mesh if in_place is False.)");
 }
 
 } // namespace lagrange::python

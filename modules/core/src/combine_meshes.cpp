@@ -225,7 +225,6 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     Index total_num_corners = 0;
     Index vertex_per_facet = 0;
     bool is_regular = true;
-    std::vector<Index> facet_sizes;
     for (size_t i = 0; i < num_meshes; ++i) {
         const auto& mesh = get_mesh(i);
         total_num_vertices += mesh.get_num_vertices();
@@ -236,22 +235,26 @@ SurfaceMesh<Scalar, Index> combine_meshes(
                 vertex_per_facet = mesh.get_vertex_per_facet();
             } else if (mesh.get_vertex_per_facet() != vertex_per_facet) {
                 is_regular = false;
-                facet_sizes.reserve(num_meshes);
-                facet_sizes.insert(facet_sizes.end(), i, vertex_per_facet);
             }
-        }
-        if (!is_regular) {
-            facet_sizes.push_back(mesh.get_vertex_per_facet());
+        } else {
+            is_regular = false;
         }
     }
 
     // Allocate combined mesh
     combined_mesh.add_vertices(total_num_vertices);
     if (is_regular) {
+        // Fast path for combining meshes with the same facet sizes
         combined_mesh.add_polygons(total_num_facets, vertex_per_facet);
     } else {
-        la_debug_assert(static_cast<Index>(facet_sizes.size()) == num_meshes);
-        combined_mesh.add_hybrid(facet_sizes);
+        // Slow path for hybrid cases
+        for (size_t i = 0; i < num_meshes; ++i) {
+            const auto& mesh = get_mesh(i);
+            combined_mesh.add_hybrid(
+                mesh.get_num_facets(),
+                [&](Index f) { return mesh.get_facet_size(f); },
+                []([[maybe_unused]] Index f, [[maybe_unused]] span<Index> t) {});
+        }
     }
 
     // Assign positions + offset vertex indices
@@ -268,7 +271,12 @@ SurfaceMesh<Scalar, Index> combine_meshes(
 
         current_v += mesh.get_num_vertices();
         current_c += mesh.get_num_corners();
+        if (is_regular) {
+            la_debug_assert(mesh.get_num_corners() == mesh.get_num_facets() * vertex_per_facet);
+        }
     }
+    la_debug_assert(current_v == combined_mesh.get_num_vertices());
+    la_debug_assert(current_c == combined_mesh.get_num_corners());
 
     if (preserve_attributes) {
         combine_attributes(num_meshes, get_mesh, combined_mesh);

@@ -50,7 +50,34 @@ template <typename TargetType, typename SourceType>
 constexpr auto safe_cast(SourceType value)
     -> std::enable_if_t<!std::is_same<SourceType, TargetType>::value, TargetType>
 {
+    if constexpr (std::is_integral_v<TargetType> && std::is_floating_point_v<SourceType>) {
+        SourceType float_max = std::nextafter(
+            static_cast<SourceType>(std::numeric_limits<TargetType>::max()),
+            SourceType(0));
+        SourceType float_min = std::nextafter(
+            static_cast<SourceType>(std::numeric_limits<TargetType>::min()),
+            SourceType(0));
+        if (value > float_max || value < float_min) {
+            logger().error("Casting failed: float cast overflow for float {}", value);
+            throw BadCastError();
+        }
+    }
+
     TargetType value_2 = static_cast<TargetType>(value);
+
+    if constexpr (std::is_integral_v<SourceType> && std::is_floating_point_v<TargetType>) {
+        TargetType float_max = std::nextafter(
+            static_cast<TargetType>(std::numeric_limits<SourceType>::max()),
+            TargetType(0));
+        TargetType float_min = std::nextafter(
+            static_cast<TargetType>(std::numeric_limits<SourceType>::min()),
+            TargetType(0));
+        if (value_2 > float_max || value_2 < float_min) {
+            logger().error("Casting failed: float cast overflow for integer {}", value);
+            throw BadCastError();
+        }
+    }
+
     SourceType value_3 = static_cast<SourceType>(value_2);
 
     if ((value_2 >= 0) != (value >= 0)) {
@@ -136,20 +163,20 @@ template <typename T, typename U>
 constexpr T safe_cast_enum(const U u)
 {
     static_assert(
-        std::is_enum<T>::value || std::is_enum<U>::value,
+        std::is_enum_v<T> || std::is_enum_v<U>,
         "At least one of the types should be an enum");
     static_assert(
-        (std::is_enum<T>::value && std::is_enum<U>::value) == std::is_same<T, U>::value,
-        "Casting one enum to another is prohibitied");
+        (std::is_enum_v<T> && std::is_enum_v<U>) == std::is_same_v<T, U>,
+        "Casting one enum to another is prohibited");
 
-    const auto tu = static_cast<T>(static_cast<std::int64_t>(u));
-    const auto utu = static_cast<U>(static_cast<std::int64_t>(tu));
-    const auto tutu = static_cast<T>(static_cast<std::int64_t>(utu));
-    if (u == utu && tutu == tu) {
-        return tu;
+    using underlying_t = std::underlying_type_t<std::conditional_t<std::is_enum_v<T>, T, U>>;
+    using enum_t = std::conditional_t<std::is_enum_v<T>, T, U>;
+    using other_t = std::conditional_t<std::is_enum_v<T>, U, T>;
+
+    if constexpr (std::is_enum_v<T>) {
+        return static_cast<enum_t>(safe_cast<underlying_t>(u));
     } else {
-        throw BadCastError();
-        return T();
+        return safe_cast<other_t>(static_cast<underlying_t>(u));
     }
 }
 

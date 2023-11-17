@@ -28,6 +28,8 @@ CPMAddPackage(
 
 file(GLOB SRC_FILES "${ilmbase_SOURCE_DIR}/IlmBase/Half/*.cpp")
 file(GLOB INC_FILES "${ilmbase_SOURCE_DIR}/IlmBase/Half/*.h")
+list(FILTER SRC_FILES EXCLUDE REGEX ".*eLut\\.cpp$") # has a main() function
+list(FILTER SRC_FILES EXCLUDE REGEX ".*toFloat\\.cpp$") # has a main() function
 add_library(IlmBase_Half ${SRC_FILES} ${INC_FILES})
 add_library(IlmBase::Half ALIAS IlmBase_Half)
 

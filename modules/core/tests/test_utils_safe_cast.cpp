@@ -19,6 +19,14 @@
 #include <cmath>
 #include <limits>
 
+TEST_CASE("SafeCast: Max Int to Float", "[safe_cast]")
+{
+    int big = std::numeric_limits<int32_t>::max();
+    // float f32 = static_cast<float>(big);
+    // int result = static_cast<int32_t>(f32); // UB, as detected by UBSan
+    LA_REQUIRE_THROWS(lagrange::safe_cast<float>(big));
+}
+
 TEST_CASE("SafeCast", "[safe_cast]")
 {
     int x0 = lagrange::safe_cast<int>(1.0);

@@ -146,6 +146,7 @@ void ensure_approx_equivalent_mesh(
     testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(mesh1, mesh2);
     testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(mesh1, mesh2);
     testing::ensure_approx_equivalent_usage<AttributeUsage::Color>(mesh1, mesh2);
+    testing::ensure_approx_equivalent_usage<AttributeUsage::Position>(mesh1, mesh2);
     testing::ensure_approx_equivalent_usage<AttributeUsage::Tangent>(mesh1, mesh2);
     testing::ensure_approx_equivalent_usage<AttributeUsage::Bitangent>(mesh1, mesh2);
 

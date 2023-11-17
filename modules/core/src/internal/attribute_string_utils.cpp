@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/AttributeTypes.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/utils/assert.h>
 
@@ -26,12 +27,12 @@ std::string_view to_string(AttributeElement element)
         LA_ENUM_CASE(AttributeElement, Corner);
         LA_ENUM_CASE(AttributeElement, Value);
         LA_ENUM_CASE(AttributeElement, Indexed);
-    default:
-        la_debug_assert(false, "Unsupported enum type"); return "";
+    default: la_debug_assert(false, "Unsupported enum type"); return "";
     }
 }
 
-std::string to_string(BitField<AttributeElement> element) {
+std::string to_string(BitField<AttributeElement> element)
+{
     std::string ret;
     if (element.test_any(AttributeElement::Vertex)) ret += "Vertex;";
     if (element.test_any(AttributeElement::Facet)) ret += "Facet;";
@@ -48,6 +49,7 @@ std::string_view to_string(AttributeUsage usage)
         LA_ENUM_CASE(AttributeUsage, Vector);
         LA_ENUM_CASE(AttributeUsage, Scalar);
         LA_ENUM_CASE(AttributeUsage, Normal);
+        LA_ENUM_CASE(AttributeUsage, Position);
         LA_ENUM_CASE(AttributeUsage, Tangent);
         LA_ENUM_CASE(AttributeUsage, Bitangent);
         LA_ENUM_CASE(AttributeUsage, Color);
@@ -59,5 +61,14 @@ std::string_view to_string(AttributeUsage usage)
     default: la_debug_assert(false, "Unsupported enum type"); return "";
     }
 }
+
+#define LA_X_type_name(_, ValueType)                                        \
+    template <>                                                             \
+    std::string_view value_type_name(const lagrange::Attribute<ValueType>&) \
+    {                                                                       \
+        return #ValueType;                                                  \
+    }
+
+LA_ATTRIBUTE_X(type_name, 0)
 
 } // namespace lagrange::internal

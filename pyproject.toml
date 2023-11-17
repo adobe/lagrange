@@ -28,15 +28,15 @@ wheel.packages = ["modules/python/lagrange"]
 
 
 [tool.scikit-build.cmake.define]
-LAGRANGE_ASSERT_DEBUG_BREAK = "Off"
-LAGRANGE_EXAMPLES = "Off"
-LAGRANGE_INSTALL = "Off"
-LAGRANGE_MODULE_IO = "On"
-LAGRANGE_MODULE_PYTHON = "On"
-LAGRANGE_MODULE_SCENE = "On"
-LAGRANGE_UNIT_TESTS = "Off"
-LAGRANGE_WITH_ASSIMP = "On"
-TBB_PREFER_STATIC = "Off"
+LAGRANGE_ASSERT_DEBUG_BREAK = false
+LAGRANGE_EXAMPLES = false
+LAGRANGE_INSTALL = false
+LAGRANGE_MODULE_IO = true
+LAGRANGE_MODULE_PYTHON = true
+LAGRANGE_MODULE_SCENE = true
+LAGRANGE_UNIT_TESTS = false
+LAGRANGE_WITH_ASSIMP = true
+TBB_PREFER_STATIC = false
 
 [tool.scikit-build.metadata.version]
 provider = "scikit_build_core.metadata.regex"

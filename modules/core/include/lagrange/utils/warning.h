@@ -37,6 +37,7 @@
     #define LA_DISABLE_WARNING_CLANG(warning_name) LA_PRAGMA(clang diagnostic ignored #warning_name)
     #define LA_DISABLE_WARNING_GCC(warning_name)
     #define LA_DISABLE_WARNING_MSVC(warning_number)
+    #define LA_NOSANITIZE_SIGNED_INTEGER_OVERFLOW __attribute__((no_sanitize("signed-integer-overflow")))
 #elif defined(__GNUC__)
     #define LA_PRAGMA(X) _Pragma(#X)
     #define LA_DISABLE_WARNING_BEGIN LA_PRAGMA(GCC diagnostic push)
@@ -44,18 +45,21 @@
     #define LA_DISABLE_WARNING_CLANG(warning_name)
     #define LA_DISABLE_WARNING_GCC(warning_name) LA_PRAGMA(GCC diagnostic ignored #warning_name)
     #define LA_DISABLE_WARNING_MSVC(warning_number)
+    #define LA_NOSANITIZE_SIGNED_INTEGER_OVERFLOW
 #elif defined(_MSC_VER)
     #define LA_DISABLE_WARNING_BEGIN __pragma(warning(push))
     #define LA_DISABLE_WARNING_END __pragma(warning(pop))
     #define LA_DISABLE_WARNING_CLANG(warning_name)
     #define LA_DISABLE_WARNING_GCC(warning_name)
     #define LA_DISABLE_WARNING_MSVC(warning_number) __pragma(warning( disable : warning_number ))
+    #define LA_NOSANITIZE_SIGNED_INTEGER_OVERFLOW
 #else
     #define LA_DISABLE_WARNING_BEGIN
     #define LA_DISABLE_WARNING_END
     #define LA_DISABLE_WARNING_CLANG(warning_name)
     #define LA_DISABLE_WARNING_GCC(warning_name)
     #define LA_DISABLE_WARNING_MSVC(warning_number)
+    #define LA_NOSANITIZE_SIGNED_INTEGER_OVERFLOW
 #endif
 /// @endcond
 

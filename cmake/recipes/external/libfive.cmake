@@ -141,5 +141,6 @@ if(MSVC)
         /bigobj
     )
 endif()
+set_target_properties(libfive PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_library(libfive::libfive ALIAS libfive)
 set_target_properties(libfive PROPERTIES FOLDER third_party/libfive)

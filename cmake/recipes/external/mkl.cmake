@@ -58,11 +58,6 @@ if(NOT MKL_LINKING IN_LIST MKL_LINKING_CHOICES)
     message(FATAL_ERROR "Unrecognized option for MKL_LINKING: ${MKL_LINKING}")
 endif()
 
-# Using the SDL lib requires linking against openmp, which we do not support
-if(MKL_LINKING STREQUAL sdl)
-    message(FATAL_ERROR "MKL_LINKING=sdl is not fully supported yet.")
-endif()
-
 # Check option for the library version
 if(NOT MKL_VERSION IN_LIST MKL_VERSION_CHOICES)
     message(FATAL_ERROR "Unrecognized option for MKL_VERSION: ${MKL_VERSION}")
@@ -174,7 +169,7 @@ else()
     if(WIN32)
         set(MKL_LIB_SUFFIX "_dll")
     endif()
-    if(WIN32 AND MKL_VERSION STREQUAL 2021.3.0)
+    if(MKL_VERSION STREQUAL 2021.3.0)
         set(MKL_DLL_SUFFIX ".1")
     endif()
     list(APPEND MKL_LIB_HINTS
@@ -184,13 +179,11 @@ else()
     )
 endif()
 
-# Note: Since CMake 3.17, find_library accepts a REQUIRED arg that stops processing
-# if the file is not found, thus removing the need for this assert() function.
-function(mkl_assert_is_found var)
-    if(NOT ${var})
-        message(FATAL_ERROR "Could not find " ${var})
-    endif()
-endfunction()
+# Soname shenanigans for macOS and Linux
+set(MKL_SONAME_PREFIX)
+if(APPLE)
+    set(MKL_SONAME_PREFIX "@rpath/")
+endif()
 
 # Creates one IMPORTED target for each requested library
 function(mkl_add_imported_library name)
@@ -213,17 +206,14 @@ function(mkl_add_imported_library name)
     add_library(mkl::${name} ${MKL_TYPE} IMPORTED GLOBAL)
     set_target_properties(mkl::${name} PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES CXX)
 
-    # Important to avoid absolute path referencing of the libraries in the executables
-    set_target_properties(mkl::${name} PROPERTIES IMPORTED_NO_SONAME TRUE)
-
     # Find library file
     string(TOUPPER mkl_${name}_library LIBVAR)
     find_library(${LIBVAR}
         NAMES mkl_${name}${MKL_LIB_SUFFIX}
         HINTS ${MKL_LIB_HINTS}
         NO_DEFAULT_PATH
+        REQUIRED
     )
-    mkl_assert_is_found(${LIBVAR})
     message(STATUS "Creating target mkl::${name} for lib file: ${${LIBVAR}}")
 
     # Set imported location
@@ -241,8 +231,8 @@ function(mkl_add_imported_library name)
                 NAMES mkl_${name}${MKL_DLL_SUFFIX}.dll
                 HINTS ${MKL_LIB_HINTS}
                 NO_DEFAULT_PATH
+                REQUIRED
             )
-            mkl_assert_is_found(${DLLVAR})
             message(STATUS "Creating target mkl::${name} for dll file: ${${DLLVAR}}")
             set_target_properties(mkl::${name} PROPERTIES
                 IMPORTED_IMPLIB "${${LIBVAR}}"
@@ -251,9 +241,21 @@ function(mkl_add_imported_library name)
         endif()
     else()
         # Otherwise, we ignore the dll location, and simply set main library location
-        set_target_properties(mkl::${name} PROPERTIES
-            IMPORTED_LOCATION "${${LIBVAR}}"
-        )
+        if(UNIX)
+            file(REAL_PATH "${${LIBVAR}}" mkl_lib_path)
+            cmake_path(GET ${LIBVAR} FILENAME mkl_lib_filename)
+            # On Linux, we need to resolve symlinks to the actual library file, and set the SONAME
+            # to the unversioned file name. If we don't, CMake's install() step will not the
+            # versioned filename, causing linking errors in our Python package.
+            set_target_properties(mkl::${name} PROPERTIES
+                IMPORTED_SONAME "${MKL_SONAME_PREFIX}${mkl_lib_filename}"
+                IMPORTED_LOCATION "${mkl_lib_path}"
+            )
+        else()
+            set_target_properties(mkl::${name} PROPERTIES
+                IMPORTED_LOCATION "${${LIBVAR}}"
+            )
+        endif()
     endif()
 
     # Add mkl::core as a dependency
@@ -267,29 +269,72 @@ function(mkl_add_imported_library name)
 endfunction()
 
 # On Windows, creates an IMPORTED target for each given .dll
+# On macOS/Linux, we still need this to correctly install runtime dependencies
 function(mkl_add_shared_libraries)
-    if(NOT WIN32 OR MKL_LINKING STREQUAL static)
+    if(MKL_LINKING STREQUAL static)
         return()
     endif()
 
+    # On macOS, some of these libs are not present, so we mark them as optional
+    set(optional_libs)
+    if(APPLE)
+        list(APPEND optional_libs def mc vml_def vml_mc)
+    endif()
+
     foreach(name IN ITEMS ${ARGN})
+        if(name IN_LIST optional_libs)
+            set(required_flag)
+        else()
+            set(required_flag REQUIRED)
+        endif()
+
+        if(WIN32)
+            # Find dll file
+            string(TOUPPER mkl_${name}_dll DLLVAR)
+            find_file(${DLLVAR}
+                NAMES mkl_${name}${MKL_DLL_SUFFIX}.dll
+                HINTS ${MKL_LIB_HINTS}
+                NO_DEFAULT_PATH
+            )
+        else()
+            string(TOUPPER mkl_${name} DLLVAR)
+            set(OLD_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+            # A bit hacky but MKL libs are weird...
+            if(LINUX)
+                set(CMAKE_FIND_LIBRARY_SUFFIXES "")
+                set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}.so${MKL_DLL_SUFFIX})
+            else()
+                set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}${MKL_DLL_SUFFIX})
+            endif()
+            find_library(${DLLVAR}
+                NAMES ${mkl_search_name}
+                HINTS ${MKL_LIB_HINTS}
+                NO_DEFAULT_PATH
+                ${required_flag}
+            )
+            set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_CMAKE_FIND_LIBRARY_SUFFIXES})
+        endif()
+
+        if(NOT ${DLLVAR})
+            message(STATUS "Skipping mkl_${name}${MKL_LIB_SUFFIX}")
+            return()
+        endif()
+
         # Create imported target for library. Here, we use MODULE, since those are not linked into
         # other targets, but rather loaded at runtime using dlopen-like functionality
         add_library(mkl::${name} MODULE IMPORTED GLOBAL)
         set_target_properties(mkl::${name} PROPERTIES IMPORTED_LINK_INTERFACE_LANGUAGES CXX)
 
-        # Find dll file
-        string(TOUPPER mkl_${name}_dll DLLVAR)
-        find_file(${DLLVAR}
-            NAMES mkl_${name}${MKL_DLL_SUFFIX}.dll
-            HINTS ${MKL_LIB_HINTS}
-            NO_DEFAULT_PATH
-        )
-        mkl_assert_is_found(${DLLVAR})
-        message(STATUS "Creating target mkl::${name} for dll file: ${${DLLVAR}}")
+        message(STATUS "Creating target mkl::${name} for shared lib file: ${${DLLVAR}}")
         set_target_properties(mkl::${name} PROPERTIES
             IMPORTED_LOCATION "${${DLLVAR}}"
         )
+        if(UNIX)
+            get_filename_component(mkl_lib_filename "${${LIBVAR}}" NAME)
+            set_target_properties(mkl::${name} PROPERTIES
+                IMPORTED_SONAME "${MKL_SONAME_PREFIX}${mkl_lib_filename}"
+            )
+        endif()
 
         # Set as dependency to the meta target mkl::mkl. We cannot directly use `target_link_libraries`, since a MODULE
         # target represents a runtime dependency and cannot be linked against. Instead, we populate a custom property
@@ -332,7 +377,6 @@ endfunction()
 
 ################################################################################
 
-
 # Create a proper imported target for MKL
 add_library(mkl::mkl INTERFACE IMPORTED GLOBAL)
 
@@ -343,14 +387,33 @@ find_path(MKL_INCLUDE_DIR
         ${mkl-include_SOURCE_DIR}/include
         ${mkl-include_SOURCE_DIR}/Library/include
     NO_DEFAULT_PATH
+    REQUIRED
 )
-mkl_assert_is_found(MKL_INCLUDE_DIR)
 message(STATUS "MKL include dir: ${MKL_INCLUDE_DIR}")
 target_include_directories(mkl::mkl INTERFACE ${MKL_INCLUDE_DIR})
 
 if(MKL_LINKING STREQUAL sdl)
     # Link against a single dynamic lib
     mkl_add_imported_library(rt)
+
+    # Add every other library as a runtime dependency (to ensure proper installation)
+
+    # Computational library
+    mkl_add_shared_libraries(core)
+
+    # Interface library
+    if(WIN32)
+        mkl_add_shared_libraries(intel_${MKL_INTERFACE} NO_DLL)
+    else()
+        mkl_add_shared_libraries(intel_${MKL_INTERFACE})
+    endif()
+
+    # Thread library
+    if(MKL_THREADING STREQUAL sequential)
+        mkl_add_shared_libraries(sequential)
+    else()
+        mkl_add_shared_libraries(tbb_thread)
+    endif()
 else()
     # Link against each component explicitly
 
@@ -372,21 +435,21 @@ else()
         mkl_add_imported_library(tbb_thread)
         mkl_set_dependencies(core intel_${MKL_INTERFACE} tbb_thread)
     endif()
-
-    # Instructions sets specific libraries
-
-    # Kernel - Required
-    mkl_add_shared_libraries(def)
-
-    # Kernel - Optional
-    mkl_add_shared_libraries(avx avx2 avx512 mc mc3)
-
-    # Vector Mathematics - Required
-    mkl_add_shared_libraries(vml_def vml_cmpt)
-
-    # Vector Mathematics - Optional
-    mkl_add_shared_libraries(vml_avx vml_avx2 vml_avx512 vml_mc vml_mc2 vml_mc3)
 endif()
+
+# Instructions sets specific libraries
+
+# Kernel - Required
+mkl_add_shared_libraries(def)
+
+# Kernel - Optional
+mkl_add_shared_libraries(avx avx2 avx512 mc mc3)
+
+# Vector Mathematics - Required
+mkl_add_shared_libraries(vml_def vml_cmpt)
+
+# Vector Mathematics - Optional
+mkl_add_shared_libraries(vml_avx vml_avx2 vml_avx512 vml_mc vml_mc2 vml_mc3)
 
 # Compile definitions.
 if(MKL_INTERFACE STREQUAL "ilp64")
@@ -395,13 +458,17 @@ endif()
 
 # Also requires the math system library (-lm)?
 if(NOT MSVC)
-    find_library(LIBM_LIBRARY m)
-    mkl_assert_is_found(LIBM_LIBRARY)
+    find_library(LIBM_LIBRARY m REQUIRED)
     target_link_libraries(mkl::mkl INTERFACE ${LIBM_LIBRARY})
 endif()
 
 # If using TBB, we need to specify the dependency
 if(MKL_THREADING STREQUAL "tbb")
     include(tbb)
-    target_link_libraries(mkl::tbb_thread INTERFACE TBB::tbb)
+    if(TARGET mkl::tbb_thread)
+        target_link_libraries(mkl::tbb_thread INTERFACE TBB::tbb)
+    endif()
+    if(TARGET mkl::rt)
+        target_link_libraries(mkl::rt INTERFACE TBB::tbb)
+    endif()
 endif()

@@ -33,8 +33,9 @@ AttributeBase::AttributeBase(AttributeElement element, AttributeUsage usage, siz
     switch (usage) {
     case AttributeUsage::Vector: la_runtime_assert(num_channels >= 1); break;
     case AttributeUsage::Scalar: la_runtime_assert(num_channels == 1); break;
-    case AttributeUsage::Normal:
-    case AttributeUsage::Tangent:
+    case AttributeUsage::Position: [[fallthrough]];
+    case AttributeUsage::Normal: [[fallthrough]];
+    case AttributeUsage::Tangent: [[fallthrough]];
     case AttributeUsage::Bitangent:
         la_runtime_assert(num_channels >= 1);
         break; // depends on mesh dimension
@@ -59,17 +60,19 @@ Attribute<ValueType>::Attribute(AttributeElement element, AttributeUsage usage, 
     : AttributeBase(element, usage, num_channels)
 {
     // Index attributes must have integral types
+    // Position, Normal, Tangent, Bitangent must have floating point types
     LA_IGNORE_SWITCH_ENUM_WARNING_BEGIN
     switch (usage) {
-    case AttributeUsage::VertexIndex: la_runtime_assert(std::is_integral_v<ValueType>); break;
-    case AttributeUsage::FacetIndex: la_runtime_assert(std::is_integral_v<ValueType>); break;
-    case AttributeUsage::CornerIndex: la_runtime_assert(std::is_integral_v<ValueType>); break;
+    case AttributeUsage::VertexIndex: [[fallthrough]];
+    case AttributeUsage::FacetIndex: [[fallthrough]];
+    case AttributeUsage::CornerIndex: [[fallthrough]];
     case AttributeUsage::EdgeIndex: la_runtime_assert(std::is_integral_v<ValueType>); break;
     case AttributeUsage::Vector: break;
     case AttributeUsage::Scalar: break;
-    case AttributeUsage::Normal: break;
-    case AttributeUsage::Tangent: break;
-    case AttributeUsage::Bitangent: break;
+    case AttributeUsage::Position: [[fallthrough]];
+    case AttributeUsage::Normal: [[fallthrough]];
+    case AttributeUsage::Tangent: [[fallthrough]];
+    case AttributeUsage::Bitangent: la_runtime_assert(std::is_floating_point_v<ValueType>); break;
     case AttributeUsage::Color: break;
     case AttributeUsage::UV: break;
     default: throw Error("Unsupported usage");

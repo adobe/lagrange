@@ -45,6 +45,9 @@ __pycache__
 *.mesh
 *.vtk
 
+# Openvdb files
+*.vdb
+
 # Extra directories
 /.vscode
 /.vs
@@ -57,6 +60,7 @@ __pycache__
 /_build
 /_skbuild
 /data
+/docs/build
 
 # Lagrange specifics
 LagrangeOptions.cmake
