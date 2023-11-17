@@ -31,10 +31,11 @@ endif()
 
 cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
-set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
-set(CMAKE_POLICY_DEFAULT_CMP0135 NEW) # Set the timestamps of all extracted contents to the time of the extraction.
+set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) # Honor visibility properties for all target types.
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # Avoid overriding normal variables with option()
+set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
 set(CMAKE_POLICY_DEFAULT_CMP0126 NEW) # Avoid overriding normal variables with set(CACHE)
+set(CMAKE_POLICY_DEFAULT_CMP0135 NEW) # Set the timestamps of all extracted contents to the time of the extraction.
 
 # Include user-provided default options if available. We do that before the main
 # `project()` so that we can define the C/C++ compilers from the option file.
@@ -48,19 +49,38 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/LagrangeOptions.cmake)
     endif()
 endif()
 
-# Enable ccache if available
+# Set default compiler cache program based on available programs
+find_program(SCCACHE_PROGRAM sccache)
 find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
-    option(LAGRANGE_WITH_CCACHE "Enable ccache when building Lagrange" ${LAGRANGE_TOPLEVEL_PROJECT})
+if(SCCACHE_PROGRAM)
+    set(LAGRANGE_CCACHE_PROGRAM "sccache" CACHE STRING "Compiler cache program to use (none, ccache or sccache)")
+elseif(CCACHE_PROGRAM)
+    set(LAGRANGE_CCACHE_PROGRAM "ccache" CACHE STRING "Compiler cache program to use (none, ccache or sccache)")
 else()
-    option(LAGRANGE_WITH_CCACHE "Enable ccache when building Lagrange" OFF)
+    set(LAGRANGE_CCACHE_PROGRAM "none" CACHE STRING "Compiler cache program to use (none, ccache or sccache)")
 endif()
-if(LAGRANGE_WITH_CCACHE AND CCACHE_PROGRAM)
+
+set(LAGRANGE_CCACHE_PROGRAMS none ccache sccache)
+set_property(CACHE LAGRANGE_CCACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CCACHE_PROGRAMS})
+
+# Enable sscache if available
+if((LAGRANGE_CCACHE_PROGRAM STREQUAL "sccache") AND SCCACHE_PROGRAM)
+    message(STATUS "Using sccache: ${SCCACHE_PROGRAM}")
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+    foreach(lang IN ITEMS C CXX)
+        set(CMAKE_${lang}_COMPILER_LAUNCHER
+            ${CMAKE_COMMAND} -E env ${ccacheEnv} ${CCACHE_PROGRAM}
+        )
+    endforeach()
+endif()
+
+# Enable ccache if available
+if((LAGRANGE_CCACHE_PROGRAM STREQUAL "ccache") AND CCACHE_PROGRAM)
     set(ccacheEnv
         CCACHE_BASEDIR=${CMAKE_BINARY_DIR}
         CCACHE_SLOPPINESS=clang_index_store,include_file_ctime,include_file_mtime,locale,pch_defines,time_macros
     )
-    message(STATUS "Using CCache: ${CCACHE_PROGRAM}")
+    message(STATUS "Using ccache: ${CCACHE_PROGRAM}")
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER
@@ -94,6 +114,18 @@ if(WIN32 AND NOT LAGRANGE_JENKINS)
     set(LAGRANGE_COMPILE_TESTS_DEFAULT NO)
 else()
     set(LAGRANGE_COMPILE_TESTS_DEFAULT ${LAGRANGE_TOPLEVEL_PROJECT})
+endif()
+
+# Enable MSVC compiler bug workaround for fmt 8 and Eigen
+if(LAGRANGE_TOPLEVEL_PROJECT AND MSVC_VERSION GREATER_EQUAL 1936 AND MSVC_VERSION LESS_EQUAL 1937)
+    message(WARNING
+        "Visual Studio 17.6 and 17.7 have a known internal compiler error with fmt and Eigen. "
+        "Enabling LAGRANGE_FMT_EIGEN_FIX to work around the issue. See: "
+        "https://developercommunity.visualstudio.com/t/Internal-compiler-error-compiler-file-m/10376323"
+    )
+    set(LAGRANGE_FMT_EIGEN_FIX_DEFAULT ON)
+else()
+    set(LAGRANGE_FMT_EIGEN_FIX_DEFAULT OFF)
 endif()
 
 # Python defaults
@@ -137,7 +169,7 @@ option(LAGRANGE_DOCUMENTATION           "Build Doxygen documentation"           
 option(LAGRANGE_ENABLE_GPU_TESTS        "Enable unit tests that run on the GPU"                ON)
 option(LAGRANGE_ENABLE_LEGACY_FUNCTIONS "Enable support for legacy functions."                 ON)
 option(LAGRANGE_EXAMPLES                "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt and eigen"     OFF)
+option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt and eigen"     ${LAGRANGE_FMT_EIGEN_FIX_DEFAULT})
 option(LAGRANGE_INSTALL                 "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_LIMIT_PARALLELISM       "Limit parallelism according to available cpu/memory"  OFF)
 option(LAGRANGE_MORE_WARNINGS           "Increase the level of warnings when compiling"        OFF)
