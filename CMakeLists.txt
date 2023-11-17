@@ -69,7 +69,7 @@ if((LAGRANGE_CCACHE_PROGRAM STREQUAL "sccache") AND SCCACHE_PROGRAM)
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER
-            ${CMAKE_COMMAND} -E env ${ccacheEnv} ${CCACHE_PROGRAM}
+            ${CMAKE_COMMAND} -E env ${ccacheEnv} ${SCCACHE_PROGRAM}
         )
     endforeach()
 endif()
