@@ -14,4 +14,4 @@ if(TARGET Python::Module)
 endif()
 
 set(Python_FIND_VIRTUALENV FIRST)
-find_package(Python 3.8 COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(Python 3.9...<3.12 COMPONENTS Interpreter Development.Module REQUIRED)
