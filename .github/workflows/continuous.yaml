@@ -28,8 +28,8 @@ jobs:
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address;Undefined", "Thread"] # TODO: Add Memory Sanitizer
         exclude:
-          - os: macos-12
-            sanitizer: "Thread"
+          # - os: macos-12
+          #   sanitizer: "Thread"
           - os: macos-12
             compiler: gcc
           - os: ubuntu-22.04
@@ -92,7 +92,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
             -DLAGRANGE_JENKINS=ON \
             -DLAGRANGE_ALL=ON \
-            -DUSE_SANITIZER=${{ matrix.sanitizer }}
+            -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build
         run: |
