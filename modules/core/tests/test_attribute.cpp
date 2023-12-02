@@ -85,9 +85,6 @@ void test_create_attribute()
     // Valid
     make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Vector, 3);
     make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Scalar, 1);
-    make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Normal, 1);
-    make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Normal, 3);
-    make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Normal, 5);
     make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Color, 3);
     make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::UV, 2);
 
@@ -106,6 +103,23 @@ void test_create_attribute()
             make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::CornerIndex, 1));
         LA_REQUIRE_THROWS(
             make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::EdgeIndex, 1));
+    }
+
+    // Valid only for floating point types
+    for (auto usage :
+         {AttributeUsage::Position,
+          AttributeUsage::Normal,
+          AttributeUsage::Tangent,
+          AttributeUsage::Bitangent}) {
+        if (std::is_floating_point_v<ValueType>) {
+            make_attr<ValueType>(AttributeElement::Vertex, usage, 1);
+            make_attr<ValueType>(AttributeElement::Vertex, usage, 3);
+            make_attr<ValueType>(AttributeElement::Vertex, usage, 5);
+        } else {
+            LA_REQUIRE_THROWS(make_attr<ValueType>(AttributeElement::Vertex, usage, 1));
+            LA_REQUIRE_THROWS(make_attr<ValueType>(AttributeElement::Vertex, usage, 3));
+            LA_REQUIRE_THROWS(make_attr<ValueType>(AttributeElement::Vertex, usage, 5));
+        }
     }
 
     // Invalid
@@ -706,220 +720,285 @@ void test_growth_policy()
     std::iota(values.begin(), values.end(), ValueType(0));
 
     // ErrorIfExternal
-    {{Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::ErrorIfExternal);
-    LA_REQUIRE_THROWS(
-        attr.insert_elements({values.data() + num_channels * num_elems, num_channels * 1}));
-    LA_REQUIRE_THROWS(attr.insert_elements(1));
-}
+    {
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::ErrorIfExternal);
+            LA_REQUIRE_THROWS(
+                attr.insert_elements({values.data() + num_channels * num_elems, num_channels * 1}));
+            LA_REQUIRE_THROWS(attr.insert_elements(1));
+        }
 
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    REQUIRE_NOTHROW(attr.reserve_entries(num_elems * num_channels));
-    LA_REQUIRE_THROWS(attr.reserve_entries((num_elems + 1) * num_channels));
-}
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            REQUIRE_NOTHROW(attr.reserve_entries(num_elems * num_channels));
+            LA_REQUIRE_THROWS(attr.reserve_entries((num_elems + 1) * num_channels));
+        }
 
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    REQUIRE_NOTHROW(attr.resize_elements(num_elems));
-    LA_REQUIRE_THROWS(attr.resize_elements(num_elems - 1));
-    LA_REQUIRE_THROWS(attr.resize_elements(num_elems + 1));
-}
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            REQUIRE_NOTHROW(attr.resize_elements(num_elems));
+            LA_REQUIRE_THROWS(attr.resize_elements(num_elems - 1));
+            LA_REQUIRE_THROWS(attr.resize_elements(num_elems + 1));
+        }
 
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    LA_REQUIRE_THROWS(attr.clear());
-}
-} // namespace
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            LA_REQUIRE_THROWS(attr.clear());
+        }
+    } // namespace
 
-// AllowWithinCapacity
-{{Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-attr.wrap(values, num_elems);
-attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
+    // AllowWithinCapacity
+    {
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
 
-REQUIRE_NOTHROW(
-    attr.insert_elements({values.data() + num_channels * num_elems, num_channels* delta_elems}));
-REQUIRE(attr.get_num_elements() == max_elems);
-LA_REQUIRE_THROWS(attr.insert_elements(1));
-REQUIRE(attr.get_all().data() == values.data());
-REQUIRE(attr.ref_all().data() == values.data());
-for (size_t i = 0; i < values.size(); ++i) {
-    REQUIRE(values[i] == ValueType(i));
-}
-}
+            REQUIRE_NOTHROW(attr.insert_elements(
+                {values.data() + num_channels * num_elems, num_channels * delta_elems}));
+            REQUIRE(attr.get_num_elements() == max_elems);
+            LA_REQUIRE_THROWS(attr.insert_elements(1));
+            REQUIRE(attr.get_all().data() == values.data());
+            REQUIRE(attr.ref_all().data() == values.data());
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == ValueType(i));
+            }
+        }
 
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
-    attr.set_default_value(ValueType(10));
-    REQUIRE_NOTHROW(attr.insert_elements(delta_elems));
-    for (size_t i = 0; i < values.size(); ++i) {
-        REQUIRE(values[i] == (i < num_elems * num_channels ? ValueType(i) : ValueType(10)));
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
+            attr.set_default_value(ValueType(10));
+            REQUIRE_NOTHROW(attr.insert_elements(delta_elems));
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == (i < num_elems * num_channels ? ValueType(i) : ValueType(10)));
+            }
+            std::iota(values.begin(), values.end(), ValueType(0));
+            LA_REQUIRE_THROWS(attr.insert_elements(1));
+            REQUIRE(attr.ref_all().data() == values.data());
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == ValueType(i));
+            }
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
+            REQUIRE_NOTHROW(attr.reserve_entries(max_elems * num_channels));
+            LA_REQUIRE_THROWS(attr.reserve_entries((max_elems + 1) * num_channels));
+            REQUIRE(attr.ref_all().data() == values.data());
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == ValueType(i));
+            }
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
+            REQUIRE_NOTHROW(attr.resize_elements(max_elems));
+            LA_REQUIRE_THROWS(attr.resize_elements(max_elems + 1));
+            REQUIRE(attr.ref_all().data() == values.data());
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == (i < num_elems * num_channels ? ValueType(i) : ValueType(0)));
+            }
+            std::iota(values.begin(), values.end(), ValueType(0));
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
+            REQUIRE_NOTHROW(attr.clear());
+            REQUIRE(attr.ref_all().data() == values.data());
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == ValueType(i));
+            }
+        }
     }
-    std::iota(values.begin(), values.end(), ValueType(0));
-    LA_REQUIRE_THROWS(attr.insert_elements(1));
-    REQUIRE(attr.ref_all().data() == values.data());
-    for (size_t i = 0; i < values.size(); ++i) {
-        REQUIRE(values[i] == ValueType(i));
+
+    // SilentCopy
+    {
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == ValueType(i));
+            }
+
+            REQUIRE_NOTHROW(attr.insert_elements(
+                {values.data() + num_channels * num_elems, num_channels * delta_elems}));
+            REQUIRE(attr.get_num_elements() == max_elems);
+            REQUIRE_NOTHROW(attr.insert_elements(1));
+            REQUIRE(attr.get_all().data() != values.data());
+            REQUIRE(attr.ref_all().data() != values.data());
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == ValueType(i));
+            }
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+            REQUIRE_NOTHROW(attr.insert_elements(delta_elems));
+            REQUIRE_NOTHROW(attr.insert_elements(1));
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+            REQUIRE_NOTHROW(attr.reserve_entries(max_elems * num_channels));
+            REQUIRE_NOTHROW(attr.reserve_entries((max_elems + 1) * num_channels));
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+            REQUIRE_NOTHROW(attr.resize_elements(max_elems));
+            REQUIRE_NOTHROW(attr.resize_elements(max_elems + 1));
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+            REQUIRE_NOTHROW(attr.clear());
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
     }
-}
 
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
-    REQUIRE_NOTHROW(attr.reserve_entries(max_elems * num_channels));
-    LA_REQUIRE_THROWS(attr.reserve_entries((max_elems + 1) * num_channels));
-    REQUIRE(attr.ref_all().data() == values.data());
-    for (size_t i = 0; i < values.size(); ++i) {
-        REQUIRE(values[i] == ValueType(i));
+    // WarnAndCopy
+    {
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+
+            REQUIRE_NOTHROW(attr.insert_elements(
+                {values.data() + num_channels * num_elems, num_channels * delta_elems}));
+            REQUIRE(attr.get_num_elements() == max_elems);
+            REQUIRE_NOTHROW(attr.insert_elements(1));
+            REQUIRE(attr.get_all().data() != values.data());
+            REQUIRE(attr.ref_all().data() != values.data());
+            for (size_t i = 0; i < values.size(); ++i) {
+                REQUIRE(values[i] == ValueType(i));
+            }
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            REQUIRE_NOTHROW(attr.insert_elements(delta_elems));
+            REQUIRE_NOTHROW(attr.insert_elements(1));
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            REQUIRE_NOTHROW(attr.reserve_entries(max_elems * num_channels));
+            REQUIRE_NOTHROW(attr.reserve_entries((max_elems + 1) * num_channels));
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            REQUIRE_NOTHROW(attr.resize_elements(max_elems));
+            REQUIRE_NOTHROW(attr.resize_elements(max_elems + 1));
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
+
+        {
+            Attribute<ValueType> attr(
+                AttributeElement::Vertex,
+                AttributeUsage::Vector,
+                num_channels);
+            attr.wrap(values, num_elems);
+            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            REQUIRE_NOTHROW(attr.clear());
+            REQUIRE(attr.ref_all().data() != values.data());
+        }
     }
-}
 
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
-    REQUIRE_NOTHROW(attr.resize_elements(max_elems));
-    LA_REQUIRE_THROWS(attr.resize_elements(max_elems + 1));
-    REQUIRE(attr.ref_all().data() == values.data());
-    for (size_t i = 0; i < values.size(); ++i) {
-        REQUIRE(values[i] == (i < num_elems * num_channels ? ValueType(i) : ValueType(0)));
+    // Garbage policy
+    {
+        Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
+        attr.wrap(values, num_elems);
+        attr.set_growth_policy(invalid_enum<AttributeGrowthPolicy>());
+        LA_REQUIRE_THROWS(attr.insert_elements(1));
     }
-    std::iota(values.begin(), values.end(), ValueType(0));
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
-    REQUIRE_NOTHROW(attr.clear());
-    REQUIRE(attr.ref_all().data() == values.data());
-    for (size_t i = 0; i < values.size(); ++i) {
-        REQUIRE(values[i] == ValueType(i));
-    }
-}
-}
-
-// SilentCopy
-{{Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-attr.wrap(values, num_elems);
-attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
-for (size_t i = 0; i < values.size(); ++i) {
-    REQUIRE(values[i] == ValueType(i));
-}
-
-REQUIRE_NOTHROW(
-    attr.insert_elements({values.data() + num_channels * num_elems, num_channels* delta_elems}));
-REQUIRE(attr.get_num_elements() == max_elems);
-REQUIRE_NOTHROW(attr.insert_elements(1));
-REQUIRE(attr.get_all().data() != values.data());
-REQUIRE(attr.ref_all().data() != values.data());
-for (size_t i = 0; i < values.size(); ++i) {
-    REQUIRE(values[i] == ValueType(i));
-}
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
-    REQUIRE_NOTHROW(attr.insert_elements(delta_elems));
-    REQUIRE_NOTHROW(attr.insert_elements(1));
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
-    REQUIRE_NOTHROW(attr.reserve_entries(max_elems * num_channels));
-    REQUIRE_NOTHROW(attr.reserve_entries((max_elems + 1) * num_channels));
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
-    REQUIRE_NOTHROW(attr.resize_elements(max_elems));
-    REQUIRE_NOTHROW(attr.resize_elements(max_elems + 1));
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
-    REQUIRE_NOTHROW(attr.clear());
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-}
-
-// WarnAndCopy
-{{Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-attr.wrap(values, num_elems);
-attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
-
-REQUIRE_NOTHROW(
-    attr.insert_elements({values.data() + num_channels * num_elems, num_channels* delta_elems}));
-REQUIRE(attr.get_num_elements() == max_elems);
-REQUIRE_NOTHROW(attr.insert_elements(1));
-REQUIRE(attr.get_all().data() != values.data());
-REQUIRE(attr.ref_all().data() != values.data());
-for (size_t i = 0; i < values.size(); ++i) {
-    REQUIRE(values[i] == ValueType(i));
-}
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
-    REQUIRE_NOTHROW(attr.insert_elements(delta_elems));
-    REQUIRE_NOTHROW(attr.insert_elements(1));
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
-    REQUIRE_NOTHROW(attr.reserve_entries(max_elems * num_channels));
-    REQUIRE_NOTHROW(attr.reserve_entries((max_elems + 1) * num_channels));
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
-    REQUIRE_NOTHROW(attr.resize_elements(max_elems));
-    REQUIRE_NOTHROW(attr.resize_elements(max_elems + 1));
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
-    REQUIRE_NOTHROW(attr.clear());
-    REQUIRE(attr.ref_all().data() != values.data());
-}
-}
-
-// Garbage policy
-{
-    Attribute<ValueType> attr(AttributeElement::Vertex, AttributeUsage::Vector, num_channels);
-    attr.wrap(values, num_elems);
-    attr.set_growth_policy(invalid_enum<AttributeGrowthPolicy>());
-    LA_REQUIRE_THROWS(attr.insert_elements(1));
-}
 }
 
 template <typename ValueType>
@@ -980,7 +1059,10 @@ void test_ownership()
         REQUIRE(owner.use_count() == 4);
         REQUIRE(attr.get_all().data() == owner.get());
 
-        Attribute<ValueType> another_attr(AttributeElement::Vertex, AttributeUsage::Scalar, num_channels);
+        Attribute<ValueType> another_attr(
+            AttributeElement::Vertex,
+            AttributeUsage::Scalar,
+            num_channels);
         another_attr.wrap(buffer_ptr, num_elements);
         REQUIRE(owner.use_count() == 5);
         REQUIRE(another_attr.get_all().data() == owner.get());

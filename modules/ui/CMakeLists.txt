@@ -9,7 +9,6 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-option(LAGRANGE_UI_USE_MDL "Use Material Definition Library" OFF)
 
 # 1. define module
 lagrange_add_module()
@@ -82,12 +81,6 @@ elseif(EMSCRIPTEN)
     )
 else()
     target_link_libraries(lagrange_ui PUBLIC OpenGL::GL)
-endif()
-
-if(LAGRANGE_UI_USE_MDL)
-    include(mdl)
-    target_compile_definitions(lagrange_ui PUBLIC LAGRANGE_UI_USE_MDL)
-    target_link_libraries(lagrange_ui PUBLIC mdl::mdl)
 endif()
 
 if(LAGRANGE_DEBUG_SHADERS)

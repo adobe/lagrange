@@ -11,6 +11,7 @@
  */
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
+#include <lagrange/compute_edge_lengths.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/mesh_convert.h>
@@ -19,10 +20,11 @@
 #include <lagrange/utils/range.h>
 
 #include <Eigen/Core>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
-#include <vector>
 #include <numeric>
+#include <vector>
 
 namespace {
 using namespace lagrange;
@@ -433,7 +435,8 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
         }
     }
 
-    SECTION("Ensure all index attribute are unified") {
+    SECTION("Ensure all index attribute are unified")
+    {
         std::unique_ptr<TriangleMesh3D> legacy = create_cube();
         SurfaceMesh32d mesh = to_surface_mesh_copy<double, uint32_t, TriangleMesh3D>(*legacy);
         REQUIRE(mesh.has_attribute("uv"));
@@ -445,5 +448,58 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
             using AttributeType = std::decay_t<decltype(attr)>;
             REQUIRE(!AttributeType::IsIndexed);
         });
+    }
+
+    SECTION("Value attributes")
+    {
+        auto mesh = generate_square<Scalar, Index>();
+
+        mesh.create_attribute<float>("total_area", Value, AttributeUsage::Scalar, 1);
+        auto& attr = mesh.ref_attribute<float>("total_area");
+        attr.resize_elements(1);
+        attr.ref(0) = 1.0f;
+        REQUIRE(mesh.has_attribute("total_area"));
+
+        auto mesh2 = unify_index_buffer(mesh);
+
+        REQUIRE(mesh2.has_attribute("total_area"));
+        REQUIRE(mesh2.get_attribute<float>("total_area").get(0) == attr.get(0));
+    }
+
+    SECTION("Edge attributes")
+    {
+        auto mesh = generate_square<Scalar, Index>();
+        auto edge_attr_id = compute_edge_lengths(mesh);
+
+        auto validate_edge_lengths = [&](auto&& m) {
+            auto edge_attr_name = mesh.get_attribute_name(edge_attr_id);
+            REQUIRE(m.has_attribute(edge_attr_name));
+            const auto& attr = m.template get_attribute<Scalar>(edge_attr_name);
+
+            const Index num_edges = m.get_num_edges();
+            for (Index i = 0; i < num_edges; i++) {
+                auto e = m.get_edge_vertices(i);
+                auto v0 = m.get_position(e[0]);
+                auto v1 = m.get_position(e[1]);
+                Scalar l = std::sqrt(
+                    (v1[0] - v0[0]) * (v1[0] - v0[0]) + (v1[1] - v0[1]) * (v1[1] - v0[1]) +
+                    (v1[2] - v0[2]) * (v1[2] - v0[2]));
+                REQUIRE_THAT(attr.get(i), Catch::Matchers::WithinAbs(l, 1e-6));
+            }
+        };
+
+        SECTION("Simple")
+        {
+            auto mesh2 = unify_index_buffer(mesh);
+            validate_edge_lengths(mesh2);
+        }
+        SECTION("With attribute")
+        {
+            std::vector<Scalar> values = {0, 1};
+            std::vector<Index> indices = {0, 0, 0, 1, 1, 1};
+            auto attr_id = add_indexed_attribute(mesh, "facet_id", values, indices);
+            auto mesh2 = unify_index_buffer(mesh, {attr_id});
+            validate_edge_lengths(mesh2);
+        }
     }
 }

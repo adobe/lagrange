@@ -89,7 +89,6 @@ jobs:
           mkdir -p build
           cd build
           cmake .. -G Ninja \
-            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
             -DLAGRANGE_JENKINS=ON \
             -DLAGRANGE_ALL=ON \
@@ -156,7 +155,6 @@ jobs:
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           cmake -G Ninja ^
-            -DCMAKE_CXX_COMPILER_LAUNCHER=sccache ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -DLAGRANGE_JENKINS=ON ^
             -DLAGRANGE_ALL=ON ^

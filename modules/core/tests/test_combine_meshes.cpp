@@ -319,6 +319,18 @@ TEST_CASE("combine_meshes with indices", "[surface][utilities]")
     }
 }
 
+TEST_CASE("combine_meshes hybrid", "[surface][utilities]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh =
+        lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/poly/mixedFaringPart.obj");
+    mesh = lagrange::combine_meshes({&mesh, &mesh}, false);
+    REQUIRE(mesh.get_num_vertices() == 464);
+    REQUIRE(mesh.get_num_facets() == 408);
+}
+
 TEST_CASE("combine_meshes benchmark", "[surface][utilities][!benchmark]")
 {
     using namespace lagrange;

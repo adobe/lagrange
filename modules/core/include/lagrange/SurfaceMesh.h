@@ -496,8 +496,6 @@ public:
     ///
     /// Shrink buffer capacities to fit current mesh attributes, deallocating any extra capacity.
     ///
-    /// @todo       Not implemented yet.
-    ///
     void shrink_to_fit();
 
     ///
@@ -506,8 +504,6 @@ public:
     ///
     /// - "$facet_to_first_corner"
     /// - "$corner_to_facet"
-    ///
-    /// @todo       Not implemented yet.
     ///
     void compress_if_regular();
 
@@ -2015,6 +2011,15 @@ public:
     /// @return     Array of vertex ids at the edge endpoints.
     ///
     std::array<Index, 2> get_edge_vertices(Index e) const;
+
+    ///
+    /// Retrieve the edge index cooresponding to (v0, v1).
+    ///
+    /// @param[in] v0, v1  The vertex indices for edge end points.
+    ///
+    /// @return            The edge index if found, otherwise `invalid<Index>()`.
+    ///
+    Index find_edge_from_vertices(Index v0, Index v1) const;
 
     ///
     /// Get the index of the first corner around a given edge.

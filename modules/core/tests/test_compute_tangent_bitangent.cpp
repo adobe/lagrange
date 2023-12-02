@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/attributes/attribute_utils.h>
 #include <lagrange/attributes/condense_indexed_attribute.h>
 #include <lagrange/compute_normal.h>
@@ -19,9 +20,11 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/io/load_mesh.impl.h>
+#include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
+#include <lagrange/unify_index_buffer.h>
 #include <lagrange/views.h>
-#include <lagrange/attribute_names.h>
+#include <lagrange/weld_indexed_attribute.h>
 
 #include <lagrange/testing/common.h>
 
@@ -29,10 +32,12 @@
 
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     #include <lagrange/mesh_convert.h>
 #endif
+
 
 namespace {
 
@@ -304,13 +309,78 @@ auto weld_mesh(lagrange::SurfaceMesh<Scalar, Index> mesh)
     // identical pos/uv/normals, since they have no notion of indexed attributes. To reproduce
     // results from Mikktspace implementation, we must weld our input UV and normal attributes
     // as pre-processing.
-    auto legacy_mesh = lagrange::to_legacy_mesh<lagrange::TriangleMesh3Df>(mesh);
-    condense_indexed_attribute(*legacy_mesh, std::string(lagrange::AttributeName::texcoord));
-    condense_indexed_attribute(*legacy_mesh, std::string(lagrange::AttributeName::normal));
-    return lagrange::to_surface_mesh_copy<Scalar, Index>(*legacy_mesh);
+    la_runtime_assert(mesh.has_attribute(lagrange::AttributeName::texcoord));
+    la_runtime_assert(mesh.has_attribute(lagrange::AttributeName::normal));
+    lagrange::weld_indexed_attribute(
+        mesh,
+        mesh.get_attribute_id(lagrange::AttributeName::texcoord));
+    lagrange::weld_indexed_attribute(mesh, mesh.get_attribute_id(lagrange::AttributeName::normal));
+    return mesh;
 };
 
 } // namespace
+
+TEST_CASE("compute_tangent_bitangent nmtest", "[core][tangent]" LA_CORP_FLAG)
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    auto original_mesh =
+        lagrange::testing::load_surface_mesh<Scalar, Index>("corp/core/nmtest_no_tb_tri.obj");
+    original_mesh = weld_mesh(std::move(original_mesh));
+    original_mesh.delete_attribute(lagrange::AttributeName::normal);
+
+    for (auto output_element_type :
+         {lagrange::AttributeElement::Corner, lagrange::AttributeElement::Indexed}) {
+        for (double angle_threshold_deg : {0., 45., 90., 180.}) {
+            auto mesh = original_mesh;
+            const Scalar EPS = static_cast<Scalar>(1e-3);
+            auto nrm_id = lagrange::compute_normal(
+                mesh,
+                std::max(Scalar(0), Scalar(angle_threshold_deg) * Scalar(M_PI / 180.0) - EPS));
+
+            lagrange::TangentBitangentOptions opt;
+            opt.output_element_type = output_element_type;
+            std::string nrm_name(mesh.get_attribute_name(nrm_id));
+            auto [t_id, bt_id] = lagrange::compute_tangent_bitangent(mesh, opt);
+            mesh = lagrange::unify_index_buffer(mesh, {nrm_id, t_id, bt_id});
+            mesh.rename_attribute(nrm_name, "Vertex_Normal"); // match ply attribute name
+            mesh.rename_attribute("color", "Vertex_Color"); // match ply attribute name
+
+            auto filename = fmt::format(
+                "nmtest_{}_{}.ply",
+                lagrange::internal::to_string(output_element_type),
+                angle_threshold_deg);
+
+            // Uncomment to save a new output
+            // lagrange::io::save_mesh(filename, mesh);
+
+            auto expected = lagrange::testing::load_surface_mesh<Scalar, Index>(
+                fmt::format("corp/core/regression/{}", filename));
+
+            lagrange::seq_foreach_named_attribute_read<lagrange::AttributeElement::Vertex>(
+                mesh,
+                [&](const auto& name, auto& attr) {
+                    using AttributeType = std::decay_t<decltype(attr)>;
+                    using ValueType = typename AttributeType::ValueType;
+                    if constexpr (std::is_same_v<ValueType, Scalar>) {
+                        CAPTURE(angle_threshold_deg, name);
+                        REQUIRE(expected.has_attribute(name));
+                        const ValueType eps(static_cast<ValueType>(1e-3));
+                        auto X = matrix_view(attr);
+                        auto Y = lagrange::attribute_matrix_view<ValueType>(expected, name);
+                        for (Eigen::Index i = 0; i < X.size(); ++i) {
+                            REQUIRE_THAT(
+                                X.data()[i],
+                                Catch::Matchers::WithinRel(Y.data()[i], eps) ||
+                                    (Catch::Matchers::WithinAbs(Y.data()[i], eps) &&
+                                     Catch::Matchers::WithinAbs(0, eps)));
+                        }
+                    }
+                });
+        }
+    }
+}
 
 #ifdef LAGRANGE_WITH_MIKKTSPACE
 
@@ -339,7 +409,9 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
                 angle_threshold_deg);
             mesh.delete_attribute("normal");
             const Scalar EPS = static_cast<Scalar>(1e-3);
-            lagrange::compute_normal(mesh, angle_threshold_deg * Scalar(M_PI / 180.0) - EPS);
+            lagrange::compute_normal(
+                mesh,
+                std::max(Scalar(0), Scalar(angle_threshold_deg) * Scalar(M_PI / 180.0) - EPS));
             mesh.rename_attribute("@normal", "normal");
             mesh = weld_mesh(std::move(mesh));
         }
@@ -390,11 +462,15 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
         lagrange::testing::load_surface_mesh<Scalar, Index>("corp/core/nmtest_no_tb_tri.obj");
     original_mesh = weld_mesh(std::move(original_mesh));
 
-    for (auto normal_type : {NormalType::Original, NormalType::Vertex, NormalType::Indexed}) {
+    for (auto normal_type : {NormalType::Indexed, NormalType::Original, NormalType::Vertex}) {
         if (normal_type == NormalType::Indexed) {
-            for (int angle_threshold_deg : {0, 45, 90, 180}) {
+            // NOTE: For some reason I had to change `0 -> 0.1` for arm64 Xcode14 unit test to pass.
+            // There's another mysterious floating point behavior with Xcode 14 that caused a
+            // discrepancy between Lagrange's implementation and mikktspace's implementation.
+            for (double angle_threshold_deg : {0., 45., 90., 180.}) {
                 auto mesh = original_mesh;
                 compute_normals(mesh, normal_type, static_cast<Scalar>(angle_threshold_deg));
+                CAPTURE(angle_threshold_deg);
                 compare_tangent_bitangent(mesh);
             }
         } else {
@@ -495,7 +571,12 @@ TEST_CASE("compute_tangent_bitangent benchmark", "[core][tangent][!benchmark]" L
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     BENCHMARK_ADVANCED("compute_tangent_bitangent_old")(Catch::Benchmark::Chronometer meter)
     {
-        auto legacy_mesh = lagrange::to_legacy_mesh<lagrange::TriangleMesh3Df>(mesh);
+        auto copy = mesh;
+        copy.rename_attribute(lagrange::AttributeName::texcoord, "uv");
+        auto legacy_mesh = lagrange::to_legacy_mesh<lagrange::TriangleMesh3Df>(copy);
+        seq_foreach_named_attribute_read(mesh, [&](auto name, auto&&) {
+            lagrange::logger().warn("attribute {}", name);
+        });
         meter.measure(
             [&]() { return lagrange::compute_indexed_tangent_bitangent(*legacy_mesh, false); });
     };

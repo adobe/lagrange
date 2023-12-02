@@ -10,7 +10,11 @@
 # governing permissions and limitations under the License.
 #
 include(cli11)
+include(nlohmann_json)
 lagrange_include_modules(io)
 
 lagrange_add_example(sample_points_in_mesh sample_points_in_mesh.cpp)
 target_link_libraries(sample_points_in_mesh lagrange::winding lagrange::io CLI11::CLI11)
+
+lagrange_add_example(fix_orientation fix_orientation.cpp)
+target_link_libraries(fix_orientation lagrange::winding nlohmann_json::nlohmann_json lagrange::io CLI11::CLI11)

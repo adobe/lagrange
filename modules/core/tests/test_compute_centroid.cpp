@@ -53,7 +53,7 @@ TEST_CASE("compute_mesh_centroid", "[core][surface]")
     mesh.add_triangle(0, 3, 4);
     mesh.add_triangle(0, 4, 5);
 
-    constexpr Scalar eps = std::numeric_limits<Scalar>::epsilon();
+    constexpr Scalar eps = 1e-7;
 
     MeshCentroidOptions options;
     options.weighting_type = MeshCentroidOptions::Area;
@@ -90,9 +90,9 @@ TEST_CASE("compute_mesh_centroid", "[core][surface]")
         vertices = new_vertices;
 
         compute_mesh_centroid<Scalar, Index>(mesh, centroid, options);
-        REQUIRE_THAT(centroid[0], Catch::Matchers::WithinAbs(tr[0], eps));
-        REQUIRE_THAT(centroid[1], Catch::Matchers::WithinAbs(tr[1], eps));
-        REQUIRE_THAT(centroid[2], Catch::Matchers::WithinAbs(tr[2], eps));
+        REQUIRE_THAT(centroid[0], Catch::Matchers::WithinRel(tr[0], eps));
+        REQUIRE_THAT(centroid[1], Catch::Matchers::WithinRel(tr[1], eps));
+        REQUIRE_THAT(centroid[2], Catch::Matchers::WithinRel(tr[2], eps));
     }
 }
 

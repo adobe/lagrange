@@ -201,7 +201,11 @@ tinygltf::Model load_tinygltf(std::istream& input_stream)
             base_dir);
     }
 
-    if (!warn.empty()) logger().warn("%s", warn.c_str());
+    if (!warn.empty()) {
+        for (const auto& line : string_split(warn, '\n')) {
+            logger().warn("{}", line);
+        }
+    }
     if (!ret || !err.empty()) {
         throw std::runtime_error(err);
     }
@@ -223,7 +227,11 @@ tinygltf::Model load_tinygltf(const fs::path& filename)
         ret = loader.LoadBinaryFromFile(&model, &err, &warn, filename.string());
     }
 
-    if (!warn.empty()) logger().warn("%s", warn.c_str());
+    if (!warn.empty()) {
+        for (const auto& line : string_split(warn, '\n')) {
+            logger().warn("{}", line);
+        }
+    }
     if (!ret || !err.empty()) {
         throw std::runtime_error(err);
     }
@@ -280,7 +288,7 @@ void accessor_to_attribute_internal(
         case TINYGLTF_TYPE_MAT3: [[fallthrough]];
         case TINYGLTF_TYPE_MAT4: [[fallthrough]];
         case TINYGLTF_TYPE_MATRIX:
-            // Matrices are flattend as vectors for now.
+            // Matrices are flattened as vectors for now.
             usage = AttributeUsage::Vector;
             break;
         default: logger().error("Unknown mesh property {}!", name); return;
@@ -446,12 +454,7 @@ MeshType convert_mesh_tinygltf_to_lagrange(
                     AttributeUsage::Vector,
                     lmesh);
             } else if (starts_with(name, "TEXCOORD") && options.load_uvs) {
-                accessor_to_attribute(
-                    model,
-                    accessor,
-                    name_lowercase,
-                    AttributeUsage::UV,
-                    lmesh);
+                accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::UV, lmesh);
             } else {
                 accessor_to_attribute(model, accessor, name_lowercase, {}, lmesh);
             }

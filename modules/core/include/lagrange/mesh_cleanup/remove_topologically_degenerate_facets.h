@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Adobe. All rights reserved.
+ * Copyright 2023 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -10,40 +10,22 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#include <memory>
-#include <string>
-#include <unordered_map>
 
-#include <lagrange/fs/filesystem.h>
-#include <lagrange/ui/types/Material.h>
-
+#include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
-namespace ui {
 
-struct MDLImpl;
+///
+/// Remove topologically degenerate facets (i.e. triangles like (0, 1, 1)).
+///
+/// Non-triangle polygons are not handled at the moment.
+///
+/// @tparam Scalar The surface mesh scalar type.
+/// @tparam Index  The surface mesh index type.
+///
+/// @param[in,out] mesh The surface mesh (for in-place modification).
+///
+template <typename Scalar, typename Index>
+void remove_topologically_degenerate_facets(SurfaceMesh<Scalar, Index>& mesh);
 
-class MDL
-{
-public:
-    MDL();
-
-    ~MDL();
-
-    static MDL& get_instance();
-
-    struct Library
-    {
-        std::unordered_map<std::string, std::shared_ptr<Material>> materials;
-    };
-
-
-    Library load_materials(const fs::path& base_dir, const std::string& module_name);
-
-private:
-    static std::unique_ptr<MDL> m_instance;
-    std::unique_ptr<MDLImpl> m_impl;
-};
-
-} // namespace ui
 } // namespace lagrange

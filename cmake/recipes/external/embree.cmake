@@ -50,7 +50,7 @@ function(embree_import_target)
         else()
             set(LAGRANGE_OLD_${var}_TYPE NONE_TYPE)
         endif()
-        set(${var} "${value}" CACHE PATH "" FORCE)
+        set(${var} "${value}")
     endmacro()
 
     macro(pop_variable var)

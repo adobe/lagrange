@@ -35,6 +35,7 @@
 #include <lagrange/separate_by_components.h>
 #include <lagrange/separate_by_facet_groups.h>
 #include <lagrange/topology.h>
+#include <lagrange/transform_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
@@ -43,6 +44,7 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/eigen/dense.h>
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string_view.h>
 #include <nanobind/stl/vector.h>
@@ -132,7 +134,7 @@ void bind_utilities(nanobind::module_& m)
         R"(Compute indexed normal attribute.
 
 Edge with dihedral angles larger than `feature_angle_threshold` are considered as sharp edges.
-Vertices listed in `cone_vertices` are considered as cone vertices, which is alwayse sharp.
+Vertices listed in `cone_vertices` are considered as cone vertices, which is always sharp.
 
 :param mesh: input mesh
 :type mesh: SurfaceMesh
@@ -211,16 +213,46 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         .value("Vertex", ComponentOptions::ConnectivityType::Vertex)
         .value("Edge", ComponentOptions::ConnectivityType::Edge);
 
-    nb::class_<ComponentOptions>(m, "ComponentOptions")
-        .def(nb::init<>())
-        .def_rw("output_attribute_name", &ComponentOptions::output_attribute_name)
-        .def_rw("connectivity_type", &ComponentOptions::connectivity_type);
-
     m.def(
         "compute_components",
-        &lagrange::compute_components<Scalar, Index>,
+        [](MeshType& mesh,
+           std::optional<std::string_view> output_attribute_name,
+           std::optional<lagrange::ConnectivityType> connectivity_type,
+           std::optional<nb::list>& blocker_elements) {
+            lagrange::ComponentOptions opt;
+            if (output_attribute_name.has_value()) {
+                opt.output_attribute_name = output_attribute_name.value();
+            }
+            if (connectivity_type.has_value()) {
+                opt.connectivity_type = connectivity_type.value();
+            }
+            std::vector<Index> blocker_elements_vec;
+            if (blocker_elements.has_value()) {
+                for (auto val : blocker_elements.value()) {
+                    blocker_elements_vec.push_back(nb::cast<Index>(val));
+                }
+            }
+            return lagrange::compute_components<Scalar, Index>(mesh, blocker_elements_vec, opt);
+        },
         "mesh"_a,
-        "options"_a = ComponentOptions());
+        "output_attribute_name"_a = nb::none(),
+        "connectivity_type"_a = nb::none(),
+        "blocker_elements"_a = nb::none(),
+        R"(Compute connected components.
+
+This method will create a per-facet component id attribute named by the `output_attribute_name`
+argument. Each component id is in [0, num_components-1] range.
+
+:param mesh                 : The input mesh.
+:param output_attribute_name: The name of the output attribute.
+:param connectivity_type    : The connectivity type.  Either "Vertex" or "Edge".
+:param blocker_elements     : The list of blocker element indices.
+                              If `connectivity_type` is `Edge`, facets adjacent to a blocker edge are
+                              not considered as connected through this edge.
+                              If `connectivity_type` is `Vertex`, facets sharing a blocker vertex are
+                              not considered as connected through this vertex.
+
+:returns: The total number of components.)");
 
     nb::class_<VertexValenceOptions>(m, "VertexValenceOptions")
         .def(nb::init<>())
@@ -435,7 +467,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :param source_vertex_attr_name: The optional attribute name to track source vertices.
 :param source_facet_attr_name:  The optional attribute name to track source facets.
 :param map_attributes:          Map attributes from the source to target meshes.
-:param connectivity_type:       The connectivity used for component compuation.
+:param connectivity_type:       The connectivity used for component computation.
 
 :returns: A list of meshes, one for each connected component.
 )");
@@ -546,6 +578,41 @@ well-defined and will be set to the special value 2 * M_PI.
     m.def("is_vertex_manifold", &is_vertex_manifold<Scalar, Index>, "mesh"_a);
     m.def("is_edge_manifold", &is_edge_manifold<Scalar, Index>, "mesh"_a);
     m.def("is_manifold", &is_manifold<Scalar, Index>, "mesh"_a);
+
+    m.def(
+        "transform_mesh",
+        [](MeshType& mesh,
+           Eigen::Matrix<Scalar, 4, 4> affine_transform,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents,
+           bool in_place) -> std::optional<MeshType> {
+            Eigen::Transform<Scalar, 3, Eigen::Affine> M(affine_transform);
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+
+            std::optional<MeshType> result;
+            if (in_place) {
+                transform_mesh(mesh, M, options);
+            } else {
+                result = transformed_mesh(mesh, M, options);
+            }
+            return result;
+        },
+        "mesh"_a,
+        "affine_transform"_a,
+        "normalize_normals"_a = true,
+        "normalize_tangents_bitangents"_a = true,
+        "in_place"_a = true,
+        R"(Apply affine transformation to a mesh.
+
+:param mesh:                          The source mesh.
+:param affine_transform:              The affine transformation matrix.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
+:param in_place:                      Whether to apply the transformation in place.
+
+:return: The transformed mesh if in_place is False.)");
 }
 
 } // namespace lagrange::python

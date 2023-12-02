@@ -94,7 +94,7 @@ void test_using_exact_predicates(MeshType& mesh)
 
 int main()
 {
-    constexpr size_t N = lagrange::safe_cast<size_t>(1e6);
+    const size_t N = lagrange::safe_cast<size_t>(1e6);
     lagrange::Vertices3D vertices = lagrange::Vertices3D::Random(N, 3);
     lagrange::Triangles facets;
     auto mesh = lagrange::wrap_with_mesh(vertices, facets);

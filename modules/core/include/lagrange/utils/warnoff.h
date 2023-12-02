@@ -86,6 +86,7 @@
                                     // by clients of class 'type2'
     #pragma warning(disable : 4267) // size_t conversion, possible loss of data.
     #pragma warning(disable : 4305) // conversion to smaller type, possible loss of data.
+    #pragma warning(disable : 4275) // non dll-interface class 'std::exception' used as base for dll-interface class 'openvdb::v10_0::Exception' FIXME
     #pragma warning(disable : 4477) // mismatch in printf argument types.
     #pragma warning(disable : 4828) // File contain illegal character.
     #pragma warning(disable : 4996) // Using deprecated methods.

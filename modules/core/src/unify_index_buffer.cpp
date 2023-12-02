@@ -165,13 +165,15 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         }
     });
 
-    // Map facet and corner attributes.
-    seq_foreach_named_attribute_read<Facet | Corner>(mesh, [&](std::string_view name, auto&& attr) {
-        LA_IGNORE(attr);
-        if (mesh.attr_name_is_reserved(name)) return;
-        logger().debug("Unified index buffer: mapping facet attribute {}", name);
-        output_mesh.create_attribute_from(name, mesh);
-    });
+    // Map facet, corner and value attributes.
+    seq_foreach_named_attribute_read<Facet | Corner | Value>(
+        mesh,
+        [&](std::string_view name, auto&& attr) {
+            LA_IGNORE(attr);
+            if (mesh.attr_name_is_reserved(name)) return;
+            logger().debug("Unified index buffer: mapping facet/corner/value attribute {}", name);
+            output_mesh.create_attribute_from(name, mesh);
+        });
 
     // Map index attributes.
     seq_foreach_named_attribute_read<Indexed>(mesh, [&](std::string_view name, auto&& attr) {
@@ -215,15 +217,35 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         }
     });
 
-    // Skip edge attribute for now.  Maybe TODO later.
-    {
-        bool has_edge_attr = false;
-        seq_foreach_attribute_read<Edge>(mesh, [&](auto&&) { has_edge_attr = true; });
-        if (has_edge_attr) {
-            logger().warn(
-                "Mesh has edge attributes. Those will be dropped in the new unified mesh."
-                "Please remap them manually.");
-        }
+    // Map edge attributes.
+    if (mesh.has_edges()) {
+        output_mesh.initialize_edges();
+        Index num_out_edges = output_mesh.get_num_edges();
+
+        seq_foreach_named_attribute_read<Edge>(mesh, [&](std::string_view name, auto&& attr) {
+            using AttributeType = std::decay_t<decltype(attr)>;
+            using ValueType = typename AttributeType::ValueType;
+
+            if (mesh.attr_name_is_reserved(name)) return;
+
+            output_mesh.template create_attribute<ValueType>(
+                name,
+                Edge,
+                attr.get_usage(),
+                attr.get_num_channels());
+
+            auto& out_attr = output_mesh.template ref_attribute<ValueType>(name);
+            out_attr.resize_elements(num_out_edges);
+
+            // Note that corners are identical between input and output meshes.
+            for (Index ci = 0; ci < num_corners; ci++) {
+                Index eid = mesh.get_corner_edge(ci);
+                Index out_eid = output_mesh.get_corner_edge(ci);
+                auto source_value = attr.get_row(eid);
+                auto target_value = out_attr.ref_row(out_eid);
+                std::copy(source_value.begin(), source_value.end(), target_value.begin());
+            }
+        });
     }
 
     return output_mesh;

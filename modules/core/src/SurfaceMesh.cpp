@@ -33,8 +33,8 @@
 // clang-format on
 
 #include <array>
+#include <map>
 #include <string>
-#include <unordered_map>
 
 namespace lagrange {
 
@@ -281,8 +281,15 @@ protected:
     // inside the attribute class directly, but we would still need to store duplicated storage for
     // the map name -> attr id.
 
-    /// Map attribute names -> attribute ids
-    std::unordered_map<std::string, AttributeId> m_name_to_id;
+    ///
+    /// Map attribute names -> attribute ids.
+    ///
+    /// @note       We use an ordered map to guarantee a consistent traversal order by our
+    ///             `seq_foreach_attribute_id()` method. If performance becomes an issue, we should
+    ///             switch to a third-party implementation of an unordered_map (but we should avoid
+    ///             the STL implementation due to inconsistencies between macOS/Linux/Windows).
+    ///
+    std::map<std::string, AttributeId> m_name_to_id;
 
     /// Direct addressing of attributes using attribute ids.
     std::vector<std::pair<std::string, copy_on_write_ptr<AttributeBase>>> m_attributes;
@@ -423,6 +430,15 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
     span<const ValueType> initial_values,
     span<const Index> initial_indices)
 {
+    // If usage tag indicates a "position", check that num_channels == dim
+    if (usage == AttributeUsage::Position) {
+        la_runtime_assert(
+            num_channels == get_dimension(),
+            fmt::format(
+                "Invalid number of channels for {} attribute: should be {}.",
+                internal::to_string(usage),
+                get_dimension()));
+    }
     // If usage tag indicates a "normal/tangent/bitangent", check that num_channels == dim or dim + 1
     if (usage == AttributeUsage::Normal || usage == AttributeUsage::Tangent ||
         usage == AttributeUsage::Bitangent) {
@@ -462,8 +478,10 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
     } else {
         // Non-indexed attribute
         const size_t num_elements = get_num_elements_internal(element);
-        la_runtime_assert(
-            initial_values.empty() || initial_values.size() == num_elements * num_channels);
+        if (element != AttributeElement::Value) {
+            la_runtime_assert(
+                initial_values.empty() || initial_values.size() == num_elements * num_channels);
+        }
         la_runtime_assert(
             initial_indices.empty(),
             "Cannot provide non-empty index buffer for non-indexed attribute");
@@ -475,7 +493,9 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
         } else {
             attr.insert_elements(initial_values);
         }
-        la_debug_assert(get_attribute<ValueType>(id).get_num_elements() == num_elements);
+        if (element != AttributeElement::Value) {
+            la_debug_assert(get_attribute<ValueType>(id).get_num_elements() == num_elements);
+        }
         return id;
     }
 }
@@ -1272,7 +1292,6 @@ template <typename Scalar, typename Index>
 internal::weak_ptr<AttributeBase> SurfaceMesh<Scalar, Index>::_ref_attribute_ptr(AttributeId id)
 {
     la_debug_assert(id != invalid_attribute_id());
-    la_debug_assert(!is_attribute_indexed(id));
     return m_attributes->_ref_weak_ptr(id);
 }
 
@@ -1341,7 +1360,7 @@ SurfaceMesh<Scalar, Index>::SurfaceMesh(Index dimension)
     m_vertex_to_position_id = create_attribute_internal<Scalar>(
         s_vertex_to_position,
         AttributeElement::Vertex,
-        AttributeUsage::Vector,
+        AttributeUsage::Position,
         m_dimension);
     m_corner_to_vertex_id = create_attribute_internal<Index>(
         s_corner_to_vertex,
@@ -2263,6 +2282,33 @@ auto SurfaceMesh<Scalar, Index>::get_edge_vertices(Index e) const -> std::array<
 }
 
 template <typename Scalar, typename Index>
+Index SurfaceMesh<Scalar, Index>::find_edge_from_vertices(Index v0, Index v1) const
+{
+    Index ei = invalid<Index>();
+
+    // Look for edge (vi, vj) in facets.
+    auto search_edge = [&](Index vi, Index vj) {
+        foreach_corner_around_vertex(vi, [&](Index ci) {
+            la_debug_assert(get_corner_vertex(ci) == vi);
+            Index f = get_corner_facet(ci);
+            Index cb = get_facet_corner_begin(f);
+            Index lv = ci - cb;
+            Index nv = get_facet_size(f);
+            Index cj = cb + (lv + 1) % nv;
+            Index ck = cb + (lv + nv - 1) % nv;
+            if (get_corner_vertex(cj) == vj) {
+                ei = get_edge(f, lv);
+            } else if (get_corner_vertex(ck) == vj) {
+                ei = get_edge(f, (lv + nv - 1) % nv);
+            }
+        });
+    };
+
+    search_edge(v0, v1);
+    return ei;
+}
+
+template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_first_corner_around_edge(Index e) const -> Index
 {
     return get_attribute<Index>(m_edge_to_first_corner_id).get(e);
@@ -3099,17 +3145,15 @@ LA_ATTRIBUTE_X(surface_mesh_aux, 0)
 // Explicit instantiation of the SurfaceMesh::create_attribute_from() method.
 #define fst(first, second) first
 #define snd(first, second) second
-#define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex)                           \
+#define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex)                     \
     template AttributeId SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::create_attribute_from( \
         std::string_view name,                                                                 \
         const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,                               \
         std::string_view source_name);
 
-#define LA_SURFACE_MESH2_X(mode, data) \
-    LA_X_##mode(data, float, uint32_t) \
-    LA_X_##mode(data, double, uint32_t) \
-    LA_X_##mode(data, float, uint64_t) \
-    LA_X_##mode(data, double, uint64_t)
+#define LA_SURFACE_MESH2_X(mode, data)                                     \
+    LA_X_##mode(data, float, uint32_t) LA_X_##mode(data, double, uint32_t) \
+        LA_X_##mode(data, float, uint64_t) LA_X_##mode(data, double, uint64_t)
 
 #define LA_X_surface_mesh_mesh_aux(_, Scalar, Index) \
     LA_SURFACE_MESH2_X(surface_mesh_mesh_other, (Scalar, Index))

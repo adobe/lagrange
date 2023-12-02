@@ -58,10 +58,7 @@ public:
     /**
      * Clear all entries in the disjoint sets.
      */
-    void clear()
-    {
-        m_parent.clear();
-    }
+    void clear() { m_parent.clear(); }
 
     /**
      * Find the root index corresponding to index `i`.
@@ -94,8 +91,7 @@ public:
      *
      * @deprecated This function is deprecated and may be removed in a future version.
      */
-    [[deprecated]]
-    std::vector<std::vector<IndexType>> extract_disjoint_sets();
+    [[deprecated]] std::vector<std::vector<IndexType>> extract_disjoint_sets();
 
     /**
      * Assign all elements their disjoint set index. Each disjoint set index
@@ -117,8 +113,56 @@ public:
      */
     size_t extract_disjoint_set_indices(span<IndexType> index_map);
 
-private:
+protected:
     std::vector<IndexType> m_parent;
+};
+
+template <typename IndexType>
+class DisjointSetsWithSize : public DisjointSets<IndexType>
+{
+    using Super = DisjointSets<IndexType>;
+
+public:
+    using DisjointSets<IndexType>::DisjointSets;
+
+    explicit DisjointSetsWithSize(size_t n) { init(n); }
+
+    void init(size_t n)
+    {
+        Super::init(n);
+        m_size.assign(n, 1);
+    }
+
+    void clear()
+    {
+        Super::clear();
+        m_size.clear();
+    }
+
+    IndexType size_of(IndexType i) { return m_size[this->find(i)]; }
+
+    IndexType merge(IndexType i, IndexType j)
+    {
+        auto root_i = this->find(i);
+        auto root_j = this->find(j);
+
+        if (root_i == root_j) {
+            return root_i;
+        }
+
+        // Ensure |I| >= |J|
+        if (size_of(root_i) < size_of(root_j)) {
+            std::swap(root_i, root_j);
+        }
+
+        this->m_parent[root_j] = root_i;
+        m_size[root_i] += m_size[root_j];
+
+        return root_i;
+    }
+
+protected:
+    std::vector<IndexType> m_size;
 };
 
 /// @}

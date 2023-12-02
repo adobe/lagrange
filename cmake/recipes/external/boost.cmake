@@ -9,55 +9,151 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET Boost::boost)
+if(TARGET Boost::headers)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating targets 'Boost::boost'...")
+message(STATUS "Third-party (external): creating targets 'Boost::<lib>'")
 
-set(PREVIOUS_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS})
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC")
 set(OLD_CMAKE_POSITION_INDEPENDENT_CODE ${CMAKE_POSITION_INDEPENDENT_CODE})
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
-set(BOOST_URL "https://boostorg.jfrog.io/artifactory/main/release/1.71.0/source/boost_1_71_0.tar.bz2" CACHE STRING "Boost download URL")
-set(BOOST_URL_SHA256 "d73a8da01e8bf8c7eda40b4c84915071a8c8a0df4a6734537ddde4a8580524ee" CACHE STRING "Boost download URL SHA256 checksum")
+# Restrict the list of Boost targets to expose in the project (this should be the superset of all
+# Boost libraries directly depended on by any subproject).
+set(BOOST_INCLUDE_LIBRARIES
+    accumulators
+    algorithm
+    align
+    asio
+    assign
+    atomic
+    bimap
+    callable_traits
+    chrono
+    compute
+    container
+    crc
+    date_time
+    filesystem
+    functional
+    graph
+    heap
+    icl
+    interprocess
+    iostreams
+    lockfree
+    log
+    math
+    numeric/conversion
+    numeric/interval
+    polygon
+    system
+    thread
+    timer
+    uuid
+    vmd
+)
 
+if(APPLE)
+    if((arm64 IN_LIST CMAKE_OSX_ARCHITECTURES) AND (x86_64 IN_LIST CMAKE_OSX_ARCHITECTURES))
+        # Build universal binaries on macOS
+        set(BOOST_CONTEXT_ARCHITECTURE "combined" CACHE STRING "Boost.Context architecture")
+        set(BOOST_CONTEXT_ABI "sysv" CACHE STRING "Boost.Context ABI")
+    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
+        # Build for arm64 architecture on macOS
+        set(BOOST_CONTEXT_ARCHITECTURE "arm64" CACHE STRING "Boost.Context architecture")
+        set(BOOST_CONTEXT_ABI "aapcs" CACHE STRING "Boost.Context ABI")
+    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
+        # Build for x86_64 architecture on macOS
+        set(BOOST_CONTEXT_ARCHITECTURE "x86_64" CACHE STRING "Boost.Context architecture")
+        set(BOOST_CONTEXT_ABI "sysv" CACHE STRING "Boost.Context ABI")
+    endif()
+endif()
+
+# Let's limit the external libs pulled by Boost...
+option(BOOST_IOSTREAMS_ENABLE_ZLIB "Boost.Iostreams: Enable ZLIB support" OFF)
+option(BOOST_IOSTREAMS_ENABLE_BZIP2 "Boost.Iostreams: Enable BZip2 support" OFF)
+option(BOOST_IOSTREAMS_ENABLE_LZMA "Boost.Iostreams: Enable LZMA support" OFF)
+option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
+
+# Needed by Boost::accumulators. See:
+# https://github.com/boostorg/ublas/pull/142
+add_library(boost_numeric_ublas INTERFACE)
+add_library(Boost::numeric_ublas ALIAS boost_numeric_ublas)
+
+# Boost 1.82.0 is the min version we can use that supports upstream modern
+# CMake targets (Boost::boost, Boost::headers, etc.)
 include(CPM)
 CPMAddPackage(
-    NAME boost
-    URL ${BOOST_URL}
-    URL_HASH SHA256=${BOOST_URL_SHA256}
-    DOWNLOAD_ONLY ON
+    NAME Boost
+    VERSION 1.82.0
+    GITHUB_REPOSITORY "boostorg/boost"
+    GIT_TAG "boost-1.82.0"
+    EXCLUDE_FROM_ALL ON
 )
-set(BOOST_SOURCE ${boost_SOURCE_DIR})
-set(Boost_POPULATED ON)
 
-# File lcid.cpp from Boost_locale.cpp doesn't compile on MSVC, so we exclude them from the default
-# targets being built by the project (only targets explicitly used by other targets will be built).
-CPMAddPackage(
-    NAME boost-cmake
-    GITHUB_REPOSITORY Orphis/boost-cmake
-    GIT_TAG 7f97a08b64bd5d2e53e932ddf80c40544cf45edf
-    EXCLUDE_FROM_ALL
+target_include_directories(boost_numeric_ublas INTERFACE
+    "${Boost_SOURCE_DIR}/libs/numeric/ublas/include"
 )
+target_link_libraries(boost_numeric_ublas
+  INTERFACE
+    Boost::compute
+    Boost::concept_check
+    Boost::config
+    Boost::core
+    Boost::iterator
+    Boost::mpl
+    Boost::numeric_interval
+    Boost::range
+    Boost::serialization
+    Boost::smart_ptr
+    Boost::static_assert
+    Boost::type_traits
+    Boost::typeof
+)
+target_compile_features(boost_numeric_ublas INTERFACE cxx_std_11)
+
+# Due to MKL, we may require the release runtime (/MD) even when compiling in Debug mode.
+#
+# Boost::random will call <auto_link.hpp> in the following line:
+# https://github.com/boostorg/random/blob/3c1f0dbf634ad92fd2a2ffe2a46f5553e5a02de7/src/random_device.cpp#L52
+#
+# This causes a compilation error with MSVC in Debug mode, at the following line:
+# https://github.com/boostorg/config/blob/29c39d45858d40bee86bd3b58ca14499663f08b5/include/boost/config/auto_link.hpp#L122
+#
+# Since CMake already adds advapi32.lib as part of CMAKE_CXX_STANDARD_LIBRARIES_INIT, we can safely
+# spoof the <auto_link.hpp> header with a blank one and remove the problematic error message.
+if(TARGET Boost::random)
+    set(boost_dummy_autolink_dir "${Boost_BINARY_DIR}/dummy/boost/config/")
+    message("Creating dummy <auto_link.hpp> in ${boost_dummy_autolink_dir}")
+    file(WRITE "${boost_dummy_autolink_dir}/auto_link.hpp.in" "")
+    configure_file(${boost_dummy_autolink_dir}/auto_link.hpp.in ${boost_dummy_autolink_dir}/auto_link.hpp COPYONLY)
+    target_include_directories(boost_random PRIVATE "${Boost_BINARY_DIR}/dummy")
+endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ${OLD_CMAKE_POSITION_INDEPENDENT_CODE})
-set(CMAKE_CXX_FLAGS "${PREVIOUS_CMAKE_CXX_FLAGS}")
 
-foreach(name IN ITEMS
-        atomic
-        chrono
-        container
-        date_time
-        filesystem
-        iostreams
-        log
-        system
-        thread
-        timer
-    )
-    if(TARGET Boost_${name})
-        set_target_properties(Boost_${name} PROPERTIES FOLDER third_party/boost)
+# Indirect deps pulled by other boost targets
+set(Boost_Deps
+    assert context core coroutine exception random serialization variant2
+)
+foreach(name IN ITEMS ${BOOST_INCLUDE_LIBRARIES} ${Boost_Deps})
+    if(TARGET boost_${name})
+        set_target_properties(boost_${name} PROPERTIES FOLDER third_party/boost)
     endif()
 endforeach()
+
+if(NOT TARGET Boost::headers)
+    message(FATAL_ERROR "Boost::headers target not found")
+endif()
+
+if(NOT TARGET Boost::boost)
+    # Forward ALIAS target for Boost::boost
+    get_target_property(_aliased Boost::headers ALIASED_TARGET)
+    if(_aliased)
+        message(STATUS "Creating 'Boost::boost' as a new ALIAS target for '${_aliased}'.")
+        add_library(Boost::boost ALIAS ${_aliased})
+    else()
+        add_library(Boost::boost ALIAS Boost::headers)
+    endif()
+endif()

@@ -13,11 +13,13 @@ if(TARGET mikktspace::mikktspace)
     return()
 endif()
 
+# Original mikktspace has UBSan issues. See this PR for details:
+# https://github.com/mmikk/MikkTSpace/pull/3
 include(CPM)
 CPMAddPackage(
     NAME mikktspace
-    GITHUB_REPOSITORY mmikk/MikkTSpace
-    GIT_TAG 3e895b49d05ea07e4c2133156cfa94369e19e409
+    GITHUB_REPOSITORY mchudleigh/MikkTSpace
+    GIT_TAG b57786fd7aa5404904985829ef8dda445d7feac0
 )
 
 add_library(mikktspace ${mikktspace_SOURCE_DIR}/mikktspace.c)

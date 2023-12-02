@@ -54,6 +54,12 @@ if (LAGRANGE_ENABLE_LEGACY_FUNCTIONS)
     )
 endif()
 
+if (LAGRANGE_FMT_EIGEN_FIX)
+    target_compile_definitions(lagrange_core PUBLIC
+        -DLAGRANGE_FMT_EIGEN_FIX
+    )
+endif()
+
 # 2. dependencies
 include(eigen)
 include(span-lite)
@@ -69,7 +75,7 @@ target_link_libraries(lagrange_core PUBLIC
 
 if(LAGRANGE_WITH_TRACY)
     include(tracy)
-    target_link_libraries(lagrange_core PUBLIC tracy::client)
+    target_link_libraries(lagrange_core PUBLIC Tracy::TracyClient)
 endif()
 
 # precompile headers target. Link to this target in tests or modules with

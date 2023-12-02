@@ -38,7 +38,7 @@ function(onetbb_import_target)
         else()
             set(ONETBB_OLD_${var}_TYPE NONE_TYPE)
         endif()
-        set(${var} "${value}" CACHE PATH "" FORCE)
+        set(${var} "${value}")
     endmacro()
 
     macro(pop_variable var)
@@ -65,7 +65,7 @@ function(onetbb_import_target)
     CPMAddPackage(
         NAME tbb
         GITHUB_REPOSITORY oneapi-src/oneTBB
-        GIT_TAG v2021.8.0
+        GIT_TAG v2021.10.0
     )
 
     pop_variable(BUILD_SHARED_LIBS)

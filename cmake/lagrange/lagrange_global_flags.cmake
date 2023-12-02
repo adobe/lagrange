@@ -29,6 +29,15 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     # To avoid this problem, we force PDB write to be synchronous with /FS.
     # https://developercommunity.visualstudio.com/content/problem/48897/c1090-pdb-api-call-failed-error-code-23.html
     add_compile_options(/FS)
+
+    # Boost::hana requires /EHsc, so we need to enable it globally
+    include(lagrange_filter_flags)
+    set(LAGRANGE_GLOBAL_FLAGS
+        /EHsc # Compatibility with Boost::hana
+    )
+    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
+    add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 else()
     include(lagrange_filter_flags)
     set(LAGRANGE_GLOBAL_FLAGS

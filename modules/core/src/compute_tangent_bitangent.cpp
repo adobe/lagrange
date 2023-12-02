@@ -229,7 +229,9 @@ void accumulate_tangent_bitangent(
             Index eij = mesh.get_corner_edge(ci);
             Index fi = ci / 3;
             Index lvi = ci % 3;
+            Index lvi2 = (lvi + 1) % 3;
             Index vi = facets(fi, lvi);
+            Index vi2 = facets(fi, lvi2);
             if (is_face_degenerate(fi)) return;
 
             auto si = is_orient_preserving[fi];
@@ -240,13 +242,23 @@ void accumulate_tangent_bitangent(
                 if (fi == fj) return;
                 if (si != sj) return;
                 Index vj = facets(fj, lvj);
+                Index lvj2 = (lvj + 2) % 3;
+                Index vj2 = facets(fj, lvj2);
                 if (vi != vj) {
+                    lvj2 = lvj;
                     lvj = (lvj + 1) % 3;
                     vj = facets(fj, lvj);
-                    la_debug_assert(vi == vj);
+                    vj2 = facets(fj, lvj2);
                 }
+                la_debug_assert(vi == vj);
+                la_debug_assert(vi2 == vj2);
+                // TODO: fix our debug assert to avoid unused variable warning without evaluating it
+                (void)vi2;
+                (void)vj2;
 
-                if (is_corner_smooth(ci, fj * 3 + lvj)) {
+                if (is_corner_smooth(ci, fj * 3 + lvj) &&
+                    is_corner_smooth(fi * 3 + lvi2, fj * 3 + lvj2)) {
+                    // mikktspace will only unify the indices if the entire edge is smooth!
                     unified_indices.merge(ci, fj * 3 + lvj);
                 }
             });
@@ -445,7 +457,8 @@ void corner_tangent_bitangent_raw(
             }();
 
             for (Index lv = 0; lv < static_cast<Index>(facet.size()); lv++) {
-                Eigen::RowVector3<Scalar> nrm = normal_values.row(normal_indices(corner_begin + lv));
+                Eigen::RowVector3<Scalar> nrm =
+                    normal_values.row(normal_indices(corner_begin + lv));
                 tangents.row(corner_begin + lv).template head<3>() =
                     project_on_plane(t, nrm).stableNormalized();
                 bitangents.row(corner_begin + lv).template head<3>() =

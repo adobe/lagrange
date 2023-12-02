@@ -64,25 +64,64 @@ class TestComputeComponents:
         mesh.add_quad(0, 1, 3, 2)
         mesh.add_triangle(4, 5, 6)
 
-        opt = lagrange.ComponentOptions()
-        opt.output_attribute_name = "id"
-        opt.connectivity_type = lagrange.ConnectivityType.Vertex
-
-        n = lagrange.compute_components(mesh, opt)
+        n = lagrange.compute_components(
+            mesh,
+            output_attribute_name="id",
+            connectivity_type=lagrange.ConnectivityType.Vertex,
+        )
         assert n == 2
-        assert mesh.has_attribute(opt.output_attribute_name)
-        component_id = mesh.attribute(opt.output_attribute_name).data
+        assert mesh.has_attribute("id")
+        component_id = mesh.attribute("id").data
         assert component_id[0] != component_id[1]
 
         # Add a trinagle connecting the two components via 2 vertices.
         mesh.add_triangle(0, 7, 4)
-        n = lagrange.compute_components(mesh, opt)
+        n = lagrange.compute_components(
+            mesh,
+            output_attribute_name="id",
+            connectivity_type=lagrange.ConnectivityType.Vertex,
+        )
         assert n == 1
-        assert mesh.has_attribute(opt.output_attribute_name)
-        component_id = mesh.attribute(opt.output_attribute_name).data
+        assert mesh.has_attribute("id")
+        component_id = mesh.attribute("id").data
         assert np.all(component_id == 0)
 
         # Change connectivity to edge.
-        opt.connectivity_type = lagrange.ConnectivityType.Edge
-        n = lagrange.compute_components(mesh, opt)
+        n = lagrange.compute_components(
+            mesh,
+            output_attribute_name="id",
+            connectivity_type=lagrange.ConnectivityType.Edge,
+        )
+        assert n == 3
+
+        # Add a quad connecting the two components via edge.
+        mesh.remove_facets([2])
+        assert mesh.num_facets == 2
+        mesh.add_quad(2, 3, 5, 4)
+        assert mesh.num_facets == 3
+        n = lagrange.compute_components(
+            mesh,
+            output_attribute_name="id",
+            connectivity_type=lagrange.ConnectivityType.Edge,
+        )
+        assert n == 1
+
+        # With a blocker edge.
+        eid = mesh.find_edge_from_vertices(2, 3)
+        n = lagrange.compute_components(
+            mesh,
+            output_attribute_name="id",
+            connectivity_type=lagrange.ConnectivityType.Edge,
+            blocker_elements=[eid],
+        )
+        assert n == 2
+
+        # With two blocker edges.
+        eid2 = mesh.find_edge_from_vertices(5, 4)
+        n = lagrange.compute_components(
+            mesh,
+            output_attribute_name="id",
+            connectivity_type=lagrange.ConnectivityType.Edge,
+            blocker_elements=[eid, eid2],
+        )
         assert n == 3

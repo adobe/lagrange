@@ -51,7 +51,7 @@ struct TangentBitangentOptions
     /// triangles. If left empty, the first indexed Normal attribute is used.
     std::string_view normal_attribute_name = "";
 
-    /// Output element type. Can be either Vertex or Indexed.
+    /// Output element type. Can be either Corner or Indexed.
     AttributeElement output_element_type = AttributeElement::Indexed;
 
     /// Whether to pad the tangent/bitangent vectors with a 4th coordinate indicating the sign of

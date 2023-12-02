@@ -1,5 +1,5 @@
 /*
- * Copyright 2023 Adobe. All rights reserved.
+ * Copyright 2020 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
     bool fpe_flag = false;
 
     auto cli = session.cli()
-        | Catch::Clara::Opt(log_level, "log level")["--log-level"]("Log level")
+        | Catch::Clara::Opt(log_level, "log level")["-l"]["--log-level"]("Log level")
         | Catch::Clara::Opt(fpe_flag, "use fpe")["--enable-fpe"]("Enable FPE");
 
     session.cli(cli);

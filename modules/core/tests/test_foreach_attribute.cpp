@@ -14,7 +14,10 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/utils/copy_on_write_ptr.h>
+
+#include <lagrange/testing/common.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -23,28 +26,12 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <fstream>
 #include <map>
 #include <sstream>
 #include <unordered_map>
 
 namespace {
-
-template <typename ValueType>
-std::string_view type_name();
-
-#define LA_X_type_name(_, ValueType)        \
-    template <>                             \
-    std::string_view type_name<ValueType>() \
-    {                                       \
-        return #ValueType;                  \
-    }
-LA_ATTRIBUTE_X(type_name, 0)
-
-template <typename ValueType>
-std::string_view attr_type_name(const lagrange::Attribute<ValueType>&)
-{
-    return type_name<ValueType>();
-}
 
 bool starts_with(std::string_view str, std::string_view prefix)
 {
@@ -119,7 +106,7 @@ void test_foreach_attribute()
                 lagrange::logger().info(
                     "Mesh attribute '{}' of type {}",
                     name,
-                    attr_type_name(attr));
+                    lagrange::internal::value_type_name(attr));
                 has_vertices |= (name == mesh.attr_name_vertex_to_position());
                 has_facets |= (name == mesh.attr_name_corner_to_vertex());
                 has_offsets |= (name == mesh.attr_name_facet_to_first_corner());
@@ -137,20 +124,25 @@ void test_foreach_attribute()
             using Index = typename AttributeType::Index;
             lagrange::logger().info(
                 "Mesh indexed attribute of type {}, value type size {}, index size {}",
-                attr_type_name(attr.values()),
+                lagrange::internal::value_type_name(attr.values()),
                 sizeof(ValueType),
                 sizeof(Index));
         });
 
-#define LA_X_attr(_, Element)                                                                  \
-    seq_foreach_named_attribute_read<Element>(mesh, [&](std::string_view name, auto&& attr) {  \
-        REQUIRE(attr.get_element_type() == Element);                                           \
-        REQUIRE(mesh.has_attribute(name));                                                     \
-        lagrange::logger().info("Mesh attribute '{}' of type {}", name, attr_type_name(attr)); \
-    });                                                                                        \
-    seq_foreach_attribute_read<Element>(mesh, [&](auto&& attr) {                               \
-        REQUIRE(attr.get_element_type() == Element);                                           \
-        lagrange::logger().info("Mesh attribute of type {}", attr_type_name(attr));            \
+#define LA_X_attr(_, Element)                                                                 \
+    seq_foreach_named_attribute_read<Element>(mesh, [&](std::string_view name, auto&& attr) { \
+        REQUIRE(attr.get_element_type() == Element);                                          \
+        REQUIRE(mesh.has_attribute(name));                                                    \
+        lagrange::logger().info(                                                              \
+            "Mesh attribute '{}' of type {}",                                                 \
+            name,                                                                             \
+            lagrange::internal::value_type_name(attr));                                       \
+    });                                                                                       \
+    seq_foreach_attribute_read<Element>(mesh, [&](auto&& attr) {                              \
+        REQUIRE(attr.get_element_type() == Element);                                          \
+        lagrange::logger().info(                                                              \
+            "Mesh attribute of type {}",                                                      \
+            lagrange::internal::value_type_name(attr));                                       \
     });
         LA_NON_INDEXED_X(attr, 0)
 #undef LA_X_attr
@@ -226,7 +218,7 @@ void test_foreach_attribute()
                 lagrange::logger().info(
                     "Mesh attribute '{}' of type {}",
                     name,
-                    attr_type_name(attr));
+                    lagrange::internal::value_type_name(attr));
                 has_vertices |= (name == mesh.attr_name_vertex_to_position());
                 has_facets |= (name == mesh.attr_name_corner_to_vertex());
                 has_offsets |= (name == mesh.attr_name_facet_to_first_corner());
@@ -241,19 +233,24 @@ void test_foreach_attribute()
             using ValueType = typename AttributeType::ValueType;
             lagrange::logger().info(
                 "Mesh attribute of type {}, size {}",
-                attr_type_name(attr),
+                lagrange::internal::value_type_name(attr),
                 sizeof(ValueType));
         });
 
-#define LA_X_attr(_, Element)                                                                  \
-    par_foreach_named_attribute_read<Element>(mesh, [&](std::string_view name, auto&& attr) {  \
-        ok &= (attr.get_element_type() == Element);                                            \
-        ok &= mesh.has_attribute(name);                                                        \
-        lagrange::logger().info("Mesh attribute '{}' of type {}", name, attr_type_name(attr)); \
-    });                                                                                        \
-    par_foreach_attribute_read<Element>(mesh, [&](auto&& attr) {                               \
-        ok &= (attr.get_element_type() == Element);                                            \
-        lagrange::logger().info("Mesh attribute of type {}", attr_type_name(attr));            \
+#define LA_X_attr(_, Element)                                                                 \
+    par_foreach_named_attribute_read<Element>(mesh, [&](std::string_view name, auto&& attr) { \
+        ok &= (attr.get_element_type() == Element);                                           \
+        ok &= mesh.has_attribute(name);                                                       \
+        lagrange::logger().info(                                                              \
+            "Mesh attribute '{}' of type {}",                                                 \
+            name,                                                                             \
+            lagrange::internal::value_type_name(attr));                                       \
+    });                                                                                       \
+    par_foreach_attribute_read<Element>(mesh, [&](auto&& attr) {                              \
+        ok &= (attr.get_element_type() == Element);                                           \
+        lagrange::logger().info(                                                              \
+            "Mesh attribute of type {}",                                                      \
+            lagrange::internal::value_type_name(attr));                                       \
     });
         LA_NON_INDEXED_X(attr, 0)
 #undef LA_X_attr
@@ -496,4 +493,34 @@ TEST_CASE("SurfaceMesh: Foreach CoW", "[next]")
 TEST_CASE("Simple Parallel CoW", "[next]")
 {
     test_parallel_cow<double>();
+}
+
+TEST_CASE("SurfaceMesh: Attribute Traversal", "[next]")
+{
+    lagrange::SurfaceMesh32f mesh;
+    for (auto name : {"texcoord", "normal", "color", "material_id", "object_id", "@normal"}) {
+        mesh.create_attribute<float>(name, lagrange::AttributeElement::Vertex);
+    }
+
+    // Uncomment to save expected order
+    // std::ofstream out("attribute_order.txt");
+    // seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&&) {
+    //     out << name << std::endl;
+    // });
+
+    std::vector<std::string> expected = {
+        "$corner_to_vertex",
+        "$vertex_to_position",
+        "@normal",
+        "color",
+        "material_id",
+        "normal",
+        "object_id",
+        "texcoord",
+    };
+    auto current = expected.begin();
+    seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&&) {
+        REQUIRE(name == *current);
+        ++current;
+    });
 }

@@ -18,13 +18,7 @@
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_tangent_bitangent.h>
 #include <lagrange/compute_vertex_normal.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <spdlog/fmt/ostr.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
+#include <lagrange/utils/fmt_eigen.h>
 
 /*
     This is an experimental example, combining multiple features of the UI.

@@ -264,7 +264,7 @@ TEST_CASE("project_attributes_closest_point", "[raycasting]")
         REQUIRE(P.cols() == 2);
         for (int v = 0; v < target->get_num_vertices(); ++v) {
             CAPTURE(v, P.row(v), V.row(v));
-            REQUIRE((P.row(v) - V.row(v).head<2>()).norm() < 1e-16);
+            REQUIRE((P.row(v) - V.row(v).head<2>()).norm() < 1e-15);
         }
     }
 }

@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <lagrange/testing/detect_fp_behavior.h>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
 #include <cmath>
@@ -22,9 +23,14 @@
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/io/save_mesh.h>
 #include <lagrange/mesh_convert.h>
+#include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
+#include <lagrange/weld_indexed_attribute.h>
+
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <cmath>
 
@@ -303,6 +309,78 @@ TEST_CASE("compute_normal: facet normal attr", "[surface][attribute][normal][uti
     REQUIRE(mesh.has_attribute(facet_normal_name));
 }
 
+namespace {
+
+template <typename DerivedA, typename DerivedB>
+bool allclose(
+    const Eigen::DenseBase<DerivedA>& a,
+    const Eigen::DenseBase<DerivedB>& b,
+    const typename DerivedA::RealScalar& rtol =
+        Eigen::NumTraits<typename DerivedA::RealScalar>::dummy_precision(),
+    const typename DerivedA::RealScalar& atol =
+        Eigen::NumTraits<typename DerivedA::RealScalar>::epsilon())
+{
+    return ((a.derived() - b.derived()).array().abs() <= (atol + rtol * b.derived().array().abs()))
+        .all();
+}
+
+} // namespace
+
+TEST_CASE("compute_normal nmtest", "[core][normal]" LA_CORP_FLAG)
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    auto original_mesh =
+        lagrange::testing::load_surface_mesh<Scalar, Index>("corp/core/nmtest_no_tb_tri.obj");
+    lagrange::weld_indexed_attribute(
+        original_mesh,
+        original_mesh.get_attribute_id(lagrange::AttributeName::texcoord));
+    original_mesh.delete_attribute(lagrange::AttributeName::normal);
+
+    for (double angle_threshold_deg : {0., 45., 90., 180.}) {
+        auto mesh = original_mesh;
+        const Scalar EPS = static_cast<Scalar>(1e-3);
+        auto nrm_id = lagrange::compute_normal(
+            mesh,
+            std::max(Scalar(0), Scalar(angle_threshold_deg) * Scalar(M_PI / 180.0) - EPS));
+
+        std::string nrm_name(mesh.get_attribute_name(nrm_id));
+        mesh = lagrange::unify_index_buffer(mesh, {nrm_id});
+        mesh.rename_attribute(nrm_name, "Vertex_Normal"); // match ply attribute name
+        mesh.rename_attribute("color", "Vertex_Color"); // match ply attribute name
+
+        auto filename = fmt::format("nmtest_normal_{}.ply", angle_threshold_deg);
+
+        // Uncomment to save a new output
+        // lagrange::io::save_mesh(filename, mesh);
+
+        auto expected = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            fmt::format("corp/core/regression/{}", filename));
+
+        lagrange::seq_foreach_named_attribute_read<lagrange::AttributeElement::Vertex>(
+            mesh,
+            [&](const auto& name, auto& attr) {
+                using AttributeType = std::decay_t<decltype(attr)>;
+                using ValueType = typename AttributeType::ValueType;
+                if constexpr (std::is_same_v<ValueType, Scalar>) {
+                    CAPTURE(angle_threshold_deg, name);
+                    REQUIRE(expected.has_attribute(name));
+                    const ValueType eps(static_cast<ValueType>(1e-4));
+                    auto X = matrix_view(attr);
+                    auto Y = lagrange::attribute_matrix_view<ValueType>(expected, name);
+                    for (Eigen::Index i = 0; i < X.size(); ++i) {
+                        REQUIRE_THAT(
+                            X.data()[i],
+                            Catch::Matchers::WithinRel(Y.data()[i], eps) ||
+                                (Catch::Matchers::WithinAbs(Y.data()[i], eps) &&
+                                 Catch::Matchers::WithinAbs(0, eps)));
+                    }
+                }
+            });
+    }
+}
+
 TEST_CASE("compute_normal benchmark", "[surface][attribute][normal][utilities][!benchmark]")
 {
     using namespace lagrange;
@@ -531,8 +609,16 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
 
         const auto& triangle_normals = mesh->get_facet_attribute("normal");
 
-        REQUIRE(normal_values.isZero(0));
-        REQUIRE(triangle_normals.isZero(0));
+        if (lagrange::testing::detect_fp_behavior() ==
+            lagrange::testing::FloatPointBehavior::XcodeGreaterThan14) {
+            // For some reason x.cross(x) is not zero on arm64 Xcode 14+. It's around 1e-17, which
+            // is enough for stableNormalize() to produce a non-zero first row.
+            REQUIRE(normal_values(Eigen::seq(1, Eigen::last), Eigen::all).isZero(0));
+            REQUIRE(triangle_normals(Eigen::seq(1, Eigen::last), Eigen::all).isZero(0));
+        } else {
+            REQUIRE(normal_values.isZero(0));
+            REQUIRE(triangle_normals.isZero(0));
+        }
     }
 }
 #endif

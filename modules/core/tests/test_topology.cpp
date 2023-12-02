@@ -120,4 +120,28 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
     }
+
+    SECTION("two tets sharing a vertex")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_vertex({-1, 0, 0});
+        mesh.add_vertex({0, -1, 0});
+        mesh.add_vertex({0, 0, -1});
+        mesh.add_triangle(0, 2, 1);
+        mesh.add_triangle(0, 1, 3);
+        mesh.add_triangle(1, 2, 3);
+        mesh.add_triangle(2, 0, 3);
+        mesh.add_triangle(4, 5, 0);
+        mesh.add_triangle(5, 6, 0);
+        mesh.add_triangle(6, 4, 0);
+        mesh.add_triangle(4, 6, 5);
+
+        REQUIRE(compute_euler(mesh) == 3);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+    }
 }

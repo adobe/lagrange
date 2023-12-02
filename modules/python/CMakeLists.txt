@@ -39,31 +39,12 @@ endif()
 
 # 2. installation
 if(SKBUILD)
+    message(STATUS "Lagrange: installing python binding to ${SKBUILD_PLATLIB_DIR}/lagrange")
     # Install python extension directly at ${CMAKE_INSTALL_PREFIX}, which will
     # be set by `setup.py`.
     install(TARGETS lagrange_python tbb
-        ARCHIVE DESTINATION . COMPONENT Lagrange_Python_Runtime
-        LIBRARY DESTINATION . COMPONENT Lagrange_Python_Runtime
-        RUNTIME DESTINATION . COMPONENT Lagrange_Python_Runtime
-    )
-    # Install python and tbb libraries to ${CMAKE_INSTALL_PREFIX}/lagrange
-    # which is under _skbuild/<platform>/cmake-install/modules/python/lagrange by default.
-    add_custom_target(lagrange-python-install
-        COMMAND ${CMAKE_COMMAND}
-        -DCMAKE_INSTALL_COMPONENT=Lagrange_Python_Runtime
-        -P "${PROJECT_BINARY_DIR}/cmake_install.cmake"
-        DEPENDS lagrange_python
-    )
-    # Generate stubs for python binding within the install location.
-    add_custom_target(lagrange-python-stubgen
-        COMMAND ${Python_EXECUTABLE} -m nanobind_stubgen lagrange
-        COMMAND ${Python_EXECUTABLE} "${PROJECT_SOURCE_DIR}/scripts/stubfix.py" lagrange
-        WORKING_DIRECTORY ${CMAKE_INSTALL_PREFIX}
-        DEPENDS lagrange-python-install
-    )
-    # A pseudo target to kick start the installation process.
-    add_custom_target(lagrange-python-install-runtime
-        DEPENDS lagrange-python-install lagrange-python-stubgen
+        DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
+        COMPONENT Lagrange_Python_Runtime
     )
 endif()
 
@@ -72,6 +53,7 @@ set_target_properties(lagrange_python PROPERTIES OUTPUT_NAME "lagrange")
 set_target_properties(lagrange_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # 4. generate lagrange_binding.cpp (to be called after all modules are loaded.)
+#    and add install rule for stubgen.
 function(lagrange_generate_python_binding_module)
     if (NOT TARGET lagrange_python)
         message(FATAL_ERROR "Target lagrange_python does not exist!")
@@ -112,4 +94,13 @@ NB_MODULE(lagrange, m)
 
     configure_file(${binding_file_in} ${binding_file} COPYONLY)
     target_sources(lagrange_python PRIVATE ${binding_file})
+
+
+    # Lastly, add stubgen installation command.
+    if(SKBUILD)
+        # Generate stubs for python binding within the install location.
+        install(CODE
+            "execute_process(COMMAND ${Python_EXECUTABLE} -m nanobind_stubgen lagrange WORKING_DIRECTORY ${SKBUILD_PLATLIB_DIR}/lagrange)"
+            COMPONENT Lagrange_Python_Runtime)
+    endif()
 endfunction()

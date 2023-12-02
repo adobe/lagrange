@@ -10,9 +10,10 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/topology.h>
-#include <lagrange/utils/chain_edges.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 
 // clang-format off
@@ -22,6 +23,8 @@
 #include <tbb/parallel_reduce.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
+
+#include <map>
 
 namespace lagrange {
 
@@ -51,12 +54,38 @@ bool is_vertex_manifold(const SurfaceMesh<Scalar, Index>& mesh)
     }
 
     const auto num_vertices = mesh.get_num_vertices();
-    tbb::enumerable_thread_specific<std::vector<Index>> thread_rim_edges;
+    // TODO: Avoid multimap by ensuring all spoke edges are manifold and consistently oriented
+    // instead.
+    tbb::enumerable_thread_specific<std::multimap<Index, size_t>> thread_rim_edges;
+
+    // Walk corners around a vertex based on adjacency.
+    auto count_connected_corners = [&](Index vid, Index starting_corner) {
+        la_debug_assert(mesh.get_corner_vertex(starting_corner) == vid);
+        const size_t max_count = mesh.count_num_corners_around_vertex(vid);
+        size_t count = 0;
+        Index ci = starting_corner;
+        do {
+            la_debug_assert(mesh.get_corner_vertex(ci) == vid);
+            count++;
+            la_runtime_assert(count <= max_count, "Infinite loop detected.");
+            Index fi = mesh.get_corner_facet(ci);
+            Index c0 = mesh.get_facet_corner_begin(fi);
+            Index li = ci - c0;
+            Index ni = mesh.get_facet_size(fi);
+            Index cj = c0 + (li + ni - 1) % ni;
+            ci = mesh.get_next_corner_around_edge(cj);
+            if (ci == invalid<Index>()) {
+                Index ej = mesh.get_corner_edge(cj);
+                ci = mesh.get_first_corner_around_edge(ej);
+                if (ci == cj) break; // Boundary edge.
+            }
+        } while (ci != starting_corner);
+        return count;
+    };
 
     auto is_vertex_manifold = [&](Index vid) {
         auto& rim_edges = thread_rim_edges.local();
         rim_edges.clear();
-        rim_edges.reserve(mesh.count_num_corners_around_vertex(vid) * 2);
 
         for (auto ci = mesh.get_first_corner_around_vertex(vid); ci != invalid<Index>();
              ci = mesh.get_next_corner_around_vertex(ci)) {
@@ -70,13 +99,50 @@ bool is_vertex_manifold(const SurfaceMesh<Scalar, Index>& mesh)
                 if (vj == vid || vk == vid) {
                     continue;
                 }
-                rim_edges.push_back(vj);
-                rim_edges.push_back(vk);
+                rim_edges.insert({vj, rim_edges.size()});
+                rim_edges.insert({vk, rim_edges.size()});
             }
         }
 
-        const auto result = chain_directed_edges<Index>({rim_edges.data(), rim_edges.size()});
-        return (result.loops.size() + result.chains.size() == 1);
+        // An interior vertex is manifold iff each of its neighboring vertex has one incoming rim
+        // edge and one outgoing rim edge.  For vertices on the mesh boundary, it should has exactly
+        // two neighboring vertices that are end points.
+        size_t end_points = 0;
+        for (const auto& entry : rim_edges) {
+            size_t count = rim_edges.count(entry.first);
+            if (count == 1) {
+                end_points++;
+            } else if (count == 2) {
+                auto itr1 = rim_edges.lower_bound(entry.first);
+                auto itr2 = std::next(itr1);
+                // Vertices with incoming rim edges have odd rim indices.
+                // Vertices with outgoing rim edges have even rim indices.
+                if ((itr1->second + itr2->second) % 2 == 0) return false;
+            } else {
+                return false;
+            }
+        }
+
+        if (end_points == 0) {
+            return mesh.count_num_corners_around_vertex(vid) ==
+                   count_connected_corners(vid, mesh.get_first_corner_around_vertex(vid));
+        } else if (end_points == 2) {
+            Index starting_corner = invalid<Index>();
+            for (Index ci = mesh.get_first_corner_around_vertex(vid); ci != invalid<Index>();
+                 ci = mesh.get_next_corner_around_vertex(ci)) {
+                Index ei = mesh.get_corner_edge(ci);
+                if (mesh.is_boundary_edge(ei)) {
+                    starting_corner = ci;
+                    break;
+                }
+            }
+            if (starting_corner == invalid<Index>()) return false;
+            return mesh.count_num_corners_around_vertex(vid) ==
+                   count_connected_corners(vid, starting_corner);
+        } else {
+            return false;
+        }
+        return end_points == 0 || end_points == 2;
     };
 
     return tbb::parallel_reduce(

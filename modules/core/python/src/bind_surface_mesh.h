@@ -31,6 +31,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/python/tensor_utils.h>
+#include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -128,12 +129,38 @@ void bind_surface_mesh(nanobind::module_& m)
         la_runtime_assert(is_vector(shape));
         self.remove_vertices(data);
     });
+    surface_mesh_class.def(
+        "remove_vertices",
+        [](MeshType& self, nb::list b) {
+            std::vector<Index> indices;
+            for (auto i : b) {
+                indices.push_back(nb::cast<Index>(i));
+            }
+            self.remove_vertices(indices);
+        },
+        "vertices"_a,
+        R"(Remove selected vertices from the mesh.
+
+:param vertices: list of vertex indices to remove)");
     surface_mesh_class.def("remove_facets", [](MeshType& self, Tensor<Index> b) {
         auto [data, shape, stride] = tensor_to_span(b);
         la_runtime_assert(is_dense(shape, stride));
         la_runtime_assert(is_vector(shape));
         self.remove_facets(data);
     });
+    surface_mesh_class.def(
+        "remove_facets",
+        [](MeshType& self, nb::list b) {
+            std::vector<Index> indices;
+            for (auto i : b) {
+                indices.push_back(nb::cast<Index>(i));
+            }
+            self.remove_facets(indices);
+        },
+        "facets"_a,
+        R"(Remove selected facets from the mesh.
+
+:param facets: list of facet indices to remove)");
     surface_mesh_class.def("clear_vertices", &MeshType::clear_vertices);
     surface_mesh_class.def("clear_facets", &MeshType::clear_facets);
     surface_mesh_class.def("shrink_to_fit", &MeshType::shrink_to_fit);
@@ -299,6 +326,24 @@ void bind_surface_mesh(nanobind::module_& m)
 
 :returns: The id of the created attribute.
 )");
+
+    surface_mesh_class.def(
+        "create_attribute_from",
+        &MeshType::template create_attribute_from<Scalar, Index>,
+        "name"_a,
+        "source_mesh"_a,
+        "source_name"_a = "",
+        R"(Shallow copy an attribute from another mesh.
+
+:param name: Name of the attribute.
+:type name: str
+:param source_mesh: Source mesh.
+:type source_mesh: SurfaceMesh
+:param source_name: Name of the attribute in the source mesh. If empty, use the same name as `name`.
+:type source_name: str, optional
+
+:returns: The id of the created attribute.)");
+
     surface_mesh_class.def(
         "wrap_as_attribute",
         [](MeshType& self,
@@ -445,73 +490,107 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def(
         "is_attribute_indexed",
         static_cast<bool (MeshType::*)(std::string_view) const>(&MeshType::is_attribute_indexed));
+
+    // This is a helper method for trigger copy-on-write mechanism for a given attribute.
+    auto ensure_attribute_is_not_shared = [](MeshType& mesh, AttributeId id) {
+        auto& attr_base = mesh.get_attribute_base(id);
+#define LA_X_trigger_copy_on_write(_, ValueType)                                              \
+    if (mesh.is_attribute_indexed(id)) {                                                      \
+        if (dynamic_cast<const IndexedAttribute<ValueType, Index>*>(&attr_base)) {            \
+            [[maybe_unused]] auto& attr = mesh.template ref_indexed_attribute<ValueType>(id); \
+        }                                                                                     \
+    } else {                                                                                  \
+        if (dynamic_cast<const Attribute<ValueType>*>(&attr_base)) {                          \
+            [[maybe_unused]] auto& attr = mesh.template ref_attribute<ValueType>(id);         \
+        }                                                                                     \
+    }
+        LA_ATTRIBUTE_X(trigger_copy_on_write, 0)
+#undef LA_X_trigger_copy_on_write
+    };
+
     surface_mesh_class.def(
         "attribute",
-        [](MeshType& self, AttributeId id) {
+        [&](MeshType& self, AttributeId id, bool sharing) {
             la_runtime_assert(
                 !self.is_attribute_indexed(id),
                 fmt::format(
                     "Attribute {} is indexed!  Please use `indexed_attribute` property instead.",
                     id));
+            if (!sharing) ensure_attribute_is_not_shared(self, id);
             return PyAttribute(self._ref_attribute_ptr(id));
         },
         "id"_a,
+        "sharing"_a = true,
         R"(Get an attribute by id.
 
 :param id: Id of the attribute.
 :type id: AttributeId
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :returns: The attribute.)");
     surface_mesh_class.def(
         "attribute",
-        [](MeshType& self, std::string_view name) {
+        [&](MeshType& self, std::string_view name, bool sharing) {
             la_runtime_assert(
                 !self.is_attribute_indexed(name),
                 fmt::format(
                     "Attribute \"{}\" is indexed!  Please use `indexed_attribute` property "
                     "instead.",
                     name));
+            if (!sharing) ensure_attribute_is_not_shared(self, self.get_attribute_id(name));
             return PyAttribute(self._ref_attribute_ptr(name));
         },
         "name"_a,
+        "sharing"_a = true,
         R"(Get an attribute by name.
 
 :param name: Name of the attribute.
 :type name: str
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :return: The attribute.)");
     surface_mesh_class.def(
         "indexed_attribute",
-        [](MeshType& self, AttributeId id) {
+        [&](MeshType& self, AttributeId id, bool sharing) {
             la_runtime_assert(
                 self.is_attribute_indexed(id),
                 fmt::format(
                     "Attribute {} is not indexed!  Please use `attribute` property instead.",
                     id));
+            if (!sharing) ensure_attribute_is_not_shared(self, id);
             return PyIndexedAttribute(self._ref_attribute_ptr(id));
         },
         "id"_a,
+        "sharing"_a = true,
         R"(Get an indexed attribute by id.
 
 :param id: Id of the attribute.
 :type id: AttributeId
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :returns: The indexed attribute.)");
     surface_mesh_class.def(
         "indexed_attribute",
-        [](MeshType& self, std::string_view name) {
+        [&](MeshType& self, std::string_view name, bool sharing) {
             la_runtime_assert(
                 self.is_attribute_indexed(name),
                 fmt::format(
                     "Attribute \"{}\"is not indexed!  Please use `attribute` property instead.",
                     name));
+            if (!sharing) ensure_attribute_is_not_shared(self, self.get_attribute_id(name));
             return PyIndexedAttribute(self._ref_attribute_ptr(name));
         },
         "name"_a,
+        "sharing"_a = true,
         R"(Get an indexed attribute by name.
 
 :param name: Name of the attribute.
 :type name: str
+:param sharing: Whether to allow sharing the attribute with other meshes.
+:type sharing: bool
 
 :returns: The indexed attribute.)");
     surface_mesh_class.def("__attribute_ref_count__", [](MeshType& self, AttributeId id) {
@@ -746,6 +825,7 @@ If not provided, the edges are initialized in an arbitrary order.
     surface_mesh_class.def("get_edge", &MeshType::get_edge);
     surface_mesh_class.def("get_corner_edge", &MeshType::get_corner_edge);
     surface_mesh_class.def("get_edge_vertices", &MeshType::get_edge_vertices);
+    surface_mesh_class.def("find_edge_from_vertices", &MeshType::find_edge_from_vertices);
     surface_mesh_class.def("get_first_corner_around_edge", &MeshType::get_first_corner_around_edge);
     surface_mesh_class.def("get_next_corner_around_edge", &MeshType::get_next_corner_around_edge);
     surface_mesh_class.def(
@@ -792,6 +872,52 @@ If not provided, the edges are initialized in an arbitrary order.
 
 :returns: A list of attribute ids matching the target element, usage and number of channels.
 )");
+
+    surface_mesh_class.def(
+        "__copy__",
+        [](MeshType& self) -> MeshType {
+            MeshType mesh = self;
+            return mesh;
+        },
+        R"(Create a shallow copy of this mesh.)");
+
+    surface_mesh_class.def(
+        "__deepcopy__",
+        [](MeshType& self, [[maybe_unused]] std::optional<nb::dict> memo) -> MeshType {
+            MeshType mesh = self;
+            par_foreach_attribute_write(mesh, [](auto&& attr) {
+                // For most of the attributes, just getting a writable reference will trigger a copy
+                // of the buffer thanks to the copy-on-write mechanism and the default
+                // CopyIfExternal copy policy.
+
+                using AttributeType = std::decay_t<decltype(attr)>;
+                if constexpr (AttributeType::IsIndexed) {
+                    auto& value_attr = attr.values();
+                    if (value_attr.is_external()) {
+                        value_attr.create_internal_copy();
+                    }
+                    auto& index_attr = attr.indices();
+                    if (index_attr.is_external()) {
+                        index_attr.create_internal_copy();
+                    }
+                } else {
+                    if (attr.is_external()) {
+                        attr.create_internal_copy();
+                    }
+                }
+            });
+            return mesh;
+        },
+        "memo"_a = nb::none(),
+        R"(Create a deep copy of this mesh.)");
+
+    surface_mesh_class.def(
+        "clone",
+        [](MeshType& self) {
+            auto py_self = nb::find(self);
+            return py_self.attr("__deepcopy__")();
+        },
+        R"(Create a deep copy of this mesh.)");
 }
 
 } // namespace lagrange::python
