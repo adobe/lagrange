@@ -11,28 +11,25 @@
 #
 
 # Set TBB_SANITIZE based on the USE_SANITIZER option
-set(LAGRANGE_TBB_SANITIZE "")
+set(TBB_SANITIZE "")
 if(USE_SANITIZER)
     if(UNIX)
         if(USE_SANITIZER MATCHES "([Aa]ddress);([Uu]ndefined)"
             OR USE_SANITIZER MATCHES "([Uu]ndefined);([Aa]ddress)")
-            set(LAGRANGE_TBB_SANITIZE "address -fno-omit-frame-pointer")
+            set(TBB_SANITIZE "address -fno-omit-frame-pointer")
         elseif(USE_SANITIZER MATCHES "([Aa]ddress)")
-            set(LAGRANGE_TBB_SANITIZE "address -fno-omit-frame-pointer")
+            set(TBB_SANITIZE "address -fno-omit-frame-pointer")
         elseif(USE_SANITIZER MATCHES "([Mm]emory([Ww]ith[Oo]rigins)?)")
-            set(LAGRANGE_TBB_SANITIZE "memory")
+            set(TBB_SANITIZE "memory")
         elseif(USE_SANITIZER MATCHES "([Tt]hread)")
-            set(LAGRANGE_TBB_SANITIZE "thread")
+            set(TBB_SANITIZE "thread")
         elseif(USE_SANITIZER MATCHES "([Ll]eak)")
-            set(LAGRANGE_TBB_SANITIZE "leak")
+            set(TBB_SANITIZE "leak")
         endif()
     elseif(MSVC)
         if(USE_SANITIZER MATCHES "([Aa]ddress)")
-            set(LAGRANGE_TBB_SANITIZE "address -fno-omit-frame-pointer")
+            set(TBB_SANITIZE "address -fno-omit-frame-pointer")
         else()
         endif()
     endif()
-
 endif()
-
-set(TBB_SANITIZE ${LAGRANGE_TBB_SANITIZE} CACHE STRING "Sanitizer parameter passed to compiler/linker" FORCE)
