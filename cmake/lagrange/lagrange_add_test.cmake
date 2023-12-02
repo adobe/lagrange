@@ -40,12 +40,6 @@ function(lagrange_add_test)
         target_link_libraries(${test_target} PUBLIC lagrange::testing::main)
     endif()
 
-    # Disable ASan container-overflow due to non-instrumented libstdc++
-    # https://github.com/google/sanitizers/wiki/AddressSanitizerContainerOverflow
-    set(LAGRANGE_TESTS_ENVIRONMENT ""
-        # "ASAN_OPTIONS=detect_container_overflow=0"
-    )
-
     # Enable code coverage
     include(FetchContent)
     target_code_coverage(${test_target} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")

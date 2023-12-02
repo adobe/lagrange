@@ -26,7 +26,7 @@ jobs:
         os: [ubuntu-22.04, macos-12]
         config: [RelwithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
-        sanitizer: ["Address", "Thread"]
+        sanitizer: ["Address;Undefined", "Thread"] # TODO: Add Memory Sanitizer
         exclude:
           - os: macos-12
             sanitizer: "Thread"
