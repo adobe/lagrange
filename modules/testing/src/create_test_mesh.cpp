@@ -12,6 +12,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/testing/create_test_mesh.h>
+#include <lagrange/attribute_names.h>
 
 namespace lagrange::testing {
 
@@ -50,7 +51,7 @@ SurfaceMesh<Scalar, Index> create_test_cube(CreateOptions options)
                                          9,  5,  4,  9,  4,  8,  2,  6,  3, 3, 6,  7,
                                          1,  0,  3,  1,  3,  4,  10, 11, 7, 7, 11, 8};
         cube.template create_attribute<Scalar>(
-            "@uv",
+            AttributeName::texcoord,
             AttributeElement::Indexed,
             AttributeUsage::UV,
             2,
@@ -135,7 +136,7 @@ SurfaceMesh<Scalar, Index> create_test_sphere(CreateOptions options)
             14, 13, 26, 13, 22, 26, 11, 23, 22, 11, 10, 23, 10, 19, 23, 8,  20, 19, 8,  7,  20, 7,
             60, 20, 5,  61, 25, 5,  4,  61, 4,  62, 61, 2,  17, 16, 2,  1,  17, 1,  3,  17};
         sphere.template create_attribute<Scalar>(
-            "@uv",
+            AttributeName::texcoord,
             AttributeElement::Indexed,
             AttributeUsage::UV,
             2,
@@ -188,7 +189,7 @@ SurfaceMesh<Scalar, Index> create_test_sphere(CreateOptions options)
             66, 66, 66, 67, 67, 67, 68, 68, 68, 69, 69, 69, 70, 70, 70, 71, 71, 71, 72, 72, 72, 73,
             73, 73, 74, 74, 74, 75, 75, 75, 76, 76, 76, 77, 77, 77, 78, 78, 78, 79, 79, 79};
         sphere.template create_attribute<Scalar>(
-            "@normal",
+            AttributeName::normal,
             AttributeElement::Indexed,
             AttributeUsage::Normal,
             3,

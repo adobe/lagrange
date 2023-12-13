@@ -42,7 +42,7 @@ include(CPM)
 CPMAddPackage(
     NAME assimp
     GITHUB_REPOSITORY assimp/assimp
-    GIT_TAG 0fdae2879d78864693ee730610dcf8ee10707875
+    GIT_TAG c1deb808faadd85a7a007447b62ae238a4be2337
 )
 
 set_target_properties(assimp PROPERTIES FOLDER third_party//assimp)

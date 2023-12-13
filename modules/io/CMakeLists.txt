@@ -18,12 +18,13 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 # 2. dependencies
-lagrange_include_modules(core fs scene)
+lagrange_include_modules(core fs scene image_io)
 include(tinyobjloader)
 include(tinygltf)
 include(libigl) # TODO: remove libigl later
 include(mshio)
 include(happly)
+include(ufbx)
 target_link_libraries(lagrange_io
     PUBLIC
         lagrange::core
@@ -34,6 +35,8 @@ target_link_libraries(lagrange_io
         happly::happly
         igl::core
     PRIVATE
+        lagrange::image_io
+        ufbx::ufbx
         mshio::mshio
 )
 

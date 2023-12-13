@@ -26,12 +26,17 @@ namespace lagrange::io::internal {
 tinygltf::Model load_tinygltf(const fs::path& filename);
 
 /**
- * Convert a gltf mesh to a lagrange SurfaceMesh
+ * Load a gltf model.
+ */
+tinygltf::Model load_tinygltf(std::istream& input_stream);
+
+/**
+ * Convert a gltf primitive to a lagrange SurfaceMesh
  */
 template <typename MeshType>
-MeshType convert_mesh_tinygltf_to_lagrange(
+MeshType convert_tinygltf_primitive_to_lagrange_mesh(
     const tinygltf::Model& model,
-    const tinygltf::Mesh& mesh,
+    const tinygltf::Primitive& primitive,
     const LoadOptions& options = {});
 
 /**
@@ -45,5 +50,11 @@ MeshType load_mesh_gltf(const tinygltf::Model& model, const LoadOptions& options
  */
 template <typename SceneType>
 SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions& options = {});
+
+/**
+ * Load a scene with gltf.
+ */
+template <typename SceneType>
+SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& options = {});
 
 } // namespace lagrange::io::internal

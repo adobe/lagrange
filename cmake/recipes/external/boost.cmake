@@ -81,6 +81,11 @@ option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
 add_library(boost_numeric_ublas INTERFACE)
 add_library(Boost::numeric_ublas ALIAS boost_numeric_ublas)
 
+if(SKBUILD)
+    set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+    set(BUILD_SHARED_LIBS ON)
+endif()
+
 # Boost 1.82.0 is the min version we can use that supports upstream modern
 # CMake targets (Boost::boost, Boost::headers, etc.)
 include(CPM)
@@ -91,6 +96,10 @@ CPMAddPackage(
     GIT_TAG "boost-1.82.0"
     EXCLUDE_FROM_ALL ON
 )
+
+if(SKBUILD)
+    set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
+endif()
 
 target_include_directories(boost_numeric_ublas INTERFACE
     "${Boost_SOURCE_DIR}/libs/numeric/ublas/include"
@@ -125,7 +134,6 @@ target_compile_features(boost_numeric_ublas INTERFACE cxx_std_11)
 # spoof the <auto_link.hpp> header with a blank one and remove the problematic error message.
 if(TARGET Boost::random)
     set(boost_dummy_autolink_dir "${Boost_BINARY_DIR}/dummy/boost/config/")
-    message("Creating dummy <auto_link.hpp> in ${boost_dummy_autolink_dir}")
     file(WRITE "${boost_dummy_autolink_dir}/auto_link.hpp.in" "")
     configure_file(${boost_dummy_autolink_dir}/auto_link.hpp.in ${boost_dummy_autolink_dir}/auto_link.hpp COPYONLY)
     target_include_directories(boost_random PRIVATE "${Boost_BINARY_DIR}/dummy")

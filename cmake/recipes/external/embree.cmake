@@ -115,6 +115,7 @@ function(embree_import_target)
     set(unix_compilers "AppleClang;Clang;GNU")
     if(CMAKE_CXX_COMPILER_ID IN_LIST unix_compilers) # IN_LIST wants the second arg to be a var
         target_compile_options(embree PRIVATE "-Wno-unused-private-field")
+        target_compile_options(embree PRIVATE "-Wno-unused-but-set-variable")
     endif()
 
     # Now we need to do some juggling to propagate the include directory properties

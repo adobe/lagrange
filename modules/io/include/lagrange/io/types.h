@@ -92,6 +92,9 @@ struct LoadOptions
     /// Load object id as facet attribute
     bool load_object_id = true;
 
+    /// Load external images
+    bool load_images = true;
+
     /**
      * Search path for related files, such as .mtl, .bin, or image textures.
      * By default, searches the same folder as the provided filename.

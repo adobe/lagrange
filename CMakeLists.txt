@@ -129,26 +129,27 @@ else()
 endif()
 
 # Python defaults
-if(SKBUILD)
-    if(LINUX)
-        # MKL doesn't support building Python modules with individual shared libraries. On Linux dlopen()
-        # would fail with the following error:
-        #
-        #   INTEL MKL ERROR: <...>/libmkl_def.so.1: undefined symbol: mkl_sparse_optimize_bsr_trsm_i8.
-        #   Intel MKL FATAL ERROR: Cannot load libmkl_def.so.1.
-        #
-        # The reason is that the three libraries libmkl_core, libmkl_intel and libmkl_thread need to be
-        # dlopened with RTLD_GLOBAL first. One needs to link against libmkl_rt instead. See this issue for
-        # more details:
-        #
-        # https://gitlab.kitware.com/cmake/cmake/-/issues/20491
-        #
-        # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
-        # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
-        #
-        set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-        option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
-    endif()
+if(SKBUILD AND LINUX)
+    # MKL doesn't support building Python modules with individual shared libraries. On Linux dlopen()
+    # would fail with the following error:
+    #
+    #   INTEL MKL ERROR: <...>/libmkl_def.so.1: undefined symbol: mkl_sparse_optimize_bsr_trsm_i8.
+    #   Intel MKL FATAL ERROR: Cannot load libmkl_def.so.1.
+    #
+    # The reason is that the three libraries libmkl_core, libmkl_intel and libmkl_thread need to be
+    # dlopened with RTLD_GLOBAL first. One needs to link against libmkl_rt instead. See this issue for
+    # more details:
+    #
+    # https://gitlab.kitware.com/cmake/cmake/-/issues/20491
+    #
+    # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
+    # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
+    #
+    set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+    option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
+
+    # Set RPATH to $ORIGIN on Linux
+    set(CMAKE_INSTALL_RPATH $ORIGIN)
 endif()
 
 # Meta target: ALL includes all optional modules and UI.
