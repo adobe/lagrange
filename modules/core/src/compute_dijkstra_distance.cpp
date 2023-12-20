@@ -80,7 +80,7 @@ std::optional<std::vector<Index>> compute_dijkstra_distance(
     internal::dijkstra<Scalar, Index>(
         mesh,
         seed_vertices,
-        initial_dist,
+        span<const Scalar>(initial_dist.data(), static_cast<size_t>(initial_dist.size())),
         options.radius,
         dist,
         process);

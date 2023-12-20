@@ -32,6 +32,7 @@ target_include_directories(miniz PUBLIC
 )
 
 set_target_properties(miniz PROPERTIES FOLDER third_party)
+set_target_properties(miniz PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 target_include_directories(miniz PUBLIC
     $<BUILD_INTERFACE:${miniz_BINARY_DIR}>

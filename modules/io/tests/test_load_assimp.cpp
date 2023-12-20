@@ -27,7 +27,7 @@ TEST_CASE("load_mesh_assimp", "[io]") {
     auto mesh = io::load_mesh_assimp<lagrange::SurfaceMesh32f>(
         testing::get_data_path("open/core/drop_tri.obj"));
     REQUIRE(mesh.get_num_facets() > 0);
-    REQUIRE(mesh.has_attribute(AttributeName::texcoord));
+    REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
     REQUIRE(mesh.has_attribute(AttributeName::normal));
 }
 
@@ -76,7 +76,7 @@ TEST_CASE("load_assimp_glb", "[io]")
     auto lmesh = lagrange::io::internal::load_mesh_assimp<lagrange::SurfaceMesh32f>(*scene);
     REQUIRE(lmesh.get_num_vertices() == lagrange::safe_cast<Index>(mesh->mNumVertices));
     REQUIRE(lmesh.get_num_facets() == lagrange::safe_cast<Index>(mesh->mNumFaces));
-    REQUIRE(lmesh.has_attribute(AttributeName::texcoord));
+    REQUIRE(lmesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
     REQUIRE(lmesh.has_attribute(AttributeName::normal));
 }
 

@@ -421,7 +421,7 @@ ChainEdgesResult<Index> chain_undirected_edges(
                         piece.insert(piece.end(), next_piece.begin(), next_piece.end());
                     } else {
                         la_debug_assert(next_edge == next_piece.back());
-                        piece.insert(piece.end(), next_piece.cbegin(), next_piece.cend());
+                        piece.insert(piece.end(), next_piece.rbegin(), next_piece.rend());
                     }
                     next_piece.clear();
                     v_last = get_last_vertex(piece);

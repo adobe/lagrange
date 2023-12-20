@@ -19,8 +19,41 @@
 
 #include <iosfwd>
 
-namespace lagrange::io {
-namespace internal {
+namespace lagrange::io::internal {
+
+/**
+ * Load with tinyobj from file.
+ */
+tinyobj::ObjReader load_obj(const fs::path& filename, const LoadOptions& options = {});
+
+/**
+ * Load with tinyobj from stream.
+ */
+tinyobj::ObjReader load_obj(
+    std::istream& input_stream_obj,
+    std::istream& input_stream_mtl,
+    const LoadOptions& options = {});
+
+/**
+ * Load a mesh using obj.
+ */
+template <typename MeshType>
+MeshType load_mesh_obj(const tinyobj::ObjReader& reader, const LoadOptions& options = {});
+
+/**
+ * Load a simple scene using obj.
+ */
+template <typename SceneType>
+SceneType load_simple_scene_obj(const tinyobj::ObjReader& reader, const LoadOptions& options = {});
+
+/**
+ * Load a scene using obj.
+ */
+template <typename SceneType>
+SceneType load_scene_obj(const tinyobj::ObjReader& reader, const LoadOptions& options = {});
+
+
+// ==== Old API below ====
 
 /**
  * Output of the obj mesh loader
@@ -44,6 +77,11 @@ struct ObjReaderResult
     /// Names of each object in the aggregate mesh.
     std::vector<std::string> names;
 };
+
+template <typename MeshType>
+ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mesh(
+    const tinyobj::ObjReader& reader,
+    const LoadOptions& options = {});
 
 /**
  * Loads a .obj mesh from a file.
@@ -70,8 +108,10 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options = {})
  * @return     Result of the load.
  */
 template <typename MeshType>
-auto load_mesh_obj(std::istream& input_stream, const LoadOptions& options = {})
+auto load_mesh_obj(
+    std::istream& input_stream_obj,
+    std::istream& input_stream_mtl,
+    const LoadOptions& options = {})
     -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>;
 
-} // namespace internal
-} // namespace lagrange::io
+} // namespace lagrange::io::internal

@@ -59,6 +59,38 @@ TEST_CASE("io/ply", "[io][ply]")
     }
 }
 
+TEST_CASE("io/ply empty", "[io][ply]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh = testing::create_test_sphere<Scalar, Index>();
+    std::stringstream data;
+    io::SaveOptions save_options;
+    save_options.output_attributes = io::SaveOptions::OutputAttributes::All;
+    save_options.attribute_conversion_policy =
+        io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+
+    SECTION("Ascii")
+    {
+        save_options.encoding = io::FileEncoding::Ascii;
+        REQUIRE_NOTHROW(io::save_mesh_ply(data, mesh, save_options));
+        auto mesh2 = io::load_mesh_ply<SurfaceMesh<Scalar, Index>>(data);
+        testing::check_mesh(mesh2);
+        testing::ensure_approx_equivalent_mesh(mesh, mesh2);
+    }
+
+    SECTION("Binary")
+    {
+        save_options.encoding = io::FileEncoding::Binary;
+        REQUIRE_NOTHROW(io::save_mesh_ply(data, mesh, save_options));
+        auto mesh2 = io::load_mesh_ply<SurfaceMesh<Scalar, Index>>(data);
+        testing::check_mesh(mesh2);
+        testing::ensure_approx_equivalent_mesh(mesh, mesh2);
+    }
+}
+
 TEST_CASE("io/ply multiple special attributes", "[io][ply]")
 {
     using namespace lagrange;

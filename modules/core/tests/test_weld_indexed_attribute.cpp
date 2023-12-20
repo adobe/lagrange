@@ -86,6 +86,72 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
     }
 }
 
+TEST_CASE("weld_indexed_attribute hybrid mesh", "[core][attribute][surface]")
+{
+    using namespace lagrange;
+    using Scalar = float;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 1});
+    mesh.add_vertex({1, 1});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_quad(2, 1, 3, 0);
+
+    SECTION("Distinct attributes")
+    {
+        std::array<Scalar, 14> uv_values{0, 0, 1, 0, 2, 0, 3, 0, 4, 0, 5, 0, 6, 0};
+        std::array<Index, 7> uv_indices{0, 1, 2, 3, 4, 5, 6};
+        auto id = mesh.create_attribute<Scalar>(
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
+            uv_values,
+            uv_indices);
+        weld_indexed_attribute(mesh, id);
+
+        auto& attr = mesh.get_indexed_attribute<Scalar>(id);
+        auto& values = attr.values();
+
+        REQUIRE(values.get_num_elements() == 7);
+        for (Index i = 0; i < 7; i++) {
+            REQUIRE(values.get(i, 0) == i);
+            REQUIRE(values.get(i, 1) == 0);
+        }
+    }
+
+    SECTION("With duplicate attributes")
+    {
+        std::array<Scalar, 14> uv_values{0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1, 0, 0};
+        std::array<Index, 7> uv_indices{0, 1, 2, 3, 4, 5, 6};
+        auto id = mesh.create_attribute<Scalar>(
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
+            uv_values,
+            uv_indices);
+        weld_indexed_attribute(mesh, id);
+
+        auto& attr = mesh.get_indexed_attribute<Scalar>(id);
+        auto& values = attr.values();
+        auto& indices = attr.indices();
+
+        REQUIRE(values.get_num_elements() == 4);
+
+        for (Index ci = 0; ci < mesh.get_num_corners(); ci++) {
+            Index vi = mesh.get_corner_vertex(ci);
+            auto v = mesh.get_position(vi);
+            Index i = indices.get(ci);
+            REQUIRE(values.get(i, 0) == v[0]);
+            REQUIRE(values.get(i, 1) == v[1]);
+        }
+    }
+}
+
 TEST_CASE("weld_indexed_attribute benchmark", "[surface][attribute][utilities][!benchmark]")
 {
     using namespace lagrange;

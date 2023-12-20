@@ -50,7 +50,7 @@
 #pragma once
 
 #include <lagrange/common.h>
-#include <lagrange/point_segment_squared_distance.h>
+#include <lagrange/utils/point_segment_squared_distance.h>
 
 #include <Eigen/Core>
 

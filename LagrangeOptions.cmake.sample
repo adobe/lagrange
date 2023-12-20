@@ -50,6 +50,8 @@
 # Optional modules in alphabetical order.
 # option(LAGRANGE_MODULE_BVH          "Build module lagrange::bvh"          ON)
 # option(LAGRANGE_MODULE_FS           "Build module lagrange::fs"           ON)
+# option(LAGRANGE_MODULE_IMAGE        "Build module lagrange::image"        ON)
+# option(LAGRANGE_MODULE_IMAGE_IO     "Build module lagrange::image_io"     ON)
 # option(LAGRANGE_MODULE_IO           "Build module lagrange::io"           ON)
 # option(LAGRANGE_MODULE_PARTITIONING "Build module lagrange::partitioning" ON)
 # option(LAGRANGE_MODULE_PYTHON       "Build module lagrange::python"       ON)
