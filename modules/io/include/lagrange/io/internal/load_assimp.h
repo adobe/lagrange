@@ -58,6 +58,13 @@ MeshType load_mesh_assimp(const aiScene& scene, const LoadOptions& options = {})
 template <typename SceneType>
 SceneType load_simple_scene_assimp(const aiScene& scene, const LoadOptions& options = {});
 
+/**
+ * Load a scene with assimp.
+ */
+template <typename SceneType>
+SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options = {});
+
+
 }
 
 #endif

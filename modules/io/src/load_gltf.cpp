@@ -13,6 +13,7 @@
 // this .cpp provides implementations for functions defined in those headers:
 #include <lagrange/io/internal/load_gltf.h>
 #include <lagrange/io/load_mesh_gltf.h>
+#include <lagrange/io/load_scene_gltf.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
 // ====
 
@@ -20,9 +21,12 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/internal/skinning.h>
+#include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/scene/scene_utils.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
 
 #include <tiny_gltf.h>
@@ -35,6 +39,15 @@ namespace lagrange::io {
 namespace internal {
 
 namespace {
+
+Eigen::Vector3f to_vec3(std::vector<double> v)
+{
+    return Eigen::Vector3f(v[0], v[1], v[2]);
+}
+Eigen::Vector4f to_vec4(std::vector<double> v)
+{
+    return Eigen::Vector4f(v[0], v[1], v[2], v[3]);
+}
 
 size_t get_num_channels(int type)
 {
@@ -355,9 +368,9 @@ void accessor_to_attribute(
 }
 
 template <typename MeshType>
-MeshType convert_mesh_tinygltf_to_lagrange(
+MeshType convert_tinygltf_primitive_to_lagrange_mesh(
     const tinygltf::Model& model,
-    const tinygltf::Mesh& mesh,
+    const tinygltf::Primitive& primitive,
     const LoadOptions& options)
 {
     using Index = typename MeshType::Index;
@@ -365,138 +378,111 @@ MeshType convert_mesh_tinygltf_to_lagrange(
 
     // each gltf mesh is made of one or more primitives.
     // Different primitives can reference different materials and data buffers.
-    std::vector<MeshType> lmeshes;
 
-    for (size_t i = 0; i < mesh.primitives.size(); ++i) {
-        MeshType lmesh;
-        const tinygltf::Primitive& primitive = mesh.primitives[i];
-        la_runtime_assert(primitive.mode == TINYGLTF_MODE_TRIANGLES);
+    MeshType lmesh;
+    la_runtime_assert(primitive.mode == TINYGLTF_MODE_TRIANGLES);
 
-        // read vertices
-        auto it = primitive.attributes.find("POSITION");
-        la_runtime_assert(it != primitive.attributes.end(), "missing positions");
-        {
-            const tinygltf::Accessor& accessor = model.accessors[it->second];
-            const size_t num_vertices = accessor.count;
-            la_debug_assert(accessor.type == TINYGLTF_TYPE_VEC3);
-            std::vector<Scalar> coords = load_buffer_data_as<Scalar>(model, accessor);
-            lmesh.add_vertices(Index(num_vertices), coords);
-        }
-
-        // read faces
-        {
-            const tinygltf::Accessor& accessor = model.accessors[primitive.indices];
-            const size_t num_indices = accessor.count;
-            const size_t num_facets = num_indices / 3; // because triangle
-            la_debug_assert(accessor.type == TINYGLTF_TYPE_SCALAR);
-
-            std::vector<Index> indices = load_buffer_data_as<Index>(model, accessor);
-            lmesh.add_triangles(Index(num_facets), indices);
-        }
-
-        // read other attributes
-        for (auto& attribute : primitive.attributes) {
-            if (starts_with(attribute.first, "POSITION")) continue; // already done
-
-            const tinygltf::Accessor& accessor = model.accessors[attribute.second];
-
-            const std::string& name = attribute.first;
-            std::string name_lowercase = attribute.first;
-            std::transform(
-                name_lowercase.begin(),
-                name_lowercase.end(),
-                name_lowercase.begin(),
-                [](unsigned char c) { return std::tolower(c); });
-
-            // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes
-            if (starts_with(name, "NORMAL") && options.load_normals) {
-                accessor_to_attribute(
-                    model,
-                    accessor,
-                    name_lowercase,
-                    AttributeUsage::Normal,
-                    lmesh);
-            } else if (starts_with(name, "TANGENT") && options.load_tangents) {
-                accessor_to_attribute(
-                    model,
-                    accessor,
-                    name_lowercase,
-                    AttributeUsage::Tangent,
-                    lmesh);
-            } else if (starts_with(name, "COLOR") && options.load_vertex_colors) {
-                accessor_to_attribute(
-                    model,
-                    accessor,
-                    name_lowercase,
-                    AttributeUsage::Color,
-                    lmesh);
-            } else if (starts_with(name, "JOINTS") && options.load_weights) {
-                la_runtime_assert(accessor.type == TINYGLTF_TYPE_VEC4);
-                la_runtime_assert(
-                    accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE ||
-                    accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
-                accessor_to_attribute(
-                    model,
-                    accessor,
-                    name_lowercase,
-                    AttributeUsage::Vector,
-                    lmesh);
-            } else if (starts_with(name, "WEIGHTS") && options.load_weights) {
-                la_runtime_assert(accessor.type == TINYGLTF_TYPE_VEC4);
-                la_runtime_assert(
-                    accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT ||
-                    accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE ||
-                    accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
-                accessor_to_attribute(
-                    model,
-                    accessor,
-                    name_lowercase,
-                    AttributeUsage::Vector,
-                    lmesh);
-            } else if (starts_with(name, "TEXCOORD") && options.load_uvs) {
-                accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::UV, lmesh);
-            } else {
-                accessor_to_attribute(model, accessor, name_lowercase, {}, lmesh);
-            }
-        }
-
-
-        // for future reference, material is here. No need in this function.
-        // const tinygltf::Material& mat = model.materials[primitive.material];
-
-        lmeshes.push_back(lmesh);
+    // read vertices
+    auto it = primitive.attributes.find("POSITION");
+    la_runtime_assert(it != primitive.attributes.end(), "missing positions");
+    {
+        const tinygltf::Accessor& accessor = model.accessors[it->second];
+        const size_t num_vertices = accessor.count;
+        la_debug_assert(accessor.type == TINYGLTF_TYPE_VEC3);
+        std::vector<Scalar> coords = load_buffer_data_as<Scalar>(model, accessor);
+        lmesh.add_vertices(Index(num_vertices), coords);
     }
 
-    if (lmeshes.size() == 1) {
-        return lmeshes.front();
-    } else {
-        constexpr bool preserve_attributes = true;
-        return combine_meshes<Scalar, Index>(lmeshes, preserve_attributes);
+    // read faces
+    {
+        const tinygltf::Accessor& accessor = model.accessors[primitive.indices];
+        const size_t num_indices = accessor.count;
+        const size_t num_facets = num_indices / 3; // because triangle
+        la_debug_assert(accessor.type == TINYGLTF_TYPE_SCALAR);
+
+        std::vector<Index> indices = load_buffer_data_as<Index>(model, accessor);
+        lmesh.add_triangles(Index(num_facets), indices);
     }
+
+    // read other attributes
+    for (auto& attribute : primitive.attributes) {
+        if (starts_with(attribute.first, "POSITION")) continue; // already done
+
+        const tinygltf::Accessor& accessor = model.accessors[attribute.second];
+
+        const std::string& name = attribute.first;
+        std::string name_lowercase = attribute.first;
+        std::transform(
+            name_lowercase.begin(),
+            name_lowercase.end(),
+            name_lowercase.begin(),
+            [](unsigned char c) { return std::tolower(c); });
+
+        // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes
+        if (starts_with(name, "NORMAL") && options.load_normals) {
+            accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::Normal, lmesh);
+        } else if (starts_with(name, "TANGENT") && options.load_tangents) {
+            accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::Tangent, lmesh);
+        } else if (starts_with(name, "COLOR") && options.load_vertex_colors) {
+            accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::Color, lmesh);
+        } else if (starts_with(name, "JOINTS") && options.load_weights) {
+            la_runtime_assert(accessor.type == TINYGLTF_TYPE_VEC4);
+            la_runtime_assert(
+                accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE ||
+                accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+            accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::Vector, lmesh);
+        } else if (starts_with(name, "WEIGHTS") && options.load_weights) {
+            la_runtime_assert(accessor.type == TINYGLTF_TYPE_VEC4);
+            la_runtime_assert(
+                accessor.componentType == TINYGLTF_COMPONENT_TYPE_FLOAT ||
+                accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE ||
+                accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+            accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::Vector, lmesh);
+        } else if (starts_with(name, "TEXCOORD") && options.load_uvs) {
+            accessor_to_attribute(model, accessor, name_lowercase, AttributeUsage::UV, lmesh);
+        } else {
+            accessor_to_attribute(model, accessor, name_lowercase, {}, lmesh);
+        }
+    }
+    // for future reference, material is here. No need in this function.
+    // const tinygltf::Material& mat = model.materials[primitive.material];
+
+    // convert texture coordinates from st to uv
+    scene::utils::convert_texcoord_uv_st(lmesh);
+
+    return lmesh;
 }
-#define LA_X_convert_mesh_tinygltf_to_lagrange(_, S, I)           \
-    template SurfaceMesh<S, I> convert_mesh_tinygltf_to_lagrange( \
-        const tinygltf::Model& model,                             \
-        const tinygltf::Mesh& mesh,                               \
+#define LA_X_convert_tinygltf_primitive_to_lagrange_mesh(_, S, I)           \
+    template SurfaceMesh<S, I> convert_tinygltf_primitive_to_lagrange_mesh( \
+        const tinygltf::Model& model,                                       \
+        const tinygltf::Primitive& primitive,                               \
         const LoadOptions& options);
-LA_SURFACE_MESH_X(convert_mesh_tinygltf_to_lagrange, 0);
-#undef LA_X_convert_mesh_tinygltf_to_lagrange
+LA_SURFACE_MESH_X(convert_tinygltf_primitive_to_lagrange_mesh, 0);
+#undef LA_X_convert_tinygltf_primitive_to_lagrange_mesh
 
+/**
+ * Convert all meshes in the gltf model into one lagrange mesh. Combines them if needed.
+ */
 template <typename MeshType>
 MeshType load_mesh_gltf(const tinygltf::Model& model, const LoadOptions& options)
 {
     la_runtime_assert(!model.meshes.empty());
-    if (model.meshes.size() == 1) {
-        return convert_mesh_tinygltf_to_lagrange<MeshType>(model, model.meshes[0], options);
-    } else {
-        std::vector<MeshType> meshes(model.meshes.size());
-        for (size_t i = 0; i < model.meshes.size(); ++i) {
-            meshes[i] =
-                convert_mesh_tinygltf_to_lagrange<MeshType>(model, model.meshes[i], options);
+    std::vector<MeshType> lmeshes;
+    for (const tinygltf::Mesh& mesh : model.meshes) {
+        for (const tinygltf::Primitive& primitive : mesh.primitives) {
+            MeshType lmesh =
+                convert_tinygltf_primitive_to_lagrange_mesh<MeshType>(model, primitive, options);
+            lmeshes.push_back(lmesh);
         }
+    }
+    if (lmeshes.empty()) {
+        return MeshType();
+    } else if (lmeshes.size() == 1) {
+        return lmeshes.front();
+    } else {
         constexpr bool preserve_attributes = true;
         return lagrange::combine_meshes<typename MeshType::Scalar, typename MeshType::Index>(
-            meshes,
+            lmeshes,
             preserve_attributes);
     }
 }
@@ -506,6 +492,43 @@ MeshType load_mesh_gltf(const tinygltf::Model& model, const LoadOptions& options
         const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_gltf, 0);
 #undef LA_X_load_mesh_gltf
+
+template <typename Scalar>
+Eigen::Transform<Scalar, 3, 2> get_node_transform(const tinygltf::Node& node)
+{
+    using AffineTransform = Eigen::Transform<Scalar, 3, 2>;
+    AffineTransform t;
+    if (!node.matrix.empty()) {
+        for (size_t i = 0; i < 16; ++i) {
+            t.data()[i] = Scalar(node.matrix[i]);
+        }
+    } else {
+        AffineTransform translation = AffineTransform::Identity();
+        AffineTransform rotation = AffineTransform::Identity();
+        AffineTransform scale = AffineTransform::Identity();
+        if (!node.translation.empty()) {
+            translation = Eigen::Translation<Scalar, 3>(
+                Scalar(node.translation[0]),
+                Scalar(node.translation[1]),
+                Scalar(node.translation[2]));
+        }
+        if (!node.rotation.empty()) {
+            rotation = Eigen::Quaternion<Scalar>(
+                Scalar(node.rotation[3]),
+                Scalar(node.rotation[0]),
+                Scalar(node.rotation[1]),
+                Scalar(node.rotation[2]));
+        }
+        if (!node.scale.empty()) {
+            scale = Eigen::Scaling<Scalar>(
+                Scalar(node.scale[0]),
+                Scalar(node.scale[1]),
+                Scalar(node.scale[2]));
+        }
+        t = translation * rotation * scale;
+    }
+    return t;
+}
 
 template <typename SceneType>
 SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions& options)
@@ -522,43 +545,29 @@ SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions
     for (const tinygltf::Mesh& mesh : model.meshes) {
         // By adding in the same order, we can assume that tinygltf's indexing is the same
         // as in the lagrange scene. We use this later.
-        lscene.add_mesh(convert_mesh_tinygltf_to_lagrange<MeshType>(model, mesh, options));
+        std::vector<MeshType> lmeshes;
+        for (const tinygltf::Primitive& prim : mesh.primitives) {
+            lmeshes.push_back(
+                convert_tinygltf_primitive_to_lagrange_mesh<MeshType>(model, prim, options));
+        }
+        if (!lmeshes.empty()) {
+            if (lmeshes.size() == 1) {
+                lscene.add_mesh(lmeshes.front());
+            } else {
+                constexpr bool preserve_attributes = true;
+                lscene.add_mesh(
+                    lagrange::combine_meshes<typename MeshType::Scalar, typename MeshType::Index>(
+                        lmeshes,
+                        preserve_attributes));
+            }
+        }
     }
 
     std::function<void(const tinygltf::Node&, const AffineTransform&)> visit_node;
     visit_node = [&](const tinygltf::Node& node, const AffineTransform& parent_transform) -> void {
         AffineTransform node_transform = AffineTransform::Identity();
         if constexpr (SceneType::Dim == 3) {
-            if (!node.matrix.empty()) {
-                // gltf stores in column-major order, so we should be good
-                for (size_t i = 0; i < 16; ++i) {
-                    node_transform.data()[i] = Scalar(node.matrix[i]);
-                }
-            } else {
-                AffineTransform translation = AffineTransform::Identity();
-                AffineTransform rotation = AffineTransform::Identity();
-                AffineTransform scale = AffineTransform::Identity();
-                if (!node.translation.empty()) {
-                    translation = Eigen::Translation<Scalar, 3>(
-                        Scalar(node.translation[0]),
-                        Scalar(node.translation[1]),
-                        Scalar(node.translation[2]));
-                }
-                if (!node.rotation.empty()) {
-                    rotation = Eigen::Quaternion<Scalar>(
-                        Scalar(node.rotation[3]),
-                        Scalar(node.rotation[0]),
-                        Scalar(node.rotation[1]),
-                        Scalar(node.rotation[2]));
-                }
-                if (!node.scale.empty()) {
-                    scale = Eigen::Scaling<Scalar>(
-                        Scalar(node.scale[0]),
-                        Scalar(node.scale[1]),
-                        Scalar(node.scale[2]));
-                }
-                node_transform = translation * rotation * scale;
-            }
+            node_transform = get_node_transform<Scalar>(node);
         } else {
             // TODO: convert 3d transforms into 2d
             logger().warn("Ignoring 3d node transform while loading 2d scene");
@@ -590,7 +599,6 @@ SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions
 
     return lscene;
 }
-
 #define LA_X_load_simple_scene_gltf(_, S, I, D)                  \
     template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
         const tinygltf::Model& model,                            \
@@ -598,6 +606,263 @@ SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions
 LA_SIMPLE_SCENE_X(load_simple_scene_gltf, 0);
 #undef LA_X_load_simple_scene_gltf
 
+template <typename SceneType>
+SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& options)
+{
+    SceneType lscene;
+    using MeshType = typename SceneType::MeshType;
+
+    // saves the number of primitives for each mesh. Sums up to the current one.
+    // E.g. if the model has 4 meshes with 2 prims each, this vector will be [0, 2, 4, 6].
+    // This is used later to find mesh index in the nodes.
+    std::vector<size_t> primitive_count;
+    size_t primitive_count_tmp = 0;
+
+    for (const tinygltf::Mesh& mesh : model.meshes) {
+        for (const tinygltf::Primitive& primitive : mesh.primitives) {
+            scene::utils::add_mesh(
+                lscene,
+                convert_tinygltf_primitive_to_lagrange_mesh<MeshType>(model, primitive, options));
+        }
+        primitive_count.push_back(primitive_count_tmp);
+        primitive_count_tmp += mesh.primitives.size();
+    }
+
+    auto convert_map_mode = [](int mode) -> scene::Texture::WrapMode {
+        switch (mode) {
+        case TINYGLTF_TEXTURE_WRAP_REPEAT: return scene::Texture::WrapMode::Wrap;
+        case TINYGLTF_TEXTURE_WRAP_CLAMP_TO_EDGE: return scene::Texture::WrapMode::Clamp;
+        case TINYGLTF_TEXTURE_WRAP_MIRRORED_REPEAT: return scene::Texture::WrapMode::Mirror;
+        default: return scene::Texture::WrapMode::Wrap;
+        }
+    };
+    for (const tinygltf::Texture& texture : model.textures) {
+        scene::Texture ltex;
+        ltex.image = texture.source;
+        if (texture.sampler >= 0) {
+            const tinygltf::Sampler& sampler = model.samplers[texture.sampler];
+            ltex.mag_filter = scene::Texture::TextureFilter{sampler.magFilter};
+            ltex.min_filter = scene::Texture::TextureFilter{sampler.minFilter};
+            ltex.wrap_u = convert_map_mode(sampler.wrapS);
+            ltex.wrap_v = convert_map_mode(sampler.wrapT);
+        }
+        lscene.textures.emplace_back(std::move(ltex));
+    }
+
+    for (const tinygltf::Material& material : model.materials) {
+        scene::MaterialExperimental lmat;
+        lmat.name = material.name;
+        lmat.double_sided = material.doubleSided;
+
+        lmat.base_color_value = to_vec4(material.pbrMetallicRoughness.baseColorFactor);
+        lmat.base_color_texture.index = material.pbrMetallicRoughness.baseColorTexture.index;
+        lmat.base_color_texture.texcoord = material.pbrMetallicRoughness.baseColorTexture.texCoord;
+
+        lmat.emissive_value = to_vec3(material.emissiveFactor);
+        lmat.emissive_texture.index = material.emissiveTexture.index;
+        lmat.emissive_texture.texcoord = material.emissiveTexture.texCoord;
+
+        lmat.metallic_value = material.pbrMetallicRoughness.metallicFactor;
+        lmat.roughness_value = material.pbrMetallicRoughness.roughnessFactor;
+        lmat.metallic_roughness_texture.index =
+            material.pbrMetallicRoughness.metallicRoughnessTexture.index;
+        lmat.metallic_roughness_texture.texcoord =
+            material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord;
+
+        lmat.normal_texture.index = material.normalTexture.index;
+        lmat.normal_texture.texcoord = material.normalTexture.texCoord;
+        lmat.normal_scale = material.normalTexture.scale;
+
+        lmat.occlusion_texture.index = material.occlusionTexture.index;
+        lmat.occlusion_texture.texcoord = material.occlusionTexture.texCoord;
+        lmat.occlusion_strength = material.occlusionTexture.strength;
+
+        lmat.alpha_cutoff = material.alphaCutoff;
+        if (material.alphaMode == "OPAQUE") {
+            lmat.alpha_mode = scene::MaterialExperimental::AlphaMode::Opaque;
+        } else if (material.alphaMode == "MASK") {
+            lmat.alpha_mode = scene::MaterialExperimental::AlphaMode::Mask;
+        } else if (material.alphaMode == "BLEND") {
+            lmat.alpha_mode = scene::MaterialExperimental::AlphaMode::Blend;
+        }
+
+        lscene.materials.push_back(lmat);
+    }
+    for (const tinygltf::Animation& animation : model.animations) {
+        scene::Animation lanim;
+        lanim.name = animation.name;
+        // TODO
+        lscene.animations.push_back(lanim);
+    }
+    for (const tinygltf::Image& image : model.images) {
+        // Note:
+        // We assume the image data was loaded by tinygltf.
+        // If this assumptions does not always hold, then we will have
+        // to instead read the gltf buffer or file from disk.
+        la_runtime_assert(image.width > 0);
+        la_runtime_assert(image.height > 0);
+        la_runtime_assert(image.component > 0);
+        la_runtime_assert(
+            static_cast<int>(image.image.size()) == image.width * image.height * image.component);
+
+        scene::ImageLegacy limage;
+        limage.name = image.name;
+        limage.uri = image.uri;
+        fs::path path;
+        if (!image.uri.empty()) path = image.uri;
+        if (image.mimeType == "image/jpeg" || path.extension() == ".jpg" ||
+            path.extension() == ".jpeg") {
+            limage.type = scene::ImageLegacy::Type::Jpeg;
+        } else if (image.mimeType == "image/png" || path.extension() == ".png") {
+            limage.type = scene::ImageLegacy::Type::Png;
+        } else if (image.mimeType == "image/bmp" || path.extension() == ".bmp") {
+            limage.type = scene::ImageLegacy::Type::Bmp;
+        } else if (image.mimeType == "image/gif" || path.extension() == ".gif") {
+            limage.type = scene::ImageLegacy::Type::Gif;
+        } else {
+            limage.type = scene::ImageLegacy::Type::Unknown;
+        }
+        limage.width = image.width;
+        limage.height = image.height;
+        limage.channel = [](int component) {
+            switch (component) {
+            case 1: return image::ImageChannel::one;
+            case 3: return image::ImageChannel::three;
+            case 4: return image::ImageChannel::four;
+            default:
+                logger().warn("Loading image with unsupported number of channels!");
+                return image::ImageChannel::unknown;
+            }
+        }(image.component);
+        limage.precision = [](int precision) {
+            switch (precision) {
+            case TINYGLTF_COMPONENT_TYPE_BYTE: return image::ImagePrecision::int8;
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: return image::ImagePrecision::uint8;
+            case TINYGLTF_COMPONENT_TYPE_INT: return image::ImagePrecision::int32;
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: return image::ImagePrecision::uint32;
+            case TINYGLTF_COMPONENT_TYPE_FLOAT: return image::ImagePrecision::float32;
+            case TINYGLTF_COMPONENT_TYPE_DOUBLE: return image::ImagePrecision::float64;
+            case TINYGLTF_COMPONENT_TYPE_SHORT: // unsupported, fallthrough
+            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: // unsupported, fallthrough
+            default:
+                logger().warn("Loading image with unsupported pixel precision!");
+                return image::ImagePrecision::unknown;
+            }
+        }(image.pixel_type);
+        limage.data = std::make_unique<image::ImageStorage>(
+            limage.get_element_size() * image.width * image.component,
+            image.height,
+            1);
+        std::copy(image.image.begin(), image.image.end(), limage.data->data());
+        lscene.images.emplace_back(std::move(limage));
+    }
+
+    for (const tinygltf::Light& light : model.lights) {
+        // note that this is not part of the gltf official spec, it is an extension.
+        // https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_lights_punctual/README.md
+        scene::Light llight;
+        llight.name = light.name;
+        Eigen::Vector3f color;
+        color << light.color[0], light.color[1], light.color[2];
+        llight.color_diffuse = color;
+        llight.color_ambient = color;
+        llight.color_specular = color;
+        llight.intensity = light.intensity;
+        llight.range = light.range;
+        if (light.type == "directional") {
+            llight.type = scene::Light::Type::Directional;
+        } else if (light.type == "point") {
+            llight.type = scene::Light::Type::Point;
+        } else if (light.type == "spot") {
+            llight.type = scene::Light::Type::Spot;
+            llight.angle_inner_cone = light.spot.innerConeAngle;
+            llight.angle_outer_cone = light.spot.outerConeAngle;
+        } else {
+            llight.type = scene::Light::Type::Undefined;
+        }
+        // this extension does not define ambient or area lights.
+        lscene.lights.push_back(llight);
+    }
+
+    for (const tinygltf::Camera& camera : model.cameras) {
+        scene::Camera lcam;
+        lcam.name = camera.name;
+        if (camera.type == "perspective") {
+            lcam.type = scene::Camera::Type::Perspective;
+            lcam.aspect_ratio = camera.perspective.aspectRatio;
+            lcam.set_horizontal_fov_from_vertical_fov(camera.perspective.yfov);
+            lcam.near_plane = camera.perspective.znear;
+            lcam.far_plane = camera.perspective.zfar;
+        } else {
+            lcam.type = scene::Camera::Type::Orthographic;
+            lcam.near_plane = camera.orthographic.znear;
+            lcam.far_plane = camera.orthographic.zfar;
+            lcam.aspect_ratio = camera.orthographic.xmag / camera.orthographic.ymag;
+            lcam.orthographic_width = camera.orthographic.xmag;
+            lcam.horizontal_fov = 0.f;
+        }
+        // gltf camera does not specify a position, so we leave them to default.
+        lscene.cameras.push_back(lcam);
+    }
+    // TODO model.skins ?
+
+    std::function<size_t(const tinygltf::Node&, size_t parent_idx)> create_node;
+    create_node = [&](const tinygltf::Node& node, size_t parent_idx) -> size_t {
+        size_t lnode_idx = lscene.nodes.size();
+        lscene.nodes.push_back(scene::Node());
+        auto& lnode = lscene.nodes.back();
+
+        lnode.name = node.name;
+        lnode.transform = get_node_transform<float>(node);
+        lnode.parent = parent_idx;
+
+        if (node.camera >= 0) lnode.cameras.push_back(node.camera);
+        if (node.mesh >= 0) {
+            const tinygltf::Mesh& mesh = model.meshes[node.mesh];
+            for (size_t i = 0; i < mesh.primitives.size(); ++i) {
+                size_t mesh_idx = primitive_count[node.mesh] + i;
+                size_t material_idx = mesh.primitives[i].material;
+                lnode.meshes.push_back({mesh_idx, {material_idx}});
+            }
+        }
+
+        // TODO handle skin property
+
+        size_t children_count = node.children.size();
+        lnode.children.resize(children_count);
+        for (size_t i = 0; i < children_count; ++i) {
+            int child_idx = node.children[i];
+            lnode.children[i] = create_node(model.nodes[child_idx], lnode_idx);
+        }
+        return lnode_idx;
+    };
+
+    if (model.scenes.empty()) {
+        logger().warn("glTF does not contain any scene.");
+    } else {
+        int scene_id = model.defaultScene;
+        if (scene_id < 0) {
+            logger().warn("No default scene selected. Using the first available scene.");
+            scene_id = 0;
+        }
+        // we still traverse the hierarchy rather than copying the list of node for 2 reasons:
+        // 1. we need to set the node's parent index
+        // 2. we only traverse the hierarchy of the selected scene
+        lscene.nodes.reserve(model.nodes.size());
+        for (int lnode_idx : model.scenes[scene_id].nodes) {
+            size_t root_index = create_node(model.nodes[lnode_idx], lagrange::invalid<size_t>());
+            lscene.root_nodes.push_back(root_index);
+        }
+    }
+
+    return lscene;
+}
+#define LA_X_load_scene_gltf(_, S, I)            \
+    template scene::Scene<S, I> load_scene_gltf( \
+        const tinygltf::Model& model,            \
+        const LoadOptions& options);
+LA_SCENE_X(load_scene_gltf, 0);
+#undef LA_X_load_scene_gltf
 
 } // namespace internal
 
@@ -646,9 +911,35 @@ SceneType load_simple_scene_gltf(std::istream& input_stream, const LoadOptions& 
         const fs::path& filename,                                \
         const LoadOptions& options);                             \
     template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
-        std::istream&,                                           \
+        std::istream& input_stream,                              \
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene_gltf, 0);
 #undef LA_X_load_simple_scene_gltf
+
+
+// =====================================
+// load_scene_gltf.h
+// =====================================
+template <typename SceneType>
+SceneType load_scene_gltf(const fs::path& filename, const LoadOptions& options)
+{
+    tinygltf::Model model = internal::load_tinygltf(filename);
+    return internal::load_scene_gltf<SceneType>(model, options);
+}
+template <typename SceneType>
+SceneType load_scene_gltf(std::istream& input_stream, const LoadOptions& options)
+{
+    tinygltf::Model model = internal::load_tinygltf(input_stream);
+    return internal::load_scene_gltf<SceneType>(model, options);
+}
+#define LA_X_load_scene_gltf(_, S, I)            \
+    template scene::Scene<S, I> load_scene_gltf( \
+        const fs::path& filename,                \
+        const LoadOptions& options);             \
+    template scene::Scene<S, I> load_scene_gltf( \
+        std::istream& input_stream,              \
+        const LoadOptions& options);
+LA_SCENE_X(load_scene_gltf, 0);
+#undef LA_X_load_scene_gltf
 
 } // namespace lagrange::io

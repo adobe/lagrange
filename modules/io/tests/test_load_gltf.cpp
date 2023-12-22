@@ -58,14 +58,14 @@ TEST_CASE("load_mesh_gltf_animated_cube", "[io]")
 TEST_CASE("load_gltf_avocado", "[io]")
 {
     auto mesh = io::load_mesh_gltf<lagrange::SurfaceMesh32f>(
-        testing::get_data_path("open/io/gltf_avocado/Avocado.gltf"));
+        testing::get_data_path("open/io/avocado/Avocado.gltf"));
     REQUIRE(mesh.get_num_vertices() > 0);
     REQUIRE(mesh.get_num_facets() > 0);
     REQUIRE(mesh.has_attribute(AttributeName::normal));
     REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
 
     auto scene = io::load_simple_scene_gltf<lagrange::scene::SimpleScene32f3>(
-        testing::get_data_path("open/io/gltf_avocado/Avocado.gltf"));
+        testing::get_data_path("open/io/avocado/Avocado.gltf"));
     REQUIRE(scene.get_num_meshes() == 1);
     REQUIRE(scene.get_num_instances(0) == 1);
 }

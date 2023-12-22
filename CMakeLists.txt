@@ -129,26 +129,27 @@ else()
 endif()
 
 # Python defaults
-if(SKBUILD)
-    if(LINUX)
-        # MKL doesn't support building Python modules with individual shared libraries. On Linux dlopen()
-        # would fail with the following error:
-        #
-        #   INTEL MKL ERROR: <...>/libmkl_def.so.1: undefined symbol: mkl_sparse_optimize_bsr_trsm_i8.
-        #   Intel MKL FATAL ERROR: Cannot load libmkl_def.so.1.
-        #
-        # The reason is that the three libraries libmkl_core, libmkl_intel and libmkl_thread need to be
-        # dlopened with RTLD_GLOBAL first. One needs to link against libmkl_rt instead. See this issue for
-        # more details:
-        #
-        # https://gitlab.kitware.com/cmake/cmake/-/issues/20491
-        #
-        # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
-        # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
-        #
-        set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-        option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
-    endif()
+if(SKBUILD AND LINUX)
+    # MKL doesn't support building Python modules with individual shared libraries. On Linux dlopen()
+    # would fail with the following error:
+    #
+    #   INTEL MKL ERROR: <...>/libmkl_def.so.1: undefined symbol: mkl_sparse_optimize_bsr_trsm_i8.
+    #   Intel MKL FATAL ERROR: Cannot load libmkl_def.so.1.
+    #
+    # The reason is that the three libraries libmkl_core, libmkl_intel and libmkl_thread need to be
+    # dlopened with RTLD_GLOBAL first. One needs to link against libmkl_rt instead. See this issue for
+    # more details:
+    #
+    # https://gitlab.kitware.com/cmake/cmake/-/issues/20491
+    #
+    # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
+    # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
+    #
+    set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+    option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
+
+    # Set RPATH to $ORIGIN on Linux
+    set(CMAKE_INSTALL_RPATH $ORIGIN)
 endif()
 
 # Meta target: ALL includes all optional modules and UI.
@@ -177,6 +178,7 @@ option(LAGRANGE_PERFORMANCE_TESTS       "Build all performance tests"           
 option(LAGRANGE_UNIT_TESTS              "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_USE_PCH                 "Enable precompiled headers"                           OFF)
 option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            OFF)
+option(LAGRANGE_USE_WASM_THREADS        "Enable threads (-pthread) with Emscripten"            ON)
 option(LAGRANGE_WITH_ONETBB             "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)
 
@@ -294,6 +296,7 @@ include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
 include(lagrange_warnings)
+include(lagrange_xcode_check)
 include(sanitizers)
 
 if(LAGRANGE_TOPLEVEL_PROJECT)
@@ -308,7 +311,15 @@ if(LAGRANGE_LIMIT_PARALLELISM)
     lagrange_limit_parallelism()
 endif()
 
-find_package(Threads REQUIRED)
+set(TBB_ENABLE_WASM_THREADS ${LAGRANGE_USE_WASM_THREADS})
+
+# Force -pthread during compilation for Emscripten
+if(EMSCRIPTEN AND LAGRANGE_USE_WASM_THREADS)
+    set(THREADS_HAVE_PTHREAD_ARG TRUE)
+endif()
+
+set(THREADS_PREFER_PTHREAD_FLAG TRUE)
+find_package(Threads REQUIRED GLOBAL)
 
 # Include OneTBB early to provide TBB::tbb target
 if(LAGRANGE_WITH_ONETBB)

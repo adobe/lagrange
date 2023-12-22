@@ -144,4 +144,13 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(!is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
     }
+
+    SECTION("isolated vertices")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        REQUIRE(compute_euler(mesh) == 1);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+    }
 }

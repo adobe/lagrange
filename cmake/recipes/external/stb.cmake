@@ -45,6 +45,12 @@ function(stb_make_target header target_name macro_definition)
                               $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
+    # Warning setting
+    set(unix_compilers "AppleClang;Clang;GNU")
+    if(CMAKE_CXX_COMPILER_ID IN_LIST unix_compilers) # IN_LIST wants the second arg to be a var
+        target_compile_options(${FULL_TARGET} PRIVATE "-Wno-deprecated-declarations")
+    endif()
+
     # Install rules
     set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ${FULL_TARGET})
     install(FILES "${stb_SOURCE_DIR}/stb_${target_name}.h" DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

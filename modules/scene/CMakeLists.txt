@@ -17,9 +17,12 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_scene PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
 
+lagrange_include_modules(image)
+
 # 2. dependencies
 target_link_libraries(lagrange_scene
     lagrange::core
+    lagrange::image
 )
 
 # 3. installation

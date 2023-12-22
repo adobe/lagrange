@@ -210,16 +210,16 @@ class TestIO:
         mesh = triangle
         selected_attributes = [
             mesh.create_attribute(
-                "vertex_id",
+                "_vertex_id",
                 element=lagrange.AttributeElement.Vertex,
                 usage=lagrange.AttributeUsage.Scalar,
-                initial_values=np.array([0, 1, 2]),
+                initial_values=np.array([0, 1, 2], dtype=np.float32),
             ),
             mesh.create_attribute(
-                "facet_id",
+                "_facet_id",
                 element=lagrange.AttributeElement.Facet,
                 usage=lagrange.AttributeUsage.Scalar,
-                initial_values=np.array([0]),
+                initial_values=np.array([0], dtype=np.float32),
             ),
         ]
 
@@ -229,5 +229,5 @@ class TestIO:
             )
             mesh2 = lagrange.io.string_to_mesh(data)
             assert_same_vertices_and_facets(mesh, mesh2)
-            assert mesh2.has_attribute("vertex_id")
-            assert mesh2.has_attribute("facet_id")
+            assert mesh2.has_attribute("_vertex_id")
+            assert mesh2.has_attribute("_facet_id")

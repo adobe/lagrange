@@ -103,6 +103,7 @@ bool is_vertex_manifold(const SurfaceMesh<Scalar, Index>& mesh)
                 rim_edges.insert({vk, rim_edges.size()});
             }
         }
+        if (rim_edges.empty()) return true;
 
         // An interior vertex is manifold iff each of its neighboring vertex has one incoming rim
         // edge and one outgoing rim edge.  For vertices on the mesh boundary, it should has exactly

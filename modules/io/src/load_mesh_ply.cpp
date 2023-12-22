@@ -307,19 +307,23 @@ MeshType load_mesh_ply(std::istream& input_stream, const LoadOptions& options)
         });
     }
 
-    const std::vector<std::vector<Index>>& facets = ply.getFaceIndices<Index>();
-    mesh.add_hybrid(
-        Index(facets.size()),
-        [&](Index f) -> Index { return Index(facets[f].size()); },
-        [&](Index f, span<Index> t) -> void {
-            const auto& face = facets[f];
-            for (size_t i = 0; i < face.size(); ++i) {
-                t[i] = Index(face[i]);
-            }
-        });
+    if (ply.hasElement("face")) {
+        const std::vector<std::vector<Index>>& facets = ply.getFaceIndices<Index>();
+        mesh.add_hybrid(
+            Index(facets.size()),
+            [&](Index f) -> Index { return Index(facets[f].size()); },
+            [&](Index f, span<Index> t) -> void {
+                const auto& face = facets[f];
+                for (size_t i = 0; i < face.size(); ++i) {
+                    t[i] = Index(face[i]);
+                }
+            });
+    }
 
     extract_vertex_properties(vertex_element, mesh, options);
-    extract_facet_properties(ply.getElement("face"), mesh, options);
+    if (ply.hasElement("face")) {
+        extract_facet_properties(ply.getElement("face"), mesh, options);
+    }
     return mesh;
 }
 

@@ -46,7 +46,9 @@ __pycache__
 *.vtk
 
 # Openvdb files
-*.vdb
+tensor_*.json
+tensor_*.vdb
+func_*.json
 
 # Extra directories
 /.vscode

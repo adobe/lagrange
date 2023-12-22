@@ -11,7 +11,7 @@ name = "lagrange-open"
 maintainers = [{name = "Lagrange Core Team", email = "lagrange-core@adobe.com"}]
 description = "A robust geometry processing engine"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.23",
     "colorama>=0.4.5",
@@ -32,6 +32,7 @@ LAGRANGE_ASSERT_DEBUG_BREAK = false
 LAGRANGE_EXAMPLES = false
 LAGRANGE_INSTALL = false
 LAGRANGE_MODULE_IO = true
+LAGRANGE_MODULE_IMAGE = true
 LAGRANGE_MODULE_PYTHON = true
 LAGRANGE_MODULE_SCENE = true
 LAGRANGE_UNIT_TESTS = false
