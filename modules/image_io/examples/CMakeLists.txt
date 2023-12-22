@@ -9,10 +9,12 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-lagrange_include_modules(raycasting)
-lagrange_include_modules(io)
-lagrange_add_example(uv_image uv_image.cpp)
-target_link_libraries(uv_image lagrange::raycasting lagrange::io lagrange::image_io CLI11::CLI11)
+if(NOT LAGRANGE_NO_INTERNAL) # temporary workaround until lagrange/#7 is merged...
+    lagrange_include_modules(raycasting)
+    lagrange_include_modules(io)
+    lagrange_add_example(uv_image uv_image.cpp)
+    target_link_libraries(uv_image lagrange::raycasting lagrange::io lagrange::image_io CLI11::CLI11)
+endif()
 
 lagrange_add_example(mesh_to_svg mesh_to_svg.cpp)
 target_link_libraries(mesh_to_svg lagrange::io lagrange::image_io CLI11::CLI11)
