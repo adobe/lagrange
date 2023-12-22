@@ -11,7 +11,7 @@ name = "lagrange-open"
 maintainers = [{name = "Lagrange Core Team", email = "lagrange-core@adobe.com"}]
 description = "A robust geometry processing engine"
 readme = "README.md"
-requires-python = ">=3.9,<3.12"
+requires-python = ">=3.9"
 dependencies = [
     "numpy>=1.23",
     "colorama>=0.4.5",
