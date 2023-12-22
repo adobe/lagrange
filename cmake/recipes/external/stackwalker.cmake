@@ -22,8 +22,10 @@ CPMAddPackage(
     NAME StackWalker
     GITHUB_REPOSITORY JochenKalmbach/StackWalker
     GIT_TAG 5b0df7a4db8896f6b6dc45d36e383c52577e3c6b
+    DOWNLOAD_ONLY YES
 )
 
+add_library(StackWalker STATIC ${StackWalker_SOURCE_DIR}/Main/StackWalker/StackWalker.cpp)
 add_library(StackWalker::StackWalker ALIAS StackWalker)
 
 target_include_directories(StackWalker PUBLIC ${StackWalker_SOURCE_DIR}/Main/StackWalker)
