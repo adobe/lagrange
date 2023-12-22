@@ -28,8 +28,6 @@ jobs:
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
         exclude:
-          # - os: macos-12
-          #   sanitizer: "Thread"
           - os: macos-12
             compiler: gcc
           - os: ubuntu-22.04
