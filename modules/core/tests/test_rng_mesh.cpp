@@ -19,6 +19,7 @@
 // clang-format on
 
 #include <random>
+#include <array>
 
 namespace {
 

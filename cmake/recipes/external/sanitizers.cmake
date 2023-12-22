@@ -35,9 +35,9 @@ function(append value)
 endfunction()
 
 if(USE_SANITIZER)
-  append("-fno-omit-frame-pointer" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
-
   if(UNIX)
+    append("-fno-omit-frame-pointer" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+
     if(uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
       append("-O1" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
     endif()
@@ -79,7 +79,27 @@ if(USE_SANITIZER)
   elseif(MSVC)
     if(USE_SANITIZER MATCHES "([Aa]ddress)")
       message(STATUS "Building with Address sanitizer")
-      append("-fsanitize=address" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+      # Do use AddressSanitizer you need to disable incompatible options. See details here:
+      # https://learn.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170#ide-msbuild
+      #
+      # Please note that there are some issues with using it directly from the IDE, it may work better to
+      # run the code from the command-line (and through `ctest` which enables the ASAN_SAVE_DUMPS env variable):
+      # https://stackoverflow.com/questions/76781556/visual-studio-22-asan-failed-to-use-and-restart-external-symbolizer
+      # https://developercommunity.visualstudio.com/t/Fail-to-use-and-restart-external-symbol/10222443?q=+Failed+to+use+and+restart+external+symbolizer
+      append("/fsanitize=address" CMAKE_C_FLAGS CMAKE_CXX_FLAGS)
+
+      # Disable incremental linking
+      add_link_options(/INCREMENTAL:NO)
+
+      # Disable RTC flag
+      foreach(flag_var
+        CMAKE_CXX_FLAGS CMAKE_CXX_FLAGS_DEBUG CMAKE_CXX_FLAGS_RELEASE
+        CMAKE_CXX_FLAGS_MINSIZEREL CMAKE_CXX_FLAGS_RELWITHDEBINFO)
+        string(REGEX REPLACE "/RTC[^ ]*" "" ${flag_var} "${${flag_var}}")
+      endforeach(flag_var)
+
+      # Do not use program database for debug builds (since it requires incremental linking).
+      set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     else()
       message(
         FATAL_ERROR

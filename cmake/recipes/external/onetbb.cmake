@@ -25,6 +25,7 @@ option(TBB_TEST "Enable testing" OFF)
 option(TBB_EXAMPLES "Enable examples" OFF)
 option(TBB_STRICT "Treat compiler warnings as errors" OFF)
 option(TBB_PREFER_STATIC "Use the static version of TBB for the alias target" ON)
+option(TBB_ENABLE_WASM_THREADS "Use wasm threads" ON)
 unset(TBB_DIR CACHE)
 
 function(onetbb_import_target)
@@ -62,11 +63,17 @@ function(onetbb_import_target)
 
     set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME tbb)
     include(CPM)
+
     CPMAddPackage(
         NAME tbb
         GITHUB_REPOSITORY oneapi-src/oneTBB
         GIT_TAG v2021.11.0
     )
+
+    # TODO: This might break with future versions of onetbb. Onetbb should eventually add a proper cmake option to turn wasm threads on/off.
+    if (EMSCRIPTEN AND NOT TBB_ENABLE_WASM_THREADS)
+        set_property(TARGET Threads::Threads PROPERTY INTERFACE_LINK_LIBRARIES "")
+    endif()
 
     pop_variable(BUILD_SHARED_LIBS)
 endfunction()

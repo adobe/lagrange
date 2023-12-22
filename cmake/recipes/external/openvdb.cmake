@@ -119,7 +119,7 @@ function(openvdb_import_target)
     CPMAddPackage(
         NAME openvdb
         GITHUB_REPOSITORY AcademySoftwareFoundation/openvdb
-        GIT_TAG v10.1.0
+        GIT_TAG v11.0.0
     )
 
     unignore_package(TBB)

@@ -98,7 +98,7 @@ void bind_attribute(nanobind::module_& m)
                 if (tensor.dtype() != nb::dtype<ValueType>()) {
                     throw nb::type_error(fmt::format(
                         "Tensor has a unexpected dtype.  Expecting {}.",
-                        internal::string_from_scalar<ValueType>()));
+                        internal::string_from_scalar<ValueType>()).c_str());
                 }
                 Tensor<ValueType> local_tensor(tensor.handle());
                 auto [data, shape, stride] = tensor_to_span(local_tensor);
@@ -125,7 +125,7 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self) {
             return self.process([&](auto& attr) {
                 auto tensor = attribute_to_tensor(attr, nb::find(&self));
-                return nb::find(tensor);
+                return nb::cast(tensor, nb::rv_policy::reference_internal);
             });
         },
         [](PyAttribute& self, GenericTensor tensor) {
@@ -134,7 +134,7 @@ void bind_attribute(nanobind::module_& m)
                 if (tensor.dtype() != nb::dtype<ValueType>()) {
                     throw nb::type_error(fmt::format(
                         "Tensor has a unexpected dtype.  Expecting {}.",
-                        internal::string_from_scalar<ValueType>()));
+                        internal::string_from_scalar<ValueType>()).c_str());
                 }
                 Tensor<ValueType> local_tensor(tensor.handle());
                 auto [data, shape, stride] = tensor_to_span(local_tensor);

@@ -106,3 +106,13 @@ add_library(lagrange_testing_main ${CMAKE_CURRENT_SOURCE_DIR}/main/main.cpp)
 target_link_libraries(lagrange_testing_main PUBLIC lagrange::core lagrange::testing)
 add_library(lagrange::testing::main ALIAS lagrange_testing_main)
 set_target_properties(lagrange_testing_main PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")
+
+# Enable StackWalker on Windows
+if(WIN32)
+    option(LAGRANGE_STACKWALKER "Enable StackWalker on Windows" ON)
+endif()
+if(WIN32 AND LAGRANGE_STACKWALKER)
+    include(stackwalker)
+    target_compile_definitions(lagrange_testing_main PRIVATE -DLAGRANGE_WITH_STACKWALKER)
+    target_link_libraries(lagrange_testing_main PRIVATE StackWalker::StackWalker)
+endif()

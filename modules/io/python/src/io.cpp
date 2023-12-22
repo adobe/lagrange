@@ -17,13 +17,16 @@
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_mesh_ply.h>
+#include <lagrange/io/load_scene.h>
 #include <lagrange/io/load_simple_scene.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/io/save_mesh_gltf.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/io/save_mesh_obj.h>
 #include <lagrange/io/save_mesh_ply.h>
+#include <lagrange/io/save_scene.h>
 #include <lagrange/io/save_simple_scene.h>
+#include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/Error.h>
 
@@ -52,6 +55,41 @@ void populate_io_module(nb::module_& m)
     using Index = uint32_t;
     using MeshType = SurfaceMesh<Scalar, Index>;
     using SceneType = scene::SimpleScene<Scalar, Index, 3>;
+
+    nb::class_<io::LoadOptions>(m, "LoadOptions")
+        .def(nb::init<>())
+        .def_rw("triangulate", &io::LoadOptions::triangulate)
+        .def_rw("load_normals", &io::LoadOptions::load_normals)
+        .def_rw("load_tangents", &io::LoadOptions::load_tangents)
+        .def_rw("load_uvs", &io::LoadOptions::load_uvs)
+        .def_rw("load_weights", &io::LoadOptions::load_weights)
+        .def_rw("load_materials", &io::LoadOptions::load_materials)
+        .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
+        .def_rw("load_object_id", &io::LoadOptions::load_object_id)
+        .def_rw("search_path", &io::LoadOptions::search_path);
+
+    nb::enum_<io::FileEncoding>(m, "FileEncoding")
+        .value("Binary", io::FileEncoding::Binary)
+        .value("Ascii", io::FileEncoding::Ascii);
+    nb::enum_<io::FileFormat>(m, "FileFormat")
+        .value("Obj", io::FileFormat::Obj)
+        .value("Ply", io::FileFormat::Ply)
+        .value("Gltf", io::FileFormat::Gltf)
+        .value("Msh", io::FileFormat::Msh)
+        .value("Unknown", io::FileFormat::Unknown);
+    nb::class_<io::SaveOptions> save_options(m, "SaveOptions");
+    save_options.def(nb::init<>())
+        .def_rw("encoding", &io::SaveOptions::encoding)
+        .def_rw("output_attributes", &io::SaveOptions::output_attributes)
+        .def_rw("selected_attributes", &io::SaveOptions::selected_attributes)
+        .def_rw("attribute_conversion_policy", &io::SaveOptions::attribute_conversion_policy);
+    nb::enum_<io::SaveOptions::OutputAttributes>(save_options, "OutputAttributes")
+        .value("All", io::SaveOptions::OutputAttributes::All)
+        .value("SelectedOnly", io::SaveOptions::OutputAttributes::SelectedOnly);
+    nb::enum_<io::SaveOptions::AttributeConversionPolicy>(save_options, "AttributeConversionPolicy")
+        .value("ExactMatchOnly", io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly)
+        .value("ConvertAsNeeded", io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded);
+
 
     m.def(
         "save_mesh",
@@ -233,6 +271,30 @@ The binary string should use one of the supported formats. Supported formats inc
                     Defaults to False.
 
 :return SurfaceMesh: The mesh object extracted from the input string.)");
+
+    m.def(
+        "load_scene",
+        io::load_scene<scene::Scene<Scalar, Index>>,
+        "filename"_a,
+        "options"_a = io::LoadOptions(),
+        R"(Load a scene.
+
+:param filename:    The input file name.
+:param options:     Load scene options. Check the class for more details.
+
+:return Scene: The loaded scene object.)");
+
+    m.def(
+        "save_scene",
+        io::save_scene<Scalar, Index>,
+        "filename"_a,
+        "scene"_a,
+        "options"_a = io::SaveOptions(),
+        R"(Save a scene.
+
+:param filename:    The output file name.
+:param scene:       The scene to save.
+:param options:     Save options. Check the class for more details.)");
 }
 
 } // namespace lagrange::python

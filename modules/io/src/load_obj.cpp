@@ -9,17 +9,32 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+
+// this .cpp provides implementation for functions defined in those headers:
 #include <lagrange/io/internal/load_obj.h>
+#include <lagrange/io/load_mesh_obj.h>
+#include <lagrange/io/load_scene_obj.h>
+// ====
 
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
+#include <lagrange/io/internal/scene_utils.h>
+#include <lagrange/scene/Scene.h>
+#include <lagrange/scene/SceneTypes.h>
+#include <lagrange/scene/SimpleScene.h>
+#include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/scene/scene_utils.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/invalid.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
-#include <lagrange/utils/invalid.h>
+
+#include <tiny_gltf.h>
+#include <numeric>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -27,14 +42,14 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <numeric>
-#include <sstream>
-
 namespace lagrange::io {
+
 namespace internal {
 
 template <typename MeshType>
-auto extract_mesh(tinyobj::ObjReader& reader, const LoadOptions& options)
+ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mesh(
+    const tinyobj::ObjReader& reader,
+    const LoadOptions& options)
 {
     using Scalar = typename MeshType::Scalar;
     using Index = typename MeshType::Index;
@@ -255,7 +270,8 @@ tinyobj::ObjReader load_obj(const fs::path& filename, const LoadOptions& options
     return reader;
 }
 
-tinyobj::ObjReader load_obj(std::istream& input_stream, const LoadOptions& options)
+tinyobj::ObjReader
+load_obj(std::istream& input_stream_obj, std::istream& input_stream_mtl, const LoadOptions& options)
 {
     tinyobj::ObjReader reader;
 
@@ -265,14 +281,155 @@ tinyobj::ObjReader load_obj(std::istream& input_stream, const LoadOptions& optio
     config.vertex_color = options.load_vertex_colors;
     config.mtl_search_path = options.search_path.string();
 
-    std::istreambuf_iterator<char> data_itr(input_stream), end_of_stream;
-    std::string obj_data(data_itr, end_of_stream);
-    std::string mtl_data;
+    std::istreambuf_iterator<char> data_itr_obj(input_stream_obj), end_of_stream_obj;
+    std::string obj_data(data_itr_obj, end_of_stream_obj);
+
+    std::istreambuf_iterator<char> data_itr_mtl(input_stream_mtl), end_of_stream_mtl;
+    std::string mtl_data(data_itr_mtl, end_of_stream_mtl);
     reader.ParseFromString(obj_data, mtl_data, config);
 
     return reader;
 }
 
+// =====================================
+// internal/load_mesh_obj.h
+// =====================================
+template <typename MeshType>
+MeshType load_mesh_obj(const tinyobj::ObjReader& reader, const LoadOptions& options)
+{
+    auto result = extract_mesh<MeshType>(reader, options);
+    return std::move(result.mesh);
+}
+#define LA_X_load_mesh_obj(_, S, I)             \
+    template SurfaceMesh<S, I> load_mesh_obj(   \
+        const const tinyobj::ObjReader& reader, \
+        const LoadOptions& options);            \
+    LA_SURFACE_MESH_X(load_mesh_obj, 0)
+#undef LA_X_load_mesh_obj
+
+template <typename SceneType>
+SceneType load_simple_scene_obj(const tinyobj::ObjReader& reader, const LoadOptions& options)
+{
+    // TODO:
+    // this function is rather useless as it is. We should split mesh objects into separate meshes
+    // (or rather, don't combine them in the first place).
+
+    using MeshType = typename SceneType::MeshType;
+    using Index = typename MeshType::Index;
+    using AffineTransform = typename SceneType::AffineTransform;
+
+    auto result = extract_mesh<MeshType>(reader, options);
+
+    SceneType lscene;
+    Index mesh_idx = lscene.add_mesh(result.mesh);
+    lscene.add_instance({mesh_idx, AffineTransform()});
+    return lscene;
+}
+#define LA_X_load_simple_scene_obj(_, S, I, D)                  \
+    template scene::SimpleScene<S, I, D> load_simple_scene_obj( \
+        const tinyobj::ObjReader& reader,                       \
+        const LoadOptions& options);
+LA_SIMPLE_SCENE_X(load_simple_scene_obj, 0);
+#undef LA_X_load_simple_scene_obj
+
+template <typename SceneType>
+SceneType load_scene_obj(const tinyobj::ObjReader& reader, const LoadOptions& options)
+{
+    // TODO:
+    // Just like the above, we should split mesh objects into separate meshes.
+    // However, this function is not useless, as it also returns material information.
+
+    using MeshType = typename SceneType::MeshType;
+
+    auto result = extract_mesh<MeshType>(reader, options);
+
+    SceneType lscene;
+    scene::ElementId mesh_idx = scene::utils::add_mesh(lscene, result.mesh);
+
+    // make a node to hold the meshes
+    scene::Node lnode;
+    lnode.meshes.push_back({mesh_idx, {}});
+
+    for (const tinyobj::material_t& mat : reader.GetMaterials()) {
+        scene::MaterialExperimental lmat;
+        lmat.name = mat.name;
+        
+        // we use the PBR extension in tinyobj, but note that this data may not be in the mtl
+        // http://exocortex.com/blog/extending_wavefront_mtl_to_support_pbr
+        lmat.base_color_value =
+            Eigen::Vector4<float>(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2], 1.0);
+        lmat.emissive_value = Eigen::Vector3<float>(mat.emission[0], mat.emission[1], mat.emission[2]);
+
+        auto try_load_texture = [&](const std::string& name,
+                                    const tinyobj::texture_option_t& tex_opt,
+                                    scene::TextureInfo& tex_info) {
+            scene::ImageLegacy limage;
+            limage.name = name;
+            limage.uri = name;
+            if (options.load_images) {
+                if (!io::internal::try_load_image(name, options, limage)) return;
+            }
+            int image_idx = static_cast<int>(lscene.images.size());
+            lscene.images.push_back(limage);
+
+            tex_info.index = static_cast<int>(lscene.textures.size());
+
+            scene::Texture ltex;
+            ltex.name = name;
+            ltex.image = image_idx;
+            ltex.offset = Eigen::Vector2f(tex_opt.origin_offset[0], tex_opt.origin_offset[1]);
+            ltex.scale = Eigen::Vector2f(tex_opt.scale[0], tex_opt.scale[1]);
+            if (tex_opt.clamp) {
+                ltex.wrap_u = ltex.wrap_v = scene::Texture::WrapMode::Clamp;
+            }
+            lscene.textures.push_back(ltex);
+        };
+
+        if (!mat.diffuse_texname.empty()) {
+            try_load_texture(mat.diffuse_texname, mat.diffuse_texopt, lmat.base_color_texture);
+        }
+
+        if (!mat.roughness_texname.empty()) {
+            try_load_texture(
+                mat.roughness_texname,
+                mat.roughness_texopt,
+                lmat.metallic_roughness_texture);
+        } else if (!mat.metallic_texname.empty()) {
+            try_load_texture(
+                mat.metallic_texname,
+                mat.metallic_texopt,
+                lmat.metallic_roughness_texture);
+        }
+
+        if (!mat.normal_texname.empty()) {
+            try_load_texture(mat.normal_texname, mat.normal_texopt, lmat.normal_texture);
+        } else if (!mat.bump_texname.empty()) {
+            try_load_texture(mat.bump_texname, mat.bump_texopt, lmat.normal_texture);
+        }
+
+        if (!mat.emissive_texname.empty()) {
+            try_load_texture(mat.emissive_texname, mat.emissive_texopt, lmat.emissive_texture);
+        }
+
+        lscene.materials.push_back(lmat);
+        lnode.meshes.front().materials.push_back(lscene.materials.size() - 1);
+    }
+
+    lscene.nodes.push_back(lnode);
+    lscene.root_nodes.push_back(0);
+    
+    return lscene;
+}
+#define LA_X_load_scene_obj(_, S, I)            \
+    template scene::Scene<S, I> load_scene_obj( \
+        const tinyobj::ObjReader& reader,            \
+        const LoadOptions& options);
+LA_SCENE_X(load_scene_obj, 0);
+#undef LA_X_load_scene_obj
+
+// =====================================
+// internal/load_mesh_obj.h (old api)
+// =====================================
 template <typename MeshType>
 auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
     -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>
@@ -282,10 +439,13 @@ auto load_mesh_obj(const fs::path& filename, const LoadOptions& options)
 }
 
 template <typename MeshType>
-auto load_mesh_obj(std::istream& input_stream, const LoadOptions& options)
+auto load_mesh_obj(
+    std::istream& input_stream_obj,
+    std::istream& input_stream_mtl,
+    const LoadOptions& options)
     -> ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index>
 {
-    auto reader = load_obj(input_stream, options);
+    auto reader = load_obj(input_stream_obj, input_stream_mtl, options);
     return extract_mesh<MeshType>(reader, options);
 }
 
@@ -294,9 +454,67 @@ auto load_mesh_obj(std::istream& input_stream, const LoadOptions& options)
         const fs::path& filename,                                                      \
         const LoadOptions& options);                                                   \
     template ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
-        std::istream&,                                                                 \
+        std::istream & input_stream_obj,                                               \
+        std::istream & input_stream_mtl,                                               \
         const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh, 0)
 
 } // namespace internal
+
+// =====================================
+// load_mesh_obj.h
+// =====================================
+template <typename MeshType>
+MeshType load_mesh_obj(const fs::path& filename, const LoadOptions& options)
+{
+    auto ret = internal::load_mesh_obj<MeshType>(filename, options);
+    if (!ret.success) {
+        throw Error(fmt::format("Failed to load mesh from file: '{}'", filename.string()));
+    }
+    return std::move(ret.mesh);
+}
+
+template <typename MeshType>
+MeshType load_mesh_obj(std::istream& input_stream_obj, const LoadOptions& options)
+{
+    std::istream stream(nullptr);
+
+    auto ret = internal::load_mesh_obj<MeshType>(input_stream_obj, stream, options);
+    if (!ret.success) {
+        throw Error("Failed to load mesh from stream");
+    }
+    return std::move(ret.mesh);
+}
+
+#define LA_X_load_mesh_obj(_, S, I)           \
+    template SurfaceMesh<S, I> load_mesh_obj( \
+        const fs::path& filename,             \
+        const LoadOptions& options);          \
+    template SurfaceMesh<S, I> load_mesh_obj(std::istream&, const LoadOptions& options);
+LA_SURFACE_MESH_X(load_mesh_obj, 0)
+#undef LA_X_load_mesh_obj
+
+// =====================================
+// load_scene_obj.h
+// =====================================
+template <typename SceneType>
+SceneType load_scene_obj(const fs::path& filename, const LoadOptions& options)
+{
+    tinyobj::ObjReader reader = internal::load_obj(filename, options);
+    LoadOptions opt2 = options;
+    if (opt2.search_path.empty()) opt2.search_path = filename.parent_path();
+    return internal::load_scene_obj<SceneType>(reader, opt2);
+}
+
+template <typename SceneType>
+SceneType load_scene_obj(std::istream& input_stream_obj, std::istream& input_stream_mtl, const LoadOptions& options)
+{
+    tinyobj::ObjReader reader = internal::load_obj(input_stream_obj, input_stream_mtl, options);
+    return internal::load_scene_obj<SceneType>(reader, options);
+}
+#define LA_X_load_scene_obj(_, S, I)                                                 \
+    template scene::Scene<S, I> load_scene_obj(const fs::path&, const LoadOptions&); \
+    template scene::Scene<S, I> load_scene_obj(std::istream&, std::istream&, const LoadOptions&);
+LA_SCENE_X(load_scene_obj, 0);
+#undef LA_X_load_scene_obj
 } // namespace lagrange::io

@@ -33,6 +33,7 @@ target_include_directories(nlohmann_json INTERFACE
     "$<BUILD_INTERFACE:${nlohmann_json_SOURCE_DIR}>/include"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
+target_compile_features(nlohmann_json INTERFACE cxx_std_11)
 
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME nlohmann_json)

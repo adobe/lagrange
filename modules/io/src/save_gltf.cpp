@@ -12,6 +12,7 @@
 
 // this .cpp provides implementations for functions defined in those headers:
 #include <lagrange/io/save_mesh_gltf.h>
+#include <lagrange/io/save_scene_gltf.h>
 #include <lagrange/io/save_simple_scene_gltf.h>
 // ====
 
@@ -20,8 +21,11 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/string_from_scalar.h>
+#include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/scene/scene_utils.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
 
@@ -45,26 +49,50 @@ namespace lagrange::io {
 //
 
 namespace {
+std::vector<double> to_vec3(const Eigen::Vector3f& v)
+{
+    return {v(0), v(1), v(2)};
+}
+std::vector<double> to_vec4(const Eigen::Vector4f& v)
+{
+    return {v(0), v(1), v(2), v(3)};
+}
+
 void save_gltf(const fs::path& filename, const tinygltf::Model& model, const SaveOptions& options)
 {
     bool binary = to_lower(filename.extension().string()) == ".glb";
     if (binary && options.encoding != FileEncoding::Binary) {
         logger().warn("Saving mesh in binary due to `.glb` extension.");
     } else if (!binary && options.encoding != FileEncoding::Ascii) {
-        logger().warn("Saving mesh in ascii due to `.gltf` extension.");
+        // this is extremely common, since the default value of `encoding` is binary.
+        // But trying to save as `.gltf` is explicit enough, so skip this message.
+        
+        //logger().warn("Saving mesh in ascii due to `.gltf` extension.");
     }
 
+    // https://github.com/syoyo/tinygltf/issues/323
+    tinygltf::WriteImageDataFunction write_image_data_function = &tinygltf::WriteImageData;
+    tinygltf::FsCallbacks fs_callbacks;
+    fs_callbacks.FileExists = &tinygltf::FileExists;
+    fs_callbacks.ExpandFilePath = &tinygltf::ExpandFilePath;
+    fs_callbacks.ReadWholeFile = &tinygltf::ReadWholeFile;
+    fs_callbacks.WriteWholeFile = &tinygltf::WriteWholeFile;
+    fs_callbacks.user_data = nullptr;
+
     tinygltf::TinyGLTF loader;
+    loader.SetImageWriter(write_image_data_function, &fs_callbacks);
+
     constexpr bool embed_images = false;
     constexpr bool embed_buffers = true;
     constexpr bool pretty_print = true;
-    loader.WriteGltfSceneToFile(
+    bool success = loader.WriteGltfSceneToFile(
         &model,
         filename.string(),
         embed_images,
         embed_buffers,
         pretty_print,
         binary);
+    if (!success) logger().error("Error saving {}", filename.string());
 }
 
 void save_gltf(
@@ -75,7 +103,8 @@ void save_gltf(
     bool binary = options.encoding == FileEncoding::Binary;
     tinygltf::TinyGLTF loader;
     constexpr bool pretty_print = true;
-    loader.WriteGltfSceneToStream(&model, output_stream, pretty_print, binary);
+    bool success = loader.WriteGltfSceneToStream(&model, output_stream, pretty_print, binary);
+    if (!success) logger().error("Error writing gltf file to stream");
 }
 
 // returns data, tmp
@@ -120,7 +149,7 @@ std::tuple<int, size_t, size_t> write_to_buffer(tinygltf::Model& model, span<con
     std::copy(
         data_bytes.begin(),
         data_bytes.end(),
-        reinterpret_cast<std::byte *>(buffer.data.data()) + byte_offset);
+        reinterpret_cast<std::byte*>(buffer.data.data()) + byte_offset);
 
     return {int(model.buffers.size()) - 1, byte_offset, byte_length};
 }
@@ -206,6 +235,7 @@ void populate_attributes(
     // TODO: The following is an O(N^2) approach, rewrite it to be O(N).
     seq_foreach_named_attribute_read(lmesh, [&](std::string_view name, auto&& attr) {
         // TODO: change this for the attribute visitor that takes id and simplify this.
+
         if (lmesh.attr_name_is_reserved(name)) return;
         AttributeId id = lmesh.get_attribute_id(name);
         if (options.output_attributes == SaveOptions::OutputAttributes::SelectedOnly) {
@@ -223,22 +253,14 @@ void populate_attributes(
             const auto& indices = attr.indices();
             if (vector_view(indices) != vector_view(lmesh.get_corner_to_vertex())) {
                 // Indexed attributes are supported IF their indexing matches the vertices.
-                // This should be the case if you call `unify_index_buffers`
-                logger().warn("Skipping attribute {}: unsupported non-indexed", name);
+                // This should be the case if you call `unify_index_buffer`
+                logger().warn(
+                    "Skipping attribute `{}`: unsupported non-indexed. Consider calling "
+                    "`unify_index_buffer`",
+                    name);
                 return;
             }
         }
-
-        const auto& values = [&]() -> const auto&
-        {
-            if constexpr (AttributeType::IsIndexed) {
-                return attr.values();
-            } else {
-                return attr;
-            }
-        }
-        ();
-
 
         tinygltf::Accessor accessor;
         if constexpr (std::is_same_v<ValueType, char>) {
@@ -263,7 +285,7 @@ void populate_attributes(
             accessor.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
         } else {
             logger().warn(
-                "Skipping attribute {}: unsupported type {}",
+                "Skipping attribute `{}`: unsupported type {}",
                 name,
                 internal::string_from_scalar<ValueType>());
             return;
@@ -279,11 +301,79 @@ void populate_attributes(
         case 16: accessor.type = TINYGLTF_TYPE_MAT4; break;
         default:
             logger().warn(
-                "Skipping attribute {}: unsupported number of channels {}",
+                "Skipping attribute `{}`: unsupported number of channels {}",
                 name,
                 attr.get_num_channels());
             return;
         }
+
+        std::string name_uppercase = to_upper(std::string(name));
+        if (attr.get_usage() == AttributeUsage::Normal) {
+            if (found_normal) {
+                name_uppercase = "_" + name_uppercase;
+                logger().warn(
+                    "Found multiple attributes for normal, saving `{}` as `{}`.",
+                    name,
+                    name_uppercase);
+            } else {
+                found_normal = true;
+                name_uppercase = "NORMAL";
+            }
+        } else if (attr.get_usage() == AttributeUsage::Tangent) {
+            if (!found_tangent && accessor.type == TINYGLTF_TYPE_VEC4) {
+                // this is good!
+                found_tangent = true;
+                name_uppercase = "TANGENT";
+            } else if (accessor.type != TINYGLTF_TYPE_VEC4) {
+                name_uppercase = "_" + name_uppercase;
+                logger().warn(
+                    "gltf TANGENT attribute must be in vec4, saving `{}` as `{}`.",
+                    name,
+                    name_uppercase);
+            } else {
+                name_uppercase = "_" + name_uppercase;
+                logger().warn(
+                    "Found multiple attributes for tangent, saving `{}` as `{}`.",
+                    name,
+                    name_uppercase);
+            }
+        } else if (attr.get_usage() == AttributeUsage::Color) {
+            name_uppercase = "COLOR_" + std::to_string(color_count);
+            ++color_count;
+        } else if (attr.get_usage() == AttributeUsage::UV) {
+            name_uppercase = "TEXCOORD_" + std::to_string(texcoord_count);
+            ++texcoord_count;
+        } else {
+            // If no previous match, save with the current attribute name.
+            // Note that the gltf format is quite strict on the allowed names:
+            // POSITION, NORMAL, TANGENT, TEXCOORD_n, COLOR_n, JOINTS_n, and WEIGHTS_n.
+            // Custom attributes are allowed ONLY if they start with a leading understore,
+            // e.g. _TEMPERATURE. Custom attribute MUST NOT use unsigned int type.
+            // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes
+
+            if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
+                logger().warn(
+                    "gltf mesh attributes cannot use UNSIGNED_INT component type. Skipping "
+                    "attribute `{}`",
+                    name);
+                return;
+            }
+
+            if (name_uppercase[0] != '_') {
+                name_uppercase = "_" + name_uppercase;
+                logger().warn("Saving attribute `{}` as `{}`.", name, name_uppercase);
+            }
+        }
+
+        const auto& values = [&]() -> const auto& {
+            if constexpr (AttributeType::IsIndexed) {
+                return attr.values();
+            } else {
+                return attr;
+            }
+        }();
+
+        // we are committed to writing the buffer here. Do not return early after this line.
 
         int buffer_index;
         size_t byte_offset, byte_length;
@@ -321,55 +411,17 @@ void populate_attributes(
         int accessor_index = int(model.accessors.size());
         model.accessors.push_back(accessor);
 
-        std::string name_uppercase = to_upper(std::string(name));
-        if (attr.get_usage() == AttributeUsage::Normal) {
-            if (found_normal) {
-                name_uppercase = "_" + name_uppercase;
-                logger().warn(
-                    "Found multiple attributes for normal, saving {} as {}",
-                    name,
-                    name_uppercase);
-            } else {
-                found_normal = true;
-                name_uppercase = "NORMAL";
-            }
-        } else if (attr.get_usage() == AttributeUsage::Tangent) {
-            if (found_tangent) {
-                name_uppercase = "_" + name_uppercase;
-                logger().warn(
-                    "Found multiple attributes for tangent, saving {} as {}",
-                    name,
-                    name_uppercase);
-            } else {
-                found_tangent = true;
-                name_uppercase = "TANGENT";
-            }
-        } else if (attr.get_usage() == AttributeUsage::Color) {
-            name_uppercase = "COLOR_" + std::to_string(color_count);
-            ++color_count;
-        } else if (attr.get_usage() == AttributeUsage::UV) {
-            name_uppercase = "TEXCOORD_" + std::to_string(texcoord_count);
-            ++texcoord_count;
-        } else {
-            // If no previous match, save with the current attribute name.
-            // Note that the gltf format is quite strict on the allowed names:
-            // POSITION, NORMAL, TANGENT< TEXCOORD_n, COLOR_n, JOINTS_n, and WEIGHTS_n.
-            // Custom attributes are allowed ONLY if they start with a leading understore,
-            // e.g. _TEMPERATURE. Custom attribute MUST NOT use unsigned int type.
-            // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes
-        }
-
         primitive.attributes[name_uppercase] = accessor_index;
     });
 }
 
 template <typename Scalar, typename Index>
-tinygltf::Mesh create_gltf_mesh(
+tinygltf::Primitive create_gltf_primitive(
     tinygltf::Model& model,
     const SurfaceMesh<Scalar, Index>& lmesh,
     const SaveOptions& options)
 {
-    // Hanlde index attribute conversion if necessary.
+    // Handle index attribute conversion if necessary.
     if (span<const AttributeId> attr_ids{
             options.selected_attributes.data(),
             options.selected_attributes.size()};
@@ -382,19 +434,31 @@ tinygltf::Mesh create_gltf_mesh(
         options2.attribute_conversion_policy =
             SaveOptions::AttributeConversionPolicy::ExactMatchOnly;
         options2.selected_attributes.swap(attr_ids_2);
-        return create_gltf_mesh(model, mesh2, options2);
+        return create_gltf_primitive(model, mesh2, options2);
     }
 
-    tinygltf::Mesh mesh;
-    mesh.primitives.push_back(tinygltf::Primitive());
-    tinygltf::Primitive& primitive = mesh.primitives.front();
+    SurfaceMesh<Scalar, Index> lmesh_copy = lmesh;
+    scene::utils::convert_texcoord_uv_st(lmesh_copy);
+
+    tinygltf::Primitive primitive;
     primitive.mode = TINYGLTF_MODE_TRIANGLES;
     primitive.material = 0;
 
-    populate_vertices(model, primitive, lmesh);
-    populate_facets(model, primitive, lmesh);
-    populate_attributes(model, primitive, lmesh, options);
+    populate_vertices(model, primitive, lmesh_copy);
+    populate_facets(model, primitive, lmesh_copy);
+    populate_attributes(model, primitive, lmesh_copy, options);
 
+    return primitive;
+}
+
+template <typename Scalar, typename Index>
+tinygltf::Mesh create_gltf_mesh(
+    tinygltf::Model& model,
+    const SurfaceMesh<Scalar, Index>& lmesh,
+    const SaveOptions& options)
+{
+    tinygltf::Mesh mesh;
+    mesh.primitives.push_back(create_gltf_primitive(model, lmesh, options));
     return mesh;
 }
 
@@ -532,5 +596,261 @@ void save_simple_scene_gltf(
         const SaveOptions& options);
 LA_SIMPLE_SCENE_X(save_simple_scene_gltf, 0);
 #undef LA_X_save_simple_scene_gltf
+
+
+// =====================================
+// save_scene_gltf.h
+// =====================================
+
+template <typename Scalar, typename Index>
+tinygltf::Model lagrange_scene_to_gltf_model(
+    const scene::Scene<Scalar, Index>& lscene,
+    const SaveOptions& options)
+{
+    // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
+
+    tinygltf::Model model;
+    model.asset.generator = "Lagrange";
+    model.asset.version = "2.0";
+
+    model.scenes.push_back(tinygltf::Scene());
+    model.defaultScene = 0;
+    tinygltf::Scene& scene = model.scenes.front();
+    scene.name = lscene.name;
+
+    for (const auto& llight : lscene.lights) {
+        // note that the gltf support for lights is limited compared to our representation.
+        // Information can be lost.
+        tinygltf::Light light;
+        light.name = llight.name;
+        light.color = {
+            llight.color_diffuse.x(),
+            llight.color_diffuse.y(),
+            llight.color_diffuse.z()};
+        light.intensity = 1 / llight.attenuation_constant;
+        switch (llight.type) {
+        case scene::Light::Type::Directional: light.type = "directional"; break;
+        case scene::Light::Type::Point: light.type = "point"; break;
+        case scene::Light::Type::Spot:
+            light.type = "spot";
+            light.spot.innerConeAngle = llight.angle_inner_cone;
+            light.spot.outerConeAngle = llight.angle_outer_cone;
+            break;
+        default:
+            logger().warn("unsupported light type in GLTF format");
+            light.type = "point";
+            break;
+        }
+        model.lights.push_back(light);
+    }
+
+    for (const auto& lcam : lscene.cameras) {
+        tinygltf::Camera camera;
+        camera.name = lcam.name;
+        switch (lcam.type) {
+        case scene::Camera::Type::Perspective:
+            camera.type = "perspective";
+            camera.perspective.aspectRatio = lcam.aspect_ratio;
+            camera.perspective.yfov = lcam.get_vertical_fov();
+            camera.perspective.znear = lcam.near_plane;
+            camera.perspective.zfar = lcam.far_plane;
+            break;
+        case scene::Camera::Type::Orthographic:
+            camera.type = "orthographic";
+            camera.orthographic.xmag = lcam.orthographic_width;
+            camera.orthographic.ymag = lcam.orthographic_width / lcam.aspect_ratio;
+            camera.orthographic.znear = lcam.near_plane;
+            camera.orthographic.zfar = lcam.far_plane;
+            break;
+        }
+        // TODO: camera may have a position/up/lookAt. This is not allowed in gltf and will be lost.
+        model.cameras.push_back(camera);
+    }
+
+    for (const auto& limage : lscene.images) {
+        tinygltf::Image image;
+        image.name = limage.name;
+        image.uri = limage.uri;
+        image.mimeType = [](scene::ImageLegacy::Type type) {
+            switch (type) {
+            case scene::ImageLegacy::Type::Jpeg: return "image/jpeg";
+            case scene::ImageLegacy::Type::Png: return "image/png";
+            case scene::ImageLegacy::Type::Bmp: return "image/bmp";
+            case scene::ImageLegacy::Type::Gif: return "image/gif";
+            case scene::ImageLegacy::Type::Unknown: // fallthrough to default
+            default: return "";
+            }
+        }(limage.type);
+        image.width = (int)limage.width;
+        image.height = (int)limage.height;
+        image.component = limage.get_num_channels();
+        image.pixel_type = [](image::ImagePrecision precision) {
+            switch (precision) {
+            case image::ImagePrecision::int8: return TINYGLTF_COMPONENT_TYPE_BYTE;
+            case image::ImagePrecision::uint8: return TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+            case image::ImagePrecision::int32: return TINYGLTF_COMPONENT_TYPE_INT;
+            case image::ImagePrecision::uint32: return TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
+            case image::ImagePrecision::float32: return TINYGLTF_COMPONENT_TYPE_FLOAT;
+            case image::ImagePrecision::float64: return TINYGLTF_COMPONENT_TYPE_DOUBLE;
+            default:
+                logger().error("Saving image with unsupported pixel precision!");
+                return TINYGLTF_COMPONENT_TYPE_BYTE;
+            }
+        }(limage.precision);
+        image.bits = [](image::ImagePrecision precision) {
+            switch (precision) {
+            case image::ImagePrecision::int8:
+            case image::ImagePrecision::uint8: return 8;
+            case image::ImagePrecision::float16: return 16;
+            case image::ImagePrecision::int32:
+            case image::ImagePrecision::uint32:
+            case image::ImagePrecision::float32: return 32;
+            default: logger().error("Saving image with unsupported image bits."); return -1;
+            }
+        }(limage.precision);
+        const size_t count =
+            limage.get_element_size() * limage.get_num_channels() * limage.width * limage.height;
+        image.image = std::vector<unsigned char>(count);
+        std::copy_n(limage.data->data(), count, image.image.begin());
+        model.images.push_back(image);
+    }
+
+    auto element_id_to_int = [](scene::ElementId id) -> int {
+        if (id == lagrange::invalid<scene::ElementId>()) {
+            return -1;
+        } else {
+            return static_cast<int>(id);
+        }
+    };
+    for (const auto& lmat : lscene.materials) {
+        tinygltf::Material material;
+        material.name = lmat.name;
+        material.doubleSided = lmat.double_sided;
+
+        material.pbrMetallicRoughness.baseColorFactor = to_vec4(lmat.base_color_value);
+        material.pbrMetallicRoughness.baseColorTexture.index =
+            element_id_to_int(lmat.base_color_texture.index);
+        material.pbrMetallicRoughness.baseColorTexture.texCoord = lmat.base_color_texture.texcoord;
+
+        material.emissiveFactor = to_vec3(lmat.emissive_value);
+        material.emissiveTexture.index = element_id_to_int(lmat.emissive_texture.index);
+        material.emissiveTexture.texCoord = lmat.emissive_texture.texcoord;
+
+        material.pbrMetallicRoughness.metallicFactor = lmat.metallic_value;
+        material.pbrMetallicRoughness.roughnessFactor = lmat.roughness_value;
+        material.pbrMetallicRoughness.metallicRoughnessTexture.index =
+            element_id_to_int(lmat.metallic_roughness_texture.index);
+        material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord =
+            lmat.metallic_roughness_texture.texcoord;
+
+        material.normalTexture.index = element_id_to_int(lmat.normal_texture.index);
+        material.normalTexture.texCoord = lmat.normal_texture.texcoord;
+        material.normalTexture.scale = lmat.normal_scale;
+
+        material.occlusionTexture.index = element_id_to_int(lmat.occlusion_texture.index);
+        material.occlusionTexture.texCoord = lmat.occlusion_texture.texcoord;
+        material.occlusionTexture.strength = lmat.occlusion_strength;
+
+        material.alphaCutoff = lmat.alpha_cutoff;
+        material.alphaMode = [](scene::MaterialExperimental::AlphaMode mode) {
+            switch (mode) {
+            case scene::MaterialExperimental::AlphaMode::Opaque: return "OPAQUE";
+            case scene::MaterialExperimental::AlphaMode::Mask: return "MASK";
+            case scene::MaterialExperimental::AlphaMode::Blend: return "BLEND";
+            default: logger().warn("Invalid alpha mode"); return "";
+            }
+        }(lmat.alpha_mode);
+
+        model.materials.push_back(material);
+    }
+
+    for (const auto& ltex : lscene.textures) {
+        la_debug_assert(ltex.image != invalid<scene::ElementId>());
+        tinygltf::Texture texture;
+        texture.name = ltex.name;
+        texture.source = static_cast<int>(ltex.image);
+        model.textures.push_back(texture);
+    }
+
+    // TODO skeletons
+
+    // TODO animations
+
+    std::function<int(const scene::Node&)> visit_node;
+    visit_node = [&](const scene::Node& lnode) -> int {
+        tinygltf::Node node;
+        node.name = lnode.name;
+
+        if (!lnode.cameras.empty()) {
+            node.camera = lagrange::safe_cast<int>(lnode.cameras.front());
+            if (lnode.cameras.size() > 1) {
+                logger().warn("GLTF format only supports one camera per node");
+            }
+        }
+
+        if (!lnode.meshes.empty()) {
+            // we treat multiple meshes in one lagrange node as one gltf mesh with multiple
+            // primitives. they must reference exactly one material.
+            tinygltf::Mesh mesh;
+            for (const auto& mesh_instance : lnode.meshes) {
+                const auto& lmesh = lscene.meshes[mesh_instance.mesh];
+                tinygltf::Primitive prim = create_gltf_primitive(model, lmesh, options);
+                la_runtime_assert(mesh_instance.materials.size() == 1);
+                prim.material = lagrange::safe_cast<int>(mesh_instance.materials.front());
+                mesh.primitives.push_back(prim);
+            }
+            int mesh_idx = lagrange::safe_cast<int>(model.meshes.size());
+            model.meshes.push_back(mesh);
+            node.mesh = mesh_idx;
+        }
+
+        int node_idx = lagrange::safe_cast<int>(model.nodes.size());
+        model.nodes.push_back(node);
+
+        for (const size_t lagrange_child_idx : lnode.children) {
+            int child_idx = visit_node(lscene.nodes[lagrange_child_idx]);
+            model.nodes[node_idx].children.push_back(child_idx);
+        }
+
+        return node_idx;
+    };
+    for (const scene::Node& lnode : lscene.nodes) {
+        int lnode_idx = visit_node(lnode);
+        scene.nodes.push_back(lnode_idx);
+    }
+
+    return model;
+}
+
+template <typename Scalar, typename Index>
+void save_scene_gltf(
+    const fs::path& filename,
+    const scene::Scene<Scalar, Index>& lscene,
+    const SaveOptions& options)
+{
+    auto model = lagrange_scene_to_gltf_model<Scalar, Index>(lscene, options);
+    save_gltf(filename, model, options);
+}
+template <typename Scalar, typename Index>
+void save_scene_gltf(
+    std::ostream& output_stream,
+    const scene::Scene<Scalar, Index>& lscene,
+    const SaveOptions& options)
+{
+    auto model = lagrange_scene_to_gltf_model<Scalar, Index>(lscene, options);
+    save_gltf(output_stream, model, options);
+}
+
+#define LA_X_save_scene_gltf(_, S, I)    \
+    template void save_scene_gltf(       \
+        const fs::path& filename,        \
+        const scene::Scene<S, I>& scene, \
+        const SaveOptions& options);     \
+    template void save_scene_gltf(       \
+        std::ostream&,                   \
+        const scene::Scene<S, I>& scene, \
+        const SaveOptions& options);
+LA_SCENE_X(save_scene_gltf, 0);
+#undef LA_X_save_scene_gltf
 
 } // namespace lagrange::io

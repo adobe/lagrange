@@ -11,6 +11,7 @@
  */
 
 #include "bind_simple_scene.h"
+#include "bind_scene.h"
 
 #include <lagrange/scene/RemeshingOptions.h>
 
@@ -42,6 +43,8 @@ void populate_scene_module(nb::module_& m)
             "facet_allocation_strategy",
             &lagrange::scene::RemeshingOptions::facet_allocation_strategy)
         .def_rw("min_facets", &lagrange::scene::RemeshingOptions::min_facets);
+
+    bind_scene(m);
 }
 
 } // namespace lagrange::python

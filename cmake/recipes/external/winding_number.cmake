@@ -13,7 +13,7 @@ if(TARGET WindingNumber::WindingNumber)
     return()
 endif()
 
-message(STATUS "Third-party (internal): creating target 'WindingNumber::WindingNumber'")
+message(STATUS "Third-party (external): creating target 'WindingNumber::WindingNumber'")
 
 include(tbb)
 include(simde)
