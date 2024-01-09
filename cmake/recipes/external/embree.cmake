@@ -21,6 +21,7 @@ option(EMBREE_TUTORIALS      "Enable to build Embree tutorials"                 
 option(EMBREE_STATIC_LIB     "Build Embree as a static library."                ON)
 set(EMBREE_TESTING_INTENSITY 0         CACHE STRING "Intensity of testing (0 = no testing, 1 = verify and tutorials, 2 = light testing, 3 = intensive testing.")
 set(EMBREE_TASKING_SYSTEM    "TBB"     CACHE STRING "Selects tasking system")
+option(EMBREE_IGNORE_CMAKE_CXX_FLAGS "When enabled Embree ignores default CMAKE_CXX_FLAGS." OFF)
 
 # The following options are necessary to ensure packed-ray support
 option(EMBREE_RAY_MASK       "Enable the usage of mask for packed ray."         ON)

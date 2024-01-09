@@ -246,13 +246,16 @@ else()
 endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
 
-# When building anorigami module, defaults to pre-built Arpack and dynamic MKL/TBB
 # When building python module, compile MKL/TBB as a shared library
-if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_MESHPROC OR LAGRANGE_MODULE_PYTHON
-    OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
-    option(TBB_BUILD_TBBMALLOC  "Build TBB malloc library"  ON)
+endif()
+
+# When building anorigami module, we also need to compile tbbmalloc
+if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_MESHPROC OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+    option(TBB_BUILD_TBBMALLOC "Build TBB malloc library"  ON) # TBB 2020 option
+    option(TBBMALLOC_BUILD "Enable tbbmalloc build" ON) # OneTBB 2021 option
 endif()
 
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
@@ -295,6 +298,7 @@ include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
+include(lagrange_tbb_sanitizer)
 include(lagrange_warnings)
 include(lagrange_xcode_check)
 include(sanitizers)
