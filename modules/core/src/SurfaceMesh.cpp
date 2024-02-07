@@ -13,6 +13,7 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
@@ -1154,11 +1155,7 @@ template <typename ValueType>
 bool SurfaceMesh<Scalar, Index>::is_attribute_type(AttributeId id) const
 {
     auto& attr = m_attributes->read_base(id);
-    if (attr.get_element_type() == AttributeElement::Indexed) {
-        return dynamic_cast<const IndexedAttribute<ValueType, Index>*>(&attr);
-    } else {
-        return dynamic_cast<const Attribute<ValueType>*>(&attr);
-    }
+    return attr.get_value_type() == make_attribute_value_type<ValueType>();
 }
 
 template <typename Scalar, typename Index>

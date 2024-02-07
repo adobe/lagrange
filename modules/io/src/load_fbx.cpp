@@ -11,7 +11,6 @@
  */
 
 // this .cpp provides implementations for functions defined in those headers:
-#include "internal/load_ufbx.h"
 #include <lagrange/io/load_mesh_fbx.h>
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/load_simple_scene_fbx.h>
@@ -21,27 +20,26 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
-#include <lagrange/combine_meshes.h>
 #include <lagrange/io/internal/scene_utils.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/scene/scene_utils.h>
+#include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/utils.h>
-#include <lagrange/utils/scope_guard.h>
 
 #include <ufbx.h>
 
 namespace lagrange::io {
-namespace internal {
+namespace {
 
 template <typename AffineTransform>
 AffineTransform convert_transform_ufbx_to_lagrange(const ufbx_matrix& m)
 {
     AffineTransform transform;
     // clang-format off
-    transform.matrix() << 
+    transform.matrix() <<
         m.m00, m.m01, m.m02, m.m03,
         m.m10, m.m11, m.m12, m.m13,
         m.m20, m.m21, m.m22, m.m23,
@@ -241,48 +239,36 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
     return lmesh;
 }
 
+struct UfbxScene
+{
+    ufbx_scene* ptr;
+    UfbxScene(ufbx_scene* _ptr)
+        : ptr(_ptr)
+    {}
+    ~UfbxScene() { ufbx_free_scene(ptr); }
 
-ufbx_scene* load_ufbx(const fs::path& filename)
+    UfbxScene(const UfbxScene&) = delete;
+    UfbxScene(UfbxScene&&) = delete;
+    UfbxScene& operator=(const UfbxScene&) = delete;
+    UfbxScene& operator=(UfbxScene&&) = delete;
+};
+
+UfbxScene load_ufbx(const fs::path& filename)
 {
     std::string filename_s = filename.string();
     ufbx_load_opts opts{};
     ufbx_error error{};
-    ufbx_scene* scene = ufbx_load_file(filename_s.c_str(), &opts, &error);
-    return scene;
+    return ufbx_load_file(filename_s.c_str(), &opts, &error);
 }
 
-ufbx_scene* load_ufbx(std::istream& input_stream)
+UfbxScene load_ufbx(std::istream& input_stream)
 {
     std::istreambuf_iterator<char> data_itr(input_stream), end_of_stream;
     std::string data(data_itr, end_of_stream);
 
     ufbx_load_opts opts{};
     ufbx_error error{};
-    ufbx_scene* scene = ufbx_load_memory(data.data(), data.size(), &opts, &error);
-    return scene;
-}
-
-/**
- * Convert all meshes into one lagrange mesh. Combines them if needed.
- */
-template <typename MeshType>
-MeshType load_mesh_fbx(const ufbx_scene* scene, const LoadOptions& opt)
-{
-    std::vector<MeshType> lmeshes;
-    for (size_t i = 0; i < scene->meshes.count; ++i) {
-        MeshType lmesh = convert_mesh_ufbx_to_lagrange<MeshType>(scene->meshes.data[i], opt);
-        lmeshes.push_back(lmesh);
-    }
-    if (lmeshes.empty()) {
-        return MeshType();
-    } else if (lmeshes.size() == 1) {
-        return lmeshes.front();
-    } else {
-        constexpr bool preserve_attributes = true;
-        return lagrange::combine_meshes<typename MeshType::Scalar, typename MeshType::Index>(
-            lmeshes,
-            preserve_attributes);
-    }
+    return ufbx_load_memory(data.data(), data.size(), &opts, &error);
 }
 
 template <typename SceneType>
@@ -323,12 +309,6 @@ SceneType load_simple_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
 
     return lscene;
 }
-#define LA_X_load_simple_scene_fbx(_, S, I, D)                  \
-    template scene::SimpleScene<S, I, D> load_simple_scene_fbx( \
-        const ufbx_scene* scene,                                \
-        const LoadOptions& opt);
-LA_SIMPLE_SCENE_X(load_simple_scene_fbx, 0);
-#undef LA_X_load_simple_scene_fbx
 
 Eigen::Vector3f to_vec3(const ufbx_vec3& v)
 {
@@ -454,7 +434,7 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
             // opt.load_images is false: don't load, but consider it ok.
             loaded = true;
         }
-        
+
         if (loaded) {
             lscene.images.push_back(limage);
         }
@@ -554,7 +534,7 @@ void display_ufbx_scene_warnings(const ufbx_scene* scene)
         logger().warn("fbx warning: arrays may contain null element references");
 }
 
-} // namespace internal
+} // namespace
 
 // =====================================
 // load_mesh_fbx.h
@@ -562,27 +542,59 @@ void display_ufbx_scene_warnings(const ufbx_scene* scene)
 template <typename MeshType>
 MeshType load_mesh_fbx(std::istream& input_stream, const LoadOptions& options)
 {
-    ufbx_scene* scene = internal::load_ufbx(input_stream);
-    auto guard = make_scope_guard([&scene]() {
-        ufbx_free_scene(scene);
-        scene = nullptr;
-    });
-    internal::display_ufbx_scene_warnings(scene);
-    MeshType mesh = internal::load_mesh_fbx<MeshType>(scene, options);
-    return mesh;
+    using Scalar = typename MeshType::Scalar;
+    using Index = typename MeshType::Index;
+    using SceneType = scene::SimpleScene<Scalar, Index, 3u>; // we always load 3d scenes
+    return scene::simple_scene_to_mesh(load_simple_scene_fbx<SceneType>(input_stream, options));
 }
 
 template <typename MeshType>
 MeshType load_mesh_fbx(const fs::path& filename, const LoadOptions& options)
 {
-    ufbx_scene* scene = internal::load_ufbx(filename);
-    auto guard = make_scope_guard([&scene]() {
-        ufbx_free_scene(scene);
-        scene = nullptr;
-    });
-    internal::display_ufbx_scene_warnings(scene);
-    MeshType mesh = internal::load_mesh_fbx<MeshType>(scene, options);
-    return mesh;
+    using Scalar = typename MeshType::Scalar;
+    using Index = typename MeshType::Index;
+    using SceneType = scene::SimpleScene<Scalar, Index, 3u>; // we always load 3d scenes
+    return scene::simple_scene_to_mesh(load_simple_scene_fbx<SceneType>(filename, options));
+}
+
+// =====================================
+// load_simple_scene_fbx.h
+// =====================================
+template <typename SceneType>
+SceneType load_simple_scene_fbx(const fs::path& filename, const LoadOptions& options)
+{
+    auto scene = load_ufbx(filename);
+    display_ufbx_scene_warnings(scene.ptr);
+    SceneType lscene = load_simple_scene_fbx<SceneType>(scene.ptr, options);
+    return lscene;
+}
+template <typename SceneType>
+SceneType load_simple_scene_fbx(std::istream& input_stream, const LoadOptions& options)
+{
+    auto scene = load_ufbx(input_stream);
+    display_ufbx_scene_warnings(scene.ptr);
+    SceneType lscene = load_simple_scene_fbx<SceneType>(scene.ptr, options);
+    return lscene;
+}
+
+// =====================================
+// load_scene_fbx.h
+// =====================================
+template <typename SceneType>
+SceneType load_scene_fbx(const fs::path& filename, const LoadOptions& options)
+{
+    auto scene = load_ufbx(filename);
+    display_ufbx_scene_warnings(scene.ptr);
+    SceneType lscene = load_scene_fbx<SceneType>(scene.ptr, options);
+    return lscene;
+}
+template <typename SceneType>
+SceneType load_scene_fbx(std::istream& input_stream, const LoadOptions& options)
+{
+    auto scene = load_ufbx(input_stream);
+    display_ufbx_scene_warnings(scene.ptr);
+    SceneType lscene = load_scene_fbx<SceneType>(scene.ptr, options);
+    return lscene;
 }
 
 #define LA_X_load_mesh_fbx(_, S, I)                                                \
@@ -591,28 +603,6 @@ MeshType load_mesh_fbx(const fs::path& filename, const LoadOptions& options)
 LA_SURFACE_MESH_X(load_mesh_fbx, 0);
 #undef LA_X_load_mesh_fbx
 
-
-// =====================================
-// load_simple_scene_fbx.h
-// =====================================
-template <typename SceneType>
-SceneType load_simple_scene_fbx(const fs::path& filename, const LoadOptions& options)
-{
-    ufbx_scene* scene = internal::load_ufbx(filename);
-    internal::display_ufbx_scene_warnings(scene);
-    SceneType lscene = internal::load_simple_scene_fbx<SceneType>(scene, options);
-    ufbx_free_scene(scene);
-    return lscene;
-}
-template <typename SceneType>
-SceneType load_simple_scene_fbx(std::istream& input_stream, const LoadOptions& options)
-{
-    ufbx_scene* scene = internal::load_ufbx(input_stream);
-    internal::display_ufbx_scene_warnings(scene);
-    SceneType lscene = internal::load_simple_scene_fbx<SceneType>(scene, options);
-    ufbx_free_scene(scene);
-    return lscene;
-}
 #define LA_X_load_simple_scene_fbx(_, S, I, D)                  \
     template scene::SimpleScene<S, I, D> load_simple_scene_fbx( \
         const fs::path& filename,                               \
@@ -622,29 +612,6 @@ SceneType load_simple_scene_fbx(std::istream& input_stream, const LoadOptions& o
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene_fbx, 0);
 #undef LA_X_load_simple_scene_fbx
-
-
-// =====================================
-// load_scene_fbx.h
-// =====================================
-template <typename SceneType>
-SceneType load_scene_fbx(const fs::path& filename, const LoadOptions& options)
-{
-    ufbx_scene* scene = internal::load_ufbx(filename);
-    internal::display_ufbx_scene_warnings(scene);
-    SceneType lscene = internal::load_scene_fbx<SceneType>(scene, options);
-    ufbx_free_scene(scene);
-    return lscene;
-}
-template <typename SceneType>
-SceneType load_scene_fbx(std::istream& input_stream, const LoadOptions& options)
-{
-    ufbx_scene* scene = internal::load_ufbx(input_stream);
-    internal::display_ufbx_scene_warnings(scene);
-    SceneType lscene = internal::load_scene_fbx<SceneType>(scene, options);
-    ufbx_free_scene(scene);
-    return lscene;
-}
 
 #define LA_X_load_scene_fbx(_, S, I)            \
     template scene::Scene<S, I> load_scene_fbx( \

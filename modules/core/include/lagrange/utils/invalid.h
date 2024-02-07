@@ -11,8 +11,9 @@
  */
 #pragma once
 
-#include <type_traits>
+#include <cmath>
 #include <limits>
+#include <type_traits>
 
 namespace lagrange {
 
@@ -22,23 +23,29 @@ namespace lagrange {
 /// @{
 
 ///
-/// You can use invalid<T>() to get a value that can represent "invalid" values, such as indices.
-/// invalid<T>() is guaranteed to always be the same value for a given type T.
+/// You can use invalid<T>() to get a value that can represent "invalid" values, such as invalid
+/// indices or invalid float data. invalid<T>() is guaranteed to always be the same value for a
+/// given type T.
 ///
-/// This is supported for arithmetic types, and returns `numeric_limits<T>::max()`.
+/// This is supported for arithmetic types, and returns:
 ///
-/// @tparam     T     Index type.
+/// - `std::numeric_limits<T>::max()` for integral types,
+/// - `std::numeric_limits<T>::infinity()` for floating point types.
+///
+/// @tparam     T     Type.
 ///
 /// @return     A value considered invalid for the given type.
 ///
 template <typename T>
 constexpr T invalid()
 {
-    static_assert(!std::is_same<T, bool>::value, "Do not use invalid<bool>() !");
-    static_assert(
-        std::is_arithmetic<T>::value,
-        "invalid<T> is only supported for arithmetic types");
-    return std::numeric_limits<T>::max();
+    static_assert(!std::is_same_v<T, bool>, "Do not use invalid<bool>() !");
+    static_assert(std::is_arithmetic_v<T>, "invalid<T> is only supported for arithmetic types");
+    if constexpr (std::numeric_limits<T>::has_infinity) {
+        return std::numeric_limits<T>::infinity();
+    } else {
+        return std::numeric_limits<T>::max();
+    }
 }
 
 /// @}

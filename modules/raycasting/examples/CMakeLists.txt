@@ -9,7 +9,10 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-lagrange_include_modules(io)
+lagrange_include_modules(raycasting io)
 
 lagrange_add_example(project_attributes project.cpp)
 target_link_libraries(project_attributes lagrange::raycasting lagrange::io CLI11::CLI11)
+
+lagrange_add_example(uv_image uv_image.cpp)
+target_link_libraries(uv_image lagrange::raycasting lagrange::io lagrange::image_io CLI11::CLI11)

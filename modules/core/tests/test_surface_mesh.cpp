@@ -18,6 +18,7 @@
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/testing/check_mesh.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/warning.h>
@@ -1171,11 +1172,8 @@ void test_mesh_attribute()
     REQUIRE(id_e == mesh.get_attribute_id("colors_e"));
 
     // Create again (old id should be valid, new id should reuse delete id)
-    auto new_id_v1 = mesh.template create_attribute<ValueType>(
-        "colors_v1",
-        AttributeElement::Facet,
-        usage,
-        3);
+    auto new_id_v1 =
+        mesh.template create_attribute<ValueType>("colors_v1", AttributeElement::Facet, usage, 3);
     REQUIRE(id_v0 == mesh.get_attribute_id("colors_v0"));
     REQUIRE(id_f == mesh.get_attribute_id("colors_f"));
     REQUIRE(id_c == mesh.get_attribute_id("colors_c"));
@@ -1247,12 +1245,8 @@ void test_wrap_attribute()
 
     // Wrap buffer as attribute
     {
-        auto id = mesh.template wrap_as_attribute<ValueType>(
-            "colors",
-            elem,
-            usage,
-            num_channels,
-            buffer);
+        auto id =
+            mesh.template wrap_as_attribute<ValueType>("colors", elem, usage, num_channels, buffer);
         auto ptr = mesh.template ref_attribute<ValueType>(id).ref_all();
         std::iota(ptr.begin(), ptr.end(), safe_cast<ValueType>(23));
         for (size_t i = 0; i < buffer.size(); ++i) {
@@ -1638,12 +1632,7 @@ void test_export_attribute()
 
         // Invalid export policy
         {
-            mesh.template wrap_as_attribute<ValueType>(
-                "colors",
-                elem,
-                usage,
-                num_channels,
-                buffer);
+            mesh.template wrap_as_attribute<ValueType>("colors", elem, usage, num_channels, buffer);
             LA_REQUIRE_THROWS(mesh.template delete_and_export_const_attribute<ValueType>(
                 "colors",
                 AttributeDeletePolicy::ErrorIfReserved,
@@ -1717,6 +1706,7 @@ void test_indexed_attribute()
     REQUIRE(!mesh.is_attribute_indexed("custom"));
     REQUIRE(!mesh.has_attribute("invalid"));
 
+#if LAGRANGE_TARGET_FEATURE(RTTI)
     {
         auto& attr_uv = mesh.get_attribute_base("uv");
         auto& attr_normals = mesh.get_attribute_base("normals");
@@ -1725,6 +1715,7 @@ void test_indexed_attribute()
         REQUIRE(dynamic_cast<const IndexedAttribute<ValueType, Index>*>(&attr_uv));
         REQUIRE(dynamic_cast<const IndexedAttribute<ValueType, Index>*>(&attr_normals) == nullptr);
     }
+#endif
 
     {
         auto& attr_uv = mesh.template ref_indexed_attribute<ValueType>("uv");

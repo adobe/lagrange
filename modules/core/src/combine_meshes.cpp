@@ -216,17 +216,22 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
     bool preserve_attributes)
 {
-    SurfaceMesh<Scalar, Index> combined_mesh;
-    if (num_meshes == 0) return combined_mesh;
+    if (num_meshes == 0) return SurfaceMesh<Scalar, Index>{};
 
     // Count combined mesh size
     Index total_num_vertices = 0;
     Index total_num_facets = 0;
     Index total_num_corners = 0;
     Index vertex_per_facet = 0;
+    Index dimension = 0;
     bool is_regular = true;
     for (size_t i = 0; i < num_meshes; ++i) {
         const auto& mesh = get_mesh(i);
+        if (dimension == 0) {
+            dimension = mesh.get_dimension();
+        } else if (mesh.get_dimension() != dimension) {
+            throw std::runtime_error("combine_meshes: Incompatible mesh dimensions");
+        }
         total_num_vertices += mesh.get_num_vertices();
         total_num_facets += mesh.get_num_facets();
         total_num_corners += mesh.get_num_corners();
@@ -240,6 +245,7 @@ SurfaceMesh<Scalar, Index> combine_meshes(
             is_regular = false;
         }
     }
+    SurfaceMesh<Scalar, Index> combined_mesh(dimension);
 
     // Allocate combined mesh
     combined_mesh.add_vertices(total_num_vertices);

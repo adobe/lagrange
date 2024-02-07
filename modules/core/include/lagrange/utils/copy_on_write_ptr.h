@@ -16,6 +16,7 @@
 #include <lagrange/Logger.h>
 
 #include <lagrange/internal/shared_ptr.h>
+#include <lagrange/utils/build.h>
 
 #include <cassert>
 #include <memory>
@@ -78,24 +79,9 @@ public:
 
     /// Returns a const pointer to the data. Does not require ownership and will not lead to any copy.
     template <typename Derived>
-    const Derived* dynamic_read() const
-    {
-        return dynamic_cast<const Derived*>(m_data.get());
-    }
-
-    /// Returns a const pointer to the data. Does not require ownership and will not lead to any copy.
-    template <typename Derived>
     const Derived* static_read() const
     {
         return static_cast<const Derived*>(m_data.get());
-    }
-
-    /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
-    template <typename Derived>
-    Derived* dynamic_write()
-    {
-        ensure_unique_owner<Derived>();
-        return dynamic_cast<Derived*>(m_data.get());
     }
 
     /// Returns a writable pointer to the data. Will cause a copy if ownership is shared.
@@ -112,7 +98,9 @@ public:
     {
         ensure_unique_owner<Derived>();
         auto ptr = static_cast<Derived*>(m_data.get());
+#if LAGRANGE_TARGET_FEATURE(RTTI)
         la_debug_assert(dynamic_cast<Derived*>(m_data.get()));
+#endif
         auto ret = std::make_shared<Derived>(std::move(*ptr));
         m_data.reset();
         return ret;
@@ -153,7 +141,9 @@ protected:
             // object.
             // if (m_data.use_count() != 1) {
                 auto ptr = static_cast<const Derived*>(m_data.get());
+#if LAGRANGE_TARGET_FEATURE(RTTI)
                 la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
+#endif
                 m_data = ::lagrange::internal::make_shared<Derived>(*ptr);
             // }
         }

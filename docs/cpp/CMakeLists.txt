@@ -31,7 +31,7 @@ ExternalProject_Get_property(doxygen-awesome SOURCE_DIR)
 set(DOXYGEN_AWESOME_DIR "${SOURCE_DIR}")
 
 # Collect module names
-file(GLOB module_paths "${CMAKE_CURRENT_SOURCE_DIR}/../modules/*")
+file(GLOB module_paths "${CMAKE_CURRENT_SOURCE_DIR}/../../modules/*")
 unset(module_names)
 foreach(path IN ITEMS ${module_paths})
     if(IS_DIRECTORY "${path}")
@@ -56,7 +56,7 @@ set(DOXYGEN_EXCLUDE_FOLDERS
 list(JOIN DOXYGEN_EXCLUDE_FOLDERS " " DOXYGEN_EXCLUDE_FOLDERS)
 
 set(DOXYGEN_LAYOUT_FILE ${CMAKE_CURRENT_SOURCE_DIR}/DoxygenLayout.xml)
-set(DOXYGEN_WORKING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
+set(DOXYGEN_WORKING_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../..)
 set(DOXYGEN_INPUT_DIR modules)
 set(DOXYGEN_OUTPUT_DIR ${CMAKE_BINARY_DIR} CACHE PATH "Output base dir for doxygen documentation")
 set(DOXYGEN_OUTPUT_HTML html CACHE STRING "Output subdir for doxygen html")

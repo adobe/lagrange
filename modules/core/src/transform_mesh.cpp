@@ -77,18 +77,33 @@ Eigen::Matrix4<Scalar> cofactor(const Eigen::Matrix4<Scalar>& matrix)
     return result;
 }
 
+template <typename Scalar>
+Eigen::Matrix3<Scalar> compute_cotransform(
+    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform)
+{
+    return cofactor(transform.matrix()).template topLeftCorner<3, 3>();
+}
+
+template <typename Scalar>
+Eigen::Matrix2<Scalar> compute_cotransform(
+    const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform)
+{
+    Eigen::Matrix4<Scalar> matrix = Eigen::Matrix4<Scalar>::Identity();
+    matrix.template topLeftCorner<3, 3>() = transform.matrix().template topLeftCorner<3, 3>();
+    return cofactor(matrix).template topLeftCorner<2, 2>();
+}
+
 } // namespace
 
-template <typename Scalar, typename Index>
+template <typename Scalar, typename Index, int Dimension>
 void transform_mesh(
     SurfaceMesh<Scalar, Index>& mesh,
-    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,
+    const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
     const TransformOptions& options)
 {
-    la_runtime_assert(mesh.get_dimension() == 3, "Mesh must be 3D");
+    la_runtime_assert(mesh.get_dimension() == Dimension, "Mesh dimension doesn't match transform");
 
-    Eigen::Matrix3<Scalar> cotransform =
-        cofactor(transform.matrix()).template topLeftCorner<3, 3>();
+    auto cotransform = compute_cotransform(transform);
 
     par_foreach_named_attribute_read(mesh, [&](auto&& name, auto&& attr_read) {
         using AttributeType = std::decay_t<decltype(attr_read)>;
@@ -112,9 +127,11 @@ void transform_mesh(
             auto A = transform.template cast<HigherPrecisionType>();
             auto L = transform.linear().template cast<HigherPrecisionType>();
             auto coL = cotransform.template cast<HigherPrecisionType>();
-            auto X = values.template cast<HigherPrecisionType>().template leftCols<3>().transpose();
+            auto X = values.template cast<HigherPrecisionType>()
+                         .template leftCols<Dimension>()
+                         .transpose();
             auto set = [&](auto&& Y) {
-                values.template leftCols<3>() = Y.transpose().template cast<ValueType>();
+                values.template leftCols<Dimension>() = Y.transpose().template cast<ValueType>();
             };
             switch (attr_read.get_usage()) {
             case AttributeUsage::Position: set(A * X); break;
@@ -161,26 +178,38 @@ void transform_mesh(
                 internal::to_string(attr_read.get_usage())));
         }
     });
+
+    // TODO: We must flip facets due to transform with negative scale
+    // if (options.reorient_facets && transform.linear().determinant() < 0) {
+    // }
 }
 
-template <typename Scalar, typename Index>
+template <typename Scalar, typename Index, int Dimension>
 SurfaceMesh<Scalar, Index> transformed_mesh(
     SurfaceMesh<Scalar, Index> mesh,
-    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,
+    const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
     const TransformOptions& options)
 {
     transform_mesh(mesh, transform, options);
     return mesh;
 }
 
-#define LA_X_transform_mesh(_, Scalar, Index)                            \
-    template void transform_mesh<Scalar, Index>(                         \
-        SurfaceMesh<Scalar, Index> & mesh,                               \
-        const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,     \
-        const TransformOptions& options);                                \
-    template SurfaceMesh<Scalar, Index> transformed_mesh<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index> mesh,                                 \
-        const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,     \
+#define LA_X_transform_mesh(_, Scalar, Index)                               \
+    template void transform_mesh<Scalar, Index, 2>(                         \
+        SurfaceMesh<Scalar, Index> & mesh,                                  \
+        const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform,        \
+        const TransformOptions& options);                                   \
+    template SurfaceMesh<Scalar, Index> transformed_mesh<Scalar, Index, 2>( \
+        SurfaceMesh<Scalar, Index> mesh,                                    \
+        const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform,        \
+        const TransformOptions& options);                                   \
+    template void transform_mesh<Scalar, Index, 3>(                         \
+        SurfaceMesh<Scalar, Index> & mesh,                                  \
+        const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,        \
+        const TransformOptions& options);                                   \
+    template SurfaceMesh<Scalar, Index> transformed_mesh<Scalar, Index, 3>( \
+        SurfaceMesh<Scalar, Index> mesh,                                    \
+        const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,        \
         const TransformOptions& options);
 LA_SURFACE_MESH_X(transform_mesh, 0)
 

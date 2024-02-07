@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/types/TransformOptions.h>
 
 #include <Eigen/Geometry>
 
@@ -27,20 +28,8 @@ namespace lagrange {
 ///
 
 ///
-/// Options available when applying affine transforms to a mesh.
-///
-struct TransformOptions
-{
-    /// If enabled, normals are normalized after transformation.
-    bool normalize_normals = true;
-
-    /// If enabled, tangents and bitangents are normalized after transformation.
-    bool normalize_tangents_bitangents = true;
-};
-
-///
-/// Apply an affine transform @f$ M @f$ to a mesh in-place. All mesh attributes
-/// are transformed based on their usage tags:
+/// Apply an affine transform @f$ M @f$ to a mesh in-place. All mesh attributes are transformed
+/// based on their usage tags:
 ///
 /// - Position: Applies @f$ P \to M * P @f$
 /// - Normal: Applies @f$ P \to \det(M) M^{-T} * P @f$
@@ -55,16 +44,17 @@ struct TransformOptions
 ///
 /// @tparam        Scalar     Mesh scalar type.
 /// @tparam        Index      Mesh index type.
+/// @tparam        Dimension  Transform dimension (either 2 or 3). Must match mesh dimension.
 ///
-template <typename Scalar, typename Index>
+template <typename Scalar, typename Index, int Dimension>
 void transform_mesh(
     SurfaceMesh<Scalar, Index>& mesh,
-    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,
+    const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
     const TransformOptions& options = {});
 
 ///
-/// Apply an affine transform to a mesh and return the transformed mesh. All
-/// mesh attributes are transformed based on their usage tags:
+/// Apply an affine transform to a mesh and return the transformed mesh. All mesh attributes are
+/// transformed based on their usage tags:
 ///
 /// - Position: Applies @f$ P \to M * P @f$
 /// - Normal: Applies @f$ P \to \det(M) M^{-T} * P @f$
@@ -79,13 +69,14 @@ void transform_mesh(
 ///
 /// @tparam     Scalar     Mesh scalar type.
 /// @tparam     Index      Mesh index type.
+/// @tparam     Dimension  Transform dimension (either 2 or 3). Must match mesh dimension.
 ///
 /// @return     Transformed mesh.
 ///
-template <typename Scalar, typename Index>
+template <typename Scalar, typename Index, int Dimension>
 SurfaceMesh<Scalar, Index> transformed_mesh(
     SurfaceMesh<Scalar, Index> mesh,
-    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,
+    const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
     const TransformOptions& options = {});
 
 ///

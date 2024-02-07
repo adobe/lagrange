@@ -31,11 +31,11 @@ target_link_libraries(lagrange_io
         lagrange::fs
         lagrange::scene
         tinyobjloader::tinyobjloader
-        tinygltf::tinygltf
         happly::happly
         igl::core
     PRIVATE
         lagrange::image_io
+        tinygltf::tinygltf
         ufbx::ufbx
         mshio::mshio
 )

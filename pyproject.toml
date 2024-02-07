@@ -1,7 +1,7 @@
 [build-system]
 requires = [
     "scikit-build-core==0.5.1",
-    "nanobind-stubgen==0.1.2",
+    "nanobind-stubgen@git+https://github.com/jdumas/nanobind-stubgen@e860934",
 ]
 
 build-backend = "scikit_build_core.build"
@@ -35,6 +35,7 @@ LAGRANGE_MODULE_IO = true
 LAGRANGE_MODULE_IMAGE = true
 LAGRANGE_MODULE_PYTHON = true
 LAGRANGE_MODULE_SCENE = true
+LAGRANGE_MODULE_SUBDIVISION = true
 LAGRANGE_UNIT_TESTS = false
 LAGRANGE_WITH_ASSIMP = true
 TBB_PREFER_STATIC = false

@@ -13,12 +13,14 @@
 
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/scene/SimpleScene.h>
+#include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/utils/assert.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Eigen/Core>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/optional.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -102,6 +104,55 @@ void bind_simple_scene(nb::module_& m)
             "mesh_index"_a,
             "num_instances"_a)
         .def("add_instance", &SimpleScene3D::add_instance, "instance"_a);
+
+    // Mesh to scene + scene to mesh
+
+    m.def(
+        "simple_scene_to_mesh",
+        [](const SimpleScene3D& scene,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents,
+           bool preserve_attributes) {
+            TransformOptions transform_options;
+            transform_options.normalize_normals = normalize_normals;
+            transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            return scene::simple_scene_to_mesh(scene, transform_options, preserve_attributes);
+        },
+        "scene"_a,
+        "normalize_normals"_a = TransformOptions{}.normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        "preserve_attributes"_a = true,
+        R"(Converts a scene into a concatenated mesh with all the transforms applied.
+
+:param scene: Scene to convert.
+:param normalize_normals: If enabled, normals are normalized after transformation.
+:param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+:param preserve_attributes: Preserve shared attributes and map them to the output mesh.
+
+:return: Concatenated mesh.)");
+
+    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
+    m.def(
+        "mesh_to_simple_scene",
+        [](const MeshType& mesh) { return scene::mesh_to_simple_scene<3>(mesh); },
+        "mesh"_a,
+        R"(Converts a single mesh into a simple scene with a single identity instance of the input mesh.
+
+:param mesh: Input mesh to convert.
+
+:return: Simple scene containing the input mesh.)");
+
+    m.def(
+        "meshes_to_simple_scene",
+        [](std::vector<MeshType> meshes) {
+            return scene::meshes_to_simple_scene<3>(std::move(meshes));
+        },
+        "meshes"_a,
+        R"(Converts a list of meshes into a simple scene with a single identity instance of each input mesh.
+
+:param meshes: Input meshes to convert.
+
+:return: Simple scene containing the input meshes.)");
 }
 
 } // namespace lagrange::python

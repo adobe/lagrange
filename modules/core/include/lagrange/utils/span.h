@@ -26,6 +26,9 @@ namespace lagrange {
 template <class T, span_CONFIG_EXTENT_TYPE Extent = ::nonstd::dynamic_extent>
 using span = ::nonstd::span<T, Extent>;
 
+/// Span extent type.
+using extent_t = span_CONFIG_EXTENT_TYPE;
+
 /// @}
 
 } // namespace lagrange

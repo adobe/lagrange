@@ -145,6 +145,7 @@ void bind_scene(nb::module_& m)
         .value("Mask", MaterialExperimental::AlphaMode::Mask)
         .value("Blend", MaterialExperimental::AlphaMode::Blend);
 
+
     nb::class_<Texture> texture(m, "Texture", "Texture");
     texture.def(nb::init<>())
         .def("__repr__", [](const Texture& t) { return fmt::format("Texture('{}')", t.name); })
@@ -162,6 +163,14 @@ void bind_scene(nb::module_& m)
         .value("Clamp", Texture::WrapMode::Clamp)
         .value("Decal", Texture::WrapMode::Decal)
         .value("Mirror", Texture::WrapMode::Mirror);
+    nb::enum_<Texture::TextureFilter>(texture, "TextureFilter")
+        .value("Undefined", Texture::TextureFilter::Undefined)
+        .value("Nearest", Texture::TextureFilter::Nearest)
+        .value("Linear", Texture::TextureFilter::Linear)
+        .value("NearestMimpapNearest", Texture::TextureFilter::NearestMimpapNearest)
+        .value("LinearMipmapNearest", Texture::TextureFilter::LinearMipmapNearest)
+        .value("NearestMipmapLinear", Texture::TextureFilter::NearestMipmapLinear)
+        .value("LinearMipmapLinear", Texture::TextureFilter::LinearMipmapLinear);
 
     nb::class_<Light> light(m, "Light", "Light");
     light.def(nb::init<>())

@@ -11,10 +11,6 @@
  */
 #pragma once
 
-#include <algorithm>
-#include <exception>
-#include <iostream>
-
 #include <lagrange/Logger.h>
 #include <lagrange/common.h>
 #include <lagrange/experimental/Scalar.h>
@@ -22,8 +18,18 @@
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/strings.h>
 
+#include <algorithm>
+#include <any>
+#include <exception>
+#include <iostream>
+
 namespace lagrange {
 namespace experimental {
+
+template <typename Data>
+class ArrayTypeInfo
+{
+};
 
 class ArrayBase
 {
@@ -34,21 +40,56 @@ public:
     ArrayBase(ScalarEnum type)
         : m_scalar_type(type)
     {}
+
     virtual ~ArrayBase() = default;
 
 public:
     template <typename TargetType>
     Eigen::Map<TargetType> view()
     {
-        la_runtime_assert(is_compatible<TargetType>(), "Target view type is not compatible with the data.");
+        la_runtime_assert(
+            is_compatible<TargetType>(),
+            "Target view type is not compatible with the data.");
         return Eigen::Map<TargetType>(data<typename TargetType::Scalar>(), rows(), cols());
     }
 
     template <typename TargetType>
     Eigen::Map<const TargetType> view() const
     {
-        la_runtime_assert(is_compatible<TargetType>(), "Target view type is not compatible with the data.");
+        la_runtime_assert(
+            is_compatible<TargetType>(),
+            "Target view type is not compatible with the data.");
         return Eigen::Map<const TargetType>(data<typename TargetType::Scalar>(), rows(), cols());
+    }
+
+    virtual std::any get_type_info() const = 0;
+
+    template <typename Derived>
+    bool is_base_of() const
+    {
+        std::any info = get_type_info();
+        return std::any_cast<ArrayTypeInfo<Derived>>(&info) != nullptr;
+    }
+
+    template <typename DerivedPtr>
+    auto down_cast() -> std::add_pointer_t<std::decay_t<std::remove_pointer_t<DerivedPtr>>>
+    {
+        using Derived = std::decay_t<std::remove_pointer_t<DerivedPtr>>;
+        if (is_base_of<Derived>()) {
+            return static_cast<Derived*>(this);
+        }
+        return nullptr;
+    }
+
+    template <typename DerivedPtr>
+    auto down_cast() const
+        -> std::add_pointer_t<std::add_const_t<std::decay_t<std::remove_pointer_t<DerivedPtr>>>>
+    {
+        using Derived = std::decay_t<std::remove_pointer_t<DerivedPtr>>;
+        if (is_base_of<Derived>()) {
+            return static_cast<const Derived*>(this);
+        }
+        return nullptr;
     }
 
     template <typename Derived>
@@ -150,7 +191,6 @@ protected:
     const ScalarEnum m_scalar_type;
 };
 
-
 /**
  * This class is a thin wrapper around an Eigen matrix.  It takes ownership of
  * the Eigen matrix.
@@ -161,6 +201,7 @@ class EigenArray : public ArrayBase
 public:
     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
     using EigenType = _EigenType;
+    using Self = EigenArray<EigenType>;
     using Index = ArrayBase::Index;
     using ArrayBase::WeightedIndexFunction;
     static_assert(
@@ -185,6 +226,8 @@ public:
         : ArrayBase(ScalarToEnum_v<typename EigenType::Scalar>)
         , m_data(std::move(data.derived()))
     {}
+
+    std::any get_type_info() const override { return std::make_any<ArrayTypeInfo<Self>>(); }
 
 public:
     EigenType& get_ref() { return m_data; }
@@ -247,6 +290,7 @@ class EigenArrayRef<_EigenType, false> : public ArrayBase
 {
 public:
     using EigenType = _EigenType;
+    using Self = EigenArrayRef<_EigenType, false>;
     using DecayedEigenType = std::decay_t<_EigenType>;
     using Index = ArrayBase::Index;
     using ArrayBase::WeightedIndexFunction;
@@ -257,15 +301,13 @@ public:
     static_assert(!std::is_reference<EigenType>::value, "EigenType should not be reference type.");
 
 public:
-    EigenArrayRef()
-        : ArrayBase(ScalarToEnum_v<typename EigenType::Scalar>)
-    {}
-
     template <typename T>
     explicit EigenArrayRef(Eigen::MatrixBase<T>& data)
         : ArrayBase(ScalarToEnum_v<typename EigenType::Scalar>)
         , m_data(data.derived())
     {}
+
+    std::any get_type_info() const override { return std::make_any<ArrayTypeInfo<Self>>(); }
 
 public:
     EigenType& get_ref() { return m_data; }
@@ -320,6 +362,7 @@ class EigenArrayRef<_EigenType, true> : public ArrayBase
 {
 public:
     using EigenType = _EigenType;
+    using Self = EigenArrayRef<_EigenType, true>;
     using DecayedEigenType = std::decay_t<_EigenType>;
     using Index = ArrayBase::Index;
     using ArrayBase::WeightedIndexFunction;
@@ -335,6 +378,8 @@ public:
         : ArrayBase(ScalarToEnum_v<typename EigenType::Scalar>)
         , m_data(data.derived())
     {}
+
+    std::any get_type_info() const override { return std::make_any<ArrayTypeInfo<Self>>(); }
 
 public:
     const EigenType& get_ref() const { return m_data; }
@@ -400,6 +445,7 @@ template <typename _Scalar, int _Rows, int _Cols, int _Options>
 class RawArray<_Scalar, _Rows, _Cols, _Options, false> : public ArrayBase
 {
 public:
+    using Self = RawArray<_Scalar, _Rows, _Cols, _Options, false>;
     using Scalar = _Scalar;
     using Index = ArrayBase::Index;
     using EigenType = Eigen::Matrix<Scalar, _Rows, _Cols, _Options>;
@@ -412,6 +458,8 @@ public:
         : ArrayBase(ScalarToEnum_v<typename EigenType::Scalar>)
         , m_data(data, rows, cols)
     {}
+
+    std::any get_type_info() const override { return std::make_any<ArrayTypeInfo<Self>>(); }
 
 public:
     EigenMap& get_ref() { return m_data; }
@@ -467,6 +515,7 @@ template <typename _Scalar, int _Rows, int _Cols, int _Options>
 class RawArray<_Scalar, _Rows, _Cols, _Options, true> : public ArrayBase
 {
 public:
+    using Self = RawArray<_Scalar, _Rows, _Cols, _Options, true>;
     using Scalar = std::decay_t<_Scalar>;
     using Index = ArrayBase::Index;
     using EigenType = Eigen::Matrix<Scalar, _Rows, _Cols, _Options>;
@@ -478,6 +527,8 @@ public:
         : ArrayBase(ScalarToEnum_v<typename EigenType::Scalar>)
         , m_data(data, rows, cols)
     {}
+
+    std::any get_type_info() const override { return std::make_any<ArrayTypeInfo<Self>>(); }
 
 public:
     const EigenMap& get_ref() const { return m_data; }

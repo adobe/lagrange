@@ -13,7 +13,10 @@
 
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/scene/simple_scene_convert.h>
+#include <lagrange/views.h>
 
+#include <random>
 #include <unordered_set>
 
 namespace {
@@ -68,6 +71,34 @@ void test_simple_scene_basic()
         [&](const auto& instance) { REQUIRE(valid_mesh_indices.count(instance.mesh_index)); });
 }
 
+template <typename Scalar, typename Index, size_t Dim>
+void test_simple_scene_convert()
+{
+    constexpr size_t OtherDim = Dim == 2 ? 3 : 2;
+
+    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
+
+    // Create dummy mesh
+    MeshType mesh(Dim);
+    mesh.add_vertices(10);
+    vertex_ref(mesh).setRandom();
+    mesh.add_triangles(10);
+    std::mt19937 rng;
+    std::uniform_int_distribution<Index> dist(0, 9);
+    facet_ref(mesh).unaryExpr([&](auto) { return dist(rng); });
+
+    // Dim -> Dim is ok
+    {
+        auto mesh2 =
+            lagrange::scene::simple_scene_to_mesh(lagrange::scene::mesh_to_simple_scene<Dim>(mesh));
+        REQUIRE(vertex_view(mesh) == vertex_view(mesh2));
+        REQUIRE(facet_view(mesh) == facet_view(mesh2));
+    }
+
+    // Dim -> OtherDim is not ok
+    LA_REQUIRE_THROWS(lagrange::scene::mesh_to_simple_scene<OtherDim>(mesh));
+}
+
 } // namespace
 
 TEST_CASE("SimpleScene: basic", "[scene]")
@@ -75,4 +106,10 @@ TEST_CASE("SimpleScene: basic", "[scene]")
 #define LA_X_simple_scene_basic(_, Scalar, Index, Dim) \
     test_simple_scene_basic<Scalar, Index, Dim>();
     LA_SIMPLE_SCENE_X(simple_scene_basic, 0)
+}
+
+TEST_CASE("SimpleScene: convert", "[scene]")
+{
+    test_simple_scene_convert<double, uint32_t, 2u>();
+    test_simple_scene_convert<double, uint32_t, 3u>();
 }

@@ -33,7 +33,7 @@ template <typename Scalar, typename Index, size_t Dimension = 3>
 struct MeshInstance
 {
     /// Affine transformation matrix.
-    using AffineTransform = Eigen::Transform<Scalar, Dimension, Eigen::Affine>;
+    using AffineTransform = Eigen::Transform<Scalar, static_cast<int>(Dimension), Eigen::Affine>;
 
     /// Index of the referenced mesh in the scene.
     Index mesh_index = invalid<Index>();

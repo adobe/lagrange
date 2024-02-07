@@ -17,6 +17,7 @@
 #pragma property material_roughness "Roughness" Texture2D(0.4)
 #pragma property material_metallic "Metallic" Texture2D(0.1)
 #pragma property material_normal "Normal" Texture2D [normal]
+#pragma property material_world_space_normal "WorldSpaceNormal" int(0,0,1)
 #pragma property material_opacity "Opacity" float(1,0,1)
 #pragma property material_backface_lighting "BackfaceLighting" float(0.5,0,1)
 
@@ -69,15 +70,12 @@ vec3 adjust_normal(vec3 N, vec3 T, vec3 BT, vec2 uv){
 
         T = normalize(T);
         BT = normalize(BT);
-
         mat3 TBN = mat3(T, BT, N);
-        vec3 N_in_TBN = TBN * N;
 
         vec3 Ntex = texture(material_normal, uv).xyz * 2.0f - vec3(1.0f);
-        vec3 Ntex_in_world = TBN * Ntex;
+        vec3 Ntex_in_world = material_world_space_normal == 0 ? TBN * Ntex : Ntex;
 
         N = normalize(Ntex_in_world);
-
     }
 
     return N;

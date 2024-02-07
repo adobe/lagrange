@@ -18,6 +18,7 @@
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -132,8 +133,12 @@ bool has_list_property_type(happly::Element& ply_element, const std::string& nam
     if (!prop) {
         return false;
     }
+#if LAGRANGE_TARGET_FEATURE(RTTI)
     happly::TypedListProperty<T>* casted_prop =
         dynamic_cast<happly::TypedListProperty<T>*>(prop.get());
+#else
+    happly::TypedListProperty<T>* casted_prop = prop->downcast<happly::TypedListProperty<T>*>();
+#endif
     if (casted_prop) {
         return true;
     }

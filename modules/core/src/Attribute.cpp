@@ -12,6 +12,7 @@
 #include <lagrange/Attribute.h>
 
 #include <lagrange/AttributeTypes.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
@@ -545,6 +546,14 @@ void Attribute<ValueType>::clear_views()
 ////////////////////////////////////////////////////////////////////////////////
 // Explicit template instantiation
 ////////////////////////////////////////////////////////////////////////////////
+
+#define LA_X_attribute_get_type(_, ValueType)                                              \
+    template <>                                                                            \
+    [[nodiscard]] AttributeValueType Attribute<ValueType>::get_value_type() const \
+    {                                                                                      \
+        return AttributeValueType::e_##ValueType;                                          \
+    }
+LA_ATTRIBUTE_X(attribute_get_type, 0)
 
 #define LA_X_attr(_, ValueType) template class Attribute<ValueType>;
 LA_ATTRIBUTE_X(attr, 0)

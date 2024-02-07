@@ -17,7 +17,6 @@
 #endif
 
 #include <lagrange/Logger.h>
-#include <lagrange/combine_meshes.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_vertex_normal.h>
