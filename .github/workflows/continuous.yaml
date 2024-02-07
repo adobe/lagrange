@@ -110,6 +110,7 @@ jobs:
             -DLAGRANGE_LIMIT_PARALLELISM=ON \
             -DOPENVDB_CORE_SHARED=ON \
             -DOPENVDB_CORE_STATIC=OFF \
+            -DUSE_EXPLICIT_INSTANTIATION=OFF \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build
