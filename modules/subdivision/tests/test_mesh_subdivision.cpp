@@ -108,7 +108,7 @@ void validate_subdivision(
 
 } // namespace
 
-TEST_CASE("mesh_subdivision", "[mesh][subdivision]")
+TEST_CASE("mesh_subdivision", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
 {
     std::vector<std::string> filenames = {
         "open/core/simple/cube.obj",
@@ -152,7 +152,7 @@ TEST_CASE("mesh_subdivision", "[mesh][subdivision]")
     }
 }
 
-TEST_CASE("mesh_subdivision_with_uv", "[mesh][subdivision]")
+TEST_CASE("mesh_subdivision_with_uv", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
 {
     using Scalar = double;
     lagrange::SurfaceMesh32d mesh(2);
@@ -213,7 +213,7 @@ bool all_unit_axis(const Eigen::MatrixBase<Derived>& M)
 
 } // namespace
 
-TEST_CASE("mesh_subdivision_limit", "[mesh][subdivision]")
+TEST_CASE("mesh_subdivision_limit", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
 {
     using Scalar = double;
     using Index = uint32_t;
@@ -311,7 +311,7 @@ void compare_with_expected(
 
 } // namespace
 
-TEST_CASE("mesh_subdivision_sharpness", "[mesh][subdivision]")
+TEST_CASE("mesh_subdivision_sharpness", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
 {
     using Scalar = double;
     using Index = uint32_t;
