@@ -71,8 +71,7 @@ void bind_mesh_cleanup(nanobind::module_& m)
         R"(Remove duplicate vertices from a mesh.
 
 :param mesh:             The input mesh.
-:param extra_attributes: Two vertices are considered duplicates if they have the same position and
-                         the same values for all attributes in `extra_attributes`.)");
+:param extra_attributes: Two vertices are considered duplicates if they have the same position and the same values for all attributes in `extra_attributes`.)");
 
     m.def(
         "remove_duplicate_facets",

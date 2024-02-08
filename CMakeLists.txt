@@ -252,10 +252,16 @@ if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
 endif()
 
-# When building anorigami module, we also need to compile tbbmalloc
-if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_MESHPROC OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_MESHPROC OR LAGRANGE_MODULE_CONTOURING OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
+    # When building anorigami module, we also need to compile tbbmalloc
     option(TBB_BUILD_TBBMALLOC "Build TBB malloc library"  ON) # TBB 2020 option
     option(TBBMALLOC_BUILD "Enable tbbmalloc build" ON) # OneTBB 2021 option
+
+    # When using pre-built Arpack, we still need to compile MKL/TBB as a shared library
+    if(NOT ARPACK_BUILD_FROM_SOURCE)
+        set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+        option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
+    endif()
 endif()
 
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
@@ -351,9 +357,9 @@ endif()
 # Build modules
 add_subdirectory(modules)
 
-# Build documentation
+# Build C++ documentation
 if(LAGRANGE_DOCUMENTATION)
-    add_subdirectory(docs)
+    add_subdirectory(docs/cpp)
 endif()
 
 # Build code extracted from markdown documentation

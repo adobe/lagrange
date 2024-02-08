@@ -29,6 +29,12 @@ namespace lagrange {
 /// @{
 
 ///
+/// Enum describing at runtime the value type of an attribute. This can be accessed from the base
+/// attribute class and enables safe downcasting without global RTTI.
+///
+enum class AttributeValueType : uint8_t;
+
+///
 /// Base handle for attributes. This is a common base class to allow for type erasure.
 ///
 class AttributeBase
@@ -81,11 +87,11 @@ public:
     AttributeBase& operator=(const AttributeBase& other) = default;
 
     ///
-    /// Gets the attribute usage tag.
+    /// Gets the attribute value type.
     ///
-    /// @return     The usage tag.
+    /// @return     An enum describing the value type.
     ///
-    [[nodiscard]] AttributeUsage get_usage() const { return m_usage; }
+    [[nodiscard]] virtual AttributeValueType get_value_type() const = 0;
 
     ///
     /// Gets the attribute element type.
@@ -93,6 +99,13 @@ public:
     /// @return     The element type.
     ///
     [[nodiscard]] AttributeElement get_element_type() const { return m_element; }
+
+    ///
+    /// Gets the attribute usage tag.
+    ///
+    /// @return     The usage tag.
+    ///
+    [[nodiscard]] AttributeUsage get_usage() const { return m_usage; }
 
     ///
     /// Gets the number of channels for the attribute.
@@ -177,6 +190,13 @@ public:
     /// @return     The result of the assignment.
     ///
     Attribute& operator=(const Attribute& other);
+
+    ///
+    /// Gets the attribute value type.
+    ///
+    /// @return     An enum describing the value type.
+    ///
+    [[nodiscard]] AttributeValueType get_value_type() const override;
 
     ///
     /// Wraps an external buffer into the attribute. The pointer must remain valid for the lifetime

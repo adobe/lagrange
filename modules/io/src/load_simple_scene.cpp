@@ -12,6 +12,7 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/io/load_simple_scene.h>
+#include <lagrange/io/load_simple_scene_fbx.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
@@ -29,6 +30,8 @@ SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options
     std::string ext = to_lower(filename.extension().string());
     if (ext == ".gltf" || ext == ".glb") {
         return load_simple_scene_gltf<SceneType>(filename, options);
+    } else if (ext == ".fbx") {
+        return load_simple_scene_fbx<SceneType>(filename, options);
     } else {
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_simple_scene_assimp<SceneType>(filename, options);

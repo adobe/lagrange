@@ -14,7 +14,9 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/ImageView.h>
 #include <lagrange/utils/invalid.h>
+
 #include <Eigen/Geometry>
+
 #include <string>
 #include <vector>
 

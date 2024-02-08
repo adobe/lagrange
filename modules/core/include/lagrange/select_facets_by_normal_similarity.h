@@ -11,12 +11,12 @@
  */
 #pragma once
 
-#include <iostream>
-
 #include <lagrange/common.h>
 #include <lagrange/compute_triangle_normal.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
+
+#include <limits>
 
 namespace lagrange {
 
@@ -38,7 +38,7 @@ struct SelectFacetsByNormalSimilarityParameters
     // This are input and have to be set
     //
     // Increasing this would select a larger region
-    Scalar flood_error_limit = invalid<Scalar>();
+    Scalar flood_error_limit = std::numeric_limits<Scalar>::max();
     // This tries to smooth the selection boundary (reduce ears)
     bool should_smooth_boundary = true;
 
@@ -209,8 +209,6 @@ std::vector<bool> select_facets_by_normal_similarity(
         for (Index st_iter_2 = 0; st_iter_2 < parameters.num_smooth_iterations; st_iter_2++) {
             // Go through boundary faces - check spikes
             for (Index i = 0; i < mesh.get_num_facets(); i++) {
-                // std::cout << facet_one_ring_faces[i].size() << std::endl;
-
                 const IndexList& facets_adjacent_to_candidate =
                     mesh.get_facets_adjacent_to_facet(i);
 

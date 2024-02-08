@@ -48,17 +48,20 @@ struct PBRMaterial
     constexpr static const StringID BaseColor = "material_base_color"_hs;
     constexpr static const StringID Roughness = "material_roughness"_hs;
     constexpr static const StringID Normal = "material_normal"_hs;
+    constexpr static const StringID WorldSpaceNormal = "material_world_space_normal"_hs;
     constexpr static const StringID Metallic = "material_metallic"_hs;
     constexpr static const StringID Opacity = "material_opacity"_hs;
     constexpr static const StringID BackfaceLighting = "material_backface_lighting"_hs;
+    constexpr static const StringID IndexOfRefraction = "material_index_of_refraction"_hs;
+    constexpr static const StringID Glow = "material_glow"_hs;
+    constexpr static const StringID Translucence = "material_translucence"_hs;
+    constexpr static const StringID InteriorColor = "material_interior_color"_hs;
+    constexpr static const StringID GlowIntensity = "material_glow_intensity"_hs;
+};
 
-    constexpr static const entt::id_type IndexOfRefraction = "material_index_of_refraction"_hs;
-
-    constexpr static const entt::id_type Glow = "material_glow"_hs;
-    constexpr static const entt::id_type Translucence = "material_translucence"_hs;
-
-    constexpr static const entt::id_type InteriorColor = "material_interior_color"_hs;
-    constexpr static const entt::id_type GlowIntensity = "material_glow_intensity"_hs;
+struct MeshElementIDMaterial
+{
+    constexpr static const StringID ElementMode = "element_mode"_hs;
 };
 
 void register_default_shaders(Registry& r);

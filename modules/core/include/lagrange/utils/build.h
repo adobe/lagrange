@@ -103,3 +103,19 @@
     LAGRANGE_TARGET_PLATFORM(wasm32) || LAGRANGE_TARGET_PLATFORM(wasm64))
     #error "Unexpected target platform setup"
 #endif
+
+#define LAGRANGE_TARGET_FEATURE(X) LAGRANGE_TARGET_FEATURE_PRIVATE_DEFINITION_##X()
+
+#if __clang__ && !__INTEL_COMPILER
+    #define LAGRANGE_ENABLE_RTTI __has_feature(cxx_rtti)
+#elif defined(_CPPRTTI)
+    #define LAGRANGE_ENABLE_RTTI 1
+#else
+    #define LAGRANGE_ENABLE_RTTI (__GXX_RTTI || __RTTI || __INTEL_RTTI__)
+#endif
+
+#if LAGRANGE_ENABLE_RTTI
+    #define LAGRANGE_TARGET_FEATURE_PRIVATE_DEFINITION_RTTI() 1
+#else
+    #define LAGRANGE_TARGET_FEATURE_PRIVATE_DEFINITION_RTTI() 0
+#endif

@@ -23,6 +23,7 @@ CPMAddPackage(
     DOWNLOAD_ONLY ON
 )
 
+# TODO: Use upstream CMake + Enable TBB
 add_library(opensubdiv)
 add_library(opensubdiv::opensubdiv ALIAS opensubdiv)
 
@@ -37,6 +38,8 @@ target_include_directories(opensubdiv SYSTEM PUBLIC
 if(CMAKE_HOST_WIN32)
     target_compile_definitions(opensubdiv PUBLIC _USE_MATH_DEFINES)
 endif()
+
+set_target_properties(opensubdiv PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 file(GLOB SRC_FILES
     "${opensubdiv_SOURCE_DIR}/opensubdiv/far/*.h"

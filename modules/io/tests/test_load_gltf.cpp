@@ -12,6 +12,7 @@
 #include <lagrange/attribute_names.h>
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
+#include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
 #include <lagrange/testing/common.h>
 
 using namespace lagrange;
@@ -21,8 +22,8 @@ TEST_CASE("load_mesh_gltf", "[io]")
 {
     auto mesh = io::load_mesh_gltf<lagrange::SurfaceMesh32f>(
         testing::get_data_path("open/io/three_cubes_instances.gltf"));
-    REQUIRE(mesh.get_num_vertices() == 24);
-    REQUIRE(mesh.get_num_facets() == 12);
+    REQUIRE(mesh.get_num_vertices() == 3 * 24);
+    REQUIRE(mesh.get_num_facets() == 3 * 12);
     REQUIRE(mesh.has_attribute(AttributeName::normal));
     REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
 }
@@ -52,7 +53,6 @@ TEST_CASE("load_mesh_gltf_animated_cube", "[io]")
     REQUIRE(mesh.has_attribute(AttributeName::normal));
     REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
 }
-
 
 // this file contains a single mesh with two separate components.
 TEST_CASE("load_gltf_avocado", "[io]")
@@ -87,16 +87,29 @@ TEST_CASE("load_gltf_multi_uv", "[io]")
     REQUIRE(scene.get_num_instances(0) == 1);
 }
 
-// this file contains a model made of many different meshes (29!).
+// This file contains a model made of many different meshes (29!)
 // There are no textures and no UVs, each component has a material with a different base color.
-// note that this file has a total of 10413 degenerate triangles out of 75730.
+// There are a number of topologically degenerate facets, which are removed by Blender if you try to
+// use it to export the scene to .obj.
 TEST_CASE("load_gltf_engine", "[io]")
 {
+    // Load as single mesh
     auto mesh = io::load_mesh_gltf<lagrange::SurfaceMesh32f>(
         testing::get_data_path("open/io/gltf_engine/2CylinderEngine.gltf"));
-    REQUIRE(mesh.get_num_vertices() == 55843);
-    REQUIRE(mesh.get_num_facets() == 75730);
+    REQUIRE(mesh.get_num_vertices() == 84657);
+    REQUIRE(mesh.get_num_facets() == 121496);
     REQUIRE(mesh.has_attribute(AttributeName::normal));
+
+    // Load as simple scene
+    using Index = uint32_t;
+    auto scene = io::load_simple_scene_gltf<lagrange::scene::SimpleScene32f3>(
+        testing::get_data_path("open/io/gltf_engine/2CylinderEngine.gltf"));
+    Index num_facets = 0;
+    for (Index i = 0; i < scene.get_num_meshes(); i++) {
+        lagrange::remove_topologically_degenerate_facets(scene.ref_mesh(i));
+        num_facets += scene.get_mesh(i).get_num_facets() * scene.get_num_instances(i);
+    }
+    REQUIRE(num_facets == 110342); // Matches the #facets on a .obj exported from Blender
 }
 
 TEST_CASE("load_glb_triangle", "[io]")

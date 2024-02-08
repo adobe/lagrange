@@ -58,4 +58,14 @@ std::string_view to_string(AttributeUsage usage);
 template <typename ValueType>
 std::string_view value_type_name(const lagrange::Attribute<ValueType>& attr);
 
+///
+/// Returns a string representation of the attribute value type.
+///
+/// @tparam     ValueType  Attribute value type.
+///
+/// @return     String representation.
+///
+template <typename ValueType>
+std::string_view value_type_name();
+
 } // namespace lagrange::internal

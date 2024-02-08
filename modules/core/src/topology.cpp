@@ -171,6 +171,7 @@ bool is_edge_manifold(const SurfaceMesh<Scalar, Index>& mesh)
         return is_edge_manifold(mesh_copy);
     }
 
+    // TODO: We also need to check the winding order between incident facets
     const auto num_edges = mesh.get_num_edges();
     for (Index ei = 0; ei < num_edges; ei++) {
         auto num_corners_around_edge = mesh.count_num_corners_around_edge(ei);

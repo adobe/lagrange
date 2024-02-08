@@ -319,6 +319,33 @@ TEST_CASE("combine_meshes with indices", "[surface][utilities]")
     }
 }
 
+TEST_CASE("combine_meshes dimensions", "[surface][utilities]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh2(2);
+    mesh2.add_vertices(3);
+    mesh2.add_triangle(0, 1, 2);
+
+    SurfaceMesh<Scalar, Index> mesh3(3);
+    mesh3.add_vertices(4);
+    mesh3.add_quad(0, 1, 3, 2);
+
+    SurfaceMesh<Scalar, Index> mesh4(4);
+    mesh4.add_vertices(3);
+    mesh4.add_triangle(0, 1, 2);
+
+    // Same dimension: should be ok
+    REQUIRE_NOTHROW(combine_meshes<Scalar, Index>({&mesh2, &mesh2}));
+    REQUIRE_NOTHROW(combine_meshes<Scalar, Index>({&mesh3, &mesh3}));
+    REQUIRE_NOTHROW(combine_meshes<Scalar, Index>({&mesh4, &mesh4}));
+
+    // Different dimensions: kaboom
+    LA_REQUIRE_THROWS(combine_meshes<Scalar, Index>({&mesh2, &mesh3}));
+    LA_REQUIRE_THROWS(combine_meshes<Scalar, Index>({&mesh3, &mesh3, &mesh4}));
+}
+
 TEST_CASE("combine_meshes hybrid", "[surface][utilities]")
 {
     using Scalar = double;

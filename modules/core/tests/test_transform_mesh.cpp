@@ -38,7 +38,82 @@ enum class TestCase : int {
     NumTestCases = 6,
 };
 
-void test_transform_mesh(bool pad_with_sign, TestCase test_case)
+void test_transform_mesh_2d(TestCase test_case)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 1});
+    mesh.add_triangle(0, 1, 2);
+
+    auto id_uv = mesh.create_attribute<Scalar>(
+        "uv",
+        lagrange::AttributeElement::Indexed,
+        lagrange::AttributeUsage::UV,
+        2,
+        std::array<Scalar, 6>{
+            0.,
+            0.,
+            1.,
+            0.,
+            0.,
+            1.,
+        },
+        std::array<Index, 3>{0, 1, 2});
+
+    auto& uv_attr = mesh.get_indexed_attribute<Scalar>(id_uv);
+
+    auto vertices = vertex_view(mesh);
+    auto uv = lagrange::matrix_view(uv_attr.values());
+
+    for (Index v = 0; v < 3; ++v) {
+        // These results are exact because coordinates are integers, no rounding error involved.
+        REQUIRE(uv.row(v) == vertices.row(v));
+    }
+
+    switch (test_case) {
+    case TestCase::Translation: {
+        lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Translation<Scalar, 2>(1, 2)));
+        REQUIRE(vertices.row(0) == Eigen::RowVector2d(1, 2));
+        break;
+    case TestCase::UniformScaling:
+        lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Scaling(Scalar(2))));
+        REQUIRE(vertices.row(1) == Eigen::RowVector2d(2, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, 2));
+        break;
+    case TestCase::NonUniformScaling:
+        lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Scaling(Scalar(2), Scalar(3))));
+        REQUIRE(vertices.row(1) == Eigen::RowVector2d(2, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, 3));
+        break;
+    case TestCase::Rotation: {
+        Eigen::Affine2d M = Eigen::Affine2d::Identity();
+        // Rotation of pi/2 around Z
+        M.linear() << 0, -1, 1, 0;
+        lagrange::transform_mesh(mesh, M);
+        REQUIRE(vertices.row(1) == Eigen::RowVector2d(0, 1));
+        REQUIRE(vertices.row(2) == Eigen::RowVector2d(-1, 0));
+        break;
+    }
+    case TestCase::SymmetryXY:
+        lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Scaling(Scalar(1), Scalar(1))));
+        REQUIRE(vertices.row(1) == Eigen::RowVector2d(1, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, 1));
+        break;
+    case TestCase::SymmetryXZ:
+        lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Scaling(Scalar(1), Scalar(-1))));
+        REQUIRE(vertices.row(1) == Eigen::RowVector2d(1, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, -1));
+        break;
+    default: break;
+    }
+    }
+}
+
+void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
 {
     using Scalar = double;
     using Index = uint32_t;
@@ -160,10 +235,17 @@ void test_transform_mesh(bool pad_with_sign, TestCase test_case)
 
 } // namespace
 
-TEST_CASE("transform_mesh", "[next]")
+TEST_CASE("transform_mesh_2d", "[next]")
 {
     for (int i = 0; i < static_cast<int>(TestCase::NumTestCases); ++i) {
-        test_transform_mesh(false, static_cast<TestCase>(i));
-        test_transform_mesh(true, static_cast<TestCase>(i));
+        test_transform_mesh_2d(static_cast<TestCase>(i));
+    }
+}
+
+TEST_CASE("transform_mesh_3d", "[next]")
+{
+    for (int i = 0; i < static_cast<int>(TestCase::NumTestCases); ++i) {
+        test_transform_mesh_3d(false, static_cast<TestCase>(i));
+        test_transform_mesh_3d(true, static_cast<TestCase>(i));
     }
 }

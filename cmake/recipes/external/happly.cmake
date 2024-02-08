@@ -18,8 +18,9 @@ message(STATUS "Third-party (external): creating target 'happly::happly'")
 include(CPM)
 CPMAddPackage(
     NAME happly
-    GITHUB_REPOSITORY nmwsharp/happly
-    GIT_TAG cfa2611550bc7da65855a78af0574b65deb81766
+    # TODO: Revert back to upstream repo once https://github.com/nmwsharp/happly/pull/41 is merged.
+    GITHUB_REPOSITORY jdumas/happly
+    GIT_TAG 2486e7e13c5f0932e6d91064ad1fde46ee3f61f4
 )
 
 # Define happly library

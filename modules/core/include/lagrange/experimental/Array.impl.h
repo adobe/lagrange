@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <tbb/enumerable_thread_specific.h>
@@ -23,16 +24,16 @@ template <typename Derived>
 void ArrayBase::set(const Eigen::MatrixBase<Derived>& data)
 {
     using EvalType = std::decay_t<decltype(data.eval())>;
-    if (auto ptr = dynamic_cast<EigenArray<EvalType>*>(this)) {
+    if (auto ptr = down_cast<EigenArray<EvalType>*>()) {
         ptr->set(data);
     } else if (
-        auto ptr2 = dynamic_cast<RawArray<
+        auto ptr2 = down_cast<RawArray<
             typename EvalType::Scalar,
             EvalType::RowsAtCompileTime,
             EvalType::ColsAtCompileTime,
-            EvalType::Options>*>(this)) {
+            EvalType::Options>*>()) {
         ptr2->set(data);
-    } else if (auto ptr3 = dynamic_cast<EigenArrayRef<EvalType>*>(this)) {
+    } else if (auto ptr3 = down_cast<EigenArrayRef<EvalType>*>()) {
         ptr3->set(data);
     } else if (is_compatible<EvalType>(true)) {
         // The Derived type is not an exact match to the true type, fall back to
@@ -58,18 +59,18 @@ template <typename Derived>
 void ArrayBase::set(Eigen::MatrixBase<Derived>&& data)
 {
     using EvalType = std::decay_t<decltype(data.eval())>;
-    if (auto ptr = dynamic_cast<EigenArray<EvalType>*>(this)) {
+    if (auto ptr = down_cast<EigenArray<EvalType>*>()) {
         ptr->set(std::move(data.derived()));
     } else if (
-        auto ptr2 = dynamic_cast<RawArray<
+        auto ptr2 = down_cast<RawArray<
             typename EvalType::Scalar,
             EvalType::RowsAtCompileTime,
             EvalType::ColsAtCompileTime,
-            EvalType::Options>*>(this)) {
+            EvalType::Options>*>()) {
         // Fall back to copying because RawArray cannot change its data memory
         // pointer.
         ptr2->set(data);
-    } else if (auto ptr3 = dynamic_cast<EigenArrayRef<EvalType>*>(this)) {
+    } else if (auto ptr3 = down_cast<EigenArrayRef<EvalType>*>()) {
         ptr3->set(std::move(data.derived()));
     } else if (is_compatible<EvalType>(true)) {
         // The Derived type is not an exact match to the true type, fall back to
@@ -95,9 +96,9 @@ template <typename _TargetType>
 auto& ArrayBase::get()
 {
     using TargetType = std::decay_t<_TargetType>;
-    if (auto ptr = dynamic_cast<EigenArray<TargetType>*>(this)) {
+    if (auto ptr = down_cast<EigenArray<TargetType>*>()) {
         return ptr->get_ref();
-    } else if (auto ptr2 = dynamic_cast<EigenArrayRef<TargetType>*>(this)) {
+    } else if (auto ptr2 = down_cast<EigenArrayRef<TargetType>*>()) {
         return ptr2->get_ref();
     } else {
         throw std::runtime_error(string_format(
@@ -110,15 +111,15 @@ template <typename _TargetType>
 const auto& ArrayBase::get() const
 {
     using TargetType = std::decay_t<_TargetType>;
-    if (auto ptr = dynamic_cast<const EigenArray<TargetType>*>(this)) {
+    if (auto ptr = down_cast<const EigenArray<TargetType>*>()) {
         return ptr->get_ref();
-    } else if (auto ptr3 = dynamic_cast<const EigenArrayRef<TargetType>*>(this)) {
+    } else if (auto ptr3 = down_cast<const EigenArrayRef<TargetType>*>()) {
         return ptr3->get_ref();
-    } else if (auto ptr4 = dynamic_cast<const EigenArrayRef<const TargetType>*>(this)) {
+    } else if (auto ptr4 = down_cast<const EigenArrayRef<const TargetType>*>()) {
         return ptr4->get_ref();
     } else {
         throw std::runtime_error(string_format(
-            "Unsupported type passed to ArrayBase::get().  Expecting {}",
+            "Unsupported type passed to const ArrayBase::get().  Expecting {}",
             type_name()));
     }
 }

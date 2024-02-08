@@ -26,6 +26,7 @@
 #include <lagrange/experimental/IndexedAttributeManager.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
+#include <lagrange/utils/invalid.h>
 
 #include <Eigen/Core>
 #include <map>

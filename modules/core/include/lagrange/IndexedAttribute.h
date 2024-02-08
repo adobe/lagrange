@@ -87,6 +87,16 @@ public:
     ///
     IndexedAttribute& operator=(const IndexedAttribute& other);
 
+    ///
+    /// Gets the attribute value type.
+    ///
+    /// @return     An enum describing the value type.
+    ///
+    [[nodiscard]] AttributeValueType get_value_type() const override
+    {
+        return m_values.get_value_type();
+    }
+
     /// @}
     /// @name Attribute access
     /// @{

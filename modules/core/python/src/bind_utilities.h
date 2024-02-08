@@ -18,6 +18,7 @@
 #include <lagrange/compute_centroid.h>
 #include <lagrange/compute_components.h>
 #include <lagrange/compute_dihedral_angles.h>
+#include <lagrange/compute_dijkstra_distance.h>
 #include <lagrange/compute_edge_lengths.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
@@ -243,14 +244,10 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 This method will create a per-facet component id attribute named by the `output_attribute_name`
 argument. Each component id is in [0, num_components-1] range.
 
-:param mesh                 : The input mesh.
+:param mesh: The input mesh.
 :param output_attribute_name: The name of the output attribute.
-:param connectivity_type    : The connectivity type.  Either "Vertex" or "Edge".
-:param blocker_elements     : The list of blocker element indices.
-                              If `connectivity_type` is `Edge`, facets adjacent to a blocker edge are
-                              not considered as connected through this edge.
-                              If `connectivity_type` is `Vertex`, facets sharing a blocker vertex are
-                              not considered as connected through this vertex.
+:param connectivity_type: The connectivity type.  Either "Vertex" or "Edge".
+:param blocker_elements: The list of blocker element indices. If `connectivity_type` is `Edge`, facets adjacent to a blocker edge are not considered as connected through this edge. If `connectivity_type` is `Vertex`, facets sharing a blocker vertex are not considered as connected through this vertex.
 
 :returns: The total number of components.)");
 
@@ -434,8 +431,7 @@ argument. Each component id is in [0, num_components-1] range.
         R"(Extract a set of submeshes based on facet groups.
 
 :param mesh:                    The source mesh.
-:param facet_group_indices:     The group index for each facet. Each group index must be
-                                in the range of [0, max(facet_group_indices)]
+:param facet_group_indices:     The group index for each facet. Each group index must be in the range of [0, max(facet_group_indices)]
 :param source_vertex_attr_name: The optional attribute name to track source vertices.
 :param source_facet_attr_name:  The optional attribute name to track source facets.
 
@@ -541,8 +537,7 @@ well-defined and will be set to the special value 2 * M_PI.
 :param output_attribute_name:       The optional edge attribute name to store the dihedral angles.
 :param facet_normal_attribute_name: The optional attribute name to store the facet normals.
 :param recompute_facet_normals:     Whether to recompute facet normals.
-:param keep_facet_normals:          Whether to keep newly computed facet normals. It has no effect
-                                    on pre-existing facet normals.
+:param keep_facet_normals:          Whether to keep newly computed facet normals. It has no effect on pre-existing facet normals.
 
 :return: The edge attribute id of dihedral angles.)");
 
@@ -562,6 +557,42 @@ well-defined and will be set to the special value 2 * M_PI.
 :param output_attribute_name: The optional edge attribute name to store the edge lengths.
 
 :return: The edge attribute id of edge lengths.)");
+
+    m.def(
+        "compute_dijkstra_distance",
+        [](MeshType& mesh,
+           Index seed_facet,
+           const nb::list& barycentric_coords,
+           std::optional<Scalar> radius,
+           std::string_view output_attribute_name,
+           bool output_involved_vertices) {
+            DijkstraDistanceOptions<Scalar, Index> options;
+            options.seed_facet = seed_facet;
+            for (auto val : barycentric_coords) {
+                options.barycentric_coords.push_back(nb::cast<Scalar>(val));
+            }
+            if (radius.has_value()) {
+                options.radius = radius.value();
+            }
+            options.output_attribute_name = output_attribute_name;
+            options.output_involved_vertices = output_involved_vertices;
+            return compute_dijkstra_distance(mesh, options);
+        },
+        "mesh"_a,
+        "seed_facet"_a,
+        "barycentric_coords"_a,
+        "radius"_a = nb::none(),
+        "output_attribute_name"_a = DijkstraDistanceOptions<Scalar, Index>{}.output_attribute_name,
+        "output_involved_vertices"_a =
+            DijkstraDistanceOptions<Scalar, Index>{}.output_involved_vertices,
+        R"(Compute Dijkstra distance from a seed facet.
+
+:param mesh:                  The source mesh.
+:param seed_facet:            The seed facet index.
+:param barycentric_coords:    The barycentric coordinates of the seed facet.
+:param radius:                The maximum radius of the dijkstra distance.
+:param output_attribute_name: The output attribute name to store the dijkstra distance.
+:param output_involved_vertices: Whether to output the list of involved vertices.)");
 
     m.def(
         "weld_indexed_attribute",

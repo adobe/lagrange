@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Adobe. All rights reserved.
+ * Copyright 2024 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,307 +9,267 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+
 #pragma once
 
-#include <lagrange/Mesh.h>
-#include <lagrange/MeshTrait.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/utils/range.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/subdivision/legacy/mesh_subdivision.h>
+#endif
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <opensubdiv/far/primvarRefiner.h>
-#include <opensubdiv/far/topologyDescriptor.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/SurfaceMesh.h>
 
-#include <Eigen/Core>
-#include <memory>
-#include <vector>
+#include <optional>
 
+namespace lagrange::subdivision {
 
-namespace lagrange {
-namespace subdivision {
-
-using SubdivisionScheme = OpenSubdiv::Sdc::SchemeType;
-
-namespace internal {
-
-// Vertex container implementation for OSD
-template <typename MeshType>
-struct OSDVertex
-{
-    using VertexType = typename MeshType::VertexType;
-    OSDVertex() = default;
-    OSDVertex(OSDVertex const& src) { m_position = src.m_position; }
-
-    // Required interface
-    void Clear(void* = 0) { m_position.setZero(); }
-    void AddWithWeight(OSDVertex const& src, float weight)
-    {
-        m_position += (weight * src.m_position);
-    }
-
-    // Optional interface (used by Lagrange)
-    void SetPosition(const VertexType& pos) { m_position = pos; }
-    const VertexType& GetPosition() const { return m_position; }
-
-private:
-    VertexType m_position;
+/// Subdivision scheme.
+enum class SchemeType {
+    Bilinear, /// Bilinear subdivision scheme. Useful to subdivide a mesh prior to applying a
+    /// displacement map.
+    CatmullClark, ///< Catmull-Clark is more widely used and suited to quad-dominant meshes.
+    Loop, ///< Loop is preferred for (and requires) purely triangulated meshes.
 };
 
-// Face-varying container implementation.
-template <typename MeshType>
-struct OSDUV
-{
-    using UVType = typename MeshType::UVType;
-    OSDUV() {}
-    OSDUV(OSDUV const& src) { m_position = src.m_position; }
+///
+/// Boundary Interpolation Rules.
+///
+/// Boundary interpolation rules control how subdivision and the limit surface behave for faces
+/// adjacent to boundary edges and vertices.
+///
+enum class VertexBoundaryInterpolation {
+    /// No boundary edge interpolation is applied by default; boundary faces are tagged as holes so
+    /// that the boundary vertices continue to support the adjacent interior faces, but no surface
+    /// corresponding to the boundary faces is generated; boundary faces can be selectively
+    /// interpolated by sharpening all boundary edges incident the vertices of the face.
+    None,
 
-    // Minimal required interface ----------------------
-    void Clear(void* = 0) { m_position.setZero(); }
-    void AddWithWeight(OSDUV const& src, float weight) { m_position += (weight * src.m_position); }
+    /// A sequence of boundary vertices defines a smooth curve to which the limit surface along
+    /// boundary faces extends.
+    EdgeOnly,
 
-    // Optional interface (used by Lagrange)
-    void SetPosition(const UVType& pos) { m_position = pos; }
-    const UVType& GetPosition() const { return m_position; }
-
-private:
-    // Basic 'uv' layout channel
-    UVType m_position;
+    /// Similar to edge-only but the smooth curve resulting on the boundary is made to interpolate
+    /// corner vertices (vertices with exactly one incident face)
+    EdgeAndCorner,
 };
 
-} // namespace internal
+///
+/// Face-varying Interpolation Rules.
+///
+/// Face-varying interpolation rules control how face-varying data is interpolated both in the
+/// interior of face-varying regions (smooth or linear) and at the boundaries where it is
+/// discontinuous (constrained to be linear or "pinned" in a number of ways). Where the topology is
+/// continuous and the interpolation chosen to be smooth, the behavior of face-varying interpolation
+/// will match that of the vertex interpolation.
+///
+enum class FaceVaryingInterpolation {
+    None, ///< Smooth everywhere the mesh is smooth
+    CornersOnly, ///< Linearly interpolate (sharpen or pin) corners only
+    CornersPlus1, ///< CornersOnly + sharpening of junctions of 3 or more regions
+    CornersPlus2, ///< CornersPlus2 + sharpening of darts and concave corners
+    Boundaries, ///< Linear interpolation along all boundary edges and corners
+    All, ///< Linear interpolation everywhere (boundaries and interior)
+};
 
-
-// Main Entry Point
-
-template <typename input_meshType, typename output_meshType>
-std::unique_ptr<output_meshType> subdivide_mesh(
-    const input_meshType& input_mesh, // input lagrange mesh
-    SubdivisionScheme scheme_type, // loop? catmull-clark?
-    int maxlevel, // uniform subdivision level requested
-    OpenSubdiv::Sdc::Options::VtxBoundaryInterpolation vertexInterp =
-        OpenSubdiv::Sdc::Options::VTX_BOUNDARY_EDGE_ONLY,
-    OpenSubdiv::Sdc::Options::FVarLinearInterpolation primvarInterp =
-        OpenSubdiv::Sdc::Options::FVAR_LINEAR_ALL)
+///
+/// Helper class to select which attributes to interpolate. By default, all compatible attributes
+/// will be smoothly interpolated (i.e. using "vertex" weights for per-vertex attributes, and using
+/// "face-varying" weights for indexed attributes).
+///
+/// An attribute can be interpolated if:
+/// - Its value type is either `float` or `double`.
+/// - Its element type is either Vertex or Indexed.
+///
+class InterpolatedAttributes
 {
-    static_assert(MeshTrait<input_meshType>::is_mesh(), "Input type is not Mesh");
-    static_assert(
-        std::is_same<typename input_meshType::Index, typename output_meshType::Index>::value,
-        "Meshes must have same Index type");
+public:
+    ///
+    /// Selection tag.
+    ///
+    enum class SelectionType { All, None, Selected };
 
-    using namespace OpenSubdiv;
-    using Descriptor = Far::TopologyDescriptor;
-    using namespace internal;
-    using OSDIndex = Vtr::Index;
+public:
+    ///
+    /// Interpolate all compatible attribute.
+    ///
+    /// @return     The interpolated attributes configuration.
+    ///
+    static InterpolatedAttributes all() { return {SelectionType::All, {}, {}}; }
 
-    if (scheme_type == SubdivisionScheme::SCHEME_LOOP) {
-        la_runtime_assert(
-            input_mesh.get_vertex_per_facet() == 3,
-            "Loop Subdivision only supports triangle meshes");
-    }
+    ///
+    /// Do not interpolate any attribute.
+    ///
+    /// @return     The interpolated attributes configuration.
+    ///
+    static InterpolatedAttributes none() { return {SelectionType::None, {}, {}}; }
 
-    // Subdivision Options
-    Sdc::Options options;
-    options.SetVtxBoundaryInterpolation(vertexInterp);
-    options.SetFVarLinearInterpolation(primvarInterp);
-
-    // Input info
-    const auto num_vertices = input_mesh.get_num_vertices();
-    const auto num_facets = input_mesh.get_num_facets();
-    const auto input_vertex_per_facet = input_mesh.get_vertex_per_facet();
-    const auto output_vertex_per_facet = output_meshType::FacetArray::ColsAtCompileTime==Eigen::Dynamic?
-        input_vertex_per_facet:output_meshType::FacetArray::ColsAtCompileTime;
-
-    if (input_vertex_per_facet == 3 && output_vertex_per_facet == 4) {
-        la_runtime_assert(
-            maxlevel > 0,
-            "Only non-zero-level subdivision is supported when the input is triangle and the "
-            "output is quadrangle.");
-    }
-
-    // OpenSubdiv mesh
-    Descriptor desc;
-    desc.numVertices = num_vertices;
-    desc.numFaces = num_facets;
-    // descriptor wants an index array and an array of number of elements
-    std::vector<int> verts_per_face(num_facets, input_vertex_per_facet);
-    desc.numVertsPerFace = verts_per_face.data();
-    la_runtime_assert(desc.numVertsPerFace != nullptr, "Invalid Vertices");
-    const auto& facets = input_mesh.get_facets();
-    std::vector<OSDIndex> vert_indices;
-    vert_indices.resize(num_facets * input_vertex_per_facet);
-    for (auto i : range(desc.numFaces)) {
-        for (auto j : range(input_vertex_per_facet)) {
-            vert_indices[i * input_vertex_per_facet + j] = safe_cast<OSDIndex>(facets(i, j));
-        }
-    }
-    desc.vertIndicesPerFace = vert_indices.data();
-    la_runtime_assert(desc.vertIndicesPerFace != nullptr, "Invalid Facets");
-
-    // Create a face-varying channel descriptor
-    const bool hasUvs = input_mesh.is_uv_initialized();
-    std::vector<OSDIndex> uv_indices;
-    const int channelUV = 0;
-    const int numChannels = 1;
-    Descriptor::FVarChannel channels[numChannels];
-    if (hasUvs) {
-        channels[channelUV].numValues = (int)input_mesh.get_uv().rows();
-        const auto& inputUVIndices = input_mesh.get_uv_indices();
-        uv_indices.resize(inputUVIndices.size());
-        for (auto i : range(desc.numFaces)) {
-            for (auto j : range(input_vertex_per_facet)) {
-                uv_indices[i * input_vertex_per_facet + j] =
-                    safe_cast<OSDIndex>(inputUVIndices(i, j));
-            }
-        }
-        channels[channelUV].valueIndices = uv_indices.data();
-
-        // Add the channel topology to the main descriptor
-        desc.numFVarChannels = numChannels;
-        desc.fvarChannels = channels;
-    }
-
-    // Instantiate a Far::TopologyRefiner from the descriptor
-    std::unique_ptr<Far::TopologyRefiner> refiner(Far::TopologyRefinerFactory<Descriptor>::Create(
-        desc, Far::TopologyRefinerFactory<Descriptor>::Options(scheme_type, options)));
-
-    // Uniformly refine the topology up to 'maxlevel'
+    ///
+    /// Only interpolate the specified attributes. Will raise an error if a selected attribute
+    /// cannot be interpolated (because of an incompatible value type or element type).
+    ///
+    /// @param[in]  smooth  Per-vertex or indexed attribute ids to smoothly interpolate.
+    /// @param[in]  linear  Per-vertex attribute ids to smoothly interpolate.
+    ///
+    /// @return     The interpolated attributes configuration.
+    ///
+    static InterpolatedAttributes selected(
+        std::vector<AttributeId> smooth,
+        std::vector<AttributeId> linear = {})
     {
-        // note: fullTopologyInLastLevel must be true to work with face-varying data
-        Far::TopologyRefiner::UniformOptions refineOptions(maxlevel);
-        refineOptions.fullTopologyInLastLevel = true;
-        refiner->RefineUniform(refineOptions);
+        return {SelectionType::Selected, std::move(smooth), std::move(linear)};
     }
 
-    // Allocate a buffer for vertex primvar data. The buffer length is set to
-    // be the sum of all children vertices up to the highest level of refinement.
-    std::vector<OSDVertex<output_meshType>> vbuffer(refiner->GetNumVerticesTotal());
-    OSDVertex<output_meshType>* outputVerts = &vbuffer[0];
-    // Initialize coarse mesh positions
-    int nInputVerts = input_mesh.get_num_vertices();
-    for (int i = 0; i < nInputVerts; ++i)
-        outputVerts[i].SetPosition(
-            input_mesh.get_vertices().row(i).template cast<typename output_meshType::Scalar>());
+    ///
+    /// Sets selection to all.
+    ///
+    void set_all() { *this = all(); }
 
-    OSDUV<output_meshType>* outputUvs = nullptr;
-    std::vector<OSDUV<output_meshType>> fvBufferUV;
-    if (hasUvs) {
-        // Allocate the first channel of 'face-varying' primvars (UVs)
-        fvBufferUV.resize(refiner->GetNumFVarValuesTotal(channelUV));
-        outputUvs = &fvBufferUV[0];
-        // initialize
-        for (int i = 0; i < input_mesh.get_uv().rows(); ++i) {
-            outputUvs[i].SetPosition(
-                input_mesh.get_uv().row(i).template cast<typename output_meshType::Scalar>());
-        }
+    ///
+    /// Sets selection to none.
+    ///
+    void set_none() { *this = none(); }
+
+    ///
+    /// Set selection to a specific list of attribte ids.
+    ///
+    /// @param[in]  smooth  Per-vertex or indexed attribute ids to smoothly interpolate.
+    /// @param[in]  linear  Per-vertex attribute ids to smoothly interpolate.
+    ///
+    void set_selected(std::vector<AttributeId> smooth, std::vector<AttributeId> linear = {})
+    {
+        selection_type = SelectionType::Selected;
+        smooth_attributes = std::move(smooth);
+        linear_attributes = std::move(linear);
     }
 
-    // Interpolate both vertex and face-varying primvar data
-    Far::PrimvarRefiner primvarRefiner(*refiner);
-    OSDVertex<output_meshType>* srcVert = outputVerts;
-    OSDUV<output_meshType>* srcFVarUV = outputUvs;
-    // FVarVertexColor * srcFVarColor = fvVertsColor;
-    for (int level = 1; level <= maxlevel; ++level) {
-        OSDVertex<output_meshType>* dstVert =
-            srcVert + refiner->GetLevel(level - 1).GetNumVertices();
-        OSDUV<output_meshType>* dstFVarUV = outputUvs;
-        if (hasUvs)
-            dstFVarUV = srcFVarUV + refiner->GetLevel(level - 1).GetNumFVarValues(channelUV);
+    // Has to be kept public to use aggregate initialization...
+public:
+    /// Selection type.
+    SelectionType selection_type = SelectionType::All;
 
-        primvarRefiner.Interpolate(level, srcVert, dstVert);
+    /// List of per-vertex or indexed attributes ids to smoothly interpolate (in OpenSubdiv terms,
+    /// this corresponds to "vertex" weights for per-vertex attributes, and "face-varying" weights
+    /// for indexed attributes). If selection_type is All, all attributes not specifically present
+    /// in linear_attributes are considered "smooth".
+    std::vector<AttributeId> smooth_attributes;
 
-        if (hasUvs) primvarRefiner.InterpolateFaceVarying(level, srcFVarUV, dstFVarUV, channelUV);
-        srcVert = dstVert;
-        if (hasUvs) srcFVarUV = dstFVarUV;
-    }
+    /// List of per-vertex attributes ids to linearly interpolate (in OpenSubdiv terms, this
+    /// corresponds to "varying" weights).
+    std::vector<AttributeId> linear_attributes;
+};
 
-    // TODO: approximate normals
+/// Mesh subdivision options.
+struct SubdivisionOptions
+{
+    ///
+    /// @name General Options
+    /// @{
 
-    // Generate output
-    Far::TopologyLevel const& refLastLevel = refiner->GetLevel(maxlevel);
-    int nOutputVerts = refLastLevel.GetNumVertices();
-    int nOutputFaces = refLastLevel.GetNumFaces();
-    bool triangulate = false;
-    if (scheme_type == SubdivisionScheme::SCHEME_LOOP) {
-        // outputs are all triangles. Not trying to quad-fy here.
-        assert(output_vertex_per_facet == 3);
-    } else {
-        // only accepting output triangles or quads
-        assert(output_vertex_per_facet == 3 || output_vertex_per_facet == 4);
-        if (output_vertex_per_facet == 3) {
-            // never change the topology for zero-level + triangle mesh
-            if (maxlevel > 0 || input_vertex_per_facet > 3) {
-                triangulate = true;
-                nOutputFaces *= 2;
-            }
-        }
-    }
+    /// Subvision scheme. If not provided, will use Loop for triangle meshes, and CatmullCark for
+    /// quad-dominant meshes.
+    std::optional<SchemeType> scheme;
 
-    // copy verts
-    int firstOfLastVerts = refiner->GetNumVerticesTotal() - nOutputVerts;
-    typename output_meshType::VertexArray V;
-    V.resize(nOutputVerts, 3);
-    for (int iVert = 0; iVert < nOutputVerts; ++iVert) {
-        typename output_meshType::VertexType pos =
-            outputVerts[firstOfLastVerts + iVert].GetPosition();
-        V.row(iVert) = pos;
-    }
+    /// Number of subdivision level requested.
+    unsigned num_levels = 1;
 
-    // copy faces
-    typename output_meshType::FacetArray F;
-    F.resize(nOutputFaces, F.cols());
-    for (int iFace = 0; iFace < refLastLevel.GetNumFaces(); ++iFace) {
-        Far::ConstIndexArray facetIndices = refLastLevel.GetFaceVertices(iFace);
-        if (triangulate) {
-            F(iFace * 2, 0) = facetIndices[0];
-            F(iFace * 2, 1) = facetIndices[1];
-            F(iFace * 2, 2) = facetIndices[2];
-            F(iFace * 2 + 1, 0) = facetIndices[0];
-            F(iFace * 2 + 1, 1) = facetIndices[2];
-            F(iFace * 2 + 1, 2) = facetIndices[3];
-        } else {
-            for (int i = 0; i < facetIndices.size(); ++i) {
-                F(iFace, i) = facetIndices[i];
-            }
-        }
-    }
+    // TODO: Implement adaptive refinement
+    /// Whether to use adaptive refinement or uniform refinement.
+    // bool adaptive = false;
 
-    std::unique_ptr<output_meshType> output_mesh = create_mesh(std::move(V), std::move(F));
+    /// @}
+    /// @name Interpolation Rules
+    /// @{
 
-    // copy uvs and indices
-    if (hasUvs) {
-        int nOutputUvs = refLastLevel.GetNumFVarValues(channelUV);
-        int firstOfLastUvs = refiner->GetNumFVarValuesTotal(channelUV) - nOutputUvs;
-        typename output_meshType::UVArray UV;
-        typename output_meshType::FacetArray UVF;
-        UV.resize(nOutputUvs, 2);
-        UVF.resize(nOutputFaces, output_vertex_per_facet);
-        for (int iFVVert = 0; iFVVert < nOutputUvs; ++iFVVert) {
-            typename output_meshType::UVType uv = outputUvs[firstOfLastUvs + iFVVert].GetPosition();
-            UV.row(iFVVert) = uv;
-        }
-        for (int iFace = 0; iFace < refLastLevel.GetNumFaces(); ++iFace) {
-            Far::ConstIndexArray uvIndices = refLastLevel.GetFaceFVarValues(iFace, channelUV);
-            if (triangulate) {
-                UVF(iFace * 2, 0) = uvIndices[0];
-                UVF(iFace * 2, 1) = uvIndices[1];
-                UVF(iFace * 2, 2) = uvIndices[2];
-                UVF(iFace * 2 + 1, 0) = uvIndices[0];
-                UVF(iFace * 2 + 1, 1) = uvIndices[2];
-                UVF(iFace * 2 + 1, 2) = uvIndices[3];
-            } else {
-                for (int i = 0; i < uvIndices.size(); ++i) {
-                    UVF(iFace, i) = uvIndices[i];
-                }
-            }
-        }
-        output_mesh->initialize_uv(UV, UVF);
-    }
+    /// Vertex boundary interpolation rule.
+    VertexBoundaryInterpolation vertex_boundary_interpolation =
+        VertexBoundaryInterpolation::EdgeOnly;
 
-    // TODO: add colors too...
-    return output_mesh;
-}
-} // namespace subdivision
-} // namespace lagrange
+    /// Face-varying interpolation rule.
+    FaceVaryingInterpolation face_varying_interpolation = FaceVaryingInterpolation::None;
+
+    /// Interpolate all data to the limit surface.
+    bool use_limit_surface = false;
+
+    /// @}
+    /// @name Input Attributes To Interpolate
+    /// @{
+
+    ///
+    /// List of attributes to interpolate. The selection can be either all (default), none, or
+    /// specify a list of attribute ids to interpolate.
+    ///
+    /// @see        InterpolatedAttributes
+    ///
+    InterpolatedAttributes interpolated_attributes;
+
+    // TODO: Add face-uniform attributes (i.e. per-facet attributes), e.g. material_id.
+
+    /// @}
+    /// @name Input Element Tags
+    /// @{
+
+    /// Per-edge scalar attribute denoting edge sharpness. Sharpness values must be in [0, 1] (0 means
+    /// smooth, 1 means sharp).
+    std::optional<AttributeId> edge_sharpness_attr;
+
+    /// Per-vertex scalar attribute denoting vertex sharpness (e.g. for boundary corners). Sharpness
+    /// values must be in [0, 1] (0 means smooth, 1 means sharp).
+    std::optional<AttributeId> vertex_sharpness_attr;
+
+    /// Per-face integer attribute denoting face holes. A non-zero value means the facet is a hole.
+    /// If a face is tagged as a hole, the limit surface will not be generated for that face.
+    std::optional<AttributeId> face_hole_attr;
+
+    /// @}
+    /// @name Output Attributes
+    /// @{
+
+    ///
+    /// A newly computed per-vertex attribute containing the normals to the limit surface. Skipped
+    /// if left empty.
+    ///
+    /// @note       It is strongly recommended to use limit normals only when interpolating
+    ///             positions to the limit surface. Otherwise this can lead to visual artifacts if
+    ///             the positions and the normals don't match.
+    ///
+    std::string_view output_limit_normals;
+
+    ///
+    /// A newly computed per-vertex attribute containing the tangents (first derivatives) to the
+    /// limit surface. Skipped if left empty.
+    ///
+    /// @note       It is strongly recommended to use limit tangents only when interpolating
+    ///             positions to the limit surface. Otherwise this can lead to visual artifacts if
+    ///             the positions and the normals don't match.
+    ///
+    std::string_view output_limit_tangents;
+
+    ///
+    /// A newly computed per-vertex attribute containing the bitangents (second derivative) to the
+    /// limit surface. Skipped if left empty.
+    ///
+    /// @note       It is strongly recommended to use limit bitangents only when interpolating
+    ///             positions to the limit surface. Otherwise this can lead to visual artifacts if
+    ///             the positions and the normals don't match.
+    ///
+    std::string_view output_limit_bitangents;
+
+    /// @}
+};
+
+///
+/// Evaluates the subdivision surface of a polygonal mesh.
+///
+/// @param[in]  mesh     Input mesh to subdivide.
+/// @param[in]  options  Subdivision options.
+///
+/// @tparam     Scalar   Mesh scalar type.
+/// @tparam     Index    Mesh index type.
+///
+/// @return     Subdivided mesh.
+///
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> subdivide_mesh(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    SubdivisionOptions options = {});
+
+} // namespace lagrange::subdivision

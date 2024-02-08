@@ -10,13 +10,18 @@
 # governing permissions and limitations under the License.
 #
 # 1. define module
-lagrange_add_module(INTERFACE)
+lagrange_add_module()
 
 # 2. dependencies
+include(libigl)
 include(opensubdiv)
-target_link_libraries(lagrange_subdivision INTERFACE
-    lagrange::core
-    opensubdiv::opensubdiv
+target_link_libraries(lagrange_subdivision
+    PUBLIC
+        lagrange::core
+# TODO: Once we remove legacy headers, make those deps private:
+# PRIVATE
+        igl::core
+        opensubdiv::opensubdiv
 )
 
 # 3. installation
@@ -32,4 +37,8 @@ endif()
 
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+if(LAGRANGE_MODULE_PYTHON)
+    add_subdirectory(python)
 endif()

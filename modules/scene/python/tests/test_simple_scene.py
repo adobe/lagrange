@@ -15,6 +15,16 @@ import pytest
 import numpy as np
 
 
+@pytest.fixture
+def single_triangle():
+    mesh = lagrange.SurfaceMesh()
+    mesh.add_vertices(np.eye(3))
+    mesh.add_triangle(0, 1, 2)
+    assert mesh.num_vertices == 3
+    assert mesh.num_facets == 1
+    return mesh
+
+
 class TestSimpleScene:
     def test_empty_scene(self):
         scene = lagrange.scene.SimpleScene3D()
@@ -67,3 +77,16 @@ class TestSimpleScene:
         instance = scene.get_instance(mesh_id, instance_id2)
         assert np.all(instance2.transform == instance.transform)
 
+    def test_scene_convert(self, single_triangle):
+        scene = lagrange.scene.mesh_to_simple_scene(single_triangle)
+        scene2 = lagrange.scene.meshes_to_simple_scene(
+            [single_triangle, single_triangle]
+        )
+        print(scene, type(scene))
+        mesh = lagrange.scene.simple_scene_to_mesh(scene)
+        mesh2 = lagrange.scene.simple_scene_to_mesh(scene2)
+
+        assert mesh.num_vertices == 3
+        assert mesh.num_facets == 1
+        assert mesh2.num_vertices == 6
+        assert mesh2.num_facets == 2

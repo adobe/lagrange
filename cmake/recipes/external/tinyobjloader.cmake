@@ -16,14 +16,14 @@ endif()
 message(STATUS "Third-party (external): creating target 'tinyobjloader::tinyobjloader'")
 
 # Tinyobjloader is a big repo for a single header, so we just download the header...
-set(TINYOBJLOADER_VERSION "8322e00ae685ea623ab6ac5a6cebcfa2d22fbf93")
+set(TINYOBJLOADER_VERSION "cc327eecf7f8f4139932aec8d75db2d091f412ef")
 set(TINYOBJLOADER_URL "https://raw.githubusercontent.com/tinyobjloader/tinyobjloader/${TINYOBJLOADER_VERSION}/tiny_obj_loader.h")
 
 include(CPM)
 CPMAddPackage(
     NAME tinyobjloader
     URL ${TINYOBJLOADER_URL}
-    URL_HASH MD5=fca8189f03970f1dbb9544579b5bda08
+    URL_HASH MD5=41f22fefe38fcaeda5366323fbe61f65
     DOWNLOAD_NO_EXTRACT 1
     DOWNLOAD_ONLY ON
 )

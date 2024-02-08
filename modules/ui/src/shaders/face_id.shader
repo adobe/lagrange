@@ -96,7 +96,7 @@ vec4 index_to_color(int i){
 #define ELEMENT_EDGE 1
 #define ELEMENT_VERTEX 2
 
-#pragma property element_mode "ElementMode" int(0,0,1)
+#pragma property element_mode "ElementMode" int(0,0,2)
 #pragma property debug_output "DebugOutput" bool(false)
 
 void main(){
