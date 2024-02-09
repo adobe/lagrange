@@ -45,7 +45,7 @@ function(lagrange_limit_parallelism)
     math(EXPR num_cpu_memory "${AVAILABLE_PHYSICAL_MEMORY} * 3 / 2 / ${max_rss_${_system}_${_postfix}}")
 
     # Compute limits for link/compile steps
-    set(num_cpu_link 2)
+    set(num_cpu_link 1)
     set(num_cpu_compile ${NUMBER_OF_PHYSICAL_CORES})
     if(num_cpu_link GREATER num_cpu_memory)
         set(num_cpu_link ${num_cpu_memory})
@@ -75,10 +75,6 @@ function(lagrange_limit_parallelism)
     set(CMAKE_JOB_POOL_LINK              "pool-link"              CACHE STRING "Job pool for linking" FORCE)
     set(CMAKE_JOB_POOL_COMPILE           "pool-compile"           CACHE STRING "Job pool for compiling" FORCE)
     set(CMAKE_JOB_POOL_PRECOMPILE_HEADER "pool-precompile-header" CACHE STRING "Job pool for generating pre-compiled headers" FORCE)
-
-    message(STATUS "Parallelism: Setting link pool to ${CMAKE_JOB_POOL_LINK}")
-    message(STATUS "Parallelism: Setting compile pool to ${CMAKE_JOB_POOL_COMPILE}")
-    message(STATUS "Parallelism: Setting precompile-header pool to ${CMAKE_JOB_POOL_PRECOMPILE_HEADER}")
 
     # Note: We cannot set directly CMAKE_BUILD_PARALLEL_LEVEL or CTEST_PARALLEL_LEVEL from this CMake file,
     # since those are environment variables [1]: they are not cached and do not affect subsequent CMake calls.
