@@ -76,6 +76,10 @@ function(lagrange_limit_parallelism)
     set(CMAKE_JOB_POOL_COMPILE           "pool-compile"           CACHE STRING "Job pool for compiling" FORCE)
     set(CMAKE_JOB_POOL_PRECOMPILE_HEADER "pool-precompile-header" CACHE STRING "Job pool for generating pre-compiled headers" FORCE)
 
+    message(STATUS "Parallelism: Setting link pool to ${CMAKE_JOB_POOL_LINK}")
+    message(STATUS "Parallelism: Setting compile pool to ${CMAKE_JOB_POOL_COMPILE}")
+    message(STATUS "Parallelism: Setting precompile-header pool to ${CMAKE_JOB_POOL_PRECOMPILE_HEADER}")
+
     # Note: We cannot set directly CMAKE_BUILD_PARALLEL_LEVEL or CTEST_PARALLEL_LEVEL from this CMake file,
     # since those are environment variables [1]: they are not cached and do not affect subsequent CMake calls.
     # In practice, the parallelism for Ninja should be limited by our job pools, so the only thing we need is
