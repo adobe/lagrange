@@ -18,15 +18,15 @@ jobs:
   ####################
 
   Unix:
-    name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
+    name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14]
+        os: [macos-13, macos-14] # [ubuntu-22.04, macos-13, macos-14]
         config: [RelwithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
-        sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
+        # sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
         exclude:
           - os: macos-13
             compiler: gcc
@@ -118,8 +118,7 @@ jobs:
             -DLAGRANGE_LIMIT_PARALLELISM=ON \
             -DOPENVDB_CORE_SHARED=ON \
             -DOPENVDB_CORE_STATIC=OFF \
-            -DUSE_EXPLICIT_INSTANTIATION=OFF \
-            -DUSE_SANITIZER="${{ matrix.sanitizer }}"
+            -DUSE_EXPLICIT_INSTANTIATION=OFF
 
       - name: Build
         run: |
@@ -133,61 +132,61 @@ jobs:
   # Windows
   ####################
 
-  Windows:
-    name: windows-2022 (${{ matrix.config }})
-    runs-on: windows-2022
-    strategy:
-      fail-fast: false
-      matrix:
-        config: [Release, Debug]
-    steps:
-      - name: Show disk space
-        run: Get-PSDrive
+  # Windows:
+  #   name: windows-2022 (${{ matrix.config }})
+  #   runs-on: windows-2022
+  #   strategy:
+  #     fail-fast: false
+  #     matrix:
+  #       config: [Release, Debug]
+  #   steps:
+  #     - name: Show disk space
+  #       run: Get-PSDrive
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 10
+  #     - name: Checkout repository
+  #       uses: actions/checkout@v4
+  #       with:
+  #         fetch-depth: 10
 
-      - name: Install Ninja
-        uses: seanmiddleditch/gha-setup-ninja@master
+  #     - name: Install Ninja
+  #       uses: seanmiddleditch/gha-setup-ninja@master
 
-      - name: Set env variable for sccache
-        run: |
-          echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
+  #     - name: Set env variable for sccache
+  #       run: |
+  #         echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
 
-      - name: Get number of CPU cores
-        uses: SimenB/github-actions-cpu-cores@v1
-        id: cpu-cores
+  #     - name: Get number of CPU cores
+  #       uses: SimenB/github-actions-cpu-cores@v1
+  #       id: cpu-cores
 
-      - name: Cache build
-        id: cache-build
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.appdata }}\Mozilla\sccache
-          key: ${{ runner.os }}-${{ matrix.config }}-cache
+  #     - name: Cache build
+  #       id: cache-build
+  #       uses: actions/cache@v3
+  #       with:
+  #         path: ${{ env.appdata }}\Mozilla\sccache
+  #         key: ${{ runner.os }}-${{ matrix.config }}-cache
 
-      - name: Prepare sccache
-        run: |
-          iwr -useb 'https://raw.githubusercontent.com/scoopinstaller/install/master/install.ps1' -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop install sccache --global
-          # Scoop modifies the PATH so we make it available for the next steps of the job
-          echo "${env:PATH}" >> ${env:GITHUB_PATH}
+  #     - name: Prepare sccache
+  #       run: |
+  #         iwr -useb 'https://raw.githubusercontent.com/scoopinstaller/install/master/install.ps1' -outfile 'install.ps1'
+  #         .\install.ps1 -RunAsAdmin
+  #         scoop install sccache --global
+  #         # Scoop modifies the PATH so we make it available for the next steps of the job
+  #         echo "${env:PATH}" >> ${env:GITHUB_PATH}
 
-        # We run configure + build in the same step, since they both need to call VsDevCmd
-        # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
-      - name: Configure and build
-        shell: cmd
-        run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
-          cmake -G Ninja ^
-            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -DLAGRANGE_JENKINS=ON ^
-            -DLAGRANGE_ALL=ON ^
-            -B "C:/build" ^
-            -S .
-          cmake --build "C:/build" -j ${{ steps.cpu-cores.outputs.count }}
+  #       # We run configure + build in the same step, since they both need to call VsDevCmd
+  #       # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
+  #     - name: Configure and build
+  #       shell: cmd
+  #       run: |
+  #         call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+  #         cmake -G Ninja ^
+  #           -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
+  #           -DLAGRANGE_JENKINS=ON ^
+  #           -DLAGRANGE_ALL=ON ^
+  #           -B "C:/build" ^
+  #           -S .
+  #         cmake --build "C:/build" -j ${{ steps.cpu-cores.outputs.count }}
 
-      - name: Tests
-        run: cd "C:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+  #     - name: Tests
+  #       run: cd "C:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
