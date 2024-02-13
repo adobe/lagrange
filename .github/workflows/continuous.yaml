@@ -78,11 +78,11 @@ jobs:
       - name: Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-            brew install ccache
+            # brew install ccache
             if [ "${{ matrix.compiler }}" = "llvm" ]; then
-              brew install llvm@16
-              echo "CC='$(brew --prefix llvm@16)/bin/clang'" >> $GITHUB_ENV
-              echo "CXX='$(brew --prefix llvm@16)/bin/clang++'" >> $GITHUB_ENV
+              brew install llvm@17
+              echo "CC='$(brew --prefix llvm@17)/bin/clang'" >> $GITHUB_ENV
+              echo "CXX='$(brew --prefix llvm@17)/bin/clang++'" >> $GITHUB_ENV
             fi
 
       - name: Setup Xcode version
@@ -95,17 +95,17 @@ jobs:
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
 
-      - name: Cache Build
-        id: cache-build
-        uses: actions/cache@v3
-        with:
-          path: ~/.ccache
-          key: ${{ matrix.name }}-${{ matrix.config }}-cache
+      # - name: Cache Build
+      #   id: cache-build
+      #   uses: actions/cache@v3
+      #   with:
+      #     path: ~/.ccache
+      #     key: ${{ matrix.name }}-${{ matrix.config }}-cache
 
-      - name: Prepare ccache
-        run: |
-          ccache --max-size=1.0G
-          ccache -V && ccache --show-stats && ccache --zero-stats
+      # - name: Prepare ccache
+      #   run: |
+      #     ccache --max-size=1.0G
+      #     ccache -V && ccache --show-stats && ccache --zero-stats
 
       - name: Configure
         run: |
@@ -123,7 +123,7 @@ jobs:
       - name: Build
         run: |
           cmake --build build -j ${{ steps.cpu-cores.outputs.count }}
-          ccache --show-stats
+          # ccache --show-stats
 
       - name: Tests
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
