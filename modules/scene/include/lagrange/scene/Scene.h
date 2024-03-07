@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/ImageView.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/scene/SceneExtension.h>
 
 #include <Eigen/Geometry>
 
@@ -64,6 +65,8 @@ struct Node
 
     // List of lights contained in this node.
     std::vector<ElementId> lights;
+
+    Extensions extensions;
 };
 
 //
@@ -128,6 +131,8 @@ struct ImageLegacy
         default: return -1;
         }
     }
+
+    Extensions extensions;
 };
 
 // Pair of texture index (which texture to use) and texture coordinate index (which set of UVs to
@@ -181,6 +186,8 @@ struct MaterialExperimental
     TextureInfo occlusion_texture;
 
     bool double_sided = false;
+
+    Extensions extensions;
 };
 
 struct Texture
@@ -219,6 +226,8 @@ struct Texture
     Eigen::Vector2f scale = Eigen::Vector2f::Ones();
     Eigen::Vector2f offset = Eigen::Vector2f::Zero();
     float rotation = 0.0f;
+
+    Extensions extensions;
 };
 
 struct Light
@@ -263,6 +272,8 @@ struct Light
 
     // size of area light source
     Eigen::Vector2f size = Eigen::Vector2f::Zero();
+
+    Extensions extensions;
 };
 
 struct Camera
@@ -319,12 +330,16 @@ struct Camera
     {
         aspect_ratio = std::tan(hfov * 0.5f) / std::tan(vfov * 0.5f);
     }
+
+    Extensions extensions;
 };
 
 struct Animation
 {
     std::string name;
     // TODO
+
+    Extensions extensions;
 };
 
 struct Skeleton
@@ -332,8 +347,10 @@ struct Skeleton
     // This skeleton is used to deform those meshes.
     // This will typically contain one value, but can have zero or multiple meshes.
     // The value is the index in the scene meshes.
-    std::vector<size_t> meshes;
+    std::vector<ElementId> meshes;
     // TODO
+
+    Extensions extensions;
 };
 
 template <typename Scalar, typename Index>
@@ -374,6 +391,9 @@ struct Scene
 
     // Unused for now.
     std::vector<Animation> animations;
+
+    // Extensions.
+    Extensions extensions;
 };
 
 using Scene32f = Scene<float, uint32_t>;

@@ -75,6 +75,17 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         return id;
     }
 
+    template <typename TargetValueType, typename SourceValueType>
+    AttributeId cast_from(std::string_view name, const Attribute<SourceValueType>& attr)
+    {
+        auto id = create_id(name);
+        m_attributes.at(id).first = name;
+        m_attributes.at(id).second =
+            copy_on_write_ptr<AttributeBase>(internal::make_shared<Attribute<TargetValueType>>(
+                Attribute<TargetValueType>::cast_copy(attr)));
+        return id;
+    }
+
     AttributeId create(std::string_view name, copy_on_write_ptr<AttributeBase> attr)
     {
         auto id = create_id(name);
@@ -176,6 +187,11 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
     [[nodiscard]] copy_on_write_ptr<AttributeBase> copy_ptr(AttributeId id) const
     {
         return m_attributes.at(id).second;
+    }
+
+    [[nodiscard]] copy_on_write_ptr<AttributeBase> move_ptr(AttributeId id)
+    {
+        return std::move(m_attributes.at(id).second);
     }
 
     [[nodiscard]] const AttributeBase& read_base(AttributeId id) const
@@ -358,13 +374,17 @@ void SurfaceMesh<Scalar, Index>::set_attribute_default_internal(std::string_view
     bool is_reserved = starts_with(name, "$");
     if constexpr (std::is_arithmetic_v<ValueType>) {
         if (is_reserved) {
-            if (name == s_vertex_to_position || name == s_corner_to_vertex) {
+            if (name == s_reserved_names.vertex_to_position() ||
+                name == s_reserved_names.corner_to_vertex()) {
                 attr.set_default_value(ValueType(0));
             } else if (
-                name == s_facet_to_first_corner || name == s_corner_to_facet ||
-                name == s_corner_to_edge || name == s_edge_to_first_corner ||
-                name == s_next_corner_around_edge || name == s_vertex_to_first_corner ||
-                name == s_next_corner_around_vertex) {
+                name == s_reserved_names.facet_to_first_corner() ||
+                name == s_reserved_names.corner_to_facet() ||
+                name == s_reserved_names.corner_to_edge() ||
+                name == s_reserved_names.edge_to_first_corner() ||
+                name == s_reserved_names.next_corner_around_edge() ||
+                name == s_reserved_names.vertex_to_first_corner() ||
+                name == s_reserved_names.next_corner_around_vertex()) {
                 attr.set_default_value(invalid<ValueType>());
             } else {
                 throw Error(fmt::format(
@@ -508,7 +528,6 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_from(
     const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,
     std::string_view source_name)
 {
-    // TODO: Allow copy-on-write of reserved attributes in the future.
     la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
     if (source_name.empty()) source_name = name;
     const AttributeId source_id = source_mesh.get_attribute_id(source_name);
@@ -784,10 +803,10 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_vertices(
     Index num_vertices)
 {
     la_runtime_assert(vertices_view.size() >= num_vertices * get_dimension());
-    auto& attr = m_attributes->template write<Scalar>(m_vertex_to_position_id);
+    auto& attr = m_attributes->template write<Scalar>(m_reserved_ids.vertex_to_position());
     attr.wrap(vertices_view, num_vertices);
     resize_vertices_internal(num_vertices);
-    return m_vertex_to_position_id;
+    return m_reserved_ids.vertex_to_position();
 }
 
 template <typename Scalar, typename Index>
@@ -796,10 +815,10 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_vertices(
     Index num_vertices)
 {
     la_runtime_assert(shared_vertices.size() >= num_vertices * get_dimension());
-    auto& attr = m_attributes->template write<Scalar>(m_vertex_to_position_id);
+    auto& attr = m_attributes->template write<Scalar>(m_reserved_ids.vertex_to_position());
     attr.wrap(std::move(shared_vertices), num_vertices);
     resize_vertices_internal(num_vertices);
-    return m_vertex_to_position_id;
+    return m_reserved_ids.vertex_to_position();
 }
 
 template <typename Scalar, typename Index>
@@ -808,10 +827,10 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_vertices(
     Index num_vertices)
 {
     la_runtime_assert(vertices_view.size() >= num_vertices * get_dimension());
-    auto& attr = m_attributes->template write<Scalar>(m_vertex_to_position_id);
+    auto& attr = m_attributes->template write<Scalar>(m_reserved_ids.vertex_to_position());
     attr.wrap_const(vertices_view, num_vertices);
     resize_vertices_internal(num_vertices);
-    return m_vertex_to_position_id;
+    return m_reserved_ids.vertex_to_position();
 }
 
 template <typename Scalar, typename Index>
@@ -820,10 +839,10 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_vertices(
     Index num_vertices)
 {
     la_runtime_assert(shared_vertices.size() >= num_vertices * get_dimension());
-    auto& attr = m_attributes->template write<Scalar>(m_vertex_to_position_id);
+    auto& attr = m_attributes->template write<Scalar>(m_reserved_ids.vertex_to_position());
     attr.wrap_const(std::move(shared_vertices), num_vertices);
     resize_vertices_internal(num_vertices);
-    return m_vertex_to_position_id;
+    return m_reserved_ids.vertex_to_position();
 }
 
 template <typename Scalar, typename Index>
@@ -833,18 +852,18 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
     Index vertex_per_facet)
 {
     la_runtime_assert(facets_view.size() >= num_facets * vertex_per_facet);
-    if (m_facet_to_first_corner_id != invalid_attribute_id()) {
+    if (m_reserved_ids.facet_to_first_corner() != invalid_attribute_id()) {
         // Mesh is regular, so delete hybrid storage attributes
-        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
-        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
-        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+        la_debug_assert(m_reserved_ids.corner_to_facet() != invalid_attribute_id());
+        delete_attribute(s_reserved_names.facet_to_first_corner(), AttributeDeletePolicy::Force);
+        delete_attribute(s_reserved_names.corner_to_facet(), AttributeDeletePolicy::Force);
     }
     m_vertex_per_facet = vertex_per_facet;
-    auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+    auto& attr = m_attributes->template write<Index>(m_reserved_ids.corner_to_vertex());
     attr.wrap(facets_view, num_facets * vertex_per_facet);
     resize_facets_internal(num_facets);
     resize_corners_internal(num_facets * vertex_per_facet);
-    return m_corner_to_vertex_id;
+    return m_reserved_ids.corner_to_vertex();
 }
 
 template <typename Scalar, typename Index>
@@ -854,18 +873,18 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets(
     Index vertex_per_facet)
 {
     la_runtime_assert(shared_facets.size() >= num_facets * vertex_per_facet);
-    if (m_facet_to_first_corner_id != invalid_attribute_id()) {
+    if (m_reserved_ids.facet_to_first_corner() != invalid_attribute_id()) {
         // Mesh is regular, so delete hybrid storage attributes
-        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
-        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
-        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+        la_debug_assert(m_reserved_ids.corner_to_facet() != invalid_attribute_id());
+        delete_attribute(s_reserved_names.facet_to_first_corner(), AttributeDeletePolicy::Force);
+        delete_attribute(s_reserved_names.corner_to_facet(), AttributeDeletePolicy::Force);
     }
     m_vertex_per_facet = vertex_per_facet;
-    auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+    auto& attr = m_attributes->template write<Index>(m_reserved_ids.corner_to_vertex());
     attr.wrap(std::move(shared_facets), num_facets * vertex_per_facet);
     resize_facets_internal(num_facets);
     resize_corners_internal(num_facets * vertex_per_facet);
-    return m_corner_to_vertex_id;
+    return m_reserved_ids.corner_to_vertex();
 }
 
 template <typename Scalar, typename Index>
@@ -875,18 +894,18 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
     Index vertex_per_facet)
 {
     la_runtime_assert(facets_view.size() >= num_facets * vertex_per_facet);
-    if (m_facet_to_first_corner_id != invalid_attribute_id()) {
+    if (m_reserved_ids.facet_to_first_corner() != invalid_attribute_id()) {
         // Mesh is regular, so delete hybrid storage attributes
-        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
-        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
-        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+        la_debug_assert(m_reserved_ids.corner_to_facet() != invalid_attribute_id());
+        delete_attribute(s_reserved_names.facet_to_first_corner(), AttributeDeletePolicy::Force);
+        delete_attribute(s_reserved_names.corner_to_facet(), AttributeDeletePolicy::Force);
     }
     m_vertex_per_facet = vertex_per_facet;
-    auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+    auto& attr = m_attributes->template write<Index>(m_reserved_ids.corner_to_vertex());
     attr.wrap_const(facets_view, num_facets * vertex_per_facet);
     resize_facets_internal(num_facets);
     resize_corners_internal(num_facets * vertex_per_facet);
-    return m_corner_to_vertex_id;
+    return m_reserved_ids.corner_to_vertex();
 }
 
 template <typename Scalar, typename Index>
@@ -896,18 +915,18 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_facets(
     Index vertex_per_facet)
 {
     la_runtime_assert(shared_facets.size() >= num_facets * vertex_per_facet);
-    if (m_facet_to_first_corner_id != invalid_attribute_id()) {
+    if (m_reserved_ids.facet_to_first_corner() != invalid_attribute_id()) {
         // Mesh is regular, so delete hybrid storage attributes
-        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
-        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
-        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+        la_debug_assert(m_reserved_ids.corner_to_facet() != invalid_attribute_id());
+        delete_attribute(s_reserved_names.facet_to_first_corner(), AttributeDeletePolicy::Force);
+        delete_attribute(s_reserved_names.corner_to_facet(), AttributeDeletePolicy::Force);
     }
     m_vertex_per_facet = vertex_per_facet;
-    auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+    auto& attr = m_attributes->template write<Index>(m_reserved_ids.corner_to_vertex());
     attr.wrap_const(std::move(shared_facets), num_facets * vertex_per_facet);
     resize_facets_internal(num_facets);
     resize_corners_internal(num_facets * vertex_per_facet);
-    return m_corner_to_vertex_id;
+    return m_reserved_ids.corner_to_vertex();
 }
 
 template <typename Scalar, typename Index>
@@ -1022,24 +1041,24 @@ void SurfaceMesh<Scalar, Index>::delete_attribute(
         throw Error("Cannot delete a reserved attribute without the force=true option.");
     }
     if (is_reserved) {
-        if (name == s_vertex_to_position) {
-            m_vertex_to_position_id = invalid_attribute_id();
-        } else if (name == s_corner_to_vertex) {
-            m_corner_to_vertex_id = invalid_attribute_id();
-        } else if (name == s_facet_to_first_corner) {
-            m_facet_to_first_corner_id = invalid_attribute_id();
-        } else if (name == s_corner_to_facet) {
-            m_corner_to_facet_id = invalid_attribute_id();
-        } else if (name == s_corner_to_edge) {
-            m_corner_to_edge_id = invalid_attribute_id();
-        } else if (name == s_edge_to_first_corner) {
-            m_edge_to_first_corner_id = invalid_attribute_id();
-        } else if (name == s_next_corner_around_edge) {
-            m_next_corner_around_edge_id = invalid_attribute_id();
-        } else if (name == s_vertex_to_first_corner) {
-            m_vertex_to_first_corner_id = invalid_attribute_id();
-        } else if (name == s_next_corner_around_vertex) {
-            m_next_corner_around_vertex_id = invalid_attribute_id();
+        if (name == s_reserved_names.vertex_to_position()) {
+            m_reserved_ids.vertex_to_position() = invalid_attribute_id();
+        } else if (name == s_reserved_names.corner_to_vertex()) {
+            m_reserved_ids.corner_to_vertex() = invalid_attribute_id();
+        } else if (name == s_reserved_names.facet_to_first_corner()) {
+            m_reserved_ids.facet_to_first_corner() = invalid_attribute_id();
+        } else if (name == s_reserved_names.corner_to_facet()) {
+            m_reserved_ids.corner_to_facet() = invalid_attribute_id();
+        } else if (name == s_reserved_names.corner_to_edge()) {
+            m_reserved_ids.corner_to_edge() = invalid_attribute_id();
+        } else if (name == s_reserved_names.edge_to_first_corner()) {
+            m_reserved_ids.edge_to_first_corner() = invalid_attribute_id();
+        } else if (name == s_reserved_names.next_corner_around_edge()) {
+            m_reserved_ids.next_corner_around_edge() = invalid_attribute_id();
+        } else if (name == s_reserved_names.vertex_to_first_corner()) {
+            m_reserved_ids.vertex_to_first_corner() = invalid_attribute_id();
+        } else if (name == s_reserved_names.next_corner_around_vertex()) {
+            m_reserved_ids.next_corner_around_vertex() = invalid_attribute_id();
         } else {
             throw Error(
                 fmt::format("Attribute name '{}' is not a valid reserved attribute name", name));
@@ -1313,19 +1332,19 @@ auto SurfaceMesh<Scalar, Index>::ref_indexed_attribute(AttributeId id)
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_vertex_to_position() const -> const Attribute<Scalar>&
 {
-    return get_attribute<Scalar>(m_vertex_to_position_id);
+    return get_attribute<Scalar>(m_reserved_ids.vertex_to_position());
 }
 
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::ref_vertex_to_position() -> Attribute<Scalar>&
 {
-    return ref_attribute<Scalar>(m_vertex_to_position_id);
+    return ref_attribute<Scalar>(m_reserved_ids.vertex_to_position());
 }
 
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_corner_to_vertex() const -> const Attribute<Index>&
 {
-    return get_attribute<Index>(m_corner_to_vertex_id);
+    return get_attribute<Index>(m_reserved_ids.corner_to_vertex());
 }
 
 template <typename Scalar, typename Index>
@@ -1335,7 +1354,7 @@ auto SurfaceMesh<Scalar, Index>::ref_corner_to_vertex() -> Attribute<Index>&
         !has_edges(),
         "Cannot retrieve a writeable reference to mesh facets when edge/connectivity is "
         "available.");
-    return ref_attribute<Index>(m_corner_to_vertex_id);
+    return ref_attribute<Index>(m_reserved_ids.corner_to_vertex());
 }
 
 template <typename Scalar, typename Index>
@@ -1349,18 +1368,23 @@ bool SurfaceMesh<Scalar, Index>::attr_name_is_reserved(std::string_view name)
 ////////////////////////////////////////////////////////////////////////////////
 
 template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index>::SurfaceMesh(BareMeshTag)
+    : m_attributes(make_value_ptr<AttributeManager>())
+{}
+
+template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index>::SurfaceMesh(Index dimension)
     : m_dimension(dimension)
     , m_attributes(make_value_ptr<AttributeManager>())
 {
     la_runtime_assert(m_dimension > 0, "Vertex dimension must be > 0");
-    m_vertex_to_position_id = create_attribute_internal<Scalar>(
-        s_vertex_to_position,
+    m_reserved_ids.vertex_to_position() = create_attribute_internal<Scalar>(
+        s_reserved_names.vertex_to_position(),
         AttributeElement::Vertex,
         AttributeUsage::Position,
         m_dimension);
-    m_corner_to_vertex_id = create_attribute_internal<Index>(
-        s_corner_to_vertex,
+    m_reserved_ids.corner_to_vertex() = create_attribute_internal<Index>(
+        s_reserved_names.corner_to_vertex(),
         AttributeElement::Corner,
         AttributeUsage::VertexIndex,
         1);
@@ -1380,6 +1404,101 @@ SurfaceMesh<Scalar, Index>::SurfaceMesh(const SurfaceMesh&) = default;
 
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index>& SurfaceMesh<Scalar, Index>::operator=(const SurfaceMesh&) = default;
+
+namespace {
+
+template <auto Start, auto End, class F>
+constexpr void constexpr_for(F&& f)
+{
+    if constexpr (Start < End) {
+        f(std::integral_constant<decltype(Start), Start>());
+        constexpr_for<Start + 1, End>(f);
+    }
+}
+
+} // namespace
+
+template <typename TargetScalar, typename TargetIndex>
+template <typename SourceScalar, typename SourceIndex>
+SurfaceMesh<TargetScalar, TargetIndex> SurfaceMesh<TargetScalar, TargetIndex>::stripped_copy(
+    const SurfaceMesh<SourceScalar, SourceIndex>& source_mesh)
+{
+    SurfaceMesh<TargetScalar, TargetIndex> target_mesh(BareMeshTag{});
+    target_mesh.m_num_vertices = source_mesh.m_num_vertices;
+    target_mesh.m_num_facets = source_mesh.m_num_facets;
+    target_mesh.m_num_corners = source_mesh.m_num_corners;
+    target_mesh.m_num_edges = source_mesh.m_num_edges;
+    target_mesh.m_dimension = source_mesh.m_dimension;
+    target_mesh.m_vertex_per_facet = source_mesh.m_vertex_per_facet;
+
+    // TODO: Create empty slots where other attributes should have been to ensure id stability?
+    constexpr int N = SurfaceMesh<SourceScalar, SourceIndex>::ReservedAttributeIds::size();
+    constexpr_for<0, N>([&](auto i) {
+        // Only the first reserved attribute has ValueType == Scalar (vertex_to_position). Every
+        // other reserved attribute has ValueType == Index.
+        using SourceValue = std::conditional_t<i == 0, SourceScalar, SourceIndex>;
+        using TargetValue = std::conditional_t<i == 0, TargetScalar, TargetIndex>;
+        AttributeId source_id = source_mesh.m_reserved_ids.items[i];
+        if (source_id == invalid_attribute_id()) {
+            return;
+        }
+        if (source_mesh.template is_attribute_type<TargetValue>(source_id)) {
+            // Use copy-on-write to avoid copying the data
+            target_mesh.m_reserved_ids.items[i] = target_mesh.m_attributes->create(
+                s_reserved_names.items[i],
+                source_mesh.m_attributes->copy_ptr(source_id));
+        } else {
+            // Cast the underlying buffer to the correct type
+            target_mesh.m_reserved_ids.items[i] =
+                target_mesh.m_attributes->template cast_from<TargetValue>(
+                    s_reserved_names.items[i],
+                    source_mesh.template get_attribute<SourceValue>(source_id));
+        }
+    });
+
+    return target_mesh;
+}
+
+template <typename TargetScalar, typename TargetIndex>
+template <typename SourceScalar, typename SourceIndex>
+SurfaceMesh<TargetScalar, TargetIndex> SurfaceMesh<TargetScalar, TargetIndex>::stripped_move(
+    SurfaceMesh<SourceScalar, SourceIndex>&& source_mesh)
+{
+    SurfaceMesh<TargetScalar, TargetIndex> target_mesh(BareMeshTag{});
+    target_mesh.m_num_vertices = source_mesh.m_num_vertices;
+    target_mesh.m_num_facets = source_mesh.m_num_facets;
+    target_mesh.m_num_corners = source_mesh.m_num_corners;
+    target_mesh.m_num_edges = source_mesh.m_num_edges;
+    target_mesh.m_dimension = source_mesh.m_dimension;
+    target_mesh.m_vertex_per_facet = source_mesh.m_vertex_per_facet;
+
+    // TODO: Create empty slots where other attributes should have been to ensure id stability?
+    constexpr int N = SurfaceMesh<SourceScalar, SourceIndex>::ReservedAttributeIds::size();
+    constexpr_for<0, N>([&](auto i) {
+        // Only the first reserved attribute has ValueType == Scalar (vertex_to_position). Every
+        // other reserved attribute has ValueType == Index.
+        using SourceValue = std::conditional_t<i == 0, SourceScalar, SourceIndex>;
+        using TargetValue = std::conditional_t<i == 0, TargetScalar, TargetIndex>;
+        AttributeId source_id = source_mesh.m_reserved_ids.items[i];
+        if (source_id == invalid_attribute_id()) {
+            return;
+        }
+        if (source_mesh.template is_attribute_type<TargetValue>(source_id)) {
+            // Use copy-on-write to avoid copying the data
+            target_mesh.m_reserved_ids.items[i] = target_mesh.m_attributes->create(
+                s_reserved_names.items[i],
+                source_mesh.m_attributes->move_ptr(source_id));
+        } else {
+            // Cast the underlying buffer to the correct type
+            target_mesh.m_reserved_ids.items[i] =
+                target_mesh.m_attributes->template cast_from<TargetValue>(
+                    s_reserved_names.items[i],
+                    source_mesh.template get_attribute<SourceValue>(source_id));
+        }
+    });
+
+    return target_mesh;
+}
 
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::add_vertex(span<const Scalar> p)
@@ -1875,9 +1994,9 @@ void SurfaceMesh<Scalar, Index>::compress_if_regular()
     }
     // If so, delete hybrid storage attributes
     if (same_size) {
-        la_debug_assert(m_corner_to_facet_id != invalid_attribute_id());
-        delete_attribute(s_facet_to_first_corner, AttributeDeletePolicy::Force);
-        delete_attribute(s_corner_to_facet, AttributeDeletePolicy::Force);
+        la_debug_assert(m_reserved_ids.corner_to_facet() != invalid_attribute_id());
+        delete_attribute(s_reserved_names.facet_to_first_corner(), AttributeDeletePolicy::Force);
+        delete_attribute(s_reserved_names.corner_to_facet(), AttributeDeletePolicy::Force);
         m_vertex_per_facet = nvpf;
     }
     la_debug_assert(is_regular());
@@ -1906,7 +2025,7 @@ bool SurfaceMesh<Scalar, Index>::is_regular() const
     // "hybrid" storage. Thus we define a mesh as "regular" iff it doesn't have an existing
     // mapping facet -> first corner. A hybrid mesh can be turned back to regular by calling the
     // compress_if_regular() method.
-    bool reg = (m_facet_to_first_corner_id == invalid_attribute_id());
+    bool reg = (m_reserved_ids.facet_to_first_corner() == invalid_attribute_id());
     if (reg) {
         la_debug_assert(get_corner_to_vertex().empty() || m_vertex_per_facet > 0);
     }
@@ -1942,7 +2061,7 @@ auto SurfaceMesh<Scalar, Index>::get_facet_corner_begin(Index f) const -> Index
     if (is_regular()) {
         return m_vertex_per_facet * f;
     } else {
-        return get_attribute<Index>(m_facet_to_first_corner_id).get(f);
+        return get_attribute<Index>(m_reserved_ids.facet_to_first_corner()).get(f);
     }
 }
 
@@ -1956,7 +2075,7 @@ auto SurfaceMesh<Scalar, Index>::get_facet_corner_end(Index f) const -> Index
     } else {
         return f + 1 == get_num_facets()
                    ? Index(get_corner_to_vertex().get_num_elements())
-                   : get_attribute<Index>(m_facet_to_first_corner_id).get(f + 1);
+                   : get_attribute<Index>(m_reserved_ids.facet_to_first_corner()).get(f + 1);
     }
 }
 
@@ -1973,7 +2092,7 @@ auto SurfaceMesh<Scalar, Index>::get_corner_facet(Index c) const -> Index
     if (is_regular()) {
         return c / m_vertex_per_facet;
     } else {
-        return get_attribute<Index>(m_corner_to_facet_id).get(c);
+        return get_attribute<Index>(m_reserved_ids.corner_to_facet()).get(c);
     }
 }
 
@@ -2036,33 +2155,33 @@ void SurfaceMesh<Scalar, Index>::initialize_edges_internal(
         }
         return;
     }
-    la_runtime_assert(m_corner_to_edge_id == invalid_attribute_id());
-    la_runtime_assert(m_edge_to_first_corner_id == invalid_attribute_id());
-    la_runtime_assert(m_vertex_to_first_corner_id == invalid_attribute_id());
-    la_runtime_assert(m_next_corner_around_edge_id == invalid_attribute_id());
-    la_runtime_assert(m_next_corner_around_vertex_id == invalid_attribute_id());
-    m_corner_to_edge_id = create_attribute_internal<Index>(
-        s_corner_to_edge,
+    la_runtime_assert(m_reserved_ids.corner_to_edge() == invalid_attribute_id());
+    la_runtime_assert(m_reserved_ids.edge_to_first_corner() == invalid_attribute_id());
+    la_runtime_assert(m_reserved_ids.vertex_to_first_corner() == invalid_attribute_id());
+    la_runtime_assert(m_reserved_ids.next_corner_around_edge() == invalid_attribute_id());
+    la_runtime_assert(m_reserved_ids.next_corner_around_vertex() == invalid_attribute_id());
+    m_reserved_ids.corner_to_edge() = create_attribute_internal<Index>(
+        s_reserved_names.corner_to_edge(),
         AttributeElement::Corner,
         AttributeUsage::EdgeIndex,
         1);
-    m_edge_to_first_corner_id = create_attribute_internal<Index>(
-        s_edge_to_first_corner,
+    m_reserved_ids.edge_to_first_corner() = create_attribute_internal<Index>(
+        s_reserved_names.edge_to_first_corner(),
         AttributeElement::Edge,
         AttributeUsage::CornerIndex,
         1);
-    m_vertex_to_first_corner_id = create_attribute_internal<Index>(
-        s_vertex_to_first_corner,
+    m_reserved_ids.vertex_to_first_corner() = create_attribute_internal<Index>(
+        s_reserved_names.vertex_to_first_corner(),
         AttributeElement::Vertex,
         AttributeUsage::CornerIndex,
         1);
-    m_next_corner_around_edge_id = create_attribute_internal<Index>(
-        s_next_corner_around_edge,
+    m_reserved_ids.next_corner_around_edge() = create_attribute_internal<Index>(
+        s_reserved_names.next_corner_around_edge(),
         AttributeElement::Corner,
         AttributeUsage::CornerIndex,
         1);
-    m_next_corner_around_vertex_id = create_attribute_internal<Index>(
-        s_next_corner_around_vertex,
+    m_reserved_ids.next_corner_around_vertex() = create_attribute_internal<Index>(
+        s_reserved_names.next_corner_around_vertex(),
         AttributeElement::Corner,
         AttributeUsage::CornerIndex,
         1);
@@ -2120,10 +2239,13 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
     };
 
     auto corner_to_vertex = get_corner_to_vertex().get_all();
-    auto corner_to_edge = ref_attribute<Index>(m_corner_to_edge_id).ref_all();
-    auto vertex_to_first_corner = ref_attribute<Index>(m_vertex_to_first_corner_id).ref_all();
-    auto next_corner_around_vertex = ref_attribute<Index>(m_next_corner_around_vertex_id).ref_all();
-    auto next_corner_around_edge = ref_attribute<Index>(m_next_corner_around_edge_id).ref_all();
+    auto corner_to_edge = ref_attribute<Index>(m_reserved_ids.corner_to_edge()).ref_all();
+    auto vertex_to_first_corner =
+        ref_attribute<Index>(m_reserved_ids.vertex_to_first_corner()).ref_all();
+    auto next_corner_around_vertex =
+        ref_attribute<Index>(m_reserved_ids.next_corner_around_vertex()).ref_all();
+    auto next_corner_around_edge =
+        ref_attribute<Index>(m_reserved_ids.next_corner_around_edge()).ref_all();
 
     // Sort new unoriented edges + assign corner -> edge mapping to previously existing edges
     std::vector<UnorientedEdge> edge_to_corner;
@@ -2210,7 +2332,8 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
     }
 
     resize_edges_internal(new_num_edges);
-    auto edge_to_first_corner = ref_attribute<Index>(m_edge_to_first_corner_id).ref_all();
+    auto edge_to_first_corner =
+        ref_attribute<Index>(m_reserved_ids.edge_to_first_corner()).ref_all();
 
     // Chain corners around edges
     for (Index f = facet_begin; f < facet_end; ++f) {
@@ -2234,27 +2357,27 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::clear_edges()
 {
-    delete_attribute(s_corner_to_edge, AttributeDeletePolicy::Force);
-    delete_attribute(s_edge_to_first_corner, AttributeDeletePolicy::Force);
-    delete_attribute(s_next_corner_around_edge, AttributeDeletePolicy::Force);
-    delete_attribute(s_vertex_to_first_corner, AttributeDeletePolicy::Force);
-    delete_attribute(s_next_corner_around_vertex, AttributeDeletePolicy::Force);
+    delete_attribute(s_reserved_names.corner_to_edge(), AttributeDeletePolicy::Force);
+    delete_attribute(s_reserved_names.edge_to_first_corner(), AttributeDeletePolicy::Force);
+    delete_attribute(s_reserved_names.next_corner_around_edge(), AttributeDeletePolicy::Force);
+    delete_attribute(s_reserved_names.vertex_to_first_corner(), AttributeDeletePolicy::Force);
+    delete_attribute(s_reserved_names.next_corner_around_vertex(), AttributeDeletePolicy::Force);
     resize_edges_internal(0);
 }
 
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_edge(Index f, Index lv) const -> Index
 {
-    la_debug_assert(m_corner_to_edge_id != invalid_attribute_id());
-    const auto& c2e = get_attribute<Index>(m_corner_to_edge_id);
+    la_debug_assert(m_reserved_ids.corner_to_edge() != invalid_attribute_id());
+    const auto& c2e = get_attribute<Index>(m_reserved_ids.corner_to_edge());
     return c2e.get(get_facet_corner_begin(f) + lv);
 }
 
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_corner_edge(Index c) const -> Index
 {
-    la_debug_assert(m_corner_to_edge_id != invalid_attribute_id());
-    const auto& c2e = get_attribute<Index>(m_corner_to_edge_id);
+    la_debug_assert(m_reserved_ids.corner_to_edge() != invalid_attribute_id());
+    const auto& c2e = get_attribute<Index>(m_reserved_ids.corner_to_edge());
     return c2e.get(c);
 }
 
@@ -2267,8 +2390,8 @@ auto SurfaceMesh<Scalar, Index>::get_edge_from_corner(Index c) const -> Index
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_edge_vertices(Index e) const -> std::array<Index, 2>
 {
-    la_debug_assert(m_edge_to_first_corner_id != invalid_attribute_id());
-    const Index c = get_attribute<Index>(m_edge_to_first_corner_id).get(e);
+    la_debug_assert(m_reserved_ids.edge_to_first_corner() != invalid_attribute_id());
+    const Index c = get_attribute<Index>(m_reserved_ids.edge_to_first_corner()).get(e);
     if (c == invalid<Index>()) {
         throw Error(fmt::format("Invalid corner id for edge: {}", e));
     }
@@ -2308,25 +2431,25 @@ Index SurfaceMesh<Scalar, Index>::find_edge_from_vertices(Index v0, Index v1) co
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_first_corner_around_edge(Index e) const -> Index
 {
-    return get_attribute<Index>(m_edge_to_first_corner_id).get(e);
+    return get_attribute<Index>(m_reserved_ids.edge_to_first_corner()).get(e);
 }
 
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_next_corner_around_edge(Index c) const -> Index
 {
-    return get_attribute<Index>(m_next_corner_around_edge_id).get(c);
+    return get_attribute<Index>(m_reserved_ids.next_corner_around_edge()).get(c);
 }
 
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_first_corner_around_vertex(Index v) const -> Index
 {
-    return get_attribute<Index>(m_vertex_to_first_corner_id).get(v);
+    return get_attribute<Index>(m_reserved_ids.vertex_to_first_corner()).get(v);
 }
 
 template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::get_next_corner_around_vertex(Index c) const -> Index
 {
-    return get_attribute<Index>(m_next_corner_around_vertex_id).get(c);
+    return get_attribute<Index>(m_reserved_ids.next_corner_around_vertex()).get(c);
 }
 
 template <typename Scalar, typename Index>
@@ -2381,7 +2504,8 @@ void SurfaceMesh<Scalar, Index>::foreach_facet_around_vertex(
     function_ref<void(Index)> func) const
 {
     // Loop over incident facets
-    auto next_corner_around_vertex = get_attribute<Index>(m_next_corner_around_vertex_id).get_all();
+    auto next_corner_around_vertex =
+        get_attribute<Index>(m_reserved_ids.next_corner_around_vertex()).get_all();
     if (is_regular()) {
         for (Index c = get_first_corner_around_vertex(v); c != invalid<Index>();
              c = next_corner_around_vertex[c]) {
@@ -2389,7 +2513,7 @@ void SurfaceMesh<Scalar, Index>::foreach_facet_around_vertex(
             func(f);
         }
     } else {
-        auto corner_to_facet = get_attribute<Index>(m_corner_to_facet_id).get_all();
+        auto corner_to_facet = get_attribute<Index>(m_reserved_ids.corner_to_facet()).get_all();
         for (Index c = get_first_corner_around_vertex(v); c != invalid<Index>();
              c = next_corner_around_vertex[c]) {
             func(corner_to_facet[c]);
@@ -2402,7 +2526,8 @@ void SurfaceMesh<Scalar, Index>::foreach_facet_around_edge(Index e, function_ref
     const
 {
     // Loop over incident facets
-    auto next_corner_around_edge = get_attribute<Index>(m_next_corner_around_edge_id).get_all();
+    auto next_corner_around_edge =
+        get_attribute<Index>(m_reserved_ids.next_corner_around_edge()).get_all();
     if (is_regular()) {
         for (Index c = get_first_corner_around_edge(e); c != invalid<Index>();
              c = next_corner_around_edge[c]) {
@@ -2410,7 +2535,7 @@ void SurfaceMesh<Scalar, Index>::foreach_facet_around_edge(Index e, function_ref
             func(f);
         }
     } else {
-        auto corner_to_facet = get_attribute<Index>(m_corner_to_facet_id).get_all();
+        auto corner_to_facet = get_attribute<Index>(m_reserved_ids.corner_to_facet()).get_all();
         for (Index c = get_first_corner_around_edge(e); c != invalid<Index>();
              c = next_corner_around_edge[c]) {
             func(corner_to_facet[c]);
@@ -2424,7 +2549,8 @@ void SurfaceMesh<Scalar, Index>::foreach_corner_around_vertex(
     function_ref<void(Index)> func) const
 {
     // Loop over incident facet corners
-    auto next_corner_around_vertex = get_attribute<Index>(m_next_corner_around_vertex_id).get_all();
+    auto next_corner_around_vertex =
+        get_attribute<Index>(m_reserved_ids.next_corner_around_vertex()).get_all();
     for (Index c = get_first_corner_around_vertex(v); c != invalid<Index>();
          c = next_corner_around_vertex[c]) {
         func(c);
@@ -2436,7 +2562,8 @@ void SurfaceMesh<Scalar, Index>::foreach_corner_around_edge(Index e, function_re
     const
 {
     // Loop over incident facet corners
-    auto next_corner_around_edge = get_attribute<Index>(m_next_corner_around_edge_id).get_all();
+    auto next_corner_around_edge =
+        get_attribute<Index>(m_reserved_ids.next_corner_around_edge()).get_all();
     for (Index c = get_first_corner_around_edge(e); c != invalid<Index>();
          c = next_corner_around_edge[c]) {
         func(c);
@@ -2449,8 +2576,9 @@ void SurfaceMesh<Scalar, Index>::foreach_edge_around_vertex_with_duplicates(
     function_ref<void(Index)> func) const
 {
     // Loop over incident facet edges
-    auto corner_to_edge = get_attribute<Index>(m_corner_to_edge_id).get_all();
-    auto next_corner_around_vertex = get_attribute<Index>(m_next_corner_around_vertex_id).get_all();
+    auto corner_to_edge = get_attribute<Index>(m_reserved_ids.corner_to_edge()).get_all();
+    auto next_corner_around_vertex =
+        get_attribute<Index>(m_reserved_ids.next_corner_around_vertex()).get_all();
     if (is_regular()) {
         for (Index c = get_first_corner_around_vertex(v); c != invalid<Index>();
              c = next_corner_around_vertex[c]) {
@@ -2465,8 +2593,9 @@ void SurfaceMesh<Scalar, Index>::foreach_edge_around_vertex_with_duplicates(
             func(e_prev);
         }
     } else {
-        auto corner_to_facet = get_attribute<Index>(m_corner_to_facet_id).get_all();
-        auto facet_to_first_corner = get_attribute<Index>(m_facet_to_first_corner_id).get_all();
+        auto corner_to_facet = get_attribute<Index>(m_reserved_ids.corner_to_facet()).get_all();
+        auto facet_to_first_corner =
+            get_attribute<Index>(m_reserved_ids.facet_to_first_corner()).get_all();
         for (Index c = get_first_corner_around_vertex(v); c != invalid<Index>();
              c = next_corner_around_vertex[c]) {
             const Index f = corner_to_facet[c];
@@ -2580,8 +2709,9 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
     auto reindex_corners = [&](auto old_to_new_corners) {
         // Repair connectivity chains and skip over deleted corners
         std::array<std::array<AttributeId, 2>, 2> ids = {
-            {{{m_vertex_to_first_corner_id, m_next_corner_around_vertex_id}},
-             {{m_edge_to_first_corner_id, m_next_corner_around_edge_id}}}};
+            {{{m_reserved_ids.vertex_to_first_corner(),
+               m_reserved_ids.next_corner_around_vertex()}},
+             {{m_reserved_ids.edge_to_first_corner(), m_reserved_ids.next_corner_around_edge()}}}};
         for (auto [id_first, id_next] : ids) {
             if (id_first != invalid_attribute_id()) {
                 auto first_corner = ref_attribute<Index>(id_first).ref_all();
@@ -2595,7 +2725,8 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
                     return cj;
                 };
                 for (Index& c0 : first_corner) {
-                    if (id_first == m_vertex_to_first_corner_id && c0 == invalid<Index>()) {
+                    if (id_first == m_reserved_ids.vertex_to_first_corner() &&
+                        c0 == invalid<Index>()) {
                         // Isolated vertex, skip
                         continue;
                     }
@@ -2682,7 +2813,8 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
     // Compute edge remapping
     Index new_num_edges = 0;
     if (has_edges()) {
-        auto edge_to_first_corner = get_attribute<Index>(m_edge_to_first_corner_id).get_all();
+        auto edge_to_first_corner =
+            get_attribute<Index>(m_reserved_ids.edge_to_first_corner()).get_all();
         std::vector<Index> old_to_new_edges(num_edges);
         for (Index e = 0; e < num_edges; ++e) {
             if (edge_to_first_corner[e] != invalid<Index>()) {
@@ -2771,7 +2903,8 @@ auto SurfaceMesh<Scalar, Index>::reserve_indices_internal(Index num_facets, Inde
         resize_facets_internal(total_num_facets);
         m_vertex_per_facet = facet_size;
         resize_corners_internal(total_num_facets * facet_size);
-        return ref_attribute<Index>(m_corner_to_vertex_id).ref_last(num_facets * facet_size);
+        return ref_attribute<Index>(m_reserved_ids.corner_to_vertex())
+            .ref_last(num_facets * facet_size);
     } else {
         return reserve_indices_internal(num_facets, [&facet_size](Index i) noexcept -> Index {
             (void)i;
@@ -2801,7 +2934,7 @@ auto SurfaceMesh<Scalar, Index>::reserve_indices_internal(
     Index last_offset = get_num_corners();
     resize_facets_internal(old_num_facets + num_facets);
     if (is_regular()) {
-        la_debug_assert(m_facet_to_first_corner_id == invalid_attribute_id());
+        la_debug_assert(m_reserved_ids.facet_to_first_corner() == invalid_attribute_id());
 
         // Mesh is regular (or possibly empty), we need to check if we need to add an "offset"
         // attribute.
@@ -2813,7 +2946,7 @@ auto SurfaceMesh<Scalar, Index>::reserve_indices_internal(
             // Mesh has been switched to hybrid, need to insert offset index for each newly
             // inserted facet
             if (!new_facet_to_first_corner.empty()) {
-                la_debug_assert(m_facet_to_first_corner_id != invalid_attribute_id());
+                la_debug_assert(m_reserved_ids.facet_to_first_corner() != invalid_attribute_id());
                 new_facet_to_first_corner[i] = last_offset;
             }
             last_offset += facet_size;
@@ -2825,32 +2958,35 @@ auto SurfaceMesh<Scalar, Index>::reserve_indices_internal(
 
             // Non-regular mesh, switch to hybrid storage
             if (m_vertex_per_facet != 0 && m_vertex_per_facet != facet_size) {
-                m_facet_to_first_corner_id = create_attribute_internal<Index>(
-                    s_facet_to_first_corner,
+                m_reserved_ids.facet_to_first_corner() = create_attribute_internal<Index>(
+                    s_reserved_names.facet_to_first_corner(),
                     AttributeElement::Facet,
                     AttributeUsage::CornerIndex,
                     1);
-                m_corner_to_facet_id = create_attribute_internal<Index>(
-                    s_corner_to_facet,
+                m_reserved_ids.corner_to_facet() = create_attribute_internal<Index>(
+                    s_reserved_names.corner_to_facet(),
                     AttributeElement::Corner,
                     AttributeUsage::FacetIndex,
                     1);
-                auto first_offsets = ref_attribute<Index>(m_facet_to_first_corner_id).ref_all();
+                auto first_offsets =
+                    ref_attribute<Index>(m_reserved_ids.facet_to_first_corner()).ref_all();
                 for (Index j = 0; j <= old_num_facets + i; ++j) {
                     first_offsets[j] = j * m_vertex_per_facet;
                 }
                 new_facet_to_first_corner =
-                    ref_attribute<Index>(m_facet_to_first_corner_id).ref_last(num_facets);
+                    ref_attribute<Index>(m_reserved_ids.facet_to_first_corner())
+                        .ref_last(num_facets);
                 m_vertex_per_facet = 0;
             }
         }
 
     } else {
         // Mesh is hybrid, so we already have an offset buffer to work with.
-        la_debug_assert(m_facet_to_first_corner_id != invalid_attribute_id());
+        la_debug_assert(m_reserved_ids.facet_to_first_corner() != invalid_attribute_id());
         la_debug_assert(m_vertex_per_facet == 0);
 
-        auto new_facets = ref_attribute<Index>(m_facet_to_first_corner_id).ref_last(num_facets);
+        auto new_facets =
+            ref_attribute<Index>(m_reserved_ids.facet_to_first_corner()).ref_last(num_facets);
         for (Index i = 0; i < num_facets; ++i) {
             new_facets[i] = last_offset;
             last_offset += get_facets_size(i);
@@ -2863,7 +2999,8 @@ auto SurfaceMesh<Scalar, Index>::reserve_indices_internal(
         compute_corner_to_facet_internal(was_regular ? 0 : old_num_facets, get_num_facets());
     }
 
-    return ref_attribute<Index>(m_corner_to_vertex_id).ref_last(last_offset - old_num_corners);
+    return ref_attribute<Index>(m_reserved_ids.corner_to_vertex())
+        .ref_last(last_offset - old_num_corners);
 }
 
 template <typename Scalar, typename Index>
@@ -2872,7 +3009,7 @@ void SurfaceMesh<Scalar, Index>::compute_corner_to_facet_internal(
     Index facet_end)
 {
     la_debug_assert(is_hybrid());
-    auto c2f = ref_attribute<Index>(m_corner_to_facet_id).ref_all();
+    auto c2f = ref_attribute<Index>(m_reserved_ids.corner_to_facet()).ref_all();
     for (Index f = facet_begin; f < facet_end; ++f) {
         for (Index c = get_facet_corner_begin(f); c < get_facet_corner_end(f); ++c) {
             c2f[c] = f;
@@ -2919,41 +3056,41 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_facets_internal(
     la_runtime_assert(facets.size() >= num_corners);
     la_runtime_assert(offsets.size() >= num_facets);
     m_vertex_per_facet = 0;
-    if (m_facet_to_first_corner_id == invalid_attribute_id()) {
+    if (m_reserved_ids.facet_to_first_corner() == invalid_attribute_id()) {
         // Create new facet -> first corner index attribute
-        m_facet_to_first_corner_id = m_attributes->template create<Index>(
-            s_facet_to_first_corner,
+        m_reserved_ids.facet_to_first_corner() = m_attributes->template create<Index>(
+            s_reserved_names.facet_to_first_corner(),
             AttributeElement::Facet,
             AttributeUsage::CornerIndex,
             1);
-        set_attribute_default_internal<Index>(s_facet_to_first_corner);
+        set_attribute_default_internal<Index>(s_reserved_names.facet_to_first_corner());
         // Create new corner -> facet index attribute
-        la_debug_assert(m_corner_to_facet_id == invalid_attribute_id());
-        m_corner_to_facet_id = m_attributes->template create<Index>(
-            s_corner_to_facet,
+        la_debug_assert(m_reserved_ids.corner_to_facet() == invalid_attribute_id());
+        m_reserved_ids.corner_to_facet() = m_attributes->template create<Index>(
+            s_reserved_names.corner_to_facet(),
             AttributeElement::Corner,
             AttributeUsage::FacetIndex,
             1);
-        set_attribute_default_internal<Index>(s_corner_to_facet);
+        set_attribute_default_internal<Index>(s_reserved_names.corner_to_facet());
     }
 
     // Wrap facet -> first corner index
     {
-        auto& attr = m_attributes->template write<Index>(m_facet_to_first_corner_id);
+        auto& attr = m_attributes->template write<Index>(m_reserved_ids.facet_to_first_corner());
         wrap_as_attribute_internal(attr, num_facets, offsets);
         resize_facets_internal(num_facets);
     }
 
     // Wrap corner -> vertex index
     {
-        auto& attr = m_attributes->template write<Index>(m_corner_to_vertex_id);
+        auto& attr = m_attributes->template write<Index>(m_reserved_ids.corner_to_vertex());
         wrap_as_attribute_internal(attr, num_corners, facets);
         resize_corners_internal(num_corners);
     }
 
     // Compute inverse mapping (corner -> facet index)
     compute_corner_to_facet_internal(0, get_num_facets());
-    return m_corner_to_vertex_id;
+    return m_reserved_ids.corner_to_vertex();
 }
 
 
@@ -3143,11 +3280,19 @@ LA_ATTRIBUTE_X(surface_mesh_aux, 0)
 #define fst(first, second) first
 #define snd(first, second) second
 #define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex)                     \
+    template SurfaceMesh<fst ScalarIndex, snd ScalarIndex>                                     \
+    SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::stripped_copy(                              \
+        const SurfaceMesh<OtherScalar, OtherIndex>& other);                                    \
+    template SurfaceMesh<fst ScalarIndex, snd ScalarIndex>                                     \
+    SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::stripped_move(                              \
+        SurfaceMesh<OtherScalar, OtherIndex>&& other);                                         \
     template AttributeId SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::create_attribute_from( \
         std::string_view name,                                                                 \
         const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,                               \
         std::string_view source_name);
 
+// NOTE: This is a dirty workaround because nesting two LA_SURFACE_MESH_X macros doesn't quite work.
+// I am not sure if there is a proper way to do this.
 #define LA_SURFACE_MESH2_X(mode, data)                                     \
     LA_X_##mode(data, float, uint32_t) LA_X_##mode(data, double, uint32_t) \
         LA_X_##mode(data, float, uint64_t) LA_X_##mode(data, double, uint64_t)

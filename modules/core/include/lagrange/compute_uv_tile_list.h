@@ -16,6 +16,13 @@
 #include <vector>
 
 namespace lagrange {
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
 
 ///
 /// Extract the list of all UV tiles that a mesh's parametrization spans.
@@ -31,4 +38,5 @@ template <typename Scalar, typename Index>
 std::vector<std::pair<int32_t, int32_t>> compute_uv_tile_list(
     const SurfaceMesh<Scalar, Index>& mesh);
 
+/// @}
 } // namespace lagrange

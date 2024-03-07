@@ -62,7 +62,7 @@ func_*.json
 /_build
 /_skbuild
 /data
-/docs/build
+/docs/cpp/build
 
 # Lagrange specifics
 LagrangeOptions.cmake

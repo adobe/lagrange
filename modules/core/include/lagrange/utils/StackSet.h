@@ -20,7 +20,8 @@
 namespace lagrange {
 
 ///
-/// @ingroup    group-utils
+/// @defgroup group-utils Utilites
+/// @ingroup module-core
 ///
 /// @{
 

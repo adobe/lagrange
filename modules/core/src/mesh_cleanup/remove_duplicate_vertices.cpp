@@ -132,7 +132,7 @@ void remove_duplicate_vertices(
     };
 
     auto compare_vertices = [&](Index vi, Index vj) -> short {
-        auto result = compare_vertex_attr(vi, vj, mesh.attr_id_vertex_to_positions());
+        auto result = compare_vertex_attr(vi, vj, mesh.attr_id_vertex_to_position());
         if (result == 0) {
             for (const auto& id : options.extra_attributes) {
                 const auto& attr = mesh.get_attribute_base(id);

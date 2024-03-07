@@ -2035,7 +2035,7 @@ void test_reserved_attribute_basic()
         REQUIRE(!mesh.has_attribute(mesh.attr_name_next_corner_around_vertex()));
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_vertex_to_position()) ==
-            mesh.attr_id_vertex_to_positions());
+            mesh.attr_id_vertex_to_position());
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_corner_to_vertex()) ==
             mesh.attr_id_corner_to_vertex());
@@ -2058,7 +2058,7 @@ void test_reserved_attribute_basic()
         REQUIRE(!mesh.has_attribute(mesh.attr_name_next_corner_around_vertex()));
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_vertex_to_position()) ==
-            mesh.attr_id_vertex_to_positions());
+            mesh.attr_id_vertex_to_position());
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_corner_to_vertex()) ==
             mesh.attr_id_corner_to_vertex());
@@ -2087,7 +2087,7 @@ void test_reserved_attribute_basic()
         REQUIRE(mesh.has_attribute(mesh.attr_name_next_corner_around_vertex()));
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_vertex_to_position()) ==
-            mesh.attr_id_vertex_to_positions());
+            mesh.attr_id_vertex_to_position());
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_corner_to_vertex()) ==
             mesh.attr_id_corner_to_vertex());
@@ -2126,7 +2126,7 @@ void test_reserved_attribute_basic()
         REQUIRE(mesh.has_attribute(mesh.attr_name_next_corner_around_vertex()));
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_vertex_to_position()) ==
-            mesh.attr_id_vertex_to_positions());
+            mesh.attr_id_vertex_to_position());
         REQUIRE(
             mesh.get_attribute_id(mesh.attr_name_corner_to_vertex()) ==
             mesh.attr_id_corner_to_vertex());

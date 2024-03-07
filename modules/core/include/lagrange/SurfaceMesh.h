@@ -39,7 +39,26 @@ class weak_ptr;
 /// A general purpose polygonal mesh class.
 ///
 /// @tparam     Scalar_  %Mesh scalar type.
-/// @tparam     Index_  %Mesh index type.
+/// @tparam     Index_   %Mesh index type.
+///
+/// @see        <div> Related documentation:
+///
+/// - @ref group-surfacemesh-attr "Manipulating mesh attributes"
+/// - @ref group-surfacemesh-utils "Mesh utility functions"
+/// - @ref group-surfacemesh-attr-utils "Attribute utility functions"
+/// - @ref group-surfacemesh-iterate "Attribute iterators"
+/// - @ref group-surfacemesh-views "Eigen matrix view of mesh attributes"
+///
+/// Related headers:
+///
+/// - `#include <lagrange/Attribute.h>` for manipulating non-indexed mesh attributes (e.g. vertex
+///   colors or facet normals).
+/// - `#include <lagrange/IndexedAttribute.h>` for manipulating indexed mesh attributes (e.g. UVs).
+/// - `#include <lagrange/views.h>` for Eigen matrix views over mesh attributes.
+/// - `#include <lagrange/foreach_attribute.h>` for iterating over mesh attributes.
+/// - `#include <lagrange/cast.h>` for casting between Scalar/Index types.
+/// - `#include <lagrange/map_attribute.h>` for converting attributes between mesh element types
+///   (e.g. vertex -> facet). </div>
 ///
 template <typename Scalar_, typename Index_>
 class SurfaceMesh
@@ -154,9 +173,51 @@ public:
     ///
     /// @param[in]  other  Instance to copy from.
     ///
-    /// @return     The result of the assignment.
+    /// @return     The result of the copy.
     ///
     SurfaceMesh& operator=(const SurfaceMesh& other);
+
+    ///
+    /// Copy constructor stripping away non-reserved attributes. Will internally cast the scalar and
+    /// index type to the desired type. This static constructor is used internally to implement the
+    /// more high-level `cast` and `filter_attribute` function.
+    ///
+    /// @note       Should this function take an optional list of attribute ids to preserve, and/or
+    ///             provide stable attribute ids?
+    ///
+    /// @param[in]  other        Instance to copy from.
+    ///
+    /// @tparam     OtherScalar  Other mesh scalar type.
+    /// @tparam     OtherIndex   Other mesh index type.
+    ///
+    /// @return     The result of the copy.
+    ///
+    /// @see cast
+    /// @see filter_attributes
+    ///
+    template <typename OtherScalar, typename OtherIndex>
+    static SurfaceMesh stripped_copy(const SurfaceMesh<OtherScalar, OtherIndex>& other);
+
+    ///
+    /// Move constructor stripping away non-reserved attributes. Will internally cast the scalar and
+    /// index type to the desired type. This static constructor is used internally to implement the
+    /// more high-level `cast` and `filter_attribute` function.
+    ///
+    /// @note       Should this function take an optional list of attribute ids to preserve, and/or
+    ///             provide stable attribute ids?
+    ///
+    /// @param[in]  other        Instance to move from.
+    ///
+    /// @tparam     OtherScalar  Other mesh scalar type.
+    /// @tparam     OtherIndex   Other mesh index type.
+    ///
+    /// @return     The result of the move.
+    ///
+    /// @see cast
+    /// @see filter_attributes
+    ///
+    template <typename OtherScalar, typename OtherIndex>
+    static SurfaceMesh stripped_move(SurfaceMesh<OtherScalar, OtherIndex>&& other);
 
     ///
     /// Adds a vertex to the mesh.
@@ -837,7 +898,7 @@ public:
     ///
     /// @return     The attribute identifier.
     ///
-    template<typename OtherScalar, typename OtherIndex>
+    template <typename OtherScalar, typename OtherIndex>
     AttributeId create_attribute_from(
         std::string_view name,
         const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,
@@ -1789,7 +1850,7 @@ public:
     ///
     static constexpr std::string_view attr_name_vertex_to_position()
     {
-        return s_vertex_to_position;
+        return s_reserved_names.vertex_to_position();
     }
 
     ///
@@ -1797,7 +1858,10 @@ public:
     ///
     /// @return     %Attribute name.
     ///
-    static constexpr std::string_view attr_name_corner_to_vertex() { return s_corner_to_vertex; }
+    static constexpr std::string_view attr_name_corner_to_vertex()
+    {
+        return s_reserved_names.corner_to_vertex();
+    }
 
     ///
     /// %Attribute name for facet -> first corner index.
@@ -1806,7 +1870,7 @@ public:
     ///
     static constexpr std::string_view attr_name_facet_to_first_corner()
     {
-        return s_facet_to_first_corner;
+        return s_reserved_names.facet_to_first_corner();
     }
 
     ///
@@ -1814,14 +1878,20 @@ public:
     ///
     /// @return     %Attribute name.
     ///
-    static constexpr std::string_view attr_name_corner_to_facet() { return s_corner_to_facet; }
+    static constexpr std::string_view attr_name_corner_to_facet()
+    {
+        return s_reserved_names.corner_to_facet();
+    }
 
     ///
     /// %Attribute name for corner -> edge indices.
     ///
     /// @return     %Attribute name.
     ///
-    static constexpr std::string_view attr_name_corner_to_edge() { return s_corner_to_edge; }
+    static constexpr std::string_view attr_name_corner_to_edge()
+    {
+        return s_reserved_names.corner_to_edge();
+    }
 
     ///
     /// %Attribute name for edge -> first corner index.
@@ -1830,7 +1900,7 @@ public:
     ///
     static constexpr std::string_view attr_name_edge_to_first_corner()
     {
-        return s_edge_to_first_corner;
+        return s_reserved_names.edge_to_first_corner();
     }
 
     ///
@@ -1840,7 +1910,7 @@ public:
     ///
     static constexpr std::string_view attr_name_next_corner_around_edge()
     {
-        return s_next_corner_around_edge;
+        return s_reserved_names.next_corner_around_edge();
     }
 
     ///
@@ -1850,7 +1920,7 @@ public:
     ///
     static constexpr std::string_view attr_name_vertex_to_first_corner()
     {
-        return s_vertex_to_first_corner;
+        return s_reserved_names.vertex_to_first_corner();
     }
 
     ///
@@ -1860,7 +1930,7 @@ public:
     ///
     static constexpr std::string_view attr_name_next_corner_around_vertex()
     {
-        return s_next_corner_around_vertex;
+        return s_reserved_names.next_corner_around_vertex();
     }
 
     ///
@@ -1868,63 +1938,89 @@ public:
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_vertex_to_positions() const { return m_vertex_to_position_id; }
+    AttributeId attr_id_vertex_to_position() const { return m_reserved_ids.vertex_to_position(); }
+
+    ///
+    /// %Attribute id for vertex -> positions.
+    ///
+    /// @return     Attribute id.
+    ///
+    [[deprecated("Use attr_id_vertex_to_position() instead.")]] AttributeId
+    attr_id_vertex_to_positions() const
+    {
+        return m_reserved_ids.vertex_to_position();
+    }
 
     ///
     /// %Attribute id for corner -> vertex indices.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_corner_to_vertex() const { return m_corner_to_vertex_id; }
+    AttributeId attr_id_corner_to_vertex() const { return m_reserved_ids.corner_to_vertex(); }
 
     ///
     /// %Attribute id for facet -> first corner index.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_facet_to_first_corner() const { return m_facet_to_first_corner_id; }
+    AttributeId attr_id_facet_to_first_corner() const
+    {
+        return m_reserved_ids.facet_to_first_corner();
+    }
 
     ///
     /// %Attribute id for corner -> facet index.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_corner_to_facet() const { return m_corner_to_facet_id; }
+    AttributeId attr_id_corner_to_facet() const { return m_reserved_ids.corner_to_facet(); }
 
     ///
     /// %Attribute id for corner -> edge indices.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_corner_to_edge() const { return m_corner_to_edge_id; }
+    AttributeId attr_id_corner_to_edge() const { return m_reserved_ids.corner_to_edge(); }
 
     ///
     /// %Attribute id for edge -> first corner index.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_edge_to_first_corner() const { return m_edge_to_first_corner_id; }
+    AttributeId attr_id_edge_to_first_corner() const
+    {
+        return m_reserved_ids.edge_to_first_corner();
+    }
 
     ///
     /// %Attribute id for corner -> next corner around edge.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_next_corner_around_edge() const { return m_next_corner_around_edge_id; }
+    AttributeId attr_id_next_corner_around_edge() const
+    {
+        return m_reserved_ids.next_corner_around_edge();
+    }
 
     ///
     /// %Attribute id for vertex -> first corner index.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_vertex_to_first_corner() const { return m_vertex_to_first_corner_id; }
+    AttributeId attr_id_vertex_to_first_corner() const
+    {
+        return m_reserved_ids.vertex_to_first_corner();
+    }
 
     ///
     /// %Attribute id for corner -> next corner around vertex.
     ///
     /// @return     Attribute id.
     ///
-    AttributeId attr_id_next_corner_around_vertex() const { return m_next_corner_around_vertex_id; }
+    AttributeId attr_id_next_corner_around_vertex() const
+    {
+        return m_reserved_ids.next_corner_around_vertex();
+    }
 
 public:
     /// @}
@@ -1973,7 +2069,10 @@ public:
     ///
     /// @return     True if attributes have been initialized, False otherwise.
     ///
-    bool has_edges() const { return m_edge_to_first_corner_id != invalid_attribute_id(); }
+    bool has_edges() const
+    {
+        return m_reserved_ids.edge_to_first_corner() != invalid_attribute_id();
+    }
 
     ///
     /// Gets the edge index corresponding to (f, lv) -- (f, lv+1).
@@ -2183,6 +2282,20 @@ public:
     /// @}
 
 protected:
+    ///
+    /// Overload tag
+    ///
+    struct BareMeshTag
+    {
+    };
+
+    ///
+    /// Internal constructor.
+    ///
+    /// @param[in]  tag   Tag to distinguish from the public constructor.
+    ///
+    explicit SurfaceMesh(BareMeshTag tag);
+
     ///
     /// Same as create_attribute, but allows creation of reserved attributes.
     ///
@@ -2488,7 +2601,8 @@ protected:
     /// @cond LA_INTERNAL_DOCS
 
     /// It's ok to be friend with meshes of different types.
-    template<typename, typename> friend class SurfaceMesh;
+    template <typename, typename>
+    friend class SurfaceMesh;
 
     ///
     /// Hidden attribute manager class.
@@ -2498,33 +2612,6 @@ protected:
     /// @endcond
 
 protected:
-    /// %Attribute name for vertex -> positions.
-    static constexpr std::string_view s_vertex_to_position = "$vertex_to_position";
-
-    /// %Attribute name for corner -> vertex indices.
-    static constexpr std::string_view s_corner_to_vertex = "$corner_to_vertex";
-
-    /// %Attribute name for facet -> first corner index (non-regular mesh).
-    static constexpr std::string_view s_facet_to_first_corner = "$facet_to_first_corner";
-
-    /// %Attribute name for corner -> facet index (non-regular mesh).
-    static constexpr std::string_view s_corner_to_facet = "$corner_to_facet";
-
-    /// %Attribute name for corner -> edge indices.
-    static constexpr std::string_view s_corner_to_edge = "$corner_to_edge";
-
-    /// %Attribute name for edge -> first corner index.
-    static constexpr std::string_view s_edge_to_first_corner = "$edge_to_first_corner";
-
-    /// %Attribute name for corner -> next corner around edge.
-    static constexpr std::string_view s_next_corner_around_edge = "$next_corner_around_edge";
-
-    /// %Attribute name for vertex -> first corner index.
-    static constexpr std::string_view s_vertex_to_first_corner = "$vertex_to_first_corner";
-
-    /// %Attribute name for corner -> next corner around vertex.
-    static constexpr std::string_view s_next_corner_around_vertex = "$next_corner_around_vertex";
-
     /// Number of vertices
     Index m_num_vertices = Index(0);
 
@@ -2546,34 +2633,60 @@ protected:
     /// %Attribute manager. Hidden implementation.
     value_ptr<AttributeManager> m_attributes;
 
-    /// %Attribute id for vertex -> positions.
-    AttributeId m_vertex_to_position_id = invalid_attribute_id();
+    /// Reserved attribute ids.
+    struct ReservedAttributeIds
+    {
+        AttributeId items[9];
 
-    /// %Attribute id for corner -> vertex indices.
-    AttributeId m_corner_to_vertex_id = invalid_attribute_id();
+        ReservedAttributeIds() { std::fill_n(items, 9, invalid_attribute_id()); }
+        static constexpr int size() { return 9; }
 
-    /// %Attribute id for facet -> first corner index. If the mesh is regular (each facet has the
-    /// same size), then this attribute doesn't exist.
-    AttributeId m_facet_to_first_corner_id = invalid_attribute_id();
+        AttributeId& vertex_to_position() { return items[0]; };
+        AttributeId& corner_to_vertex() { return items[1]; };
+        AttributeId& facet_to_first_corner() { return items[2]; };
+        AttributeId& corner_to_facet() { return items[3]; };
+        AttributeId& corner_to_edge() { return items[4]; };
+        AttributeId& edge_to_first_corner() { return items[5]; };
+        AttributeId& next_corner_around_edge() { return items[6]; };
+        AttributeId& vertex_to_first_corner() { return items[7]; };
+        AttributeId& next_corner_around_vertex() { return items[8]; };
 
-    /// %Attribute id for corner -> facet index. If the mesh is regular (each facet has the
-    /// same size), then this attribute doesn't exist.
-    AttributeId m_corner_to_facet_id = invalid_attribute_id();
+        const AttributeId& vertex_to_position() const { return items[0]; };
+        const AttributeId& corner_to_vertex() const { return items[1]; };
+        const AttributeId& facet_to_first_corner() const { return items[2]; };
+        const AttributeId& corner_to_facet() const { return items[3]; };
+        const AttributeId& corner_to_edge() const { return items[4]; };
+        const AttributeId& edge_to_first_corner() const { return items[5]; };
+        const AttributeId& next_corner_around_edge() const { return items[6]; };
+        const AttributeId& vertex_to_first_corner() const { return items[7]; };
+        const AttributeId& next_corner_around_vertex() const { return items[8]; };
+    } m_reserved_ids;
 
-    /// %Attribute id for corner -> edge indices.
-    AttributeId m_corner_to_edge_id = invalid_attribute_id();
-
-    /// %Attribute id for edge -> first corner index.
-    AttributeId m_edge_to_first_corner_id = invalid_attribute_id();
-
-    /// %Attribute id for corner -> next corner around edge.
-    AttributeId m_next_corner_around_edge_id = invalid_attribute_id();
-
-    /// %Attribute id for vertex -> first corner index.
-    AttributeId m_vertex_to_first_corner_id = invalid_attribute_id();
-
-    /// %Attribute id for corner -> next corner around vertex.
-    AttributeId m_next_corner_around_vertex_id = invalid_attribute_id();
+protected:
+    /// Reserved %attribute names.
+    static constexpr struct
+    {
+        std::string_view items[9] = {
+            "$vertex_to_position",
+            "$corner_to_vertex",
+            "$facet_to_first_corner",
+            "$corner_to_facet",
+            "$corner_to_edge",
+            "$edge_to_first_corner",
+            "$next_corner_around_edge",
+            "$vertex_to_first_corner",
+            "$next_corner_around_vertex",
+        };
+        std::string_view vertex_to_position() const { return items[0]; }
+        std::string_view corner_to_vertex() const { return items[1]; }
+        std::string_view facet_to_first_corner() const { return items[2]; }
+        std::string_view corner_to_facet() const { return items[3]; }
+        std::string_view corner_to_edge() const { return items[4]; }
+        std::string_view edge_to_first_corner() const { return items[5]; }
+        std::string_view next_corner_around_edge() const { return items[6]; }
+        std::string_view vertex_to_first_corner() const { return items[7]; }
+        std::string_view next_corner_around_vertex() const { return items[8]; }
+    } s_reserved_names = {};
 };
 
 using SurfaceMesh32f = SurfaceMesh<float, uint32_t>;

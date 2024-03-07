@@ -19,7 +19,7 @@
 namespace lagrange {
 
 ///
-/// @ingroup    group-utils
+/// @defgroup    group-utils
 ///
 /// @{
 

@@ -183,7 +183,7 @@ class TestSurfaceMesh:
         assert address(vertex_buffer) == address(mesh.vertices)
 
         # update vertex growth policy
-        attr = mesh.attribute(mesh.attr_id_vertex_to_positions)
+        attr = mesh.attribute(mesh.attr_id_vertex_to_position)
         attr.growth_policy = lagrange.AttributeGrowthPolicy.AllowWithinCapacity
 
         assert np.all(mesh.vertices == np.eye(3))
@@ -302,5 +302,5 @@ class TestSurfaceMesh:
 
     def test_position_usage(self, single_triangle):
         mesh = single_triangle
-        position_attr = mesh.attribute(mesh.attr_id_vertex_to_positions)
+        position_attr = mesh.attribute(mesh.attr_id_vertex_to_position)
         assert position_attr.usage == lagrange.AttributeUsage.Position

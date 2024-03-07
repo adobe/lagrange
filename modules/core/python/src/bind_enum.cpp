@@ -23,56 +23,177 @@ namespace lagrange::python {
 namespace nb = nanobind;
 void bind_enum(nb::module_& m)
 {
-    nb::enum_<AttributeElement>(m, "AttributeElement")
-        .value("Vertex", Vertex)
-        .value("Facet", Facet)
-        .value("Edge", Edge)
-        .value("Corner", Corner)
-        .value("Value", Value)
-        .value("Indexed", Indexed);
+    nb::enum_<AttributeElement>(
+        m,
+        "AttributeElement",
+        nb::is_arithmetic(),
+        "Attribute element type")
+        .value("Vertex", Vertex, "Per-vertex attribute")
+        .value("Facet", Facet, "Per-facet attribute")
+        .value("Edge", Edge, "Per-edge attribute")
+        .value("Corner", Corner, "Per-corner attribute")
+        .value("Value", Value, "Value attribute not attached to any mesh elements")
+        .value("Indexed", Indexed, "Indexed attribute");
 
-    nb::enum_<AttributeUsage>(m, "AttributeUsage")
-        .value("Vector", AttributeUsage::Vector)
-        .value("Scalar", AttributeUsage::Scalar)
-        .value("Position", AttributeUsage::Position)
-        .value("Normal", AttributeUsage::Normal)
-        .value("Tangent", AttributeUsage::Tangent)
-        .value("Bitangent", AttributeUsage::Bitangent)
-        .value("Color", AttributeUsage::Color)
-        .value("UV", AttributeUsage::UV)
-        .value("VertexIndex", AttributeUsage::VertexIndex)
-        .value("FacetIndex", AttributeUsage::FacetIndex)
-        .value("CornerIndex", AttributeUsage::CornerIndex)
-        .value("EdgeIndex", AttributeUsage::EdgeIndex);
+    nb::enum_<AttributeUsage>(m, "AttributeUsage", "Attribute usage type")
+        .value(
+            "Vector",
+            AttributeUsage::Vector,
+            "Vector attribute that may have any number of channels")
+        .value("Scalar", AttributeUsage::Scalar, "Scalar attribute that has exactly 1 channel")
+        .value(
+            "Position",
+            AttributeUsage::Position,
+            "Position attribute must have exactly dim channels")
+        .value("Normal", AttributeUsage::Normal, "Normal attribute must have exactly dim channels")
+        .value(
+            "Tangent",
+            AttributeUsage::Tangent,
+            "Tangent attribute must have exactly dim channels")
+        .value(
+            "Bitangent",
+            AttributeUsage::Bitangent,
+            "Bitangent attribute must have exactly dim channels")
+        .value("Color", AttributeUsage::Color, "Color attribute may have 1, 2, 3 or 4 channels")
+        .value("UV", AttributeUsage::UV, "UV attribute has exactly 2 channels")
+        .value(
+            "VertexIndex",
+            AttributeUsage::VertexIndex,
+            "Single channel integer attribute indexing mesh vertices")
+        .value(
+            "FacetIndex",
+            AttributeUsage::FacetIndex,
+            "Single channel integer attribute indexing mesh facets")
+        .value(
+            "CornerIndex",
+            AttributeUsage::CornerIndex,
+            "Single channel integer attribute indexing mesh corners")
+        .value(
+            "EdgeIndex",
+            AttributeUsage::EdgeIndex,
+            "Single channel integer attribute indexing mesh edges");
 
-    nb::enum_<AttributeCreatePolicy>(m, "AttributeCreatePolicy")
-        .value("ErrorIfReserved", AttributeCreatePolicy::ErrorIfReserved)
-        .value("Force", AttributeCreatePolicy::Force);
+    nb::enum_<AttributeCreatePolicy>(m, "AttributeCreatePolicy", "Attribute creation policy")
+        .value(
+            "ErrorIfReserved",
+            AttributeCreatePolicy::ErrorIfReserved,
+            "Default policy, error if attribute name is reserved")
+        .value(
+            "Force",
+            AttributeCreatePolicy::Force,
+            "Force create attribute even if name is reserved");
 
-    nb::enum_<AttributeGrowthPolicy>(m, "AttributeGrowthPolicy")
-        .value("ErrorIfExtenal", AttributeGrowthPolicy::ErrorIfExternal)
-        .value("AllowWithinCapacity", AttributeGrowthPolicy::AllowWithinCapacity)
-        .value("WarnAndCopy", AttributeGrowthPolicy::WarnAndCopy)
-        .value("SilentCopy", AttributeGrowthPolicy::SilentCopy);
+    nb::enum_<AttributeGrowthPolicy>(
+        m,
+        "AttributeGrowthPolicy",
+        "Attribute growth policy (for external buffers)")
+        .value(
+            "ErrorIfExtenal",
+            AttributeGrowthPolicy::ErrorIfExternal,
+            "Disallow growth if external buffer is used (default)")
+        .value(
+            "AllowWithinCapacity",
+            AttributeGrowthPolicy::AllowWithinCapacity,
+            "Allow growth as long as it is within the capacity of the external buffer")
+        .value(
+            "WarnAndCopy",
+            AttributeGrowthPolicy::WarnAndCopy,
+            "Warn and copy attribute to internal buffer when growth exceeds external buffer "
+            "capacity")
+        .value(
+            "SilentCopy",
+            AttributeGrowthPolicy::SilentCopy,
+            "Silently copy attribute to internal buffer when growth exceeds external buffer "
+            "capacity");
 
-    nb::enum_<AttributeWritePolicy>(m, "AttributeWritePolicy")
-        .value("ErrorIfReadOnly", AttributeWritePolicy::ErrorIfReadOnly)
-        .value("WarnAndCopy", AttributeWritePolicy::WarnAndCopy)
-        .value("SilentCopy", AttributeWritePolicy::SilentCopy);
+    nb::enum_<AttributeShrinkPolicy>(
+        m,
+        "AttributeShrinkPolicy",
+        "Attribute shrink policy (for external buffers)")
+        .value(
+            "ErrorIfExternal",
+            AttributeShrinkPolicy::ErrorIfExternal,
+            "Disallow shrink if external buffer is used (default)")
+        .value(
+            "IgnoreIfExternal",
+            AttributeShrinkPolicy::IgnoreIfExternal,
+            "Ignore shrink if external buffer is used")
+        .value(
+            "WarnAndCopy",
+            AttributeShrinkPolicy::WarnAndCopy,
+            "Warn and copy attribute to internal buffer when shrinking below external buffer "
+            "capacity")
+        .value(
+            "SilentCopy",
+            AttributeShrinkPolicy::SilentCopy,
+            "Silently copy attribute to internal buffer when shrinking below external buffer "
+            "capacity");
 
-    nb::enum_<AttributeExportPolicy>(m, "AttributeExportPolicy")
-        .value("CopyIfExternal", AttributeExportPolicy::CopyIfExternal)
-        .value("KeepExternalPtr", AttributeExportPolicy::KeepExternalPtr)
-        .value("ErrorIfExternal", AttributeExportPolicy::ErrorIfExternal);
+    nb::enum_<AttributeWritePolicy>(
+        m,
+        "AttributeWritePolicy",
+        "Policy for attempting to write to read-only external buffer")
+        .value(
+            "ErrorIfReadOnly",
+            AttributeWritePolicy::ErrorIfReadOnly,
+            "Disallow writing to read-only external buffer (default)")
+        .value(
+            "WarnAndCopy",
+            AttributeWritePolicy::WarnAndCopy,
+            "Warn and copy attribute to internal buffer when writing to read-only external buffer")
+        .value(
+            "SilentCopy",
+            AttributeWritePolicy::SilentCopy,
+            "Silently copy attribute to internal buffer when writing to read-only external buffer");
 
-    nb::enum_<AttributeCopyPolicy>(m, "AttributeCopyPolicy")
-        .value("CopyIfExternal", AttributeCopyPolicy::CopyIfExternal)
-        .value("KeepExternalPtr", AttributeCopyPolicy::KeepExternalPtr)
-        .value("ErrorIfExternal", AttributeCopyPolicy::ErrorIfExternal);
+    nb::enum_<AttributeExportPolicy>(
+        m,
+        "AttributeExportPolicy",
+        "Policy for exporting attribute that is a view of an external buffer")
+        .value(
+            "CopyIfExternal",
+            AttributeExportPolicy::CopyIfExternal,
+            "Copy attribute to internal buffer")
+        .value(
+            "CopyIfUnmanaged",
+            AttributeExportPolicy::CopyIfUnmanaged,
+            "Copy attribute to internal buffer if the external buffer is unmanaged (i.e. not "
+            "reference counted)")
+        .value(
+            "KeepExternalPtr",
+            AttributeExportPolicy::KeepExternalPtr,
+            "Keep external buffer pointer")
+        .value(
+            "ErrorIfExternal",
+            AttributeExportPolicy::ErrorIfExternal,
+            "Error if external buffer is used");
 
-    nb::enum_<AttributeDeletePolicy>(m, "AttributeDeletePolicy")
-        .value("ErrorIfReserved", AttributeDeletePolicy::ErrorIfReserved)
-        .value("Force", AttributeDeletePolicy::Force);
+    nb::enum_<AttributeCopyPolicy>(
+        m,
+        "AttributeCopyPolicy",
+        "Policy for copying attribute that is a view of an external buffer")
+        .value(
+            "CopyIfExternal",
+            AttributeCopyPolicy::CopyIfExternal,
+            "Copy attribute to internal buffer")
+        .value(
+            "KeepExternalPtr",
+            AttributeCopyPolicy::KeepExternalPtr,
+            "Keep external buffer pointer")
+        .value(
+            "ErrorIfExternal",
+            AttributeCopyPolicy::ErrorIfExternal,
+            "Error if external buffer is used");
+
+    nb::enum_<AttributeDeletePolicy>(
+        m,
+        "AttributeDeletePolicy",
+        "Policy for deleting attributes with reserved names")
+        .value(
+            "ErrorIfReserved",
+            AttributeDeletePolicy::ErrorIfReserved,
+            "Disallow deletion (default)")
+        .value("Force", AttributeDeletePolicy::Force, "Force delete attribute");
 }
 
 } // namespace lagrange::python

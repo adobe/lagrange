@@ -37,8 +37,29 @@ void bind_mesh_cleanup(nanobind::module_& m)
     using namespace nb::literals;
     using MeshType = SurfaceMesh<Scalar, Index>;
 
-    m.def("remove_isolated_vertices", &remove_isolated_vertices<Scalar, Index>, "mesh"_a);
-    m.def("detect_degenerate_facets", &detect_degenerate_facets<Scalar, Index>, "mesh"_a);
+    m.def(
+        "remove_isolated_vertices",
+        &remove_isolated_vertices<Scalar, Index>,
+        "mesh"_a,
+        R"(Remove isolated vertices from a mesh.
+
+.. note:
+    A vertex is considered isolated if it is not referenced by any facet.
+
+:param mesh: The input mesh for inplace modification.)");
+
+    m.def(
+        "detect_degenerate_facets",
+        &detect_degenerate_facets<Scalar, Index>,
+        "mesh"_a,
+        R"(Detect degenerate facets in a mesh.
+
+.. note:
+    Only __exaxtly__ degenerate facets are detected.
+
+:param mesh: The input mesh.
+
+:returns: A list of indices of degenerate facets.)");
 
     m.def(
         "remove_null_area_facets",

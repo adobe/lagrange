@@ -13,6 +13,7 @@
 
 #include <lagrange/AttributeFwd.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/scene/SceneExtension.h>
 
 #include <vector>
 
@@ -60,6 +61,8 @@ struct SaveOptions
     /// The attribute conversion policy to use.
     AttributeConversionPolicy attribute_conversion_policy =
         AttributeConversionPolicy::ExactMatchOnly;
+
+    std::vector<scene::UserDataConverter*> extension_converters;
 };
 
 /**
@@ -100,6 +103,8 @@ struct LoadOptions
      * By default, searches the same folder as the provided filename.
      */
     fs::path search_path;
+
+    std::vector<scene::UserDataConverter*> extension_converters;
 };
 
 } // namespace io

@@ -13,6 +13,7 @@
 
 #include <cstdint>
 #include <limits>
+#include <array>
 
 namespace lagrange {
 
@@ -50,19 +51,19 @@ enum AttributeElement : int {
 ///
 /// @todo       Add skinning weights + others?
 ///
-enum class AttributeUsage {
-    Vector, ///< Mesh attribute can have any number of channels (including 1 channel).
-    Scalar, ///< Mesh attribute must have exactly 1 channel.
-    Position, ///< Mesh attribute must have exactly dim channels.
-    Normal, ///< Mesh attribute can have dim or dim + 1 channels.
-    Tangent, ///< Mesh attribute can have dim or dim + 1 channels.
-    Bitangent, ///< Mesh attribute can have dim or dim + 1 channels.
-    Color, ///< Mesh attribute can have 1, 2, 3 or 4 channels.
-    UV, ///< Mesh attribute must have exactly 2 channels.
-    VertexIndex, ///< Single channel integer attribute indexing a mesh vertex.
-    FacetIndex, ///< Single channel integer attribute indexing a mesh facet.
-    CornerIndex, ///< Single channel integer attribute indexing a mesh corner.
-    EdgeIndex, ///< Single channel integer attribute indexing a mesh edge.
+enum class AttributeUsage : uint16_t {
+    Vector = (1 << 0), ///< Mesh attribute can have any number of channels (including 1 channel).
+    Scalar = (1 << 1), ///< Mesh attribute must have exactly 1 channel.
+    Position = (1 << 2), ///< Mesh attribute must have exactly dim channels.
+    Normal = (1 << 3), ///< Mesh attribute can have dim or dim + 1 channels.
+    Tangent = (1 << 4), ///< Mesh attribute can have dim or dim + 1 channels.
+    Bitangent = (1 << 5), ///< Mesh attribute can have dim or dim + 1 channels.
+    Color = (1 << 6), ///< Mesh attribute can have 1, 2, 3 or 4 channels.
+    UV = (1 << 7), ///< Mesh attribute must have exactly 2 channels.
+    VertexIndex = (1 << 8), ///< Single channel integer attribute indexing a mesh vertex.
+    FacetIndex = (1 << 9), ///< Single channel integer attribute indexing a mesh facet.
+    CornerIndex = (1 << 10), ///< Single channel integer attribute indexing a mesh corner.
+    EdgeIndex = (1 << 11), ///< Single channel integer attribute indexing a mesh edge.
 };
 
 /// Identified to be used to access an attribute. Attribute names are mapped to a unique identified

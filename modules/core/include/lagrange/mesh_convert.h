@@ -15,6 +15,13 @@
 #include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various attribute processing utilities
+///
+/// @{
 
 ///
 /// Convert a legacy mesh object to a surface mesh object.
@@ -59,6 +66,7 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_wrap(MeshType&& mesh);
 template <typename MeshType, typename Scalar, typename Index>
 std::unique_ptr<MeshType> to_legacy_mesh(const SurfaceMesh<Scalar, Index>& mesh);
 
+/// @}
 } // namespace lagrange
 
 #include <lagrange/mesh_convert.impl.h>
