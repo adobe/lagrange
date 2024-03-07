@@ -231,3 +231,43 @@ class TestIO:
             assert_same_vertices_and_facets(mesh, mesh2)
             assert mesh2.has_attribute("_vertex_id")
             assert mesh2.has_attribute("_facet_id")
+
+    def test_load_scene(self, triangle):
+        scene = lagrange.scene.Scene()
+        mesh_idx = lagrange.scene.add_mesh(scene, triangle)
+        assert len(scene.meshes) == 1
+
+        node = lagrange.scene.Node()
+        node.name = "triangle"
+
+        node.extensions.data = {"my_ext": lagrange.scene.Value({"num": lagrange.scene.Value(12) }) }
+        assert node.extensions.size == 1
+
+        # class Foo:
+            # a = 1
+        # node.extensions.user_data = {"foo": Foo()}
+
+        scene.materials.append(lagrange.scene.Material())
+
+        instance = lagrange.scene.SceneMeshInstance()
+        instance.mesh = mesh_idx
+        instance.materials = [0]
+
+        node.meshes.append(instance)
+        assert len(node.meshes) == 1
+
+        scene.nodes.append(node)
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir_path = pathlib.Path(tmp_dir)
+            stamp = datetime.datetime.now().isoformat().replace(":", ".")
+            filename = tmp_dir_path / f"{stamp}.gltf"
+            lagrange.io.save_scene(filename, scene)
+            scene2 = lagrange.io.load_scene(filename)
+
+            assert len(scene2.meshes) == 1
+            assert len(scene2.nodes) == 1
+            assert scene2.nodes[0].extensions.size == 1
+
+            my_ext = scene2.nodes[0].extensions.data["my_ext"]
+            assert my_ext.value["num"].value == 12

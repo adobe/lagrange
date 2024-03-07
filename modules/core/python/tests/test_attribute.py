@@ -97,6 +97,18 @@ class TestAttribute:
         # attribute, which has been cleared.  Thus, `data2` is invalid, and it
         # is up to the user to not use it.
 
+    def test_implicit_conversion(self, single_triangle_with_index):
+        mesh = single_triangle_with_index
+        attr = mesh.attribute("vertex_index")
+
+        attr.data = [1, 2 ,3]
+        assert np.array_equal(attr.data, [1, 2, 3])
+        assert not attr.external
+
+        attr.data = np.array([1, 2, 3], dtype=np.int32)
+        assert np.array_equal(attr.data, [1, 2, 3])
+        assert attr.external
+
     def test_delete_attribute(self, single_triangle_with_index):
         mesh = single_triangle_with_index
         attr = mesh.attribute("vertex_index")
@@ -124,13 +136,17 @@ class TestAttribute:
 
         assert np.all(attr.data == np.array([1, 2, 3], dtype=np.intc))
 
-    @pytest.mark.skip("Write is not yet supported by dlpack/numpy :(")
     def test_write(self, single_triangle_with_index):
+        mesh = single_triangle_with_index
+        attr = mesh.attribute("vertex_index")
         data = attr.data
-        assert not data.flags["WRITEABLE"]
 
-        data.setflags(write=True)  # This is current not supported.
+        assert data.flags["WRITEABLE"]
         data[0] = 10
+        assert attr.data[0] == 10
+
+        attr.data = np.array([3, 2, 1], dtype=np.int32)
+        assert np.array_equal(attr.data, [3, 2, 1])
 
     def test_default_value(self, single_triangle_with_index):
         mesh = single_triangle_with_index
@@ -142,3 +158,21 @@ class TestAttribute:
         attr.create_internal_copy()
         attr.insert_elements(1)
         assert attr.data[-1] == 1
+
+    def test_insert_elements(self, single_triangle_with_index):
+        mesh = single_triangle_with_index
+        attr = mesh.attribute("vertex_index")
+
+        attr.create_internal_copy()
+
+        # Insert numpy array
+        attr.clear()
+        assert attr.empty
+        attr.insert_elements(np.array([1, 2, 3], dtype=np.int32))
+        assert np.array_equal(attr.data, [1, 2, 3])
+
+        # Insert list
+        attr.clear()
+        assert attr.empty
+        attr.insert_elements([1, 2, 3])
+        assert np.array_equal(attr.data, [1, 2, 3])

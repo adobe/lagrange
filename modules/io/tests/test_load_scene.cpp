@@ -268,3 +268,57 @@ TEST_CASE("load_save_scene_obj", "[io]")
     auto mesh = scene32f.meshes.front();
     io::save_mesh_obj("avocado_from_obj.obj", mesh);
 }
+
+TEST_CASE("load_gltf_gsplat", "[io]" LA_CORP_FLAG) {
+    auto scene = io::load_scene_gltf<scene::Scene32f>(
+        testing::get_data_path("corp/io/neural_assets/High_Heel.gltf"));
+    REQUIRE(!scene.nodes[0].extensions.data.empty());
+    const auto& value = scene.nodes[0].extensions.data["ADOBE_gsplat_asset"];
+    REQUIRE(value.size() == 125);
+}
+
+TEST_CASE("load_gltf_nerf", "[io]" LA_CORP_FLAG)
+{
+    auto scene = io::load_scene_gltf<scene::Scene32f>(
+        testing::get_data_path("corp/io/neural_assets/Toy_Car.gltf"));
+    REQUIRE(!scene.nodes[0].extensions.data.empty());
+    const auto& value = scene.nodes[0].extensions.data["ADOBE_nerf_asset"];
+    REQUIRE(value.size() == 49);
+}
+
+TEST_CASE("scene_extension_user", "[scene]")
+{
+    struct MyValue
+    {
+        int splat_count;
+    };
+    class MyConverter : public lagrange::scene::UserDataConverter
+    {
+        bool is_supported(const std::string& key) const override
+        {
+            return key == "ADOBE_gsplat_asset";
+        }
+        bool can_write(const std::string&) const override { return false; }
+        lagrange::scene::Value write(const std::any&) const override
+        {
+            return lagrange::scene::Value();
+        }
+        std::any read(const lagrange::scene::Value& value) const override
+        {
+            MyValue val;
+            val.splat_count = value["splat_count"].get_int();
+            return val;
+        }
+    };
+
+    MyConverter converter;
+    io::LoadOptions load_opt;
+    load_opt.extension_converters = {&converter};
+    auto scene = io::load_scene_gltf<scene::Scene32f>(
+        testing::get_data_path("corp/io/neural_assets/High_Heel.gltf"), load_opt);
+
+    REQUIRE(scene.nodes[0].extensions.data.size() == 0);
+    REQUIRE(scene.nodes[0].extensions.user_data.size() == 1);
+    MyValue val = std::any_cast<MyValue>(scene.nodes[0].extensions.user_data["ADOBE_gsplat_asset"]);
+    REQUIRE(val.splat_count == 104783);
+}

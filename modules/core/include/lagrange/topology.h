@@ -14,6 +14,13 @@
 #include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
 
 ///
 /// Compute Euler characteristic of a mesh.
@@ -77,4 +84,5 @@ bool is_manifold(const SurfaceMesh<Scalar, Index>& mesh)
     return is_edge_manifold(mesh) && is_vertex_manifold(mesh);
 }
 
+/// @}
 } // namespace lagrange

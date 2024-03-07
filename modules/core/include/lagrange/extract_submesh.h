@@ -22,7 +22,7 @@
 
 namespace lagrange {
 ///
-/// @defgroup   group-surfacemesh-attr-utils Attributes utilities
+/// @defgroup   group-surfacemesh-utils Mesh utilities
 /// @ingroup    group-surfacemesh
 ///
 /// Various attribute processing utilities

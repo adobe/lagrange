@@ -20,6 +20,13 @@
 #include <optional>
 
 namespace lagrange {
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various mesh processing utilities.
+///
+/// @{
 
 ///
 /// Option struct for compute_dijkstra_distance
@@ -61,4 +68,5 @@ std::optional<std::vector<Index>> compute_dijkstra_distance(
     const DijkstraDistanceOptions<Scalar, Index>& options = {});
 
 
+/// @}
 } // namespace lagrange

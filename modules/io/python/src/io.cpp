@@ -67,6 +67,7 @@ void populate_io_module(nb::module_& m)
         .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
         .def_rw("load_object_id", &io::LoadOptions::load_object_id)
         .def_rw("search_path", &io::LoadOptions::search_path);
+        //.def_rw("extension_converters", &io::LoadOptions::extension_converters);
 
     nb::enum_<io::FileEncoding>(m, "FileEncoding")
         .value("Binary", io::FileEncoding::Binary)
@@ -83,6 +84,7 @@ void populate_io_module(nb::module_& m)
         .def_rw("output_attributes", &io::SaveOptions::output_attributes)
         .def_rw("selected_attributes", &io::SaveOptions::selected_attributes)
         .def_rw("attribute_conversion_policy", &io::SaveOptions::attribute_conversion_policy);
+        //.def_rw("extension_converters", &io::SaveOptions::extension_converters);
     nb::enum_<io::SaveOptions::OutputAttributes>(save_options, "OutputAttributes")
         .value("All", io::SaveOptions::OutputAttributes::All)
         .value("SelectedOnly", io::SaveOptions::OutputAttributes::SelectedOnly);

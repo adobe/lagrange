@@ -49,6 +49,57 @@ namespace lagrange::io {
 //
 
 namespace {
+tinygltf::Value convert_value(const scene::Value& value) {
+    switch (value.get_type_index()) {
+    case scene::Value::bool_index(): return tinygltf::Value(value.get_bool());
+    case scene::Value::int_index(): return tinygltf::Value(value.get_int());
+    case scene::Value::real_index(): return tinygltf::Value(value.get_real());
+    case scene::Value::string_index(): return tinygltf::Value(value.get_string());
+    case scene::Value::buffer_index(): {
+        scene::Value::Buffer copy = value.get_buffer();
+        return tinygltf::Value(std::move(copy));
+    }
+    case scene::Value::array_index(): {
+        tinygltf::Value::Array arr; // std::vector
+        for (size_t i = 0; i < value.size(); ++i) {
+            arr.push_back(convert_value(value[i]));
+        }
+        return tinygltf::Value(std::move(arr));
+    }
+    case scene::Value::object_index(): {
+        tinygltf::Value::Object obj; // std::map
+        for (const auto& [key, val] : value.get_object()) {
+            obj.insert({key, convert_value(val)});
+        }
+        return tinygltf::Value(std::move(obj));
+    }
+    default: return tinygltf::Value();
+    }
+}
+
+tinygltf::ExtensionMap convert_extension_map(
+    const scene::Extensions& extensions,
+    const SaveOptions& options)
+{
+    // temporary map with both the default extensions and the converted user ones.
+    std::unordered_map<std::string, scene::Value> map = extensions.data;
+
+    // convert supported user extensions to lagrange::scene::Value
+    for (const auto& [key, value] : extensions.user_data) {
+        for (const auto* extension : options.extension_converters) {
+            if (extension->can_write(key)) {
+                map.insert({key, extension->write(value)});
+            }
+        }
+    }
+
+    tinygltf::ExtensionMap out;
+    for (const auto& [key, value] : map) {
+        out.insert({key, convert_value(value)});
+    }
+    return out;
+}
+
 std::vector<double> to_vec3(const Eigen::Vector3f& v)
 {
     return {v(0), v(1), v(2)};
@@ -618,6 +669,10 @@ tinygltf::Model lagrange_scene_to_gltf_model(
     tinygltf::Scene& scene = model.scenes.front();
     scene.name = lscene.name;
 
+    if (!lscene.extensions.empty()) {
+        scene.extensions = convert_extension_map(lscene.extensions, options);
+    }
+
     for (const auto& llight : lscene.lights) {
         // note that the gltf support for lights is limited compared to our representation.
         // Information can be lost.
@@ -641,6 +696,11 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             light.type = "point";
             break;
         }
+
+        if (!llight.extensions.empty()) {
+            light.extensions = convert_extension_map(llight.extensions, options);
+        }
+
         model.lights.push_back(light);
     }
 
@@ -664,6 +724,11 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             break;
         }
         // TODO: camera may have a position/up/lookAt. This is not allowed in gltf and will be lost.
+
+        if (!lcam.extensions.empty()) {
+            camera.extensions = convert_extension_map(lcam.extensions, options);
+        }
+
         model.cameras.push_back(camera);
     }
 
@@ -712,6 +777,11 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             limage.get_element_size() * limage.get_num_channels() * limage.width * limage.height;
         image.image = std::vector<unsigned char>(count);
         std::copy_n(limage.data->data(), count, image.image.begin());
+
+        if (!limage.extensions.empty()) {
+            image.extensions = convert_extension_map(limage.extensions, options);
+        }
+
         model.images.push_back(image);
     }
 
@@ -761,6 +831,10 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             }
         }(lmat.alpha_mode);
 
+        if (!lmat.extensions.empty()) {
+            material.extensions = convert_extension_map(lmat.extensions, options);
+        }
+
         model.materials.push_back(material);
     }
 
@@ -769,6 +843,11 @@ tinygltf::Model lagrange_scene_to_gltf_model(
         tinygltf::Texture texture;
         texture.name = ltex.name;
         texture.source = static_cast<int>(ltex.image);
+
+        if (!ltex.extensions.empty()) {
+            texture.extensions = convert_extension_map(ltex.extensions, options);
+        }
+
         model.textures.push_back(texture);
     }
 
@@ -802,6 +881,10 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             int mesh_idx = lagrange::safe_cast<int>(model.meshes.size());
             model.meshes.push_back(mesh);
             node.mesh = mesh_idx;
+        }
+
+        if (!lnode.extensions.empty()) {
+            node.extensions = convert_extension_map(lnode.extensions, options);
         }
 
         int node_idx = lagrange::safe_cast<int>(model.nodes.size());

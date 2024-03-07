@@ -23,9 +23,12 @@
 #include <nanobind/eigen/dense.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/filesystem.h>
-#include <nanobind/stl/vector.h>
 #include <nanobind/stl/array.h>
+#include <nanobind/stl/variant.h>
+#include <nanobind/stl/bind_vector.h>
+#include <nanobind/stl/bind_map.h>
 #include <nanobind/stl/shared_ptr.h> // for ImageLegacy::data
+#include <nanobind/trampoline.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -56,6 +59,28 @@ Eigen::Affine3f array_to_affine3d(const std::array<std::array<float, 4>, 4> data
 };
 } // namespace detail
 
+class ValuePublicist : public lagrange::scene::Value
+{
+public:
+    using lagrange::scene::Value::value;
+};
+
+#pragma GCC visibility push(hidden)
+struct UserDataConverterTrampoline : public lagrange::scene::UserDataConverter
+{
+    NB_TRAMPOLINE(lagrange::scene::UserDataConverter, 5);
+
+    bool is_supported(const std::string& key) const override { NB_OVERRIDE_PURE(is_supported, key); }
+    bool can_read(const std::string& key) const override { NB_OVERRIDE(can_read, key); }
+    bool can_write(const std::string& key) const override { NB_OVERRIDE(can_write, key); }
+    std::any read(const lagrange::scene::Value& value) const override { NB_OVERRIDE(read, value); }
+    lagrange::scene::Value write(const std::any& value) const override
+    {
+        NB_OVERRIDE(write, value);
+    }
+};
+#pragma GCC visibility pop
+
 void bind_scene(nb::module_& m)
 {
     using namespace lagrange::scene;
@@ -63,6 +88,64 @@ void bind_scene(nb::module_& m)
     using Index = uint32_t;
     using SceneType = Scene<Scalar, Index>;
 
+    nb::bind_vector<std::vector<Node>>(m, "NodeList");
+    nb::bind_vector<std::vector<ElementId>>(m, "ElementIdList");
+    nb::bind_vector<std::vector<SceneMeshInstance>>(m, "SceneMeshInstanceList");
+    nb::bind_vector<std::vector<SurfaceMesh<Scalar, Index>>>(m, "SurfaceMeshList");
+    nb::bind_vector<std::vector<ImageLegacy>>(m, "ImageLegacyList");
+    nb::bind_vector<std::vector<Texture>>(m, "TextureList");
+    nb::bind_vector<std::vector<MaterialExperimental>>(m, "MaterialList");
+    nb::bind_vector<std::vector<Light>>(m, "LightList");
+    nb::bind_vector<std::vector<Camera>>(m, "CameraList");
+    nb::bind_vector<std::vector<Skeleton>>(m, "SkeletonList");
+    nb::bind_vector<std::vector<Animation>>(m, "AnimationList");
+
+
+    nb::bind_vector<std::vector<lagrange::scene::Value>>(m, "ValueList");
+    nb::bind_vector<std::vector<unsigned char>>(m, "BufferList");
+    nb::bind_map<std::unordered_map<std::string, lagrange::scene::Value>>(m, "ValueUnorderedMap");
+    nb::bind_map<std::map<std::string, lagrange::scene::Value>>(m, "ValueMap");
+    // nb::bind_map<std::unordered_map<std::string, std::any>>(m, "anyMap");
+
+
+    nb::class_<lagrange::scene::Extensions>(m, "Extensions")
+        .def_prop_ro("size", &Extensions::size)
+        .def_prop_ro("empty", &Extensions::empty)
+        .def_rw("data", &Extensions::data);
+        // .def_prop_rw(
+        //     "user_data",
+        //     [](const Extensions& ext) -> std::unordered_map<std::string, void*> {
+        //         std::unordered_map<std::string, void*> ret;
+        //         for (const auto& [key, val] : ext.user_data) {
+        //             ret.insert({key, std::any_cast<void*>(val)});
+        //         }
+        //         return ret;
+        //     },
+        //     [](Extensions& ext, std::unordered_map<std::string, void*> data) -> void {
+        //         ext.user_data.clear();
+        //         for (const auto& [key, val] : data) {
+        //             ext.user_data.insert({key, val});
+        //         }
+        //     });
+
+    // nb::class_<UserDataConverter, UserDataConverterTrampoline>(m, "UserExtension")
+    //     .def("is_supported", &UserDataConverter::is_supported)
+    //     .def("can_read", &UserDataConverter::can_read)
+    //     .def("can_write", &UserDataConverter::can_write)
+    //     .def("read", &UserDataConverter::read)
+    //     .def("write", &UserDataConverter::write);
+
+    nb::class_<lagrange::scene::Value>(m, "Value")
+        .def(nb::init<>())
+        .def(nb::init<bool>())
+        .def(nb::init<int>())
+        .def(nb::init<double>())
+        .def(nb::init<std::string>())
+        .def(nb::init<const char*>())
+        .def(nb::init<const lagrange::scene::Value::Buffer&>())
+        .def(nb::init<const lagrange::scene::Value::Array&>())
+        .def(nb::init<const lagrange::scene::Value::Object&>())
+        .def_rw("value", &ValuePublicist::value);
 
     nb::class_<SceneMeshInstance>(m, "SceneMeshInstance", "Mesh and material index of a node")
         .def(nb::init<>())
@@ -87,7 +170,8 @@ void bind_scene(nb::module_& m)
         .def_rw("children", &Node::children)
         .def_rw("meshes", &Node::meshes)
         .def_rw("cameras", &Node::cameras)
-        .def_rw("lights", &Node::lights);
+        .def_rw("lights", &Node::lights)
+        .def_rw("extensions", &Node::extensions);
 
     nb::class_<ImageLegacy> image_legacy(m, "ImageLegacy");
     image_legacy.def(nb::init<>())
@@ -107,7 +191,9 @@ void bind_scene(nb::module_& m)
         .def_rw("uri", &ImageLegacy::uri)
         .def_rw("type", &ImageLegacy::type)
         .def_prop_ro("num_channels", &ImageLegacy::get_num_channels)
-        .def_prop_ro("element_size", &ImageLegacy::get_element_size);
+        .def_prop_ro("element_size", &ImageLegacy::get_element_size)
+        .def_rw("extensions", &ImageLegacy::extensions);
+
     nb::enum_<ImageLegacy::Type>(image_legacy, "Type")
         .value("Jpeg", ImageLegacy::Type::Jpeg)
         .value("Png", ImageLegacy::Type::Png)
@@ -139,7 +225,9 @@ void bind_scene(nb::module_& m)
         .def_rw("normal_scale", &MaterialExperimental::normal_scale)
         .def_rw("occlusion_texture", &MaterialExperimental::occlusion_texture)
         .def_rw("occlusion_strength", &MaterialExperimental::occlusion_strength)
-        .def_rw("double_sided", &MaterialExperimental::double_sided);
+        .def_rw("double_sided", &MaterialExperimental::double_sided)
+        .def_rw("extensions", &MaterialExperimental::extensions);
+
     nb::enum_<MaterialExperimental::AlphaMode>(material, "AlphaMode")
         .value("Opaque", MaterialExperimental::AlphaMode::Opaque)
         .value("Mask", MaterialExperimental::AlphaMode::Mask)
@@ -157,7 +245,9 @@ void bind_scene(nb::module_& m)
         .def_rw("wrap_v", &Texture::wrap_v)
         .def_rw("scale", &Texture::scale)
         .def_rw("offset", &Texture::offset)
-        .def_rw("rotation", &Texture::rotation);
+        .def_rw("rotation", &Texture::rotation)
+        .def_rw("extensions", &Texture::extensions);
+
     nb::enum_<Texture::WrapMode>(texture, "WrapMode")
         .value("Wrap", Texture::WrapMode::Wrap)
         .value("Clamp", Texture::WrapMode::Clamp)
@@ -191,7 +281,9 @@ void bind_scene(nb::module_& m)
         .def_rw("color_ambient", &Light::color_ambient)
         .def_rw("angle_inner_cone", &Light::angle_inner_cone)
         .def_rw("angle_outer_cone", &Light::angle_outer_cone)
-        .def_rw("size", &Light::size);
+        .def_rw("size", &Light::size)
+        .def_rw("extensions", &Light::extensions);
+
     nb::enum_<Light::Type>(light, "Type")
         .value("Undefined", Light::Type::Undefined)
         .value("Directional", Light::Type::Directional)
@@ -217,7 +309,9 @@ void bind_scene(nb::module_& m)
         .def_prop_ro(
             "set_horizontal_fov_from_vertical_fov",
             &Camera::set_horizontal_fov_from_vertical_fov,
-            "vfov"_a);
+            "vfov"_a)
+        .def_rw("extensions", &Camera::extensions);
+
     nb::enum_<Camera::Type>(camera, "Type")
         .value("Perspective", Camera::Type::Perspective)
         .value("Orthographic", Camera::Type::Orthographic);
@@ -225,9 +319,15 @@ void bind_scene(nb::module_& m)
     nb::class_<Animation>(m, "Animation", "")
         .def(nb::init<>())
         .def("__repr__", [](const Animation& a) { return fmt::format("Animation('{}')", a.name); })
-        .def_rw("name", &Animation::name);
+        .def_rw("name", &Animation::name)
+        .def_rw("extensions", &Animation::extensions);
 
-    nb::class_<Skeleton>(m, "Skeleton", "").def(nb::init<>()).def_rw("meshes", &Skeleton::meshes);
+
+    nb::class_<Skeleton>(m, "Skeleton", "")
+        .def(nb::init<>())
+        .def_rw("meshes", &Skeleton::meshes)
+        .def_rw("extensions", &Skeleton::extensions);
+
 
     nb::class_<SceneType>(m, "Scene", "A 3D scene")
         .def(nb::init<>())
@@ -241,7 +341,8 @@ void bind_scene(nb::module_& m)
         .def_rw("lights", &SceneType::lights)
         .def_rw("cameras", &SceneType::cameras)
         .def_rw("skeletons", &SceneType::skeletons)
-        .def_rw("animations", &SceneType::animations);
+        .def_rw("animations", &SceneType::animations)
+        .def_rw("extensions", &SceneType::extensions);
 
     m.def("add_child", &utils::add_child<Scalar, Index>);
 

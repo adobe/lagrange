@@ -17,6 +17,13 @@
 #include <Eigen/Core>
 
 namespace lagrange {
+///
+/// @defgroup   group-surfacemesh-utils Mesh utilities
+/// @ingroup    group-surfacemesh
+///
+/// Various attribute processing utilities
+///
+/// @{
 
 ///
 /// Create a SurfaceMesh from a igl-style pair of matrices (V, F).
@@ -48,5 +55,6 @@ SurfaceMesh<Scalar, Index> eigen_to_surface_mesh(
     return mesh;
 }
 
+/// @}
 } // namespace lagrange
 

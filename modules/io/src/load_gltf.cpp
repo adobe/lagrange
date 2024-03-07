@@ -38,6 +38,58 @@
 namespace lagrange::io {
 namespace {
 
+scene::Value convert_value(const tinygltf::Value& value)
+{
+    switch (value.Type()) {
+    case tinygltf::Type::BOOL_TYPE: return scene::Value(value.Get<bool>());
+    case tinygltf::Type::INT_TYPE: return scene::Value(value.Get<int>());
+    case tinygltf::Type::REAL_TYPE: return scene::Value(value.Get<double>());
+    case tinygltf::Type::STRING_TYPE: return scene::Value(value.Get<std::string>());
+    case tinygltf::Type::BINARY_TYPE: return scene::Value(value.Get<std::vector<unsigned char>>());
+    case tinygltf::Type::ARRAY_TYPE: {
+        scene::Value::Array arr;
+        for (int i = 0; i < static_cast<int>(value.Size()); ++i) {
+            arr.push_back(convert_value(value.Get(i)));
+        }
+        return scene::Value(std::move(arr));
+    }
+    case tinygltf::Type::OBJECT_TYPE: {
+        scene::Value::Object obj;
+        for (const auto& s : value.Keys()) {
+            obj.insert({s, convert_value(value.Get(s))});
+        }
+        return scene::Value(std::move(obj));
+    }
+    case tinygltf::Type::NULL_TYPE: 
+        [[fallthrough]];
+    default: return scene::Value();
+    }
+}
+
+scene::Extensions convert_extension_map(
+    const tinygltf::ExtensionMap& extension_map,
+    const LoadOptions& options)
+{
+    scene::Extensions extensions;
+    for (const auto& [key, value] : extension_map) {
+        scene::Value lvalue = convert_value(value);
+
+        bool found_extension = false;
+        for (const auto* extension : options.extension_converters) {
+            if (extension->can_read(key)) {
+                extensions.user_data.insert({key, extension->read(lvalue)});
+                found_extension = true;
+                break;
+            }
+        }
+
+        if (!found_extension) {
+            extensions.data.insert({key, lvalue});
+        }
+    }
+    return extensions;
+}
+
 Eigen::Vector3f to_vec3(std::vector<double> v)
 {
     return Eigen::Vector3f(v[0], v[1], v[2]);
@@ -183,6 +235,7 @@ tinygltf::Model load_tinygltf(std::istream& input_stream)
 {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
+    loader.SetStoreOriginalJSONForExtrasAndExtensions(true);
     std::string err;
     std::string warn;
     bool ret;
@@ -226,6 +279,7 @@ tinygltf::Model load_tinygltf(const fs::path& filename)
 {
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
+    loader.SetStoreOriginalJSONForExtrasAndExtensions(true);
     std::string err;
     std::string warn;
     bool ret;
@@ -636,12 +690,21 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             lmat.alpha_mode = scene::MaterialExperimental::AlphaMode::Blend;
         }
 
+        if (!material.extensions.empty()) {
+            lmat.extensions = convert_extension_map(material.extensions, options);
+        }
+
         lscene.materials.push_back(lmat);
     }
     for (const tinygltf::Animation& animation : model.animations) {
         scene::Animation lanim;
         lanim.name = animation.name;
         // TODO
+
+        if (!animation.extensions.empty()) {
+            lanim.extensions = convert_extension_map(animation.extensions, options);
+        }
+
         lscene.animations.push_back(lanim);
     }
     for (const tinygltf::Image& image : model.images) {
@@ -704,6 +767,11 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             image.height,
             1);
         std::copy(image.image.begin(), image.image.end(), limage.data->data());
+
+        if (!image.extensions.empty()) {
+            limage.extensions = convert_extension_map(image.extensions, options);
+        }
+
         lscene.images.emplace_back(std::move(limage));
     }
 
@@ -731,6 +799,11 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             llight.type = scene::Light::Type::Undefined;
         }
         // this extension does not define ambient or area lights.
+
+        if (!light.extensions.empty()) {
+            llight.extensions = convert_extension_map(light.extensions, options);
+        }
+
         lscene.lights.push_back(llight);
     }
 
@@ -752,6 +825,11 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             lcam.horizontal_fov = 0.f;
         }
         // gltf camera does not specify a position, so we leave them to default.
+
+        if (!camera.extensions.empty()) {
+            lcam.extensions = convert_extension_map(camera.extensions, options);
+        }
+
         lscene.cameras.push_back(lcam);
     }
     // TODO model.skins ?
@@ -775,6 +853,9 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
                 lnode.meshes.push_back({mesh_idx, {material_idx}});
             }
         }
+        if (!node.extensions.empty()) {
+            lnode.extensions = convert_extension_map(node.extensions, options);
+        }
 
         // TODO handle skin property
 
@@ -795,14 +876,30 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             logger().warn("No default scene selected. Using the first available scene.");
             scene_id = 0;
         }
+
+        const tinygltf::Scene& scene = model.scenes[scene_id];
+
         // we still traverse the hierarchy rather than copying the list of node for 2 reasons:
         // 1. we need to set the node's parent index
         // 2. we only traverse the hierarchy of the selected scene
         lscene.nodes.reserve(model.nodes.size());
-        for (int lnode_idx : model.scenes[scene_id].nodes) {
+        for (int lnode_idx : scene.nodes) {
             size_t root_index = create_node(model.nodes[lnode_idx], lagrange::invalid<size_t>());
             lscene.root_nodes.push_back(root_index);
         }
+
+        if (!scene.extensions.empty()) {
+            lscene.extensions = convert_extension_map(scene.extensions, options);
+        }
+    }
+
+    // also add the model extensions to the scene
+    if (!model.extensions.empty()) {
+        auto extensions = convert_extension_map(model.extensions, options);
+        lscene.extensions.data.insert(extensions.data.begin(), extensions.data.end());
+        lscene.extensions.user_data.insert(
+            extensions.user_data.begin(),
+            extensions.user_data.end());
     }
 
     return lscene;
