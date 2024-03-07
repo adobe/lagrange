@@ -286,7 +286,7 @@ TEST_CASE("load_gltf_nerf", "[io]" LA_CORP_FLAG)
     REQUIRE(value.size() == 49);
 }
 
-TEST_CASE("scene_extension_user", "[scene]")
+TEST_CASE("scene_extension_user", "[scene]" LA_CORP_FLAG)
 {
     struct MyValue
     {
