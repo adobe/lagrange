@@ -86,7 +86,7 @@ jobs:
             fi
 
       - name: Setup Xcode version
-        if: matrix.os == 'macos-14'
+        if: runner.os == 'macOS'
         uses: maxim-lobanov/setup-xcode@v1
         with:
           xcode-version: '15.2'
