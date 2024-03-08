@@ -139,8 +139,8 @@ void ensure_approx_equivalent_mesh(
     REQUIRE(testing::attribute_is_approx_equivalent<Scalar, Scalar>(
         mesh1,
         mesh2,
-        mesh1.attr_id_vertex_to_positions(),
-        mesh2.attr_id_vertex_to_positions()));
+        mesh1.attr_id_vertex_to_position(),
+        mesh2.attr_id_vertex_to_position()));
 
     // Special attributes are compared based on usage.
     testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(mesh1, mesh2);

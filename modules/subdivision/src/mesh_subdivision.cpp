@@ -382,7 +382,7 @@ auto prepare_interpolated_attribute_ids(
         std::vector<AttributeId> face_varying_attributes;
     } result;
 
-    result.smooth_vertex_attributes.push_back(mesh.attr_id_vertex_to_positions());
+    result.smooth_vertex_attributes.push_back(mesh.attr_id_vertex_to_position());
 
     if (interpolation.selection_type != InterpolatedAttributes::SelectionType::Selected &&
         !interpolation.smooth_attributes.empty()) {
@@ -581,7 +581,7 @@ SurfaceMesh<Scalar, Index> subdivide_mesh(
                     if (smooth && options.use_limit_surface) {
                         interpolation_type = InterpolationType::Limit;
                     }
-                    if (id == input_mesh.attr_id_vertex_to_positions()) {
+                    if (id == input_mesh.attr_id_vertex_to_position()) {
                         if constexpr (std::is_same_v<ValueType, Scalar>) {
                             interpolate_vertex_attribute(
                                 *topology_refiner,

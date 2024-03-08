@@ -34,7 +34,7 @@ TEST_CASE("legacy_load_scene_assimp", "[io]") {
     REQUIRE(scene->mMeshes[0]->mNumFaces > 0);
 }
 
-TEST_CASE("legacy load fbx", "[io]") {
+TEST_CASE("legacy load fbx", "[io]" LA_CORP_FLAG) {
     auto scene = lagrange::io::load_scene_assimp(
         lagrange::testing::get_data_path("corp/io/rp_adanna_rigged_001_zup_t.fbx"));
     REQUIRE(scene != nullptr);

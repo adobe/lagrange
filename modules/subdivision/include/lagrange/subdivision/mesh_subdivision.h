@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 Adobe. All rights reserved.
+ * Copyright 2020 Adobe. All rights reserved.
  * This file is licensed to you under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License. You may obtain a copy
  * of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -21,6 +21,9 @@
 #include <optional>
 
 namespace lagrange::subdivision {
+
+/// @addtogroup module-subdivision
+/// @{
 
 /// Subdivision scheme.
 enum class SchemeType {
@@ -271,5 +274,7 @@ template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> subdivide_mesh(
     const SurfaceMesh<Scalar, Index>& mesh,
     SubdivisionOptions options = {});
+
+/// @}
 
 } // namespace lagrange::subdivision

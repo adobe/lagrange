@@ -778,8 +778,8 @@ void bind_surface_mesh(nanobind::module_& m)
         [](nb::handle) { return MeshType::attr_name_next_corner_around_vertex(); },
         "The name of the attribute that stores the next corner around vertex mapping.");
     surface_mesh_class.def_prop_ro(
-        "attr_id_vertex_to_positions",
-        &MeshType::attr_id_vertex_to_positions);
+        "attr_id_vertex_to_position",
+        &MeshType::attr_id_vertex_to_position);
     surface_mesh_class.def_prop_ro("attr_id_corner_to_vertex", &MeshType::attr_id_corner_to_vertex);
     surface_mesh_class.def_prop_ro(
         "attr_id_facet_to_first_corner",

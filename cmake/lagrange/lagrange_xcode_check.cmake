@@ -13,11 +13,12 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     return()
 endif()
 
-# Disabled for now, we need to fix the detection logic
-return()
-
 # Xcode 15's new linker will crash. We suggest either using the classical linker, or upgrading to Xcode 15.1.
-if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0 AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15.1)
+# AppleClang Compiler ID for Xcode 15.0 is 15.0.0.15000040
+# AppleClang Compiler ID for Xcode 15.1 and 15.2 is 15.0.0.15000100
+if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0.0.15000040 AND
+   CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15.0.0.15000100
+)
     # First let's check if we are using the classical linker
     set(is_using_classical_linker FALSE)
     foreach(type IN ITEMS EXE SHARED MODULE)

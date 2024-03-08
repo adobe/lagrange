@@ -18,7 +18,8 @@
 namespace lagrange {
 
 ///
-/// @ingroup    group-utils
+/// @defgroup group-utils Utilites
+/// @ingroup module-core
 ///
 /// @{
 ///
@@ -61,7 +62,10 @@ struct ChainEdgesOptions
 template <typename Index>
 struct ChainEdgesResult
 {
+    /// The extracted loops.
     std::vector<std::vector<Index>> loops;
+
+    /// The extracted chains.
     std::vector<std::vector<Index>> chains;
 };
 

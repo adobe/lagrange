@@ -16,8 +16,11 @@
 #include <lagrange/Logger.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/invalid.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/warning.h>
 
+#include <algorithm>
 #include <cstddef>
 
 namespace lagrange {
@@ -188,6 +191,75 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(const Attribute<ValueType>
                 throw Error("Attribute copy policy prevents copying external buffer");
             }
         }
+    }
+    return *this;
+}
+
+template <typename TargetValueType>
+template <typename SourceValueType>
+Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(
+    const Attribute<SourceValueType>& source)
+{
+    if constexpr (std::is_same_v<SourceValueType, TargetValueType>) {
+        logger().warn("Casting attribute to the same type. Returning a copy.");
+        return Attribute<TargetValueType>(source);
+    }
+    Attribute<TargetValueType> target(
+        source.get_element_type(),
+        source.get_usage(),
+        source.get_num_channels());
+    target.AttributeBase::operator=(source);
+    if (source.m_default_value == invalid<SourceValueType>()) {
+        target.m_default_value = invalid<TargetValueType>();
+    } else {
+        target.m_default_value = safe_cast<TargetValueType>(source.m_default_value);
+    }
+    target.m_growth_policy = source.m_growth_policy;
+    target.m_write_policy = source.m_write_policy;
+    target.m_copy_policy = source.m_copy_policy;
+    target.m_is_external = false;
+    target.m_is_read_only = false;
+    target.m_num_elements = source.m_num_elements;
+    if (source.is_external()) {
+        switch (source.m_copy_policy) {
+        case AttributeCopyPolicy::CopyIfExternal:
+            // Internal copy will be created below
+            break;
+        case AttributeCopyPolicy::KeepExternalPtr: [[fallthrough]];
+        case AttributeCopyPolicy::ErrorIfExternal:
+            throw Error("Attribute copy policy prevents casting external buffer");
+        }
+    }
+
+    target.m_data.reserve(std::max(source.m_data.capacity(), source.m_const_view.size()));
+    std::transform(
+        source.m_const_view.begin(),
+        source.m_const_view.end(),
+        std::back_inserter(target.m_data),
+        [](auto&& v) {
+            if (v == invalid<SourceValueType>()) {
+                return invalid<TargetValueType>();
+            } else {
+                return static_cast<TargetValueType>(v);
+            }
+        });
+
+    target.update_views();
+
+    return target;
+}
+
+template <typename TargetValueType>
+template <typename SourceValueType>
+Attribute<TargetValueType>& Attribute<TargetValueType>::cast_assign(
+    const Attribute<SourceValueType>& source)
+{
+    if constexpr (std::is_same_v<SourceValueType, TargetValueType>) {
+        if (this != &source) {
+            *this = Attribute<TargetValueType>::cast_copy(source);
+        }
+    } else {
+        *this = Attribute<TargetValueType>::cast_copy(source);
     }
     return *this;
 }
@@ -547,11 +619,34 @@ void Attribute<ValueType>::clear_views()
 // Explicit template instantiation
 ////////////////////////////////////////////////////////////////////////////////
 
-#define LA_X_attribute_get_type(_, ValueType)                                              \
-    template <>                                                                            \
+// Workaround for cartesian product of attr type with itself...
+// clang-format off
+#define LA_ATTRIBUTE2_X(mode, data) \
+    LA_X_##mode(data, int8_t) \
+    LA_X_##mode(data, int16_t) \
+    LA_X_##mode(data, int32_t) \
+    LA_X_##mode(data, int64_t) \
+    LA_X_##mode(data, uint8_t) \
+    LA_X_##mode(data, uint16_t) \
+    LA_X_##mode(data, uint32_t) \
+    LA_X_##mode(data, uint64_t) \
+    LA_X_##mode(data, float) \
+    LA_X_##mode(data, double)
+// clang-format on
+
+#define LA_X_cast_from(SourceValueType, TargetValueType)                          \
+    template Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(    \
+        const Attribute<SourceValueType>& other);                                 \
+    template Attribute<TargetValueType>& Attribute<TargetValueType>::cast_assign( \
+        const Attribute<SourceValueType>& other);
+#define LA_X_cast_from_aux(_, SourceValueType) LA_ATTRIBUTE2_X(cast_from, SourceValueType)
+LA_ATTRIBUTE_X(cast_from_aux, 0)
+
+#define LA_X_attribute_get_type(_, ValueType)                                     \
+    template <>                                                                   \
     [[nodiscard]] AttributeValueType Attribute<ValueType>::get_value_type() const \
-    {                                                                                      \
-        return AttributeValueType::e_##ValueType;                                          \
+    {                                                                             \
+        return AttributeValueType::e_##ValueType;                                 \
     }
 LA_ATTRIBUTE_X(attribute_get_type, 0)
 

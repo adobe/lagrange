@@ -192,6 +192,34 @@ public:
     Attribute& operator=(const Attribute& other);
 
     ///
+    /// Cast copy operator. Creates an attribute by copying and casting values from another
+    /// attribute with a different ValueType. Will print a warning if the source and target value
+    /// types are identical.
+    ///
+    /// @param[in]  other       The other attribute to copy & cast from.
+    ///
+    /// @tparam     OtherValue  Value type for the other attribute.
+    ///
+    /// @return     A new attribute object whose values have been cast to the desired type.
+    ///
+    template <typename OtherValue>
+    static Attribute cast_copy(const Attribute<OtherValue>& other);
+
+    ///
+    /// Cast assignment operator. Replace the current attribute by copying and casting values from
+    /// another attribute with a different ValueType. Will print a warning if the source and target
+    /// value types are identical.
+    ///
+    /// @param[in]  other       The other attribute to copy & cast from.
+    ///
+    /// @tparam     OtherValue  Value type for the other attribute.
+    ///
+    /// @return     A reference to the assignment result.
+    ///
+    template <typename OtherValue>
+    Attribute& cast_assign(const Attribute<OtherValue>& other);
+
+    ///
     /// Gets the attribute value type.
     ///
     /// @return     An enum describing the value type.
@@ -577,6 +605,13 @@ public:
 
     /// @}
 protected:
+protected:
+    /// @cond LA_INTERNAL_DOCS
+
+    /// It's ok to be friend with attributes of different types.
+    template <typename>
+    friend class Attribute;
+
     ///
     /// Check whether the buffer can be grown to the new capacity. This check only applies to
     /// external buffers. Depending on the attribute growth policy, an internal copy of the data may
@@ -601,6 +636,8 @@ protected:
     /// Clear buffer pointers (intended to be used after a move).
     ///
     void clear_views();
+
+    /// @endcond
 
 protected:
     /// Internal buffer storing the data (when the attribute is not external).

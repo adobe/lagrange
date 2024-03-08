@@ -15,7 +15,9 @@
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
 
+#include <algorithm>
 #include <array>
+#include <iostream>
 #include <vector>
 
 namespace lagrange {
@@ -180,7 +182,11 @@ ChainEdgesResult<Index> chain_directed_edges(
                     if (j == i) break;
 
                     auto& next_piece = pieces[j];
+                    la_debug_assert(!next_piece.empty());
                     piece.insert(piece.end(), next_piece.begin(), next_piece.end());
+                    std::for_each(next_piece.begin(), next_piece.end(), [&](Index e) {
+                        piece_indices[e] = i;
+                    });
                     next_piece.clear();
                     v_last = get_last_vertex(piece);
                 }
@@ -417,11 +423,18 @@ ChainEdgesResult<Index> chain_undirected_edges(
                     if (j == i) break;
 
                     auto& next_piece = pieces[j];
+                    la_debug_assert(!next_piece.empty());
                     if (next_edge == next_piece.front()) {
                         piece.insert(piece.end(), next_piece.begin(), next_piece.end());
+                        std::for_each(next_piece.begin(), next_piece.end(), [&](Index e) {
+                            piece_indices[e] = i;
+                        });
                     } else {
                         la_debug_assert(next_edge == next_piece.back());
                         piece.insert(piece.end(), next_piece.rbegin(), next_piece.rend());
+                        std::for_each(next_piece.begin(), next_piece.end(), [&](Index e) {
+                            piece_indices[e] = i;
+                        });
                     }
                     next_piece.clear();
                     v_last = get_last_vertex(piece);
