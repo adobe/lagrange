@@ -45,7 +45,7 @@ function(lagrange_limit_parallelism)
     math(EXPR num_cpu_memory "${AVAILABLE_PHYSICAL_MEMORY} * 3 / 2 / ${max_rss_${_system}_${_postfix}}")
 
     # Compute limits for link/compile steps
-    set(num_cpu_link 1)
+    set(num_cpu_link 2)
     set(num_cpu_compile ${NUMBER_OF_PHYSICAL_CORES})
     if(num_cpu_link GREATER num_cpu_memory)
         set(num_cpu_link ${num_cpu_memory})
