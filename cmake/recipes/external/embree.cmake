@@ -124,6 +124,17 @@ function(embree_import_target)
     add_library(embree::embree INTERFACE IMPORTED GLOBAL)
     target_include_directories(embree::embree SYSTEM INTERFACE ${embree_SOURCE_DIR}/include)
     target_link_libraries(embree::embree INTERFACE embree)
+
+    # Generate a dummy .cpp for embree's math library, to workaround a weird link issue with
+    # LLVM-Clang on macOS
+    # Generate implementation file
+    file(WRITE "${embree_BINARY_DIR}/embree_math_dummy.cpp.in" [[
+        namespace embree {
+            void math_dummy() {}
+        }
+    ]])
+    configure_file(${embree_BINARY_DIR}/embree_math_dummy.cpp.in ${embree_BINARY_DIR}/embree_math_dummy.cpp COPYONLY)
+    target_sources(math PRIVATE ${embree_BINARY_DIR}/embree_math_dummy.cpp)
 endfunction()
 
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR

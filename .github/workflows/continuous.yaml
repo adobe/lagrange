@@ -23,12 +23,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-12]
+        os: [ubuntu-22.04, macos-13, macos-14]
         config: [RelwithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
         exclude:
-          - os: macos-12
+          - os: macos-13
+            compiler: gcc
+          - os: macos-13
+            sanitizer: Thread
+          - os: macos-13
+            config: Debug
+          - os: macos-14
             compiler: gcc
           - os: ubuntu-22.04
             compiler: apple
@@ -82,6 +88,12 @@ jobs:
               echo "CC='$(brew --prefix llvm@17)/bin/clang'" >> $GITHUB_ENV
               echo "CXX='$(brew --prefix llvm@17)/bin/clang++'" >> $GITHUB_ENV
             fi
+
+      - name: Setup Xcode version
+        if: runner.os == 'macOS'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '15.2'
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
