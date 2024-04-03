@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <spdlog/fmt/fmt.h>
@@ -18,9 +20,10 @@
 // clang-format on
 
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
-#include <string_view>
+
 
 namespace lagrange {
 
@@ -37,7 +40,7 @@ namespace lagrange {
 ///
 /// @return     An array of strings obtained after splitting.
 ///
-std::vector<std::string> string_split(const std::string& str, char delimiter);
+LA_CORE_API std::vector<std::string> string_split(const std::string& str, char delimiter);
 
 ///
 /// Checks if the string begins with the given prefix.
@@ -49,7 +52,7 @@ std::vector<std::string> string_split(const std::string& str, char delimiter);
 ///
 /// @return     true if the string begins with the provided prefix, false otherwise.
 ///
-bool starts_with(std::string_view str, std::string_view prefix);
+LA_CORE_API bool starts_with(std::string_view str, std::string_view prefix);
 
 ///
 /// Checks if the string ends with the given suffix.
@@ -61,7 +64,7 @@ bool starts_with(std::string_view str, std::string_view prefix);
 ///
 /// @return     true if the string end with the provided suffix, false otherwise.
 ///
-bool ends_with(std::string_view str, std::string_view suffix);
+LA_CORE_API bool ends_with(std::string_view str, std::string_view suffix);
 
 ///
 /// Convert a string to lowercase.
@@ -72,7 +75,7 @@ bool ends_with(std::string_view str, std::string_view suffix);
 ///
 /// @note This method assumes the input string is ASCII.
 ///
-std::string to_lower(std::string str);
+LA_CORE_API std::string to_lower(std::string str);
 
 ///
 /// Convert a string to uppercase.
@@ -83,7 +86,7 @@ std::string to_lower(std::string str);
 ///
 /// @note This method assumes the input string is ASCII.
 ///
-std::string to_upper(std::string str);
+LA_CORE_API std::string to_upper(std::string str);
 
 ///
 /// Format args according to the format string fmt, and return the result as a string.

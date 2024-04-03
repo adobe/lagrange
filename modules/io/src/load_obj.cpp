@@ -11,9 +11,11 @@
  */
 
 // this .cpp provides implementation for functions defined in those headers:
+#include <lagrange/io/api.h>
 #include <lagrange/io/internal/load_obj.h>
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_scene_obj.h>
+
 // ====
 
 #include <lagrange/Attribute.h>
@@ -164,7 +166,9 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
         facet_counts.push_back(static_cast<Index>(shape.mesh.num_face_vertices.size()));
         result.names.push_back(shape.name);
     }
-    mesh.add_hybrid(facet_sizes);
+    if (!facet_sizes.empty()) {
+        mesh.add_hybrid(facet_sizes);
+    }
 
     // Initialize material id attr
     Attribute<SignedIndex>* mat_attr = nullptr;
@@ -344,7 +348,7 @@ SceneType load_scene_obj(const tinyobj::ObjReader& reader, const LoadOptions& op
     auto result = extract_mesh<MeshType>(reader, options);
 
     SceneType lscene;
-    scene::ElementId mesh_idx = scene::utils::add_mesh(lscene, result.mesh);
+    scene::ElementId mesh_idx = lscene.add(std::move(result.mesh));
 
     // make a node to hold the meshes
     scene::Node lnode;
@@ -353,24 +357,24 @@ SceneType load_scene_obj(const tinyobj::ObjReader& reader, const LoadOptions& op
     for (const tinyobj::material_t& mat : reader.GetMaterials()) {
         scene::MaterialExperimental lmat;
         lmat.name = mat.name;
-        
+
         // we use the PBR extension in tinyobj, but note that this data may not be in the mtl
         // http://exocortex.com/blog/extending_wavefront_mtl_to_support_pbr
         lmat.base_color_value =
             Eigen::Vector4<float>(mat.diffuse[0], mat.diffuse[1], mat.diffuse[2], 1.0);
-        lmat.emissive_value = Eigen::Vector3<float>(mat.emission[0], mat.emission[1], mat.emission[2]);
+        lmat.emissive_value =
+            Eigen::Vector3<float>(mat.emission[0], mat.emission[1], mat.emission[2]);
 
         auto try_load_texture = [&](const std::string& name,
                                     const tinyobj::texture_option_t& tex_opt,
                                     scene::TextureInfo& tex_info) {
-            scene::ImageLegacy limage;
+            scene::ImageExperimental limage;
             limage.name = name;
             limage.uri = name;
             if (options.load_images) {
                 if (!io::internal::try_load_image(name, options, limage)) return;
             }
-            int image_idx = static_cast<int>(lscene.images.size());
-            lscene.images.push_back(limage);
+            int image_idx = static_cast<int>(lscene.add(std::move(limage)));
 
             tex_info.index = static_cast<int>(lscene.textures.size());
 
@@ -417,12 +421,12 @@ SceneType load_scene_obj(const tinyobj::ObjReader& reader, const LoadOptions& op
 
     lscene.nodes.push_back(lnode);
     lscene.root_nodes.push_back(0);
-    
+
     return lscene;
 }
 #define LA_X_load_scene_obj(_, S, I)            \
     template scene::Scene<S, I> load_scene_obj( \
-        const tinyobj::ObjReader& reader,            \
+        const tinyobj::ObjReader& reader,       \
         const LoadOptions& options);
 LA_SCENE_X(load_scene_obj, 0);
 #undef LA_X_load_scene_obj
@@ -449,13 +453,13 @@ auto load_mesh_obj(
     return extract_mesh<MeshType>(reader, options);
 }
 
-#define LA_X_load_mesh(_, Scalar, Index)                                               \
-    template ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
-        const fs::path& filename,                                                      \
-        const LoadOptions& options);                                                   \
-    template ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
-        std::istream & input_stream_obj,                                               \
-        std::istream & input_stream_mtl,                                               \
+#define LA_X_load_mesh(_, Scalar, Index)                                                         \
+    template LA_IO_API ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
+        const fs::path& filename,                                                                \
+        const LoadOptions& options);                                                             \
+    template LA_IO_API ObjReaderResult<Scalar, Index> load_mesh_obj<SurfaceMesh<Scalar, Index>>( \
+        std::istream & input_stream_obj,                                                         \
+        std::istream & input_stream_mtl,                                                         \
         const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh, 0)
 
@@ -486,11 +490,11 @@ MeshType load_mesh_obj(std::istream& input_stream_obj, const LoadOptions& option
     return std::move(ret.mesh);
 }
 
-#define LA_X_load_mesh_obj(_, S, I)           \
-    template SurfaceMesh<S, I> load_mesh_obj( \
-        const fs::path& filename,             \
-        const LoadOptions& options);          \
-    template SurfaceMesh<S, I> load_mesh_obj(std::istream&, const LoadOptions& options);
+#define LA_X_load_mesh_obj(_, S, I)                     \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_obj( \
+        const fs::path& filename,                       \
+        const LoadOptions& options);                    \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_obj(std::istream&, const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_obj, 0)
 #undef LA_X_load_mesh_obj
 
@@ -507,14 +511,20 @@ SceneType load_scene_obj(const fs::path& filename, const LoadOptions& options)
 }
 
 template <typename SceneType>
-SceneType load_scene_obj(std::istream& input_stream_obj, std::istream& input_stream_mtl, const LoadOptions& options)
+SceneType load_scene_obj(
+    std::istream& input_stream_obj,
+    std::istream& input_stream_mtl,
+    const LoadOptions& options)
 {
     tinyobj::ObjReader reader = internal::load_obj(input_stream_obj, input_stream_mtl, options);
     return internal::load_scene_obj<SceneType>(reader, options);
 }
-#define LA_X_load_scene_obj(_, S, I)                                                 \
-    template scene::Scene<S, I> load_scene_obj(const fs::path&, const LoadOptions&); \
-    template scene::Scene<S, I> load_scene_obj(std::istream&, std::istream&, const LoadOptions&);
+#define LA_X_load_scene_obj(_, S, I)                                                           \
+    template LA_IO_API scene::Scene<S, I> load_scene_obj(const fs::path&, const LoadOptions&); \
+    template LA_IO_API scene::Scene<S, I> load_scene_obj(                                      \
+        std::istream&,                                                                         \
+        std::istream&,                                                                         \
+        const LoadOptions&);
 LA_SCENE_X(load_scene_obj, 0);
 #undef LA_X_load_scene_obj
 } // namespace lagrange::io

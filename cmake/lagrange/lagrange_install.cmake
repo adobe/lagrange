@@ -10,6 +10,9 @@
 # governing permissions and limitations under the License.
 #
 function(lagrange_install target)
+    string(REPLACE "lagrange_" "" module_name ${target})
+    set_target_properties(${target} PROPERTIES EXPORT_NAME ${module_name})
+
     include(GNUInstallDirs)
     install(TARGETS ${target}
         EXPORT Lagrange_Targets
@@ -22,12 +25,9 @@ function(lagrange_install target)
                 COMPONENT Lagrange_Runtime
         PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
                 COMPONENT Lagrange_Development
+        FILE_SET HEADERS
+                COMPONENT Lagrange_Development
         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-    )
-
-    install(DIRECTORY include/lagrange
-        DESTINATION include
-        COMPONENT Lagrange_Development
     )
 
     # TODO: Maybe set PUBLIC_HEADER target property (for macOS framework installation)

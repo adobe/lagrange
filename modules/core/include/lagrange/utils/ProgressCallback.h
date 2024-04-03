@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
+
 #include <tbb/spin_mutex.h>
 #include <atomic>
 #include <functional>
@@ -21,7 +23,7 @@ namespace lagrange {
 ///
 /// A simple thread-safe progress callback.
 ///
-class ProgressCallback
+class LA_CORE_API ProgressCallback
 {
 public:
     ///

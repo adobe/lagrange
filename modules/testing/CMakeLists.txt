@@ -11,7 +11,7 @@
 #
 
 # 1. define module
-lagrange_add_module()
+lagrange_add_module(NO_INSTALL)
 set_target_properties(lagrange_testing PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")
 
 # 2. dependencies
@@ -106,6 +106,8 @@ add_library(lagrange_testing_main ${CMAKE_CURRENT_SOURCE_DIR}/main/main.cpp)
 target_link_libraries(lagrange_testing_main PUBLIC lagrange::core lagrange::testing)
 add_library(lagrange::testing::main ALIAS lagrange_testing_main)
 set_target_properties(lagrange_testing_main PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")
+
+set_target_properties(lagrange_testing_main PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 # Enable StackWalker on Windows
 if(WIN32)

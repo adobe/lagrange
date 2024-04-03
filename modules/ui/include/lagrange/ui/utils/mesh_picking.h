@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/types/Frustum.h>
 #include <lagrange/ui/utils/mesh.h>
@@ -24,7 +25,7 @@ struct MeshSelectionRender;
 
 /// Mesh triangle X ray intersection
 /// Uses an accelerated data structure if enabled for entity e (use `enable_accelerated_picking`)
-std::optional<RayFacetHit>
+LA_UI_API std::optional<RayFacetHit>
 intersect_ray(Registry& r, Entity e, const Eigen::Vector3f& origin, const Eigen::Vector3f& dir);
 
 /*
@@ -39,7 +40,7 @@ intersect_ray(Registry& r, Entity e, const Eigen::Vector3f& origin, const Eigen:
 /// @param active_viewport Viewport to use for resolution and layer visibility
 /// @param local_frustum Frustum in mesh's local coordinate frame
 /// @return always true
-bool select_visible_elements(
+LA_UI_API bool select_visible_elements(
     Registry& r,
     StringID element_type,
     SelectionBehavior sel_behavior,
@@ -54,7 +55,7 @@ bool select_visible_elements(
 /// @param selected_entity Entity with MeshGeometry component
 /// @param local_frustum Frustum in mesh's local coordinate frame
 /// @return always true
-bool select_elements_in_frustum(
+LA_UI_API bool select_elements_in_frustum(
     Registry& r,
     StringID element_type,
     SelectionBehavior sel_behavior,
@@ -65,18 +66,18 @@ bool select_elements_in_frustum(
     Mesh element selection visualization utilities
 */
 
-void clear_element_selection_render(Registry& r, bool exclude_selected);
+LA_UI_API void clear_element_selection_render(Registry& r, bool exclude_selected);
 
-MeshSelectionRender& ensure_selection_render(Registry& r, Entity e);
+LA_UI_API MeshSelectionRender& ensure_selection_render(Registry& r, Entity e);
 
 /// Update materials and visibility of different mesh elements
-void update_selection_render(
+LA_UI_API void update_selection_render(
     Registry& r,
     MeshSelectionRender& sel_render,
     const Entity& selected_mesh_entity,
     const StringID& current_element_type);
 
-void mark_selection_dirty(Registry& r, MeshSelectionRender& sel_render);
+LA_UI_API void mark_selection_dirty(Registry& r, MeshSelectionRender& sel_render);
 
 /*
     Accelerated picking
@@ -85,9 +86,9 @@ void mark_selection_dirty(Registry& r, MeshSelectionRender& sel_render);
 /// Computes acceleration structure (igl::AABB) for faster ray-triangle intersection
 /// Entity can be entity with MeshGeometry or MeshData
 /// Returns false if entity does not have a mesh
-bool enable_accelerated_picking(Registry& r, Entity e);
+LA_UI_API bool enable_accelerated_picking(Registry& r, Entity e);
 
-bool has_accelerated_picking(Registry& r, Entity e);
+LA_UI_API bool has_accelerated_picking(Registry& r, Entity e);
 
 
 } // namespace ui

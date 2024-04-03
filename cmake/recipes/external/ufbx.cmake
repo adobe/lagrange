@@ -22,9 +22,9 @@ CPMAddPackage(
 )
 
 include(GNUInstallDirs)
-add_library(ufbx ${ufbx_SOURCE_DIR}/ufbx.c)
+add_library(ufbx STATIC ${ufbx_SOURCE_DIR}/ufbx.c)
 add_library(ufbx::ufbx ALIAS ufbx)
-target_include_directories(ufbx PUBLIC 
+target_include_directories(ufbx PUBLIC
     $<BUILD_INTERFACE:${ufbx_SOURCE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )

@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
+
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/types/Keybinds.h>
 
 namespace lagrange {
@@ -33,19 +35,19 @@ enum class DefaultCameraScheme { DIMENSION, MAYA, BLENDER, SUBSTANCE };
 /// In case of MAYA and SUBSTANCE, they remap viewport.selection.select.erase to
 /// LEFT MOUSE + LEFT CTRL + LEFT ALT
 ///
-void set_camera_scheme(Keybinds& keybinds, DefaultCameraScheme camera_scheme);
+LA_UI_API void set_camera_scheme(Keybinds& keybinds, DefaultCameraScheme camera_scheme);
 
 
 ///
 /// Do the keybinds have one of the default camera schemes?
 ///
-bool has_camera_scheme(const Keybinds& keybinds, DefaultCameraScheme camera_scheme);
+LA_UI_API bool has_camera_scheme(const Keybinds& keybinds, DefaultCameraScheme camera_scheme);
 
 
 ///
 /// Initializes all default keybinds
 ///
-Keybinds initialize_default_keybinds();
+LA_UI_API Keybinds initialize_default_keybinds();
 
 
 } // namespace ui

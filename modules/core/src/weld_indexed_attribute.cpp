@@ -141,9 +141,8 @@ void weld_indexed_attribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId attr_i
 }
 
 #define LA_X_weld_indexed_attribute(ValueType, Scalar, Index) \
-    template void weld_indexed_attribute<Scalar, Index>(SurfaceMesh<Scalar, Index>&, AttributeId);
+    template LA_CORE_API void weld_indexed_attribute<Scalar, Index>(SurfaceMesh<Scalar, Index>&, AttributeId);
 
 LA_SURFACE_MESH_X(weld_indexed_attribute, 0)
-
 
 } // namespace lagrange

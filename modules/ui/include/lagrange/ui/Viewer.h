@@ -13,6 +13,7 @@
 
 
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/default_components.h>
 #include <lagrange/ui/default_keybinds.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
@@ -43,7 +44,7 @@ class Renderer;
 /// @brief Viewer
 /// use `systems()` to add functions that should be called every frame
 /// use `registry()` or util functions to read and manipulate application's state
-class Viewer
+class LA_UI_API Viewer
 {
 public:
     /*
@@ -143,9 +144,9 @@ public:
 
     virtual ~Viewer();
 
-    operator ui::Registry &() { return registry(); }
+    operator ui::Registry&() { return registry(); }
 
-    operator const ui::Registry &() const { return registry(); }
+    operator const ui::Registry&() const { return registry(); }
 
     ///
     /// UI action wants the window to close

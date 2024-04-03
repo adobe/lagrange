@@ -11,12 +11,13 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
-Entity add_keybinds_panel(Registry& r, const std::string& name = "Keybinds");
+LA_UI_API Entity add_keybinds_panel(Registry& r, const std::string& name = "Keybinds");
 
 } // namespace ui
 } // namespace lagrange

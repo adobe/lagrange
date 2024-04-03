@@ -91,7 +91,7 @@ size_t DisjointSets<IndexType>::extract_disjoint_set_indices(span<IndexType> ind
     return static_cast<size_t>(counter);
 }
 
-#define LA_X_DisjointSets(_, Index) template class DisjointSets<Index>;
+#define LA_X_DisjointSets(_, Index) template class LA_CORE_API DisjointSets<Index>;
 LA_ATTRIBUTE_INDEX_X(DisjointSets, 0)
 
 } // namespace lagrange

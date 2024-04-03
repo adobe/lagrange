@@ -12,7 +12,9 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/scene/api.h>
 #include <lagrange/utils/invalid.h>
+
 
 #include <Eigen/Geometry>
 
@@ -30,7 +32,7 @@ namespace lagrange::scene {
 ///                        stack-allocated matrix.
 ///
 template <typename Scalar, typename Index, size_t Dimension = 3>
-struct MeshInstance
+struct LA_SCENE_API MeshInstance
 {
     /// Affine transformation matrix.
     using AffineTransform = Eigen::Transform<Scalar, static_cast<int>(Dimension), Eigen::Affine>;
@@ -56,7 +58,7 @@ struct MeshInstance
 /// @tparam     Dimension  Mesh dimension.
 ///
 template <typename Scalar, typename Index, size_t Dimension = 3>
-class SimpleScene
+class LA_SCENE_API SimpleScene
 {
 public:
     /// Mesh type.

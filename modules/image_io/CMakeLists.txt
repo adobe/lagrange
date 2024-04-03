@@ -27,12 +27,7 @@ target_link_libraries(lagrange_image_io
         tinyexr::tinyexr
 )
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_image_io PROPERTIES EXPORT_NAME image_io)
-    lagrange_install(lagrange_image_io)
-endif()
-
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

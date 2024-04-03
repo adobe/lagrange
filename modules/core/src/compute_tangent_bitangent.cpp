@@ -569,7 +569,7 @@ TangentBitangentResult compute_tangent_bitangent(
 }
 
 #define LA_X_compute_tangent_bitangent(_, Scalar, Index)       \
-    template TangentBitangentResult compute_tangent_bitangent( \
+    template LA_CORE_API TangentBitangentResult compute_tangent_bitangent( \
         SurfaceMesh<Scalar, Index>& mesh,                      \
         TangentBitangentOptions options);
 LA_SURFACE_MESH_X(compute_tangent_bitangent, 0)

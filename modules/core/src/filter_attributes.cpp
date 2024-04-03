@@ -103,10 +103,10 @@ SurfaceMesh<Scalar, Index> filter_attributes(
 }
 
 #define LA_X_filter_attributes(_, Scalar, Index)              \
-    template std::vector<AttributeId> filtered_attribute_ids( \
+    template LA_CORE_API std::vector<AttributeId> filtered_attribute_ids( \
         const SurfaceMesh<Scalar, Index>& mesh,               \
         const AttributeFilter& options);                      \
-    template SurfaceMesh<Scalar, Index> filter_attributes(    \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> filter_attributes(    \
         SurfaceMesh<Scalar, Index>,                           \
         const AttributeFilter&);
 

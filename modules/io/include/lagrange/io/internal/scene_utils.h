@@ -17,14 +17,14 @@
 namespace lagrange::io::internal {
 
 /**
- * Load an image from disk, and store it in the ImageLegacy
- * 
+ * Load an image from disk, and store it in the Image.
+ *
  * @param[in] name.     Name of texture or relative or full path to texture.
  * @param[in] options.  Options. Remember to set options.search_path if necessary.
  * @param[out] image.   This will be filled with the loaded data.
- * 
+ *
  * @return true if successful.
  */
-bool try_load_image(const std::string& name, const LoadOptions& options, scene::ImageLegacy& image);
+bool try_load_image(const std::string& name, const LoadOptions& options, scene::ImageExperimental& image);
 
 } // namespace lagrange::io::internal

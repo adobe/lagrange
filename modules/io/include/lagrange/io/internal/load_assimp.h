@@ -13,15 +13,15 @@
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
-#include <lagrange/fs/filesystem.h>
-#include <lagrange/scene/SimpleScene.h>
-#include <lagrange/io/types.h>
+    #include <lagrange/fs/filesystem.h>
+    #include <lagrange/io/types.h>
+    #include <lagrange/scene/SimpleScene.h>
 
-#include <assimp/mesh.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <iosfwd>
-#include <memory>
+    #include <assimp/mesh.h>
+    #include <assimp/postprocess.h>
+    #include <assimp/scene.h>
+    #include <iosfwd>
+    #include <memory>
 
 namespace lagrange::io::internal {
 /**
@@ -65,6 +65,6 @@ template <typename SceneType>
 SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options = {});
 
 
-}
+} // namespace lagrange::io::internal
 
 #endif

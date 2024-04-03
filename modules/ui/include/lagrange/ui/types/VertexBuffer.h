@@ -11,7 +11,9 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/types/GLContext.h>
+
 #include <stdint.h>
 #include <algorithm>
 #include <array>
@@ -64,7 +66,7 @@ struct type_traits<float>
     enum { type = GL_FLOAT, integral = 0 };
 };
 
-struct VertexBuffer
+struct LA_UI_API VertexBuffer
 {
     VertexBuffer(GLenum _target = GL_ARRAY_BUFFER);
     GLenum target; // most common: GL_ARRAY_BUFFER or GL_ELEMENT_ARRAY_BUFFER
@@ -127,7 +129,7 @@ void VertexBuffer::upload(const std::vector<T>& arr, uint32_t component_count)
 }
 
 
-struct VAO
+struct LA_UI_API VAO
 {
     VAO()
         : id(0)
@@ -139,7 +141,7 @@ struct VAO
 };
 
 
-struct GPUBuffer
+struct LA_UI_API GPUBuffer
 {
     GPUBuffer(const GPUBuffer&) = delete;
     GPUBuffer& operator=(const GPUBuffer&) = delete;

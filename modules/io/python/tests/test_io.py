@@ -56,7 +56,7 @@ def assert_same_vertices_and_facets(mesh, mesh2):
     assert mesh.num_vertices == mesh2.num_vertices
     assert mesh.num_facets == mesh2.num_facets
     assert mesh.vertices == pytest.approx(mesh2.vertices)
-    assert np.all(mesh.facets == mesh2.facets)
+    assert np.all(mesh.facets.ravel() == mesh2.facets.ravel())
 
 
 def match_attribute(mesh, mesh2, id1, id2):
@@ -104,20 +104,27 @@ def assert_same_attribute(mesh, mesh2, usage, required):
 
 class TestIO:
     def __save_and_load__(
-        self, suffix, mesh, binary, exact_match, selected_attributes
+        self, suffix, mesh, *, binary, exact_match, selected_attributes, as_scene
     ):
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir_path = pathlib.Path(tmp_dir)
             stamp = datetime.datetime.now().isoformat().replace(":", ".")
             filename = tmp_dir_path / f"{stamp}{suffix}"
-            lagrange.io.save_mesh(
-                filename,
-                mesh,
-                binary=binary,
-                exact_match=exact_match,
-                selected_attributes=selected_attributes,
-            )
-            mesh2 = lagrange.io.load_mesh(filename)
+            if not as_scene:
+                lagrange.io.save_mesh(
+                    filename,
+                    mesh,
+                    binary=binary,
+                    exact_match=exact_match,
+                    selected_attributes=selected_attributes,
+                )
+                mesh2 = lagrange.io.load_mesh(filename)
+            else:
+                unified_mesh = lagrange.unify_index_buffer(mesh)
+                mesh_scene = lagrange.scene.mesh_to_simple_scene(unified_mesh)
+                lagrange.io.save_simple_scene(filename, mesh_scene)
+                mesh_scene2 = lagrange.io.load_simple_scene(filename)
+                mesh2 = lagrange.scene.simple_scene_to_mesh(mesh_scene2)
 
             assert_same_vertices_and_facets(mesh, mesh2)
 
@@ -153,6 +160,7 @@ class TestIO:
                     binary=False,
                     exact_match=exact_match,
                     selected_attributes=attribute_ids,
+                    as_scene=False,
                 )
 
             # For binary formats
@@ -163,7 +171,27 @@ class TestIO:
                     binary=True,
                     exact_match=exact_match,
                     selected_attributes=attribute_ids,
+                    as_scene=False,
                 )
+
+            for ext in [".gltf", ".glb"]:
+                self.__save_and_load__(
+                    ext,
+                    mesh,
+                    binary=(ext==".glb"),
+                    exact_match=exact_match,
+                    selected_attributes=attribute_ids,
+                    as_scene=True,
+                )
+
+    def test_empty_mesh(self):
+        mesh = lagrange.SurfaceMesh()
+        self.save_and_load(mesh)
+
+    def test_point_cloud(self):
+        mesh = lagrange.SurfaceMesh()
+        mesh.add_vertices(np.eye(3))
+        self.save_and_load(mesh)
 
     def test_single_triangle(self, triangle):
         mesh = triangle
@@ -234,17 +262,17 @@ class TestIO:
 
     def test_load_scene(self, triangle):
         scene = lagrange.scene.Scene()
-        mesh_idx = lagrange.scene.add_mesh(scene, triangle)
+        mesh_idx = scene.add(triangle)
         assert len(scene.meshes) == 1
 
         node = lagrange.scene.Node()
         node.name = "triangle"
 
-        node.extensions.data = {"my_ext": lagrange.scene.Value({"num": lagrange.scene.Value(12) }) }
+        node.extensions.data = {"my_ext": {"num": 12}}
         assert node.extensions.size == 1
 
         # class Foo:
-            # a = 1
+        # a = 1
         # node.extensions.user_data = {"foo": Foo()}
 
         scene.materials.append(lagrange.scene.Material())
@@ -256,7 +284,7 @@ class TestIO:
         node.meshes.append(instance)
         assert len(node.meshes) == 1
 
-        scene.nodes.append(node)
+        scene.add(node)
 
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir_path = pathlib.Path(tmp_dir)
@@ -270,4 +298,4 @@ class TestIO:
             assert scene2.nodes[0].extensions.size == 1
 
             my_ext = scene2.nodes[0].extensions.data["my_ext"]
-            assert my_ext.value["num"].value == 12
+            assert my_ext["num"] == 12

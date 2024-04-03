@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
@@ -20,7 +21,7 @@ namespace ui {
 /*
     Updates lights and their visualization
 */
-void update_lights_system(Registry& registry);
+LA_UI_API void update_lights_system(Registry& registry);
 
 
 } // namespace ui

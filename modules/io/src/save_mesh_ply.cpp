@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/find_attribute_utils.h>
+#include <lagrange/io/api.h>
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
@@ -381,11 +382,11 @@ void save_mesh_ply(
 }
 
 #define LA_X_save_mesh_ply(_, Scalar, Index)    \
-    template void save_mesh_ply(                \
+    template LA_IO_API void save_mesh_ply(      \
         std::ostream&,                          \
         const SurfaceMesh<Scalar, Index>& mesh, \
         const SaveOptions& options);            \
-    template void save_mesh_ply(                \
+    template LA_IO_API void save_mesh_ply(      \
         const fs::path& filename,               \
         const SurfaceMesh<Scalar, Index>& mesh, \
         const SaveOptions& options);

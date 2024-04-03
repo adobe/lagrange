@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
+
 // GLEW must come before GLFW
 #if defined(__EMSCRIPTEN__)
 #include <webgl/webgl2.h>
@@ -57,7 +59,7 @@ bool checkGLError(const char* label);
     } while (0)
 #endif
 
-struct GLState
+struct LA_UI_API GLState
 {
     GLState();
 
@@ -146,7 +148,7 @@ private:
     std::thread::id m_gl_thread_id;
 };
 
-struct GLScope
+struct LA_UI_API GLScope
 {
     GLScope(bool push = true);
     ~GLScope();

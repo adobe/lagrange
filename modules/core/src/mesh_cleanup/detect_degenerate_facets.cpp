@@ -127,7 +127,7 @@ std::vector<Index> detect_degenerate_facets(const SurfaceMesh<Scalar, Index>& me
 }
 
 #define LA_X_detect_degenerate_facets(_, Scalar, Index)                  \
-    template std::vector<Index> detect_degenerate_facets<Scalar, Index>( \
+    template LA_CORE_API std::vector<Index> detect_degenerate_facets<Scalar, Index>( \
         const SurfaceMesh<Scalar, Index>&);
 LA_SURFACE_MESH_X(detect_degenerate_facets, 0)
 

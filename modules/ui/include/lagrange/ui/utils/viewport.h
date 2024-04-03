@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/Viewport.h>
 #include <lagrange/ui/panels/ViewportPanel.h>
 
@@ -18,10 +19,10 @@ namespace lagrange {
 namespace ui {
 
 /// Creates an offscreen viewport with given camera. Create ViewportPanel to show it on screen.
-Entity add_viewport(Registry& registry, Entity camera_entity, bool srgb = false);
+LA_UI_API Entity add_viewport(Registry& registry, Entity camera_entity, bool srgb = false);
 
-void instance_camera_to_viewports(Registry& registry, Entity source_viewport);
-void copy_camera_to_viewports(Registry& registry, Entity source_viewport);
+LA_UI_API void instance_camera_to_viewports(Registry& registry, Entity source_viewport);
+LA_UI_API void copy_camera_to_viewports(Registry& registry, Entity source_viewport);
 
 /*
     Focused Viewport
@@ -29,15 +30,15 @@ void copy_camera_to_viewports(Registry& registry, Entity source_viewport);
 
 /// Focused Viewport UI Panel
 /// Returns nullptr if there is no focused viewport
-ViewportPanel* get_focused_viewport_panel(Registry& registry);
+LA_UI_API ViewportPanel* get_focused_viewport_panel(Registry& registry);
 
 /// Focused Viewport (entity)
 /// Returns NullEntity if there is no focused viewport
-Entity get_focused_viewport_entity(Registry& registry);
+LA_UI_API Entity get_focused_viewport_entity(Registry& registry);
 
 /// Focused Viewport (component reference)
 /// Returns nullptr if there is no focused viewport
-ViewportComponent* get_focused_viewport(Registry& registry);
+LA_UI_API ViewportComponent* get_focused_viewport(Registry& registry);
 
 
 /*
@@ -45,14 +46,14 @@ ViewportComponent* get_focused_viewport(Registry& registry);
 */
 // Focused Camera (entity)
 /// Returns NullEntity if there is no focused viewport
-Entity get_focused_camera_entity(Registry& registry);
+LA_UI_API Entity get_focused_camera_entity(Registry& registry);
 
 // Focused Camera (component reference)
 /// Returns nullptr if there is no focused viewport
-Camera* get_focused_camera(Registry& registry);
+LA_UI_API Camera* get_focused_camera(Registry& registry);
 
 // Camera component of entity e
-Camera& get_camera(Registry& registry, Entity e);
+LA_UI_API Camera& get_camera(Registry& registry, Entity e);
 
 /*
     Hovered Viewport
@@ -60,11 +61,11 @@ Camera& get_camera(Registry& registry, Entity e);
 
 // Hovered Viewport UI Panel (entity)
 /// Returns NullEntity if there is no hovered viewport
-Entity get_hovered_viewport_panel_entity(Registry& registry);
+LA_UI_API Entity get_hovered_viewport_panel_entity(Registry& registry);
 
 // Hovered Viewport (entity)
 /// Returns NullEntity if there is no hovered viewport
-Entity get_hovered_viewport_entity(Registry& registry);
+LA_UI_API Entity get_hovered_viewport_entity(Registry& registry);
 
 
 
@@ -78,7 +79,7 @@ Entity get_hovered_viewport_entity(Registry& registry);
 /// @param duration_seconds duration in seconds
 /// @param filter
 /// Returns false if camera is not a valid entity
-bool camera_focus_and_fit(
+LA_UI_API bool camera_focus_and_fit(
     Registry& registry,
     Entity camera,
     bool focus = true,
@@ -87,14 +88,14 @@ bool camera_focus_and_fit(
     const std::function<bool(Registry& r, Entity e)>& filter = nullptr);
 
 /// @brief Adjusts focused camera to fit the scene bounding box over the next several frames.
-void camera_focus_and_fit(Registry& registry);
+LA_UI_API void camera_focus_and_fit(Registry& registry);
 
 /*
     Internal offscreen viewport utilities
 */
-Entity get_selection_viewport_entity(const Registry& registry);
-Entity get_objectid_viewport_entity(const Registry& registry);
-void add_selection_outline_post_process(
+LA_UI_API Entity get_selection_viewport_entity(const Registry& registry);
+LA_UI_API Entity get_objectid_viewport_entity(const Registry& registry);
+LA_UI_API void add_selection_outline_post_process(
     Registry& registry,
     Entity viewport_entity,
     const Color& selection_color);

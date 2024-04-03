@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/types/Tools.h>
 
 
@@ -18,8 +19,8 @@ namespace lagrange {
 namespace ui {
 
 
-Tools& get_tools(ui::Registry& r);
-const Tools& get_tools(const ui::Registry& r);
+LA_UI_API Tools& get_tools(ui::Registry& r);
+LA_UI_API const Tools& get_tools(const ui::Registry& r);
 
 
 template <typename T>
@@ -29,22 +30,22 @@ bool is_element_type(entt::id_type elem_type)
 }
 
 /// Initialize Tools context variable
-Tools& initialize_tools(ui::Registry& r);
+LA_UI_API Tools& initialize_tools(ui::Registry& r);
 /// Run currently selected tool
-void run_current_tool(ui::Registry& r);
+LA_UI_API void run_current_tool(ui::Registry& r);
 /// Update previously used tool - must be called for is_tool_(de)activate to work
-void update_previous_tool(ui::Registry& r);
+LA_UI_API void update_previous_tool(ui::Registry& r);
 
 /// Was tool type activated this frame
-bool is_tool_activated(const ui::Registry& r, entt::id_type tool_type);
+LA_UI_API bool is_tool_activated(const ui::Registry& r, entt::id_type tool_type);
 /// Was tool type and element type activated this frame
-bool is_tool_activated(const ui::Registry& r, entt::id_type tool_type, entt::id_type element_type);
+LA_UI_API bool is_tool_activated(const ui::Registry& r, entt::id_type tool_type, entt::id_type element_type);
 
 
 /// Was tool type deactivated this frame
-bool is_tool_deactivated(const ui::Registry& r, entt::id_type tool_type);
+LA_UI_API bool is_tool_deactivated(const ui::Registry& r, entt::id_type tool_type);
 /// Was tool type and element type deactivated this frame
-bool is_tool_deactivated(
+LA_UI_API bool is_tool_deactivated(
     const ui::Registry& r,
     entt::id_type tool_type,
     entt::id_type element_type);

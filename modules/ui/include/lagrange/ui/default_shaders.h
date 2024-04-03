@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/types/ShaderLoader.h>
 
@@ -64,7 +65,7 @@ struct MeshElementIDMaterial
     constexpr static const StringID ElementMode = "element_mode"_hs;
 };
 
-void register_default_shaders(Registry& r);
+LA_UI_API void register_default_shaders(Registry& r);
 
 } // namespace ui
 } // namespace lagrange

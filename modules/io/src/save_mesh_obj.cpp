@@ -15,6 +15,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/io/api.h>
 #include <lagrange/utils/assert.h>
 
 // clang-format off
@@ -176,11 +177,11 @@ void save_mesh_obj(
 }
 
 #define LA_X_save_mesh(_, Scalar, Index)        \
-    template void save_mesh_obj(                \
+    template LA_IO_API void save_mesh_obj(      \
         std::ostream& output_stream,            \
         const SurfaceMesh<Scalar, Index>& mesh, \
         const SaveOptions& options);            \
-    template void save_mesh_obj(                \
+    template LA_IO_API void save_mesh_obj(      \
         const fs::path& filename,               \
         const SurfaceMesh<Scalar, Index>& mesh, \
         const SaveOptions& options);

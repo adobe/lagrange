@@ -76,7 +76,7 @@ void SimpleScene<Scalar, Index, Dimension>::foreach_instances(
     }
 }
 
-#define LA_X_simple_scene(_, Scalar, Index, Dim) template class SimpleScene<Scalar, Index, Dim>;
+#define LA_X_simple_scene(_, Scalar, Index, Dim) template class LA_SCENE_API SimpleScene<Scalar, Index, Dim>;
 LA_SIMPLE_SCENE_X(simple_scene, 0)
 
 } // namespace lagrange::scene

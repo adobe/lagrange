@@ -44,7 +44,7 @@ AttributeId compute_vertex_valence(SurfaceMesh<Scalar, Index>& mesh, VertexValen
 }
 
 #define LA_X_compute_vertex_valence(_, Scalar, Index) \
-    template AttributeId compute_vertex_valence(SurfaceMesh<Scalar, Index>&, VertexValenceOptions);
+    template LA_CORE_API AttributeId compute_vertex_valence(SurfaceMesh<Scalar, Index>&, VertexValenceOptions);
 LA_SURFACE_MESH_X(compute_vertex_valence, 0)
 
 } // namespace lagrange

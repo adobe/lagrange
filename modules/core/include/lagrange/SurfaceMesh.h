@@ -19,6 +19,7 @@
 
 #include <initializer_list>
 #include <string_view>
+#include <type_traits>
 
 namespace lagrange {
 
@@ -72,6 +73,14 @@ public:
 
     /// Signed index type corresponding to the mesh index type.
     using SignedIndex = std::make_signed_t<Index>;
+
+    // Static assertions to prevent users from instantiating unsupported types.
+    static_assert(
+        std::is_same_v<Scalar, float> || std::is_same_v<Scalar, double>,
+        "SurfaceMesh's Scalar template parameter can only be float or double.");
+    static_assert(
+        std::is_same_v<Index, uint32_t> || std::is_same_v<Index, uint64_t>,
+        "SurfaceMesh's Index template parameter can only be uint32_t or uint64_t.");
 
 public:
     ///
@@ -2112,7 +2121,7 @@ public:
     std::array<Index, 2> get_edge_vertices(Index e) const;
 
     ///
-    /// Retrieve the edge index cooresponding to (v0, v1).
+    /// Retrieve the edge index corresponding to (v0, v1).
     ///
     /// @param[in] v0, v1  The vertex indices for edge end points.
     ///

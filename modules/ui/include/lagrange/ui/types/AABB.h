@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/utils/math.h>
 #include <array>
 
@@ -20,7 +21,7 @@ namespace ui {
 
 class Frustum;
 
-class AABB : public Eigen::AlignedBox3f
+class LA_UI_API AABB : public Eigen::AlignedBox3f
 {
 public:
     using Super = Eigen::AlignedBox3f;

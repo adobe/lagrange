@@ -12,6 +12,7 @@
 
 #include <lagrange/io/save_scene.h>
 
+#include <lagrange/io/api.h>
 #include <lagrange/io/save_scene_gltf.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/utils/strings.h>
@@ -35,7 +36,7 @@ void save_scene(
 }
 
 #define LA_X_save_scene(_, S, I)         \
-    template void save_scene(            \
+    template LA_IO_API void save_scene(            \
         const fs::path& filename,        \
         const scene::Scene<S, I>& scene, \
         const SaveOptions& options);

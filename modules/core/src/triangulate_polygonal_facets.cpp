@@ -308,7 +308,7 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
 
 // Iterate over mesh (scalar, index) types
 #define LA_X_triangulate_polygonal_facets(_, Scalar, Index) \
-    template void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh);
+    template LA_CORE_API void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(triangulate_polygonal_facets, 0)
 
 } // namespace lagrange

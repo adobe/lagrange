@@ -38,7 +38,7 @@ std::vector<SurfaceMesh<Scalar, Index>> separate_by_components(
 }
 
 #define LA_X_separate_by_components(_, Scalar, Index)                        \
-    template std::vector<SurfaceMesh<Scalar, Index>> separate_by_components( \
+    template LA_CORE_API std::vector<SurfaceMesh<Scalar, Index>> separate_by_components( \
         const SurfaceMesh<Scalar, Index>&,                                   \
         const SeparateByComponentsOptions&);
 

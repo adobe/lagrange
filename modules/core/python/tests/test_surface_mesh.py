@@ -141,6 +141,69 @@ class TestSurfaceMesh:
             attr.data = np.ones(mesh.num_vertices, dtype=t)
             assert np.all(attr.data == 1)
 
+    def test_create_attribute_with_init_values(self, single_triangle):
+        mesh = single_triangle
+
+        with pytest.raises(Exception):
+            # Ambiguous element type: could be vertex or corner.
+            mesh.create_attribute("vertex_index", initial_values=[1, 2, 3])
+
+        # Vertex attribute
+        mesh.add_vertex([1, 1, 1])  # Add an isolated vertex.
+        id = mesh.create_attribute("vertex_index", initial_values=[1, 2, 3, 4])
+        attr = mesh.attribute(id)
+        assert attr.element_type == lagrange.AttributeElement.Vertex
+        assert attr.usage == lagrange.AttributeUsage.Scalar
+        assert np.all(attr.data == [1, 2, 3, 4])
+        assert attr.dtype == np.float64
+        assert attr.dtype == attr.data.dtype
+
+        # Corner attribute
+        id = mesh.create_attribute(
+            "corner_index", initial_values=np.array([1, 2, 3])
+        )
+        attr = mesh.attribute(id)
+        assert attr.element_type == lagrange.AttributeElement.Corner
+        assert attr.usage == lagrange.AttributeUsage.Scalar
+        assert np.all(attr.data == [1, 2, 3])
+        assert attr.dtype == attr.data.dtype
+
+        # Facet attribute
+        id = mesh.create_attribute(
+            "facet_index", initial_values=[0], num_channels=1
+        )
+        attr = mesh.attribute(id)
+        assert attr.element_type == lagrange.AttributeElement.Facet
+        assert attr.usage == lagrange.AttributeUsage.Scalar
+        assert attr.dtype == np.float64
+        assert attr.dtype == attr.data.dtype
+
+        # Indexed attribute
+        id = mesh.create_attribute(
+            "custom", initial_values=np.array([0, 1]), initial_indices=[0, 0, 1]
+        )
+        assert mesh.is_attribute_indexed(id)
+        attr = mesh.indexed_attribute(id)
+        assert attr.usage == lagrange.AttributeUsage.Scalar
+        assert np.all(attr.indices.data == [0, 0, 1])
+        assert np.issubdtype(attr.values.dtype, np.integer)
+        assert attr.indices.dtype == np.uint32
+        assert attr.values.dtype == attr.values.data.dtype
+        assert attr.indices.dtype == attr.indices.data.dtype
+
+        # Indexed attribute with incorrect index dtype
+        id = mesh.create_attribute(
+            "custom2",
+            initial_values=np.array([0, 1]),
+            initial_indices=np.array([0, 0, 1]),
+        )
+        assert mesh.is_attribute_indexed(id)
+        attr = mesh.indexed_attribute(id)
+        assert attr.usage == lagrange.AttributeUsage.Scalar
+        assert np.all(attr.indices.data == [0, 0, 1])
+        assert np.issubdtype(attr.values.dtype, np.integer)
+        assert attr.indices.dtype == np.uint32
+
     def test_edges(self, single_triangle, cube):
         mesh = single_triangle
         mesh.initialize_edges(

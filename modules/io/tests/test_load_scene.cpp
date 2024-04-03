@@ -149,8 +149,13 @@ TEST_CASE("load_scene_avocado", "[io]")
     REQUIRE(!scene.materials.empty());
     REQUIRE(scene.textures.size() >= 2); // 2 or 3
     REQUIRE(scene.images.size() >= 2); // 2 or 3
-    REQUIRE(scene.images.front().height > 0);
-    REQUIRE(scene.images.front().width > 0);
+
+    for (const auto& image : scene.images) {
+        REQUIRE(!image.uri.empty());
+        auto& img = image.image;
+        REQUIRE(img.width > 0);
+        REQUIRE(img.height > 0);
+    }
     REQUIRE(scene.lights.empty());
     REQUIRE(scene.cameras.empty());
     REQUIRE(scene.skeletons.empty());
@@ -269,7 +274,8 @@ TEST_CASE("load_save_scene_obj", "[io]")
     io::save_mesh_obj("avocado_from_obj.obj", mesh);
 }
 
-TEST_CASE("load_gltf_gsplat", "[io]" LA_CORP_FLAG) {
+TEST_CASE("load_gltf_gsplat", "[io]" LA_CORP_FLAG)
+{
     auto scene = io::load_scene_gltf<scene::Scene32f>(
         testing::get_data_path("corp/io/neural_assets/High_Heel.gltf"));
     REQUIRE(!scene.nodes[0].extensions.data.empty());
@@ -315,7 +321,8 @@ TEST_CASE("scene_extension_user", "[scene]" LA_CORP_FLAG)
     io::LoadOptions load_opt;
     load_opt.extension_converters = {&converter};
     auto scene = io::load_scene_gltf<scene::Scene32f>(
-        testing::get_data_path("corp/io/neural_assets/High_Heel.gltf"), load_opt);
+        testing::get_data_path("corp/io/neural_assets/High_Heel.gltf"),
+        load_opt);
 
     REQUIRE(scene.nodes[0].extensions.data.size() == 0);
     REQUIRE(scene.nodes[0].extensions.user_data.size() == 1);

@@ -12,6 +12,7 @@
 #pragma once
 
 #include <Eigen/Eigen>
+
 #include <algorithm>
 #include <type_traits>
 

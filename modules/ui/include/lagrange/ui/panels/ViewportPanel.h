@@ -11,7 +11,9 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+
 #include <Eigen/Eigen>
 
 namespace lagrange {
@@ -64,7 +66,7 @@ struct FocusedViewportPanel
     Entity viewport_panel = NullEntity;
 };
 
-Entity add_viewport_panel(Registry& r, const std::string& name, Entity viewport);
+LA_UI_API Entity add_viewport_panel(Registry& r, const std::string& name, Entity viewport);
 
 
 } // namespace ui

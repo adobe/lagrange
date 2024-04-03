@@ -143,10 +143,9 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
         ImGui::ListBox(
             "Actions",
             &selected,
-            [](void* data, int idx, const char** out_text) {
+            [](void* data, int idx) -> const char* {
                 auto& _items = *reinterpret_cast<std::vector<std::string>*>(data);
-                if (out_text) *out_text = _items[idx].c_str();
-                return true;
+                return _items[idx].c_str();
             },
             &items,
             int(mapping.size()));

@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
+
 namespace lagrange {
 
 namespace tbb_utils {
@@ -21,14 +23,14 @@ namespace tbb_utils {
 ///
 /// @return     True if the group execution was canceled.
 ///
-bool cancel_group_execution();
+LA_CORE_API bool cancel_group_execution();
 
 ///
 /// Returns true if the current group execution was canceled.
 ///
 /// @return     True if canceled, False otherwise.
 ///
-bool is_cancelled();
+LA_CORE_API bool is_cancelled();
 
 } // namespace tbb_utils
 

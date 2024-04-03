@@ -13,6 +13,7 @@
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/NormalWeightingType.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/compute_area.h>
 #include <lagrange/compute_centroid.h>
@@ -21,7 +22,9 @@
 #include <lagrange/compute_dijkstra_distance.h>
 #include <lagrange/compute_edge_lengths.h>
 #include <lagrange/compute_facet_normal.h>
+#include <lagrange/compute_greedy_coloring.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/compute_seam_edges.h>
 #include <lagrange/compute_tangent_bitangent.h>
 #include <lagrange/compute_uv_distortion.h>
 #include <lagrange/compute_vertex_normal.h>
@@ -106,7 +109,7 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "keep_weighted_corner_normals",
             &VertexNormalOptions::keep_weighted_corner_normals,
-            "Whether to keep the weighted corner normal attirbute. Default is false.");
+            "Whether to keep the weighted corner normal attribute. Default is false.");
 
     m.def(
         "compute_vertex_normal",
@@ -154,7 +157,7 @@ void bind_utilities(nanobind::module_& m)
 :param weight_type: Weighting type for normal computation.
 :param weighted_corner_normal_attribute_name: Precomputed weighted corner normals attribute name.
 :param recompute_weighted_corner_normals: Whether to recompute weighted corner normals.
-:param keep_weighted_corner_normals: Whether to keep the weighted corner normal attirbute.
+:param keep_weighted_corner_normals: Whether to keep the weighted corner normal attribute.
 
 :returns: Vertex normal attribute id.)");
 
@@ -170,7 +173,7 @@ void bind_utilities(nanobind::module_& m)
         &compute_facet_normal<Scalar, Index>,
         "mesh"_a,
         "options"_a = FacetNormalOptions(),
-        R"(Computer facet normal.
+        R"(Compute facet normal.
 
 :param mesh: Input mesh.
 :param options: Options for computing facet normals.
@@ -186,7 +189,7 @@ void bind_utilities(nanobind::module_& m)
         },
         "mesh"_a,
         "output_attribute_name"_a = nb::none(),
-        R"(Computer facet normal (Pythonic API).
+        R"(Compute facet normal (Pythonic API).
 
 :param mesh: Input mesh.
 :param output_attribute_name: Output attribute name.
@@ -214,7 +217,7 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "keep_facet_normals",
             &NormalOptions::keep_facet_normals,
-            "Whether to keep the computed facet normal attirbute. Default is false.");
+            "Whether to keep the computed facet normal attribute. Default is false.");
 
     m.def(
         "compute_normal",
@@ -258,7 +261,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :param cone_vertices: cone vertices
 :type cone_vertices: list[int] or numpy.ndarray, optional
 :param options: normal options
-:type optionas: NormalOptions, optional
+:type optional: NormalOptions, optional
 
 :returns: the id of the indexed normal attribute.
 )");
@@ -320,10 +323,35 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :type facet_normal_attribute_name: str, optional
 :param recompute_facet_normals: whether to recompute facet normals
 :type recompute_facet_normals: bool, optional
-:param keep_facet_normals: whether to keep the computed facet normal attirbute
+:param keep_facet_normals: whether to keep the computed facet normal attribute
 :type keep_facet_normals: bool, optional
 
 :returns: the id of the indexed normal attribute.)");
+
+    m.def(
+        "compute_greedy_coloring",
+        [](MeshType& mesh,
+           AttributeElement element_type,
+           size_t num_color_used,
+           std::optional<std::string_view> output_attribute_name) {
+            GreedyColoringOptions options;
+            options.element_type = element_type;
+            options.num_color_used = num_color_used;
+            if (output_attribute_name) options.output_attribute_name = *output_attribute_name;
+            return compute_greedy_coloring<Scalar, Index>(mesh, options);
+        },
+        "mesh"_a,
+        "element_type"_a = AttributeElement::Facet,
+        "num_color_used"_a = 8,
+        "output_attribute_name"_a = nb::none(),
+        R"(Compute greedy coloring of mesh elements.
+
+:param mesh: Input mesh.
+:param element_type: Element type to be colored. Can be either Vertex or Facet.
+:param num_color_used: Minimum number of colors to use. The algorithm will cycle through them but may use more.
+:param output_attribute_name: Output attribute name.
+
+:returns: Color attribute id.)");
 
     m.def(
         "normalize_mesh",
@@ -362,6 +390,26 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :type preserve_attributes: bool
 
 :returns: the combined mesh)");
+
+    m.def(
+        "compute_seam_edges",
+        [](MeshType& mesh,
+           AttributeId indexed_attribute_id,
+           std::optional<std::string_view> output_attribute_name) {
+            SeamEdgesOptions options;
+            if (output_attribute_name) options.output_attribute_name = *output_attribute_name;
+            return compute_seam_edges<Scalar, Index>(mesh, indexed_attribute_id, options);
+        },
+        "mesh"_a,
+        "indexed_attribute_id"_a,
+        "output_attribute_name"_a = nb::none(),
+        R"(Computer seam edges for a given indexed attribute.
+
+:param mesh: Input mesh.
+:param indexed_attribute_id: Input indexed attribute id.
+:param output_attribute_name: Output attribute name.
+
+:returns: Attribute id for the output per-edge seam attribute (1 is a seam, 0 is not).)");
 
     m.def(
         "unify_index_buffer",
@@ -477,7 +525,7 @@ argument. Each component id is in [0, num_components-1] range.
 :returns: The vertex valence attribute id.)");
 
     m.def(
-        "compute_vertex_valance",
+        "compute_vertex_valence",
         [](MeshType& mesh, std::optional<std::string_view> output_attribute_name) {
             VertexValenceOptions opt;
             if (output_attribute_name.has_value()) {
@@ -1291,6 +1339,99 @@ A mesh considered as manifold if it is both vertex and edge manifold.
 :param excluded_attributes: List of attribute names or ids to exclude. By default, no attribute is excluded.
 :param included_usages: List of attribute usages to include. By default, all usages are included.
 :param included_element_types: List of attribute element types to include. By default, all element types are included.)");
+
+    m.def(
+        "cast_attribute",
+        [](MeshType& mesh,
+           std::variant<AttributeId, std::string_view> input_attribute,
+           nb::type_object dtype,
+           std::optional<std::string_view> output_attribute_name) {
+            /// Helper lambda function to cast an attribute to a new type
+            auto cast = [&](AttributeId attr_id) {
+                auto np = nb::module_::import_("numpy");
+                if (output_attribute_name.has_value()) {
+                    auto name = output_attribute_name.value();
+                    if (dtype.is(&PyFloat_Type)) {
+                        // Native python float is a C double.
+                        return cast_attribute<double>(mesh, attr_id, name);
+                    } else if (dtype.is(&PyLong_Type)) {
+                        // Native python int maps to int64.
+                        return cast_attribute<int64_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("float32"))) {
+                        return cast_attribute<float>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("float64"))) {
+                        return cast_attribute<double>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("int8"))) {
+                        return cast_attribute<int8_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("int16"))) {
+                        return cast_attribute<int16_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("int32"))) {
+                        return cast_attribute<int32_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("int64"))) {
+                        return cast_attribute<int64_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("uint8"))) {
+                        return cast_attribute<uint8_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("uint16"))) {
+                        return cast_attribute<uint16_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("uint32"))) {
+                        return cast_attribute<uint32_t>(mesh, attr_id, name);
+                    } else if (dtype.is(np.attr("uint64"))) {
+                        return cast_attribute<uint64_t>(mesh, attr_id, name);
+                    } else {
+                        throw nb::type_error("Unsupported `dtype`!");
+                    }
+                } else {
+                    if (dtype.is(&PyFloat_Type)) {
+                        // Native python float is a C double.
+                        return cast_attribute_in_place<double>(mesh, attr_id);
+                    } else if (dtype.is(&PyLong_Type)) {
+                        // Native python int maps to int64.
+                        return cast_attribute_in_place<int64_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("float32"))) {
+                        return cast_attribute_in_place<float>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("float64"))) {
+                        return cast_attribute_in_place<double>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("int8"))) {
+                        return cast_attribute_in_place<int8_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("int16"))) {
+                        return cast_attribute_in_place<int16_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("int32"))) {
+                        return cast_attribute_in_place<int32_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("int64"))) {
+                        return cast_attribute_in_place<int64_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("uint8"))) {
+                        return cast_attribute_in_place<uint8_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("uint16"))) {
+                        return cast_attribute_in_place<uint16_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("uint32"))) {
+                        return cast_attribute_in_place<uint32_t>(mesh, attr_id);
+                    } else if (dtype.is(np.attr("uint64"))) {
+                        return cast_attribute_in_place<uint64_t>(mesh, attr_id);
+                    } else {
+                        throw nb::type_error("Unsupported `dtype`!");
+                    }
+                }
+            };
+
+            if (std::holds_alternative<AttributeId>(input_attribute)) {
+                return cast(std::get<AttributeId>(input_attribute));
+            } else {
+                AttributeId id = mesh.get_attribute_id(std::get<std::string_view>(input_attribute));
+                return cast(id);
+            }
+        },
+        "mesh"_a,
+        "input_attribute"_a,
+        "dtype"_a,
+        "output_attribute_name"_a = nb::none(),
+        R"(Cast an attribute to a new dtype.
+
+:param mesh:            The input mesh.
+:param input_attribute: The input attribute id or name.
+:param dtype:           The new dtype.
+:param output_attribute_name: The output attribute name. If none, cast will replace the input attribute.
+
+:returns: The id of the new attribute.)");
 }
 
 } // namespace lagrange::python

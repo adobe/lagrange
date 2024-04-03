@@ -16,7 +16,7 @@
 
 namespace lagrange {
 
-enum class Orientation : short{
+enum class Orientation : short {
     Positive = 1,
     Zero = 0,
     Negative = -1

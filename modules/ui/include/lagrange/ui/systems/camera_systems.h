@@ -11,21 +11,22 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
 /// Adjust camera based on CameraController
-void camera_controller_system(Registry& registry);
+LA_UI_API void camera_controller_system(Registry& registry);
 
 
 /// Rotates Camera based on CameraTurntable component
-void camera_turntable_system(Registry& registry);
+LA_UI_API void camera_turntable_system(Registry& registry);
 
 
 /// Zooms Camera based on CameraZoomToFit component
-void camera_focusfit_system(Registry& registry);
+LA_UI_API void camera_focusfit_system(Registry& registry);
 
 
 } // namespace ui

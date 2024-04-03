@@ -45,13 +45,7 @@ else()
     message(FATAL_ERROR "Unsupported LAGRANGE_FS_BACKEND: ${LAGRANGE_FS_BACKEND}!")
 endif()
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_fs PROPERTIES EXPORT_NAME fs)
-    lagrange_install(lagrange_fs)
-endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

@@ -11,12 +11,13 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
-void update_accelerated_picking(Registry& r);
+LA_UI_API void update_accelerated_picking(Registry& r);
 
 } // namespace ui
 } // namespace lagrange

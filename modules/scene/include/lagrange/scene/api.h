@@ -1,0 +1,23 @@
+#pragma once
+
+#ifdef LA_SCENE_STATIC_DEFINE
+    #define LA_SCENE_API
+#else
+    #ifndef LA_SCENE_API
+        #ifdef lagrange_scene_EXPORTS
+            // We are building this library
+            #if defined(_WIN32) || defined(_WIN64)
+                #define LA_SCENE_API __declspec(dllexport)
+            #else
+                #define LA_SCENE_API __attribute__((visibility("default")))
+            #endif
+        #else
+            // We are using this library
+            #if defined(_WIN32) || defined(_WIN64)
+                #define LA_SCENE_API __declspec(dllimport)
+            #else
+                #define LA_SCENE_API __attribute__((visibility("default")))
+            #endif
+        #endif
+    #endif
+#endif

@@ -79,7 +79,7 @@ IndexedAttribute<ValueType, Index>& IndexedAttribute<ValueType, Index>::operator
 // Explicit template instantiation
 ////////////////////////////////////////////////////////////////////////////////
 
-#define LA_X_attr(Index, ValueType) template class IndexedAttribute<ValueType, Index>;
+#define LA_X_attr(Index, ValueType) template class LA_CORE_API IndexedAttribute<ValueType, Index>;
 #define LA_X_mesh(_, Index) LA_ATTRIBUTE_X(attr, Index)
 LA_SURFACE_MESH_INDEX_X(mesh, 0)
 

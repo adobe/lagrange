@@ -24,8 +24,11 @@ if(NOT COMMAND fonts_add_font)
 
 endif()
 
-fonts_add_font(fontawesome6)
-fonts_add_font(source_sans_pro_regular)
+block()
+    set(BUILD_SHARED_LIBS OFF)
+    fonts_add_font(fontawesome6)
+    fonts_add_font(source_sans_pro_regular)
+endblock()
 
 set_target_properties(fonts_fontawesome6 PROPERTIES FOLDER third_party)
 set_target_properties(fonts_source_sans_pro_regular PROPERTIES FOLDER third_party)

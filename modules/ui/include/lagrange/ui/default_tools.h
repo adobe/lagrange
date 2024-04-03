@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
@@ -57,8 +58,8 @@ struct DefaultTools
 };
 
 
-void register_default_tools(Tools& tools);
-void select(Registry& r, const std::function<void(Registry&)>& selection_system);
+LA_UI_API void register_default_tools(Tools& tools);
+LA_UI_API void select(Registry& r, const std::function<void(Registry&)>& selection_system);
 
 } // namespace ui
 } // namespace lagrange

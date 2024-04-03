@@ -86,7 +86,7 @@ void dijkstra(
 }
 
 #define LA_X_dijkstra(_, Scalar, Index)            \
-    template void dijkstra<Scalar, Index>(         \
+    template LA_CORE_API void dijkstra<Scalar, Index>(         \
         SurfaceMesh<Scalar, Index>&,               \
         span<const Index>,                         \
         span<const Scalar>,                        \

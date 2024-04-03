@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/IBL.h>
 
 namespace lagrange {
@@ -25,7 +26,7 @@ namespace ui {
 ///        https://www.deviantart.com/zbyg/art/HDRi-Pack-1-97402522
 ///
 ///        CC 3.0 License
-IBL generate_default_ibl(size_t resolution = 256);
+LA_UI_API IBL generate_default_ibl(size_t resolution = 256);
 
 } // namespace ui
 } // namespace lagrange

@@ -17,28 +17,18 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_scene PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
 
-lagrange_include_modules(image)
+lagrange_include_modules(fs)
 
 # 2. dependencies
 target_link_libraries(lagrange_scene
     lagrange::core
-    lagrange::image
+    lagrange::fs
 )
-
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_scene PROPERTIES EXPORT_NAME scene)
-    lagrange_install(lagrange_scene)
-endif()
 
 # 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()
-
-# if(LAGRANGE_EXAMPLES)
-#     add_subdirectory(examples)
-# endif()
 
 if(LAGRANGE_MODULE_PYTHON)
     add_subdirectory(python)

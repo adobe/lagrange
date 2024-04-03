@@ -14,6 +14,7 @@
 #include "PyAttribute.h"
 
 #include <lagrange/Attribute.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/internal/string_from_scalar.h>
 #include <lagrange/python/tensor_utils.h>
@@ -24,6 +25,7 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
+#include <nanobind/stl/optional.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -214,6 +216,25 @@ void bind_attribute(nanobind::module_& m)
             self.process(wrap_tensor);
         },
         "Raw data buffer of the attribute.");
+    attr_class.def_prop_ro(
+        "dtype",
+        [](PyAttribute& self) -> std::optional<nb::type_object> {
+            auto np = nb::module_::import_("numpy");
+            switch (self.ptr()->get_value_type()) {
+            case AttributeValueType::e_int8_t: return np.attr("int8");
+            case AttributeValueType::e_int16_t: return np.attr("int16");
+            case AttributeValueType::e_int32_t: return np.attr("int32");
+            case AttributeValueType::e_int64_t: return np.attr("int64");
+            case AttributeValueType::e_uint8_t: return np.attr("uint8");
+            case AttributeValueType::e_uint16_t: return np.attr("uint16");
+            case AttributeValueType::e_uint32_t: return np.attr("uint32");
+            case AttributeValueType::e_uint64_t: return np.attr("uint64");
+            case AttributeValueType::e_float: return np.attr("float32");
+            case AttributeValueType::e_double: return np.attr("float64");
+            default: logger().warn("Attribute has an unknown dtype."); return std::nullopt;
+            }
+        },
+        "Value type of the attribute.");
 }
 
 } // namespace lagrange::python

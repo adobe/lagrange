@@ -11,18 +11,19 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
-#include <Eigen/Eigen>
 
+#include <Eigen/Eigen>
 
 namespace lagrange {
 namespace ui {
 
 
-void render_points(Registry& r, const std::vector<Eigen::Vector3f>& points);
-void render_point(Registry& r, const Eigen::Vector3f& point);
-void render_lines(Registry& r, const std::vector<Eigen::Vector3f>& lines);
-void upload_immediate_system(Registry& r);
+LA_UI_API void render_points(Registry& r, const std::vector<Eigen::Vector3f>& points);
+LA_UI_API void render_point(Registry& r, const Eigen::Vector3f& point);
+LA_UI_API void render_lines(Registry& r, const std::vector<Eigen::Vector3f>& lines);
+LA_UI_API void upload_immediate_system(Registry& r);
 /*void reset_immediate_system(Registry& r);*/
 
 

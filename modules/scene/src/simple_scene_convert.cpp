@@ -59,11 +59,11 @@ SurfaceMesh<Scalar, Index> simple_scene_to_mesh(
 }
 
 #define LA_X_simple_scene_convert(_, Scalar, Index, Dimension)             \
-    template SimpleScene<Scalar, Index, Dimension> mesh_to_simple_scene(   \
+    template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> mesh_to_simple_scene(   \
         SurfaceMesh<Scalar, Index> mesh);                                  \
-    template SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene( \
+    template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene( \
         std::vector<SurfaceMesh<Scalar, Index>> meshes);                   \
-    template SurfaceMesh<Scalar, Index> simple_scene_to_mesh(              \
+    template LA_SCENE_API SurfaceMesh<Scalar, Index> simple_scene_to_mesh(              \
         const SimpleScene<Scalar, Index, Dimension>& scene,                \
         const TransformOptions& transform_options,                         \
         bool preserve_attributes);

@@ -147,11 +147,10 @@ void wrap_with_mesh(
         "vertices cannot be an rvalue");
 }
 
+std::unique_ptr<TriangleMesh3D> LA_CORE_API create_cube();
 
-std::unique_ptr<TriangleMesh3D> create_cube();
+std::unique_ptr<TriangleMesh3D> LA_CORE_API create_quad(bool with_center_vertex);
 
-std::unique_ptr<TriangleMesh3D> create_quad(bool with_center_vertex);
-
-std::unique_ptr<TriangleMesh3D> create_sphere(double refine_order = 2);
+std::unique_ptr<TriangleMesh3D> LA_CORE_API create_sphere(double refine_order = 2);
 
 } // namespace lagrange

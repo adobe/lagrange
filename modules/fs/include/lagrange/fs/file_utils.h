@@ -11,38 +11,40 @@
  */
 #pragma once
 
+#include <lagrange/fs/api.h>
+#include <lagrange/fs/filesystem.h>
+
 #include <string>
 #include <unordered_map>
-
-#include <lagrange/fs/filesystem.h>
 
 namespace lagrange {
 namespace fs {
 
 /// Helpers for when you don't want to use fs::path type.
 /// (You should use fs::path instead and avoid calling these)
-std::string get_filename_extension(const std::string& filename);
+LA_FS_API std::string get_filename_extension(const std::string& filename);
 
-std::string get_base_dir(const std::string& filename);
+LA_FS_API std::string get_base_dir(const std::string& filename);
 
 /// Ensures that the string ends with suffix. Will append suffix if needed.
-std::string get_string_ending_with(const std::string& str, const char* suffix);
+LA_FS_API std::string get_string_ending_with(const std::string& str, const char* suffix);
 
-std::string read_file_to_string(const path& path);
-std::string read_file_with_includes(const path& search_dir, const path& filepath);
-std::string read_file_with_includes(
-    const path& filepath, const std::unordered_map<std::string, std::string>& virtual_fs);
+LA_FS_API std::string read_file_to_string(const path& path);
+LA_FS_API std::string read_file_with_includes(const path& search_dir, const path& filepath);
+LA_FS_API std::string read_file_with_includes(
+    const path& filepath,
+    const std::unordered_map<std::string, std::string>& virtual_fs);
 
 // The executable is not present in WebAssembly's virtual file system, so it does not make sense
 // to provide get_executable_path() or get_executable_directory() when building with Emscripten.
 #if !defined(__EMSCRIPTEN__)
-path get_executable_path();
+LA_FS_API path get_executable_path();
 
-path get_executable_directory();
+LA_FS_API path get_executable_directory();
 #endif
 
 /// cwd
-path get_current_working_directory();
+LA_FS_API path get_current_working_directory();
 
 } // namespace fs
 } // namespace lagrange

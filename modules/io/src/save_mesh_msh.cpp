@@ -18,6 +18,7 @@
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/internal/find_attribute_utils.h>
+#include <lagrange/io/api.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
@@ -473,14 +474,14 @@ void save_mesh_msh(
     save_mesh_msh(fout, mesh, options);
 }
 
-#define LA_X_save_mesh_msh(_, S, I)    \
-    template void save_mesh_msh(       \
-        std::ostream&,                 \
-        const SurfaceMesh<S, I>& mesh, \
-        const SaveOptions& options);   \
-    template void save_mesh_msh(       \
-        const fs::path& filename,      \
-        const SurfaceMesh<S, I>& mesh, \
+#define LA_X_save_mesh_msh(_, S, I)        \
+    template LA_IO_API void save_mesh_msh( \
+        std::ostream&,                     \
+        const SurfaceMesh<S, I>& mesh,     \
+        const SaveOptions& options);       \
+    template LA_IO_API void save_mesh_msh( \
+        const fs::path& filename,          \
+        const SurfaceMesh<S, I>& mesh,     \
         const SaveOptions& options);
 LA_SURFACE_MESH_X(save_mesh_msh, 0)
 #undef LA_X_save_mesh_msh

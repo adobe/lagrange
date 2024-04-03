@@ -24,5 +24,19 @@ function(lagrange_add_python_binding)
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
+    # Add scripts if any
+    if(SKBUILD)
+        if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/scripts)
+            MESSAGE(STATUS "Adding scripts for module ${module_name}")
+            MESSAGE(STATUS ${SKBUILD_SCRIPTS_DIR})
+            file(GLOB_RECURSE SCRIPTS ${CMAKE_CURRENT_LIST_DIR}/scripts/*)
+            install(PROGRAMS ${SCRIPTS}
+                DESTINATION ${SKBUILD_SCRIPTS_DIR}
+                COMPONENT Lagrange_Python_Runtime
+            )
+        endif()
+    endif()
+
+    # Keep track of active modules
     set_property(TARGET lagrange_python APPEND PROPERTY LAGRANGE_ACTIVE_MODULES ${module_name})
 endfunction()

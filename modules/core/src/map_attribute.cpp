@@ -305,21 +305,21 @@ AttributeId map_attribute_in_place(
 }
 
 #define LA_X_map_attribute(_, Scalar, Index)     \
-    template AttributeId map_attribute(          \
+    template LA_CORE_API AttributeId map_attribute(          \
         SurfaceMesh<Scalar, Index>& mesh,        \
         AttributeId id,                          \
         std::string_view new_name,               \
         AttributeElement new_element);           \
-    template AttributeId map_attribute(          \
+    template LA_CORE_API AttributeId map_attribute(          \
         SurfaceMesh<Scalar, Index>& mesh,        \
         std::string_view old_name,               \
         std::string_view new_name,               \
         AttributeElement new_element);           \
-    template AttributeId map_attribute_in_place( \
+    template LA_CORE_API AttributeId map_attribute_in_place( \
         SurfaceMesh<Scalar, Index>& mesh,        \
         AttributeId id,                          \
         AttributeElement new_element);           \
-    template AttributeId map_attribute_in_place( \
+    template LA_CORE_API AttributeId map_attribute_in_place( \
         SurfaceMesh<Scalar, Index>& mesh,        \
         std::string_view name,                   \
         AttributeElement new_element);

@@ -12,12 +12,16 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 
+#include <lagrange/compute_normal.h>
+#include <lagrange/compute_seam_edges.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/map_attribute.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/subdivision/midpoint_subdivision.h>
 #include <lagrange/subdivision/sqrt_subdivision.h>
+#include <lagrange/views.h>
 
 #include <CLI/CLI.hpp>
 
@@ -29,6 +33,7 @@ int main(int argc, char** argv)
         std::string output = "output.obj";
         std::string scheme = "auto";
         bool output_btn = false;
+        std::optional<float> autodetect_normal_threshold;
     } args;
 
     lagrange::subdivision::SubdivisionOptions options;
@@ -40,6 +45,10 @@ int main(int argc, char** argv)
     app.add_option("-s,--scheme", args.scheme, "Subdivision scheme")
         ->check(CLI::IsMember({"auto", "bilinear", "loop", "catmark", "sqrt", "midpoint"}));
     app.add_option("-n,--num-levels", options.num_levels, "Number of subdivision levels");
+    app.add_option(
+        "-a,--autodetect-normal-threshold",
+        args.autodetect_normal_threshold,
+        "Normal angle threshold (in degree) for autodetecting sharp edges");
     app.add_flag(
         "--limit",
         options.use_limit_surface,
@@ -51,15 +60,25 @@ int main(int argc, char** argv)
 
     lagrange::logger().info("Loading input mesh: {}", args.input);
     auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32d>(args.input);
+    // gltf meshes are unindexed, so vertices at UV seams are duplicated
+    remove_duplicate_vertices(mesh);
     lagrange::logger().info(
         "Input mesh has {} vertices and {} facets",
         mesh.get_num_vertices(),
         mesh.get_num_facets());
 
-    if ((std::set<std::string>{"auto", "bilinear", "loop", "catmark"}).count(args.scheme)) {
-        // gltf meshes are unindexed, so vertices at UV seams are duplicated
-        remove_duplicate_vertices(mesh);
+    if (args.autodetect_normal_threshold.has_value()) {
+        lagrange::logger().info(
+            "Autodetecting sharp edges with a threshold of {} degrees",
+            args.autodetect_normal_threshold.value());
+        float feature_angle_threshold = args.autodetect_normal_threshold.value() * M_PI / 180.f;
+        auto normal_id = lagrange::compute_normal<double, uint32_t>(mesh, feature_angle_threshold);
+        auto seam_id = lagrange::compute_seam_edges(mesh, normal_id);
+        auto sharpness_id = lagrange::cast_attribute<float>(mesh, seam_id, "sharpness");
+        options.edge_sharpness_attr = sharpness_id;
+    }
 
+    if ((std::set<std::string>{"auto", "bilinear", "loop", "catmark"}).count(args.scheme)) {
         // Convert subdiv scheme to enum
         if (args.scheme == "loop") {
             options.scheme = lagrange::subdivision::SchemeType::Loop;

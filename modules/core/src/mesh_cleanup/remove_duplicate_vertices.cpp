@@ -175,7 +175,7 @@ void remove_duplicate_vertices(
 }
 
 #define LA_X_remove_duplicate_vertices(_, Scalar, Index)    \
-    template void remove_duplicate_vertices<Scalar, Index>( \
+    template LA_CORE_API void remove_duplicate_vertices<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                        \
         const RemoveDuplicateVerticesOptions&);
 LA_SURFACE_MESH_X(remove_duplicate_vertices, 0)

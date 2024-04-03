@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Light.h>
 #include <lagrange/ui/types/Color.h>
@@ -25,17 +26,17 @@ inline Eigen::Vector3f get_canonical_light_direction()
 }
 
 
-Entity add_point_light(
+LA_UI_API Entity add_point_light(
     Registry& r,
     Eigen::Vector3f intensity = Eigen::Vector3f::Ones(),
     Eigen::Vector3f position = Eigen::Vector3f::Zero());
 
-Entity add_directional_light(
+LA_UI_API Entity add_directional_light(
     Registry& r,
     Eigen::Vector3f intensity = Eigen::Vector3f::Ones(),
     Eigen::Vector3f direction = -Eigen::Vector3f::UnitY());
 
-Entity add_spot_light(
+LA_UI_API Entity add_spot_light(
     Registry& r,
     Eigen::Vector3f intensity = Eigen::Vector3f::Ones(),
     Eigen::Vector3f position = Eigen::Vector3f::Ones(),
@@ -43,12 +44,12 @@ Entity add_spot_light(
     float cone_angle = pi() / 4.0f);
 
 
-std::pair<Eigen::Vector3f, Eigen::Vector3f> get_light_position_and_direction(
+LA_UI_API std::pair<Eigen::Vector3f, Eigen::Vector3f> get_light_position_and_direction(
     const Registry& r,
     Entity e);
 
 
-void clear_lights(Registry& r);
+LA_UI_API void clear_lights(Registry& r);
 
 } // namespace ui
 } // namespace lagrange

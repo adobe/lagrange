@@ -15,7 +15,7 @@
 
 namespace lagrange {
 
-class ExactPredicatesShewchuk : public ExactPredicates
+class LA_CORE_API ExactPredicatesShewchuk : public ExactPredicates
 {
 public:
     ExactPredicatesShewchuk();

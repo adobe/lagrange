@@ -12,8 +12,10 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/cast.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/filter_attributes.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/views.h>
@@ -193,6 +195,34 @@ bool is_same_addr(
     return reinterpret_cast<const void*>(&attr_a) == reinterpret_cast<const void*>(&attr_b);
 }
 
+template <typename Scalar, typename Index>
+bool is_same_addr(
+    const lagrange::SurfaceMesh<Scalar, Index>& mesh,
+    std::string_view name_a,
+    std::string_view name_b)
+{
+    auto& attr_a = mesh.get_attribute_base(name_a);
+    auto& attr_b = mesh.get_attribute_base(name_b);
+    return reinterpret_cast<const void*>(&attr_a) == reinterpret_cast<const void*>(&attr_b);
+}
+
+template <typename Scalar, typename Index>
+bool is_same_ptr(
+    const lagrange::SurfaceMesh<Scalar, Index>& mesh,
+    std::string_view name,
+    const void* ptr)
+{
+    auto& attr = mesh.get_attribute_base(name);
+    return reinterpret_cast<const void*>(&attr) == ptr;
+}
+
+template <typename Scalar, typename Index>
+const void* get_addr(const lagrange::SurfaceMesh<Scalar, Index>& mesh, std::string_view name)
+{
+    auto& attr = mesh.get_attribute_base(name);
+    return reinterpret_cast<const void*>(&attr);
+}
+
 } // namespace
 
 TEST_CASE("cast address", "[core][surface][cast]")
@@ -254,8 +284,12 @@ TEST_CASE("cast address", "[core][surface][cast]")
         REQUIRE(!is_same_addr(mesh, mesh2, positions));
         REQUIRE(is_same_addr(mesh, mesh2, indices));
         REQUIRE(!is_same_addr(mesh, mesh2, uvs));
+        const auto& attr_pos2 = mesh2.get_attribute<OtherScalar>(positions);
         const auto& attr_uv = mesh.get_indexed_attribute<Scalar>(uvs);
         const auto& attr_uv2 = mesh2.get_indexed_attribute<OtherScalar>(uvs);
+        // Positions should be the same either way
+        REQUIRE(vertex_view(mesh).cast<OtherScalar>() == matrix_view(attr_pos2));
+        REQUIRE(vertex_view(mesh) == matrix_view(attr_pos2).cast<Scalar>());
         // Casting to float should yield the same value
         REQUIRE(
             matrix_view(attr_uv.values()).cast<OtherScalar>() == matrix_view(attr_uv2.values()));
@@ -270,14 +304,36 @@ TEST_CASE("cast address", "[core][surface][cast]")
         REQUIRE(!is_same_addr(mesh, mesh2, positions));
         REQUIRE(!is_same_addr(mesh, mesh2, indices));
         REQUIRE(!is_same_addr(mesh, mesh2, uvs));
+        const auto& attr_pos2 = mesh2.get_attribute<OtherScalar>(positions);
         const auto& attr_uv = mesh.get_indexed_attribute<Scalar>(uvs);
         const auto& attr_uv2 = mesh2.get_indexed_attribute<OtherScalar>(uvs);
+        // Positions should be the same either way
+        REQUIRE(vertex_view(mesh).cast<OtherScalar>() == matrix_view(attr_pos2));
+        REQUIRE(vertex_view(mesh) == matrix_view(attr_pos2).cast<Scalar>());
         // Casting to float should yield the same value
         REQUIRE(
             matrix_view(attr_uv.values()).cast<OtherScalar>() == matrix_view(attr_uv2.values()));
         // Casting to double should yield different value
         REQUIRE(matrix_view(attr_uv.values()) != matrix_view(attr_uv2.values()).cast<Scalar>());
         REQUIRE(matrix_view(attr_uv.indices()) == matrix_view(attr_uv2.indices()).cast<Index>());
+    }
+
+    SECTION("different scalar, cast attr")
+    {
+        auto positions2_id = lagrange::cast_attribute<OtherScalar>(mesh, positions, "positions2");
+        auto uv2_id = lagrange::cast_attribute<OtherScalar>(mesh, uvs, "uv2");
+        const auto& attr_pos2 = mesh.get_attribute<OtherScalar>(positions2_id);
+        const auto& attr_uv = mesh.get_indexed_attribute<Scalar>(uvs);
+        const auto& attr_uv2 = mesh.get_indexed_attribute<OtherScalar>(uv2_id);
+        // Positions should be the same either way
+        REQUIRE(vertex_view(mesh).cast<OtherScalar>() == matrix_view(attr_pos2));
+        REQUIRE(vertex_view(mesh) == matrix_view(attr_pos2).cast<Scalar>());
+        // Casting to float should yield the same value
+        REQUIRE(
+            matrix_view(attr_uv.values()).cast<OtherScalar>() == matrix_view(attr_uv2.values()));
+        // Casting to double should yield different value
+        REQUIRE(matrix_view(attr_uv.values()) != matrix_view(attr_uv2.values()).cast<Scalar>());
+        REQUIRE(matrix_view(attr_uv.indices()) == matrix_view(attr_uv2.indices()));
     }
 }
 
@@ -325,7 +381,7 @@ TEST_CASE("cast external", "[core][surface][cast]")
         1,
         colors_view);
 
-    SECTION("same scalar")
+    SECTION("same scalar, cast mesh")
     {
         auto mesh2 = lagrange::cast<Scalar, Index>(mesh);
 
@@ -354,30 +410,155 @@ TEST_CASE("cast external", "[core][surface][cast]")
         REQUIRE(!colors_sh.is_read_only());
     }
 
-    SECTION("different scalar")
+    SECTION("same scalar, cast attr")
+    {
+        lagrange::cast_attribute<Scalar>(mesh, "colors", "colors2");
+        const auto& colors = mesh.get_attribute<Scalar>("colors2");
+        REQUIRE(is_same_addr(mesh, "colors", "colors2"));
+        REQUIRE(!colors.is_external());
+        REQUIRE(colors.is_managed());
+        REQUIRE(!colors.is_read_only());
+
+        lagrange::cast_attribute<Scalar>(mesh, "colors_rw", "colors_rw2");
+        const auto& colors_rw = mesh.get_attribute<Scalar>("colors_rw2");
+        REQUIRE(is_same_addr(mesh, "colors_rw", "colors_rw2"));
+        REQUIRE(colors_rw.is_external());
+        REQUIRE(!colors_rw.is_managed());
+        REQUIRE(!colors_rw.is_read_only());
+
+        lagrange::cast_attribute<Scalar>(mesh, "colors_ro", "colors_ro2");
+        const auto& colors_ro = mesh.get_attribute<Scalar>("colors_ro2");
+        REQUIRE(is_same_addr(mesh, "colors_ro", "colors_ro2"));
+        REQUIRE(colors_ro.is_external());
+        REQUIRE(!colors_ro.is_managed());
+        REQUIRE(colors_ro.is_read_only());
+
+        lagrange::cast_attribute<Scalar>(mesh, "colors_sh", "colors_sh2");
+        const auto& colors_sh = mesh.get_attribute<Scalar>("colors_sh2");
+        REQUIRE(is_same_addr(mesh, "colors_sh", "colors_sh2"));
+        REQUIRE(colors_sh.is_external());
+        REQUIRE(colors_sh.is_managed());
+        REQUIRE(!colors_sh.is_read_only());
+    }
+
+    SECTION("same scalar, cast attr in place")
+    {
+        auto colors_ptr = get_addr(mesh, "colors");
+        lagrange::cast_attribute_in_place<Scalar>(mesh, "colors");
+        const auto& colors = mesh.get_attribute<Scalar>("colors");
+        REQUIRE(is_same_ptr(mesh, "colors", colors_ptr));
+        REQUIRE(!colors.is_external());
+        REQUIRE(colors.is_managed());
+        REQUIRE(!colors.is_read_only());
+
+        auto colors_rw_ptr = get_addr(mesh, "colors_rw");
+        lagrange::cast_attribute_in_place<Scalar>(mesh, "colors_rw");
+        const auto& colors_rw = mesh.get_attribute<Scalar>("colors_rw");
+        REQUIRE(is_same_ptr(mesh, "colors_rw", colors_rw_ptr));
+        REQUIRE(colors_rw.is_external());
+        REQUIRE(!colors_rw.is_managed());
+        REQUIRE(!colors_rw.is_read_only());
+
+        auto colors_ro_ptr = get_addr(mesh, "colors_ro");
+        lagrange::cast_attribute_in_place<Scalar>(mesh, "colors_ro");
+        const auto& colors_ro = mesh.get_attribute<Scalar>("colors_ro");
+        REQUIRE(is_same_ptr(mesh, "colors_ro", colors_ro_ptr));
+        REQUIRE(colors_ro.is_external());
+        REQUIRE(!colors_ro.is_managed());
+        REQUIRE(colors_ro.is_read_only());
+
+        auto colors_sh_ptr = get_addr(mesh, "colors_sh");
+        lagrange::cast_attribute_in_place<Scalar>(mesh, "colors_sh");
+        const auto& colors_sh = mesh.get_attribute<Scalar>("colors_sh");
+        REQUIRE(is_same_ptr(mesh, "colors_sh", colors_sh_ptr));
+        REQUIRE(colors_sh.is_external());
+        REQUIRE(colors_sh.is_managed());
+        REQUIRE(!colors_sh.is_read_only());
+    }
+
+    SECTION("different scalar, cast mesh")
     {
         auto mesh2 = lagrange::cast<OtherScalar, Index>(mesh);
 
-        const auto& colors = mesh2.get_attribute<Scalar>("colors");
+        const auto& colors = mesh2.get_attribute<OtherScalar>("colors");
         REQUIRE(!is_same_addr(mesh, mesh2, "colors"));
         REQUIRE(!colors.is_external());
         REQUIRE(colors.is_managed());
         REQUIRE(!colors.is_read_only());
 
-        const auto& colors_rw = mesh2.get_attribute<Scalar>("colors_rw");
+        const auto& colors_rw = mesh2.get_attribute<OtherScalar>("colors_rw");
         REQUIRE(!is_same_addr(mesh, mesh2, "colors_rw"));
         REQUIRE(!colors_rw.is_external());
         REQUIRE(colors_rw.is_managed());
         REQUIRE(!colors_rw.is_read_only());
 
-        const auto& colors_ro = mesh2.get_attribute<Scalar>("colors_ro");
+        const auto& colors_ro = mesh2.get_attribute<OtherScalar>("colors_ro");
         REQUIRE(!is_same_addr(mesh, mesh2, "colors_ro"));
         REQUIRE(!colors_ro.is_external());
         REQUIRE(colors_ro.is_managed());
         REQUIRE(!colors_ro.is_read_only());
 
-        const auto& colors_sh = mesh2.get_attribute<Scalar>("colors_sh");
+        const auto& colors_sh = mesh2.get_attribute<OtherScalar>("colors_sh");
         REQUIRE(!is_same_addr(mesh, mesh2, "colors_sh"));
+        REQUIRE(!colors_sh.is_external());
+        REQUIRE(colors_sh.is_managed());
+        REQUIRE(!colors_sh.is_read_only());
+    }
+
+    SECTION("different scalar, cast attr")
+    {
+        lagrange::cast_attribute<OtherScalar>(mesh, "colors", "colors2");
+        const auto& colors = mesh.get_attribute<OtherScalar>("colors2");
+        REQUIRE(!is_same_addr(mesh, "colors", "colors2"));
+        REQUIRE(!colors.is_external());
+        REQUIRE(colors.is_managed());
+        REQUIRE(!colors.is_read_only());
+
+        lagrange::cast_attribute<OtherScalar>(mesh, "colors_rw", "colors_rw2");
+        const auto& colors_rw = mesh.get_attribute<OtherScalar>("colors_rw2");
+        REQUIRE(!is_same_addr(mesh, "colors_rw", "colors_rw2"));
+        REQUIRE(!colors_rw.is_external());
+        REQUIRE(colors_rw.is_managed());
+        REQUIRE(!colors_rw.is_read_only());
+
+        lagrange::cast_attribute<OtherScalar>(mesh, "colors_ro", "colors_ro2");
+        const auto& colors_ro = mesh.get_attribute<OtherScalar>("colors_ro2");
+        REQUIRE(!is_same_addr(mesh, "colors_ro", "colors_ro2"));
+        REQUIRE(!colors_ro.is_external());
+        REQUIRE(colors_ro.is_managed());
+        REQUIRE(!colors_ro.is_read_only());
+
+        lagrange::cast_attribute<OtherScalar>(mesh, "colors_sh", "colors_sh2");
+        const auto& colors_sh = mesh.get_attribute<OtherScalar>("colors_sh2");
+        REQUIRE(!is_same_addr(mesh, "colors_sh", "colors_sh2"));
+        REQUIRE(!colors_sh.is_external());
+        REQUIRE(colors_sh.is_managed());
+        REQUIRE(!colors_sh.is_read_only());
+    }
+
+    SECTION("different scalar, cast attr in place")
+    {
+        // The Attribute object address could be the same, or different... no guarantee in this case
+        lagrange::cast_attribute_in_place<OtherScalar>(mesh, "colors");
+        const auto& colors = mesh.get_attribute<OtherScalar>("colors");
+        REQUIRE(!colors.is_external());
+        REQUIRE(colors.is_managed());
+        REQUIRE(!colors.is_read_only());
+
+        lagrange::cast_attribute_in_place<OtherScalar>(mesh, "colors_rw");
+        const auto& colors_rw = mesh.get_attribute<OtherScalar>("colors_rw");
+        REQUIRE(!colors_rw.is_external());
+        REQUIRE(colors_rw.is_managed());
+        REQUIRE(!colors_rw.is_read_only());
+
+        lagrange::cast_attribute_in_place<OtherScalar>(mesh, "colors_ro");
+        const auto& colors_ro = mesh.get_attribute<OtherScalar>("colors_ro");
+        REQUIRE(!colors_ro.is_external());
+        REQUIRE(colors_ro.is_managed());
+        REQUIRE(!colors_ro.is_read_only());
+
+        lagrange::cast_attribute_in_place<OtherScalar>(mesh, "colors_sh");
+        const auto& colors_sh = mesh.get_attribute<OtherScalar>("colors_sh");
         REQUIRE(!colors_sh.is_external());
         REQUIRE(colors_sh.is_managed());
         REQUIRE(!colors_sh.is_read_only());

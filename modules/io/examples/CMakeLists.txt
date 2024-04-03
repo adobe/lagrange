@@ -13,3 +13,6 @@ include(cli11)
 
 lagrange_add_example(mesh_convert mesh_convert.cpp)
 target_link_libraries(mesh_convert lagrange::core lagrange::io CLI11::CLI11)
+
+lagrange_add_example(scene_io scene_io.cpp)
+target_link_libraries(scene_io lagrange::core lagrange::io CLI11::CLI11)

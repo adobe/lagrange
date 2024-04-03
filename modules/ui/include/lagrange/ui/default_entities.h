@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/default_components.h>
 #include <lagrange/ui/default_shaders.h>
@@ -20,27 +21,27 @@
 namespace lagrange {
 namespace ui {
 
-void set_material(Registry& r, Entity meshrender_entity, std::shared_ptr<Material> mat);
+LA_UI_API void set_material(Registry& r, Entity meshrender_entity, std::shared_ptr<Material> mat);
 
-Entity show_mesh(
+LA_UI_API Entity show_mesh(
     Registry& r,
     const Entity& mesh_entity,
     StringID shader = DefaultShaders::PBR,
     const ShaderDefines& shader_defines = {});
-Entity show_submesh(
+LA_UI_API Entity show_submesh(
     Registry& r,
     const Entity& mesh_entity,
     std::shared_ptr<Material> material,
     entt::id_type submesh_id);
 
-Entity show_mesh(
+LA_UI_API Entity show_mesh(
     Registry& r,
     Entity mesh_entity,
     Entity scene_node_entity,
     StringID shader = DefaultShaders::PBR,
     const ShaderDefines& shader_defines = {});
 
-Entity show_mesh(
+LA_UI_API Entity show_mesh(
     Registry& r,
     Entity mesh_entity,
     Entity scene_node_entity,
@@ -50,53 +51,53 @@ Entity show_mesh(
 /*
     Attribute visualization
 */
-Entity show_vertex_attribute(
+LA_UI_API Entity show_vertex_attribute(
     Registry& r,
     const Entity& mesh_entity,
     const std::string& attribute,
     Glyph glyph);
 
-Entity show_facet_attribute(
+LA_UI_API Entity show_facet_attribute(
     Registry& r,
     const Entity& mesh_entity,
     const std::string& attribute,
     Glyph glyph);
 
-Entity show_edge_attribute(
+LA_UI_API Entity show_edge_attribute(
     Registry& r,
     const Entity& mesh_entity,
     const std::string& attribute,
     Glyph glyph);
 
-Entity show_corner_attribute(
+LA_UI_API Entity show_corner_attribute(
     Registry& r,
     const Entity& mesh_entity,
     const std::string& attribute,
     Glyph glyph);
 
-Entity show_indexed_attribute(
+LA_UI_API Entity show_indexed_attribute(
     Registry& r,
     const Entity& mesh_entity,
     const std::string& attribute,
     Glyph glyph);
 
 
-void set_colormap(Registry& r, Entity meshrender_entity, std::shared_ptr<Texture> texture);
+LA_UI_API void set_colormap(Registry& r, Entity meshrender_entity, std::shared_ptr<Texture> texture);
 
-void set_colormap_range(
+LA_UI_API void set_colormap_range(
     Registry& r,
     Entity meshrender_entity,
     const Eigen::Vector4f& range_min,
     const Eigen::Vector4f& range_max);
 
 
-void set_colormap_range(
+LA_UI_API void set_colormap_range(
     Registry& r,
     Entity meshrender_entity,
     const std::pair<Eigen::VectorXf, Eigen::VectorXf>& range);
 
 
-std::shared_ptr<Material> get_material(Registry& r, Entity meshrender_entity);
+LA_UI_API std::shared_ptr<Material> get_material(Registry& r, Entity meshrender_entity);
 
 inline Transform& get_transform(Registry& r, Entity e)
 {
@@ -189,38 +190,38 @@ Entity load_mesh(
 /*
  * Mesh update
  */
-void set_mesh_vertices_dirty(Registry& r, Entity mesh_entity);
-void set_mesh_normals_dirty(Registry& r, Entity mesh_entity);
-void set_mesh_dirty(Registry& r, Entity mesh_entity);
+LA_UI_API void set_mesh_vertices_dirty(Registry& r, Entity mesh_entity);
+LA_UI_API void set_mesh_normals_dirty(Registry& r, Entity mesh_entity);
+LA_UI_API void set_mesh_dirty(Registry& r, Entity mesh_entity);
 
-void set_show_attribute_dirty(Registry& r, Entity scene_entity);
-void set_mesh_attribute_dirty(
+LA_UI_API void set_show_attribute_dirty(Registry& r, Entity scene_entity);
+LA_UI_API void set_mesh_attribute_dirty(
     Registry& r,
     Entity mesh_entity,
     IndexingMode mode,
     const std::string& name);
 
-Entity get_meshdata_entity(Registry& r, Entity scene_entity);
-MeshData& get_meshdata(Registry& r, Entity scene_or_mesh_entity);
+LA_UI_API Entity get_meshdata_entity(Registry& r, Entity scene_entity);
+LA_UI_API MeshData& get_meshdata(Registry& r, Entity scene_or_mesh_entity);
 
 
 /*
     Material
 */
 std::shared_ptr<Material>
-create_material(Registry& r, entt::id_type shader_id, const ShaderDefines& shader_defines = {});
+LA_UI_API create_material(Registry& r, entt::id_type shader_id, const ShaderDefines& shader_defines = {});
 
 
-Entity add_camera(Registry& r, const Camera& camera = Camera::default_camera(1, 1));
+LA_UI_API Entity add_camera(Registry& r, const Camera& camera = Camera::default_camera(1, 1));
 
 
 // Clears all user added entities
-void clear_scene(Registry& r);
+LA_UI_API void clear_scene(Registry& r);
 
 /// Intersect ray with meshes in root's hierarchy
 /// Returns a pair of intersected entity and the corresponding hit
 /// If root == ui::NullEntity, entire scene is traversed
-std::optional<std::pair<Entity, RayFacetHit>> intersect_ray(
+LA_UI_API std::optional<std::pair<Entity, RayFacetHit>> intersect_ray(
     Registry& r,
     const Eigen::Vector3f& origin,
     const Eigen::Vector3f& dir,

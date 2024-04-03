@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
+
 namespace lagrange {
 
 /// @addtogroup group-utils-misc
@@ -19,12 +21,12 @@ namespace lagrange {
 ///
 /// Enable floating-point exceptions (useful for debugging)..
 ///
-void enable_fpe();
+LA_CORE_API void enable_fpe();
 
 ///
 /// Disable previously-enabled fpe..
 ///
-void disable_fpe();
+LA_CORE_API void disable_fpe();
 
 /// @}
 

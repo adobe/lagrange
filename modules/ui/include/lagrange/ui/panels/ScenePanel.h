@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/io/load_mesh_ext.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Layer.h>
@@ -42,7 +43,7 @@ struct ScenePanel
 };
 
 
-Entity add_scene_panel(Registry& r, const std::string& name = "Scene");
+LA_UI_API Entity add_scene_panel(Registry& r, const std::string& name = "Scene");
 
 } // namespace ui
 } // namespace lagrange

@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/utils/math.h>
 #include <array>
 
@@ -38,7 +39,7 @@ enum FrustumVertices : unsigned int {
 };
 
 /// Frustum defined using 6 planes
-class Frustum
+class LA_UI_API Frustum
 {
 public:
     using Plane = Eigen::Hyperplane<float, 3>;

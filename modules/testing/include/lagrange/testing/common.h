@@ -21,6 +21,7 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/legacy/load_mesh.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/testing/api.h>
 #include <lagrange/utils/assert.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -89,7 +90,7 @@ namespace testing {
 ///
 /// @return     Absolute path to the file.
 ///
-fs::path get_data_path(const fs::path& relative_path);
+LA_TESTING_API fs::path get_data_path(const fs::path& relative_path);
 
 ///
 /// Loads a mesh from the test data directory.
@@ -107,8 +108,8 @@ std::unique_ptr<MeshType> load_mesh(const fs::path& relative_path)
     REQUIRE(result);
     return result;
 }
-extern template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
-extern template std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
+extern template LA_TESTING_API std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
+extern template LA_TESTING_API std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
 
 ///
 /// Load a mesh from test data directory as a `SurfaceMesh`.
@@ -139,7 +140,7 @@ SurfaceMesh<Scalar, Index> load_surface_mesh(const fs::path& relative_path)
 /// [1]:
 /// https://software.intel.com/content/www/us/en/develop/articles/introduction-to-the-conditional-numerical-reproducibility-cnr.html
 ///
-void setup_mkl_reproducibility();
+LA_TESTING_API void setup_mkl_reproducibility();
 
 } // namespace testing
 } // namespace lagrange

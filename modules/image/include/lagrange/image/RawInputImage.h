@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/common.h>
+#include <lagrange/image/api.h>
 
 #include <cassert>
 #include <vector>
@@ -32,7 +33,7 @@ namespace image {
 /// * get_pixel_data can pointer to external memory without ownership, or inside m_local_pixel_data with ownership
 ///   if set_pixel_data(*, false), m_pixel_data points to external memory, m_local_pixel_data is empty
 ///   if set_pixel_data(*, true),  m_pixel_data is nullptr, m_local_pixel_data holds the pixels
-class RawInputImage
+class LA_IMAGE_API RawInputImage
 {
 public:
     enum class precision_semantic : uint32_t {
@@ -274,11 +275,11 @@ void serialize(lagrange::image::RawInputImage& image, Archive& ar)
 }
 
 /// Wrap a void * data into a Linear 4-component image. Pixel memory ownership is not transferred.
-RawInputImage
+LA_IMAGE_API RawInputImage
 make_default_rgba_image(std::size_t i_width, std::size_t i_height, const void* i_pixels);
 
 /// Wrap a void * data into a Linear 1-component image. Pixel memory ownership is not transferred.
-RawInputImage
+LA_IMAGE_API RawInputImage
 make_default_luminance_image(std::size_t i_width, std::size_t i_height, const void* i_pixels);
 
 /// wrap uv coordinate

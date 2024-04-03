@@ -12,6 +12,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/io/api.h>
 #include <lagrange/io/internal/detect_file_format.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/load_mesh_gltf.h>
@@ -19,6 +20,7 @@
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_mesh_ply.h>
 #include <lagrange/utils/strings.h>
+
 #ifdef LAGRANGE_WITH_ASSIMP
     #include <lagrange/io/load_mesh_assimp.h>
 #endif
@@ -71,12 +73,12 @@ MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
     }
 }
 
-#define LA_X_load_mesh(_, S, I)                                       \
-    template SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
-        std::istream&,                                                \
-        const LoadOptions&);                                          \
-    template SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
-        const fs::path&,                                              \
+#define LA_X_load_mesh(_, S, I)                                                 \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
+        std::istream&,                                                          \
+        const LoadOptions&);                                                    \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh<SurfaceMesh<S, I>, nullptr>( \
+        const fs::path&,                                                        \
         const LoadOptions&);
 LA_SURFACE_MESH_X(load_mesh, 0);
 

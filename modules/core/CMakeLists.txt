@@ -124,13 +124,7 @@ if(LAGRANGE_USE_PCH)
     )
 endif()
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_core PROPERTIES EXPORT_NAME core)
-    lagrange_install(lagrange_core)
-endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()
@@ -143,7 +137,7 @@ if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
-# 5. python binding
+# 4. python binding
 if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
     add_subdirectory(python)
 endif()

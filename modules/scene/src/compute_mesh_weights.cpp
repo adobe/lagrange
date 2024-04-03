@@ -95,7 +95,7 @@ std::vector<double> compute_mesh_weights(
 }
 
 #define LA_X_compute_mesh_weights(_, Scalar, Index, Dim) \
-    template std::vector<double> compute_mesh_weights(   \
+    template LA_SCENE_API std::vector<double> compute_mesh_weights(   \
         const SimpleScene<Scalar, Index, Dim>& scene,    \
         const FacetAllocationStrategy facet_allocation_strategy);
 LA_SIMPLE_SCENE_X(compute_mesh_weights, 0)

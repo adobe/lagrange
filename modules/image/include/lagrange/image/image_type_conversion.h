@@ -21,9 +21,9 @@
 namespace lagrange {
 namespace image {
 
-std::shared_ptr<ImageStorage> image_storage_from_raw_input_image(const image::RawInputImage& image);
+LA_IMAGE_API std::shared_ptr<ImageStorage> image_storage_from_raw_input_image(const image::RawInputImage& image);
 
-image::RawInputImage raw_input_image_from_image_view(
+LA_IMAGE_API image::RawInputImage raw_input_image_from_image_view(
     image::ImageViewBase& in,
     bool copy_buffer = false);
 

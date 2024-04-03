@@ -187,11 +187,10 @@ bool UIWidget::operator()(Eigen::Affine3f& value)
 bool UIWidget::render_matrix(float* M, int dimension)
 {
     int ID = static_cast<int>(reinterpret_cast<size_t>(M));
-    ImGui::BeginChildFrame(
+    ImGui::BeginChild(
         ID,
-        ImVec2(
-            ImGui::GetColumnWidth() - 17,
-            ImGui::GetTextLineHeightWithSpacing() * dimension + 5));
+        ImVec2(ImGui::GetColumnWidth() - 17, ImGui::GetTextLineHeightWithSpacing() * dimension + 5),
+        ImGuiChildFlags_FrameStyle);
     ImGui::Columns(dimension);
 
     bool changed = false;
@@ -205,7 +204,7 @@ bool UIWidget::render_matrix(float* M, int dimension)
     }
 
     ImGui::Columns(1);
-    ImGui::EndChildFrame();
+    ImGui::EndChild();
     return changed;
 }
 

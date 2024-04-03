@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
@@ -20,7 +21,7 @@ namespace ui {
 /*
     Updates AABB of every entity having <AABB, Transform, MeshGeometry>
 */
-void update_mesh_bounds_system(Registry& ctx);
+LA_UI_API void update_mesh_bounds_system(Registry& ctx);
 
 
 } // namespace ui

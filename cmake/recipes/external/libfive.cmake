@@ -141,6 +141,12 @@ if(MSVC)
         /bigobj
     )
 endif()
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
+   "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(libfive PRIVATE
+        "-Wno-enum-constexpr-conversion"
+    )
+endif()
 set_target_properties(libfive PROPERTIES POSITION_INDEPENDENT_CODE ON)
 add_library(libfive::libfive ALIAS libfive)
 set_target_properties(libfive PROPERTIES FOLDER third_party/libfive)

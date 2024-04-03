@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/Logger.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/types/Texture.h>
@@ -24,7 +25,7 @@
 namespace lagrange {
 namespace ui {
 
-std::shared_ptr<Texture> load_texture(
+LA_UI_API std::shared_ptr<Texture> load_texture(
     const fs::path& path,
     const Texture::Params& params = Texture::Params());
 
@@ -32,7 +33,7 @@ std::shared_ptr<Texture> load_texture(
 /// @param base_dir
 /// @param tinymat
 /// @return
-std::shared_ptr<Material>
+LA_UI_API std::shared_ptr<Material>
 convert_material(Registry& r, const fs::path& base_dir, const tinyobj::material_t& tinymat);
 
 

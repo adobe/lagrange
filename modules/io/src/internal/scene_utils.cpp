@@ -10,41 +10,48 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/io/internal/scene_utils.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/image_io/load_image.h>
+#include <lagrange/io/internal/scene_utils.h>
 
 namespace lagrange::io::internal {
 
-bool try_load_image(const std::string& name, const LoadOptions& options, scene::ImageLegacy& image)
+bool try_load_image(
+    const std::string& name,
+    const LoadOptions& options,
+    scene::ImageExperimental& image)
 {
     fs::path path = name;
     if (path.is_relative() && !options.search_path.empty()) path = options.search_path / name;
     if (path.empty()) return false;
-    if (image.data) return false;
 
     image_io::LoadImageResult result = image_io::load_image(path);
     if (!result.valid) return false;
 
-    image.width = result.width;
-    image.height = result.height;
-    image.precision = result.precision;
-    image.channel = result.channel;
-    image.data = result.storage;
-    image.uri = name;
-    if (path.has_extension()) {
-        auto extension = path.extension();
-        if (extension == ".jpeg" || extension == ".jpg") {
-            image.type = scene::ImageLegacy::Type::Jpeg;
-        } else if (extension == ".png") {
-            image.type = scene::ImageLegacy::Type::Png;
-        } else if (extension == ".bmp") {
-            image.type = scene::ImageLegacy::Type::Bmp;
-        } else if (extension == ".gif") {
-            image.type = scene::ImageLegacy::Type::Gif;
-        } else {
-            image.type = scene::ImageLegacy::Type::Unknown;
-        }
+    scene::ImageBufferExperimental& buffer = image.image;
+    buffer.width = result.width;
+    buffer.height = result.height;
+    buffer.num_channels = static_cast<size_t>(result.channel);
+    switch (result.precision) {
+    case image::ImagePrecision::uint8: buffer.element_type = AttributeValueType::e_uint8_t; break;
+    case image::ImagePrecision::int8: buffer.element_type = AttributeValueType::e_int8_t; break;
+    case image::ImagePrecision::uint32: buffer.element_type = AttributeValueType::e_uint32_t; break;
+    case image::ImagePrecision::int32: buffer.element_type = AttributeValueType::e_int32_t; break;
+    case image::ImagePrecision::float32: buffer.element_type = AttributeValueType::e_float; break;
+    case image::ImagePrecision::float64: buffer.element_type = AttributeValueType::e_double; break;
+    case image::ImagePrecision::float16: [[fallthrough]];
+    default: throw std::runtime_error("Unsupported image precision");
     }
+
+    la_runtime_assert(result.storage != nullptr);
+    const size_t num_bytes =
+        buffer.width * buffer.height * buffer.num_channels * buffer.get_bits_per_element() / 8;
+    buffer.data.reserve(num_bytes);
+    std::copy(
+        result.storage->data(),
+        result.storage->data() + num_bytes,
+        std::back_inserter(buffer.data));
+
     return true;
 }
 

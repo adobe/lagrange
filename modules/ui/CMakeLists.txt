@@ -11,7 +11,7 @@
 #
 
 # 1. define module
-lagrange_add_module()
+lagrange_add_module(NO_INSTALL)
 
 if(WIN32)
     target_compile_definitions(lagrange_ui PUBLIC -DNOMINMAX -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
@@ -115,13 +115,7 @@ if(LAGRANGE_USE_PCH)
     target_link_libraries(lagrange_ui PRIVATE lagrange_ui_pch)
 endif()
 
-# 4. installation
-# if(LAGRANGE_INSTALL)
-#     set_target_properties(lagrange_ui PROPERTIES EXPORT_NAME ui)
-#     lagrange_install(lagrange_ui)
-# endif()
-
-# 5. unit tests and examples
+# 4. unit tests and examples
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
 endif()

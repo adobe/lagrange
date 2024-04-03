@@ -11,6 +11,10 @@
  */
 #pragma once
 
+#include <lagrange/scene/api.h>
+
+#include <cstdint>
+
 // clang-format off
 
 ///

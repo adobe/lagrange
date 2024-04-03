@@ -11,11 +11,12 @@
  */
 #pragma once
 
-#include <imgui.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/UIPanel.h>
 #include <lagrange/ui/types/Systems.h>
 
+#include <imgui.h>
 
 #include <typeindex>
 #include <typeinfo>
@@ -25,8 +26,8 @@ namespace lagrange {
 namespace ui {
 
 
-bool begin_panel(UIPanel& panel);
-void end_panel(UIPanel& panel);
+LA_UI_API bool begin_panel(UIPanel& panel);
+LA_UI_API void end_panel(UIPanel& panel);
 
 
 /// @brief Adds window that executed given imgui_code. Imgui begin/end is called for you, do not
@@ -35,9 +36,9 @@ void end_panel(UIPanel& panel);
 /// @param title
 /// @param imgui_code
 /// @return window entity
-Entity add_panel(Registry& r, const std::string& title, const std::function<void(void)>& body_fn);
+LA_UI_API Entity add_panel(Registry& r, const std::string& title, const std::function<void(void)>& body_fn);
 
-Entity add_panel(
+LA_UI_API Entity add_panel(
     Registry& r,
     const std::string& title,
     const std::function<void(Registry&, Entity)>& body_fn,
@@ -46,18 +47,18 @@ Entity add_panel(
     const std::function<void(Registry&, Entity)>& menubar_fn = nullptr);
 
 
-void toggle_panel(Registry& r, Entity e);
+LA_UI_API void toggle_panel(Registry& r, Entity e);
 
 
 /// @brief Returns global window size
 /// @param registry
 /// @return
-const WindowSize& get_window_size(const Registry& r);
+LA_UI_API const WindowSize& get_window_size(const Registry& r);
 
-MainMenuHeight get_menu_height(const Registry& r);
+LA_UI_API MainMenuHeight get_menu_height(const Registry& r);
 
 
-void hide_tab_bar(Registry& r, Entity uipanel_entity);
+LA_UI_API void hide_tab_bar(Registry& r, Entity uipanel_entity);
 
 
 } // namespace ui

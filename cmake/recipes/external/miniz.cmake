@@ -22,7 +22,7 @@ CPMAddPackage(
     URL_MD5 bc866f2def5214188cd6481e2694bd3c
 )
 
-add_library(miniz ${miniz_SOURCE_DIR}/miniz.c)
+add_library(miniz STATIC ${miniz_SOURCE_DIR}/miniz.c)
 add_library(miniz::miniz ALIAS miniz)
 
 include(GNUInstallDirs)

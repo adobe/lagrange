@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Bounds.h>
 #include <lagrange/ui/components/Layer.h>
@@ -21,20 +22,20 @@ namespace ui {
 
 /// Returns Axis Aligned Bounding Box of the entity in world space
 /// If entity does not have bounds, returns an empty AABB
-AABB get_bounding_box(const Registry& registry, Entity e);
+LA_UI_API AABB get_bounding_box(const Registry& registry, Entity e);
 
 /// Returns Axis Aligned Bounding Box of the entity in model space
 /// If entity does not have bounds, returns an empty AABB
-AABB get_bounding_box_local(const Registry& registry, Entity e);
+LA_UI_API AABB get_bounding_box_local(const Registry& registry, Entity e);
 
 /// Returns Axis Aligned Bounding Box of all entities with <Selected> component
 /// If there's no selection returns an empty AABB
-AABB get_selection_bounding_box(const Registry& registry);
+LA_UI_API AABB get_selection_bounding_box(const Registry& registry);
 
 /// Returns the least distance between `from` and any point within any bounding box.
 /// Returns 0 if `from` lies within a bounding box.
 /// Returns -1 if no bounds exist.
-float get_nearest_bounds_distance(
+LA_UI_API float get_nearest_bounds_distance(
     const Registry& registry,
     const Eigen::Vector3f& from,
     const Layer& visible,
@@ -42,7 +43,7 @@ float get_nearest_bounds_distance(
 
 /// Returns the greatest distance between `from` and any point within any bounding box.
 /// Returns -1 if no bounds exist.
-float get_furthest_bounds_distance(
+LA_UI_API float get_furthest_bounds_distance(
     const Registry& registry,
     const Eigen::Vector3f& from,
     const Layer& visible,
@@ -50,14 +51,14 @@ float get_furthest_bounds_distance(
 
 /// Returns the bounding box of everything
 /// (must be set as context variable after update_scene_bounds)
-AABB get_scene_bounding_box(const Registry& registry);
+LA_UI_API AABB get_scene_bounding_box(const Registry& registry);
 
 /// Returns the bounds of everything
 /// (must be set as context variable after update_scene_bounds)
-const Bounds& get_scene_bounds(const Registry& registry);
+LA_UI_API const Bounds& get_scene_bounds(const Registry& registry);
 
 /// @copydoc
-Bounds& get_scene_bounds(Registry& registry);
+LA_UI_API Bounds& get_scene_bounds(Registry& registry);
 
 
 } // namespace ui

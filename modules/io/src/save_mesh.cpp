@@ -10,11 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/io/save_mesh.h>
+
+#include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 
+#include <lagrange/io/api.h>
 #include <lagrange/io/save_mesh_gltf.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/io/save_mesh_obj.h>
@@ -61,12 +63,12 @@ void save_mesh(
 }
 
 #define LA_X_save_mesh(_, S, I)   \
-    template void save_mesh(      \
+    template LA_IO_API void save_mesh(      \
         std::ostream&,            \
         const SurfaceMesh<S, I>&, \
         FileFormat,               \
         const SaveOptions&);      \
-    template void save_mesh(const fs::path&, const SurfaceMesh<S, I>&, const SaveOptions&);
+    template LA_IO_API void save_mesh(const fs::path&, const SurfaceMesh<S, I>&, const SaveOptions&);
 LA_SURFACE_MESH_X(save_mesh, 0);
 
 } // namespace lagrange::io

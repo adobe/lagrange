@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Selection.h>
 #include <lagrange/ui/components/SelectionContext.h>
@@ -21,8 +22,8 @@ namespace ui {
 class Keybinds;
 
 
-bool deselect_all(Registry& registry);
-bool dehover_all(Registry& registry);
+LA_UI_API bool deselect_all(Registry& registry);
+LA_UI_API bool dehover_all(Registry& registry);
 
 
 inline bool is_selected(const Registry& registry, Entity e)
@@ -45,46 +46,46 @@ inline decltype(auto) hovered_view(Registry& registry)
     return registry.view<Hovered>();
 }
 
-bool is_child_selected(const Registry& registry, Entity e, bool recursive = true);
-bool is_child_hovered(const Registry& registry, Entity e, bool recursive = true);
+LA_UI_API bool is_child_selected(const Registry& registry, Entity e, bool recursive = true);
+LA_UI_API bool is_child_hovered(const Registry& registry, Entity e, bool recursive = true);
 
 
-std::vector<Entity> collect_selected(const Registry& registry);
-std::vector<Entity> collect_hovered(const Registry& registry);
+LA_UI_API std::vector<Entity> collect_selected(const Registry& registry);
+LA_UI_API std::vector<Entity> collect_hovered(const Registry& registry);
 
 
-bool set_selected(
+LA_UI_API bool set_selected(
     Registry& registry,
     Entity e,
     SelectionBehavior behavior = SelectionBehavior::SET);
 
-bool set_hovered(Registry& registry, Entity e, SelectionBehavior behavior = SelectionBehavior::SET);
+LA_UI_API bool set_hovered(Registry& registry, Entity e, SelectionBehavior behavior = SelectionBehavior::SET);
 
-bool select(Registry& registry, Entity e);
+LA_UI_API bool select(Registry& registry, Entity e);
 
-bool deselect(Registry& registry, Entity e);
+LA_UI_API bool deselect(Registry& registry, Entity e);
 
-bool hover(Registry& registry, Entity e);
+LA_UI_API bool hover(Registry& registry, Entity e);
 
-bool dehover(Registry& registry, Entity e);
+LA_UI_API bool dehover(Registry& registry, Entity e);
 
 
-SelectionContext& get_selection_context(Registry& r);
+LA_UI_API SelectionContext& get_selection_context(Registry& r);
 
-const SelectionContext& get_selection_context(const Registry& r);
+LA_UI_API const SelectionContext& get_selection_context(const Registry& r);
 
 /* Utils*/
 
-SelectionBehavior selection_behavior(const Keybinds& keybinds);
-bool are_selection_keys_down(const Keybinds& keybinds);
-bool are_selection_keys_pressed(const Keybinds& keybinds);
-bool are_selection_keys_released(const Keybinds& keybinds);
+LA_UI_API SelectionBehavior selection_behavior(const Keybinds& keybinds);
+LA_UI_API bool are_selection_keys_down(const Keybinds& keybinds);
+LA_UI_API bool are_selection_keys_pressed(const Keybinds& keybinds);
+LA_UI_API bool are_selection_keys_released(const Keybinds& keybinds);
 
 
-SelectionBehavior selection_behavior(const Registry& r);
-bool are_selection_keys_down(const Registry& r);
-bool are_selection_keys_pressed(const Registry& r);
-bool are_selection_keys_released(const Registry& r);
+LA_UI_API SelectionBehavior selection_behavior(const Registry& r);
+LA_UI_API bool are_selection_keys_down(const Registry& r);
+LA_UI_API bool are_selection_keys_pressed(const Registry& r);
+LA_UI_API bool are_selection_keys_released(const Registry& r);
 
 
 } // namespace ui

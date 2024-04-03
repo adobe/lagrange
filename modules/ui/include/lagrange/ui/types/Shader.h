@@ -11,25 +11,27 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
+#include <lagrange/ui/Entity.h>
+#include <lagrange/ui/utils/math.h>
+
+#include <lagrange/ui/types/Color.h>
+#include <lagrange/ui/types/Texture.h>
+
+#include <lagrange/Logger.h>
+
 #if defined(__EMSCRIPTEN__)
 #include <webgl/webgl2.h>
 #else
 #include <GL/gl3w.h>
 #endif
 
-#include <lagrange/ui/Entity.h>
-#include <lagrange/ui/utils/math.h>
+#include <typeindex>
+#include <variant>
 #include <memory>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-#include <lagrange/ui/types/Color.h>
-#include <lagrange/ui/types/Texture.h>
-#include <typeindex>
-#include <variant>
-
-#include <lagrange/Logger.h>
 
 namespace lagrange {
 namespace ui {
@@ -145,7 +147,7 @@ enum ShaderInterface {
     SHADER_INTERFACE_ATTRIB = 2
 };
 
-struct ShaderValue
+struct LA_UI_API ShaderValue
 {
     int location;
     int size;
@@ -195,7 +197,7 @@ struct ShaderValue
     static ShaderValue none;
 };
 
-class ShaderException : public std::runtime_error
+class LA_UI_API ShaderException : public std::runtime_error
 {
 public:
     ShaderException(const char* str)
@@ -211,7 +213,7 @@ private:
 
 using ShaderDefines = std::vector<std::pair<std::string, std::string>>;
 
-class Shader
+class LA_UI_API Shader
 {
 public:
     Shader(const std::string& code, const ShaderDefines& defines); // throws

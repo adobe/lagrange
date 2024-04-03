@@ -24,13 +24,7 @@ target_link_libraries(lagrange_subdivision
         opensubdiv::opensubdiv
 )
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_subdivision PROPERTIES EXPORT_NAME subdivision)
-    lagrange_install(lagrange_subdivision)
-endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

@@ -37,7 +37,7 @@ file(WRITE "${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp.in" [[
 configure_file(${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp.in ${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp COPYONLY)
 
 # Define tinyobjloader library
-add_library(tinyobjloader ${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp)
+add_library(tinyobjloader STATIC ${tinyobjloader_BINARY_DIR}/tiny_obj_loader.cpp)
 add_library(tinyobjloader::tinyobjloader ALIAS tinyobjloader)
 set_target_properties(tinyobjloader PROPERTIES POSITION_INDEPENDENT_CODE ON)
 

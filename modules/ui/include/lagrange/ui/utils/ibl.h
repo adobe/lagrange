@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/IBL.h>
@@ -25,33 +26,33 @@ namespace ui {
 /// @param path
 /// @param resolution
 /// @return IBL
-IBL generate_ibl(const fs::path& path, size_t resolution = 1024);
+LA_UI_API IBL generate_ibl(const fs::path& path, size_t resolution = 1024);
 
 /// @brief  Generates Image Based Light from given rectangular texture.
 ///         Throws std::runtime_error on failure.
 /// @param path
 /// @param resolution
 /// @return IBL
-IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t resolution = 1024);
+LA_UI_API IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t resolution = 1024);
 
 /// @brief Returns first <IBL> entity found in registry. If there are none, returns invalid Entity
 /// @param registry
 /// @return Entity
-Entity get_ibl_entity(const Registry& registry);
+LA_UI_API Entity get_ibl_entity(const Registry& registry);
 
 /// @brief Returns pointer to the first IBL found in the registry. Nullptr if there is none
 /// @param registry
 /// @return IBL pointer
-const IBL* get_ibl(const Registry& registry);
+LA_UI_API const IBL* get_ibl(const Registry& registry);
 
 /// @copydoc
-IBL* get_ibl(Registry& registry);
+LA_UI_API IBL* get_ibl(Registry& registry);
 
 /// @brief Adds IBL to the scene
-Entity add_ibl(Registry& registry, IBL ibl);
+LA_UI_API Entity add_ibl(Registry& registry, IBL ibl);
 
 /// @brief Removes all ibls
-void clear_ibl(Registry& registry);
+LA_UI_API void clear_ibl(Registry& registry);
 
 /// @brief Saves IBL as individual .png files in given folder.
 /// Generated files:
@@ -60,7 +61,7 @@ void clear_ibl(Registry& registry);
 /// diffuse_{00-05}.png,
 /// specular_{00-05}_mip_{00-miplevels}.png
 /// Cube maps follow GL_TEXTURE_CUBE_MAP_POSITIVE_X + i pattern.
-bool save_ibl(const IBL& ibl, const fs::path& folder);
+LA_UI_API bool save_ibl(const IBL& ibl, const fs::path& folder);
 
 } // namespace ui
 } // namespace lagrange

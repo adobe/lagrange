@@ -30,14 +30,18 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'imgui::imgui' ('docking' branch)")
 
-include(CPM)
-CPMAddPackage(
-    NAME imgui
-    GITHUB_REPOSITORY adobe/imgui
-    GIT_TAG 447d0a713c635584471bd5bed3ebecdf953c0b5c # docking_v1.89.3
-)
+block()
+    set(BUILD_SHARED_LIBS OFF)
+    include(CPM)
+    CPMAddPackage(
+        NAME imgui
+        GITHUB_REPOSITORY adobe/imgui
+        GIT_TAG fbaad5ad4cc881f9139c3e9fa9d5747d285b1940 # docking_v1.90.4
+    )
+endblock()
 
 target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_KEYIO)
+target_compile_definitions(imgui PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
 
 set_target_properties(imgui PROPERTIES FOLDER third_party)
 

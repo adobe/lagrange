@@ -108,7 +108,7 @@ AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>&
 }
 
 #define LA_X_compute_vertex_vertex_adjacency(_, Scalar, Index) \
-    template AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>&);
+    template LA_CORE_API AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>&);
 LA_SURFACE_MESH_X(compute_vertex_vertex_adjacency, 0)
 
 } // namespace lagrange

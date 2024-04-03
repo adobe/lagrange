@@ -13,6 +13,7 @@
 #ifdef LAGRANGE_WITH_ASSIMP
 
     // this .cpp provides implementations for functions defined in those headers:
+    #include <lagrange/io/api.h>
     #include <lagrange/io/internal/load_assimp.h>
     #include <lagrange/io/load_mesh_assimp.h>
     #include <lagrange/io/load_scene_assimp.h>
@@ -20,6 +21,7 @@
 // ====
 
     #include <lagrange/Attribute.h>
+    #include <lagrange/AttributeValueType.h>
     #include <lagrange/Logger.h>
     #include <lagrange/SurfaceMeshTypes.h>
     #include <lagrange/attribute_names.h>
@@ -236,33 +238,35 @@ AffineTransform convert_transform_assimp_to_lagrange(const aiMatrix4x4 t)
         t.b1, t.b2, t.b3, t.b4,
         t.c1, t.c2, t.c3, t.c4,
         t.d1, t.d2, t.d3, t.d4;
-    //clang-format on
+    // clang-format on
     return transform;
 }
 
-Eigen::Vector3f to_vec3(const aiVector3D v) {
+Eigen::Vector3f to_vec3(const aiVector3D v)
+{
     return Eigen::Vector3f(v.x, v.y, v.z);
 }
-Eigen::Vector3f to_color3(const aiColor3D v) {
+Eigen::Vector3f to_color3(const aiColor3D v)
+{
     return Eigen::Vector3f(v.r, v.g, v.b);
 }
-Eigen::Vector4f to_color4(const aiColor4D& v) {
+Eigen::Vector4f to_color4(const aiColor4D& v)
+{
     return Eigen::Vector4f(v.r, v.g, v.b, v.a);
 }
 
-scene::Light convert_light_assimp_to_lagrange(const aiLight* light) {
+scene::Light convert_light_assimp_to_lagrange(const aiLight* light)
+{
     scene::Light llight;
     llight.name = light->mName.C_Str();
-    switch (light->mType)
-    {
-        case aiLightSource_DIRECTIONAL: llight.type = scene::Light::Type::Directional; break;
-        case aiLightSource_POINT: llight.type = scene::Light::Type::Point; break;
-        case aiLightSource_SPOT: llight.type = scene::Light::Type::Spot; break;
-        case aiLightSource_AMBIENT: llight.type = scene::Light::Type::Ambient; break;
-        case aiLightSource_AREA: llight.type = scene::Light::Type::Area; break;
-        case aiLightSource_UNDEFINED: // passthrough to default
-        default: 
-            llight.type = scene::Light::Type::Undefined; break;
+    switch (light->mType) {
+    case aiLightSource_DIRECTIONAL: llight.type = scene::Light::Type::Directional; break;
+    case aiLightSource_POINT: llight.type = scene::Light::Type::Point; break;
+    case aiLightSource_SPOT: llight.type = scene::Light::Type::Spot; break;
+    case aiLightSource_AMBIENT: llight.type = scene::Light::Type::Ambient; break;
+    case aiLightSource_AREA: llight.type = scene::Light::Type::Area; break;
+    case aiLightSource_UNDEFINED: // passthrough to default
+    default: llight.type = scene::Light::Type::Undefined; break;
     }
     llight.position = to_vec3(light->mPosition);
     llight.direction = to_vec3(light->mDirection);
@@ -324,7 +328,8 @@ SceneType load_simple_scene_assimp(const aiScene& scene, const LoadOptions& opti
     visit_node = [&](aiNode* node, const AffineTransform& parent_transform) -> void {
         AffineTransform node_transform;
         if constexpr (SceneType::Dim == 3) {
-            node_transform = convert_transform_assimp_to_lagrange<AffineTransform>(node->mTransformation);
+            node_transform =
+                convert_transform_assimp_to_lagrange<AffineTransform>(node->mTransformation);
         } else {
             // TODO: convert 3d transforms into 2d
             logger().warn("Ignoring 3d node transform while loading 2d scene");
@@ -343,18 +348,23 @@ SceneType load_simple_scene_assimp(const aiScene& scene, const LoadOptions& opti
     visit_node(scene.mRootNode, AffineTransform::Identity());
     return lscene;
 }
-#define LA_X_load_simple_scene_assimp(_, S, I, D) \
-    template scene::SimpleScene<S, I, D> load_simple_scene_assimp(const aiScene& scene, const LoadOptions& options);
+    #define LA_X_load_simple_scene_assimp(_, S, I, D)                  \
+        template scene::SimpleScene<S, I, D> load_simple_scene_assimp( \
+            const aiScene& scene,                                      \
+            const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene_assimp, 0);
-#undef LA_X_load_simple_scene_assimp
+    #undef LA_X_load_simple_scene_assimp
 
 
 template <typename SceneType>
-SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
+SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options)
+{
     SceneType lscene;
     lscene.name = scene.mName.C_Str();
     for (unsigned int i = 0; i < scene.mNumMeshes; ++i) {
-        scene::utils::add_mesh(lscene, convert_mesh_assimp_to_lagrange<typename SceneType::MeshType>(*scene.mMeshes[i], options));
+        lscene.add(convert_mesh_assimp_to_lagrange<typename SceneType::MeshType>(
+            *scene.mMeshes[i],
+            options));
     }
 
     // note that assimp's textures are really images.
@@ -366,25 +376,31 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
             // TODO add support
         }
 
-        scene::ImageLegacy limage;
-        limage.width = texture->mWidth;
-        limage.height = texture->mHeight;
+        scene::ImageExperimental limage;
+        scene::ImageBufferExperimental buffer;
 
-        // assimp always loads argb8888
+        buffer.width = texture->mWidth;
+        buffer.height = texture->mHeight;
+        buffer.num_channels = 4;
+        buffer.element_type = AttributeValueType::e_uint8_t;
+        const size_t num_pixels = buffer.width * buffer.height;
+        buffer.data.resize(num_pixels);
+        for (size_t pi = 0; pi < num_pixels; pi++) {
+            const auto& pixel = texture->pcData[pi];
+            // Note that pixel is in ARGB8888 format. In our image buffer, we use RGBA8888 format.
+            buffer.data[pi * 4] = pixel.r;
+            buffer.data[pi * 4 + 1] = pixel.g;
+            buffer.data[pi * 4 + 2] = pixel.b;
+            buffer.data[pi * 4 + 3] = pixel.a;
+        }
+
+        limage.image = std::move(buffer);
         limage.name = texture->mFilename.C_Str();
-        limage.uri = texture->mFilename.C_Str();
-        limage.channel = image::ImageChannel::four;
-        limage.precision = image::ImagePrecision::uint8;
-        
-        limage.data = std::make_unique<image::ImageStorage>(limage.get_element_size() * limage.width * limage.get_num_channels(), limage.height, 1);
-        std::copy_n(
-            (unsigned char*)texture->pcData, 
-            limage.width * limage.height * limage.get_num_channels() * limage.get_element_size(), 
-            limage.data->data());
-        lscene.images.push_back(std::move(limage));
+
+        lscene.add(std::move(limage));
     }
 
-    // load an image from embedded or from disk. 
+    // load an image from embedded or from disk.
     // If successful, saves the image in the scene and returns its index.
     // Otherwise, returns -1.
     auto try_image_load = [&](const aiMaterial*, const char* s) -> int {
@@ -392,27 +408,33 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         if (index >= 0) {
             return index;
         } else {
-            scene::ImageLegacy limage;
-            if (io::internal::try_load_image(s, options, limage)) {
-                int image_idx = static_cast<int>(lscene.images.size());
-                lscene.images.push_back(limage);
-                return image_idx;
+            scene::ImageExperimental limage;
+            limage.name = s;
+            limage.uri = s;
+            if (options.load_images) {
+                if (io::internal::try_load_image(s, options, limage)) {
+                    return static_cast<int>(lscene.add(std::move(limage)));
+                } else {
+                    return -1;
+                }
             } else {
-                return -1;
+                return static_cast<int>(lscene.add(std::move(limage)));
             }
         }
     };
     auto convert_map_mode = [](aiTextureMapMode mode) -> scene::Texture::WrapMode {
         switch (mode) {
-            case aiTextureMapMode_Wrap: return scene::Texture::WrapMode::Wrap;
-            case aiTextureMapMode_Clamp: return scene::Texture::WrapMode::Clamp;
-            case aiTextureMapMode_Decal: return scene::Texture::WrapMode::Decal;
-            case aiTextureMapMode_Mirror: return scene::Texture::WrapMode::Mirror;
-            default: return scene::Texture::WrapMode::Wrap;
+        case aiTextureMapMode_Wrap: return scene::Texture::WrapMode::Wrap;
+        case aiTextureMapMode_Clamp: return scene::Texture::WrapMode::Clamp;
+        case aiTextureMapMode_Decal: return scene::Texture::WrapMode::Decal;
+        case aiTextureMapMode_Mirror: return scene::Texture::WrapMode::Mirror;
+        default: return scene::Texture::WrapMode::Wrap;
         }
-        };
-    auto try_load_texture = [&](const aiMaterial* material, aiTextureType type, scene::TextureInfo& tex_info) -> bool {
-        if (tex_info.index != invalid<scene::ElementId>()) return false; // there was a texture here already
+    };
+    auto try_load_texture =
+        [&](const aiMaterial* material, aiTextureType type, scene::TextureInfo& tex_info) -> bool {
+        if (tex_info.index != invalid<scene::ElementId>())
+            return false; // there was a texture here already
 
         aiString path;
         aiTextureMapping texture_mapping;
@@ -420,22 +442,24 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         ai_real blend;
         aiTextureOp op;
         aiTextureMapMode map_mode[2];
-        if (material->GetTexture(type, 0, &path, &texture_mapping, &uv_index, &blend, &op, map_mode) != aiReturn_SUCCESS) return false;
-        
+        if (material
+                ->GetTexture(type, 0, &path, &texture_mapping, &uv_index, &blend, &op, map_mode) !=
+            aiReturn_SUCCESS)
+            return false;
+
         int image_idx = try_image_load(material, path.C_Str());
         if (image_idx == -1) return false;
 
-        tex_info.index = static_cast<int>(lscene.textures.size());
         tex_info.texcoord = uv_index;
-        
+
         scene::Texture ltex;
         ltex.name = path.C_Str();
         ltex.image = image_idx;
         ltex.wrap_u = convert_map_mode(map_mode[0]);
         ltex.wrap_v = convert_map_mode(map_mode[1]);
-        lscene.textures.push_back(ltex);
+        tex_info.index = lscene.add(std::move(ltex));
         return true;
-        };
+    };
 
     for (unsigned int i = 0; i < scene.mNumMaterials; ++i) {
         scene::MaterialExperimental lmat;
@@ -453,26 +477,33 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         // we do our best here, but there may be incompatible materials or missed information
         try_load_texture(material, aiTextureType_BASE_COLOR, lmat.base_color_texture);
         try_load_texture(material, aiTextureType_DIFFUSE, lmat.base_color_texture);
-        if (material->Get(AI_MATKEY_BASE_COLOR, color4) == aiReturn_SUCCESS) lmat.base_color_value = to_color4(color4);
+        if (material->Get(AI_MATKEY_BASE_COLOR, color4) == aiReturn_SUCCESS)
+            lmat.base_color_value = to_color4(color4);
 
         try_load_texture(material, aiTextureType_NORMALS, lmat.normal_texture);
         try_load_texture(material, aiTextureType_NORMAL_CAMERA, lmat.normal_texture);
 
         try_load_texture(material, aiTextureType_EMISSIVE, lmat.emissive_texture);
         try_load_texture(material, aiTextureType_EMISSION_COLOR, lmat.emissive_texture);
-        if (material->Get(AI_MATKEY_EMISSIVE_INTENSITY, color3) == aiReturn_SUCCESS) lmat.emissive_value = to_color3(color3);
+        if (material->Get(AI_MATKEY_EMISSIVE_INTENSITY, color3) == aiReturn_SUCCESS)
+            lmat.emissive_value = to_color3(color3);
 
         try_load_texture(material, aiTextureType_METALNESS, lmat.metallic_roughness_texture);
-        try_load_texture(material, aiTextureType_DIFFUSE_ROUGHNESS, lmat.metallic_roughness_texture);
-        if (material->Get(AI_MATKEY_METALLIC_FACTOR, real) == aiReturn_SUCCESS) lmat.metallic_value = real;
-        if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, real) == aiReturn_SUCCESS) lmat.metallic_value = real;
+        try_load_texture(
+            material,
+            aiTextureType_DIFFUSE_ROUGHNESS,
+            lmat.metallic_roughness_texture);
+        if (material->Get(AI_MATKEY_METALLIC_FACTOR, real) == aiReturn_SUCCESS)
+            lmat.metallic_value = real;
+        if (material->Get(AI_MATKEY_ROUGHNESS_FACTOR, real) == aiReturn_SUCCESS)
+            lmat.metallic_value = real;
 
         try_load_texture(material, aiTextureType_AMBIENT_OCCLUSION, lmat.occlusion_texture);
 
         if (material->Get(AI_MATKEY_TWOSIDED, b) == aiReturn_SUCCESS) lmat.double_sided = b;
-        
+
         // we could also iterate over all textures, unnecessary for now:
-        //const std::vector<aiTextureType> texture_types = {
+        // const std::vector<aiTextureType> texture_types = {
         //    // traditional
         //    aiTextureType_DIFFUSE,
         //    aiTextureType_SPECULAR,
@@ -497,7 +528,7 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         //    aiTextureType_CLEARCOAT,
         //    aiTextureType_TRANSMISSION,
         //};
-        //for (aiTextureType type : texture_types) {
+        // for (aiTextureType type : texture_types) {
         //    unsigned int count = material->GetTextureCount(type);
         //    const char* type_string = aiTextureTypeToString(type);
         //    for (unsigned int j = 0; j < count; ++j) {
@@ -507,8 +538,8 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         //        ai_real blend;
         //        aiTextureOp op;
         //        aiTextureMapMode map_mode[2];
-        //        aiReturn ret = material->GetTexture(type, j, &path, &texture_mapping, &uv_index, &blend, &op, map_mode);
-        //        if (ret == aiReturn_SUCCESS) {
+        //        aiReturn ret = material->GetTexture(type, j, &path, &texture_mapping, &uv_index,
+        //        &blend, &op, map_mode); if (ret == aiReturn_SUCCESS) {
         //            logger().warn("{}: {}", type_string, path.C_Str());
         //        }
         //    }
@@ -532,7 +563,7 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         lcam.up = to_vec3(camera->mUp);
         lcam.look_at = to_vec3(camera->mLookAt);
         // assimp docs claim the fov is from the center to the side, so it would be half of our fov.
-        // but from testing it appears to be the same as ours. 
+        // but from testing it appears to be the same as ours.
         // It may depend on the filetype, and it could be a bug.
         lcam.horizontal_fov = camera->mHorizontalFOV;
         lcam.aspect_ratio = camera->mAspect;
@@ -554,7 +585,8 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         scene::Node& lnode = lscene.nodes.back();
 
         lnode.name = node->mName.C_Str();
-        lnode.transform = convert_transform_assimp_to_lagrange<Eigen::Affine3f>(node->mTransformation);
+        lnode.transform =
+            convert_transform_assimp_to_lagrange<Eigen::Affine3f>(node->mTransformation);
         lnode.parent = parent_idx;
 
         for (unsigned int i = 0; i < node->mNumMeshes; ++i) {
@@ -581,7 +613,7 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
         }
         return lnode_idx;
     };
-    std::function<size_t(aiNode*)>count_nodes;
+    std::function<size_t(aiNode*)> count_nodes;
     count_nodes = [&count_nodes](aiNode* node) -> size_t {
         size_t count = 1;
         for (unsigned int i = 0; i < node->mNumChildren; ++i) {
@@ -595,38 +627,46 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options) {
 
     return lscene;
 }
-#define LA_X_load_scene_assimp(_, S, I)            \
-    template scene::Scene<S, I> load_scene_assimp( \
-        const aiScene& scene,                      \
-        const LoadOptions& options);
+    #define LA_X_load_scene_assimp(_, S, I)            \
+        template scene::Scene<S, I> load_scene_assimp( \
+            const aiScene& scene,                      \
+            const LoadOptions& options);
 LA_SCENE_X(load_scene_assimp, 0);
-#undef LA_X_load_scene_assimp
+    #undef LA_X_load_scene_assimp
 
-} // namespace lagrange::io::internal
+} // namespace internal
 
 
 // =====================================
 // load_mesh_assimp.h
 // =====================================
-template <typename MeshType,
+template <
+    typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* /*= nullptr*/>
-MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options) {
+MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options)
+{
     std::unique_ptr<aiScene> scene = internal::load_assimp(filename);
     return internal::load_mesh_assimp<MeshType>(*scene, options);
 }
 
-template <typename MeshType,
+template <
+    typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* /*= nullptr*/>
-MeshType load_mesh_assimp(std::istream& input_stream, const LoadOptions& options) {
+MeshType load_mesh_assimp(std::istream& input_stream, const LoadOptions& options)
+{
     std::unique_ptr<aiScene> scene = internal::load_assimp(input_stream);
     return internal::load_mesh_assimp<MeshType>(*scene, options);
 }
 
-#define LA_X_load_mesh_assimp(_, S, I) \
-    template SurfaceMesh<S, I> load_mesh_assimp(const fs::path& filename, const LoadOptions& options);\
-    template SurfaceMesh<S, I> load_mesh_assimp(std::istream&, const LoadOptions& options);
+    #define LA_X_load_mesh_assimp(_, S, I)                     \
+        template LA_IO_API SurfaceMesh<S, I> load_mesh_assimp( \
+            const fs::path& filename,                          \
+            const LoadOptions& options);                       \
+        template LA_IO_API SurfaceMesh<S, I> load_mesh_assimp( \
+            std::istream&,                                     \
+            const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_assimp, 0);
-#undef LA_X_load_mesh_assimp
+    #undef LA_X_load_mesh_assimp
 
 
 // =====================================
@@ -646,32 +686,40 @@ SceneType load_simple_scene_assimp(std::istream& input_stream, const LoadOptions
     return internal::load_simple_scene_assimp<SceneType>(*scene, options);
 }
 
-#define LA_X_load_simple_scene_assimp(_, S, I, D) \
-    template scene::SimpleScene<S, I, D> load_simple_scene_assimp(const fs::path&, const LoadOptions&);\
-    template scene::SimpleScene<S, I, D> load_simple_scene_assimp(std::istream&, const LoadOptions&);
+    #define LA_X_load_simple_scene_assimp(_, S, I, D)                            \
+        template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene_assimp( \
+            const fs::path&,                                                     \
+            const LoadOptions&);                                                 \
+        template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene_assimp( \
+            std::istream&,                                                       \
+            const LoadOptions&);
 LA_SIMPLE_SCENE_X(load_simple_scene_assimp, 0);
-#undef LA_X_load_simple_scene_assimp
+    #undef LA_X_load_simple_scene_assimp
 
 // =====================================
 // load_scene_assimp.h
 // =====================================
 template <typename SceneType>
-SceneType load_scene_assimp(const fs::path& filename, const LoadOptions& options) {
+SceneType load_scene_assimp(const fs::path& filename, const LoadOptions& options)
+{
     std::unique_ptr<aiScene> scene = internal::load_assimp(filename);
     LoadOptions opt2 = options;
     if (opt2.search_path.empty()) opt2.search_path = filename.parent_path();
     return internal::load_scene_assimp<SceneType>(*scene, opt2);
 }
 template <typename SceneType>
-SceneType load_scene_assimp(std::istream& input_stream, const LoadOptions& options) {
+SceneType load_scene_assimp(std::istream& input_stream, const LoadOptions& options)
+{
     std::unique_ptr<aiScene> scene = internal::load_assimp(input_stream);
     return internal::load_scene_assimp<SceneType>(*scene, options);
 }
-#define LA_X_load_scene_assimp(_, S, I) \
-template scene::Scene<S, I> load_scene_assimp(const fs::path&, const LoadOptions&); \
-template scene::Scene<S, I> load_scene_assimp(std::istream&, const LoadOptions&);
+    #define LA_X_load_scene_assimp(_, S, I)                      \
+        template LA_IO_API scene::Scene<S, I> load_scene_assimp( \
+            const fs::path&,                                     \
+            const LoadOptions&);                                 \
+        template LA_IO_API scene::Scene<S, I> load_scene_assimp(std::istream&, const LoadOptions&);
 LA_SCENE_X(load_scene_assimp, 0);
-#undef LA_X_load_scene_assimp
+    #undef LA_X_load_scene_assimp
 
 } // namespace lagrange::io
 

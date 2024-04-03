@@ -31,7 +31,7 @@ void remove_isolated_vertices(SurfaceMesh<Scalar, Index>& mesh)
 }
 
 #define LA_X_remove_isolated_vertices(_, Scalar, Index) \
-    template void remove_isolated_vertices<Scalar, Index>(SurfaceMesh<Scalar, Index>&);
+    template LA_CORE_API void remove_isolated_vertices<Scalar, Index>(SurfaceMesh<Scalar, Index>&);
 LA_SURFACE_MESH_X(remove_isolated_vertices, 0)
 
 } // namespace lagrange

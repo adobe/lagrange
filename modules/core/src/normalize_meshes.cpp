@@ -58,7 +58,7 @@ void normalize_meshes(span<SurfaceMesh<Scalar, Index>*> meshes)
 }
 
 #define LA_X_normalize_meshes(_, Scalar, Index)                                     \
-    template void normalize_mesh<Scalar, Index>(SurfaceMesh<Scalar, Index> & mesh); \
-    template void normalize_meshes<Scalar, Index>(span<SurfaceMesh<Scalar, Index>*> meshes);
+    template LA_CORE_API void normalize_mesh<Scalar, Index>(SurfaceMesh<Scalar, Index> & mesh); \
+    template LA_CORE_API void normalize_meshes<Scalar, Index>(span<SurfaceMesh<Scalar, Index>*> meshes);
 LA_SURFACE_MESH_X(normalize_meshes, 0)
 } // namespace lagrange

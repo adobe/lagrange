@@ -10,8 +10,10 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_compile_test(test_assert.cpp)
+lagrange_add_compile_test(test_attribute_type.cpp)
 lagrange_add_compile_test(test_mesh_attribute.cpp)
 lagrange_add_compile_test(test_mesh_convert1.cpp)
 lagrange_add_compile_test(test_mesh_convert2.cpp)
+lagrange_add_compile_test(test_mesh_type.cpp)
 lagrange_add_compile_test(test_pimpl.cpp)
 lagrange_add_compile_test(test_safe_cast.cpp)

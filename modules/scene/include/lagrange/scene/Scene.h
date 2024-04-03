@@ -12,9 +12,11 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
-#include <lagrange/image/ImageView.h>
-#include <lagrange/utils/invalid.h>
+#include <lagrange/common.h>
+#include <lagrange/fs/filesystem.h>
 #include <lagrange/scene/SceneExtension.h>
+#include <lagrange/scene/api.h>
+#include <lagrange/utils/invalid.h>
 
 #include <Eigen/Geometry>
 
@@ -22,16 +24,25 @@
 #include <vector>
 
 namespace lagrange {
-namespace scene {
+
+///
+/// Enum describing at runtime the value type of an attribute. This can be accessed from the base
+/// attribute class and enables safe downcasting without global RTTI.
+///
+enum class AttributeValueType : uint8_t;
+
+} // namespace lagrange
+
+namespace lagrange::scene {
 
 using ElementId = size_t;
 constexpr ElementId invalid_element = lagrange::invalid<ElementId>();
 
 // Used in Node, it pairs a mesh with its materials (zero, one, or more).
-struct SceneMeshInstance
+struct LA_SCENE_API SceneMeshInstance
 {
     // Mesh index. Has to be a valid index in the scene.meshes vector.
-    ElementId mesh = lagrange::invalid<ElementId>();
+    ElementId mesh = invalid_element;
 
     // Material indices in the scene.materials vector.
     // When a single mesh uses multiple materials,
@@ -40,7 +51,7 @@ struct SceneMeshInstance
 };
 
 // Represents a node in the scene hierarchy.
-struct Node
+struct LA_SCENE_API Node
 {
     // Note that the node name may not be unique, and can be empty.
     std::string name;
@@ -49,7 +60,7 @@ struct Node
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
 
     // parent index. May be invalid if the node has no parent (e.g. the root).
-    ElementId parent = lagrange::invalid<ElementId>();
+    ElementId parent = invalid_element;
 
     // children indices. May be empty.
     std::vector<ElementId> children;
@@ -69,78 +80,58 @@ struct Node
     Extensions extensions;
 };
 
-//
-// Based on the image module, which is due for a rework, so the image data will change in the
-// future.
-//
-// Describes a single image. Note that it may not actually contain image data, and only
-// have a reference to a file on disk. This will always happen when LoadOptions.save_images ==
-// false. In this case, width/height/precision/channel/data will contain the default values.
-//
-struct ImageLegacy
+///
+/// Minimalistic image data structure that stores the raw image data.
+///
+struct LA_SCENE_API ImageBufferExperimental
 {
-    // Node that the name may not be unique, and can be empty
-    std::string name;
-
-    // Image width.
+    /// Image width.
     size_t width = 0;
 
-    // Image height.
+    /// Image height.
     size_t height = 0;
 
-    // Image precision. You can also use `ImageLegacy.get_element_size` to get the byte-size of the
-    // elements.
-    image::ImagePrecision precision = image::ImagePrecision::unknown;
+    /// Number of image channels (must be 1, 3, or 4).
+    size_t num_channels = 4;
 
-    // Image channels. You can also use `ImageLegacy.get_channel_count` to get this as a number.
-    image::ImageChannel channel = image::ImageChannel::unknown;
+    /// The scalar type of the elements in the buffer.
+    AttributeValueType element_type;
 
-    // Image pixel data. Check ImageStorage for details. This will change in the future.
-    std::shared_ptr<image::ImageStorage> data;
+    /// Raw buffer of size (width * height * num_channels * num_bits_per_element / 8) bytes containing image data.
+    std::vector<unsigned char> data;
 
-    // URI or IRI of the image. Optional, can be empty.
-    // Relative paths are relative to the main file asset.
-    // Note that you should never have to read from disk, as the data is above.
-    // During export, if this is non-empty, and it is supported by the file format,
-    // then the image will be saved as an external asset with this filename.
-    std::string uri;
+    ///
+    /// Get the size of an element in bits.
+    ///
+    size_t get_bits_per_element() const;
+};
 
-    // Image file type. Can be unknown.
-    enum class Type { Jpeg, Png, Bmp, Gif, Unknown };
-    Type type = Type::Unknown;
+///
+/// Image structure that can store either image data or reference to an image file.
+///
+struct LA_SCENE_API ImageExperimental
+{
+    /// Image name. Not guaranteed to be unique and can be empty.
+    std::string name;
 
-    // ==== Utility functions ====
-    // Get image channel count as a number rather than an enum.
-    int get_num_channels() const
-    {
-        if (channel == image::ImageChannel::unknown) return -1;
-        return static_cast<int>(channel);
-    }
+    /// Image data.
+    ImageBufferExperimental image;
 
-    // Returns element byte size.
-    int get_element_size() const
-    {
-        switch (precision) {
-        case image::ImagePrecision::int8: return sizeof(char);
-        case image::ImagePrecision::uint8: return sizeof(unsigned char);
-        case image::ImagePrecision::int32: return sizeof(int);
-        case image::ImagePrecision::uint32: return sizeof(unsigned int);
-        case image::ImagePrecision::float16: return sizeof(short);
-        case image::ImagePrecision::float32: return sizeof(float);
-        case image::ImagePrecision::float64: return sizeof(double);
-        default: return -1;
-        }
-    }
+    /// Image file path. This path is relative to the file that contains the scene.
+    /// It is only valid if image data should be mapped to an external file.
+    fs::path uri;
 
+    /// Image extensions.
     Extensions extensions;
 };
 
+
 // Pair of texture index (which texture to use) and texture coordinate index (which set of UVs to
 // use).
-struct TextureInfo
+struct LA_SCENE_API TextureInfo
 {
     // Texture index. Index in scene.textures vector.
-    ElementId index = lagrange::invalid<ElementId>();
+    ElementId index = invalid_element;
 
     // Index of UV coordinates. Usually stored in the mesh as `texcoord_x` attribute where x is this
     // variable. This is typically 0.
@@ -149,7 +140,7 @@ struct TextureInfo
 
 // PBR material, based on the gltf specification.
 // This is subject to change, to support more material models.
-struct MaterialExperimental
+struct LA_SCENE_API MaterialExperimental
 {
     // Note that material name may not be unique, and can be empty.
     std::string name;
@@ -190,7 +181,7 @@ struct MaterialExperimental
     Extensions extensions;
 };
 
-struct Texture
+struct LA_SCENE_API Texture
 {
     std::string name;
     ElementId image = invalid<ElementId>(); // index of image in scene.images vector
@@ -230,7 +221,7 @@ struct Texture
     Extensions extensions;
 };
 
-struct Light
+struct LA_SCENE_API Light
 {
     std::string name;
 
@@ -276,7 +267,7 @@ struct Light
     Extensions extensions;
 };
 
-struct Camera
+struct LA_SCENE_API Camera
 {
     // note that the camera is part of the scene graph, and has an associated transform in its node.
     // The values below (position, up, look_at) are relative to the coordinate system defined by the
@@ -334,7 +325,7 @@ struct Camera
     Extensions extensions;
 };
 
-struct Animation
+struct LA_SCENE_API Animation
 {
     std::string name;
     // TODO
@@ -342,7 +333,7 @@ struct Animation
     Extensions extensions;
 };
 
-struct Skeleton
+struct LA_SCENE_API Skeleton
 {
     // This skeleton is used to deform those meshes.
     // This will typically contain one value, but can have zero or multiple meshes.
@@ -372,7 +363,7 @@ struct Scene
     std::vector<MeshType> meshes;
 
     // Images.
-    std::vector<ImageLegacy> images;
+    std::vector<ImageExperimental> images;
 
     // Textures. They can reference images;
     std::vector<Texture> textures;
@@ -394,12 +385,69 @@ struct Scene
 
     // Extensions.
     Extensions extensions;
+
+public:
+    ///
+    /// Add an element to the scene.
+    ///
+    /// @param value The element to add. It can be node, mesh, image, texture, material,
+    ///              light, camera, skeleton or animation.
+    ///
+    /// @return The element id of the added element.
+    ///
+    template <typename T>
+    ElementId add(T&& value);
+
+    ///
+    /// Add a child node to a given parent node. The parent-child relationship will be updated for
+    /// both nodes.
+    ///
+    /// @param parent_id  The parent node id.
+    /// @param child_id   The child node id.
+    ///
+    void add_child(ElementId parent_id, ElementId child_id);
 };
+
+template <typename Scalar, typename Index>
+template <typename T>
+ElementId Scene<Scalar, Index>::add(T&& value)
+{
+    using ElementType = std::decay_t<T>;
+    if constexpr (std::is_same_v<ElementType, Node>) {
+        nodes.emplace_back(std::forward<T>(value));
+        return nodes.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, MeshType>) {
+        meshes.emplace_back(std::forward<T>(value));
+        return meshes.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, ImageExperimental>) {
+        images.emplace_back(std::forward<T>(value));
+        return images.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, Texture>) {
+        textures.emplace_back(std::forward<T>(value));
+        return textures.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, MaterialExperimental>) {
+        materials.emplace_back(std::forward<T>(value));
+        return materials.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, Light>) {
+        lights.emplace_back(std::forward<T>(value));
+        return lights.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, Camera>) {
+        cameras.emplace_back(std::forward<T>(value));
+        return cameras.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, Skeleton>) {
+        skeletons.emplace_back(std::forward<T>(value));
+        return skeletons.size() - 1;
+    } else if constexpr (std::is_same_v<ElementType, Animation>) {
+        animations.emplace_back(std::forward<T>(value));
+        return animations.size() - 1;
+    } else {
+        static_assert(StaticAssertableBool<T>::False, "Unsupported type");
+    }
+}
 
 using Scene32f = Scene<float, uint32_t>;
 using Scene32d = Scene<double, uint32_t>;
 using Scene64f = Scene<float, uint64_t>;
 using Scene64d = Scene<double, uint64_t>;
 
-} // namespace scene
-} // namespace lagrange
+} // namespace lagrange::scene

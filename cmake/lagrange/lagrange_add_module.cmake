@@ -15,7 +15,7 @@ function(lagrange_add_module)
     get_filename_component(module_name "${module_path}" NAME)
 
     # Retrieve options
-    set(options INTERFACE)
+    set(options INTERFACE NO_INSTALL)
     set(oneValueArgs "")
     set(multiValueArgs "")
     cmake_parse_arguments(OPTIONS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
@@ -43,10 +43,29 @@ function(lagrange_add_module)
 
     # Target sources
     file(GLOB_RECURSE INC_FILES "include/*.h")
-    file(GLOB_RECURSE SRC_FILES "src/*.cpp")
+    file(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.h")
     source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/include/" PREFIX "Header Files" FILES ${INC_FILES})
     source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src/" PREFIX "Source Files" FILES ${SRC_FILES})
-    target_sources(lagrange_${module_name} PRIVATE ${INC_FILES} ${SRC_FILES})
+    message(STATUS "Module ${module_name} using scope: ${module_scope}")
+    target_sources(lagrange_${module_name}
+        PRIVATE
+            ${SRC_FILES}
+        PUBLIC
+            FILE_SET HEADERS
+            BASE_DIRS
+                include
+            FILES
+                ${INC_FILES}
+    )
+
+    # Export headers for shared libraries
+    if(NOT OPTIONS_INTERFACE)
+        string(TOUPPER ${module_name} uc_module_name)
+        get_target_property(module_type lagrange_${module_name} TYPE)
+        if(module_type STREQUAL "STATIC_LIBRARY")
+            target_compile_definitions(lagrange_${module_name} PUBLIC "LA_${uc_module_name}_STATIC_DEFINE")
+        endif()
+    endif()
 
     # Target folder for IDE
     set_target_properties(lagrange_${module_name} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules")
@@ -55,6 +74,11 @@ function(lagrange_add_module)
     if(NOT OPTIONS_INTERFACE)
         include(FetchContent)
         target_code_coverage(lagrange_${module_name} ${module_scope} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
+    endif()
+
+    # Create install rules
+    if(LAGRANGE_INSTALL AND NOT OPTIONS_NO_INSTALL)
+        lagrange_install(lagrange_${module_name})
     endif()
 
 endfunction()

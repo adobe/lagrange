@@ -11,13 +11,14 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
 
-Entity add_component_panel(Registry& r, const std::string& name = "Components");
+LA_UI_API Entity add_component_panel(Registry& r, const std::string& name = "Components");
 
 
 } // namespace ui

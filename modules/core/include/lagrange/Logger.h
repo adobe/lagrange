@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <spdlog/spdlog.h>
@@ -50,7 +52,7 @@ namespace lagrange {
 ///
 /// @return     A const reference to Lagrange's logger object.
 ///
-spdlog::logger& logger();
+LA_CORE_API spdlog::logger& logger();
 
 ///
 /// Setup a logger object to be used by Lagrange. Calling this function with other Lagrange function
@@ -58,13 +60,13 @@ spdlog::logger& logger();
 ///
 /// @param[in]  logger  New logger object to be used by Lagrange. Ownership is shared with Lagrange.
 ///
-void set_logger(std::shared_ptr<spdlog::logger> logger);
+LA_CORE_API void set_logger(std::shared_ptr<spdlog::logger> logger);
 
 ///
 /// Changes the level of logger to something else in a scope. Mostly used in unit tests. Don't use
 /// in the library itself.
 ///
-class ScopedLogLevel
+class LA_CORE_API ScopedLogLevel
 {
 public:
     ///

@@ -11,10 +11,10 @@
  */
 #pragma once
 
+#include <lagrange/Logger.h>
+
 #include <chrono>
 #include <string>
-
-#include <lagrange/Logger.h>
 
 namespace lagrange {
 

@@ -189,6 +189,14 @@ else()
     set(BUILD_SHARED_LIBS OFF)
 endif()
 
+if(BUILD_SHARED_LIBS)
+    message(WARNING
+        "You are building Lagrange as a shared library. This is generally discouraged. You are responsible for "
+        "configuring any Lagrange dependency as a shared library itself. Anything that Lagrange pulls itself is not "
+        "guaranteed to be compiled as a shared library."
+    )
+endif()
+
 # Specific override for building on Jenkins
 if(LAGRANGE_JENKINS)
     # IPO is very slow and not needed for CI purposes
@@ -247,7 +255,7 @@ endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
 
 # When building python module, compile MKL/TBB as a shared library
-if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
+if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL OR BUILD_SHARED_LIBS)
     set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
 endif()

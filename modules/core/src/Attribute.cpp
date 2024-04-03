@@ -635,22 +635,22 @@ void Attribute<ValueType>::clear_views()
 // clang-format on
 
 #define LA_X_cast_from(SourceValueType, TargetValueType)                          \
-    template Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(    \
+    template LA_CORE_API Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(    \
         const Attribute<SourceValueType>& other);                                 \
-    template Attribute<TargetValueType>& Attribute<TargetValueType>::cast_assign( \
+    template LA_CORE_API Attribute<TargetValueType>& Attribute<TargetValueType>::cast_assign( \
         const Attribute<SourceValueType>& other);
 #define LA_X_cast_from_aux(_, SourceValueType) LA_ATTRIBUTE2_X(cast_from, SourceValueType)
 LA_ATTRIBUTE_X(cast_from_aux, 0)
 
 #define LA_X_attribute_get_type(_, ValueType)                                     \
     template <>                                                                   \
-    [[nodiscard]] AttributeValueType Attribute<ValueType>::get_value_type() const \
+    [[nodiscard]] LA_CORE_API AttributeValueType Attribute<ValueType>::get_value_type() const \
     {                                                                             \
         return AttributeValueType::e_##ValueType;                                 \
     }
 LA_ATTRIBUTE_X(attribute_get_type, 0)
 
-#define LA_X_attr(_, ValueType) template class Attribute<ValueType>;
+#define LA_X_attr(_, ValueType) template class LA_CORE_API Attribute<ValueType>;
 LA_ATTRIBUTE_X(attr, 0)
 
 } // namespace lagrange

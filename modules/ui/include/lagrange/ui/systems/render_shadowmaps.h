@@ -10,13 +10,15 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
+
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
 
-void render_shadowmaps(Registry& registry);
+LA_UI_API void render_shadowmaps(Registry& registry);
 
 
 } // namespace ui

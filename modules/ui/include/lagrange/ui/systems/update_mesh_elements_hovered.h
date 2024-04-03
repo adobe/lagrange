@@ -11,12 +11,13 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
-void update_mesh_elements_hovered(Registry& r);
+LA_UI_API void update_mesh_elements_hovered(Registry& r);
 
 } // namespace ui
 } // namespace lagrange

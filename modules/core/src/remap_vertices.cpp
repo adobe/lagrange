@@ -205,7 +205,7 @@ void remap_vertices(
 }
 
 #define LA_X_remap_vertices(_, Scalar, Index)    \
-    template void remap_vertices<Scalar, Index>( \
+    template LA_CORE_API void remap_vertices<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,             \
         span<const Index>,                       \
         RemapVerticesOptions);

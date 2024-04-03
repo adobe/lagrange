@@ -12,18 +12,20 @@
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
-#include <lagrange/testing/common.h>
-#include <lagrange/io/load_mesh_assimp.h>
-#include <lagrange/io/load_simple_scene_assimp.h>
-#include <lagrange/io/internal/load_assimp.h>
-#include <lagrange/utils/safe_cast.h>
-#include <lagrange/SurfaceMesh.h>
-#include <lagrange/attribute_names.h>
-#include <lagrange/internal/find_attribute_utils.h>
+    #include <lagrange/SurfaceMesh.h>
+    #include <lagrange/attribute_names.h>
+    #include <lagrange/internal/find_attribute_utils.h>
+    #include <lagrange/io/internal/load_assimp.h>
+    #include <lagrange/io/load_mesh_assimp.h>
+    #include <lagrange/io/load_simple_scene_assimp.h>
+    #include <lagrange/scene/Scene.h>
+    #include <lagrange/testing/common.h>
+    #include <lagrange/utils/safe_cast.h>
 
 using namespace lagrange;
 
-TEST_CASE("load_mesh_assimp", "[io]") {
+TEST_CASE("load_mesh_assimp", "[io]")
+{
     auto mesh = io::load_mesh_assimp<lagrange::SurfaceMesh32f>(
         testing::get_data_path("open/core/drop_tri.obj"));
     REQUIRE(mesh.get_num_facets() > 0);
@@ -47,7 +49,7 @@ TEST_CASE("load_assimp_fbx", "[io]")
     auto lmesh = lagrange::io::internal::load_mesh_assimp<lagrange::SurfaceMesh32f>(*scene);
     REQUIRE(lmesh.get_num_facets() > 0);
     REQUIRE(lmesh.get_num_vertices() > 0);
-    //REQUIRE(lmesh.has_attribute(AttributeName::texcoord));
+    // REQUIRE(lmesh.has_attribute(AttributeName::texcoord));
     REQUIRE(lmesh.has_attribute(AttributeName::normal));
     REQUIRE(lmesh.has_attribute(AttributeName::indexed_joint));
     REQUIRE(lmesh.has_attribute(AttributeName::indexed_weight));
@@ -72,15 +74,29 @@ TEST_CASE("load_assimp_glb", "[io]")
     REQUIRE(scene->mNumMaterials == 2);
     REQUIRE(scene->mMaterials[mesh->mMaterialIndex]->mNumProperties > 0);
 
-    using Index = lagrange::SurfaceMesh32f::Index;
-    auto lmesh = lagrange::io::internal::load_mesh_assimp<lagrange::SurfaceMesh32f>(*scene);
-    REQUIRE(lmesh.get_num_vertices() == lagrange::safe_cast<Index>(mesh->mNumVertices));
-    REQUIRE(lmesh.get_num_facets() == lagrange::safe_cast<Index>(mesh->mNumFaces));
-    REQUIRE(lmesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
-    REQUIRE(lmesh.has_attribute(AttributeName::normal));
+    SECTION("Convert to mesh")
+    {
+        using Index = lagrange::SurfaceMesh32f::Index;
+        auto lmesh = lagrange::io::internal::load_mesh_assimp<lagrange::SurfaceMesh32f>(*scene);
+        REQUIRE(lmesh.get_num_vertices() == lagrange::safe_cast<Index>(mesh->mNumVertices));
+        REQUIRE(lmesh.get_num_facets() == lagrange::safe_cast<Index>(mesh->mNumFaces));
+        REQUIRE(lmesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
+        REQUIRE(lmesh.has_attribute(AttributeName::normal));
+    }
+
+    SECTION("Convert to scene")
+    {
+        using SceneType = lagrange::scene::Scene<float, uint32_t>;
+        auto lscene = lagrange::io::internal::load_scene_assimp<SceneType>(*scene);
+        REQUIRE(lscene.images.size() == 1);
+        REQUIRE(lscene.textures.size() == 1);
+        REQUIRE(lscene.textures.front().image == 0);
+        REQUIRE(lscene.materials.front().base_color_texture.index == 0);
+    }
 }
 
-TEST_CASE("load_simple_scene_assimp", "[io]") {
+TEST_CASE("load_simple_scene_assimp", "[io]")
+{
     auto scene = lagrange::io::load_simple_scene_assimp<lagrange::scene::SimpleScene32f3>(
         lagrange::testing::get_data_path("open/io/three_cubes_instances.gltf"));
     REQUIRE(scene.get_num_meshes() == 1);

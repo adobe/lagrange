@@ -10,7 +10,9 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
+
 #include <lagrange/ui/types/Frustum.h>
+#include <lagrange/ui/api.h>
 
 namespace lagrange {
 namespace ui {
@@ -32,7 +34,7 @@ namespace ui {
 /// Note: Caches view and perspective matrices and their inverses.
 ///
 
-class Camera
+class LA_UI_API Camera
 {
 public:
     ///

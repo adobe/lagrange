@@ -100,7 +100,7 @@ void permute_facets(SurfaceMesh<Scalar, Index>& mesh, span<const Index> new_to_o
 }
 
 #define LA_X_permute_facets(_, Scalar, Index) \
-    template void permute_facets<Scalar, Index>(SurfaceMesh<Scalar, Index>&, span<const Index>);
+    template LA_CORE_API void permute_facets<Scalar, Index>(SurfaceMesh<Scalar, Index>&, span<const Index>);
 LA_SURFACE_MESH_X(permute_facets, 0)
 
 } // namespace lagrange

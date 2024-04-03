@@ -14,6 +14,8 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/ui/types/GLContext.h>
 #include <lagrange/ui/utils/math.h>
+#include <lagrange/ui/api.h>
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -24,7 +26,7 @@
 namespace lagrange {
 namespace ui {
 
-class Texture
+class LA_UI_API Texture
 {
 public:
     struct Transform
