@@ -487,10 +487,10 @@ ChainEdgesResult<Index> chain_undirected_edges(
 }
 
 #define LA_X_chain_edges(_, Index)                                  \
-    template ChainEdgesResult<Index> chain_directed_edges<Index>(   \
+    template LA_CORE_API ChainEdgesResult<Index> chain_directed_edges<Index>(   \
         const span<const Index> edges,                              \
         const ChainEdgesOptions& options);                          \
-    template ChainEdgesResult<Index> chain_undirected_edges<Index>( \
+    template LA_CORE_API ChainEdgesResult<Index> chain_undirected_edges<Index>( \
         const span<const Index> edges,                              \
         const ChainEdgesOptions& options);
 LA_ATTRIBUTE_INDEX_X(chain_edges, 0)

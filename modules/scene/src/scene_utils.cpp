@@ -11,6 +11,7 @@
  */
 #include <lagrange/scene/scene_utils.h>
 
+#include <lagrange/scene/api.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/utils/assert.h>
@@ -46,8 +47,9 @@ void convert_texcoord_uv_st(SurfaceMesh<Scalar, Index>& mesh, AttributeId attrib
         }
     });
 }
+
 #define LA_X_convert_texcoord_uv_st(_, S, I) \
-    template void convert_texcoord_uv_st(SurfaceMesh<S, I>& mesh, AttributeId attribute_id);
+    template LA_SCENE_API void convert_texcoord_uv_st(SurfaceMesh<S, I>& mesh, AttributeId attribute_id);
 LA_SURFACE_MESH_X(convert_texcoord_uv_st, 0)
 #undef LA_X_convert_texcoord_uv_st
 

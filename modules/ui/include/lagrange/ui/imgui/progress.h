@@ -30,20 +30,22 @@
 
 #pragma once
 
+#include <lagrange/ui/api.h>
+
 #include <imgui.h>
 
 namespace lagrange {
 namespace ui {
 namespace imgui {
 
-bool BufferingBar(
+LA_UI_API bool BufferingBar(
     const char* label,
     float value,
     const ImVec2& size_arg,
     const ImU32& bg_col,
     const ImU32& fg_col);
 
-bool Spinner(const char* label, float radius, int thickness, const ImU32& color);
+LA_UI_API bool Spinner(const char* label, float radius, int thickness, const ImU32& color);
 
 } // namespace imgui
 } // namespace ui

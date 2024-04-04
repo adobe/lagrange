@@ -13,6 +13,7 @@
 #include <lagrange/io/load_scene.h>
 
 #include <lagrange/Logger.h>
+#include <lagrange/io/api.h>
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/load_scene_gltf.h>
 #include <lagrange/io/load_scene_obj.h>
@@ -44,8 +45,10 @@ SceneType load_scene(const fs::path& filename, const LoadOptions& options)
 #endif
     }
 }
-#define LA_X_load_scene(_, S, I) \
-    template scene::Scene<S, I> load_scene(const fs::path& filename, const LoadOptions& options);
+#define LA_X_load_scene(_, S, I)                      \
+    template LA_IO_API scene::Scene<S, I> load_scene( \
+        const fs::path& filename,                     \
+        const LoadOptions& options);
 LA_SCENE_X(load_scene, 0);
 
 } // namespace lagrange::io

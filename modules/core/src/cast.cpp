@@ -108,7 +108,7 @@ SurfaceMesh<TargetScalar, TargetIndex> cast(
 #define fst(first, second) first
 #define snd(first, second) second
 #define LA_X_cast_mesh_to(SourceScalarIndex, TargetScalar, TargetIndex)               \
-    template SurfaceMesh<TargetScalar, TargetIndex> cast(                             \
+    template LA_CORE_API SurfaceMesh<TargetScalar, TargetIndex> cast(                 \
         const SurfaceMesh<fst SourceScalarIndex, snd SourceScalarIndex>& source_mesh, \
         const AttributeFilter& convertible_attributes,                                \
         std::vector<std::string>* converted_attributes_names);

@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Input.h>
 
@@ -18,14 +19,14 @@
 namespace lagrange {
 namespace ui {
 
-InputState& get_input(Registry& r);
-const InputState& get_input(const Registry& r);
+LA_UI_API InputState& get_input(Registry& r);
+LA_UI_API const InputState& get_input(const Registry& r);
 
-Keybinds& get_keybinds(Registry& r);
-const Keybinds& get_keybinds(const Registry& r);
+LA_UI_API Keybinds& get_keybinds(Registry& r);
+LA_UI_API const Keybinds& get_keybinds(const Registry& r);
 
-InputState::Mouse& get_mouse(Registry& r);
-const InputState::Mouse& get_mouse(const Registry& r);
+LA_UI_API InputState::Mouse& get_mouse(Registry& r);
+LA_UI_API const InputState::Mouse& get_mouse(const Registry& r);
 
 } // namespace ui
 } // namespace lagrange

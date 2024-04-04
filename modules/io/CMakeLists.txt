@@ -47,13 +47,7 @@ if(LAGRANGE_WITH_ASSIMP)
     target_compile_definitions(lagrange_io PUBLIC LAGRANGE_WITH_ASSIMP)
 endif()
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_io PROPERTIES EXPORT_NAME io)
-    lagrange_install(lagrange_io)
-endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

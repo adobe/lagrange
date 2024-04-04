@@ -66,11 +66,11 @@ void check_attribute(
 
     if (expected_writable == ShouldBeWritable::Yes) {
         if (mesh.is_attribute_indexed(id)) {
-            const auto& attr = mesh.template get_indexed_attribute<Scalar>(id);
+            const auto& attr = mesh.template get_indexed_attribute<ExpectedValueType>(id);
             la_runtime_assert(!attr.values().is_read_only(), "Attribute is read only");
             la_runtime_assert(!attr.indices().is_read_only(), "Attribute is read only");
         } else {
-            const auto& attr = mesh.template get_attribute<Scalar>(id);
+            const auto& attr = mesh.template get_attribute<ExpectedValueType>(id);
             la_runtime_assert(!attr.is_read_only(), "Attribute is read only");
         }
     }
@@ -195,10 +195,10 @@ AttributeId find_or_create_attribute(
             ShouldBeWritable::Yes);
         if (reset_tag == ResetToDefault::Yes) {
             if (expected_element != Indexed) {
-                auto& attr = mesh.template ref_attribute<Scalar>(id);
+                auto& attr = mesh.template ref_attribute<ExpectedValueType>(id);
                 std::fill(attr.ref_all().begin(), attr.ref_all().end(), attr.get_default_value());
             } else {
-                auto& attr = mesh.template ref_indexed_attribute<Scalar>(id).values();
+                auto& attr = mesh.template ref_indexed_attribute<ExpectedValueType>(id).values();
                 std::fill(attr.ref_all().begin(), attr.ref_all().end(), attr.get_default_value());
             }
         }
@@ -208,31 +208,31 @@ AttributeId find_or_create_attribute(
 }
 
 // Iterate over attribute types x mesh (scalar, index) types
-#define LA_X_find_attribute(ExpectedValueType, Scalar, Index)                        \
-    template AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
-        const SurfaceMesh<Scalar, Index>& mesh,                                      \
-        std::string_view name,                                                       \
-        BitField<AttributeElement> expected_element,                                 \
-        AttributeUsage expected_usage,                                               \
-        size_t expected_channels);                                                   \
-    template AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
-        const SurfaceMesh<Scalar, Index>& mesh,                                      \
-        span<const AttributeId>,                                                     \
-        BitField<AttributeElement> expected_element,                                 \
-        AttributeUsage expected_usage,                                               \
-        size_t expected_channels);                                                   \
-    template AttributeId find_attribute<ExpectedValueType, Scalar, Index>(           \
-        const SurfaceMesh<Scalar, Index>& mesh,                                      \
-        std::string_view name,                                                       \
-        BitField<AttributeElement> expected_element,                                 \
-        AttributeUsage expected_usage,                                               \
-        size_t expected_channels);                                                   \
-    template AttributeId find_or_create_attribute<ExpectedValueType, Scalar, Index>( \
-        SurfaceMesh<Scalar, Index> & mesh,                                           \
-        std::string_view name,                                                       \
-        AttributeElement expected_element,                                           \
-        AttributeUsage expected_usage,                                               \
-        size_t expected_channels,                                                    \
+#define LA_X_find_attribute(ExpectedValueType, Scalar, Index)                                    \
+    template LA_CORE_API AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
+        const SurfaceMesh<Scalar, Index>& mesh,                                                  \
+        std::string_view name,                                                                   \
+        BitField<AttributeElement> expected_element,                                             \
+        AttributeUsage expected_usage,                                                           \
+        size_t expected_channels);                                                               \
+    template LA_CORE_API AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
+        const SurfaceMesh<Scalar, Index>& mesh,                                                  \
+        span<const AttributeId>,                                                                 \
+        BitField<AttributeElement> expected_element,                                             \
+        AttributeUsage expected_usage,                                                           \
+        size_t expected_channels);                                                               \
+    template LA_CORE_API AttributeId find_attribute<ExpectedValueType, Scalar, Index>(           \
+        const SurfaceMesh<Scalar, Index>& mesh,                                                  \
+        std::string_view name,                                                                   \
+        BitField<AttributeElement> expected_element,                                             \
+        AttributeUsage expected_usage,                                                           \
+        size_t expected_channels);                                                               \
+    template LA_CORE_API AttributeId find_or_create_attribute<ExpectedValueType, Scalar, Index>( \
+        SurfaceMesh<Scalar, Index> & mesh,                                                       \
+        std::string_view name,                                                                   \
+        AttributeElement expected_element,                                                       \
+        AttributeUsage expected_usage,                                                           \
+        size_t expected_channels,                                                                \
         ResetToDefault reset_tag);
 #define LA_X_find_attribute_aux(_, ExpectedValueType) \
     LA_SURFACE_MESH_X(find_attribute, ExpectedValueType)

@@ -76,7 +76,7 @@ std::vector<std::pair<int32_t, int32_t>> compute_uv_tile_list(
 }
 
 #define LA_X_compute_uv_tile_list(_, Scalar, Index)                                        \
-    template std::vector<std::pair<int32_t, int32_t>> compute_uv_tile_list<Scalar, Index>( \
+    template LA_CORE_API std::vector<std::pair<int32_t, int32_t>> compute_uv_tile_list<Scalar, Index>( \
         const SurfaceMesh<Scalar, Index>&);
 LA_SURFACE_MESH_X(compute_uv_tile_list, 0)
 

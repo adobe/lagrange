@@ -19,7 +19,7 @@ add_library(lagrange::warnings ALIAS lagrange_warnings)
 
 # installation
 set_target_properties(lagrange_warnings PROPERTIES EXPORT_NAME warnings)
-install(TARGETS lagrange_warnings EXPORT Lagrange_Targets)
+install(TARGETS lagrange_warnings EXPORT Lagrange_Targets FILE_SET HEADERS)
 
 include(lagrange_filter_flags)
 

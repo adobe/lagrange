@@ -12,6 +12,8 @@
 #pragma once
 
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
+
 #include <vector>
 
 namespace lagrange {
@@ -28,7 +30,7 @@ namespace ui {
 ///     //Run the systems in the Init stage
 ///     S.run(Systems::Stage::Init, r);
 /// @endcode
-class Systems
+class LA_UI_API Systems
 {
 public:
     enum class Stage : int { Init = 0, Interface, Simulation, Render, Post, _SIZE };

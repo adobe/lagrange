@@ -15,12 +15,15 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'gl3w::gl3w'")
 
-include(CPM)
-CPMAddPackage(
-    NAME gl3w
-    GITHUB_REPOSITORY adobe/lagrange-gl3w
-    GIT_TAG a9e41479e30266cecb72df413f4f6d71b0228a71
-)
+block()
+    set(BUILD_SHARED_LIBS OFF)
+    include(CPM)
+    CPMAddPackage(
+        NAME gl3w
+        GITHUB_REPOSITORY adobe/lagrange-gl3w
+        GIT_TAG a9e41479e30266cecb72df413f4f6d71b0228a71
+    )
+endblock()
 
 add_library(gl3w::gl3w ALIAS gl3w)
 

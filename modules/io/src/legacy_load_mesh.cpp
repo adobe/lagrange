@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/io/legacy/load_mesh.impl.h>
+#include <lagrange/io/api.h>
 
 namespace lagrange::io {
 LAGRANGE_LEGACY_INLINE
@@ -24,10 +25,10 @@ template std::vector<std::unique_ptr<TriangleMesh3Df>> load_obj_meshes(const fs:
 template std::unique_ptr<TriangleMesh3D> load_obj_mesh(const fs::path&);
 template std::unique_ptr<TriangleMesh3Df> load_obj_mesh(const fs::path&);
 
-template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
-template std::unique_ptr<TriangleMesh3Df> load_mesh(const fs::path&);
-template std::unique_ptr<TriangleMesh2D> load_mesh(const fs::path&);
-template std::unique_ptr<Mesh<Eigen::MatrixXf, Eigen::MatrixXi>> load_mesh(const fs::path&);
+template LA_IO_API std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
+template LA_IO_API std::unique_ptr<TriangleMesh3Df> load_mesh(const fs::path&);
+template LA_IO_API std::unique_ptr<TriangleMesh2D> load_mesh(const fs::path&);
+template LA_IO_API std::unique_ptr<Mesh<Eigen::MatrixXf, Eigen::MatrixXi>> load_mesh(const fs::path&);
 
 } // namespace legacy
 } // namespace lagrange::io

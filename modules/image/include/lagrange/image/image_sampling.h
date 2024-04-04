@@ -13,6 +13,7 @@
 
 #include <lagrange/common.h>
 #include <lagrange/image/ImageView.h>
+#include <lagrange/image/api.h>
 
 namespace lagrange {
 namespace image {
@@ -28,13 +29,13 @@ namespace image {
  * may may be smaller.
  * @param[out] samples The resulting samples.
  */
-void sample_from_density_map(
+LA_IMAGE_API void sample_from_density_map(
     const image::ImageView<float>& density_map,
     size_t n_samples,
     lagrange::Vertices2Df& samples);
 
 /**
- * Type of sampling to use 
+ * Type of sampling to use
  */
 enum class SampleType
 {
@@ -43,19 +44,19 @@ enum class SampleType
 };
 
 /**
- * Populates a list of \p n_samples samples with samples along the image borders. 
- * 
+ * Populates a list of \p n_samples samples with samples along the image borders.
+ *
  * There are two sampling modes:
  * SampleType::Density: sample according to density map.
  * SampleType::Regular: sample regularly (ignores density).
- * 
+ *
  * @param[in]  density_map The input density map.
  * @param[in]  n_samples The approximate number of samples to generate. The actual number of samples
  * may be smaller.
  * @param[out] samples The resulting samples.
  * @param[in]  type The sampling type. Default is SampleType::Regular.
  */
-void sample_borders(
+LA_IMAGE_API void sample_borders(
     const image::ImageView<float>& density_map,
     size_t n_samples,
     lagrange::Vertices2Df& samples,
@@ -70,7 +71,7 @@ void sample_borders(
  * may be smaller.
  * @param[out] samples The resulting samples.
  */
-void density_sample_borders(
+LA_IMAGE_API void density_sample_borders(
     const image::ImageView<float>& density_map,
     size_t n_samples,
     lagrange::Vertices2Df& samples);
@@ -86,7 +87,7 @@ void density_sample_borders(
  * may be smaller.
  * @param[out] samples The resulting samples.
  */
-void regular_sample_borders(
+LA_IMAGE_API void regular_sample_borders(
     const image::ImageView<float>& density_map,
     size_t n_samples,
     lagrange::Vertices2Df& samples);
@@ -99,7 +100,7 @@ void regular_sample_borders(
  * @param y y coordinate
  * @return float value at (x, y) bilinearly interpolated from the image
  */
-float bilinear_interpolation(const image::ImageView<float>& image, float x, float y);
+LA_IMAGE_API float bilinear_interpolation(const image::ImageView<float>& image, float x, float y);
 
 /**
  * Performs nearest neighbor interpolation on an image.
@@ -117,7 +118,7 @@ float bilinear_interpolation(const image::ImageView<float>& image, float x, floa
  *
  * @return The interpolated pixel value at the provided coordinates.
  */
-float nearest_neighbor_interpolation(const image::ImageView<float>& image, float x, float y);
+LA_IMAGE_API float nearest_neighbor_interpolation(const image::ImageView<float>& image, float x, float y);
 
 
 /**
@@ -140,7 +141,7 @@ float nearest_neighbor_interpolation(const image::ImageView<float>& image, float
  * @return An approximation of the x-th percentile of the pixel intensities in the image.
  *         The return value is a floating point number representing a pixel intensity.
  */
-float percentile(const image::ImageView<float>& image, const float x, const int num_bins = 1000);
+LA_IMAGE_API float percentile(const image::ImageView<float>& image, const float x, const int num_bins = 1000);
 
 } // namespace image
 } // namespace lagrange

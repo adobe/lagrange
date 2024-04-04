@@ -89,7 +89,7 @@ std::optional<std::vector<Index>> compute_dijkstra_distance(
 }
 
 #define LA_X_compute_dijkstra_distance(_, Scalar, Index)                                 \
-    template std::optional<std::vector<Index>> compute_dijkstra_distance<Scalar, Index>( \
+    template LA_CORE_API std::optional<std::vector<Index>> compute_dijkstra_distance<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                                                     \
         const DijkstraDistanceOptions<Scalar, Index>& options);
 LA_SURFACE_MESH_X(compute_dijkstra_distance, 0)

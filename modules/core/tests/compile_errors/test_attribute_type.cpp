@@ -9,13 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/scene/SceneExtension.h>
-#include <lagrange/utils/assert.h>
+#include <lagrange/Attribute.h>
 
-namespace lagrange {
-namespace scene {
-
-Value::Value(){};
-
-} // namespace scene
-} // namespace lagrange
+void test_mesh_type()
+{
+    lagrange::Attribute<bool> attr(
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Vector,
+        1);
+}

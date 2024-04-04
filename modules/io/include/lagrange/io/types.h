@@ -62,6 +62,9 @@ struct SaveOptions
     AttributeConversionPolicy attribute_conversion_policy =
         AttributeConversionPolicy::ExactMatchOnly;
 
+    /// Whether to embed images in the file (if supported by the filetype)
+    bool embed_images = false;
+
     std::vector<scene::UserDataConverter*> extension_converters;
 };
 

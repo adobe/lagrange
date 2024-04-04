@@ -15,8 +15,6 @@
     #include <lagrange/legacy/compute_dihedral_angles.h>
 #endif
 
-#include <string_view>
-
 #include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {

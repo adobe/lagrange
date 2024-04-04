@@ -15,6 +15,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
 #include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/io/api.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -262,9 +263,11 @@ MeshType load_mesh_msh(const fs::path& filename, const LoadOptions& options)
     return load_mesh_msh<MeshType>(fin, options);
 }
 
-#define LA_X_load_mesh_msh(_, S, I)                                                      \
-    template SurfaceMesh<S, I> load_mesh_msh(std::istream&, const LoadOptions& options); \
-    template SurfaceMesh<S, I> load_mesh_msh(const fs::path& filename, const LoadOptions& options);
+#define LA_X_load_mesh_msh(_, S, I)                                                                \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_msh(std::istream&, const LoadOptions& options); \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_msh(                                            \
+        const fs::path& filename,                                                                  \
+        const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_msh, 0)
 #undef LA_X_load_mesh_msh
 

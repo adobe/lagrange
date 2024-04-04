@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
@@ -20,7 +21,7 @@ namespace ui {
     Creates mesh buffers for <Renderable,MeshGeometry>
     Output: Resource<MeshBuffers> component on MeshGeometry entity
 */
-void update_mesh_buffers_system(Registry& ctx);
+LA_UI_API void update_mesh_buffers_system(Registry& ctx);
 
 
 } // namespace ui

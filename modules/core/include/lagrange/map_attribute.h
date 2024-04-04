@@ -50,7 +50,7 @@ namespace lagrange {
 /// @tparam        Scalar       Mesh scalar type.
 /// @tparam        Index        Mesh index type.
 ///
-/// @return        The attribute identifier.
+/// @return        Id of the newly created attribute.
 ///
 template <typename Scalar, typename Index>
 AttributeId map_attribute(
@@ -72,7 +72,7 @@ AttributeId map_attribute(
 /// @tparam        Scalar       Mesh scalar type.
 /// @tparam        Index        Mesh index type.
 ///
-/// @return        The attribute identifier.
+/// @return        Id of the newly created attribute.
 ///
 template <typename Scalar, typename Index>
 AttributeId map_attribute(
@@ -94,7 +94,7 @@ AttributeId map_attribute(
 /// @tparam        Scalar       Mesh scalar type.
 /// @tparam        Index        Mesh index type.
 ///
-/// @return        The attribute identifier.
+/// @return        Id of the modified attribute.
 ///
 template <typename Scalar, typename Index>
 AttributeId map_attribute_in_place(
@@ -115,7 +115,7 @@ AttributeId map_attribute_in_place(
 /// @tparam        Scalar       Mesh scalar type.
 /// @tparam        Index        Mesh index type.
 ///
-/// @return        The attribute identifier.
+/// @return        Id of the modified attribute.
 ///
 template <typename Scalar, typename Index>
 AttributeId map_attribute_in_place(

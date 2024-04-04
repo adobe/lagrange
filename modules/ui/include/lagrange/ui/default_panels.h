@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
@@ -30,8 +31,8 @@ struct DefaultPanels
 };
 
 
-DefaultPanels add_default_panels(Registry& registry);
-void reset_layout(Registry& registry);
+LA_UI_API DefaultPanels add_default_panels(Registry& registry);
+LA_UI_API void reset_layout(Registry& registry);
 
 
 } // namespace ui

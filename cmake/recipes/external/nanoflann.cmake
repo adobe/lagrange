@@ -26,19 +26,17 @@ CPMAddPackage(
 add_library(nanoflann INTERFACE)
 add_library(nanoflann::nanoflann ALIAS nanoflann)
 
-include(GNUInstallDirs)
-target_include_directories(nanoflann SYSTEM INTERFACE
-    "$<BUILD_INTERFACE:${nanoflann_SOURCE_DIR}/include>"
-    "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
-)
-target_sources(nanoflann PRIVATE
-    "${nanoflann_SOURCE_DIR}/include/nanoflann.hpp"
+target_sources(nanoflann PUBLIC
+    FILE_SET HEADERS
+    BASE_DIRS
+        "${nanoflann_SOURCE_DIR}/include"
+    FILES
+        "${nanoflann_SOURCE_DIR}/include/nanoflann.hpp"
 )
 
 set_target_properties(nanoflann PROPERTIES FOLDER "third_party")
 
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME nanoflann)
-install(FILES ${nanoflann_SOURCE_DIR}/include/nanoflann.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(TARGETS nanoflann EXPORT Nanoflann_Targets)
+install(TARGETS nanoflann EXPORT Nanoflann_Targets FILE_SET HEADERS INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(EXPORT Nanoflann_Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/nanoflann NAMESPACE nanoflann::)

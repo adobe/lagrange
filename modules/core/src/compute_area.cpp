@@ -341,19 +341,19 @@ Scalar compute_mesh_area(
 }
 
 #define LA_X_compute_facet_area(_, Scalar, Index)           \
-    template AttributeId compute_facet_area<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_facet_area<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                        \
         FacetAreaOptions);                                  \
-    template Scalar compute_mesh_area<Scalar, Index>(       \
+    template LA_CORE_API Scalar compute_mesh_area<Scalar, Index>(       \
         const SurfaceMesh<Scalar, Index>&,                  \
         MeshAreaOptions);
 
 #define LA_X_compute_facet_area_dim(_, Scalar, Index, Dimension)       \
-    template AttributeId compute_facet_area<Scalar, Index, Dimension>( \
+    template LA_CORE_API AttributeId compute_facet_area<Scalar, Index, Dimension>( \
         SurfaceMesh<Scalar, Index>&,                                   \
         const Eigen::Transform<Scalar, Dimension, Eigen::Affine>&,     \
         FacetAreaOptions);                                             \
-    template Scalar compute_mesh_area<Scalar, Index, Dimension>(       \
+    template LA_CORE_API Scalar compute_mesh_area<Scalar, Index, Dimension>(       \
         const SurfaceMesh<Scalar, Index>&,                             \
         const Eigen::Transform<Scalar, Dimension, Eigen::Affine>&,     \
         MeshAreaOptions);

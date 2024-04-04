@@ -14,16 +14,18 @@
 /*
 Custom buttons used throughout the UI
 */
-#include <imgui.h>
 #include <lagrange/ui/types/Keybinds.h>
+#include <lagrange/ui/api.h>
+
+#include <imgui.h>
 
 namespace lagrange {
 namespace ui {
 
 // A plain button with no decoration
-bool button_unstyled(const char* label);
+LA_UI_API bool button_unstyled(const char* label);
 
-bool button_toolbar(
+LA_UI_API bool button_toolbar(
     bool selected,
     const std::string& label,
     const std::string& tooltip = "",
@@ -31,7 +33,7 @@ bool button_toolbar(
     const Keybinds* keybinds = nullptr,
     bool enabled = true);
 
-bool button_icon(
+LA_UI_API bool button_icon(
     bool selected,
     const std::string& label,
     const std::string& tooltip = "",

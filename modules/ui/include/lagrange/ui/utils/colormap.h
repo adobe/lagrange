@@ -10,21 +10,23 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
+
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/types/Color.h>
 #include <lagrange/ui/types/Texture.h>
 
 namespace lagrange {
 namespace ui {
 
-Color colormap_viridis(float t);
-Color colormap_magma(float t);
-Color colormap_plasma(float t);
-Color colormap_inferno(float t);
-Color colormap_turbo(float t);
-Color colormap_coolwarm(float t);
+LA_UI_API Color colormap_viridis(float t);
+LA_UI_API Color colormap_magma(float t);
+LA_UI_API Color colormap_plasma(float t);
+LA_UI_API Color colormap_inferno(float t);
+LA_UI_API Color colormap_turbo(float t);
+LA_UI_API Color colormap_coolwarm(float t);
 
 
-std::shared_ptr<Texture> generate_colormap(
+LA_UI_API std::shared_ptr<Texture> generate_colormap(
     const std::function<Color(float)>& generator,
     int resolution = 256);
 

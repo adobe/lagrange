@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Layer.h>
 #include <string>
@@ -28,29 +29,29 @@ struct DefaultLayers
 };
 
 
-void add_to_layer(Registry& registry, Entity e, LayerIndex index);
+LA_UI_API void add_to_layer(Registry& registry, Entity e, LayerIndex index);
 
-void remove_from_layer(Registry& registry, Entity e, LayerIndex index);
+LA_UI_API void remove_from_layer(Registry& registry, Entity e, LayerIndex index);
 
-bool is_in_layer(Registry& registry, Entity e, LayerIndex index);
+LA_UI_API bool is_in_layer(Registry& registry, Entity e, LayerIndex index);
 
-bool is_in_any_layers(Registry& registry, Entity e, Layer layers_bitset);
+LA_UI_API bool is_in_any_layers(Registry& registry, Entity e, Layer layers_bitset);
 
-bool is_visible_in(
+LA_UI_API bool is_visible_in(
     const Registry& registry,
     Entity e,
     const Layer& visible_layers,
     const Layer& hidden_layers);
 
-LayerIndex get_next_available_layer_index(Registry& r);
+LA_UI_API LayerIndex get_next_available_layer_index(Registry& r);
 
-LayerIndex register_layer_name(Registry& registry, const std::string& name, LayerIndex index);
-LayerIndex register_layer_name(Registry& registry, const std::string& name);
+LA_UI_API LayerIndex register_layer_name(Registry& registry, const std::string& name, LayerIndex index);
+LA_UI_API LayerIndex register_layer_name(Registry& registry, const std::string& name);
 
 
-const std::string& get_layer_name(Registry& registry, LayerIndex index);
+LA_UI_API const std::string& get_layer_name(Registry& registry, LayerIndex index);
 
-void register_default_layer_names(Registry& registry);
+LA_UI_API void register_default_layer_names(Registry& registry);
 
 
 } // namespace ui

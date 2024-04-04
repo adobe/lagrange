@@ -21,13 +21,7 @@ target_link_libraries(lagrange_partitioning
         metis::metis
 )
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_partitioning PROPERTIES EXPORT_NAME partitioning)
-    lagrange_install(lagrange_partitioning)
-endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

@@ -17,7 +17,7 @@ namespace lagrange::internal {
 
 #define LA_X_string_from_scalar(_, ValueType)        \
     template <>                                      \
-    std::string_view string_from_scalar<ValueType>() \
+    LA_CORE_API std::string_view string_from_scalar<ValueType>() \
     {                                                \
         return #ValueType;                           \
     }

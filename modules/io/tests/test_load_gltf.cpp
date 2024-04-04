@@ -12,7 +12,9 @@
 #include <lagrange/attribute_names.h>
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
+#include <lagrange/io/save_simple_scene_gltf.h>
 #include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
+#include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/testing/common.h>
 
 using namespace lagrange;
@@ -118,4 +120,21 @@ TEST_CASE("load_glb_triangle", "[io]")
         testing::get_data_path("open/io/triangle.glb"));
     REQUIRE(mesh.get_num_vertices() == 3);
     REQUIRE(mesh.get_num_facets() == 1);
+}
+
+TEST_CASE("load_gltf_point_cloud", "[io][gltf]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+
+    std::stringstream ss;
+    auto scene = lagrange::scene::mesh_to_simple_scene(mesh);
+    REQUIRE(scene.get_num_meshes() == 1);
+    lagrange::io::save_simple_scene_gltf(ss, scene);
+    auto scene2 =
+        lagrange::io::load_simple_scene_gltf<lagrange::scene::SimpleScene<Scalar, Index>>(ss);
+    REQUIRE(scene2.get_num_meshes() == 1);
 }

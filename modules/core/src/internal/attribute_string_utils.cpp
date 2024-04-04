@@ -9,8 +9,9 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/AttributeTypes.h>
 #include <lagrange/internal/attribute_string_utils.h>
+
+#include <lagrange/AttributeTypes.h>
 #include <lagrange/utils/assert.h>
 
 #define LA_ENUM_CASE(e, x) \
@@ -64,12 +65,12 @@ std::string_view to_string(AttributeUsage usage)
 
 #define LA_X_type_name(_, ValueType)                                        \
     template <>                                                             \
-    std::string_view value_type_name(const lagrange::Attribute<ValueType>&) \
+    LA_CORE_API std::string_view value_type_name(const lagrange::Attribute<ValueType>&) \
     {                                                                       \
         return #ValueType;                                                  \
     }                                                                       \
     template <>                                                             \
-    std::string_view value_type_name<ValueType>()                                      \
+    LA_CORE_API std::string_view value_type_name<ValueType>()                                      \
     {                                                                       \
         return #ValueType;                                                  \
     }

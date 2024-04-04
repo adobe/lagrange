@@ -16,9 +16,10 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/io/api.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/utils/strings.h>
 #include <lagrange/utils/build.h>
+#include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -340,9 +341,11 @@ MeshType load_mesh_ply(const fs::path& filename, const LoadOptions& options)
     return load_mesh_ply<MeshType>(fin, options);
 }
 
-#define LA_X_load_mesh_ply(_, S, I)                                                      \
-    template SurfaceMesh<S, I> load_mesh_ply(std::istream&, const LoadOptions& options); \
-    template SurfaceMesh<S, I> load_mesh_ply(const fs::path& filename, const LoadOptions& options);
+#define LA_X_load_mesh_ply(_, S, I)                                                                \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_ply(std::istream&, const LoadOptions& options); \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_ply(                                            \
+        const fs::path& filename,                                                                  \
+        const LoadOptions& options);
 LA_SURFACE_MESH_X(load_mesh_ply, 0)
 
 } // namespace lagrange::io

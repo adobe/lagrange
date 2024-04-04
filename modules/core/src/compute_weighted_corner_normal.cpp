@@ -53,7 +53,7 @@ AttributeId compute_weighted_corner_normal(
 }
 
 #define LA_X_compute_weighted_corner_normal(_, Scalar, Index)           \
-    template AttributeId compute_weighted_corner_normal<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_weighted_corner_normal<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                                    \
         CornerNormalOptions);
 LA_SURFACE_MESH_X(compute_weighted_corner_normal, 0)

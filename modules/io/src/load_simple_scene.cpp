@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/Logger.h>
+#include <lagrange/io/api.h>
 #include <lagrange/io/load_simple_scene.h>
 #include <lagrange/io/load_simple_scene_fbx.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
@@ -41,9 +42,9 @@ SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options
     }
     return SceneType();
 }
-#define LA_X_load_simple_scene(_, S, I, D)                  \
-    template scene::SimpleScene<S, I, D> load_simple_scene( \
-        const fs::path& filename,                           \
+#define LA_X_load_simple_scene(_, S, I, D)                            \
+    template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene( \
+        const fs::path& filename,                                     \
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene, 0);
 

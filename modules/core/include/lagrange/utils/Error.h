@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
+
 #include <stdexcept>
 
 namespace lagrange {
@@ -21,7 +23,7 @@ namespace lagrange {
 ///
 /// Base exception for errors thrown by Lagrange functions.
 ///
-struct Error : public std::runtime_error
+struct LA_CORE_API Error : public std::runtime_error
 {
     using runtime_error::runtime_error;
 
@@ -31,7 +33,7 @@ struct Error : public std::runtime_error
 ///
 /// An exception of this type is thrown when a lagrange::safe_cast<> fails.
 ///
-struct BadCastError : public Error
+struct LA_CORE_API BadCastError : public Error
 {
     BadCastError() : Error("bad cast") {}
     ~BadCastError() override;

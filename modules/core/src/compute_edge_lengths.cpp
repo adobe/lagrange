@@ -49,7 +49,7 @@ AttributeId compute_edge_lengths(SurfaceMesh<Scalar, Index>& mesh, const EdgeLen
 }
 
 #define LA_X_compute_edge_lengths(_, Scalar, Index)           \
-    template AttributeId compute_edge_lengths<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_edge_lengths<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                          \
         const EdgeLengthOptions&);
 LA_SURFACE_MESH_X(compute_edge_lengths, 0)

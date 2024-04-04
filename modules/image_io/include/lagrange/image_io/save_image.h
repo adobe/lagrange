@@ -13,13 +13,13 @@
 
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/image/ImageView.h>
-
+#include <lagrange/image_io/api.h>
 
 namespace lagrange {
 namespace image_io {
 
 // Save image. Returns true on success.
-bool save_image(
+LA_IMAGE_IO_API bool save_image(
     const fs::path& path,
     const unsigned char* data,
     size_t width,
@@ -28,7 +28,7 @@ bool save_image(
     image::ImageChannel channel);
 
 // Save image using stb. Supports png or jpeg. Only supports uint8 data.
-bool save_image_stb(
+LA_IMAGE_IO_API bool save_image_stb(
     const fs::path& path,
     const unsigned char* data,
     size_t width,
@@ -37,7 +37,7 @@ bool save_image_stb(
 
 // Note: #include <lagrange/image_io/exr.h> to use the full save_image_exr directly
 // Save exr image using tinyexr.
-bool save_image_exr(
+LA_IMAGE_IO_API bool save_image_exr(
     const fs::path& path,
     const unsigned char* data,
     size_t width,
@@ -46,7 +46,7 @@ bool save_image_exr(
     image::ImageChannel channel);
 
 // Save image to our custom binary format.
-bool save_image_bin(
+LA_IMAGE_IO_API bool save_image_bin(
     const fs::path& path,
     const unsigned char* data,
     size_t width,

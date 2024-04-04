@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/fs/filesystem.h>
 
 #include <vector>
@@ -25,7 +26,7 @@ namespace ui {
 ///     Removes the file from temporary browser filesystem when out of scope
 ///     If created by `create_output_path`: triggers download of the file when going out of scope
 ///
-class FileDialogPath
+class LA_UI_API FileDialogPath
 {
 public:
     /// Create FileDialogPath from Open File Dialog
@@ -94,7 +95,7 @@ enum class FolderOpen {
 ///
 /// @return     Selected file path.
 ///
-FileDialogPath open_file(
+LA_UI_API FileDialogPath open_file(
     const std::string& title,
     const fs::path& default_path = ".",
     const std::vector<FileFilter>& filters = {{"All Files", "*"}});
@@ -108,7 +109,7 @@ FileDialogPath open_file(
 ///
 /// @return     Selected file path.
 ///
-std::vector<FileDialogPath> open_files(
+LA_UI_API std::vector<FileDialogPath> open_files(
     const std::string& title,
     const fs::path& default_path = ".",
     const std::vector<FileFilter>& filters = {{"All Files", "*"}});
@@ -123,7 +124,7 @@ std::vector<FileDialogPath> open_files(
 ///
 /// @return     Selected file path.
 ///
-FileDialogPath save_file(
+LA_UI_API FileDialogPath save_file(
     const std::string& title,
     const fs::path& default_path = ".",
     const std::vector<FileFilter>& filters = {{"All Files", "*"}},
@@ -139,7 +140,7 @@ FileDialogPath save_file(
 ///
 /// @return     Selected folder path.
 ///
-FileDialogPath open_folder(
+LA_UI_API FileDialogPath open_folder(
     const std::string& title,
     const fs::path& default_path = ".",
     FolderOpen open_behavior = FolderOpen::LastOpened);
@@ -159,7 +160,7 @@ namespace utils {
 /// Example:
 /// filters: {{"Label", "*.x *.z *.w image/png"}} output: ".x,.z,.w,image/png"
 ///
-std::string transform_filters_to_accept(const std::vector<FileFilter>& filters);
+LA_UI_API std::string transform_filters_to_accept(const std::vector<FileFilter>& filters);
 
 } // namespace utils
 

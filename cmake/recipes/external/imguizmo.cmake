@@ -22,7 +22,7 @@ CPMAddPackage(
     GIT_TAG e3174578bdc99c715e51c5ad88e7d50b4eeb19b0
 )
 
-add_library(imguizmo
+add_library(imguizmo STATIC
     "${imguizmo_SOURCE_DIR}/ImGuizmo.h"
     "${imguizmo_SOURCE_DIR}/ImGuizmo.cpp"
 )

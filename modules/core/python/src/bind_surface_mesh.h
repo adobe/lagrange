@@ -18,6 +18,7 @@
 #include <nanobind/stl/optional.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/string_view.h>
+#include <nanobind/stl/variant.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -199,33 +200,31 @@ void bind_surface_mesh(nanobind::module_& m)
         "create_attribute",
         [](MeshType& self,
            std::string_view name,
-           AttributeElement element,
-           AttributeUsage usage,
-           std::optional<GenericTensor> initial_values,
-           std::optional<Tensor<Index>> initial_indices,
+           std::optional<AttributeElement> element,
+           std::optional<AttributeUsage> usage,
+           std::variant<std::monostate, GenericTensor, nb::list> initial_values,
+           std::variant<std::monostate, Tensor<Index>, GenericTensor, nb::list> initial_indices,
            std::optional<Index> num_channels,
            std::optional<nb::type_object> dtype) {
+            const bool with_initial_values = initial_values.index() != 0;
+            const bool with_initial_indices = initial_indices.index() != 0;
+
             auto create_attribute = [&](auto values) {
-                using ValueType = typename std::decay_t<decltype(values)>::Scalar;
+                using ValueType = typename std::decay_t<decltype(values)>::element_type;
 
                 span<const ValueType> init_values;
                 span<const Index> init_indices;
+                std::vector<Index> index_storage;
                 Index n = num_channels.value_or(1);
+                AttributeElement elem_type;
+                AttributeUsage usage_type;
 
-                if (initial_values.has_value()) {
-                    auto [value_data, value_shape, value_stride] = tensor_to_span(values);
-                    la_runtime_assert(is_dense(value_shape, value_stride));
-                    init_values = value_data;
-                    Index num_cols =
-                        value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);
-                    if (num_channels.has_value()) {
-                        la_runtime_assert(
-                            num_cols == n,
-                            "Number of channels does not match the number of columns in the "
-                            "initial values!");
-                    } else {
-                        n = num_cols;
-                    }
+                // Extract initial values.
+                if (with_initial_values) {
+                    init_values = values;
+                    la_debug_assert(num_channels.has_value());
+                    n = num_channels.value();
+                    la_debug_assert(values.size() % n == 0);
                 } else {
                     la_runtime_assert(
                         num_channels.has_value(),
@@ -234,75 +233,177 @@ void bind_surface_mesh(nanobind::module_& m)
                         dtype.has_value(),
                         "dtype is required when initial values are not provided!");
                 }
-                if (initial_indices.has_value()) {
-                    const auto& indices = initial_indices.value();
+
+                // Extract initial indices.
+                if (const Tensor<Index>* tensor_ptr =
+                        std::get_if<Tensor<Index>>(&initial_indices)) {
+                    la_debug_assert(with_initial_indices);
+                    const auto& indices = *tensor_ptr;
                     auto [index_data, index_shape, index_stride] = tensor_to_span(indices);
                     la_runtime_assert(is_dense(index_shape, index_stride));
                     init_indices = index_data;
+                } else if (
+                    GenericTensor* generic_tensor_ptr =
+                        std::get_if<GenericTensor>(&initial_indices)) {
+                    la_debug_assert(with_initial_indices);
+                    auto& indices = *generic_tensor_ptr;
+                    index_storage.resize(indices.size());
+
+#define LA_X_create_attribute_index(_, IndexType)                                    \
+    if (indices.dtype() == nb::dtype<IndexType>()) {                                 \
+        auto view = indices.template view<IndexType, nb::ndim<1>>();                 \
+        std::copy(view.data(), view.data() + indices.size(), index_storage.begin()); \
+    }
+                    LA_ATTRIBUTE_INDEX_X(create_attribute_index, 0)
+#undef LA_X_create_attribute_index
+                    init_indices = span<Index>(index_storage.data(), index_storage.size());
+                } else if (const nb::list* list_ptr = std::get_if<nb::list>(&initial_indices)) {
+                    la_debug_assert(with_initial_indices);
+                    const nb::list& py_list = *list_ptr;
+                    auto indices = nb::cast<std::vector<Index>>(py_list);
+                    init_indices = span<Index>(indices.begin(), indices.size());
                 }
+
+                // Extract the proper attribute element.
+                if (element.has_value()) {
+                    elem_type = element.value();
+                } else if (with_initial_indices) {
+                    elem_type = AttributeElement::Indexed;
+                } else {
+                    // Guess element type based on the shape of initial values.
+                    la_runtime_assert(
+                        with_initial_values,
+                        "Initial values are required to derive the appropriate element type.");
+                    la_debug_assert(!init_values.empty());
+                    la_debug_assert(init_values.size() % n == 0);
+                    Index num_elements = static_cast<Index>(init_values.size()) / n;
+                    if (num_elements == self.get_num_vertices()) {
+                        la_runtime_assert(
+                            num_elements != self.get_num_facets(),
+                            "Cannot infer attribute element due to ambiguity: "
+                            "vertices vs facets");
+                        la_runtime_assert(
+                            !self.has_edges() || num_elements != self.get_num_edges(),
+                            "Cannot infer attribute element due to ambiguity: "
+                            "vertices vs edges");
+                        la_runtime_assert(
+                            num_elements != self.get_num_corners(),
+                            "Cannot infer attribute element due to ambiguity: "
+                            "vertices vs corners");
+                        elem_type = AttributeElement::Vertex;
+                    } else if (num_elements == self.get_num_facets()) {
+                        la_runtime_assert(
+                            !self.has_edges() || num_elements != self.get_num_edges(),
+                            "Cannot infer attribute element due to ambiguity: "
+                            "facets vs edges");
+                        la_runtime_assert(
+                            num_elements != self.get_num_corners(),
+                            "Cannot infer attribute element due to ambiguity: "
+                            "facets vs corners");
+                        elem_type = AttributeElement::Facet;
+                    } else if (num_elements == self.get_num_corners()) {
+                        la_runtime_assert(
+                            !self.has_edges() || num_elements != self.get_num_edges(),
+                            "Cannot infer attribute element due to ambiguity: "
+                            "corners vs edges");
+                        elem_type = AttributeElement::Corner;
+                    } else if (self.has_edges() && num_elements == self.get_num_edges()) {
+                        elem_type = AttributeElement::Edge;
+                    } else {
+                        throw nb::type_error("Cannot infer attribute element type from initial_values!");
+                    }
+                }
+
+                // Extract the proper usage.
+                if (usage.has_value()) {
+                    usage_type = usage.value();
+                } else if (n == 1) {
+                    usage_type = AttributeUsage::Scalar;
+                } else {
+                    usage_type = AttributeUsage::Vector;
+                }
+
                 return self.template create_attribute<ValueType>(
                     name,
-                    element,
-                    usage,
+                    elem_type,
+                    usage_type,
                     n,
                     init_values,
                     init_indices,
                     AttributeCreatePolicy::ErrorIfReserved);
             };
 
-            if (initial_values.has_value()) {
-                const auto& values = initial_values.value();
-#define LA_X_create_attribute(_, ValueType)              \
-    if (values.dtype() == nb::dtype<ValueType>()) {      \
-        Tensor<ValueType> local_values(values.handle()); \
-        return create_attribute(local_values);           \
+            if (const GenericTensor* tensor_ptr = std::get_if<GenericTensor>(&initial_values)) {
+                const auto& values = *tensor_ptr;
+#define LA_X_create_attribute(_, ValueType)                                                  \
+    if (values.dtype() == nb::dtype<ValueType>()) {                                          \
+        Tensor<ValueType> local_values(values.handle());                                     \
+        auto [value_data, value_shape, value_stride] = tensor_to_span(local_values);         \
+        la_runtime_assert(is_dense(value_shape, value_stride));                              \
+        if (!num_channels.has_value()) {                                                     \
+            num_channels = value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]); \
+        } else {                                                                             \
+            Index n = value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);      \
+            la_runtime_assert(                                                               \
+                n == num_channels.value(),                                                   \
+                "Number of channels does not match initial_values");                         \
+        }                                                                                    \
+        return create_attribute(value_data);                                                 \
     }
                 LA_ATTRIBUTE_X(create_attribute, 0)
 #undef LA_X_create_attribute
+            } else if (const nb::list* list_ptr = std::get_if<nb::list>(&initial_values)) {
+                if (!num_channels.has_value()) {
+                    logger().info(
+                        "Automatically set num_channels to 1 for list-typed initial_values.");
+                    num_channels = 1;
+                }
+                auto values = nb::cast<std::vector<double>>(*list_ptr);
+                return create_attribute(span<double>(values.data(), values.size()));
             } else if (dtype.has_value()) {
                 const auto& t = dtype.value();
                 auto np = nb::module_::import_("numpy");
                 if (t.is(&PyFloat_Type)) {
                     // Native python float is a C double.
-                    Tensor<double> local_values;
+                    span<double> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("float32"))) {
-                    Tensor<float> local_values;
+                    span<float> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("float64"))) {
-                    Tensor<double> local_values;
+                    span<double> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("int8"))) {
-                    Tensor<int8_t> local_values;
+                    span<int8_t> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("int16"))) {
-                    Tensor<int16_t> local_values;
+                    span<int16_t> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("int32"))) {
-                    Tensor<int32_t> local_values;
+                    span<int32_t> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("int64"))) {
-                    Tensor<int64_t> local_values;
+                    span<int64_t> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("uint8"))) {
-                    Tensor<uint8_t> local_values;
+                    span<uint8_t> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("uint16"))) {
-                    Tensor<uint16_t> local_values;
+                    span<uint16_t> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("uint32"))) {
-                    Tensor<uint32_t> local_values;
+                    span<uint32_t> local_values;
                     return create_attribute(local_values);
                 } else if (t.is(np.attr("uint64"))) {
-                    Tensor<uint64_t> local_values;
+                    span<uint64_t> local_values;
                     return create_attribute(local_values);
                 }
             }
             throw nb::type_error("`initial_values` and `dtype` cannot both be None!");
         },
         "name"_a,
-        "element"_a,
-        "usage"_a /*= AttributeUsage::Scalar*/,
+        "element"_a = nb::none(),
+        "usage"_a = nb::none(),
         "initial_values"_a = nb::none(),
         "initial_indices"_a = nb::none(),
         "num_channels"_a = nb::none(),
@@ -311,10 +412,10 @@ void bind_surface_mesh(nanobind::module_& m)
 
 :param name: Name of the attribute.
 :type name: str
-:param element: Element type of the attribute.
-:type element: AttributeElement
-:param usage: Usage type of the attribute.
-:type usage: AttributeUsage
+:param element: Element type of the attribute. If None, derive from the shape of initial values.
+:type element: AttributeElement, optional
+:param usage: Usage type of the attribute. If None, derive from the shape of initial values or the number of channels.
+:type usage: AttributeUsage, optional
 :param initial_values: Initial values of the attribute.
 :type initial_values: numpy.ndarray, optional
 :param initial_indices: Initial indices of the attribute (Indexed attribute only).
@@ -323,6 +424,14 @@ void bind_surface_mesh(nanobind::module_& m)
 :type num_channels: int, optional
 :param dtype: Data type of the attribute.
 :type dtype: valid numpy.dtype, optional
+
+.. note::
+   If `element` is None, it will be derived based on the cardinality of the mesh elements.
+   If there is an ambiguity, an exception will be raised.
+   In addition, explicit `element` specification is required for value attributes.
+
+.. note::
+   If `usage` is None, it will be derived based on the shape of `initial_values` or `num_channels` if specified.
 
 :returns: The id of the created attribute.
 )");

@@ -13,6 +13,7 @@
 
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/image/ImageView.h>
+#include <lagrange/image_io/api.h>
 
 namespace lagrange {
 namespace image_io {
@@ -28,17 +29,17 @@ struct LoadImageResult
 };
 
 // Load image. Storage type is determined by the image file type.
-LoadImageResult load_image(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult load_image(const fs::path& path);
 
 // Load png or jpg image using stb library. Produces uint8 data.
-LoadImageResult load_image_stb(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult load_image_stb(const fs::path& path);
 
 // Note: #include <lagrange/image_io/exr.h> to use the full load_image_exr directly
 // Load exr image using tinyexr. Produces multiple data types.
-LoadImageResult load_image_exr(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult load_image_exr(const fs::path& path);
 
 // Load image from our custom binary format.
-LoadImageResult load_image_bin(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult load_image_bin(const fs::path& path);
 
 // Load image as the provided type/view. Converts if needed/possible. Returns true on success.
 template <typename T>

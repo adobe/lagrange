@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/Transform.h>
 #include <lagrange/ui/types/Camera.h>
@@ -42,11 +43,11 @@ struct GizmoObjectTransform
 };
 
 
-bool gizmo_system_is_using();
-bool gizmo_system_is_over();
-void gizmo_system_set_draw_list();
+LA_UI_API bool gizmo_system_is_using();
+LA_UI_API bool gizmo_system_is_over();
+LA_UI_API void gizmo_system_set_draw_list();
 
-void gizmo_system(
+LA_UI_API void gizmo_system(
     Registry& registry,
     const Camera& camera,
     const Eigen::Vector2f& canvas_pos,

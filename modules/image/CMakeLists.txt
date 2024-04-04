@@ -20,13 +20,7 @@ target_link_libraries(lagrange_image PUBLIC
     lagrange::core
 )
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_image PROPERTIES EXPORT_NAME image)
-    lagrange_install(lagrange_image)
-endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

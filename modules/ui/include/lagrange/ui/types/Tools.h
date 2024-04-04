@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/utils/pair_hash.h>
 
@@ -39,7 +40,7 @@ entt::id_type register_tool_type(
 /*
     Container for Tool systems
 */
-class Tools
+class LA_UI_API Tools
 {
 public:
     template <typename ToolType, typename ElementType>

@@ -11,11 +11,14 @@
  */
 
 // this .cpp provides implementations for functions defined in those headers:
+#include <lagrange/io/api.h>
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_scene_gltf.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
+
 // ====
 
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/combine_meshes.h>
@@ -60,8 +63,7 @@ scene::Value convert_value(const tinygltf::Value& value)
         }
         return scene::Value(std::move(obj));
     }
-    case tinygltf::Type::NULL_TYPE: 
-        [[fallthrough]];
+    case tinygltf::Type::NULL_TYPE: [[fallthrough]];
     default: return scene::Value();
     }
 }
@@ -131,7 +133,7 @@ std::vector<Target_t> load_buffer_data_internal(
             size_t buf_idx = start + buffer_view.byteStride * i;
             std::memcpy(&data.at(i * size), &buffer.data.at(buf_idx), size * sizeof(Orig_t));
         }
-    } else {
+    } else if (accessor.count > 0) {
         std::memcpy(&data.at(0), &buffer.data.at(start), accessor.count * size * sizeof(Orig_t));
     }
 
@@ -624,8 +626,7 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
 
     for (const tinygltf::Mesh& mesh : model.meshes) {
         for (const tinygltf::Primitive& primitive : mesh.primitives) {
-            scene::utils::add_mesh(
-                lscene,
+            lscene.add(
                 convert_tinygltf_primitive_to_lagrange_mesh<MeshType>(model, primitive, options));
         }
         primitive_count.push_back(primitive_count_tmp);
@@ -650,7 +651,7 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             ltex.wrap_u = convert_map_mode(sampler.wrapS);
             ltex.wrap_v = convert_map_mode(sampler.wrapT);
         }
-        lscene.textures.emplace_back(std::move(ltex));
+        lscene.add(std::move(ltex));
     }
 
     for (const tinygltf::Material& material : model.materials) {
@@ -694,7 +695,7 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             lmat.extensions = convert_extension_map(material.extensions, options);
         }
 
-        lscene.materials.push_back(lmat);
+        lscene.add(lmat);
     }
     for (const tinygltf::Animation& animation : model.animations) {
         scene::Animation lanim;
@@ -705,7 +706,7 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             lanim.extensions = convert_extension_map(animation.extensions, options);
         }
 
-        lscene.animations.push_back(lanim);
+        lscene.add(lanim);
     }
     for (const tinygltf::Image& image : model.images) {
         // Note:
@@ -718,61 +719,52 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
         la_runtime_assert(
             static_cast<int>(image.image.size()) == image.width * image.height * image.component);
 
-        scene::ImageLegacy limage;
+        scene::ImageExperimental limage;
         limage.name = image.name;
-        limage.uri = image.uri;
-        fs::path path;
-        if (!image.uri.empty()) path = image.uri;
-        if (image.mimeType == "image/jpeg" || path.extension() == ".jpg" ||
-            path.extension() == ".jpeg") {
-            limage.type = scene::ImageLegacy::Type::Jpeg;
-        } else if (image.mimeType == "image/png" || path.extension() == ".png") {
-            limage.type = scene::ImageLegacy::Type::Png;
-        } else if (image.mimeType == "image/bmp" || path.extension() == ".bmp") {
-            limage.type = scene::ImageLegacy::Type::Bmp;
-        } else if (image.mimeType == "image/gif" || path.extension() == ".gif") {
-            limage.type = scene::ImageLegacy::Type::Gif;
-        } else {
-            limage.type = scene::ImageLegacy::Type::Unknown;
-        }
-        limage.width = image.width;
-        limage.height = image.height;
-        limage.channel = [](int component) {
-            switch (component) {
-            case 1: return image::ImageChannel::one;
-            case 3: return image::ImageChannel::three;
-            case 4: return image::ImageChannel::four;
-            default:
-                logger().warn("Loading image with unsupported number of channels!");
-                return image::ImageChannel::unknown;
-            }
-        }(image.component);
-        limage.precision = [](int precision) {
-            switch (precision) {
-            case TINYGLTF_COMPONENT_TYPE_BYTE: return image::ImagePrecision::int8;
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE: return image::ImagePrecision::uint8;
-            case TINYGLTF_COMPONENT_TYPE_INT: return image::ImagePrecision::int32;
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: return image::ImagePrecision::uint32;
-            case TINYGLTF_COMPONENT_TYPE_FLOAT: return image::ImagePrecision::float32;
-            case TINYGLTF_COMPONENT_TYPE_DOUBLE: return image::ImagePrecision::float64;
-            case TINYGLTF_COMPONENT_TYPE_SHORT: // unsupported, fallthrough
-            case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: // unsupported, fallthrough
-            default:
-                logger().warn("Loading image with unsupported pixel precision!");
-                return image::ImagePrecision::unknown;
-            }
-        }(image.pixel_type);
-        limage.data = std::make_unique<image::ImageStorage>(
-            limage.get_element_size() * image.width * image.component,
-            image.height,
-            1);
-        std::copy(image.image.begin(), image.image.end(), limage.data->data());
 
-        if (!image.extensions.empty()) {
-            limage.extensions = convert_extension_map(image.extensions, options);
+        if (!image.uri.empty()) {
+            // Image data is stored in a file.
+            limage.uri = image.uri;
         }
 
-        lscene.images.emplace_back(std::move(limage));
+        // TinyGltf always loads images into memory.
+        scene::ImageBufferExperimental& limage_buffer = limage.image;
+        limage_buffer.width = image.width;
+        limage_buffer.height = image.height;
+        limage_buffer.num_channels = image.component;
+
+        switch (image.pixel_type) {
+        case TINYGLTF_COMPONENT_TYPE_BYTE:
+            limage_buffer.element_type = AttributeValueType::e_int8_t;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE:
+            limage_buffer.element_type = AttributeValueType::e_uint8_t;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_INT:
+            limage_buffer.element_type = AttributeValueType::e_int32_t;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT:
+            limage_buffer.element_type = AttributeValueType::e_uint32_t;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_FLOAT:
+            limage_buffer.element_type = AttributeValueType::e_float;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_DOUBLE:
+            limage_buffer.element_type = AttributeValueType::e_double;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_SHORT:
+            limage_buffer.element_type = AttributeValueType::e_int16_t;
+            break;
+        case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT:
+            limage_buffer.element_type = AttributeValueType::e_uint16_t;
+            break;
+        default:
+            logger().warn("Loading image with unsupported pixel precision!");
+            throw std::runtime_error("Unsupported pixel type");
+        }
+        limage_buffer.data = std::move(image.image);
+
+        lscene.add(std::move(limage));
     }
 
     for (const tinygltf::Light& light : model.lights) {
@@ -804,7 +796,7 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             llight.extensions = convert_extension_map(light.extensions, options);
         }
 
-        lscene.lights.push_back(llight);
+        lscene.add(llight);
     }
 
     for (const tinygltf::Camera& camera : model.cameras) {
@@ -830,14 +822,13 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             lcam.extensions = convert_extension_map(camera.extensions, options);
         }
 
-        lscene.cameras.push_back(lcam);
+        lscene.add(lcam);
     }
     // TODO model.skins ?
 
     std::function<size_t(const tinygltf::Node&, size_t parent_idx)> create_node;
     create_node = [&](const tinygltf::Node& node, size_t parent_idx) -> size_t {
-        size_t lnode_idx = lscene.nodes.size();
-        lscene.nodes.push_back(scene::Node());
+        size_t lnode_idx = lscene.add(scene::Node());
         auto& lnode = lscene.nodes.back();
 
         lnode.name = node.name;
@@ -964,28 +955,28 @@ SceneType load_scene_gltf(std::istream& input_stream, const LoadOptions& options
 // explicit template instantiations
 // =====================================
 
-#define LA_X_load_mesh_gltf(_, S, I)                                                \
-    template SurfaceMesh<S, I> load_mesh_gltf(const fs::path&, const LoadOptions&); \
-    template SurfaceMesh<S, I> load_mesh_gltf(std::istream&, const LoadOptions&);
+#define LA_X_load_mesh_gltf(_, S, I)                                                          \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_gltf(const fs::path&, const LoadOptions&); \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_gltf(std::istream&, const LoadOptions&);
 LA_SURFACE_MESH_X(load_mesh_gltf, 0);
 #undef LA_X_load_mesh_gltf
 
-#define LA_X_load_simple_scene_gltf(_, S, I, D)                  \
-    template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
-        const fs::path& filename,                                \
-        const LoadOptions& options);                             \
-    template scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
-        std::istream& input_stream,                              \
+#define LA_X_load_simple_scene_gltf(_, S, I, D)                            \
+    template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
+        const fs::path& filename,                                          \
+        const LoadOptions& options);                                       \
+    template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene_gltf( \
+        std::istream& input_stream,                                        \
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene_gltf, 0);
 #undef LA_X_load_simple_scene_gltf
 
-#define LA_X_load_scene_gltf(_, S, I)            \
-    template scene::Scene<S, I> load_scene_gltf( \
-        const fs::path& filename,                \
-        const LoadOptions& options);             \
-    template scene::Scene<S, I> load_scene_gltf( \
-        std::istream& input_stream,              \
+#define LA_X_load_scene_gltf(_, S, I)                      \
+    template LA_IO_API scene::Scene<S, I> load_scene_gltf( \
+        const fs::path& filename,                          \
+        const LoadOptions& options);                       \
+    template LA_IO_API scene::Scene<S, I> load_scene_gltf( \
+        std::istream& input_stream,                        \
         const LoadOptions& options);
 LA_SCENE_X(load_scene_gltf, 0);
 #undef LA_X_load_scene_gltf

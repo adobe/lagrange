@@ -22,7 +22,7 @@ CPMAddPackage(
     GIT_TAG b57786fd7aa5404904985829ef8dda445d7feac0
 )
 
-add_library(mikktspace ${mikktspace_SOURCE_DIR}/mikktspace.c)
+add_library(mikktspace STATIC ${mikktspace_SOURCE_DIR}/mikktspace.c)
 add_library(mikktspace::mikktspace ALIAS mikktspace)
 target_include_directories(mikktspace PUBLIC ${mikktspace_SOURCE_DIR})
 

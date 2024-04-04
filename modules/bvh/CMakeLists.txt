@@ -21,13 +21,7 @@ target_link_libraries(lagrange_bvh INTERFACE
     igl::core
 )
 
-# 3. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_bvh PROPERTIES EXPORT_NAME bvh)
-    lagrange_install(lagrange_bvh)
-endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

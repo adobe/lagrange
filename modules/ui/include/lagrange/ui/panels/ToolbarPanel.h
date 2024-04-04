@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
@@ -24,7 +25,7 @@ struct ToolbarPanel
 };
 
 
-Entity add_toolbar_panel(Registry& r, const std::string& name = "Toolbar");
+LA_UI_API Entity add_toolbar_panel(Registry& r, const std::string& name = "Toolbar");
 
 
 } // namespace ui

@@ -11,14 +11,15 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
+#include <lagrange/common.h>
+
 #include <memory>
 #include <string>
 
-#include <lagrange/common.h>
-
 namespace lagrange {
 
-class ExactPredicates
+class LA_CORE_API ExactPredicates
 {
 public:
     ///

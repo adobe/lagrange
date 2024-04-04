@@ -16,6 +16,7 @@
 
 #include <lagrange/ui/types/GLContext.h>
 #include <lagrange/ui/types/Texture.h>
+#include <lagrange/ui/api.h>
 
 namespace lagrange {
 namespace ui {
@@ -25,7 +26,7 @@ namespace ui {
     Allows setting textures as color and depth attachements
     Shares ownership of the attached textures
 */
-class FrameBuffer
+class LA_UI_API FrameBuffer
 {
 public:
     /*

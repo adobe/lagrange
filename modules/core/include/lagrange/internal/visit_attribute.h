@@ -17,7 +17,7 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/SurfaceMesh.h>
 
-namespace lagrange::subdivision {
+namespace lagrange::internal {
 
 ///
 /// Apply a function to a mesh attribute.
@@ -29,6 +29,11 @@ namespace lagrange::subdivision {
 /// @tparam     Func    Function type.
 /// @tparam     Scalar  Mesh scalar type.
 /// @tparam     Index   Mesh index type.
+///
+/// @note       To make this a public API function, we probably need (1) a _read a _write variant,
+///             (2) a name vs id variant, and (3) maybe a variant for indexed vs non-indexed to
+///             avoid having to constexpr our way through all possibilities. Or maybe we just make
+///             the function take an `AttributeBase &` as input?
 ///
 template <typename Func, typename Scalar, typename Index>
 void visit_attribute(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Func&& func)
@@ -51,4 +56,4 @@ void visit_attribute(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Fun
     }
 }
 
-} // namespace lagrange::subdivision
+} // namespace lagrange::internal

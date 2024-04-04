@@ -29,7 +29,9 @@ TEST_CASE("file_utils", "[io]")
     CAPTURE(exec_path, exec_dir);
     REQUIRE(exec_path.parent_path() == exec_dir);
 
-    REQUIRE(exec_path == fs::path(TEST_APP_PATH));
+    #ifndef TEST_APP_NOPATH
+        REQUIRE(exec_path == fs::path(TEST_APP_PATH));
+    #endif
 #endif
 
     // The following test should succeed if the unit test is run by ctest, which calls the

@@ -21,19 +21,12 @@ target_link_libraries(lagrange_raycasting PUBLIC
     embree::embree
 )
 
-# 3. options
 option(LAGRANGE_EMBREE_DEBUG "Perform error-checking when performing each single Embree call"  OFF)
 if(LAGRANGE_EMBREE_DEBUG)
     target_compile_definitions(lagrange_raycasting PUBLIC LAGRANGE_EMBREE_DEBUG)
 endif()
 
-# 4. installation
-if(LAGRANGE_INSTALL)
-    set_target_properties(lagrange_raycasting PROPERTIES EXPORT_NAME raycasting)
-    lagrange_install(lagrange_raycasting)
-endif()
-
-# 5. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

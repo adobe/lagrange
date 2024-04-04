@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/create_mesh.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/types/Texture.h>

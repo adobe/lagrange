@@ -11,10 +11,9 @@
  */
 // No #pragma once at the top of this file, this is on purpose.
 
-#include "visit_attribute.h"
-
 #include <lagrange/Logger.h>
 #include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/internal/visit_attribute.h>
 #include <lagrange/utils/assert.h>
 
 namespace OpenSubdiv {
@@ -82,7 +81,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
     const auto& options = conv.options;
 
     if (options.edge_sharpness_attr.has_value()) {
-        lagrange::subdivision::visit_attribute(
+        lagrange::internal::visit_attribute(
             mesh,
             options.edge_sharpness_attr.value(),
             [&](auto&& attr) {
@@ -98,6 +97,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                 if constexpr (AttributeType::IsIndexed) {
                     la_runtime_assert("Edge sharpness cannot be an indexed attribute");
                 } else {
+                    lagrange::logger().debug("Using edge sharpness attribute");
                     auto values = attr.get_all();
                     for (int e = 0; e < static_cast<int>(values.size()); ++e) {
                         auto v = mesh.get_edge_vertices(e);
@@ -126,7 +126,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
     }
 
     if (options.vertex_sharpness_attr.has_value()) {
-        lagrange::subdivision::visit_attribute(
+        lagrange::internal::visit_attribute(
             mesh,
             options.vertex_sharpness_attr.value(),
             [&](auto&& attr) {
@@ -142,6 +142,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                 if constexpr (AttributeType::IsIndexed) {
                     la_runtime_assert("Vertex sharpness cannot be an indexed attribute");
                 } else {
+                    lagrange::logger().debug("Using vertex sharpness attribute");
                     auto values = attr.get_all();
                     for (int v = 0; v < static_cast<int>(values.size()); ++v) {
                         float s = static_cast<float>(ValueType(10.0) * values[v]);
@@ -152,7 +153,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
     }
 
     if (options.face_hole_attr.has_value()) {
-        lagrange::subdivision::visit_attribute(
+        lagrange::internal::visit_attribute(
             mesh,
             options.face_hole_attr.value(),
             [&](auto&& attr) {
@@ -167,6 +168,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                 if constexpr (AttributeType::IsIndexed) {
                     la_runtime_assert("Face holes cannot be an indexed attribute");
                 } else {
+                    lagrange::logger().debug("Using facet hole attribute");
                     auto values = attr.get_all();
                     for (int f = 0; f < static_cast<int>(values.size()); ++f) {
                         if (values[f] != ValueType(0)) {
@@ -193,7 +195,7 @@ bool TopologyRefinerFactory<ConverterType>::assignFaceVaryingTopology(
     // TODO: Only define one fvar channel for each different set of indices (factorize shared set of
     // indices)?
     for (lagrange::AttributeId attr_id : conv.face_varying_attributes) {
-        lagrange::subdivision::visit_attribute(mesh, attr_id, [&](auto&& attr) {
+        lagrange::internal::visit_attribute(mesh, attr_id, [&](auto&& attr) {
             using AttributeType = std::decay_t<decltype(attr)>;
             if constexpr (!AttributeType::IsIndexed) {
                 la_runtime_assert(

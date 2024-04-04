@@ -34,7 +34,7 @@ function(stb_make_target header target_name macro_definition)
     )
 
     add_library(
-        ${FULL_TARGET} EXCLUDE_FROM_ALL
+        ${FULL_TARGET} STATIC EXCLUDE_FROM_ALL
         ${stb_BINARY_DIR}/stb_${target_name}.cpp
     )
     add_library(${TARGET_ALIAS} ALIAS ${FULL_TARGET})

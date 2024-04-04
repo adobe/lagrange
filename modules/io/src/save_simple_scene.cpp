@@ -16,6 +16,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
 
+#include <lagrange/io/api.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/io/save_mesh_obj.h>
 #include <lagrange/io/save_mesh_ply.h>
@@ -46,7 +47,7 @@ void save_simple_scene(
 }
 
 #define LA_X_save_simple_scene(_, S, I, D)        \
-    template void save_simple_scene(              \
+    template LA_IO_API void save_simple_scene(              \
         const fs::path& filename,                 \
         const scene::SimpleScene<S, I, D>& scene, \
         const SaveOptions& options);

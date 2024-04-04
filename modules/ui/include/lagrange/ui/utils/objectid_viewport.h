@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 
@@ -21,25 +22,25 @@ struct ViewportComponent;
 struct SelectionContext;
 
 /// Translates shader output color to numerial ID
-int color_to_id(unsigned char r, unsigned char g, unsigned char b);
+LA_UI_API int color_to_id(unsigned char r, unsigned char g, unsigned char b);
 
 /// Is numerical ID from shader a background?
-bool is_id_background(int id);
+LA_UI_API bool is_id_background(int id);
 
 /// Read pixels of viewport in rectangle at x,y of size w,h
-const std::vector<unsigned char>&
+LA_UI_API const std::vector<unsigned char>&
 read_pixels(Registry& r, ViewportComponent& v, int x, int y, int w, int h);
 
 
 /// Copies properties of active viewport to offscreen viewport, sets up a material override using override_shader
-ViewportComponent& setup_offscreen_viewport(
+LA_UI_API ViewportComponent& setup_offscreen_viewport(
     Registry& r,
     Entity ofscreen_viewport_entity,
     Entity active_viewport_entity,
     StringID override_shader);
 
 /// Sets rasterizer scissor based on SelectionContext
-std::tuple<int, int, int, int>
+LA_UI_API std::tuple<int, int, int, int>
 setup_scissor(Registry& r, ViewportComponent& offscreen_viewport, const SelectionContext& sel_ctx);
 
 

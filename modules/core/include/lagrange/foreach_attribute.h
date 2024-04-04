@@ -58,7 +58,7 @@ namespace details {
 enum class Ordering { Sequential, Parallel };
 enum class Access { Write, Read };
 
-void par_foreach_attribute_id(span<const AttributeId> ids, function_ref<void(AttributeId)> cb);
+LA_CORE_API void par_foreach_attribute_id(span<const AttributeId> ids, function_ref<void(AttributeId)> cb);
 
 template <
     std::underlying_type_t<AttributeElement> mask,

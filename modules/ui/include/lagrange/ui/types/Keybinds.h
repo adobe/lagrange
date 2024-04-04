@@ -11,14 +11,16 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
+#include <lagrange/ui/types/GLContext.h>
+
+#include <imgui.h>
+
 #include <array>
 #include <iostream>
 #include <map>
 #include <string>
 #include <vector>
-
-#include <imgui.h>
-#include <lagrange/ui/types/GLContext.h>
 
 namespace lagrange {
 namespace ui {
@@ -30,19 +32,19 @@ namespace ui {
 /// Use syntax "context.optional_category.action", e.g. "viewport.camera.pan"
 /// Use "global" context for keybinds to be available everywhere
 ///
-class Keybinds
+class LA_UI_API Keybinds
 {
 public:
     enum class KeyState { NONE, PRESSED, DOWN, RELEASED };
 
     Keybinds() {}
-    
+
     ///
     /// Key/mouse shortcut
     ///
     /// Stores main button, modifiers and current and previous state
     ///
-    struct Keybind
+    struct LA_UI_API Keybind
     {
         Keybind(ImGuiKey btn, const std::vector<ImGuiKey>& modifier_keys = {});
         ImGuiKey button = ImGuiKey_None;
@@ -64,7 +66,7 @@ public:
     using MapType = std::map<std::string, std::vector<Keybind>>;
 
     /// @brief Updating key states
-    /// 
+    ///
     /// Updates keybinds state based on key states
     ///
     void update();

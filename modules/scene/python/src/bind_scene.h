@@ -11,10 +11,14 @@
  */
 #pragma once
 
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
+#include <lagrange/python/tensor_utils.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/utils/assert.h>
+
+#include "bind_value.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -25,52 +29,27 @@
 #include <nanobind/stl/filesystem.h>
 #include <nanobind/stl/array.h>
 #include <nanobind/stl/variant.h>
+#include <nanobind/stl/optional.h>
 #include <nanobind/stl/bind_vector.h>
 #include <nanobind/stl/bind_map.h>
-#include <nanobind/stl/shared_ptr.h> // for ImageLegacy::data
 #include <nanobind/trampoline.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+
 namespace lagrange::python {
 
 namespace nb = nanobind;
-
-namespace detail {
-std::array<std::array<float, 4>, 4> affine3d_to_array(const Eigen::Affine3f& t)
-{
-    std::array<std::array<float, 4>, 4> data;
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            data[i][j] = t(i, j);
-        }
-    }
-    return data;
-};
-Eigen::Affine3f array_to_affine3d(const std::array<std::array<float, 4>, 4> data)
-{
-    Eigen::Affine3f t;
-    for (int i = 0; i < 4; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            t(i, j) = data[i][j];
-        }
-    }
-    return t;
-};
-} // namespace detail
-
-class ValuePublicist : public lagrange::scene::Value
-{
-public:
-    using lagrange::scene::Value::value;
-};
 
 #pragma GCC visibility push(hidden)
 struct UserDataConverterTrampoline : public lagrange::scene::UserDataConverter
 {
     NB_TRAMPOLINE(lagrange::scene::UserDataConverter, 5);
 
-    bool is_supported(const std::string& key) const override { NB_OVERRIDE_PURE(is_supported, key); }
+    bool is_supported(const std::string& key) const override
+    {
+        NB_OVERRIDE_PURE(is_supported, key);
+    }
     bool can_read(const std::string& key) const override { NB_OVERRIDE(can_read, key); }
     bool can_write(const std::string& key) const override { NB_OVERRIDE(can_write, key); }
     std::any read(const lagrange::scene::Value& value) const override { NB_OVERRIDE(read, value); }
@@ -92,7 +71,7 @@ void bind_scene(nb::module_& m)
     nb::bind_vector<std::vector<ElementId>>(m, "ElementIdList");
     nb::bind_vector<std::vector<SceneMeshInstance>>(m, "SceneMeshInstanceList");
     nb::bind_vector<std::vector<SurfaceMesh<Scalar, Index>>>(m, "SurfaceMeshList");
-    nb::bind_vector<std::vector<ImageLegacy>>(m, "ImageLegacyList");
+    nb::bind_vector<std::vector<ImageExperimental>>(m, "ImageList");
     nb::bind_vector<std::vector<Texture>>(m, "TextureList");
     nb::bind_vector<std::vector<MaterialExperimental>>(m, "MaterialList");
     nb::bind_vector<std::vector<Light>>(m, "LightList");
@@ -112,21 +91,21 @@ void bind_scene(nb::module_& m)
         .def_prop_ro("size", &Extensions::size)
         .def_prop_ro("empty", &Extensions::empty)
         .def_rw("data", &Extensions::data);
-        // .def_prop_rw(
-        //     "user_data",
-        //     [](const Extensions& ext) -> std::unordered_map<std::string, void*> {
-        //         std::unordered_map<std::string, void*> ret;
-        //         for (const auto& [key, val] : ext.user_data) {
-        //             ret.insert({key, std::any_cast<void*>(val)});
-        //         }
-        //         return ret;
-        //     },
-        //     [](Extensions& ext, std::unordered_map<std::string, void*> data) -> void {
-        //         ext.user_data.clear();
-        //         for (const auto& [key, val] : data) {
-        //             ext.user_data.insert({key, val});
-        //         }
-        //     });
+    // .def_prop_rw(
+    //     "user_data",
+    //     [](const Extensions& ext) -> std::unordered_map<std::string, void*> {
+    //         std::unordered_map<std::string, void*> ret;
+    //         for (const auto& [key, val] : ext.user_data) {
+    //             ret.insert({key, std::any_cast<void*>(val)});
+    //         }
+    //         return ret;
+    //     },
+    //     [](Extensions& ext, std::unordered_map<std::string, void*> data) -> void {
+    //         ext.user_data.clear();
+    //         for (const auto& [key, val] : data) {
+    //             ext.user_data.insert({key, val});
+    //         }
+    //     });
 
     // nb::class_<UserDataConverter, UserDataConverterTrampoline>(m, "UserExtension")
     //     .def("is_supported", &UserDataConverter::is_supported)
@@ -134,18 +113,6 @@ void bind_scene(nb::module_& m)
     //     .def("can_write", &UserDataConverter::can_write)
     //     .def("read", &UserDataConverter::read)
     //     .def("write", &UserDataConverter::write);
-
-    nb::class_<lagrange::scene::Value>(m, "Value")
-        .def(nb::init<>())
-        .def(nb::init<bool>())
-        .def(nb::init<int>())
-        .def(nb::init<double>())
-        .def(nb::init<std::string>())
-        .def(nb::init<const char*>())
-        .def(nb::init<const lagrange::scene::Value::Buffer&>())
-        .def(nb::init<const lagrange::scene::Value::Array&>())
-        .def(nb::init<const lagrange::scene::Value::Object&>())
-        .def_rw("value", &ValuePublicist::value);
 
     nb::class_<SceneMeshInstance>(m, "SceneMeshInstance", "Mesh and material index of a node")
         .def(nb::init<>())
@@ -158,14 +125,23 @@ void bind_scene(nb::module_& m)
         .def_rw("name", &Node::name)
         .def_prop_rw(
             "transform",
-            // nanobind does not know the Eigen::Affine3f type.
-            // Eigen::Matrix4f compiles but returns bad data, so here's 2d arrays instead.
-            [](const Node& node) -> std::array<std::array<float, 4>, 4> {
-                return detail::affine3d_to_array(node.transform);
+            [](Node& node) {
+                return nb::ndarray<nb::numpy, float, nb::f_contig, nb::shape<4, 4>>(
+                    node.transform.data(),
+                    {4, 4},
+                    nb::find(node),
+                    {1, 4});
             },
-            [](Node& node, std::array<std::array<float, 4>, 4> t) -> void {
-                node.transform = detail::array_to_affine3d(t);
-            })
+            [](Node& node, nb::ndarray<nb::numpy, const float, nb::shape<4, 4>> t) -> void {
+                auto view = t.view<float, nb::ndim<2>>();
+                // Explicit 2D indexing because the input ndarray can be either row or column major.
+                for (size_t i = 0; i < 4; i++) {
+                    for (size_t j = 0; j < 4; j++) {
+                        node.transform.data()[i + j * 4] = view(i, j);
+                    }
+                }
+            },
+            "The affine transform associated with this node")
         .def_rw("parent", &Node::parent)
         .def_rw("children", &Node::children)
         .def_rw("meshes", &Node::meshes)
@@ -173,33 +149,171 @@ void bind_scene(nb::module_& m)
         .def_rw("lights", &Node::lights)
         .def_rw("extensions", &Node::extensions);
 
-    nb::class_<ImageLegacy> image_legacy(m, "ImageLegacy");
-    image_legacy.def(nb::init<>())
-        .def(
-            "__repr__",
-            [](const ImageLegacy& image) {
-                return fmt::format(
-                    "ImageLegacy('{}')",
-                    image.name.empty() ? image.uri : image.name);
-            })
-        .def_rw("name", &ImageLegacy::name)
-        .def_rw("width", &ImageLegacy::width)
-        .def_rw("height", &ImageLegacy::height)
-        .def_rw("precision", &ImageLegacy::precision)
-        .def_rw("channel", &ImageLegacy::channel)
-        .def_rw("data", &ImageLegacy::data)
-        .def_rw("uri", &ImageLegacy::uri)
-        .def_rw("type", &ImageLegacy::type)
-        .def_prop_ro("num_channels", &ImageLegacy::get_num_channels)
-        .def_prop_ro("element_size", &ImageLegacy::get_element_size)
-        .def_rw("extensions", &ImageLegacy::extensions);
+    nb::class_<ImageBufferExperimental> image_buffer(m, "ImageBuffer");
+    image_buffer.def(nb::init<>())
+        .def_ro("width", &ImageBufferExperimental::width, "Image width")
+        .def_ro("height", &ImageBufferExperimental::height, "Image height")
+        .def_ro(
+            "num_channels",
+            &ImageBufferExperimental::num_channels,
+            "Number of channels in each pixel")
+        .def_prop_rw(
+            "data",
+            [](ImageBufferExperimental& self) {
+                size_t shape[3] = {self.height, self.width, self.num_channels};
+                switch (self.element_type) {
+                case AttributeValueType::e_int8_t:
+                    return nb::cast(
+                        nb::ndarray<int8_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<int8_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_uint8_t:
+                    return nb::cast(
+                        nb::ndarray<uint8_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<uint8_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_int16_t:
+                    return nb::cast(
+                        nb::ndarray<int16_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<int16_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_uint16_t:
+                    return nb::cast(
+                        nb::ndarray<uint16_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<uint16_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_int32_t:
+                    return nb::cast(
+                        nb::ndarray<int32_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<int32_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_uint32_t:
+                    return nb::cast(
+                        nb::ndarray<uint32_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<uint32_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_int64_t:
+                    return nb::cast(
+                        nb::ndarray<int64_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<int64_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_uint64_t:
+                    return nb::cast(
+                        nb::ndarray<uint64_t, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<uint64_t*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_float:
+                    return nb::cast(
+                        nb::ndarray<float, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<float*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                case AttributeValueType::e_double:
+                    return nb::cast(
+                        nb::ndarray<double, nb::numpy, nb::c_contig, nb::device::cpu>(
+                            reinterpret_cast<double*>(self.data.data()),
+                            3,
+                            shape,
+                            nb::find(self)),
+                        nb::rv_policy::reference_internal);
+                default: throw nb::type_error("Unsupported image buffer `dtype`!");
+                }
+            },
+            [](ImageBufferExperimental& self,
+               nb::ndarray<nb::numpy, nb::c_contig, nb::device::cpu> tensor) {
+                la_runtime_assert(tensor.ndim() == 3);
+                self.width = tensor.shape(1);
+                self.height = tensor.shape(0);
+                self.num_channels = tensor.shape(2);
+                auto dtype = tensor.dtype();
+                if (dtype == nb::dtype<int8_t>()) {
+                    self.element_type = AttributeValueType::e_int8_t;
+                } else if (dtype == nb::dtype<uint8_t>()) {
+                    self.element_type = AttributeValueType::e_uint8_t;
+                } else if (dtype == nb::dtype<int16_t>()) {
+                    self.element_type = AttributeValueType::e_int16_t;
+                } else if (dtype == nb::dtype<uint16_t>()) {
+                    self.element_type = AttributeValueType::e_uint16_t;
+                } else if (dtype == nb::dtype<int32_t>()) {
+                    self.element_type = AttributeValueType::e_int32_t;
+                } else if (dtype == nb::dtype<uint32_t>()) {
+                    self.element_type = AttributeValueType::e_uint32_t;
+                } else if (dtype == nb::dtype<int64_t>()) {
+                    self.element_type = AttributeValueType::e_int64_t;
+                } else if (dtype == nb::dtype<uint64_t>()) {
+                    self.element_type = AttributeValueType::e_uint64_t;
+                } else if (dtype == nb::dtype<float>()) {
+                    self.element_type = AttributeValueType::e_float;
+                } else if (dtype == nb::dtype<double>()) {
+                    self.element_type = AttributeValueType::e_double;
+                } else {
+                    throw nb::type_error("Unsupported input tensor `dtype`!");
+                }
+                self.data.resize(tensor.nbytes());
+                std::copy(
+                    reinterpret_cast<uint8_t*>(tensor.data()),
+                    reinterpret_cast<uint8_t*>(tensor.data()) + tensor.nbytes(),
+                    self.data.data());
+            },
+            "Raw image data.")
+        .def_prop_ro(
+            "dtype",
+            [](ImageBufferExperimental& self) -> std::optional<nb::type_object> {
+                auto np = nb::module_::import_("numpy");
+                switch (self.element_type) {
+                case AttributeValueType::e_int8_t: return np.attr("int8");
+                case AttributeValueType::e_int16_t: return np.attr("int16");
+                case AttributeValueType::e_int32_t: return np.attr("int32");
+                case AttributeValueType::e_int64_t: return np.attr("int64");
+                case AttributeValueType::e_uint8_t: return np.attr("uint8");
+                case AttributeValueType::e_uint16_t: return np.attr("uint16");
+                case AttributeValueType::e_uint32_t: return np.attr("uint32");
+                case AttributeValueType::e_uint64_t: return np.attr("uint64");
+                case AttributeValueType::e_float: return np.attr("float32");
+                case AttributeValueType::e_double: return np.attr("float64");
+                default: logger().warn("Image buffer has an unknown dtype."); return std::nullopt;
+                }
+            },
+            "The element data type of the image buffer.");
 
-    nb::enum_<ImageLegacy::Type>(image_legacy, "Type")
-        .value("Jpeg", ImageLegacy::Type::Jpeg)
-        .value("Png", ImageLegacy::Type::Png)
-        .value("Bmp", ImageLegacy::Type::Bmp)
-        .value("Gif", ImageLegacy::Type::Gif)
-        .value("Unknown", ImageLegacy::Type::Unknown);
+    nb::class_<ImageExperimental> image(m, "Image");
+    image.def(nb::init<>())
+        .def_rw("name", &ImageExperimental::name, "Name of the image object")
+        .def_rw("image", &ImageExperimental::image, "Image buffer")
+        .def_rw("uri", &ImageExperimental::uri, "URI of the image file")
+        .def_rw(
+            "extensions",
+            &ImageExperimental::extensions,
+            "Additional data associated with the image")
+        .def("__repr__", [](const ImageExperimental& self) {
+            return fmt::format("Image ('{}')", self.name);
+        });
 
     nb::class_<TextureInfo>(m, "TextureInfo")
         .def(nb::init<>())
@@ -334,6 +448,7 @@ void bind_scene(nb::module_& m)
         .def("__repr__", [](const SceneType& s) { return fmt::format("Scene('{}')", s.name); })
         .def_rw("name", &SceneType::name)
         .def_rw("nodes", &SceneType::nodes)
+        .def_rw("root_nodes", &SceneType::root_nodes)
         .def_rw("meshes", &SceneType::meshes)
         .def_rw("images", &SceneType::images)
         .def_rw("textures", &SceneType::textures)
@@ -342,16 +457,65 @@ void bind_scene(nb::module_& m)
         .def_rw("cameras", &SceneType::cameras)
         .def_rw("skeletons", &SceneType::skeletons)
         .def_rw("animations", &SceneType::animations)
-        .def_rw("extensions", &SceneType::extensions);
+        .def_rw("extensions", &SceneType::extensions)
+        .def(
+            "add",
+            [](SceneType& self,
+               std::variant<
+                   Node,
+                   SceneType::MeshType,
+                   ImageExperimental,
+                   Texture,
+                   MaterialExperimental,
+                   Light,
+                   Camera,
+                   Skeleton,
+                   Animation> element) {
+                return std::visit(
+                    [&](auto&& value) {
+                        using T = std::decay_t<decltype(value)>;
+                        return self.add(std::forward<T>(value));
+                    },
+                    element);
+            },
+            "element"_a,
+            R"(Add an element to the scene.
 
-    m.def("add_child", &utils::add_child<Scalar, Index>);
+:param element: The element to add to the scene. E.g. node, mesh, image, texture, material, light, camera, skeleton, or animation.
 
-    m.def("add_mesh", &utils::add_mesh<Scalar, Index>);
+:returns: The id of the added element.)")
+        .def(
+            "add_child",
+            &SceneType::add_child,
+            "parent_id"_a,
+            "child_id"_a,
+            R"(Add a child node to a parent node.
 
-    m.def("compute_global_node_transform", [](const SceneType& scene, size_t node_idx) {
-        return detail::affine3d_to_array(
-            utils::compute_global_node_transform<Scalar, Index>(scene, node_idx));
-    });
+:param parent_id: The parent node id.
+:param child_id: The child node id.
+
+:returns: The id of the added child node.)");
+
+    m.def(
+        "compute_global_node_transform",
+        [](const SceneType& scene, size_t node_idx) {
+            auto t = utils::compute_global_node_transform<Scalar, Index>(scene, node_idx);
+            return nb::ndarray<nb::numpy, float, nb::f_contig, nb::shape<4, 4>>(
+                t.data(),
+                {4, 4},
+                nb::handle(), // owner
+                {1, 4});
+        },
+        nb::rv_policy::copy,
+        "scene"_a,
+        "node_idx"_a,
+        R"(Compute the global transform associated with a node.
+
+:param scene: The input node.
+:param node_idx: The index of the taget node.
+
+:returns: The global transform of the target node, which is the combination of transforms from this node all the way to the root.
+    )");
 }
 
 } // namespace lagrange::python

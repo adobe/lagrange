@@ -11,12 +11,15 @@
  */
 
 // this .cpp provides implementations for functions defined in those headers:
+#include <lagrange/io/api.h>
 #include <lagrange/io/save_mesh_gltf.h>
 #include <lagrange/io/save_scene_gltf.h>
 #include <lagrange/io/save_simple_scene_gltf.h>
+
 // ====
 
 #include <lagrange/Attribute.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
@@ -49,7 +52,8 @@ namespace lagrange::io {
 //
 
 namespace {
-tinygltf::Value convert_value(const scene::Value& value) {
+tinygltf::Value convert_value(const scene::Value& value)
+{
     switch (value.get_type_index()) {
     case scene::Value::bool_index(): return tinygltf::Value(value.get_bool());
     case scene::Value::int_index(): return tinygltf::Value(value.get_int());
@@ -117,8 +121,8 @@ void save_gltf(const fs::path& filename, const tinygltf::Model& model, const Sav
     } else if (!binary && options.encoding != FileEncoding::Ascii) {
         // this is extremely common, since the default value of `encoding` is binary.
         // But trying to save as `.gltf` is explicit enough, so skip this message.
-        
-        //logger().warn("Saving mesh in ascii due to `.gltf` extension.");
+
+        // logger().warn("Saving mesh in ascii due to `.gltf` extension.");
     }
 
     // https://github.com/syoyo/tinygltf/issues/323
@@ -133,13 +137,12 @@ void save_gltf(const fs::path& filename, const tinygltf::Model& model, const Sav
     tinygltf::TinyGLTF loader;
     loader.SetImageWriter(write_image_data_function, &fs_callbacks);
 
-    constexpr bool embed_images = false;
     constexpr bool embed_buffers = true;
     constexpr bool pretty_print = true;
     bool success = loader.WriteGltfSceneToFile(
         &model,
         filename.string(),
-        embed_images,
+        options.embed_images,
         embed_buffers,
         pretty_print,
         binary);
@@ -416,13 +419,15 @@ void populate_attributes(
             }
         }
 
-        const auto& values = [&]() -> const auto& {
+        const auto& values = [&]() -> const auto&
+        {
             if constexpr (AttributeType::IsIndexed) {
                 return attr.values();
             } else {
                 return attr;
             }
-        }();
+        }
+        ();
 
         // we are committed to writing the buffer here. Do not return early after this line.
 
@@ -548,14 +553,14 @@ void save_mesh_gltf(
     save_simple_scene_gltf<Scalar, Index>(output_stream, scene, options);
 }
 
-#define LA_X_save_mesh_gltf(_, S, I)   \
-    template void save_mesh_gltf(      \
-        const fs::path& filename,      \
-        const SurfaceMesh<S, I>& mesh, \
-        const SaveOptions& options);   \
-    template void save_mesh_gltf(      \
-        std::ostream&,                 \
-        const SurfaceMesh<S, I>& mesh, \
+#define LA_X_save_mesh_gltf(_, S, I)        \
+    template LA_IO_API void save_mesh_gltf( \
+        const fs::path& filename,           \
+        const SurfaceMesh<S, I>& mesh,      \
+        const SaveOptions& options);        \
+    template LA_IO_API void save_mesh_gltf( \
+        std::ostream&,                      \
+        const SurfaceMesh<S, I>& mesh,      \
         const SaveOptions& options);
 LA_SURFACE_MESH_X(save_mesh_gltf, 0)
 #undef LA_X_save_mesh_gltf
@@ -636,14 +641,14 @@ void save_simple_scene_gltf(
     save_gltf(output_stream, model, options);
 }
 
-#define LA_X_save_simple_scene_gltf(_, S, I, D)   \
-    template void save_simple_scene_gltf(         \
-        const fs::path& filename,                 \
-        const scene::SimpleScene<S, I, D>& scene, \
-        const SaveOptions& options);              \
-    template void save_simple_scene_gltf(         \
-        std::ostream&,                            \
-        const scene::SimpleScene<S, I, D>& scene, \
+#define LA_X_save_simple_scene_gltf(_, S, I, D)     \
+    template LA_IO_API void save_simple_scene_gltf( \
+        const fs::path& filename,                   \
+        const scene::SimpleScene<S, I, D>& scene,   \
+        const SaveOptions& options);                \
+    template LA_IO_API void save_simple_scene_gltf( \
+        std::ostream&,                              \
+        const scene::SimpleScene<S, I, D>& scene,   \
         const SaveOptions& options);
 LA_SIMPLE_SCENE_X(save_simple_scene_gltf, 0);
 #undef LA_X_save_simple_scene_gltf
@@ -735,48 +740,39 @@ tinygltf::Model lagrange_scene_to_gltf_model(
     for (const auto& limage : lscene.images) {
         tinygltf::Image image;
         image.name = limage.name;
-        image.uri = limage.uri;
-        image.mimeType = [](scene::ImageLegacy::Type type) {
-            switch (type) {
-            case scene::ImageLegacy::Type::Jpeg: return "image/jpeg";
-            case scene::ImageLegacy::Type::Png: return "image/png";
-            case scene::ImageLegacy::Type::Bmp: return "image/bmp";
-            case scene::ImageLegacy::Type::Gif: return "image/gif";
-            case scene::ImageLegacy::Type::Unknown: // fallthrough to default
-            default: return "";
-            }
-        }(limage.type);
-        image.width = (int)limage.width;
-        image.height = (int)limage.height;
-        image.component = limage.get_num_channels();
-        image.pixel_type = [](image::ImagePrecision precision) {
-            switch (precision) {
-            case image::ImagePrecision::int8: return TINYGLTF_COMPONENT_TYPE_BYTE;
-            case image::ImagePrecision::uint8: return TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-            case image::ImagePrecision::int32: return TINYGLTF_COMPONENT_TYPE_INT;
-            case image::ImagePrecision::uint32: return TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
-            case image::ImagePrecision::float32: return TINYGLTF_COMPONENT_TYPE_FLOAT;
-            case image::ImagePrecision::float64: return TINYGLTF_COMPONENT_TYPE_DOUBLE;
-            default:
-                logger().error("Saving image with unsupported pixel precision!");
-                return TINYGLTF_COMPONENT_TYPE_BYTE;
-            }
-        }(limage.precision);
-        image.bits = [](image::ImagePrecision precision) {
-            switch (precision) {
-            case image::ImagePrecision::int8:
-            case image::ImagePrecision::uint8: return 8;
-            case image::ImagePrecision::float16: return 16;
-            case image::ImagePrecision::int32:
-            case image::ImagePrecision::uint32:
-            case image::ImagePrecision::float32: return 32;
-            default: logger().error("Saving image with unsupported image bits."); return -1;
-            }
-        }(limage.precision);
-        const size_t count =
-            limage.get_element_size() * limage.get_num_channels() * limage.width * limage.height;
-        image.image = std::vector<unsigned char>(count);
-        std::copy_n(limage.data->data(), count, image.image.begin());
+
+        const scene::ImageBufferExperimental& lbuffer = limage.image;
+        image.width = static_cast<int>(lbuffer.width);
+        image.height = static_cast<int>(lbuffer.height);
+        image.component = static_cast<int>(lbuffer.num_channels);
+        switch (lbuffer.element_type) {
+        case AttributeValueType::e_uint8_t:
+            image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+            break;
+        case AttributeValueType::e_int8_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE; break;
+        case AttributeValueType::e_uint16_t:
+            image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
+            break;
+        case AttributeValueType::e_int16_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_SHORT; break;
+        case AttributeValueType::e_uint32_t:
+            image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
+            break;
+        case AttributeValueType::e_int32_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_INT; break;
+        case AttributeValueType::e_float: image.pixel_type = TINYGLTF_COMPONENT_TYPE_FLOAT; break;
+        case AttributeValueType::e_double: image.pixel_type = TINYGLTF_COMPONENT_TYPE_DOUBLE; break;
+        default:
+            logger().error("Saving image with unsupported pixel precision!");
+            // TODO: should we simply fail?
+            image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE;
+        }
+        image.bits = static_cast<int>(lbuffer.get_bits_per_element());
+        std::copy(lbuffer.data.begin(), lbuffer.data.end(), std::back_inserter(image.image));
+
+        if (!limage.uri.empty()) {
+            image.uri = limage.uri.string();
+        } else {
+            image.mimeType = "image/png";
+        }
 
         if (!limage.extensions.empty()) {
             image.extensions = convert_extension_map(limage.extensions, options);
@@ -924,14 +920,14 @@ void save_scene_gltf(
     save_gltf(output_stream, model, options);
 }
 
-#define LA_X_save_scene_gltf(_, S, I)    \
-    template void save_scene_gltf(       \
-        const fs::path& filename,        \
-        const scene::Scene<S, I>& scene, \
-        const SaveOptions& options);     \
-    template void save_scene_gltf(       \
-        std::ostream&,                   \
-        const scene::Scene<S, I>& scene, \
+#define LA_X_save_scene_gltf(_, S, I)        \
+    template LA_IO_API void save_scene_gltf( \
+        const fs::path& filename,            \
+        const scene::Scene<S, I>& scene,     \
+        const SaveOptions& options);         \
+    template LA_IO_API void save_scene_gltf( \
+        std::ostream&,                       \
+        const scene::Scene<S, I>& scene,     \
         const SaveOptions& options);
 LA_SCENE_X(save_scene_gltf, 0);
 #undef LA_X_save_scene_gltf

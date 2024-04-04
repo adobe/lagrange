@@ -69,7 +69,7 @@ AttributeId compute_uv_distortion(
 }
 
 #define LA_X_compute_uv_distortion(_, Scalar, Index) \
-    template AttributeId compute_uv_distortion(      \
+    template LA_CORE_API AttributeId compute_uv_distortion(      \
         SurfaceMesh<Scalar, Index>&,                 \
         const UVDistortionOptions&);
 LA_SURFACE_MESH_X(compute_uv_distortion, 0)

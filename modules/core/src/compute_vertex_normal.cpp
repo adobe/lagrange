@@ -94,7 +94,7 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
 }
 
 #define LA_X_compute_vertex_normal(_, Scalar, Index)           \
-    template AttributeId compute_vertex_normal<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_vertex_normal<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                           \
         VertexNormalOptions);
 LA_SURFACE_MESH_X(compute_vertex_normal, 0)

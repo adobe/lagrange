@@ -11,8 +11,9 @@
  */
 #pragma once
 
-#include <string_view>
+#include <lagrange/api.h>
 
+#include <string_view>
 
 /// @defgroup group-utils Utilites
 /// @ingroup module-core
@@ -67,7 +68,7 @@ namespace lagrange {
 ///
 /// @param[in]  enabled  True to enable breakpoint debugging, false to disable.
 ///
-void set_breakpoint_enabled(bool enabled);
+LA_CORE_API void set_breakpoint_enabled(bool enabled);
 
 ///
 /// Returns whether to trigger a debugger breakpoint on assert failure. Use this function in a unit
@@ -75,12 +76,12 @@ void set_breakpoint_enabled(bool enabled);
 ///
 /// @return     True if assert failure triggers a debugger breakpoint, False otherwise.
 ///
-bool is_breakpoint_enabled();
+LA_CORE_API bool is_breakpoint_enabled();
 
 ///
 /// Call to explicitly trigger a debugger breakpoint.
 ///
-void trigger_breakpoint();
+LA_CORE_API void trigger_breakpoint();
 
 ///
 /// Called in case of an assertion failure.
@@ -95,7 +96,7 @@ void trigger_breakpoint();
 ///             return boolean type allows it to be called in an expression such as `foo &&
 ///             assertion_failed(...)`
 ///
-[[noreturn]] bool assertion_failed(
+[[noreturn]] LA_CORE_API bool assertion_failed(
     const char* function,
     const char* file,
     unsigned int line,

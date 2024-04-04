@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <lagrange/ui/types/ShaderLoader.h>
 
@@ -18,7 +19,7 @@ namespace lagrange {
 namespace ui {
 
 
-class Material
+class LA_UI_API Material
 {
 public:
     Material(Registry& r, StringID shader_id, const ShaderDefines& shader_defines = {});

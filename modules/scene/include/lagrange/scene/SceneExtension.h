@@ -11,15 +11,17 @@
  */
 #pragma once
 
+#include <lagrange/scene/api.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
 #include <lagrange/utils/value_ptr.h>
-#include <lagrange/utils/invalid.h>
+
 #include <any>
-#include <map>
-#include <unordered_map>
-#include <string>
 #include <cstring>
+#include <map>
+#include <string>
+#include <unordered_map>
 #include <variant>
 #include <vector>
 
@@ -27,7 +29,7 @@ namespace lagrange {
 namespace scene {
 
 // Json-like value used in scene extensions
-class Value
+class LA_SCENE_API Value
 {
 public:
     typedef std::vector<Value> Array;
@@ -36,8 +38,8 @@ public:
     using variant_type = std::variant<bool, int, double, std::string, Buffer, Array, Object>;
 
     /**
-    * Checks if the type is in the variant.
-    */
+     * Checks if the type is in the variant.
+     */
     template <typename T>
     static constexpr bool is_variant_type()
     {
@@ -45,10 +47,11 @@ public:
     }
 
     /**
-    * Returns index of the element type in the variant. Returns variant size if not found.
-    */
+     * Returns index of the element type in the variant. Returns variant size if not found.
+     */
     template <typename T, std::size_t index = 0>
-    static constexpr std::size_t variant_index() {
+    static constexpr std::size_t variant_index()
+    {
         if constexpr (index == std::variant_size_v<variant_type>) {
             return index;
         } else if constexpr (std::is_same_v<std::variant_alternative_t<index, variant_type>, T>) {
@@ -70,7 +73,7 @@ public:
     static Value create_array() { return Value(Array()); }
     static Value create_object() { return Value(Object()); }
 
-    Value();
+    Value() = default;
     explicit Value(bool b) { value = b; }
     explicit Value(int i) { value = i; }
     explicit Value(double n) { value = n; }
@@ -175,7 +178,7 @@ protected:
     variant_type value;
 };
 
-struct UserDataConverter
+struct LA_SCENE_API UserDataConverter
 {
     virtual bool is_supported(const std::string& key) const = 0;
     virtual bool can_read(const std::string& key) const { return is_supported(key); }
@@ -185,17 +188,17 @@ struct UserDataConverter
     virtual Value write(const std::any& value) const = 0;
 };
 
-struct Extensions
+struct LA_SCENE_API Extensions
 {
     /**
-    * A map of extensions as json-like Value objects.
-    */
+     * A map of extensions as json-like Value objects.
+     */
     std::unordered_map<std::string, Value> data;
 
     /**
-    * A map of extensions as user-defined objects, stored in an std::any.
-    * Those are converted from/to the default Value with a UserDataConverter during I/O.
-    */
+     * A map of extensions as user-defined objects, stored in an std::any.
+     * Those are converted from/to the default Value with a UserDataConverter during I/O.
+     */
     std::unordered_map<std::string, std::any> user_data;
 
     size_t size() const { return data.size() + user_data.size(); }

@@ -11,20 +11,23 @@
  */
 #pragma once
 
-#include <lagrange/scene/Scene.h>
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/scene/Scene.h>
 
 namespace lagrange::scene::utils {
 
 // add child to the node. Assumes the child was already added to the scene.
-inline void add_child(Node& node, ElementId child_index)
+[[deprecated("Use Scene::add_child instead")]] inline void add_child(
+    Node& node,
+    ElementId child_index)
 {
     node.children.push_back(child_index);
 }
 
 // add child to the node and the scene. Assumes the child was not already added to the scene.
 template <typename Scalar, typename Index>
-ElementId add_child(Scene<Scalar, Index>& scene, Node& node, Node child)
+[[deprecated("Use Scene::add_child instead")]] ElementId
+add_child(Scene<Scalar, Index>& scene, Node& node, Node child)
 {
     ElementId child_idx = scene.nodes.size();
     scene.nodes.push_back(child);
@@ -34,7 +37,9 @@ ElementId add_child(Scene<Scalar, Index>& scene, Node& node, Node child)
 
 // add mesh to the scene (but not to the node graph!) and return its index.
 template <typename Scalar, typename Index>
-ElementId add_mesh(Scene<Scalar, Index>& scene, SurfaceMesh<Scalar, Index> mesh)
+[[deprecated("Use Scene::add(mesh) instead")]] ElementId add_mesh(
+    Scene<Scalar, Index>& scene,
+    SurfaceMesh<Scalar, Index> mesh)
 {
     scene.meshes.emplace_back(std::move(mesh));
     return scene.meshes.size() - 1;

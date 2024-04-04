@@ -10,9 +10,10 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/compute_normal.h>
-#include <lagrange/testing/create_test_mesh.h>
 #include <lagrange/attribute_names.h>
+#include <lagrange/compute_normal.h>
+#include <lagrange/testing/api.h>
+#include <lagrange/testing/create_test_mesh.h>
 
 namespace lagrange::testing {
 
@@ -200,9 +201,9 @@ SurfaceMesh<Scalar, Index> create_test_sphere(CreateOptions options)
     return sphere;
 }
 
-#define LA_X_create_test_mesh(_, Scalar, Index)                          \
-    template SurfaceMesh<Scalar, Index> create_test_cube(CreateOptions); \
-    template SurfaceMesh<Scalar, Index> create_test_sphere(CreateOptions);
+#define LA_X_create_test_mesh(_, Scalar, Index)                                         \
+    template LA_TESTING_API SurfaceMesh<Scalar, Index> create_test_cube(CreateOptions); \
+    template LA_TESTING_API SurfaceMesh<Scalar, Index> create_test_sphere(CreateOptions);
 LA_SURFACE_MESH_X(create_test_mesh, 0)
 
 } // namespace lagrange::testing

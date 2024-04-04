@@ -10,18 +10,20 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
+
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
 
-void setup_vertex_data(Registry& registry);
-void render_geometry(Registry& registry);
+LA_UI_API void setup_vertex_data(Registry& registry);
+LA_UI_API void render_geometry(Registry& registry);
 
 
 // Todo move to its own file
-void render_post_process(Registry& registry);
+LA_UI_API void render_post_process(Registry& registry);
 
 } // namespace ui
 } // namespace lagrange

@@ -65,7 +65,7 @@ void permute_vertices(SurfaceMesh<Scalar, Index>& mesh, span<const Index> new_to
 }
 
 #define LA_X_permute_vertices(_, Scalar, Index) \
-    template void permute_vertices<Scalar, Index>(SurfaceMesh<Scalar, Index>&, span<const Index>);
+    template LA_CORE_API void permute_vertices<Scalar, Index>(SurfaceMesh<Scalar, Index>&, span<const Index>);
 LA_SURFACE_MESH_X(permute_vertices, 0)
 
 } // namespace lagrange

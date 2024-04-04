@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
 #include <lagrange/AttributeFwd.h>
 #include <lagrange/utils/BitField.h>
 
@@ -26,7 +27,7 @@ namespace lagrange::internal {
 ///
 /// @return     String representation.
 ///
-std::string_view to_string(AttributeElement element);
+LA_CORE_API std::string_view to_string(AttributeElement element);
 
 ///
 /// Returns a string representation of an attribute element type.
@@ -35,7 +36,7 @@ std::string_view to_string(AttributeElement element);
 ///
 /// @return     String representation.
 ///
-std::string to_string(BitField<AttributeElement> element);
+LA_CORE_API std::string to_string(BitField<AttributeElement> element);
 
 ///
 /// Returns a string representation of an attribute usage.
@@ -44,7 +45,7 @@ std::string to_string(BitField<AttributeElement> element);
 ///
 /// @return     String representation.
 ///
-std::string_view to_string(AttributeUsage usage);
+LA_CORE_API std::string_view to_string(AttributeUsage usage);
 
 ///
 /// Returns a string representation of the attribute value type.

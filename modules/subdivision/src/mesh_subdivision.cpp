@@ -11,15 +11,14 @@
  */
 #include <lagrange/subdivision/mesh_subdivision.h>
 
-#include "MeshConverter.h"
-#include "visit_attribute.h"
-
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/internal/find_attribute_utils.h>
+#include <lagrange/internal/visit_attribute.h>
 #include <lagrange/utils/Error.h>
+#include "MeshConverter.h"
 
 #include <opensubdiv/far/topologyRefinerFactory.h>
 
@@ -556,7 +555,7 @@ SurfaceMesh<Scalar, Index> subdivide_mesh(
 
     // Interpolate per-vertex data (including vertex positions)
     auto interpolate_attribute = [&](AttributeId id, bool smooth) {
-        visit_attribute(input_mesh, id, [&](auto&& attr) {
+        lagrange::internal::visit_attribute(input_mesh, id, [&](auto&& attr) {
             using AttributeType = std::decay_t<decltype(attr)>;
             using ValueType = typename AttributeType::ValueType;
             if constexpr (!(std::is_same_v<ValueType, float> ||
@@ -621,7 +620,7 @@ SurfaceMesh<Scalar, Index> subdivide_mesh(
     // Interpolate face-varying data (such as UVs)
     int fvar_index = 0;
     for (auto id : interpolated_attr.face_varying_attributes) {
-        visit_attribute(input_mesh, id, [&](auto&& attr) {
+        lagrange::internal::visit_attribute(input_mesh, id, [&](auto&& attr) {
             using AttributeType = std::decay_t<decltype(attr)>;
             using ValueType = typename AttributeType::ValueType;
             if constexpr (!(std::is_same_v<ValueType, float> ||

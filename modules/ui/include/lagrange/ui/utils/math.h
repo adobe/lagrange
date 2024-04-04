@@ -10,6 +10,9 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
+
+#include <lagrange/ui/api.h>
+
 #include <Eigen/Eigen>
 #include <limits>
 
@@ -21,7 +24,7 @@ using RowMajorMatrixXi = Eigen::Matrix<int, Eigen::Dynamic, Eigen::Dynamic, Eige
 
 /// Returns 4x4 transformation matrix that can be used for normals
 /// Performs transpose inverse
-Eigen::Matrix4f normal_matrix(const Eigen::Affine3f& transform);
+LA_UI_API Eigen::Matrix4f normal_matrix(const Eigen::Affine3f& transform);
 
 /// Constructs perspective projection matrix
 ///
@@ -31,7 +34,7 @@ Eigen::Matrix4f normal_matrix(const Eigen::Affine3f& transform);
 /// @param[in] zFar     far plane
 ///
 /// @return    Eigen::Projective3f      perspective projection matrix
-Eigen::Projective3f perspective(float fovy, float aspect, float zNear, float zFar);
+LA_UI_API Eigen::Projective3f perspective(float fovy, float aspect, float zNear, float zFar);
 
 /// Constructs orthograpic projection matrix
 ///
@@ -43,7 +46,7 @@ Eigen::Projective3f perspective(float fovy, float aspect, float zNear, float zFa
 /// @param[in] zFar     far plane
 ///
 /// @return    Eigen::Projective3f      orthographic projection matrix
-Eigen::Projective3f
+LA_UI_API Eigen::Projective3f
 ortho(float left, float right, float bottom, float top, float zNear, float zFar);
 
 /// Constructs "look at" view matrix,
@@ -53,7 +56,7 @@ ortho(float left, float right, float bottom, float top, float zNear, float zFar)
 /// @param[in] up       up direction
 ///
 /// @return    Eigen::Matrix4f      view matrix
-Eigen::Matrix4f
+LA_UI_API Eigen::Matrix4f
 look_at(const Eigen::Vector3f& eye, const Eigen::Vector3f& center, const Eigen::Vector3f& up);
 
 /// Unprojects screen point (with x,y in screen coordinates and z in NDC) back to 3D world
@@ -64,22 +67,22 @@ look_at(const Eigen::Vector3f& eye, const Eigen::Vector3f& center, const Eigen::
 /// @param[in] viewport     viewport coordinates (x0,y0,x1,y1), x0,y0 being lower left
 ///
 /// @return    Eigen::Vector3f      unprojected 3D point in world space
-Eigen::Vector3f unproject_point(
+LA_UI_API Eigen::Vector3f unproject_point(
     const Eigen::Vector3f& v,
     const Eigen::Matrix4f& view,
     const Eigen::Matrix4f& perspective,
     const Eigen::Vector4f& viewport);
 
-float pi();
+LA_UI_API float pi();
 
 /// 2 * pi
-float two_pi();
+LA_UI_API float two_pi();
 
 /// Projects vector onto 'onto' vector
-Eigen::Vector3f vector_projection(const Eigen::Vector3f& vector, const Eigen::Vector3f& onto);
+LA_UI_API Eigen::Vector3f vector_projection(const Eigen::Vector3f& vector, const Eigen::Vector3f& onto);
 
 /// Returns angle in radians between a and b
-float vector_angle(const Eigen::Vector3f& a, const Eigen::Vector3f& b);
+LA_UI_API float vector_angle(const Eigen::Vector3f& a, const Eigen::Vector3f& b);
 
 
 } // namespace ui

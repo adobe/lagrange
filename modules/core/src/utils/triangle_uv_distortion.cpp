@@ -291,42 +291,42 @@ Scalar triangle_uv_distortion(
 }
 
 #define LA_X_triangle_uv_distortion(_, Scalar)                                            \
-    template Scalar triangle_uv_distortion<DistortionMetric::Dirichlet, Scalar>(          \
+    template LA_CORE_API Scalar triangle_uv_distortion<DistortionMetric::Dirichlet, Scalar>(          \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>);                                                           \
-    template Scalar triangle_uv_distortion<DistortionMetric::InverseDirichlet, Scalar>(   \
+    template LA_CORE_API Scalar triangle_uv_distortion<DistortionMetric::InverseDirichlet, Scalar>(   \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>);                                                           \
-    template Scalar triangle_uv_distortion<DistortionMetric::SymmetricDirichlet, Scalar>( \
+    template LA_CORE_API Scalar triangle_uv_distortion<DistortionMetric::SymmetricDirichlet, Scalar>( \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>);                                                           \
-    template Scalar triangle_uv_distortion<DistortionMetric::AreaRatio, Scalar>(          \
+    template LA_CORE_API Scalar triangle_uv_distortion<DistortionMetric::AreaRatio, Scalar>(          \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>);                                                           \
-    template Scalar triangle_uv_distortion<DistortionMetric::MIPS, Scalar>(               \
+    template LA_CORE_API Scalar triangle_uv_distortion<DistortionMetric::MIPS, Scalar>(               \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>,                                                            \
         span<const Scalar, 2>);                                                           \
-    template Scalar triangle_uv_distortion<Scalar>(                                       \
+    template LA_CORE_API Scalar triangle_uv_distortion<Scalar>(                                       \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \
         span<const Scalar, 3>,                                                            \

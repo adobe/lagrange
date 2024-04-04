@@ -65,7 +65,7 @@ TEST_CASE("io/ply empty", "[io][ply]")
     using Scalar = double;
     using Index = uint32_t;
 
-    auto mesh = testing::create_test_sphere<Scalar, Index>();
+    SurfaceMesh<Scalar, Index> mesh;
     std::stringstream data;
     io::SaveOptions save_options;
     save_options.output_attributes = io::SaveOptions::OutputAttributes::All;

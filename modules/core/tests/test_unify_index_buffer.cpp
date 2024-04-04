@@ -502,4 +502,23 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
             validate_edge_lengths(mesh2);
         }
     }
+
+    SECTION("Isolated vertices")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh = generate_rectangle<Scalar, Index>();
+        mesh.add_vertex({-1, -1, -1}); // isolated vertex
+        REQUIRE(mesh.get_num_vertices() == 7);
+
+        std::vector<Index> vertex_ids = {0, 1, 2, 3, 4, 5, 6};
+        mesh.create_attribute<Index>("vertex_id", Vertex, AttributeUsage::Scalar, 1, vertex_ids);
+
+        std::vector<Scalar> values = {0, 1, 2};
+        std::vector<Index> indices = {0, 0, 0, 1, 1, 1, 2, 2, 2, 2};
+        add_indexed_attribute(mesh, "facet_id", values, indices);
+
+        auto mesh2 = unify_index_buffer(mesh);
+        REQUIRE(mesh2.get_num_vertices() == 11);
+        mesh2.initialize_edges();
+        check_for_consistency(mesh, mesh2);
+    }
 }

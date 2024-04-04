@@ -248,17 +248,17 @@ AttributeId compute_normal(
 }
 
 #define LA_X_compute_normal(_, Scalar, Index)           \
-    template AttributeId compute_normal<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_normal<Scalar, Index>( \
         SurfaceMesh<Scalar, Index> & mesh,              \
         function_ref<bool(Index)>,                      \
         span<const Index>,                              \
         NormalOptions);                                 \
-    template AttributeId compute_normal<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_normal<Scalar, Index>( \
         SurfaceMesh<Scalar, Index> & mesh,              \
         function_ref<bool(Index, Index)>,               \
         span<const Index>,                              \
         NormalOptions);                                 \
-    template AttributeId compute_normal<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_normal<Scalar, Index>( \
         SurfaceMesh<Scalar, Index> & mesh,              \
         Scalar,                                         \
         span<const Index>,                              \

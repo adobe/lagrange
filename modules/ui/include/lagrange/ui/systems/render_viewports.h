@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/Viewport.h>
 
 namespace lagrange {
@@ -19,12 +20,12 @@ namespace ui {
 
 /// @brief Render viewport
 /// Renders all geometry visible in this viewport into the viewport's framebuffer
-void render_viewport(Registry& registry, Entity e);
+LA_UI_API void render_viewport(Registry& registry, Entity e);
 
 
 /// @brief Render all enabled viewports
 /// @param registry
-void render_viewports(Registry& registry);
+LA_UI_API void render_viewports(Registry& registry);
 
 
 } // namespace ui

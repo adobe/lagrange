@@ -181,9 +181,9 @@ bool is_edge_manifold(const SurfaceMesh<Scalar, Index>& mesh)
 }
 
 #define LA_X_topology(_, Scalar, Index)                                                      \
-    template int compute_euler<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh);       \
-    template bool is_vertex_manifold<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh); \
-    template bool is_edge_manifold<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh);
+    template LA_CORE_API int compute_euler<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh);       \
+    template LA_CORE_API bool is_vertex_manifold<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh); \
+    template LA_CORE_API bool is_edge_manifold<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(topology, 0)
 
 } // namespace lagrange

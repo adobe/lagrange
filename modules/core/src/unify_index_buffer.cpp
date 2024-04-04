@@ -67,6 +67,8 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
     std::vector<Index> corner_groups(num_corners);
     std::vector<size_t> corner_group_indices = {0};
     corner_group_indices.reserve(num_vertices * 2);
+    std::vector<Index> isolated_vertices;
+    isolated_vertices.reserve(num_vertices);
 
     {
         std::vector<size_t> vertex_corners(num_vertices + 1, 0);
@@ -99,6 +101,9 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         for (auto vid : range(num_vertices)) {
             auto start_itr = std::next(corner_groups.begin(), vertex_corners[vid]);
             auto end_itr = std::next(corner_groups.begin(), vertex_corners[vid + 1]);
+            if (start_itr == end_itr) {
+                isolated_vertices.push_back(vid);
+            }
             for (auto itr = start_itr; itr != end_itr; itr++) {
                 auto next_itr = std::next(itr);
                 if (next_itr == end_itr || compare_corner(*itr, *next_itr) != EQUAL) {
@@ -128,6 +133,16 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
         }
     });
 
+    // Copy over isolated vertices.
+    const size_t num_isolated_vertices = isolated_vertices.size();
+    output_mesh.add_vertices(
+        static_cast<Index>(num_isolated_vertices),
+        [&](Index i, span<Scalar> p) {
+            Index vid = isolated_vertices[i];
+            const auto q = mesh.get_position(vid);
+            std::copy(q.begin(), q.end(), p.begin());
+        });
+
     // Map facets.
     auto num_facets = mesh.get_num_facets();
     logger().debug("Unified index buffer: {} facets", num_facets);
@@ -155,10 +170,17 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
             attr.get_num_channels());
 
         auto& out_attr = output_mesh.template ref_attribute<ValueType>(id);
-        out_attr.resize_elements(num_unique_corners);
+        out_attr.resize_elements(num_unique_corners + num_isolated_vertices);
         for (auto vid : range(num_unique_corners)) {
             auto cid = corner_groups[corner_group_indices[vid]];
             auto prev_vid = mesh.get_corner_vertex(cid);
+            auto source_value = attr.get_row(prev_vid);
+            auto target_value = out_attr.ref_row(vid);
+            std::copy(source_value.begin(), source_value.end(), target_value.begin());
+        }
+        for (size_t i = 0; i < num_isolated_vertices; i++) {
+            Index prev_vid = isolated_vertices[i];
+            Index vid = static_cast<Index>(num_unique_corners + i);
             auto source_value = attr.get_row(prev_vid);
             auto target_value = out_attr.ref_row(vid);
             std::copy(source_value.begin(), source_value.end(), target_value.begin());
@@ -266,10 +288,10 @@ SurfaceMesh<Scalar, Index> unify_named_index_buffer(
 
 
 #define LA_X_unify_index_buffer(_, Scalar, Index)                 \
-    template SurfaceMesh<Scalar, Index> unify_index_buffer(       \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> unify_index_buffer(       \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         const std::vector<AttributeId>& attribute_ids);           \
-    template SurfaceMesh<Scalar, Index> unify_named_index_buffer( \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> unify_named_index_buffer( \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         const std::vector<std::string_view>& attribute_names);
 LA_SURFACE_MESH_X(unify_index_buffer, 0)

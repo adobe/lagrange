@@ -11,9 +11,11 @@
  */
 
 // this .cpp provides implementations for functions defined in those headers:
+#include <lagrange/io/api.h>
 #include <lagrange/io/load_mesh_fbx.h>
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/load_simple_scene_fbx.h>
+
 // ====
 
 #include <lagrange/IndexedAttribute.h>
@@ -337,9 +339,8 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
     using MeshType = typename SceneType::MeshType;
 
     for (const ufbx_mesh* mesh : scene->meshes) {
-        element_index[mesh->element_id] = lscene.meshes.size();
         auto lmesh = convert_mesh_ufbx_to_lagrange<MeshType>(mesh, opt);
-        scene::utils::add_mesh(lscene, lmesh);
+        element_index[mesh->element_id] = lscene.add(std::move(lmesh));
     }
 
     for (const ufbx_light* light : scene->lights) {
@@ -416,7 +417,7 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
         ltex.image = img_idx;
         lscene.textures.push_back(ltex);
 
-        scene::ImageLegacy limage;
+        scene::ImageExperimental limage;
         limage.name = texture->name.data;
         limage.uri = texture->relative_filename.data;
         // note: there is no width/height anywhere. read the image from disk, or read png from texture->content.
@@ -436,7 +437,7 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
         }
 
         if (loaded) {
-            lscene.images.push_back(limage);
+            lscene.add(std::move(limage));
         }
     }
 
@@ -597,28 +598,28 @@ SceneType load_scene_fbx(std::istream& input_stream, const LoadOptions& options)
     return lscene;
 }
 
-#define LA_X_load_mesh_fbx(_, S, I)                                                \
-    template SurfaceMesh<S, I> load_mesh_fbx(const fs::path&, const LoadOptions&); \
-    template SurfaceMesh<S, I> load_mesh_fbx(std::istream&, const LoadOptions&);
+#define LA_X_load_mesh_fbx(_, S, I)                                                          \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_fbx(const fs::path&, const LoadOptions&); \
+    template LA_IO_API SurfaceMesh<S, I> load_mesh_fbx(std::istream&, const LoadOptions&);
 LA_SURFACE_MESH_X(load_mesh_fbx, 0);
 #undef LA_X_load_mesh_fbx
 
-#define LA_X_load_simple_scene_fbx(_, S, I, D)                  \
-    template scene::SimpleScene<S, I, D> load_simple_scene_fbx( \
-        const fs::path& filename,                               \
-        const LoadOptions& options);                            \
-    template scene::SimpleScene<S, I, D> load_simple_scene_fbx( \
-        std::istream& input_stream,                             \
+#define LA_X_load_simple_scene_fbx(_, S, I, D)                            \
+    template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene_fbx( \
+        const fs::path& filename,                                         \
+        const LoadOptions& options);                                      \
+    template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene_fbx( \
+        std::istream& input_stream,                                       \
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene_fbx, 0);
 #undef LA_X_load_simple_scene_fbx
 
-#define LA_X_load_scene_fbx(_, S, I)            \
-    template scene::Scene<S, I> load_scene_fbx( \
-        const fs::path& filename,               \
-        const LoadOptions& options);            \
-    template scene::Scene<S, I> load_scene_fbx( \
-        std::istream& input_stream,             \
+#define LA_X_load_scene_fbx(_, S, I)                      \
+    template LA_IO_API scene::Scene<S, I> load_scene_fbx( \
+        const fs::path& filename,                         \
+        const LoadOptions& options);                      \
+    template LA_IO_API scene::Scene<S, I> load_scene_fbx( \
+        std::istream& input_stream,                       \
         const LoadOptions& options);
 LA_SCENE_X(load_scene_fbx, 0);
 #undef LA_X_load_scene_fbx

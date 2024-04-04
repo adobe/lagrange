@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <lagrange/api.h>
+
 #include <cstdint>
 
 // clang-format off

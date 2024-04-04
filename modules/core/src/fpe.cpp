@@ -9,6 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/utils/fpe.h>
+
 #if defined(_WIN32) || defined(LA_DISABLE_FPE)
 
 namespace {

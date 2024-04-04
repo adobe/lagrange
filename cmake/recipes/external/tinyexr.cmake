@@ -25,7 +25,7 @@ CPMAddPackage(
     DOWNLOAD_ONLY ON
 )
 
-add_library(tinyexr
+add_library(tinyexr STATIC
     ${tinyexr_SOURCE_DIR}/tinyexr.h
     ${tinyexr_SOURCE_DIR}/tinyexr.cc
 )

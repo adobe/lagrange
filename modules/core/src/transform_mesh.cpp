@@ -195,19 +195,19 @@ SurfaceMesh<Scalar, Index> transformed_mesh(
 }
 
 #define LA_X_transform_mesh(_, Scalar, Index)                               \
-    template void transform_mesh<Scalar, Index, 2>(                         \
+    template LA_CORE_API void transform_mesh<Scalar, Index, 2>(                         \
         SurfaceMesh<Scalar, Index> & mesh,                                  \
         const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform,        \
         const TransformOptions& options);                                   \
-    template SurfaceMesh<Scalar, Index> transformed_mesh<Scalar, Index, 2>( \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> transformed_mesh<Scalar, Index, 2>( \
         SurfaceMesh<Scalar, Index> mesh,                                    \
         const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform,        \
         const TransformOptions& options);                                   \
-    template void transform_mesh<Scalar, Index, 3>(                         \
+    template LA_CORE_API void transform_mesh<Scalar, Index, 3>(                         \
         SurfaceMesh<Scalar, Index> & mesh,                                  \
         const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,        \
         const TransformOptions& options);                                   \
-    template SurfaceMesh<Scalar, Index> transformed_mesh<Scalar, Index, 3>( \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> transformed_mesh<Scalar, Index, 3>( \
         SurfaceMesh<Scalar, Index> mesh,                                    \
         const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,        \
         const TransformOptions& options);

@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/testing/api.h>
+
 namespace lagrange::testing {
 
 ///
@@ -42,6 +44,6 @@ enum class FloatPointBehavior {
 ///
 /// @return     Detected float point behavior.
 ///
-FloatPointBehavior detect_fp_behavior();
+LA_TESTING_API FloatPointBehavior detect_fp_behavior();
 
 } // namespace lagrange::testing

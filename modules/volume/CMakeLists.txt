@@ -10,7 +10,7 @@
 # governing permissions and limitations under the License.
 #
 # 1. define module
-lagrange_add_module()
+lagrange_add_module(NO_INSTALL)
 
 # 2. dependencies
 lagrange_include_modules(core winding)
@@ -21,13 +21,7 @@ target_link_libraries(lagrange_volume PUBLIC
     openvdb::openvdb
 )
 
-# 3. installation
-# if(LAGRANGE_INSTALL)
-#     set_target_properties(lagrange_volume PROPERTIES EXPORT_NAME volume)
-#     lagrange_install(lagrange_volume)
-# endif()
-
-# 4. unit tests and examples
+# 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()

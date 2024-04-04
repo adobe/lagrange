@@ -82,7 +82,7 @@ AttributeId compute_dihedral_angles(
 }
 
 #define LA_X_compute_dihedral_angles(_, Scalar, Index)           \
-    template AttributeId compute_dihedral_angles<Scalar, Index>( \
+    template LA_CORE_API AttributeId compute_dihedral_angles<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                             \
         const DihedralAngleOptions&);
 LA_SURFACE_MESH_X(compute_dihedral_angles, 0)

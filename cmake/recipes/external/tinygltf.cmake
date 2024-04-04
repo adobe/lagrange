@@ -17,7 +17,7 @@ message(STATUS "Third-party (external): creating target 'tinygltf::tinygltf'")
 
 # tinygltf has its own version of json and stb headers in the same folder,
 # so to avoid potential conflicts we just download the one header we want.
-set(TINYGLTF_VERSION "v2.8.3")
+set(TINYGLTF_VERSION "v2.8.21")
 set(TINYGLTF_URL "https://raw.githubusercontent.com/syoyo/tinygltf/${TINYGLTF_VERSION}/tiny_gltf.h")
 
 include(CPM)
@@ -39,7 +39,7 @@ file(WRITE "${tinygltf_BINARY_DIR}/tinygltf.cpp.in" [[
 configure_file(${tinygltf_BINARY_DIR}/tinygltf.cpp.in ${tinygltf_BINARY_DIR}/tinygltf.cpp COPYONLY)
 
 # define library
-add_library(tinygltf ${tinygltf_BINARY_DIR}/tinygltf.cpp)
+add_library(tinygltf STATIC ${tinygltf_BINARY_DIR}/tinygltf.cpp)
 add_library(tinygltf::tinygltf ALIAS tinygltf)
 target_compile_definitions(tinygltf PRIVATE
     TINYGLTF_NO_INCLUDE_JSON

@@ -182,42 +182,42 @@ ConstRowMatrixView<Index> facet_view(const SurfaceMesh<Scalar, Index>& mesh)
 
 // Iterate over attribute types
 #define LA_X_views_attr(_, ValueType)                                                          \
-    template RowMatrixView<ValueType> matrix_ref(Attribute<ValueType>& attribute);             \
-    template ConstRowMatrixView<ValueType> matrix_view(const Attribute<ValueType>& attribute); \
-    template VectorView<ValueType> vector_ref(Attribute<ValueType>& attribute);                \
-    template ConstVectorView<ValueType> vector_view(const Attribute<ValueType>& attribute);    \
-    template RowMatrixView<ValueType> reshaped_ref(                                            \
+    template LA_CORE_API RowMatrixView<ValueType> matrix_ref(Attribute<ValueType>& attribute);             \
+    template LA_CORE_API ConstRowMatrixView<ValueType> matrix_view(const Attribute<ValueType>& attribute); \
+    template LA_CORE_API VectorView<ValueType> vector_ref(Attribute<ValueType>& attribute);                \
+    template LA_CORE_API ConstVectorView<ValueType> vector_view(const Attribute<ValueType>& attribute);    \
+    template LA_CORE_API RowMatrixView<ValueType> reshaped_ref(                                            \
         Attribute<ValueType>& attribute,                                                       \
         size_t num_cols);                                                                      \
-    template ConstRowMatrixView<ValueType> reshaped_view(                                      \
+    template LA_CORE_API ConstRowMatrixView<ValueType> reshaped_view(                                      \
         const Attribute<ValueType>& attribute,                                                 \
         size_t num_cols);
 LA_ATTRIBUTE_X(views_attr, 0)
 
 // Iterate over attribute types x mesh (scalar, index) types
 #define LA_X_views_mesh_attr(ValueType, Scalar, Index)            \
-    template RowMatrixView<ValueType> attribute_matrix_ref(       \
+    template LA_CORE_API RowMatrixView<ValueType> attribute_matrix_ref(       \
         SurfaceMesh<Scalar, Index>& mesh,                         \
         std::string_view name);                                   \
-    template ConstRowMatrixView<ValueType> attribute_matrix_view( \
+    template LA_CORE_API ConstRowMatrixView<ValueType> attribute_matrix_view( \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         std::string_view name);                                   \
-    template VectorView<ValueType> attribute_vector_ref(          \
+    template LA_CORE_API VectorView<ValueType> attribute_vector_ref(          \
         SurfaceMesh<Scalar, Index>& mesh,                         \
         std::string_view name);                                   \
-    template ConstVectorView<ValueType> attribute_vector_view(    \
+    template LA_CORE_API ConstVectorView<ValueType> attribute_vector_view(    \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         std::string_view name);                                   \
-    template RowMatrixView<ValueType> attribute_matrix_ref(       \
+    template LA_CORE_API RowMatrixView<ValueType> attribute_matrix_ref(       \
         SurfaceMesh<Scalar, Index>& mesh,                         \
         AttributeId id);                                          \
-    template ConstRowMatrixView<ValueType> attribute_matrix_view( \
+    template LA_CORE_API ConstRowMatrixView<ValueType> attribute_matrix_view( \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         AttributeId id);                                          \
-    template VectorView<ValueType> attribute_vector_ref(          \
+    template LA_CORE_API VectorView<ValueType> attribute_vector_ref(          \
         SurfaceMesh<Scalar, Index>& mesh,                         \
         AttributeId id);                                          \
-    template ConstVectorView<ValueType> attribute_vector_view(    \
+    template LA_CORE_API ConstVectorView<ValueType> attribute_vector_view(    \
         const SurfaceMesh<Scalar, Index>& mesh,                   \
         AttributeId id);
 #define LA_X_views_aux(_, ValueType) LA_SURFACE_MESH_X(views_mesh_attr, ValueType)
@@ -225,10 +225,10 @@ LA_ATTRIBUTE_X(views_aux, 0)
 
 // Iterate over mesh (scalar, index) types
 #define LA_X_views_mesh(_, Scalar, Index)                                                    \
-    template RowMatrixView<Scalar> vertex_ref(SurfaceMesh<Scalar, Index>& mesh);             \
-    template ConstRowMatrixView<Scalar> vertex_view(const SurfaceMesh<Scalar, Index>& mesh); \
-    template RowMatrixView<Index> facet_ref(SurfaceMesh<Scalar, Index>& mesh);               \
-    template ConstRowMatrixView<Index> facet_view(const SurfaceMesh<Scalar, Index>& mesh);
+    template LA_CORE_API RowMatrixView<Scalar> vertex_ref(SurfaceMesh<Scalar, Index>& mesh);             \
+    template LA_CORE_API ConstRowMatrixView<Scalar> vertex_view(const SurfaceMesh<Scalar, Index>& mesh); \
+    template LA_CORE_API RowMatrixView<Index> facet_ref(SurfaceMesh<Scalar, Index>& mesh);               \
+    template LA_CORE_API ConstRowMatrixView<Index> facet_view(const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(views_mesh, 0)
 
 } // namespace lagrange

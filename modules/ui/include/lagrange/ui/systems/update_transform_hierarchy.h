@@ -11,13 +11,14 @@
  */
 #pragma once
 
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 
 namespace lagrange {
 namespace ui {
 
 // Todo expose outside api callback
-void update_transform_hierarchy(Registry& registry);
+LA_UI_API void update_transform_hierarchy(Registry& registry);
 
 } // namespace ui
 } // namespace lagrange

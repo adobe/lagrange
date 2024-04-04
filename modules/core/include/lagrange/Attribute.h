@@ -114,7 +114,7 @@ public:
     ///
     [[nodiscard]] size_t get_num_channels() const { return m_num_channels; }
 
-public:
+protected:
     /// Element type (vertex, facet, indexed, etc.).
     AttributeElement m_element;
 
@@ -139,6 +139,17 @@ public:
 
     /// Whether this attribute type is indexed.
     static constexpr bool IsIndexed = false;
+
+    // Static assertions to prevent users from instantiating unsupported types. We do not use the
+    // macros from AttributeTypes.h since we do not want to implicitly expose them in the main
+    // Attribute.h header.
+    static_assert(
+        std::is_same_v<ValueType, int8_t> || std::is_same_v<ValueType, int16_t> ||
+            std::is_same_v<ValueType, int32_t> || std::is_same_v<ValueType, int64_t> ||
+            std::is_same_v<ValueType, uint8_t> || std::is_same_v<ValueType, uint16_t> ||
+            std::is_same_v<ValueType, uint32_t> || std::is_same_v<ValueType, uint64_t> ||
+            std::is_same_v<ValueType, float> || std::is_same_v<ValueType, double>,
+        "Attribute's ValueType template parameter can only be float, double, or a fixed size integer type.");
 
 public:
     ///
@@ -604,7 +615,6 @@ public:
     lagrange::span<ValueType> ref_row(size_t element);
 
     /// @}
-protected:
 protected:
     /// @cond LA_INTERNAL_DOCS
 

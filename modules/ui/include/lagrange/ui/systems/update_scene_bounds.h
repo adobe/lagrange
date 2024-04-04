@@ -11,7 +11,7 @@
  */
 #pragma once
 
-
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
 #include <Eigen/Eigen>
 
@@ -20,7 +20,7 @@ namespace ui {
 
 
 /// Sets context <AABB> variable
-void update_scene_bounds_system(Registry& ctx);
+LA_UI_API void update_scene_bounds_system(Registry& ctx);
 
 
 } // namespace ui

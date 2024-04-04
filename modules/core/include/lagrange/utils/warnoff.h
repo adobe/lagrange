@@ -43,6 +43,7 @@
     #pragma clang diagnostic ignored "-Wweak-vtables"
     #pragma clang diagnostic ignored "-Wunused-private-field"
     #pragma clang diagnostic ignored "-Wmissing-field-initializers"
+    #pragma clang diagnostic ignored "-Wconversion"
 #elif defined(__GNUC__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-function-type"

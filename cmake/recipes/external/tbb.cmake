@@ -124,26 +124,15 @@ function(tbb_copy_interface_dirs target)
     endforeach()
 endfunction()
 
-# Generate a dummy .cpp so we can create a "real" target that depends on both tbb and tbbmalloc
-# This is needed to trick embree 3.13.0 on Windows, which tries to access the location of the target TBB::tbb
-# https://github.com/embree/embree/blob/12b99393438a4cc9e478e33459eed78bec6233fd/common/tasking/CMakeLists.txt#L42
-file(WRITE "${tbb_BINARY_DIR}/tbb_dummy.cpp.in" [[
-    namespace {
-    void dummy() { }
-    }
-]])
-
-configure_file(${tbb_BINARY_DIR}/tbb_dummy.cpp.in ${tbb_BINARY_DIR}/tbb_dummy.cpp COPYONLY)
-
 # Meta-target that brings both tbb and tbbmalloc.
-add_library(tbb_tbb ${tbb_BINARY_DIR}/tbb_dummy.cpp)
+add_library(tbb_tbb INTERFACE)
 add_library(TBB::tbb ALIAS tbb_tbb)
 if(TBB_PREFER_STATIC)
-    target_link_libraries(tbb_tbb PUBLIC tbb_static tbbmalloc_static)
+    target_link_libraries(tbb_tbb INTERFACE tbb_static tbbmalloc_static)
     tbb_fix_include_dirs(tbb_static)
     tbb_copy_interface_dirs(tbb_tbb tbb_static tbbmalloc_static)
 else()
-    target_link_libraries(tbb_tbb PUBLIC tbb tbbmalloc)
+    target_link_libraries(tbb_tbb INTERFACE tbb tbbmalloc)
     tbb_fix_include_dirs(tbb)
     tbb_copy_interface_dirs(tbb_tbb tbb tbbmalloc)
 endif()
