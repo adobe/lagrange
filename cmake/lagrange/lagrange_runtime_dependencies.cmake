@@ -80,8 +80,8 @@ function(lagrange_prepare_runtime_dependencies target)
     add_custom_command(
         TARGET ${target}
         PRE_LINK
-        COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_BINARY_DIR}/runtime_deps/copy_dll_${target}_$<CONFIG>.cmake"
-        COMMAND ${CMAKE_COMMAND} -P "${CMAKE_BINARY_DIR}/runtime_deps/copy_dll_${target}_$<CONFIG>.cmake"
+        COMMAND "${CMAKE_COMMAND}" -E touch "${CMAKE_BINARY_DIR}/runtime_deps/copy_dll_${target}_$<CONFIG>.cmake"
+        COMMAND "${CMAKE_COMMAND}" -P "${CMAKE_BINARY_DIR}/runtime_deps/copy_dll_${target}_$<CONFIG>.cmake"
         COMMENT "Copying dlls for target ${target}"
     )
 endfunction()
@@ -139,9 +139,9 @@ function(lagrange_populate_runtime_dependencies target)
                 get_filename_component(resourceDir resourceDst DIRECTORY)
                 string(APPEND COPY_SCRIPT_CONTENT
                     "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
-                    "    execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "
+                    "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E make_directory "
                         "\"$<TARGET_FILE_DIR:${target}>/${resourceDir}\")\n"
-                    "    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different "
+                    "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different "
                         "\"${resourceSrc}\" "
                         "\"$<TARGET_FILE_DIR:${target}>/${resourceDst}\")\n"
                     "endif()\n"
@@ -149,9 +149,9 @@ function(lagrange_populate_runtime_dependencies target)
             endforeach()
             string(APPEND COPY_SCRIPT_CONTENT
                 "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
-                "    execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory "
+                "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E make_directory "
                     "\"$<TARGET_FILE_DIR:${target}>/usd\")\n"
-                "    execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different "
+                "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different "
                     "\"${usd_BINARY_DIR}/usd_plugInfo.json\" "
                     "\"$<TARGET_FILE_DIR:${target}>/usd/plugInfo.json\")\n"
                 "endif()\n"
