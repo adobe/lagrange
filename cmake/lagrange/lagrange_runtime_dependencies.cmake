@@ -117,10 +117,14 @@ function(lagrange_populate_runtime_dependencies target)
 
         # Instruction to copy target file if it exists
         string(APPEND COPY_SCRIPT_CONTENT
-            "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n    "
-                "execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different "
+            "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
+            "    message(\"Copying dll file: $<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
+            "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different "
                 "\"$<TARGET_FILE:${DEPENDENCY}>\" "
                 "\"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
+            "    if(NOT EXISTS \"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
+            "        message(FATAL_ERROR \"Failed to copy dll file: $<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
+            "    endif()\n"
             "endif()\n"
         )
 
