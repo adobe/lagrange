@@ -36,7 +36,6 @@ jobs:
           CIBW_TEST_REQUIRES: pytest
           MACOSX_DEPLOYMENT_TARGET: 11.00
           CIBW_BUILD_VERBOSITY: 2
-          SYSTEM_VERSION_COMPAT: 1
 
       - uses: actions/upload-artifact@v4
         with:
