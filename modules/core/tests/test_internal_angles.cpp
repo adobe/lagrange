@@ -11,10 +11,10 @@
  */
 #include <lagrange/Logger.h>
 #include <lagrange/internal/internal_angles.h>
-#include <igl/internal_angles.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/fmt_eigen.h>
 
-#include <spdlog/fmt/ostr.h>
+#include <igl/internal_angles.h>
 
 TEST_CASE("Internal angles - precision", "[core]")
 {

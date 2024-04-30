@@ -10,10 +10,7 @@
 # governing permissions and limitations under the License.
 #
 def assert_sharing_raw_data(buf1, buf2):
-    assert (
-        buf1.__array_interface__["data"][0]
-        == buf2.__array_interface__["data"][0]
-    )
+    assert buf1.__array_interface__["data"][0] == buf2.__array_interface__["data"][0]
 
 
 def address(buf):

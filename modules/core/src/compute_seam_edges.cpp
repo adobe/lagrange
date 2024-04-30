@@ -75,7 +75,7 @@ AttributeId compute_seam_edges(
         });
     };
 
-    internal::visit_attribute(mesh, source_id, [&](auto&& attr) {
+    internal::visit_attribute_read(mesh, source_id, [&](auto&& attr) {
         using AttributeType = std::decay_t<decltype(attr)>;
         if constexpr (AttributeType::IsIndexed) {
             process_attribute(attr);

@@ -13,6 +13,7 @@ import lagrange
 
 from .assets import cube
 
+
 class TestUnifyIndexBuffer:
     def test_empty_mesh(self):
         input_mesh = lagrange.SurfaceMesh()
@@ -38,4 +39,3 @@ class TestUnifyIndexBuffer:
         assert output_mesh2.num_vertices != mesh.num_vertices
         assert output_mesh2.num_vertices == 24
         assert output_mesh2.num_facets == 6
-

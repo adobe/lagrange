@@ -146,7 +146,7 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
 #endif
 }
 
-std::string annotateLines(const std::string& str)
+std::string annotate_lines(const std::string& str)
 {
     std::string newstr = str;
     size_t index = 0;
@@ -156,7 +156,7 @@ std::string annotateLines(const std::string& str)
         index = newstr.find("\n", index);
         if (index == std::string::npos) break;
         char buf[16];
-        sprintf(buf, "%d", line++);
+        snprintf(buf, 16, "%d", line++);
         newstr.replace(index, 1, std::string("\n") + buf + std::string("\t"));
 
         index += strlen(buf) + 1 + 1;
@@ -420,7 +420,7 @@ Shader::Shader(const std::string& code, const ShaderDefines& defines)
             glGetShaderInfoLog(id, maxLength, &maxLength, reinterpret_cast<GLchar*>(buf.data()));
 
             failFun(
-                "Compile error:\n" + annotateLines(it.second) +
+                "Compile error:\n" + annotate_lines(it.second) +
                 shaderEnumToString.find(it.first)->second + "\n" + buf.data());
         }
 
@@ -443,7 +443,7 @@ Shader::Shader(const std::string& code, const ShaderDefines& defines)
             &maxLength,
             reinterpret_cast<GLchar*>(buf.data()));
 
-        failFun("Link error:\n" + annotateLines(wholeShader) + "\n" + buf.data());
+        failFun("Link error:\n" + annotate_lines(wholeShader) + "\n" + buf.data());
     }
 
     for (auto it : shaderIDs) glDeleteShader(it.second);

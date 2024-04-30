@@ -131,12 +131,12 @@ bool set_hovered(Registry& r, Entity e, SelectionBehavior behavior /*= Selection
 
 SelectionContext& get_selection_context(Registry& r)
 {
-    return r.ctx_or_set<SelectionContext>(SelectionContext());
+    return r.ctx().emplace<SelectionContext>(SelectionContext());
 }
 
 const SelectionContext& get_selection_context(const Registry& r)
 {
-    return r.ctx<SelectionContext>();
+    return r.ctx().get<SelectionContext>();
 }
 
 SelectionBehavior selection_behavior(const Keybinds& keybinds)

@@ -396,20 +396,17 @@ void update_vao(VertexData& vd)
     LA_GL(glBindVertexArray(0));
 }
 
-entt::resource_handle<Shader> get_or_load_shader(
-    entt::resource_cache<Shader>& cache,
-    const std::string& generic_path,
-    bool virtual_fs /*= false*/)
+entt::resource<Shader>
+get_or_load_shader(ShaderCache& cache, const std::string& generic_path, bool virtual_fs /*= false*/)
 {
-    const auto shader_id = entt::hashed_string{generic_path.c_str()};
+    const StringID shader_id = entt::hashed_string{generic_path.c_str()};
 
-    if (!cache.contains(shader_id)) {
-        return cache.load<ShaderLoader>(
+    return cache
+        .load(
             shader_id,
             generic_path,
-            virtual_fs ? ShaderLoader::PathType::VIRTUAL : ShaderLoader::PathType::REAL);
-    }
-    return cache.handle(shader_id);
+            virtual_fs ? ShaderLoader::PathType::VIRTUAL : ShaderLoader::PathType::REAL)
+        .first->second;
 }
 
 

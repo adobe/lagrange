@@ -21,7 +21,7 @@ using LayerNames = std::array<std::string, get_max_layers()>;
 
 LayerIndex register_layer_name(Registry& registry, const std::string& name, LayerIndex index)
 {
-    auto& names = registry.ctx_or_set<LayerNames>();
+    auto& names = registry.ctx().emplace<LayerNames>();
     names[index] = name;
     return index;
 }
@@ -34,7 +34,7 @@ LayerIndex register_layer_name(Registry& registry, const std::string& name)
 
 const std::string& get_layer_name(Registry& registry, LayerIndex index)
 {
-    auto& names = registry.ctx_or_set<LayerNames>();
+    auto& names = registry.ctx().emplace<LayerNames>();
     return names[index];
 }
 
@@ -99,7 +99,7 @@ bool is_visible_in(
 
 LayerIndex get_next_available_layer_index(Registry& r)
 {
-    const auto& names = r.ctx<LayerNames>();
+    const auto& names = r.ctx().get<LayerNames>();
     for (size_t i = 0; i < names.size(); i++) {
         if (names[i].length() == 0) return LayerIndex(i);
     }

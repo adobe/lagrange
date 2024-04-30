@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/Logger.h>
+#include <lagrange/utils/fmt_eigen.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -31,4 +32,10 @@ TEST_CASE("Logger", "[next]")
         lagrange::logger().debug("This is a debug message");
     }
     lagrange::logger().debug("This should not appear");
+}
+
+TEST_CASE("Logger Eigen", "[next]")
+{
+    Eigen::Vector3f v(1, 2, 3);
+    lagrange::logger().info("Vector: {}", v);
 }

@@ -619,6 +619,10 @@ void Attribute<ValueType>::clear_views()
 // Explicit template instantiation
 ////////////////////////////////////////////////////////////////////////////////
 
+// This needs to be first for GCC
+#define LA_X_attr(_, ValueType) template class LA_CORE_API Attribute<ValueType>;
+LA_ATTRIBUTE_X(attr, 0)
+
 // Workaround for cartesian product of attr type with itself...
 // clang-format off
 #define LA_ATTRIBUTE2_X(mode, data) \
@@ -649,8 +653,5 @@ LA_ATTRIBUTE_X(cast_from_aux, 0)
         return AttributeValueType::e_##ValueType;                                 \
     }
 LA_ATTRIBUTE_X(attribute_get_type, 0)
-
-#define LA_X_attr(_, ValueType) template class LA_CORE_API Attribute<ValueType>;
-LA_ATTRIBUTE_X(attr, 0)
 
 } // namespace lagrange

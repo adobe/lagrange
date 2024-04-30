@@ -53,7 +53,7 @@ Lagrange UI uses an **Entity-Component-System (ECS)** architecture:
 - Components define data and behavior (but no logic)
 - Systems define logic (but no data).
 
-See *[ECS implementation section](#entity-component-system)* for more information about ECS and how it's implemented in Lagrange UI. The underlying library for ECS is [`entt`](https://github.com/skypjack/entt). 
+See *[ECS implementation section](#entity-component-system)* for more information about ECS and how it's implemented in Lagrange UI. The underlying library for ECS is [`entt`](https://github.com/skypjack/entt).
 
 
 Recommended namespace usage
@@ -72,7 +72,7 @@ viewer.run([](){
 //Or
 
 viewer.run([](ui::Registry & r){
-    //Main loop code    
+    //Main loop code
     return should_continue_running;
 });
 ```
@@ -108,7 +108,7 @@ registry.emplace<MyPositionComponent>(entity, MyPositionComponent(0,0,0));
 
 ### Loading mesh
 
-Creates and entity that represents the mesh. This entity is only a resource - it is not rendered. 
+Creates and entity that represents the mesh. This entity is only a resource - it is not rendered.
 It can be referenced by components that need this geometry for rendering/picking/etc.
 These entities have `MeshData` component attached that contains a `lagrange::MeshBase` pointer.
 
@@ -213,7 +213,7 @@ colormap_coolwarm
 
 <!--
 Glyph Categories
-- Color Output 
+- Color Output
 - Geometry Output
 - Texture Output
 
@@ -299,7 +299,7 @@ material.set_float(PBRMaterial::Roughness, 0.75f);
 material.set_texture(PBRMaterial::Roughness, ui::load_texture("metallic.jpg"));
 
 //Uniform roughness
-material.set_float(PBRMaterial::Metallic, 0.75f); 
+material.set_float(PBRMaterial::Metallic, 0.75f);
 //Metallic texture
 material.set_texture(PBRMaterial::Metallic, ui::load_texture("metallic.jpg"));
 
@@ -342,8 +342,8 @@ transform.local = Eigen::Translation3f(1,0,0);
 
 Global transformation is recomputed after each `Simulation` step. Only change the `local` transform.
 
-### `Tree` 
-Defines scene tree relationship. Data is stored using `parent`, `first_child`, `previous_sibling` and `next_sibling` entity IDs. 
+### `Tree`
+Defines scene tree relationship. Data is stored using `parent`, `first_child`, `previous_sibling` and `next_sibling` entity IDs.
 
 Use helper functions to query or change the tree structure, do not change directly (unless you know what you're doing).
 ```c++
@@ -382,7 +382,7 @@ mg.entity = ..
 ```
 
 
-### `Hovered` and `Selected` 
+### `Hovered` and `Selected`
 
 These components acts as flags whether the entity is hovered or selected respectively.
 
@@ -397,22 +397,22 @@ std::vector<Entity> collect_hovered(const Registry& registry);
 //See `utils/selection.h` for details
 ```
 
-### `Layer` 
+### `Layer`
 
 There are 256 layers an entity can belong to. The `Layer` component specifies which layers the entity belongs to. Entity can belong to several layers at once. There are several default layers:
 `ui::DefaultLayers::Default` - everything belongs to it by default
-`ui::DefaultLayers::Selection` - selected entities 
-`ui::DefaultLayers::Hover` - hovered entities 
+`ui::DefaultLayers::Selection` - selected entities
+`ui::DefaultLayers::Hover` - hovered entities
 
 Default constructed `Layer` component belongs to `ui::DefaultLayers::Default`.
 
-You can register your own layer by calling 
-```c++ 
+You can register your own layer by calling
+```c++
 ui::LayerIndex layer_index = ui::register_layer_name(r, "my layer name");
 ```
 
 There are several utility functions for working with layers:
-```c++ 
+```c++
 void add_to_layer(Registry&, Entity e, LayerIndex index);
 void remove_from_layer(Registry&, Entity e, LayerIndex index);
 bool is_in_layer(Registry&, Entity e, LayerIndex index);
@@ -433,7 +433,7 @@ See [section](#Viewports) below.
 
 ## User Interface Panels
 
-UI Panels are implemented also as entities. Panels have the `UIPanel` component. The `UIPanel` components describes the ImGui information (panel title, position, etc.). 
+UI Panels are implemented also as entities. Panels have the `UIPanel` component. The `UIPanel` components describes the ImGui information (panel title, position, etc.).
 
 To create a new UI panel:
 ```c++
@@ -443,7 +443,7 @@ auto panel_entity = ui::add_panel(registry, "Title of the panel",[](){
 });
 //or
 auto panel_entity = ui::add_panel(registry, "Title of the panel", [](Registry &registry, Entity e){
-    //Entity e is the panel_entity    
+    //Entity e is the panel_entity
 });
 ```
 
@@ -473,9 +473,9 @@ Viewports are implemented as entities with `ViewportComponent` component. Those 
 
 See `components/Viewport.h` and `utils/viewport.h` for utility functions related to viewport, viewport panels and cameras.
 
-### Entity visibility 
+### Entity visibility
 
-Each `ViewportComponent` has `visible_layers` and `hidden_layers` that control which entities can be renderer in this viewport (see [`Layer` component](#layer) for details). 
+Each `ViewportComponent` has `visible_layers` and `hidden_layers` that control which entities can be renderer in this viewport (see [`Layer` component](#layer) for details).
 
 The default viewport shows only `DefaultLayers::DefaultLayer`
 
@@ -484,7 +484,7 @@ The default viewport shows only `DefaultLayers::DefaultLayer`
 
 Additional viewports can be created by calling
 ```c++
-ui::Entity camera_entity = add_camera(ui::Registry &, ui::Camera camera); 
+ui::Entity camera_entity = add_camera(ui::Registry &, ui::Camera camera);
 // or use get_focused_camera_entity(ui::Registry &)  to reuse current camera
 
 // Creates an offscreen viewport with the specified camera
@@ -494,7 +494,7 @@ ui::Entity viewport_entity = add_viewport(ui::Registry &, ui::Entity camera_enti
 ui::Entity viewport_entity = add_viewport_panel(ui::Registry &, const std::string & name, ui::Entity viewport_entity);
 ```
 
---- 
+---
 
 ## Entity Component System
 
@@ -526,7 +526,7 @@ registry.destroy(entity);
 ```
 
 ### Components
-Any data that is attached to an `Entity`. Uniquely identified by template typename `<T>` and `Entity`. 
+Any data that is attached to an `Entity`. Uniquely identified by template typename `<T>` and `Entity`.
 
 Components **don't have logic, that means no code**. They only store data and implicitly define behavior. Ideally, the components should be `structs` with no functions. However, it may be beneficial to have setters/getters as member functions in some cases.
 
@@ -547,7 +547,7 @@ MyComponent & c = registry.get<MyComponent>(entity);
 
 // If you're not sure it exists
 MyComponent * c = registry.try_get<MyComponent>(entity);
-//or 
+//or
 if(registry.all_of<MyComponent>()){
     MyComponent& c = registry.get<MyComponent>(entity);
 }
@@ -564,8 +564,8 @@ struct Hidden {
 
 ### Systems
 
-Systems are the logic of the application. They are defined as functions that iterate over entities that have specified components only. 
-For example, running this system: 
+Systems are the logic of the application. They are defined as functions that iterate over entities that have specified components only.
+For example, running this system:
 ```c++
 registry.view<Velocity, Position>().each([](Entity e, Velocity & velocity, Transform & transform){
     transform.local = Eigen::Translation3f(velocity) * transform.local;
@@ -586,12 +586,12 @@ System my_system = [](Registry &w){
 
 ### Context variables
 
-Systems **do not have data**. However, it's often useful to have some state associated with a given system, e.g. for caching. Sometimes it's useful that this state be shared among several systems. Instead of storing this state in some single instance of a component, we can use *context* variables. These can be thought of as *singleton* components - only one instance of a `Type` can exist at a given time. 
+Systems **do not have data**. However, it's often useful to have some state associated with a given system, e.g. for caching. Sometimes it's useful that this state be shared among several systems. Instead of storing this state in some single instance of a component, we can use *context* variables. These can be thought of as *singleton* components - only one instance of a `Type` can exist at a given time.
 
 `InputState` is such a *singleton* component. At the beginning of the frame, it is filled with key/mouse information, including last mouse position, mouse delta, active keybinds, etc.:
 ```c++
 void update_input_system(Registry & registry){
-    InputState & input_state =  registry.ctx_or_set<InputState>();
+    InputState & input_state =  registry.ctx().emplace<InputState>();
     input_state.mouse.position = ...
     input_state.mouse.delta = ...
     input_state.keybinds.update(...);
@@ -601,7 +601,7 @@ void update_input_system(Registry & registry){
 It can then be used by any other system down the line:
 ```c++
 void print_mouse_position(Registry & registry){
-    const auto & input_state = registry.ctx<InputState>();
+    const auto & input_state = registry.ctx().get<InputState>();
 
     lagrange::logger().info("Mouse position: {}", input_state.mouse_pos);
 }
@@ -612,7 +612,7 @@ void print_mouse_position(Registry & registry){
 Rules to follow when designing components and systems:
 - Components have no functions, only data
 - Systems have no data
-- State associated with systems is stored as context variable (`registry.ctx<T>()`)
+- State associated with systems is stored as context variable (`registry.ctx().get<T>()`)
 
 *TODO: const Systems / const views*
 
@@ -643,7 +643,7 @@ You may add any time of component using `registry.emplace<ComponentType>(entity)
 
 `register_tool<E,T>` (Select/Translate/Rotate/Scale/...)
 
-### Geometry 
+### Geometry
 
 Lagrange meshes must be registered to work. By default, only the `TriangleMesh3Df` and `TriangleMesh3D` are registered.
 
@@ -663,7 +663,7 @@ Material properties can be defined in the shader using the following syntax:
 For example:
 ```glsl
 //Defines a 2D texture property with the default value of rgba(0.7,0.7,0.7,1) if no texture is bound
-#pragma property material_base_color "Base Color" Texture2D(0.7,0.7,0.7,1) 
+#pragma property material_base_color "Base Color" Texture2D(0.7,0.7,0.7,1)
 //Defines a 2D texture property with the default value of red=0.4 if no texture is bound
 #pragma property material_roughness "Roughness" Texture2D(0.4)
 //Defines a 2D texture property with the default value of red=0.1 if no texture is bound
@@ -671,7 +671,7 @@ For example:
 //Defines a 2D texture property that is to be interpreted as normal texture
 #pragma property material_normal "Normal" Texture2D [normal]
 //Defines a float property, with the default value of 1 and range 0,1
-#pragma property material_opacity "Opacity" float(1,0,1) 
+#pragma property material_opacity "Opacity" float(1,0,1)
 ```
 
 The pragmas are parsed whenever a shader is loaded and replaced with:

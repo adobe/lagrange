@@ -23,8 +23,8 @@
 #include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
 #include <lagrange/attribute_names.h>
+#include <lagrange/internal/fast_edge_sort.h>
 
-#include <numeric>
 #include <type_traits>
 
 namespace lagrange {
@@ -264,79 +264,6 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_wrap(MeshType&& mesh)
             std::forward<MeshType>(mesh));
 }
 
-namespace mesh_convert_detail {
-
-//
-// TODO:
-// 1. Make this function standalone
-// 2. Reuse it to implement a faster version of SurfaceMesh::update_edges_range_internal()
-// 3. Profile and benchmark timings
-// 4. Maybe we can implement a local cache system for SurfaceMesh<> to reuse tmp buffers. Maybe this
-//    would make the add_vertex/add_facet functions efficient enough that we do not need to allocate
-//    them all at once in our `triangulate_polygonal_facets` function.
-//
-template <typename Index, typename Func>
-std::vector<Index> fast_edge_sort(
-    Index num_edges,
-    Index num_vertices,
-    Func get_edge,
-    span<Index> vertex_to_first_edge = {})
-{
-    std::vector<Index> local_buffer;
-    if (vertex_to_first_edge.empty()) {
-        local_buffer.assign(num_vertices + 1, 0);
-        vertex_to_first_edge = local_buffer;
-    } else {
-        std::fill(vertex_to_first_edge.begin(), vertex_to_first_edge.end(), Index(0));
-    }
-    la_runtime_assert(vertex_to_first_edge.size() == static_cast<size_t>(num_vertices) + 1);
-    // Count number of edges starting at each vertex
-    for (Index e = 0; e < num_edges; ++e) {
-        std::array<Index, 2> v = get_edge(e);
-        if (v[0] > v[1]) {
-            std::swap(v[0], v[1]);
-        }
-        vertex_to_first_edge[v[0] + 1]++;
-    }
-    // Prefix sum to compute actual offsets
-    std::partial_sum(
-        vertex_to_first_edge.begin(),
-        vertex_to_first_edge.end(),
-        vertex_to_first_edge.begin());
-    la_runtime_assert(vertex_to_first_edge.back() == num_edges);
-    // Bucket each edge id to its respective starting vertex
-    std::vector<Index> edge_ids(num_edges);
-    for (Index e = 0; e < num_edges; ++e) {
-        std::array<Index, 2> v = get_edge(e);
-        if (v[0] > v[1]) {
-            std::swap(v[0], v[1]);
-        }
-        edge_ids[vertex_to_first_edge[v[0]]++] = e;
-    }
-    // Shift back the offset buffer 'vertex_to_first_edge' (can use std::shift_right in C++20 :p)
-    std::rotate(
-        vertex_to_first_edge.rbegin(),
-        vertex_to_first_edge.rbegin() + 1,
-        vertex_to_first_edge.rend());
-    vertex_to_first_edge.front() = 0;
-    // Sort each bucket in parallel
-    tbb::parallel_for(Index(0), num_vertices, [&](Index v) {
-        tbb::parallel_sort(
-            edge_ids.begin() + vertex_to_first_edge[v],
-            edge_ids.begin() + vertex_to_first_edge[v + 1],
-            [&](Index ei, Index ej) {
-                auto vi = get_edge(ei);
-                auto vj = get_edge(ej);
-                if (vi[0] > vi[1]) std::swap(vi[0], vi[1]);
-                if (vj[0] > vj[1]) std::swap(vj[0], vj[1]);
-                return vi < vj;
-            });
-    });
-    return edge_ids;
-}
-
-} // namespace mesh_convert_detail
-
 template <typename MeshType, typename Scalar, typename Index>
 std::unique_ptr<MeshType> to_legacy_mesh(const SurfaceMesh<Scalar, Index>& mesh)
 {
@@ -387,12 +314,12 @@ std::unique_ptr<MeshType> to_legacy_mesh(const SurfaceMesh<Scalar, Index>& mesh)
         const auto num_vertices = static_cast<size_t>(mesh.get_num_vertices());
         auto buffer = std::make_unique<uint8_t[]>(
             (num_vertices + 1) * std::max(sizeof(Index), sizeof(MeshIndex)));
-        old_edge_ids = mesh_convert_detail::fast_edge_sort(
+        old_edge_ids = internal::fast_edge_sort(
             mesh.get_num_edges(),
             mesh.get_num_vertices(),
             [&](Index e) -> std::array<Index, 2> { return mesh.get_edge_vertices(e); },
             {reinterpret_cast<Index*>(buffer.get()), num_vertices + 1});
-        new_edge_ids = mesh_convert_detail::fast_edge_sort(
+        new_edge_ids = internal::fast_edge_sort(
             new_mesh->get_num_edges(),
             new_mesh->get_num_vertices(),
             [&](MeshIndex e) -> std::array<MeshIndex, 2> { return new_mesh->get_edge_vertices(e); },

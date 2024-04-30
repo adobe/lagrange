@@ -20,7 +20,7 @@
 namespace lagrange::internal {
 
 ///
-/// Apply a function to a mesh attribute.
+/// Apply a function to a read-only mesh attribute.
 ///
 /// @param[in]  mesh    Input mesh.
 /// @param[in]  id      Attribute id to apply the function to.
@@ -30,13 +30,13 @@ namespace lagrange::internal {
 /// @tparam     Scalar  Mesh scalar type.
 /// @tparam     Index   Mesh index type.
 ///
-/// @note       To make this a public API function, we probably need (1) a _read a _write variant,
-///             (2) a name vs id variant, and (3) maybe a variant for indexed vs non-indexed to
-///             avoid having to constexpr our way through all possibilities. Or maybe we just make
-///             the function take an `AttributeBase &` as input?
+/// @note       To make this a public API function, we probably need (1) a name vs id variant, and
+///             (2) maybe a variant for indexed vs non-indexed to avoid having to constexpr our way
+///             through all possibilities. Or maybe we just make the function take an `AttributeBase
+///             &` as input?
 ///
 template <typename Func, typename Scalar, typename Index>
-void visit_attribute(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Func&& func)
+void visit_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Func&& func)
 {
     const auto& attr = mesh.get_attribute_base(id);
     auto type = attr.get_value_type();
@@ -50,6 +50,43 @@ void visit_attribute(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Fun
             func(static_cast<const Attribute<ValueType>&>(attr));               \
         }                                                                       \
         break;                                                                  \
+    }
+        LA_ATTRIBUTE_X(visit, 0)
+#undef LA_X_visit
+    }
+}
+
+///
+/// Apply a function to a writeable mesh attribute.
+///
+/// @param[in]  mesh    Input mesh.
+/// @param[in]  id      Attribute id to apply the function to.
+/// @param      func    Function to apply.
+///
+/// @tparam     Func    Function type.
+/// @tparam     Scalar  Mesh scalar type.
+/// @tparam     Index   Mesh index type.
+///
+/// @note       To make this a public API function, we probably need (1) a name vs id variant, and
+///             (2) maybe a variant for indexed vs non-indexed to avoid having to constexpr our way
+///             through all possibilities. Or maybe we just make the function take an `AttributeBase
+///             &` as input?
+///
+template <typename Func, typename Scalar, typename Index>
+void visit_attribute_write(SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Func&& func)
+{
+    const auto& attr = mesh.get_attribute_base(id);
+    auto type = attr.get_value_type();
+    bool is_indexed = (attr.get_element_type() == AttributeElement::Indexed);
+    switch (type) {
+#define LA_X_visit(_, ValueType)                                      \
+    case make_attribute_value_type<ValueType>(): {                    \
+        if (is_indexed) {                                             \
+            func(mesh.template ref_indexed_attribute<ValueType>(id)); \
+        } else {                                                      \
+            func(mesh.template ref_attribute<ValueType>(id));       \
+        }                                                             \
+        break;                                                        \
     }
         LA_ATTRIBUTE_X(visit, 0)
 #undef LA_X_visit

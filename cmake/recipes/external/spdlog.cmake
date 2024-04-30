@@ -16,17 +16,27 @@ endif()
 message(STATUS "Third-party (external): creating target 'spdlog::spdlog'")
 
 option(SPDLOG_INSTALL "Generate the install target" ON)
+option(SPDLOG_FMT_EXTERNAL "Use external fmt library instead of bundled" OFF)
+
+if(SPDLOG_FMT_EXTERNAL)
+    include(fmt)
+endif()
+
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "spdlog")
 
+# Versions of fmt bundled with spdlog:
+# - spdlog 1.13.0 -> fmt 9.1.0
+# - spdlog 1.12.0 -> fmt 9.1.0
+# - spdlog 1.11.0 -> fmt 9.1.0
+# - spdlog 1.10.0 -> fmt 8.1.1
 include(CPM)
 CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
-    GIT_TAG v1.11.0
+    GIT_TAG v1.13.0
 )
 
 set_target_properties(spdlog PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
 set_target_properties(spdlog PROPERTIES FOLDER third_party)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR

@@ -268,9 +268,9 @@ public:
         return string_format(
             "EigenArray<Eigen::Matrix<{}, {}, {}, {}>>",
             scalar_name,
-            EigenType::RowsAtCompileTime,
-            EigenType::ColsAtCompileTime,
-            EigenType::Options);
+            static_cast<int>(EigenType::RowsAtCompileTime),
+            static_cast<int>(EigenType::ColsAtCompileTime),
+            static_cast<int>(EigenType::Options));
     }
 
 private:
@@ -348,9 +348,9 @@ public:
         return string_format(
             "EigenArrayRef<Eigen::Matrix<{}, {}, {}, {}>>",
             scalar_name,
-            EigenType::RowsAtCompileTime,
-            EigenType::ColsAtCompileTime,
-            EigenType::Options);
+            static_cast<int>(EigenType::RowsAtCompileTime),
+            static_cast<int>(EigenType::ColsAtCompileTime),
+            static_cast<int>(EigenType::Options));
     }
 
 private:
@@ -419,9 +419,9 @@ public:
         return string_format(
             "EigenArrayRef<const Eigen::Matrix<{}, {}, {}, {}>>",
             scalar_name,
-            EigenType::RowsAtCompileTime,
-            EigenType::ColsAtCompileTime,
-            EigenType::Options);
+            static_cast<int>(EigenType::RowsAtCompileTime),
+            static_cast<int>(EigenType::ColsAtCompileTime),
+            static_cast<int>(EigenType::Options));
     }
 
 private:

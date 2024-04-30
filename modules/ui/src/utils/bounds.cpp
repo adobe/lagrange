@@ -83,12 +83,12 @@ AABB get_scene_bounding_box(const Registry& registry)
 
 const Bounds& get_scene_bounds(const Registry& registry)
 {
-    return registry.ctx<Bounds>();
+    return registry.ctx().get<Bounds>();
 }
 
 Bounds& get_scene_bounds(Registry& registry)
 {
-    return registry.ctx<Bounds>();
+    return registry.ctx().get<Bounds>();
 }
 
 AABB get_selection_bounding_box(const Registry& registry)

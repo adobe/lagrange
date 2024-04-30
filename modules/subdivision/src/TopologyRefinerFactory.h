@@ -81,7 +81,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
     const auto& options = conv.options;
 
     if (options.edge_sharpness_attr.has_value()) {
-        lagrange::internal::visit_attribute(
+        lagrange::internal::visit_attribute_read(
             mesh,
             options.edge_sharpness_attr.value(),
             [&](auto&& attr) {
@@ -126,7 +126,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
     }
 
     if (options.vertex_sharpness_attr.has_value()) {
-        lagrange::internal::visit_attribute(
+        lagrange::internal::visit_attribute_read(
             mesh,
             options.vertex_sharpness_attr.value(),
             [&](auto&& attr) {
@@ -153,7 +153,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
     }
 
     if (options.face_hole_attr.has_value()) {
-        lagrange::internal::visit_attribute(
+        lagrange::internal::visit_attribute_read(
             mesh,
             options.face_hole_attr.value(),
             [&](auto&& attr) {
@@ -195,7 +195,7 @@ bool TopologyRefinerFactory<ConverterType>::assignFaceVaryingTopology(
     // TODO: Only define one fvar channel for each different set of indices (factorize shared set of
     // indices)?
     for (lagrange::AttributeId attr_id : conv.face_varying_attributes) {
-        lagrange::internal::visit_attribute(mesh, attr_id, [&](auto&& attr) {
+        lagrange::internal::visit_attribute_read(mesh, attr_id, [&](auto&& attr) {
             using AttributeType = std::decay_t<decltype(attr)>;
             if constexpr (!AttributeType::IsIndexed) {
                 la_runtime_assert(

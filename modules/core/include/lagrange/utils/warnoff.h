@@ -44,6 +44,7 @@
     #pragma clang diagnostic ignored "-Wunused-private-field"
     #pragma clang diagnostic ignored "-Wmissing-field-initializers"
     #pragma clang diagnostic ignored "-Wconversion"
+    #pragma clang diagnostic ignored "-Wunused-function"
 #elif defined(__GNUC__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-function-type"
@@ -73,6 +74,7 @@
     #pragma GCC diagnostic ignored "-Wunused-parameter"
     #pragma GCC diagnostic ignored "-Wunused-result"
     #pragma GCC diagnostic ignored "-Wunused-variable"
+    #pragma GCC diagnostic ignored "-Wunused-function"
 #elif defined(_MSC_VER)
     #pragma warning(push)
     #pragma warning(disable : 26439) // This kind of function may not throw. Declare it 'noexcept'

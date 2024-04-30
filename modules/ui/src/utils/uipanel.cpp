@@ -150,13 +150,13 @@ void toggle_panel(Registry& r, Entity e)
 
 const WindowSize& get_window_size(const Registry& r)
 {
-    return r.ctx<WindowSize>();
+    return r.ctx().get<WindowSize>();
 }
 
 MainMenuHeight get_menu_height(const Registry& r)
 {
-    if (r.try_ctx<MainMenuHeight>())
-        return r.ctx<MainMenuHeight>();
+    if (const auto* ptr = r.ctx().find<MainMenuHeight>())
+        return *ptr;
     else
         return MainMenuHeight{0.0f};
 }

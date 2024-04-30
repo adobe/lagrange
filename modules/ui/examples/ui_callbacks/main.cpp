@@ -122,7 +122,7 @@ int main(int argc, char** argv)
 
     double t_from_last = 0;
     viewer.run([&](ui::Registry& r) {
-        const auto& gtime = r.ctx<ui::GlobalTime>();
+        const auto& gtime = r.ctx().get<ui::GlobalTime>();
 
         // Get elapsed time from last frame, add it to variable
         t_from_last += gtime.dt;

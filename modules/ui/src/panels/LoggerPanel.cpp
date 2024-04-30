@@ -126,7 +126,7 @@ void draw_logger_panel(Registry& r, Entity entity)
     LoggerPanel& data = r.get<LoggerPanel>(entity);
 
     // Create registry global sink
-    auto& ctx = r.ctx_or_set<LoggerContextData>();
+    auto& ctx = r.ctx().emplace<LoggerContextData>();
 
     ImGui::BeginChild("##log_scroll");
 
@@ -154,7 +154,7 @@ Entity add_logger_panel(Registry& r, const std::string& name)
 
 std::shared_ptr<spdlog::sinks::sink> get_logger_sink(Registry& r)
 {
-    auto& ctx = r.ctx_or_set<LoggerContextData>();
+    auto& ctx = r.ctx().emplace<LoggerContextData>();
     return ctx.sink;
 }
 

@@ -38,7 +38,7 @@ void gizmo_system(
     GizmoMode mode)
 {
     // Gizmo state
-    auto& ctx = registry.ctx_or_set<GizmoContext>();
+    auto& ctx = registry.ctx().emplace<GizmoContext>();
 
     // Only transform selected entities
     auto view = registry.view<Selected, Transform>();

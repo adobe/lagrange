@@ -65,7 +65,7 @@ void populate_io_module(nb::module_& m)
         .def_rw("load_weights", &io::LoadOptions::load_weights)
         .def_rw("load_materials", &io::LoadOptions::load_materials)
         .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
-        .def_rw("load_object_id", &io::LoadOptions::load_object_id)
+        .def_rw("load_object_ids", &io::LoadOptions::load_object_ids)
         .def_rw("search_path", &io::LoadOptions::search_path);
     //.def_rw("extension_converters", &io::LoadOptions::extension_converters);
 
@@ -132,17 +132,53 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 
     m.def(
         "load_mesh",
-        [](const fs::path& filename, bool triangulate) {
+        [](const fs::path& filename,
+           bool triangulate,
+           bool load_normals,
+           bool load_tangents,
+           bool load_uvs,
+           bool load_weights,
+           bool load_materials,
+           bool load_vertex_colors,
+           bool load_object_ids,
+           bool load_images,
+           const fs::path& search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
+            opts.load_normals = load_normals;
+            opts.load_tangents = load_tangents;
+            opts.load_uvs = load_uvs;
+            opts.load_weights = load_weights;
+            opts.load_materials = load_materials;
+            opts.load_vertex_colors = load_vertex_colors;
+            opts.load_object_ids = load_object_ids;
+            opts.load_images = load_images;
+            opts.search_path = search_path;
             return io::load_mesh<MeshType>(filename, opts);
         },
         "filename"_a,
-        "triangulate"_a = false,
+        "triangulate"_a = io::LoadOptions().triangulate,
+        "load_normals"_a = io::LoadOptions().load_normals,
+        "load_tangents"_a = io::LoadOptions().load_tangents,
+        "load_uvs"_a = io::LoadOptions().load_uvs,
+        "load_weights"_a = io::LoadOptions().load_weights,
+        "load_materials"_a = io::LoadOptions().load_materials,
+        "load_vertex_colors"_a = io::LoadOptions().load_vertex_colors,
+        "load_object_ids"_a = io::LoadOptions().load_object_ids,
+        "load_images"_a = io::LoadOptions().load_images,
+        "search_path"_a = io::LoadOptions().search_path,
         R"(Load mesh from a file.
 
-:param filename:    The input file name.
-:param triangulate: Whether to triangulate the mesh if it is not already triangulated. Defaults to False.
+:param filename:           The input file name.
+:param triangulate:        Whether to triangulate the mesh if it is not already triangulated. Defaults to False.
+:param load_normals:       Whether to load vertex normals from mesh if available. Defaults to True.
+:param load_tangents:      Whether to load tangents and bitangents from mesh if available. Defaults to True.
+:param load_uvs:           Whether to load texture coordinates from mesh if available. Defaults to True.
+:param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
+:param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
+:param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
+:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_images:        Whether to load external images if available. Defaults to True.
 
 :return SurfaceMesh: The mesh object extracted from the input string.)");
 

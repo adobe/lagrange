@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/subdivision/sqrt_subdivision.h>
+#include <lagrange/subdivision/api.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/utils/assert.h>
@@ -110,7 +111,7 @@ SurfaceMesh<Scalar, Index> sqrt_subdivision(const SurfaceMesh<Scalar, Index>& me
 }
 
 #define LA_X_sqrt_subdivision(_, Scalar, Index) \
-    template SurfaceMesh<Scalar, Index> sqrt_subdivision(const SurfaceMesh<Scalar, Index>& mesh);
+    template LA_SUBDIVISION_API SurfaceMesh<Scalar, Index> sqrt_subdivision(const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(sqrt_subdivision, 0)
 
 } // namespace lagrange::subdivision

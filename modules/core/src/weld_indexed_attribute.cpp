@@ -93,9 +93,7 @@ void weld_indexed_attribute(
         return;
     }
 
-    std::vector<Index> mapping_data, mapping_offsets;
-    std::tie(mapping_data, mapping_offsets) =
-        internal::invert_mapping({old2new.data(), old2new.size()}, count);
+    auto mapping = internal::invert_mapping({old2new.data(), old2new.size()}, count);
 
     Attribute<ValueType> attr_welded_values(
         attr_values.get_element_type(),
@@ -105,12 +103,12 @@ void weld_indexed_attribute(
     auto welded_values = matrix_ref(attr_welded_values);
     welded_values.setZero();
     tbb::parallel_for((Index)0, count, [&](Index i) {
-        for (Index j = mapping_offsets[i]; j < mapping_offsets[i + 1]; j++) {
-            welded_values.row(i) += values.row(mapping_data[j]);
+        for (Index j = mapping.offsets[i]; j < mapping.offsets[i + 1]; j++) {
+            welded_values.row(i) += values.row(mapping.data[j]);
         }
-        if (mapping_offsets[i + 1] - mapping_offsets[i] > 0) {
+        if (mapping.offsets[i + 1] - mapping.offsets[i] > 0) {
             welded_values.row(i) /=
-                static_cast<ValueType>(mapping_offsets[i + 1] - mapping_offsets[i]);
+                static_cast<ValueType>(mapping.offsets[i + 1] - mapping.offsets[i]);
         }
     });
     attr_values = std::move(attr_welded_values);
@@ -140,8 +138,10 @@ void weld_indexed_attribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId attr_i
 #undef LA_X_weld_indexed_attribute
 }
 
-#define LA_X_weld_indexed_attribute(ValueType, Scalar, Index) \
-    template LA_CORE_API void weld_indexed_attribute<Scalar, Index>(SurfaceMesh<Scalar, Index>&, AttributeId);
+#define LA_X_weld_indexed_attribute(ValueType, Scalar, Index)        \
+    template LA_CORE_API void weld_indexed_attribute<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index>&,                                 \
+        AttributeId);
 
 LA_SURFACE_MESH_X(weld_indexed_attribute, 0)
 

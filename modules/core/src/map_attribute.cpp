@@ -270,6 +270,9 @@ AttributeId map_attribute_in_place(
     AttributeId id,
     AttributeElement new_element)
 {
+    // TODO: Optimize use-case when new element type has same cardinality as old element type (e.g.
+    // AttributeElement::Value). In this case we can reuse the buffer in place without allocating a
+    // new one.
     auto get_unique_name = [&](auto name) -> std::string {
         if (!mesh.has_attribute(name)) {
             return name;
@@ -304,24 +307,24 @@ AttributeId map_attribute_in_place(
     return map_attribute_in_place(mesh, mesh.get_attribute_id(name), new_element);
 }
 
-#define LA_X_map_attribute(_, Scalar, Index)     \
+#define LA_X_map_attribute(_, Scalar, Index)                 \
     template LA_CORE_API AttributeId map_attribute(          \
-        SurfaceMesh<Scalar, Index>& mesh,        \
-        AttributeId id,                          \
-        std::string_view new_name,               \
-        AttributeElement new_element);           \
+        SurfaceMesh<Scalar, Index>& mesh,                    \
+        AttributeId id,                                      \
+        std::string_view new_name,                           \
+        AttributeElement new_element);                       \
     template LA_CORE_API AttributeId map_attribute(          \
-        SurfaceMesh<Scalar, Index>& mesh,        \
-        std::string_view old_name,               \
-        std::string_view new_name,               \
-        AttributeElement new_element);           \
+        SurfaceMesh<Scalar, Index>& mesh,                    \
+        std::string_view old_name,                           \
+        std::string_view new_name,                           \
+        AttributeElement new_element);                       \
     template LA_CORE_API AttributeId map_attribute_in_place( \
-        SurfaceMesh<Scalar, Index>& mesh,        \
-        AttributeId id,                          \
-        AttributeElement new_element);           \
+        SurfaceMesh<Scalar, Index>& mesh,                    \
+        AttributeId id,                                      \
+        AttributeElement new_element);                       \
     template LA_CORE_API AttributeId map_attribute_in_place( \
-        SurfaceMesh<Scalar, Index>& mesh,        \
-        std::string_view name,                   \
+        SurfaceMesh<Scalar, Index>& mesh,                    \
+        std::string_view name,                               \
         AttributeElement new_element);
 LA_SURFACE_MESH_X(map_attribute, 0)
 

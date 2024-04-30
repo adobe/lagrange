@@ -21,15 +21,16 @@ endif()
 include(blas)
 include(eigen)
 include(metis)
+include(lapack)
 
 option(NASOQ_WITH_EIGEN "Build NASOQ Eigen interface" ON)
 
-# Note: For now, Nasoq's CMake code to find OpenBLAS is broken on Linux, so we default to MKL.
+
 if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64" OR "${CMAKE_OSX_ARCHITECTURES}" MATCHES "arm64")
-    # apple M1
+    # Change to accelerate after https://github.com/sympiler/nasoq/pull/27 is merged
     set(NASOQ_BLAS_BACKEND "OpenBLAS" CACHE STRING "BLAS implementation for NASOQ to use")
 else()
-    # windows, linux, apple intel
+    # use MKL on windows, linux, apple intel
     set(NASOQ_BLAS_BACKEND "MKL" CACHE STRING "BLAS implementation for NASOQ to use")
 endif()
 
@@ -47,7 +48,7 @@ include(CPM)
 CPMAddPackage(
     NAME nasoq
     GITHUB_REPOSITORY sympiler/nasoq
-    GIT_TAG 3565bba5c984e24a1e22f3555e2ba09e31c4486f
+    GIT_TAG fc2051dfa991160cd6dd326d0fb1580ffb77b93b
 )
 
 target_link_libraries(nasoq PUBLIC BLAS::BLAS)

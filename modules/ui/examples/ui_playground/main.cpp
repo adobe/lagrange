@@ -140,8 +140,6 @@ int main(int argc, char** argv)
 
         Eigen::MatrixXf m;
         m.cast<float>();
-        char k;
-        k = 0;
     }
 
 
@@ -282,7 +280,7 @@ int main(int argc, char** argv)
 
             ui::Entity viz_e = ui::NullEntity;
         };
-        auto& priv = registry.ctx_or_set<MyPrivateContextVar>(MyPrivateContextVar{16.0f});
+        auto& priv = registry.ctx().emplace<MyPrivateContextVar>(MyPrivateContextVar{16.0f});
 
         ImGui::InputFloat("MyPrivateContextVar.x:", &priv.x);
 
@@ -314,7 +312,7 @@ int main(int argc, char** argv)
 
 
     viewer.systems().add(ui::Systems::Stage::Interface, [](ui::Registry& r) {
-        auto dt = float(r.ctx<ui::GlobalTime>().dt);
+        auto dt = float(r.ctx().get<ui::GlobalTime>().dt);
         auto view = r.view<MyRotatingComponent, ui::Transform>();
 
         for (auto e : view) {

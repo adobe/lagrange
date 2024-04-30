@@ -180,7 +180,7 @@ void show_transform(Registry* rptr, Entity e)
 void show_name(Registry* rptr, Entity e)
 {
     auto& name = rptr->get<Name>(e);
-    ImGui::InputText("Name", &name);
+    ImGui::InputText("Name", &name.value);
 }
 
 void show_camera_controller(Registry* rptr, Entity e)
@@ -334,7 +334,7 @@ bool show_colormap_popup(Registry& registry, Material& mat, const ui::StringID& 
         std::shared_ptr<Texture> coolwarm = ui::generate_colormap(ui::colormap_coolwarm);
     };
 
-    const auto& cc = registry.ctx_or_set<ColormapCache>();
+    const auto& cc = registry.ctx().emplace<ColormapCache>();
 
     auto w = 250;
     auto h = 25;

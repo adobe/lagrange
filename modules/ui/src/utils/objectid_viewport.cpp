@@ -44,7 +44,7 @@ read_pixels(Registry& r, ViewportComponent& v, int x, int y, int w, int h)
 {
     // Allocate temporary buffer
     const size_t pixel_size = 4;
-    auto& screen_data = r.ctx_or_set<GLColorTempBuffer>().buffer;
+    auto& screen_data = r.ctx().emplace<GLColorTempBuffer>().buffer;
     screen_data.resize(pixel_size * w * h);
 
 

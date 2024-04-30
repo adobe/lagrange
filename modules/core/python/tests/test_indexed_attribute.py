@@ -42,7 +42,5 @@ class TestIndexedAttribute:
         assert attr_values.num_channels == 1
 
         assert not attr_indices.external
-        assert (
-            attr_indices.element_type == lagrange.AttributeElement.Corner
-        )
+        assert attr_indices.element_type == lagrange.AttributeElement.Corner
         assert attr_indices.num_channels == 1

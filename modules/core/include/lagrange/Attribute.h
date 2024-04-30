@@ -114,6 +114,24 @@ public:
     ///
     [[nodiscard]] size_t get_num_channels() const { return m_num_channels; }
 
+    ///
+    /// Sets the attribute usage tag.
+    ///
+    /// @note       No check is performed, use with caution!
+    ///
+    /// @param[in]  usage  New usage tag.
+    ///
+    void unsafe_set_usage(AttributeUsage usage) { m_usage = usage; }
+
+    ///
+    /// Sets the attribute element type.
+    ///
+    /// @note       No check is performed, use with caution!
+    ///
+    /// @param[in]  element  New element type.
+    ///
+    void unsafe_set_element_type(AttributeElement element) { m_element = element; }
+
 protected:
     /// Element type (vertex, facet, indexed, etc.).
     AttributeElement m_element;

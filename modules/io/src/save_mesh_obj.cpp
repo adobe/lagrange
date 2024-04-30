@@ -71,7 +71,8 @@ void save_mesh_obj(
     std::string found_uv_name;
     std::string found_nrm_name;
     const Attribute<Index>* uv_indices = nullptr;
-    const Attribute<Index>* nrm_indices = nullptr;
+    span<const Index> nrm_indices;
+    std::vector<Index> nrm_index_buffer;
     seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
         using AttributeType = std::decay_t<decltype(attr)>;
 
@@ -124,10 +125,30 @@ void save_mesh_obj(
             const Attribute<typename AttributeType::ValueType>* values = nullptr;
             if constexpr (AttributeType::IsIndexed) {
                 values = &attr.values();
-                nrm_indices = &attr.indices();
-            } else {
+                nrm_indices = attr.indices().get_all();
+            } else if (attr.get_element_type() == AttributeElement::Vertex) {
                 values = &attr;
-                nrm_indices = &mesh.get_corner_to_vertex();
+                nrm_indices = mesh.get_corner_to_vertex().get_all();
+            } else if (attr.get_element_type() == AttributeElement::Facet) {
+                values = &attr;
+                nrm_index_buffer.resize(mesh.get_num_corners());
+                for (Index ci = 0; ci < mesh.get_num_corners(); ci++) {
+                    nrm_index_buffer[ci] = mesh.get_corner_facet(ci);
+                }
+                nrm_indices = nrm_index_buffer;
+            } else if (attr.get_element_type() == AttributeElement::Corner) {
+                values = &attr;
+                nrm_index_buffer.resize(mesh.get_num_corners());
+                for (Index ci = 0; ci < mesh.get_num_corners(); ci++) {
+                    nrm_index_buffer[ci] = ci;
+                }
+                nrm_indices = nrm_index_buffer;
+            } else {
+                logger().warn(
+                    "Skipping normal attribute '{}' due to unsupported element type",
+                    found_nrm_name);
+                found_nrm_name.clear();
+                return;
             }
             la_runtime_assert(attr.get_num_channels() == 3);
             for (Index vn = 0; vn < values->get_num_elements(); ++vn) {
@@ -149,14 +170,14 @@ void save_mesh_obj(
             // vertex_index/texture_index/normal_index
             Index v = vtx_indices[lv] + 1;
             Index vt = (uv_indices ? uv_indices->get(first_corner + lv) : 0) + 1;
-            Index vn = (nrm_indices ? nrm_indices->get(first_corner + lv) : 0) + 1;
-            if (!uv_indices && !nrm_indices) {
+            Index vn = (!nrm_indices.empty() ? nrm_indices[first_corner + lv] : 0) + 1;
+            if (!uv_indices && nrm_indices.empty()) {
                 fmt::print(output_stream, " {}", v);
-            } else if (uv_indices && !nrm_indices) {
+            } else if (uv_indices && nrm_indices.empty()) {
                 fmt::print(output_stream, " {}/{}", v, vt);
-            } else if (uv_indices && nrm_indices) {
+            } else if (uv_indices && !nrm_indices.empty()) {
                 fmt::print(output_stream, " {}/{}/{}", v, vt, vn);
-            } else if (!uv_indices && nrm_indices) {
+            } else if (!uv_indices && !nrm_indices.empty()) {
                 fmt::print(output_stream, " {}//{}", v, vn);
             }
         }

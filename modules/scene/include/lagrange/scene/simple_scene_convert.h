@@ -52,6 +52,8 @@ SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene(
 ///
 /// Converts a scene into a concatenated mesh with all the transforms applied.
 ///
+/// @todo       Add option to flip facets when transform has negative determinant.
+///
 /// @param[in]  scene                Scene to convert.
 /// @param[in]  transform_options    Options to use when applying mesh transformations.
 /// @param[in]  preserve_attributes  Preserve shared attributes and map them to the output mesh.

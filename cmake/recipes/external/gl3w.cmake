@@ -27,4 +27,5 @@ endblock()
 
 add_library(gl3w::gl3w ALIAS gl3w)
 
+set_target_properties(gl3w PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(gl3w PROPERTIES FOLDER third_party)

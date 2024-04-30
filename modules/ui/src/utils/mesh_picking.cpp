@@ -94,7 +94,7 @@ bool select_visible_elements(
     offscreen_viewport.material_override =
         std::make_shared<Material>(r, DefaultShaders::MeshElementID);
 
-    auto [x, y, w, h] = setup_scissor(r, offscreen_viewport, r.ctx<SelectionContext>());
+    auto [x, y, w, h] = setup_scissor(r, offscreen_viewport, r.ctx().get<SelectionContext>());
     assert(w * h > 0);
 
     offscreen_viewport.background = Color(1.0f, 1.0f, 1.0f, 1.0f);
@@ -107,7 +107,7 @@ bool select_visible_elements(
         offscreen_viewport.material_override->set_int("element_mode", 2);
     }
 
-    render_viewport(r, r.ctx<ObjectIDViewport>().viewport_entity);
+    render_viewport(r, r.ctx().get<ObjectIDViewport>().viewport_entity);
 
     auto& buffer = read_pixels(r, offscreen_viewport, x, y, w, h);
 

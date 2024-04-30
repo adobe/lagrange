@@ -16,60 +16,94 @@
 
 #include <algorithm>
 #include <numeric>
+#include <optional>
 #include <vector>
 
 namespace lagrange::internal {
+
+///
+/// A simple struct representing the inverse of a 1-to-many mapping. Target element `i` is mapped to
+/// source elements with index in the range from `mapping.data[mapping.offsets[i]]` to
+/// `mapping.data[mapping.offsets[i+1]]`.
+///
+/// @tparam     Index  Mapping index type.
+///
+template <typename Index>
+struct InverseMapping
+{
+    /// A flat array of indices of the source elements.
+    std::vector<Index> data;
+
+    /// An array of `data` offset indices. It is of size `num_target_elements + 1`.
+    std::vector<Index> offsets;
+};
 
 ///
 /// Compute the target-to-source (i.e. backward) mapping from an input source-to-target (i.e.
 /// forward) mapping.
 ///
 /// @note       The input source-to-target mapping may be a 1-to-many mapping, where multiple source
-///             elements may be mapped to a single target element.
+///             elements may be mapped to a single target element. If a target element is set to
+///             `invalid<Index>()`, no backward mapping will be created for that target element.
 ///
-/// @param[in]  num_source_entries  The number source entries.
-/// @param[in]  old2new             Source-to-target mapping function.
-/// @param[in]  num_target_entries  The total number of target elements.
+/// @param[in]  num_source_elements  The number of source elements.
+/// @param[in]  old_to_new           Source-to-target mapping function.
+/// @param[in]  num_target_elements  The total number of target elements. If set to
+///                                  `invalid<Index>()`, it is automatically calculated from the
+///                                  forward mapping.
 ///
-/// @tparam     Index               The index type.
-/// @tparam     Function            Mapping function type.
+/// @tparam     Index                The index type.
+/// @tparam     Function             Mapping function type.
 ///
-/// @return     The target-to-source mapping, which is a tuple consists of 2 index arrays,
-///             mapping_data and mapping_offsets.
-///
-/// `mapping_data` is a flat array of indices of the source elements. `mapping_offsets` is an array
-/// of `mapping_data` offset indices. It is of size `num_target_entires + 1`.  Target element `i` is
-/// mapped to source elements with index in the range from `mapping_data[mapping_offsets[i]]` to
-/// `mapping_data[mapping_offsets[i+1]]`.
+/// @return     A struct representing the target-to-source mapping.
 ///
 template <typename Index, typename Function>
-auto invert_mapping(Index num_source_entries, Function old2new, Index num_target_entries)
-    -> std::tuple<std::vector<Index>, std::vector<Index>>
+InverseMapping<Index> invert_mapping(
+    Index num_source_elements,
+    Function old_to_new,
+    Index num_target_elements = invalid<Index>())
 {
-    std::vector<Index> mapping_offsets(num_target_entries + 1, 0);
-    std::vector<Index> mapping_data;
+    const bool has_target_count = num_target_elements != invalid<Index>();
+    InverseMapping<Index> mapping;
+    mapping.offsets.assign(has_target_count ? num_target_elements + 1 : num_source_elements + 1, 0);
 
-    for (Index i = 0; i < num_source_entries; ++i) {
-        Index j = old2new(i);
-        if (j == invalid<Index>()) continue;
+    for (Index i = 0; i < num_source_elements; ++i) {
+        Index j = old_to_new(i);
+        if (j == invalid<Index>()) {
+            continue;
+        }
         la_runtime_assert(
-            j < num_target_entries,
-            "Mapped element index cannot exceeds target number of elements!");
-        ++mapping_offsets[j + 1];
+            j < static_cast<Index>(mapping.offsets.size()),
+            fmt::format(
+                "Mapped element index cannot exceeds {} number of elements!",
+                has_target_count ? "target" : "source"));
+        ++mapping.offsets[j + 1];
     }
 
-    std::partial_sum(mapping_offsets.begin(), mapping_offsets.end(), mapping_offsets.begin());
-    mapping_data.resize(mapping_offsets.back());
-    for (Index i = 0; i < num_source_entries; i++) {
-        Index j = old2new(i);
-        if (j == invalid<Index>()) continue;
-        mapping_data[mapping_offsets[j]++] = i;
+    if (!has_target_count) {
+        // If the number of target elements is not provided, we need to resize our offset array now
+        num_target_elements = num_source_elements;
+        while (num_target_elements != 0 && mapping.offsets[num_target_elements] == 0) {
+            --num_target_elements;
+        }
+        mapping.offsets.resize(num_target_elements + 1);
     }
 
-    std::rotate(mapping_offsets.begin(), std::prev(mapping_offsets.end()), mapping_offsets.end());
-    mapping_offsets[0] = 0;
+    std::partial_sum(mapping.offsets.begin(), mapping.offsets.end(), mapping.offsets.begin());
+    la_debug_assert(mapping.offsets.back() <= num_source_elements);
+    mapping.data.resize(mapping.offsets.back());
+    for (Index i = 0; i < num_source_elements; i++) {
+        Index j = old_to_new(i);
+        if (j == invalid<Index>()) {
+            continue;
+        }
+        mapping.data[mapping.offsets[j]++] = i;
+    }
 
-    return {std::move(mapping_data), std::move(mapping_offsets)};
+    std::rotate(mapping.offsets.begin(), std::prev(mapping.offsets.end()), mapping.offsets.end());
+    mapping.offsets[0] = 0;
+
+    return mapping;
 }
 
 ///
@@ -77,32 +111,30 @@ auto invert_mapping(Index num_source_entries, Function old2new, Index num_target
 /// forward) mapping.
 ///
 /// @note       The input source-to-target mapping may be a 1-to-many mapping, where multiple source
-///             elements may be mapped to a single target element.
+///             elements may be mapped to a single target element. If a target element is set to
+///             `invalid<Index>()`, no backward mapping will be created for that target element.
 ///
-/// @param[in]  old2new             Source-to-target mapping.
-/// @param[in]  num_target_entries  The total number of target elements.
+/// @param[in]  old_to_new           Source-to-target mapping.
+/// @param[in]  num_target_elements  The total number of target elements. If set to
+///                                  `invalid<Index>()`, it is automatically calculated from the
+///                                  forward mapping.
 ///
-/// @tparam     Index               The index type.
+/// @tparam     Index                The index type.
 ///
-/// @return     The target-to-source mapping, which is a tuple consists of 2 index arrays,
-///             mapping_data and mapping_offsets.
-///
-/// `mapping_data` is a flat array of indices of the source elements. `mapping_offsets` is an array
-/// of `mapping_data` offset indices. It is of size `num_target_entires + 1`.  Target element `i` is
-/// mapped to source elements with index in the range from `mapping_data[mapping_offsets[i]]` to
-/// `mapping_data[mapping_offsets[i+1]]`.
+/// @return     A struct representing the target-to-source mapping.
 ///
 /// @overload
 ///
 template <typename Index>
-auto invert_mapping(span<Index> old2new, Index num_target_entries)
-    -> std::tuple<std::vector<Index>, std::vector<Index>>
+InverseMapping<Index> invert_mapping(
+    span<const Index> old_to_new,
+    Index num_target_elements = invalid<Index>())
 {
-    Index num_source_entries = static_cast<Index>(old2new.size());
+    Index num_source_elements = static_cast<Index>(old_to_new.size());
     return invert_mapping(
-        num_source_entries,
-        [&](Index i) { return old2new[i]; },
-        num_target_entries);
+        num_source_elements,
+        [&](Index i) { return old_to_new[i]; },
+        num_target_elements);
 }
 
 } // namespace lagrange::internal
