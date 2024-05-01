@@ -45,7 +45,7 @@ void render_background(Registry& r)
     if (!shader_res) return;
     auto shader = *shader_res;
 
-    auto& skybox_data = r.ctx_or_set<SkyboxCubeVertexData>();
+    auto& skybox_data = r.ctx().emplace<SkyboxCubeVertexData>();
     if (!skybox_data.vertex_data) skybox_data.vertex_data = generate_cube_vertex_data();
 
 

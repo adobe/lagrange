@@ -22,15 +22,8 @@ namespace ui {
 
 inline EventEmitter& get_event_emitter(Registry& r)
 {
-    return r.ctx_or_set<EventEmitter>(EventEmitter());
+    return r.ctx().emplace<EventEmitter>(EventEmitter());
 }
-
-template <typename Event>
-EventEmitter::connection<Event> on(Registry& r, EventEmitter::listener<Event> instance)
-{
-    return get_event_emitter(r).on<Event>(instance);
-}
-
 
 /// @brief Register a listener for Event
 /// @tparam Event
@@ -38,9 +31,9 @@ EventEmitter::connection<Event> on(Registry& r, EventEmitter::listener<Event> in
 /// @param listener function taking reference to Event as parameter
 /// @return Connection instance, can be used to disconnect listener later
 template <typename Event>
-EventEmitter::connection<Event> on(Registry& r, std::function<void(Event&)> listener)
+void on(Registry& r, std::function<void(Event&)> listener)
 {
-    return get_event_emitter(r).on<Event>(
+    get_event_emitter(r).on<Event>(
         [=](Event& event, EventEmitter& /*emitter*/) { listener(event); });
 }
 
@@ -52,7 +45,7 @@ EventEmitter::connection<Event> on(Registry& r, std::function<void(Event&)> list
 template <typename Event, typename... Args>
 void publish(Registry& r, Args&&... args)
 {
-    get_event_emitter(r).publish<Event>(std::forward<Args>(args)...);
+    get_event_emitter(r).publish<Event>(Event{std::forward<Args>(args)...});
 }
 
 /// @brief Utility function for forwarding events that contain only an entity identifier
@@ -67,13 +60,13 @@ void forward_entity_event(Registry& r, Entity e)
 template <typename Component, typename ConstructEvent, typename DestroyEvent>
 void toggle_component_event(Registry& r)
 {
-    if (!get_event_emitter(r).empty<ConstructEvent>()) {
+    if (!get_event_emitter(r).contains<ConstructEvent>()) {
         r.on_construct<Component>().template connect<&forward_entity_event<ConstructEvent>>();
     } else {
         r.on_construct<Component>().template disconnect<&forward_entity_event<ConstructEvent>>();
     }
 
-    if (!get_event_emitter(r).empty<DestroyEvent>()) {
+    if (!get_event_emitter(r).contains<DestroyEvent>()) {
         r.on_destroy<Component>().template connect<&forward_entity_event<DestroyEvent>>();
     } else {
         r.on_destroy<Component>().template disconnect<&forward_entity_event<DestroyEvent>>();

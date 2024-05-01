@@ -16,9 +16,7 @@ colorama.just_fix_windows_console()
 
 logger = logging.getLogger("lagrange")
 handler = logging.StreamHandler()
-formatter = logging.Formatter(
-    "[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s"
-)
+formatter = logging.Formatter("[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s")
 
 
 class ColorFormatter(logging.Formatter):

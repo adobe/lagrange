@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-""" Print basic information about a mesh file """
+"""Print basic information about a mesh file"""
 
 import argparse
 import lagrange
@@ -69,7 +69,7 @@ def print_basic_info(mesh, info):
         elif mesh.vertex_per_facet == 4:
             print("facet type: quads")
         else:
-            print(f"facet type: polygons (mesh.vertex_per_facet)")
+            print(f"facet type: polygons ({mesh.vertex_per_facet})")
 
         info["is_regular"] = True
         info["vertex_per_facet"] = mesh.vertex_per_facet

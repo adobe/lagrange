@@ -77,9 +77,11 @@ BucketSortResult<Index> bucket_sort(
         element_representative[e] = element_representative[r];
     }
 
-    std::tie(sorted_elements, representative_offsets) = invert_mapping(
+    auto mapping = invert_mapping(
         {element_representative.data(), element_representative.size()},
         num_representatives);
+    sorted_elements = std::move(mapping.data);
+    representative_offsets = std::move(mapping.offsets);
 
     return result;
 }
@@ -122,8 +124,12 @@ bucket_sort(std::vector<Index>& elements, Index num_buckets, Function get_repres
     auto& num_representatives = result.num_representatives;
     auto& representative_offsets = result.representative_offsets;
     num_representatives = num_buckets;
-    std::tie(elements, representative_offsets) =
-        invert_mapping<Index>(static_cast<Index>(elements.size()), get_representative, num_representatives);
+    auto mapping = invert_mapping<Index>(
+        static_cast<Index>(elements.size()),
+        get_representative,
+        num_representatives);
+    elements = std::move(mapping.data);
+    representative_offsets = std::move(mapping.offsets);
     return result;
 }
 

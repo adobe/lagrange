@@ -114,6 +114,9 @@ public:
 
         /// Color for selection silhouette
         Color selection_color = Color(252.0f / 255.0f, 86.0f / 255.0f, 3.0f / 255.0f, 1.0f);
+
+        /// Use sRGB framebuffer if supported
+        bool use_srgb = true;
     };
 
 

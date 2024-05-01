@@ -14,6 +14,7 @@
 #include <lagrange/views.h>
 #include <lagrange/winding/FastWindingNumber.h>
 
+#include <spdlog/fmt/ranges.h>
 #include <CLI/CLI.hpp>
 #include <Eigen/Geometry>
 

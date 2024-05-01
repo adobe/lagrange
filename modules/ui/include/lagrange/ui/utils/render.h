@@ -17,6 +17,7 @@
 #include <lagrange/ui/types/Camera.h>
 #include <lagrange/ui/types/FrameBuffer.h>
 #include <lagrange/ui/types/Shader.h>
+#include <lagrange/ui/types/ShaderLoader.h>
 #include <tuple>
 
 
@@ -52,7 +53,8 @@ LA_UI_API void set_render_pass_defaults(GLScope& scope);
 /// Computes a plane perpendicular to direction
 ///
 /// Returns a pair of orthogonal directions, that together with direction form a orthogonal basis
-LA_UI_API std::pair<Eigen::Vector3f, Eigen::Vector3f> compute_perpendicular_plane(Eigen::Vector3f direction);
+LA_UI_API std::pair<Eigen::Vector3f, Eigen::Vector3f> compute_perpendicular_plane(
+    Eigen::Vector3f direction);
 
 
 } // namespace render
@@ -96,10 +98,8 @@ LA_UI_API GLMesh generate_quad_mesh_gpu();
 LA_UI_API void update_vao(VertexData& vertex_data);
 
 
-LA_UI_API entt::resource_handle<Shader> get_or_load_shader(
-    entt::resource_cache<Shader>& cache,
-    const std::string& generic_path,
-    bool virtual_fs = false);
+LA_UI_API entt::resource<Shader>
+get_or_load_shader(ShaderCache& cache, const std::string& generic_path, bool virtual_fs = false);
 
 
 template <typename BufferComponent>

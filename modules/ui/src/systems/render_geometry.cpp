@@ -165,10 +165,10 @@ std::shared_ptr<Texture> get_brdflut(Registry& r)
     };
 
 
-    auto& cached = r.ctx_or_set<BRDFLUT>();
+    auto& cached = r.ctx().emplace<BRDFLUT>();
     if (cached.texture) return cached.texture;
 
-    auto shader = ShaderLoader{}.load("util/brdf_lut.shader", ShaderLoader::PathType::VIRTUAL);
+    auto shader = ShaderLoader{}("util/brdf_lut.shader", ShaderLoader::PathType::VIRTUAL);
     FrameBuffer temp_fbo;
 
     auto tex = std::make_shared<Texture>(Texture::Params::rgb());
@@ -363,9 +363,9 @@ using GLRenderQueue = std::vector<GLRenderQueueItem>;
 
 void meshrender_to_render_queue(Registry& r)
 {
-    auto& queue = r.ctx_or_set<GLRenderQueue>();
+    auto& queue = r.ctx().emplace<GLRenderQueue>();
 
-    // auto& rctx = w.ctx_or_set<RenderContext>();
+    // auto& rctx = w.ctx().emplace<RenderContext>();
     const auto& viewport = get_render_context_viewport(r);
     const auto& camera = get_viewport_camera(r, viewport);
     auto cam_pos = camera.get_position();
@@ -419,12 +419,12 @@ void meshrender_to_render_queue(Registry& r)
         });
     }
 
-    assert(r.try_ctx<GLRenderQueue>());
+    la_debug_assert(r.ctx().contains<GLRenderQueue>());
 }
 
 void sort_gl_render_queue(Registry& r)
 {
-    auto& queue = r.ctx_or_set<GLRenderQueue>();
+    auto& queue = r.ctx().emplace<GLRenderQueue>();
 
     std::sort(
         queue.begin(),
@@ -457,7 +457,7 @@ void render_gl_render_queue(Registry& r)
     Shader* last_shader = nullptr;
     std::unique_ptr<GLScope> shader_scope = nullptr; // RAII GL scope
 
-    auto& queue = r.ctx_or_set<GLRenderQueue>();
+    auto& queue = r.ctx().emplace<GLRenderQueue>();
 
 
     for (const auto& qitem : queue) {
@@ -812,17 +812,15 @@ void render_post_process(Registry& r)
     assert(get_render_context(r).viewport != NullEntity);
 
 
-    auto& queue = r.ctx_or_set<GLRenderQueue>();
+    auto& queue = r.ctx().emplace<GLRenderQueue>();
     queue.clear();
 
     auto viewport_entity = get_render_context(r).viewport;
     auto& viewport = get_render_context_viewport(r);
 
     // Cache a quad mesh
-    if (!r.try_ctx<PostProcessQuadVertexData>()) {
-        r.set<PostProcessQuadVertexData>(PostProcessQuadVertexData{generate_quad_mesh_gpu()});
-    }
-    auto& ppquad = r.ctx<PostProcessQuadVertexData>().quad;
+    r.ctx().emplace<PostProcessQuadVertexData>(PostProcessQuadVertexData{generate_quad_mesh_gpu()});
+    auto& ppquad = r.ctx().get<PostProcessQuadVertexData>().quad;
 
     std::unordered_map<Material*, VertexData> attrib_bindings;
 

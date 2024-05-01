@@ -13,6 +13,7 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/attribute_string_utils.h>
@@ -303,13 +304,20 @@ MeshType load_mesh_ply(std::istream& input_stream, const LoadOptions& options)
     happly::Element& vertex_element = ply.getElement("vertex");
     const Index num_vertices = Index(vertex_element.count);
     {
-        const std::vector<Scalar>& xPos = vertex_element.getProperty<Scalar>("x");
-        const std::vector<Scalar>& yPos = vertex_element.getProperty<Scalar>("y");
-        const std::vector<Scalar>& zPos = vertex_element.getProperty<Scalar>("z");
+        // Use double to ensure we can always load in the data with Happly's type promotion.
+        const std::vector<double>& xPos = vertex_element.getProperty<double>("x");
+        const std::vector<double>& yPos = vertex_element.getProperty<double>("y");
+        const std::vector<double>& zPos = vertex_element.getProperty<double>("z");
+        if constexpr (std::is_same_v<Scalar, float>) {
+            if (vertex_element.hasPropertyType<double>("x")) {
+                logger().warn("Loading PLY file with scalar type float but the file contains "
+                              "double precision data. This may result in loss of precision.");
+            }
+        }
         mesh.add_vertices(num_vertices, [&](Index v, span<Scalar> p) -> void {
-            p[0] = xPos[v];
-            p[1] = yPos[v];
-            p[2] = zPos[v];
+            p[0] = static_cast<Scalar>(xPos[v]);
+            p[1] = static_cast<Scalar>(yPos[v]);
+            p[2] = static_cast<Scalar>(zPos[v]);
         });
     }
 

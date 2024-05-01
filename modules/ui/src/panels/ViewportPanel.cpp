@@ -389,7 +389,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     face,
                     0,
                     ImVec2(w, 0))) {
-                opt["Face"].set<bool>("Enabled", !face);
+                opt["Face"].ctx().insert_or_assign<bool>("Enabled", !face);
             }
 
             bool corner = opt["Corner Vertex"].get<bool>("Enabled");
@@ -398,7 +398,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     corner,
                     0,
                     ImVec2(w, 0))) {
-                opt["Corner Vertex"].set<bool>("Enabled", !corner);
+                opt["Corner Vertex"].ctx().insert_or_assign<bool>("Enabled", !corner);
             }
 
             bool pervertex = opt["Per-Vertex"].get<bool>("Enabled");
@@ -407,7 +407,7 @@ void draw_viewport_toolbar(Registry& registry, ViewportPanel& data)
                     pervertex,
                     0,
                     ImVec2(w, 0))) {
-                opt["Per-Vertex"].set<bool>("Enabled", !pervertex);
+                opt["Per-Vertex"].ctx().insert_or_assign<bool>("Enabled", !pervertex);
             }
             ImGui::EndPopup();
         }
@@ -705,7 +705,7 @@ void viewport_panel_system(Registry& registry, Entity e)
 
     // Update FocusedViewportPanel
     if (registry.get<UIPanel>(e).is_focused) {
-        registry.ctx<FocusedViewportPanel>().viewport_panel = e;
+        registry.ctx().get<FocusedViewportPanel>().viewport_panel = e;
     }
 
     Camera& cam = get_viewport_camera(registry, viewport);
@@ -756,7 +756,7 @@ void viewport_panel_system(Registry& registry, Entity e)
     auto& keys = *input.keybinds;
 
     // If this viewport has focus, set draw list for gizmo here
-    if (e == registry.ctx<FocusedViewportPanel>().viewport_panel) {
+    if (e == registry.ctx().get<FocusedViewportPanel>().viewport_panel) {
         gizmo_system_set_draw_list();
     }
 

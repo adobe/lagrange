@@ -132,6 +132,19 @@ public:
     }
 
     ///
+    /// Get a reference to a mesh instance in the scene.
+    ///
+    /// @param[in]  mesh_index      Index of the parent mesh in the scene.
+    /// @param[in]  instance_index  Local instance index respective to the parent mesh.
+    ///
+    /// @return     Reference to the specified mesh instance.
+    ///
+    InstanceType& ref_instance(Index mesh_index, Index instance_index)
+    {
+        return m_instances[mesh_index][instance_index];
+    }
+
+    ///
     /// Pre-allocate a number of meshes in the scene.
     ///
     /// @param[in]  num_meshes  Number of meshes to reserve in the scene.

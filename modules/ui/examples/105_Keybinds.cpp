@@ -24,13 +24,13 @@ int main(int argc, char** argv)
     auto& keybinds = ui::get_keybinds(viewer);
 
     // Register single key action that can be later queried
-    keybinds.add("my_global_action", {ImGuiKey_F});
+    keybinds.add("my_global_action", ImGuiKey_F);
 
     // Register multi-key action that can be later queried
     keybinds.add("my_global_action_with_modifier_key", {ImGuiKey_F, {ImGuiKey_LeftCtrl}});
 
     // Register action specific to the viewport (active only when viewport is hovered)
-    keybinds.add("viewport.my_viewport_action", {ImGuiKey_F});
+    keybinds.add("viewport.my_viewport_action", ImGuiKey_F);
 
     // Keybinds can be serialized/deserialized:
     {
@@ -41,7 +41,7 @@ int main(int argc, char** argv)
         std::ifstream f("keybinds.json");
         keybinds.load(f);
     }
-    
+
 
     viewer.run([](ui::Registry& r) {
         const auto& keybinds = ui::get_keybinds(r);

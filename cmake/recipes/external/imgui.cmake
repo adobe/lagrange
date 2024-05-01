@@ -43,6 +43,7 @@ endblock()
 target_compile_definitions(imgui PUBLIC IMGUI_DISABLE_OBSOLETE_KEYIO)
 target_compile_definitions(imgui PUBLIC IMGUI_DEFINE_MATH_OPERATORS)
 
+set_target_properties(imgui PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(imgui PROPERTIES FOLDER third_party)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")

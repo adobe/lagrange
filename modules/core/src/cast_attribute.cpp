@@ -40,7 +40,7 @@ AttributeId cast_attribute(
         source_attr_base.get_usage(),
         source_attr_base.get_num_channels());
 
-    internal::visit_attribute(mesh, source_id, [&](auto& source_attr) {
+    internal::visit_attribute_read(mesh, source_id, [&](auto& source_attr) {
         using AttributeType = std::decay_t<decltype(source_attr)>;
         if constexpr (AttributeType::IsIndexed) {
             auto& target_attr = mesh.template ref_indexed_attribute<TargetValueType>(target_id);
@@ -77,7 +77,7 @@ AttributeId cast_attribute_in_place(SurfaceMesh<Scalar, Index>& mesh, AttributeI
     std::string target_name(mesh.get_attribute_name(source_id));
 
     AttributeId target_id = invalid_attribute_id();
-    internal::visit_attribute(mesh, source_id, [&](auto& source_attr_) {
+    internal::visit_attribute_read(mesh, source_id, [&](auto& source_attr_) {
         using AttributeType = std::decay_t<decltype(source_attr_)>;
         using SourceValueType = typename AttributeType::ValueType;
 

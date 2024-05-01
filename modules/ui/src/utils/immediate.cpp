@@ -42,7 +42,7 @@ struct ImmediateEntities
 
 ImmediateEntities& get_immediate_entities(Registry& r)
 {
-    auto ptr = r.try_ctx<ImmediateEntities>();
+    auto ptr = r.ctx().find<ImmediateEntities>();
     if (ptr) return *ptr;
 
     ImmediateEntities ie;
@@ -75,7 +75,7 @@ ImmediateEntities& get_immediate_entities(Registry& r)
         r.emplace<MeshRender>(ie.lines, mr);
     }
 
-    return r.set<ImmediateEntities>(std::move(ie));
+    return r.ctx().insert_or_assign<ImmediateEntities>(std::move(ie));
 }
 
 void render_points(Registry& r, const std::vector<Eigen::Vector3f>& points)

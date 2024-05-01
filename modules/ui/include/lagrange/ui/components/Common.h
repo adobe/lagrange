@@ -21,8 +21,10 @@ namespace lagrange {
 namespace ui {
 
 
-struct Name : public std::string
+struct Name
 {
+    operator const std::string&() const { return value; }
+    std::string value;
 };
 
 
@@ -55,7 +57,7 @@ inline bool set_name(Registry& r, Entity e, const std::string& name)
 
 inline const GlobalTime& get_time(const Registry& r)
 {
-    return r.ctx<GlobalTime>();
+    return r.ctx().get<GlobalTime>();
 }
 
 

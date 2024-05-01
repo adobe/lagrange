@@ -14,6 +14,7 @@
 #include <lagrange/AttributeFwd.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/scene/SceneExtension.h>
+#include <lagrange/utils/warning.h>
 
 #include <vector>
 
@@ -74,13 +75,27 @@ struct SaveOptions
  */
 struct LoadOptions
 {
+    LA_IGNORE_DEPRECATION_WARNING_BEGIN
+
+    LoadOptions() = default;
+    LoadOptions(LoadOptions&&) = default;
+    LoadOptions& operator=(LoadOptions&&) = default;
+    LoadOptions(const LoadOptions&) = default;
+    LoadOptions& operator=(const LoadOptions&) = default;
+
+    /// Load object ids as facet attribute
+    [[deprecated("Use load_object_ids instead")]] bool load_object_id = true;
+
+    LA_IGNORE_DEPRECATION_WARNING_END
+
+
     /// Triangulate any polygonal facet with > 3 vertices
     bool triangulate = false;
 
     /// Load vertex normals
     bool load_normals = true;
 
-    /// Load tangents and bitangent
+    /// Load tangents and bitangents
     bool load_tangents = true;
 
     /// Load texture coordinates
@@ -95,8 +110,8 @@ struct LoadOptions
     /// Load vertex colors as vertex attribute
     bool load_vertex_colors = true;
 
-    /// Load object id as facet attribute
-    bool load_object_id = true;
+    /// Load object ids as facet attribute
+    bool load_object_ids = true;
 
     /// Load external images
     bool load_images = true;

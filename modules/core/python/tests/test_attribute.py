@@ -30,7 +30,7 @@ class TestAttribute:
 
         data = attr.data
         assert not data.flags["OWNDATA"]
-        #assert not data.flags["WRITEABLE"]
+        # assert not data.flags["WRITEABLE"]
         assert len(data.shape) == 1
         assert data.shape[0] == 3
 
@@ -101,7 +101,7 @@ class TestAttribute:
         mesh = single_triangle_with_index
         attr = mesh.attribute("vertex_index")
 
-        attr.data = [1, 2 ,3]
+        attr.data = [1, 2, 3]
         assert np.array_equal(attr.data, [1, 2, 3])
         assert not attr.external
 

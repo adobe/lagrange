@@ -303,9 +303,9 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
 
             ImGui::TableHeadersRow();
 
-            for (size_t i = 0; i < registry.size(); i++) {
+            for (size_t i = 0; i < registry.storage<Entity>().size(); i++) {
                 ImGui::TableNextRow();
-                auto e = registry.data()[i];
+                auto e = registry.storage<Entity>().data()[i];
 
                 ImGui::TableSetColumnIndex(0);
                 ImGui::Text("%d", int(e));

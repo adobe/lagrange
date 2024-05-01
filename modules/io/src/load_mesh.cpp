@@ -15,6 +15,7 @@
 #include <lagrange/io/api.h>
 #include <lagrange/io/internal/detect_file_format.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/io/load_mesh_fbx.h>
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/load_mesh_obj.h>
@@ -63,6 +64,8 @@ MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
         return load_mesh_msh<MeshType>(filename, options);
     } else if (ext == ".gltf" || ext == ".glb") {
         return load_mesh_gltf<MeshType>(filename, options);
+    } else if (ext == ".fbx") {
+        return load_mesh_fbx<MeshType>(filename, options);
     } else {
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_mesh_assimp<MeshType>(filename, options);

@@ -14,8 +14,8 @@
 #include <lagrange/ui/types/ShaderLoader.h>
 
 #ifndef DEFAULT_SHADERS_USE_REAL_PATH
-// Contains virtual fs with shaders: VIRTUAL_SHADERS
-#include <shaders.inc>
+    // Contains virtual fs with shaders: VIRTUAL_SHADERS
+    #include <shaders.inc>
 #endif
 
 
@@ -32,7 +32,7 @@ entt::id_type hash_shader_definition(const ShaderDefinition& def)
 }
 
 
-std::shared_ptr<Shader> ShaderLoader::load(
+std::shared_ptr<Shader> ShaderLoader::operator()(
     const std::string& generic_path,
     PathType pathtype,
     const ShaderDefines& defines /*= {}*/) const
@@ -101,7 +101,7 @@ register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines& shad
 {
     if (shader_defines.size() == 0) return id;
 
-    auto& registered = r.ctx_or_set<RegisteredShaders>();
+    auto& registered = r.ctx().emplace<RegisteredShaders>();
     auto def_it = registered.find(id);
     if (def_it == registered.end()) return entt::null;
 
@@ -119,30 +119,27 @@ register_shader_variant(Registry& r, entt::id_type id, const ShaderDefines& shad
 
 ShaderResource get_shader(Registry& registry, entt::id_type id)
 {
-    auto& cache = registry.ctx_or_set<ShaderCache>();
+    auto& cache = registry.ctx().emplace<ShaderCache>();
 
-    if (cache.contains(id)) return cache.handle(id);
+    if (cache.contains(id)) return cache[id];
 
     // Shader not registered, return empty handle
-    auto& registered = registry.ctx_or_set<RegisteredShaders>();
+    auto& registered = registry.ctx().emplace<RegisteredShaders>();
     auto def_it = registered.find(id);
     if (def_it == registered.end()) return ShaderResource();
 
-    return cache.load<ShaderLoader>(
-        id,
-        def_it->second.path,
-        def_it->second.path_type,
-        def_it->second.defines);
+    return cache.load(id, def_it->second.path, def_it->second.path_type, def_it->second.defines)
+        .first->second;
 }
 
 RegisteredShaders& get_registered_shaders(Registry& registry)
 {
-    return registry.ctx_or_set<RegisteredShaders>();
+    return registry.ctx().emplace<RegisteredShaders>();
 }
 
 ShaderCache& get_shader_cache(Registry& registry)
 {
-    return registry.ctx_or_set<ShaderCache>();
+    return registry.ctx().emplace<ShaderCache>();
 }
 
 bool add_file_to_shader_virtual_fs(
@@ -165,7 +162,7 @@ bool add_file_to_shader_virtual_fs(
 
 entt::id_type register_shader_as(Registry& registry, entt::id_type id, const ShaderDefinition& def)
 {
-    auto& registered = registry.ctx_or_set<RegisteredShaders>();
+    auto& registered = registry.ctx().emplace<RegisteredShaders>();
     registered[id] = def;
     return id;
 }

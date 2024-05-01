@@ -61,7 +61,7 @@ void copy_camera_to_viewports(Registry& registry, Entity source_viewport)
 
 ViewportPanel* get_focused_viewport_panel(Registry& registry)
 {
-    auto e = registry.ctx_or_set<FocusedViewportPanel>(FocusedViewportPanel{}).viewport_panel;
+    auto e = registry.ctx().emplace<FocusedViewportPanel>(FocusedViewportPanel{}).viewport_panel;
     if (!registry.valid(e)) return nullptr;
     return &registry.get<ViewportPanel>(e);
 }
@@ -145,12 +145,12 @@ void camera_focus_and_fit(Registry& registry) {
 
 Entity get_selection_viewport_entity(const Registry& registry)
 {
-    return registry.ctx<SelectionViewport>().viewport_entity;
+    return registry.ctx().get<SelectionViewport>().viewport_entity;
 }
 
 Entity get_objectid_viewport_entity(const Registry& registry)
 {
-    return registry.ctx<ObjectIDViewport>().viewport_entity;
+    return registry.ctx().get<ObjectIDViewport>().viewport_entity;
 }
 
 void camera_zoom_to_fit(

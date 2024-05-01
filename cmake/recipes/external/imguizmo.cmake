@@ -33,6 +33,7 @@ target_include_directories(imguizmo PUBLIC "${imguizmo_SOURCE_DIR}")
 include(imgui)
 target_link_libraries(imguizmo PUBLIC imgui::imgui)
 
+set_target_properties(imguizmo PROPERTIES POSITION_INDEPENDENT_CODE ON)
 set_target_properties(imguizmo PROPERTIES FOLDER third_party)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang")

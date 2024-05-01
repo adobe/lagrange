@@ -1014,7 +1014,6 @@ void register_mesh_type(
     using namespace entt::literals;
 
     // Register MeshType
-    entt::meta<MeshType>().type();
     entt::meta<MeshType>().template base<lagrange::MeshBase>();
 
     // Register conversion functions

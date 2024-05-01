@@ -126,7 +126,7 @@ void camera_controller_system(Registry& registry)
 
 void camera_turntable_system(Registry& registry)
 {
-    const auto dt = float(registry.ctx_or_set<GlobalTime>().dt);
+    const auto dt = float(registry.ctx().emplace<GlobalTime>().dt);
     registry.view<Camera, CameraTurntable>().each(
         [&](Entity e, Camera& camera, CameraTurntable& ct) {
             if (ct.enabled) {
@@ -145,7 +145,7 @@ void camera_focusfit_system(Registry& registry)
         scene_bb = AABB(-Eigen::Vector3f::Ones(), Eigen::Vector3f::Ones());
     }
 
-    const auto dt = float(registry.ctx<GlobalTime>().dt);
+    const auto dt = float(registry.ctx().get<GlobalTime>().dt);
     const float eps = 0.0001f;
     auto cameras = registry.view<CameraFocusAndFit, Camera>();
 

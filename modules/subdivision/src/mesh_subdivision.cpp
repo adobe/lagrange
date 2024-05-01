@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/subdivision/mesh_subdivision.h>
+#include <lagrange/subdivision/api.h>
 
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
@@ -555,7 +556,7 @@ SurfaceMesh<Scalar, Index> subdivide_mesh(
 
     // Interpolate per-vertex data (including vertex positions)
     auto interpolate_attribute = [&](AttributeId id, bool smooth) {
-        lagrange::internal::visit_attribute(input_mesh, id, [&](auto&& attr) {
+        lagrange::internal::visit_attribute_read(input_mesh, id, [&](auto&& attr) {
             using AttributeType = std::decay_t<decltype(attr)>;
             using ValueType = typename AttributeType::ValueType;
             if constexpr (!(std::is_same_v<ValueType, float> ||
@@ -620,7 +621,7 @@ SurfaceMesh<Scalar, Index> subdivide_mesh(
     // Interpolate face-varying data (such as UVs)
     int fvar_index = 0;
     for (auto id : interpolated_attr.face_varying_attributes) {
-        lagrange::internal::visit_attribute(input_mesh, id, [&](auto&& attr) {
+        lagrange::internal::visit_attribute_read(input_mesh, id, [&](auto&& attr) {
             using AttributeType = std::decay_t<decltype(attr)>;
             using ValueType = typename AttributeType::ValueType;
             if constexpr (!(std::is_same_v<ValueType, float> ||
@@ -679,7 +680,7 @@ SurfaceMesh<Scalar, Index> subdivide_mesh(
 }
 
 #define LA_X_subdivide_mesh(_, Scalar, Index)           \
-    template SurfaceMesh<Scalar, Index> subdivide_mesh( \
+    template LA_SUBDIVISION_API SurfaceMesh<Scalar, Index> subdivide_mesh( \
         const SurfaceMesh<Scalar, Index>& mesh,         \
         SubdivisionOptions options);
 LA_SURFACE_MESH_X(subdivide_mesh, 0)

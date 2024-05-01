@@ -18,12 +18,12 @@ namespace ui {
 
 InputState& get_input(Registry& r)
 {
-    return r.ctx<InputState>();
+    return r.ctx().get<InputState>();
 }
 
 const InputState& get_input(const Registry& r)
 {
-    return r.ctx<InputState>();
+    return r.ctx().get<InputState>();
 }
 
 Keybinds& get_keybinds(Registry& r)

@@ -16,6 +16,7 @@ import pytest
 
 from .assets import cube_with_uv, cube
 
+
 class TestComputeCentroid:
     def test_cube(self, cube_with_uv):
         mesh = cube_with_uv

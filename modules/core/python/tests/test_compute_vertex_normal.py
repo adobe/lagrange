@@ -17,6 +17,7 @@ import pytest
 
 from .assets import cube
 
+
 class TestComputeVertexNormal:
     def test_cube(self, cube):
         mesh = cube

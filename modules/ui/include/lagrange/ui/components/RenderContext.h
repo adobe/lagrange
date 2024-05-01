@@ -30,7 +30,7 @@ struct RenderContext
 
 inline RenderContext& get_render_context(Registry& r)
 {
-    return r.ctx_or_set<RenderContext>();
+    return r.ctx().emplace<RenderContext>();
 }
 
 inline ViewportComponent& get_render_context_viewport(Registry& r)

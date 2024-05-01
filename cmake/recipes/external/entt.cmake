@@ -20,7 +20,5 @@ include(CPM)
 CPMAddPackage(
     NAME entt
     GITHUB_REPOSITORY skypjack/entt
-    GIT_TAG v3.9.0
+    GIT_TAG v3.13.2
 )
-
-set_target_properties(aob PROPERTIES FOLDER third_party)

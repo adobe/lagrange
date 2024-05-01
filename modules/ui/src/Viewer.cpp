@@ -139,9 +139,6 @@ Viewer::Viewer(const WindowOptions& window_options)
 
     register_default_component_widgets();
 
-
-    entt::meta<lagrange::MeshBase>().type();
-
     // entt::meta<lagrange::MeshBase>().func<>("get_mesh_vertices"_hs);
 
     ui::register_mesh_type<lagrange::TriangleMesh3Df>();
@@ -352,16 +349,16 @@ Viewer::Viewer(const WindowOptions& window_options)
     {
         InputState input;
         input.keybinds = std::make_shared<Keybinds>(initialize_default_keybinds());
-        registry().set<InputState>(std::move(input));
+        registry().ctx().insert_or_assign<InputState>(std::move(input));
     }
 
     // Initialize time context variable
-    m_registry.set<GlobalTime>(GlobalTime{});
+    m_registry.ctx().insert_or_assign<GlobalTime>(GlobalTime{});
 
     // Layer names
     register_default_layer_names(registry());
 
-    registry().set<WindowSize>(WindowSize{window_options.width, window_options.height});
+    registry().ctx().insert_or_assign<WindowSize>(WindowSize{window_options.width, window_options.height});
 
     // Tool context
     auto& tools = initialize_tools(registry());
@@ -371,13 +368,13 @@ Viewer::Viewer(const WindowOptions& window_options)
     register_default_shaders(registry());
 
     // Scene bounds
-    registry().set<Bounds>(Bounds());
+    registry().ctx().insert_or_assign<Bounds>(Bounds());
 
     auto zeroth = registry().create(); // Create zero'th entity
     (void)(zeroth); // handle nodiscard
 
     // UI windows - create and set as context variable
-    auto& windows = m_registry.set<DefaultPanels>(add_default_panels(registry()));
+    auto& windows = m_registry.ctx().insert_or_assign<DefaultPanels>(add_default_panels(registry()));
 
     m_width = window_options.width;
     m_height = window_options.height;
@@ -403,7 +400,7 @@ Viewer::Viewer(const WindowOptions& window_options)
         vc.material_override->set_int(RasterizerOptions::Primitive, GL_TRIANGLES);
         return viewport;
     }();
-    registry().set<SelectionViewport>(SelectionViewport{selection_viewport});
+    registry().ctx().insert_or_assign<SelectionViewport>(SelectionViewport{selection_viewport});
 
 
     auto object_id_viewport = [&]() {
@@ -418,13 +415,13 @@ Viewer::Viewer(const WindowOptions& window_options)
         return viewport;
     }();
     // Set as context variable
-    registry().set<ObjectIDViewport>(ObjectIDViewport{object_id_viewport});
+    registry().ctx().insert_or_assign<ObjectIDViewport>(ObjectIDViewport{object_id_viewport});
 
 
     // Set up default viewport
     {
         // Create viewport
-        auto main_viewport = add_viewport(registry(), default_camera, true);
+        auto main_viewport = add_viewport(registry(), default_camera, window_options.use_srgb);
 
         registry().emplace_or_replace<Name>(main_viewport, "Default Viewport");
 
@@ -678,7 +675,7 @@ bool Viewer::init_glfw(const WindowOptions& options)
     }
 
     glfwWindowHint(GLFW_SAMPLES, 4);
-    glfwWindowHint(GLFW_SRGB_CAPABLE, GL_TRUE);
+    glfwWindowHint(GLFW_SRGB_CAPABLE, options.use_srgb ? GLFW_TRUE : GLFW_FALSE);
 
     glfwWindowHint(GLFW_FOCUSED, options.focus_on_show ? GLFW_TRUE : GLFW_FALSE);
 
@@ -905,7 +902,7 @@ void Viewer::resize(int window_width, int window_height)
 
     update_scale();
 
-    registry().set<WindowSize>(WindowSize{window_width, window_height});
+    registry().ctx().insert_or_assign<WindowSize>(WindowSize{window_width, window_height});
 
     m_width = window_width;
     m_height = window_height;
@@ -964,7 +961,7 @@ void Viewer::process_input()
         bool previous = false;
         bool current = false;
     };
-    auto& vh = registry().ctx_or_set<AnyViewportHovered>(AnyViewportHovered{});
+    auto& vh = registry().ctx().emplace<AnyViewportHovered>(AnyViewportHovered{});
 
     vh.current = false;
     registry().view<const ViewportPanel>().each(
@@ -983,7 +980,7 @@ void Viewer::process_input()
 void Viewer::update_time()
 {
     float dt = ImGui::GetIO().DeltaTime;
-    auto& global_time = registry().ctx_or_set<GlobalTime>();
+    auto& global_time = registry().ctx().emplace<GlobalTime>();
     global_time.t += dt;
     global_time.dt = dt;
 }
@@ -1218,7 +1215,7 @@ void Viewer::draw_menu()
     }
 
     // Update context to have main menu height - needed for toolbar rendering
-    r.set<MainMenuHeight>(MainMenuHeight{ImGui::GetWindowSize().y});
+    r.ctx().insert_or_assign<MainMenuHeight>(MainMenuHeight{ImGui::GetWindowSize().y});
 
     ImGui::EndMainMenuBar();
 }
@@ -1226,7 +1223,7 @@ void Viewer::draw_menu()
 void Viewer::start_dockspace()
 {
     // Set dockspace from Imgui to context
-    auto dockspace = registry().set<Dockspace>(Dockspace{ImGui::GetID("MyDockSpace")});
+    auto dockspace = registry().ctx().insert_or_assign<Dockspace>(Dockspace{ImGui::GetID("MyDockSpace")});
 
     if (ImGui::DockBuilderGetNode(dockspace.ID) == NULL) {
         reset_layout(registry());
@@ -1236,7 +1233,7 @@ void Viewer::start_dockspace()
     {
         float left_offset = 0.0f;
 
-        const auto& toolbar = m_registry.get<UIPanel>(m_registry.ctx<DefaultPanels>().toolbar);
+        const auto& toolbar = m_registry.get<UIPanel>(m_registry.ctx().get<DefaultPanels>().toolbar);
         if (toolbar.visible) {
             left_offset += ToolbarPanel::toolbar_width;
         }

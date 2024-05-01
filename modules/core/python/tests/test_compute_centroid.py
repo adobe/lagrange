@@ -18,6 +18,7 @@ import pytest
 
 from .assets import single_triangle, cube
 
+
 class TestComputeCentroid:
     def test_cube(self, cube):
         mesh = cube
@@ -27,7 +28,7 @@ class TestComputeCentroid:
     def test_triangle(self, single_triangle):
         mesh = single_triangle
         c = lagrange.compute_mesh_centroid(mesh)
-        assert np.all(c == [1/3, 1/3, 1/3])
+        assert np.all(c == [1 / 3, 1 / 3, 1 / 3])
 
     def test_empty_mesh(self):
         mesh = lagrange.SurfaceMesh()

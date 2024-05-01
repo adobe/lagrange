@@ -38,7 +38,7 @@ include(CPM)
 CPMAddPackage(
     NAME glfw
     GITHUB_REPOSITORY glfw/glfw
-    GIT_TAG tags/3.3.6
+    GIT_TAG 3.3.6
 )
 
 add_library(glfw::glfw ALIAS glfw)

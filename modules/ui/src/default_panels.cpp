@@ -75,8 +75,8 @@ DefaultPanels add_default_panels(Registry& registry)
     }
 
     // Set context variables
-    registry.set<DefaultPanels>(res);
-    registry.set<FocusedViewportPanel>().viewport_panel = res.viewport;
+    registry.ctx().insert_or_assign(res);
+    registry.ctx().insert_or_assign(FocusedViewportPanel{}).viewport_panel = res.viewport;
 
     return res;
 }
@@ -86,9 +86,9 @@ void reset_layout(Registry& registry)
     constexpr float right_panel_width = 320.0f;
     constexpr float bottom_panel_width = 150.0f;
 
-    const auto ID = registry.ctx<Dockspace>().ID;
-    const auto& size = registry.ctx<WindowSize>();
-    const auto& default_windows = registry.ctx<DefaultPanels>();
+    const auto ID = registry.ctx().get<Dockspace>().ID;
+    const auto& size = registry.ctx().get<WindowSize>();
+    const auto& default_windows = registry.ctx().get<DefaultPanels>();
 
     ImGui::DockBuilderRemoveNode(ID);
     ImGui::DockBuilderAddNode(

@@ -29,7 +29,7 @@ void log_once(
     {
         std::unordered_set<std::string> messages;
     };
-    auto& msgs = r.ctx_or_set<LogOnceCache>().messages;
+    auto& msgs = r.ctx().emplace<LogOnceCache>().messages;
     if (msgs.count(fmt.data())) return;
     logger().log(level, fmt, std::forward<Args>(args)...);
     msgs.insert(fmt.data());

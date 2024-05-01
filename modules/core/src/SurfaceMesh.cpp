@@ -19,6 +19,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/internal/fast_edge_sort.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/copy_on_write_ptr.h>
@@ -1756,6 +1757,8 @@ void SurfaceMesh<Scalar, Index>::remove_vertices(span<const Index> vertices_to_r
         return; // nothing to remove
     }
 
+    // TODO: Assert whether we have edge attributes?
+
     // 1st step: create index remapping
     const Index num_vertices_old = get_num_vertices();
     Index num_vertices_new = 0;
@@ -2218,25 +2221,7 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
     const Index corner_begin = get_facet_corner_begin(facet_begin);
     const Index corner_end = get_facet_corner_end(facet_end - 1);
 
-    // Compute corner -> edge mapping
-    struct UnorientedEdge
-    {
-        Index v1;
-        Index v2;
-        Index id;
-
-        UnorientedEdge(Index x, Index y, Index c)
-            : v1(std::min(x, y))
-            , v2(std::max(x, y))
-            , id(c)
-        {}
-
-        auto key() const { return std::make_pair(v1, v2); }
-
-        bool operator<(const UnorientedEdge& e) const { return key() < e.key(); }
-
-        bool operator!=(const UnorientedEdge& e) const { return key() != e.key(); }
-    };
+    using UnorientedEdge = internal::UnorientedEdge<Index>;
 
     auto corner_to_vertex = get_corner_to_vertex().get_all();
     auto corner_to_edge = ref_attribute<Index>(m_reserved_ids.corner_to_edge()).ref_all();
@@ -2291,6 +2276,8 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
             }
         }
     }
+    // NOTE: I tried our fast_edge_sort() implement, and it turns out it's not really faster since
+    // it needs to do a copy of the whole buffer... Something to revisit later.
     tbb::parallel_sort(edge_to_corner.begin(), edge_to_corner.end());
 
     // Sort user-defined edges (if available)
@@ -3138,139 +3125,147 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
 // Explicit template instantiations
 ////////////////////////////////////////////////////////////////////////////////
 
+// Explicit instantiation of the SurfaceMesh class
+// This needs to be first for GCC
+#define LA_X_surface_mesh_class(_, Scalar, Index) \
+    template class LA_CORE_API SurfaceMesh<Scalar, Index>;
+LA_SURFACE_MESH_X(surface_mesh_class, 0)
+
 // Explicit instantiation of the templated mesh attribute methods.
-#define LA_X_surface_mesh_attr(ValueType, Scalar, Index)                                           \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::create_attribute(                             \
-        std::string_view name,                                                                     \
-        AttributeElement element,                                                                  \
-        size_t num_channels,                                                                       \
-        AttributeUsage usage,                                                                      \
-        span<const ValueType> initial_values,                                                      \
-        span<const Index> initial_indices,                                                         \
-        AttributeCreatePolicy policy);                                                             \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::create_attribute(                             \
-        std::string_view name,                                                                     \
-        AttributeElement element,                                                                  \
-        AttributeUsage usage,                                                                      \
-        size_t num_channels,                                                                       \
-        span<const ValueType> initial_values,                                                      \
-        span<const Index> initial_indices,                                                         \
-        AttributeCreatePolicy policy);                                                             \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(                            \
-        std::string_view name,                                                                     \
-        AttributeElement element,                                                                  \
-        AttributeUsage usage,                                                                      \
-        size_t num_channels,                                                                       \
-        span<ValueType> values_view);                                                              \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(                            \
-        std::string_view name,                                                                     \
-        AttributeElement element,                                                                  \
-        AttributeUsage usage,                                                                      \
-        size_t num_channels,                                                                       \
-        SharedSpan<ValueType> shared_values);                                                      \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(                      \
-        std::string_view name,                                                                     \
-        AttributeElement element,                                                                  \
-        AttributeUsage usage,                                                                      \
-        size_t num_channels,                                                                       \
-        span<const ValueType> values_view);                                                        \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(                      \
-        std::string_view name,                                                                     \
-        AttributeElement element,                                                                  \
-        AttributeUsage usage,                                                                      \
-        size_t num_channels,                                                                       \
-        SharedSpan<const ValueType> shared_values);                                                \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        span<ValueType> values_view,                                                               \
-        span<Index> indices_view);                                                                 \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        SharedSpan<ValueType> shared_values,                                                       \
-        SharedSpan<Index> shared_indices);                                                         \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        span<ValueType> values_view,                                                               \
-        SharedSpan<Index> shared_indices);                                                         \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(                    \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        SharedSpan<ValueType> shared_values,                                                       \
-        span<Index> indices_view);                                                                 \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        span<const ValueType> values_view,                                                         \
-        span<const Index> indices_view);                                                           \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        SharedSpan<const ValueType> shared_values,                                                 \
-        SharedSpan<const Index> shared_indices);                                                   \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        span<const ValueType> values_view,                                                         \
-        SharedSpan<const Index> shared_indices);                                                   \
-    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(              \
-        std::string_view name,                                                                     \
-        AttributeUsage usage,                                                                      \
-        size_t num_values,                                                                         \
-        size_t num_channels,                                                                       \
-        SharedSpan<const ValueType> shared_values,                                                 \
-        span<const Index> indices_view);                                                           \
-    template LA_CORE_API std::shared_ptr<Attribute<ValueType>>                                                 \
-    SurfaceMesh<Scalar, Index>::delete_and_export_attribute(                                       \
-        std::string_view name,                                                                     \
-        AttributeDeletePolicy delete_policy,                                                       \
-        AttributeExportPolicy export_policy);                                                      \
-    template LA_CORE_API std::shared_ptr<const Attribute<ValueType>>                                           \
-    SurfaceMesh<Scalar, Index>::delete_and_export_const_attribute(                                 \
-        std::string_view name,                                                                     \
-        AttributeDeletePolicy delete_policy,                                                       \
-        AttributeExportPolicy export_policy);                                                      \
-    template LA_CORE_API std::shared_ptr<IndexedAttribute<ValueType, Index>>                                   \
-    SurfaceMesh<Scalar, Index>::delete_and_export_indexed_attribute(                               \
-        std::string_view name,                                                                     \
-        AttributeExportPolicy policy);                                                             \
-    template LA_CORE_API std::shared_ptr<const IndexedAttribute<ValueType, Index>>                             \
-    SurfaceMesh<Scalar, Index>::delete_and_export_const_indexed_attribute(                         \
-        std::string_view name,                                                                     \
-        AttributeExportPolicy policy);                                                             \
-    template LA_CORE_API bool SurfaceMesh<Scalar, Index>::is_attribute_type<ValueType>(std::string_view name)  \
-        const;                                                                                     \
-    template LA_CORE_API bool SurfaceMesh<Scalar, Index>::is_attribute_type<ValueType>(AttributeId id) const;  \
-    template LA_CORE_API const Attribute<ValueType>& SurfaceMesh<Scalar, Index>::get_attribute(                \
-        std::string_view name) const;                                                              \
-    template LA_CORE_API const Attribute<ValueType>& SurfaceMesh<Scalar, Index>::get_attribute(AttributeId id) \
-        const;                                                                                     \
-    template LA_CORE_API Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(                      \
-        std::string_view name);                                                                    \
-    template LA_CORE_API Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(AttributeId id);      \
-    template LA_CORE_API const IndexedAttribute<ValueType, Index>&                                             \
-    SurfaceMesh<Scalar, Index>::get_indexed_attribute(std::string_view name) const;                \
-    template LA_CORE_API const IndexedAttribute<ValueType, Index>&                                             \
-    SurfaceMesh<Scalar, Index>::get_indexed_attribute(AttributeId id) const;                       \
-    template LA_CORE_API IndexedAttribute<ValueType, Index>&                                                   \
-    SurfaceMesh<Scalar, Index>::ref_indexed_attribute(std::string_view name);                      \
-    template LA_CORE_API IndexedAttribute<ValueType, Index>&                                                   \
+#define LA_X_surface_mesh_attr(ValueType, Scalar, Index)                                          \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::create_attribute(                \
+        std::string_view name,                                                                    \
+        AttributeElement element,                                                                 \
+        size_t num_channels,                                                                      \
+        AttributeUsage usage,                                                                     \
+        span<const ValueType> initial_values,                                                     \
+        span<const Index> initial_indices,                                                        \
+        AttributeCreatePolicy policy);                                                            \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::create_attribute(                \
+        std::string_view name,                                                                    \
+        AttributeElement element,                                                                 \
+        AttributeUsage usage,                                                                     \
+        size_t num_channels,                                                                      \
+        span<const ValueType> initial_values,                                                     \
+        span<const Index> initial_indices,                                                        \
+        AttributeCreatePolicy policy);                                                            \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(               \
+        std::string_view name,                                                                    \
+        AttributeElement element,                                                                 \
+        AttributeUsage usage,                                                                     \
+        size_t num_channels,                                                                      \
+        span<ValueType> values_view);                                                             \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(               \
+        std::string_view name,                                                                    \
+        AttributeElement element,                                                                 \
+        AttributeUsage usage,                                                                     \
+        size_t num_channels,                                                                      \
+        SharedSpan<ValueType> shared_values);                                                     \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(         \
+        std::string_view name,                                                                    \
+        AttributeElement element,                                                                 \
+        AttributeUsage usage,                                                                     \
+        size_t num_channels,                                                                      \
+        span<const ValueType> values_view);                                                       \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(         \
+        std::string_view name,                                                                    \
+        AttributeElement element,                                                                 \
+        AttributeUsage usage,                                                                     \
+        size_t num_channels,                                                                      \
+        SharedSpan<const ValueType> shared_values);                                               \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(       \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        span<ValueType> values_view,                                                              \
+        span<Index> indices_view);                                                                \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(       \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        SharedSpan<ValueType> shared_values,                                                      \
+        SharedSpan<Index> shared_indices);                                                        \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(       \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        span<ValueType> values_view,                                                              \
+        SharedSpan<Index> shared_indices);                                                        \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(       \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        SharedSpan<ValueType> shared_values,                                                      \
+        span<Index> indices_view);                                                                \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute( \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        span<const ValueType> values_view,                                                        \
+        span<const Index> indices_view);                                                          \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute( \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        SharedSpan<const ValueType> shared_values,                                                \
+        SharedSpan<const Index> shared_indices);                                                  \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute( \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        span<const ValueType> values_view,                                                        \
+        SharedSpan<const Index> shared_indices);                                                  \
+    template LA_CORE_API AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute( \
+        std::string_view name,                                                                    \
+        AttributeUsage usage,                                                                     \
+        size_t num_values,                                                                        \
+        size_t num_channels,                                                                      \
+        SharedSpan<const ValueType> shared_values,                                                \
+        span<const Index> indices_view);                                                          \
+    template LA_CORE_API std::shared_ptr<Attribute<ValueType>>                                    \
+    SurfaceMesh<Scalar, Index>::delete_and_export_attribute(                                      \
+        std::string_view name,                                                                    \
+        AttributeDeletePolicy delete_policy,                                                      \
+        AttributeExportPolicy export_policy);                                                     \
+    template LA_CORE_API std::shared_ptr<const Attribute<ValueType>>                              \
+    SurfaceMesh<Scalar, Index>::delete_and_export_const_attribute(                                \
+        std::string_view name,                                                                    \
+        AttributeDeletePolicy delete_policy,                                                      \
+        AttributeExportPolicy export_policy);                                                     \
+    template LA_CORE_API std::shared_ptr<IndexedAttribute<ValueType, Index>>                      \
+    SurfaceMesh<Scalar, Index>::delete_and_export_indexed_attribute(                              \
+        std::string_view name,                                                                    \
+        AttributeExportPolicy policy);                                                            \
+    template LA_CORE_API std::shared_ptr<const IndexedAttribute<ValueType, Index>>                \
+    SurfaceMesh<Scalar, Index>::delete_and_export_const_indexed_attribute(                        \
+        std::string_view name,                                                                    \
+        AttributeExportPolicy policy);                                                            \
+    template LA_CORE_API bool SurfaceMesh<Scalar, Index>::is_attribute_type<ValueType>(           \
+        std::string_view name) const;                                                             \
+    template LA_CORE_API bool SurfaceMesh<Scalar, Index>::is_attribute_type<ValueType>(           \
+        AttributeId id) const;                                                                    \
+    template LA_CORE_API const Attribute<ValueType>& SurfaceMesh<Scalar, Index>::get_attribute(   \
+        std::string_view name) const;                                                             \
+    template LA_CORE_API const Attribute<ValueType>& SurfaceMesh<Scalar, Index>::get_attribute(   \
+        AttributeId id) const;                                                                    \
+    template LA_CORE_API Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(         \
+        std::string_view name);                                                                   \
+    template LA_CORE_API Attribute<ValueType>& SurfaceMesh<Scalar, Index>::ref_attribute(         \
+        AttributeId id);                                                                          \
+    template LA_CORE_API const IndexedAttribute<ValueType, Index>&                                \
+    SurfaceMesh<Scalar, Index>::get_indexed_attribute(std::string_view name) const;               \
+    template LA_CORE_API const IndexedAttribute<ValueType, Index>&                                \
+    SurfaceMesh<Scalar, Index>::get_indexed_attribute(AttributeId id) const;                      \
+    template LA_CORE_API IndexedAttribute<ValueType, Index>&                                      \
+    SurfaceMesh<Scalar, Index>::ref_indexed_attribute(std::string_view name);                     \
+    template LA_CORE_API IndexedAttribute<ValueType, Index>&                                      \
     SurfaceMesh<Scalar, Index>::ref_indexed_attribute(AttributeId id);
 
 #define LA_X_surface_mesh_aux(_, ValueType) LA_SURFACE_MESH_X(surface_mesh_attr, ValueType)
@@ -3279,16 +3274,17 @@ LA_ATTRIBUTE_X(surface_mesh_aux, 0)
 // Explicit instantiation of the SurfaceMesh::create_attribute_from() method.
 #define fst(first, second) first
 #define snd(first, second) second
-#define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex)                     \
-    template LA_CORE_API SurfaceMesh<fst ScalarIndex, snd ScalarIndex>                                     \
-    SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::stripped_copy(                              \
-        const SurfaceMesh<OtherScalar, OtherIndex>& other);                                    \
-    template LA_CORE_API SurfaceMesh<fst ScalarIndex, snd ScalarIndex>                                     \
-    SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::stripped_move(                              \
-        SurfaceMesh<OtherScalar, OtherIndex>&& other);                                         \
-    template LA_CORE_API AttributeId SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::create_attribute_from( \
-        std::string_view name,                                                                 \
-        const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,                               \
+#define LA_X_surface_mesh_mesh_other(ScalarIndex, OtherScalar, OtherIndex) \
+    template LA_CORE_API SurfaceMesh<fst ScalarIndex, snd ScalarIndex>     \
+    SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::stripped_copy(          \
+        const SurfaceMesh<OtherScalar, OtherIndex>& other);                \
+    template LA_CORE_API SurfaceMesh<fst ScalarIndex, snd ScalarIndex>     \
+    SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::stripped_move(          \
+        SurfaceMesh<OtherScalar, OtherIndex>&& other);                     \
+    template LA_CORE_API AttributeId                                       \
+    SurfaceMesh<fst ScalarIndex, snd ScalarIndex>::create_attribute_from(  \
+        std::string_view name,                                             \
+        const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,           \
         std::string_view source_name);
 
 // NOTE: This is a dirty workaround because nesting two LA_SURFACE_MESH_X macros doesn't quite work.
@@ -3300,9 +3296,5 @@ LA_ATTRIBUTE_X(surface_mesh_aux, 0)
 #define LA_X_surface_mesh_mesh_aux(_, Scalar, Index) \
     LA_SURFACE_MESH2_X(surface_mesh_mesh_other, (Scalar, Index))
 LA_SURFACE_MESH_X(surface_mesh_mesh_aux, 0)
-
-// Explicit instantiation of the SurfaceMesh class
-#define LA_X_surface_mesh_class(_, Scalar, Index) template class LA_CORE_API SurfaceMesh<Scalar, Index>;
-LA_SURFACE_MESH_X(surface_mesh_class, 0)
 
 } // namespace lagrange

@@ -11,24 +11,26 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/types/Shader.h>
 
 namespace lagrange {
 namespace ui {
 
-struct LA_UI_API ShaderLoader : entt::resource_loader<ShaderLoader, Shader>
+struct LA_UI_API ShaderLoader
 {
     enum class PathType { REAL, VIRTUAL };
 
-    std::shared_ptr<Shader> load(
+    using result_type = std::shared_ptr<Shader>;
+
+    result_type operator()(
         const std::string& generic_path,
         PathType pathtype,
         const ShaderDefines& defines = {}) const;
 };
-using ShaderCache = entt::resource_cache<Shader>;
-using ShaderResource = entt::resource_handle<Shader>;
+using ShaderCache = entt::resource_cache<Shader, ShaderLoader>;
+using ShaderResource = entt::resource<Shader>;
 
 // using ShaderDef = std::tuple<std::string, std::string, ShaderLoader::PathType, ShaderDefines>;
 struct ShaderDefinition
@@ -42,7 +44,8 @@ using RegisteredShaders = std::unordered_map<entt::id_type, ShaderDefinition>;
 
 
 //Register shader with given id that can be used to load/reload and access the shader
-LA_UI_API entt::id_type register_shader_as(Registry& r, entt::id_type id, const ShaderDefinition& def);
+LA_UI_API entt::id_type
+register_shader_as(Registry& r, entt::id_type id, const ShaderDefinition& def);
 
 //Register shader, returns and ID that can be used to load/reload and access the shader
 LA_UI_API entt::id_type register_shader(Registry& r, const ShaderDefinition& def);

@@ -182,7 +182,7 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
 
     // Initialize object id
     Attribute<Index>* id_attr = nullptr;
-    if (options.load_object_id) {
+    if (options.load_object_ids) {
         auto id = mesh.template create_attribute<Index>(
             AttributeName::object_id,
             AttributeElement::Facet,
@@ -253,7 +253,7 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
     if (num_invalid_uv) {
         logger().warn(
             "Found {} vertices without UV indices. UV attribute will have invalid values.",
-            num_invalid_uv);
+            num_invalid_uv.load());
     }
     logger().trace("[load_mesh_obj] Loading complete");
 

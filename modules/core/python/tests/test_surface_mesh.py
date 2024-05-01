@@ -159,9 +159,7 @@ class TestSurfaceMesh:
         assert attr.dtype == attr.data.dtype
 
         # Corner attribute
-        id = mesh.create_attribute(
-            "corner_index", initial_values=np.array([1, 2, 3])
-        )
+        id = mesh.create_attribute("corner_index", initial_values=np.array([1, 2, 3]))
         attr = mesh.attribute(id)
         assert attr.element_type == lagrange.AttributeElement.Corner
         assert attr.usage == lagrange.AttributeUsage.Scalar
@@ -169,9 +167,7 @@ class TestSurfaceMesh:
         assert attr.dtype == attr.data.dtype
 
         # Facet attribute
-        id = mesh.create_attribute(
-            "facet_index", initial_values=[0], num_channels=1
-        )
+        id = mesh.create_attribute("facet_index", initial_values=[0], num_channels=1)
         attr = mesh.attribute(id)
         assert attr.element_type == lagrange.AttributeElement.Facet
         assert attr.usage == lagrange.AttributeUsage.Scalar
@@ -206,9 +202,7 @@ class TestSurfaceMesh:
 
     def test_edges(self, single_triangle, cube):
         mesh = single_triangle
-        mesh.initialize_edges(
-            np.array([[0, 1], [1, 2], [2, 0]], dtype=np.uint32)
-        )
+        mesh.initialize_edges(np.array([[0, 1], [1, 2], [2, 0]], dtype=np.uint32))
         assert mesh.has_edges
         assert mesh.num_edges == 3
         assert mesh.is_boundary_edge(0)

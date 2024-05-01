@@ -124,6 +124,24 @@ if(LAGRANGE_USE_PCH)
     )
 endif()
 
+set(LAGRANGE_FMT_EIGEN_FORMATTER "" CACHE PATH
+    "Include file to inject to overwite Lagrange's fmt::formatter<> for Eigen types"
+)
+if(LAGRANGE_FMT_EIGEN_FORMATTER)
+    file(REAL_PATH "${LAGRANGE_FMT_EIGEN_FORMATTER}" LAGRANGE_FMT_EIGEN_FORMATTER_REAL EXPAND_TILDE)
+    if(EXISTS "${LAGRANGE_FMT_EIGEN_FORMATTER_REAL}")
+        message(STATUS "Using user-provided Eigen formatter: ${LAGRANGE_FMT_EIGEN_FORMATTER_REAL}")
+        target_compile_definitions(lagrange_core PUBLIC
+            LA_FMT_EIGEN_FORMATTER="${LAGRANGE_FMT_EIGEN_FORMATTER_REAL}"
+        )
+    else()
+        message(FATAL_ERROR
+            "Non-empty LAGRANGE_FMT_EIGEN_FORMATTER provided, but does not exist: "
+            "${LAGRANGE_FMT_EIGEN_FORMATTER_REAL}"
+        )
+    endif()
+endif()
+
 # 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)

@@ -87,6 +87,9 @@ AttributeId map_attribute(
 /// a value attribute, its number of rows must match the number of target mesh element (or number of
 /// corners if the target is an indexed attribute).
 ///
+/// @todo          To be truly in-place ideally the new AttributeId should be the same as the old
+///                one.
+///
 /// @param[in,out] mesh         Input mesh. Modified to add a new attribute.
 /// @param[in]     id           Id of the input attribute to map.
 /// @param[in]     new_element  New attribute element type.
@@ -107,6 +110,9 @@ AttributeId map_attribute_in_place(
 /// created with the same name as the old one, and the old one is removed. If the input attribute is
 /// a value attribute, its number of rows must match the number of target mesh element (or number of
 /// corners if the target is an indexed attribute).
+///
+/// @todo          To be truly in-place ideally the new AttributeId should be the same as the old
+///                one.
 ///
 /// @param[in,out] mesh         Input mesh. Modified to add a new attribute.
 /// @param[in]     name         Name of the attribute to map.

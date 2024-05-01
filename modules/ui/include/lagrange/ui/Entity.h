@@ -84,12 +84,11 @@ template <typename Component>
 void register_component(const std::string& display_name = entt::type_id<Component>().name().data())
 {
     using namespace entt::literals;
-    entt::meta<Component>().type();
-    entt::meta<Component>().template func<&component_clone<Component>>("component_clone"_hs);
-    entt::meta<Component>().template func<&component_move<Component>>("component_move"_hs);
-    entt::meta<Component>().template func<&component_add_default<Component>>(
-        "component_add_default"_hs);
-    entt::meta<Component>().prop("display_name"_hs, display_name);
+    entt::meta<Component>()
+        .template func<&component_clone<Component>>("component_clone"_hs)
+        .template func<&component_move<Component>>("component_move"_hs)
+        .template func<&component_add_default<Component>>("component_add_default"_hs)
+        .prop("display_name"_hs, display_name);
 }
 
 template <typename Component, auto Func>

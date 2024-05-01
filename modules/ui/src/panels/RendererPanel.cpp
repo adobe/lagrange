@@ -51,7 +51,7 @@ void draw_screenshot_ui(Registry& registry, RendererPanel& panel)
     auto& opt = panel.screenshot_options;
 
     auto& viewport_panel =
-        registry.get<ViewportPanel>(registry.ctx<FocusedViewportPanel>().viewport_panel);
+        registry.get<ViewportPanel>(registry.ctx().get<FocusedViewportPanel>().viewport_panel);
     auto& viewport = registry.get<ViewportComponent>(viewport_panel.viewport);
 
 

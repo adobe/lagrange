@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/utils/pair_hash.h>
 
 namespace lagrange {
@@ -26,12 +26,10 @@ entt::id_type register_tool_type(
 {
     using namespace entt::literals;
 
-    entt::meta<T>().type();
-
-    entt::meta<T>().props(
-        std::make_pair("display_name"_hs, display_name),
-        std::make_pair("icon"_hs, icon),
-        std::make_pair("keybind"_hs, keybind));
+    entt::meta<T>()
+        .prop("display_name"_hs, display_name)
+        .prop("icon"_hs, icon)
+        .prop("keybind"_hs, keybind);
 
     return entt::type_id<T>().hash();
 }

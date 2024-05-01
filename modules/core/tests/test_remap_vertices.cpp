@@ -15,6 +15,7 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/Logger.h>
+#include <lagrange/mesh_cleanup/remove_duplicate_facets.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/views.h>
 
@@ -127,7 +128,7 @@ TEST_CASE("remap_vertices", "[core][surface][utilities]")
         mesh.initialize_edges();
 
         std::vector<Index> old_to_new{0, 2, 1, 0};
-        LA_REQUIRE_THROWS(remap_vertices<Scalar, Index>(mesh, old_to_new));
+        remap_vertices<Scalar, Index>(mesh, old_to_new);
     }
 
     SECTION("Invalid ordering")
@@ -195,10 +196,179 @@ TEST_CASE("remap_vertices", "[core][surface][utilities]")
 
             auto& attr = mesh.get_attribute<Index>(id);
             REQUIRE(attr.get_num_elements() == 4);
-            REQUIRE(attr.get(0) == 3);
-            REQUIRE(attr.get(1) == 2);
-            REQUIRE(attr.get(2) == 1);
-            REQUIRE(attr.get(3) == 0);
+            REQUIRE(attr.get(0) == 0);
+            REQUIRE(attr.get(1) == 1);
+            REQUIRE(attr.get(2) == 2);
+            REQUIRE(attr.get(3) == 3);
         }
+    }
+}
+
+TEST_CASE("remap_vertices 6 vtx", "[core][surface][utilities]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(3, 4, 5);
+
+    SECTION("merge one side - no edges")
+    {
+        std::vector<Index> old_to_new{0, 1, 2, 1, 2, 3};
+        {
+            auto copy = mesh;
+            copy.initialize_edges();
+            REQUIRE(copy.get_num_edges() == 6);
+        }
+        lagrange::remap_vertices<Scalar, Index>(mesh, old_to_new);
+        mesh.initialize_edges();
+        REQUIRE(mesh.get_num_vertices() == 4);
+        REQUIRE(mesh.get_num_edges() == 5);
+        REQUIRE(mesh.get_num_facets() == 2);
+    }
+
+    SECTION("merge one side - with edges")
+    {
+        std::vector<Index> old_to_new{0, 1, 2, 1, 2, 3};
+        // clang-format off
+        mesh.initialize_edges(std::vector<Index>{
+            0, 1,
+            1, 2,
+            2, 0,
+            3, 4,
+            4, 5,
+            5, 3,
+        });
+        // clang-format on
+        auto edge_index_id = mesh.create_attribute<Index>(
+            "edge_index",
+            lagrange::AttributeElement::Edge,
+            lagrange::AttributeUsage::EdgeIndex,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        auto edge_scalar_id = mesh.create_attribute<Index>(
+            "edge_scalar",
+            lagrange::AttributeElement::Edge,
+            lagrange::AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        auto v2e_index_id = mesh.create_attribute<Index>(
+            "v2e_index",
+            lagrange::AttributeElement::Vertex,
+            lagrange::AttributeUsage::EdgeIndex,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        auto v2e_scalar_id = mesh.create_attribute<Index>(
+            "v2e_scalar",
+            lagrange::AttributeElement::Vertex,
+            lagrange::AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        lagrange::remap_vertices<Scalar, Index>(mesh, old_to_new);
+        REQUIRE(mesh.get_num_vertices() == 4);
+        REQUIRE(mesh.get_num_edges() == 5);
+        REQUIRE(mesh.get_num_facets() == 2);
+        auto edge_index = lagrange::attribute_vector_view<Index>(mesh, edge_index_id);
+        auto edge_scalar = lagrange::attribute_vector_view<Index>(mesh, edge_scalar_id);
+        auto v2e_index = lagrange::attribute_vector_view<Index>(mesh, v2e_index_id);
+        auto v2e_scalar = lagrange::attribute_vector_view<Index>(mesh, v2e_scalar_id);
+        Eigen::VectorX<Index> expected_edge_index(5);
+        Eigen::VectorX<Index> expected_edge_scalar(5);
+        Eigen::VectorX<Index> expected_v2e_index(4);
+        Eigen::VectorX<Index> expected_v2e_scalar(4);
+        expected_edge_index << 0, 1, 2, 3, 4;
+        expected_edge_scalar << 0, 2, 1, 5, 4;
+        expected_v2e_index << 0, 2, 1, 3;
+        expected_v2e_scalar << 0, 1, 2, 5;
+        REQUIRE(edge_index == expected_edge_index);
+        REQUIRE(edge_scalar == expected_edge_scalar);
+        REQUIRE(v2e_index == expected_v2e_index);
+        REQUIRE(v2e_scalar == expected_v2e_scalar);
+    }
+
+    SECTION("merge two tris - no edges")
+    {
+        std::vector<Index> old_to_new{0, 1, 2, 1, 2, 0};
+        {
+            auto copy = mesh;
+            copy.initialize_edges();
+            REQUIRE(copy.get_num_edges() == 6);
+        }
+        lagrange::remap_vertices<Scalar, Index>(mesh, old_to_new);
+        mesh.initialize_edges();
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_edges() == 3);
+        REQUIRE(mesh.get_num_facets() == 2); // duplicate facet!
+        lagrange::remove_duplicate_facets(mesh);
+        REQUIRE(mesh.get_num_facets() == 1);
+        auto V = vertex_view(mesh);
+        REQUIRE(V(0, 0) == 0.5);
+        REQUIRE(V(0, 1) == 0.5);
+    }
+
+    SECTION("merge two tris - with edges")
+    {
+        std::vector<Index> old_to_new{0, 1, 2, 1, 2, 0};
+        // clang-format off
+        mesh.initialize_edges(std::vector<Index>{
+            0, 1,
+            1, 2,
+            2, 0,
+            3, 4,
+            4, 5,
+            5, 3,
+        });
+        // clang-format on
+        auto edge_index_id = mesh.create_attribute<Index>(
+            "edge_index",
+            lagrange::AttributeElement::Edge,
+            lagrange::AttributeUsage::EdgeIndex,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        auto edge_scalar_id = mesh.create_attribute<Index>(
+            "edge_scalar",
+            lagrange::AttributeElement::Edge,
+            lagrange::AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        auto v2e_index_id = mesh.create_attribute<Index>(
+            "v2e_index",
+            lagrange::AttributeElement::Vertex,
+            lagrange::AttributeUsage::EdgeIndex,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        auto v2e_scalar_id = mesh.create_attribute<Index>(
+            "v2e_scalar",
+            lagrange::AttributeElement::Vertex,
+            lagrange::AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 1, 2, 3, 4, 5});
+        lagrange::remap_vertices<Scalar, Index>(mesh, old_to_new);
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_edges() == 3);
+        REQUIRE(mesh.get_num_facets() == 2); // duplicate facet!
+        auto edge_index = lagrange::attribute_vector_view<Index>(mesh, edge_index_id);
+        auto edge_scalar = lagrange::attribute_vector_view<Index>(mesh, edge_scalar_id);
+        auto v2e_index = lagrange::attribute_vector_view<Index>(mesh, v2e_index_id);
+        auto v2e_scalar = lagrange::attribute_vector_view<Index>(mesh, v2e_scalar_id);
+        Eigen::VectorX<Index> expected_edge_index(3);
+        Eigen::VectorX<Index> expected_edge_scalar(3);
+        Eigen::VectorX<Index> expected_v2e_index(3);
+        Eigen::VectorX<Index> expected_v2e_scalar(3);
+        expected_edge_index << 0, 1, 2;
+        expected_edge_scalar << 0, 2, 1;
+        expected_v2e_index << 0, 2, 1;
+        expected_v2e_scalar << 0, 1, 2;
+        REQUIRE(edge_index == expected_edge_index);
+        REQUIRE(edge_scalar == expected_edge_scalar);
+        REQUIRE(v2e_index == expected_v2e_index);
+        REQUIRE(v2e_scalar == expected_v2e_scalar);
     }
 }

@@ -710,7 +710,7 @@ void edge_sort_fast(std::vector<std::array<int, 2>>& edges)
         num_vertices = std::max(num_vertices, e[1] + 1);
     }
     std::vector<int> buckets(num_vertices + 1);
-    auto ids = lagrange::mesh_convert_detail::fast_edge_sort<int>(
+    auto ids = lagrange::internal::fast_edge_sort<int>(
         num_edges,
         num_vertices,
         [&](int e) -> std::array<int, 2> { return edges[e]; },

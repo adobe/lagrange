@@ -62,9 +62,7 @@ def assert_same_vertices_and_facets(mesh, mesh2):
 def match_attribute(mesh, mesh2, id1, id2):
     attr_name = "__unit_test__"
     # Convert both attributes to corner attribute and compare the per-corner value.
-    id1 = lagrange.map_attribute(
-        mesh, id1, attr_name, lagrange.AttributeElement.Corner
-    )
+    id1 = lagrange.map_attribute(mesh, id1, attr_name, lagrange.AttributeElement.Corner)
     id2 = lagrange.map_attribute(
         mesh2, id2, attr_name, lagrange.AttributeElement.Corner
     )
@@ -130,12 +128,8 @@ class TestIO:
 
             required = not exact_match
             # Check special attributes.
-            assert_same_attribute(
-                mesh, mesh2, lagrange.AttributeUsage.UV, required
-            )
-            assert_same_attribute(
-                mesh, mesh2, lagrange.AttributeUsage.Normal, required
-            )
+            assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.UV, required)
+            assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.Normal, required)
             if filename.suffix != ".obj":
                 assert_same_attribute(
                     mesh, mesh2, lagrange.AttributeUsage.Color, required
@@ -178,7 +172,7 @@ class TestIO:
                 self.__save_and_load__(
                     ext,
                     mesh,
-                    binary=(ext==".glb"),
+                    binary=(ext == ".glb"),
                     exact_match=exact_match,
                     selected_attributes=attribute_ids,
                     as_scene=True,
@@ -197,9 +191,7 @@ class TestIO:
         mesh = triangle
         self.save_and_load(mesh)
 
-    def test_single_triangle_with_attributes(
-        self, triangle_with_uv_normal_color
-    ):
+    def test_single_triangle_with_attributes(self, triangle_with_uv_normal_color):
         mesh = triangle_with_uv_normal_color
         self.save_and_load(mesh)
 
