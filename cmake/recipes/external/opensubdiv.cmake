@@ -15,61 +15,71 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'opensubdiv::opensubdiv'")
 
-include(CPM)
-CPMAddPackage(
-    NAME opensubdiv
-    GITHUB_REPOSITORY PixarAnimationStudios/OpenSubdiv
-    GIT_TAG tags/v3_4_4
-    DOWNLOAD_ONLY ON
-)
+block()
+    set(NO_EXAMPLES ON)
+    set(NO_TUTORIALS ON)
+    set(NO_REGRESSION ON)
+    set(NO_PTEX ON)
+    set(NO_DOC ON)
+    set(NO_OMP ON)
+    set(NO_TBB ON)
+    set(NO_CUDA ON)
+    set(NO_OPENCL ON)
+    set(NO_CLEW ON)
+    set(NO_OPENGL ON)
+    set(NO_METAL ON)
+    set(NO_DX ON)
+    set(NO_TESTS ON)
+    set(NO_GLTESTS ON)
+    set(NO_GLEW ON)
+    set(NO_GLFW ON)
+    set(NO_GLFW_X11 ON)
+    set(NO_MACOS_FRAMEWORK ON)
 
-# TODO: Use upstream CMake + Enable TBB
-add_library(opensubdiv)
-add_library(opensubdiv::opensubdiv ALIAS opensubdiv)
+    # We trick OpenSubdiv's CMake into _not_ calling `find_package(TBB)` by setting `TBB_FOUND` to `ON`.
+    set(TBB_FOUND ON)
+    set(TBB_CXX_FLAGS "")
+    include(tbb)
 
-set_target_properties(opensubdiv PROPERTIES FOLDER third_party)
-
-include(GNUInstallDirs)
-target_include_directories(opensubdiv SYSTEM PUBLIC
-    $<BUILD_INTERFACE:${opensubdiv_SOURCE_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
-
-if(CMAKE_HOST_WIN32)
-    target_compile_definitions(opensubdiv PUBLIC _USE_MATH_DEFINES)
-endif()
-
-set_target_properties(opensubdiv PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-file(GLOB SRC_FILES
-    "${opensubdiv_SOURCE_DIR}/opensubdiv/far/*.h"
-    "${opensubdiv_SOURCE_DIR}/opensubdiv/far/*.cpp"
-    "${opensubdiv_SOURCE_DIR}/opensubdiv/sdc/*.h"
-    "${opensubdiv_SOURCE_DIR}/opensubdiv/sdc/*.cpp"
-    "${opensubdiv_SOURCE_DIR}/opensubdiv/vtr/*.h"
-    "${opensubdiv_SOURCE_DIR}/opensubdiv/vtr/*.cpp"
-)
-source_group(
-    TREE "${opensubdiv_SOURCE_DIR}/opensubdiv/"
-    FILES ${SRC_FILES}
-)
-target_sources(opensubdiv PRIVATE ${SRC_FILES})
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
-   "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    target_compile_options(opensubdiv PRIVATE
-        "-Wno-unused-function"
+    include(CPM)
+    CPMAddPackage(
+        NAME opensubdiv
+        GITHUB_REPOSITORY PixarAnimationStudios/OpenSubdiv
+        GIT_TAG v3_6_0
     )
-elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(opensubdiv PRIVATE
-        "-Wno-class-memaccess"
-        "-Wno-cast-function-type"
-        "-Wno-strict-aliasing"
-    )
-endif()
 
-# Install rules
-set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME opensubdiv)
-install(DIRECTORY ${opensubdiv_SOURCE_DIR}/opensubdiv DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
-install(TARGETS opensubdiv EXPORT Opensubdiv_Targets)
-install(EXPORT Opensubdiv_Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/opensubdiv NAMESPACE opensubdiv::)
+    # Note: OpenSubdiv doesn't support being compiled as a shared library on Windows:
+    # https://github.com/PixarAnimationStudios/OpenSubdiv/issues/71
+    if(BUILD_SHARED_LIBS AND TARGET osd_dynamic_cpu)
+        add_library(opensubdiv::opensubdiv ALIAS osd_dynamic_cpu)
+        set(OPENSUBDIV_TARGET osd_dynamic_cpu)
+    else()
+        add_library(opensubdiv::opensubdiv ALIAS osd_static_cpu)
+        set(OPENSUBDIV_TARGET osd_static_cpu)
+    endif()
+
+    # OpenSubdiv's code uses relative header include paths, and fails to properly set a transitive include directory
+    # that propagates to dependent targets, so we need to set it up manually.
+    include(GNUInstallDirs)
+    target_include_directories(${OPENSUBDIV_TARGET} SYSTEM PUBLIC
+        $<BUILD_INTERFACE:${opensubdiv_SOURCE_DIR}>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
+
+    # Set folders for MSVC
+    foreach(name IN ITEMS bfr_obj far_obj osd_cpu_obj osd_static_cpu sdc_obj vtr_obj)
+        if(TARGET ${name})
+            set_target_properties(${name} PROPERTIES FOLDER third_party/opensubdiv/opensubdiv)
+        endif()
+    endforeach()
+    foreach(name IN ITEMS regression_common_obj regression_far_utils_obj)
+        if(TARGET ${name})
+            set_target_properties(${name} PROPERTIES FOLDER third_party/opensubdiv/regression)
+        endif()
+    endforeach()
+    foreach(name IN ITEMS public_headers)
+        if(TARGET ${name})
+            set_target_properties(${name} PROPERTIES FOLDER third_party/opensubdiv/public_headers)
+        endif()
+    endforeach()
+endblock()

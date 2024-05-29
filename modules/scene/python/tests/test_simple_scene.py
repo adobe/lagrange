@@ -79,9 +79,7 @@ class TestSimpleScene:
 
     def test_scene_convert(self, single_triangle):
         scene = lagrange.scene.mesh_to_simple_scene(single_triangle)
-        scene2 = lagrange.scene.meshes_to_simple_scene(
-            [single_triangle, single_triangle]
-        )
+        scene2 = lagrange.scene.meshes_to_simple_scene([single_triangle, single_triangle])
         print(scene, type(scene))
         mesh = lagrange.scene.simple_scene_to_mesh(scene)
         mesh2 = lagrange.scene.simple_scene_to_mesh(scene2)

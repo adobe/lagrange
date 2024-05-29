@@ -34,9 +34,7 @@ class TestCombineMeshes:
         mesh2 = lagrange.SurfaceMesh()
         mesh2.vertices = mesh1.vertices + 10
         facets = mesh1.facets
-        mesh2.facets = np.copy(
-            facets
-        )  # A copy is needed because facets is not writable.
+        mesh2.facets = np.copy(facets)  # A copy is needed because facets is not writable.
 
         out = lagrange.combine_meshes([mesh1, mesh2], True)
         assert np.all(out.vertices[:8] == mesh1.vertices)

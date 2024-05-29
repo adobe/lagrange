@@ -1,5 +1,5 @@
 #
-# Copyright 2021 Adobe. All rights reserved.
+# Copyright 2024 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -9,15 +9,25 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET Tracy::TracyClient)
+if(TARGET Blosc::blosc)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating target 'tracy::client'")
+message(STATUS "Third-party (external): creating target 'Blosc::blosc'")
+
+# TODO: Use external zlib (via miniz)
+# option(PREFER_EXTERNAL_ZLIB "Find and use external Zlib library instead of included sources." ON)
+# include(miniz)
 
 include(CPM)
 CPMAddPackage(
-    NAME tracy
-    GITHUB_REPOSITORY wolfpld/tracy
-    GIT_TAG v0.10
+    NAME blosc
+    GITHUB_REPOSITORY Blosc/c-blosc
+    GIT_TAG v1.21.5
 )
+
+set_target_properties(blosc_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
+
+if(NOT TARGET Blosc::blosc)
+    add_library(Blosc::blosc ALIAS blosc_static)
+endif()

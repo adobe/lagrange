@@ -20,9 +20,7 @@ from .assets import cube
 class TestComputeEdgeLengths:
     def test_cube(self, cube):
         mesh = cube
-        attr_id = lagrange.compute_edge_lengths(
-            mesh, output_attribute_name="edge_lengths"
-        )
+        attr_id = lagrange.compute_edge_lengths(mesh, output_attribute_name="edge_lengths")
         assert mesh.has_attribute("edge_lengths")
         assert attr_id == mesh.get_attribute_id("edge_lengths")
 

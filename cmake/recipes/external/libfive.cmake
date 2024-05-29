@@ -15,8 +15,6 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'libfive::libfive'")
 
-set(LIBFIVE_HASH 248c15c57abd2b1b9ea0e05d0a40f579d225f00f)
-
 include(eigen)
 include(boost)
 
@@ -24,7 +22,7 @@ include(CPM)
 CPMAddPackage(
     NAME libfive
     GITHUB_REPOSITORY libfive/libfive
-    GIT_TAG ${LIBFIVE_HASH}
+    GIT_TAG 248c15c57abd2b1b9ea0e05d0a40f579d225f00f
     DOWNLOAD_ONLY ON
 )
 

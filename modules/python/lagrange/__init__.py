@@ -12,5 +12,6 @@
 from .lagrange import *
 from .lagrange.core import *
 from ._logging import logger
+from ._version import __version__
 
-del _logging, lagrange
+del _logging, lagrange  # type: ignore

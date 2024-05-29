@@ -1,7 +1,7 @@
 [build-system]
 requires = [
-    "scikit-build-core==0.5.1",
-    "nanobind-stubgen@git+https://github.com/jdumas/nanobind-stubgen@e860934",
+    "scikit-build-core==0.8.2",
+    "typing-extensions~=4.1",
 ]
 
 build-backend = "scikit_build_core.build"
@@ -22,10 +22,32 @@ dynamic = ["version"]
 repo = "https://github.com/adobe/lagrange"
 doc = "https://opensource.adobe.com/lagrange-docs"
 
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0.0"
+]
+lint = [
+    "ruff==0.4.3",
+    "mypy==1.1.1"
+]
+packaging = [
+    "twine>=4.0.0"
+]
+dev = [
+    "lagrange[test]",
+    "lagrange[lint]",
+    "lagrange[packaging]"
+]
+
+[tool.black]
+line_length = 100
+
+[tool.ruff]
+line-length = 100
+
 [tool.scikit-build]
 install.components = ["Lagrange_Python_Runtime"]
 wheel.packages = ["modules/python/lagrange"]
-
 
 [tool.scikit-build.cmake.define]
 LAGRANGE_ASSERT_DEBUG_BREAK = false

@@ -25,9 +25,7 @@ class ColorFormatter(logging.Formatter):
     red = colorama.Fore.RED
     bold_red = colorama.Style.BRIGHT + colorama.Fore.RED
     reset = colorama.Style.RESET_ALL
-    format_template = (
-        "[%(asctime)s] [%(name)s] {color}[%(levelname)s]{reset} %(message)s"
-    )
+    format_template = "[%(asctime)s] [%(name)s] {color}[%(levelname)s]{reset} %(message)s"
 
     FORMATS = {
         logging.DEBUG: format_template.format(color=grey, reset=reset),

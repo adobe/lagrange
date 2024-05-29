@@ -6,14 +6,10 @@ from pathlib import Path
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Convert a mesh file to a different format."
-    )
+    parser = argparse.ArgumentParser(description="Convert a mesh file to a different format.")
     parser.add_argument("input_mesh", help="input mesh file")
     parser.add_argument("output_mesh", help="output mesh file")
-    parser.add_argument(
-        "--triangulate", "-t", action="store_true", help="triangulate the mesh"
-    )
+    parser.add_argument("--triangulate", "-t", action="store_true", help="triangulate the mesh")
     parser.add_argument(
         "--logging-level",
         "-l",

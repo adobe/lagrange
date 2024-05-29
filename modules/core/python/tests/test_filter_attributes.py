@@ -35,9 +35,7 @@ class TestFilterAttributes:
     def test_usage(self, cube_with_uv):
         mesh = cube_with_uv
 
-        mesh2 = lagrange.filter_attributes(
-            mesh, included_usages=[lagrange.AttributeUsage.UV]
-        )
+        mesh2 = lagrange.filter_attributes(mesh, included_usages=[lagrange.AttributeUsage.UV])
         assert mesh2.has_attribute("uv")
 
         mesh2 = lagrange.filter_attributes(mesh, included_usages=[])

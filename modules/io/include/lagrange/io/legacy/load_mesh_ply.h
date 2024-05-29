@@ -74,7 +74,7 @@ std::unique_ptr<MeshType> load_mesh_ply(const fs::path& filename)
         comments);
 
     auto mesh = create_mesh(std::move(V), std::move(F));
-    if (N.rows() == mesh->get_num_vertices()) {
+    if (static_cast<Index>(N.rows()) == mesh->get_num_vertices()) {
         logger().debug("Setting vertex normal");
         mesh->add_vertex_attribute("normal");
         mesh->import_vertex_attribute("normal", N);
@@ -84,7 +84,7 @@ std::unique_ptr<MeshType> load_mesh_ply(const fs::path& filename)
         return std::find(VDheader.begin(), VDheader.end(), name) != VDheader.end();
     };
 
-    if (VD.rows() == mesh->get_num_vertices()) {
+    if (static_cast<Index>(VD.rows()) == mesh->get_num_vertices()) {
         if (has_attribute("red") && has_attribute("green") && has_attribute("blue")) {
             bool has_alpha = has_attribute("alpha");
             int n = (has_alpha ? 4 : 3);

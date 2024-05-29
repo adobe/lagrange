@@ -65,9 +65,7 @@ class TestPermuteVertices:
 
         # Corner index should be unchnaged.
         corner_index_attr = mesh.attribute("corner_index")
-        assert np.all(
-            corner_index_attr.data == np.arange(mesh.num_corners, dtype=np.intc)
-        )
+        assert np.all(corner_index_attr.data == np.arange(mesh.num_corners, dtype=np.intc))
 
         for i in range(mesh.num_vertices):
             ci = mesh.get_first_corner_around_vertex(i)
