@@ -12,12 +12,7 @@ colorama.just_fix_windows_console()
 
 
 def print_header(message):
-    print(
-        colorama.Fore.YELLOW
-        + colorama.Style.BRIGHT
-        + message
-        + colorama.Style.RESET_ALL
-    )
+    print(colorama.Fore.YELLOW + colorama.Style.BRIGHT + message + colorama.Style.RESET_ALL)
 
 
 def print_green(message):
@@ -52,9 +47,7 @@ def print_basic_info(mesh, info):
     info["num_facets"] = num_facets
     info["num_edges"] = num_edges
     info["num_corners"] = num_corners
-    print(
-        f"#v: {num_vertices:<10}#f: {num_facets:<10}#e: {num_edges:<10}#c: {num_corners:<10}"
-    )
+    print(f"#v: {num_vertices:<10}#f: {num_facets:<10}#e: {num_edges:<10}#c: {num_corners:<10}")
 
     # Mesh bbox
     bbox_min = np.amin(mesh.vertices, axis=0)
@@ -126,9 +119,7 @@ def print_attributes(mesh):
         num_channels = attr.num_channels
 
         print(f"Attribute {colorama.Fore.GREEN}{name}{colorama.Style.RESET_ALL}")
-        print(
-            f"  id:{id:<5}usage: {usage:<10}elem: {element_type:<10}channels: {num_channels}"
-        )
+        print(f"  id:{id:<5}usage: {usage:<10}elem: {element_type:<10}channels: {num_channels}")
 
 
 def load_info(mesh_file):

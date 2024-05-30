@@ -63,7 +63,9 @@ struct fmt::formatter<T, std::enable_if_t<std::is_base_of<Eigen::DenseBase<T>, T
                 for (Eigen::Index ic = 0; ic < a.cols(); ic++) {
                     out = fmt::format_to(out, "{} ", this->nested(a(ir, ic)));
                 }
-                out = fmt::format_to(out, "\n");
+                if (ir + 1 < a.rows()) {
+                    out = fmt::format_to(out, "\n");
+                }
             }
             return out;
         });
@@ -148,7 +150,7 @@ struct fmt::is_range<
     #include <lagrange/utils/warnoff.h>
     #include <spdlog/fmt/ostr.h>
     #include <lagrange/utils/warnon.h>
-    // clang-format on
+// clang-format on
 
 template <typename Derived>
 struct fmt::is_range<

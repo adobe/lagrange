@@ -40,8 +40,6 @@ endif()
 # 2. installation
 if(SKBUILD)
     message(STATUS "Lagrange: installing python binding to ${SKBUILD_PLATLIB_DIR}/lagrange")
-    # Install python extension directly at ${CMAKE_INSTALL_PREFIX}, which will
-    # be set by `setup.py`.
     install(TARGETS lagrange_python tbb
         DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
         COMPONENT Lagrange_Python_Runtime
@@ -98,9 +96,26 @@ NB_MODULE(lagrange, m)
 
     # Lastly, add stubgen installation command.
     if(SKBUILD)
+        # Create the lagrange directory containing stubs.
+        file(MAKE_DIRECTORY ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange)
+
         # Generate stubs for python binding within the install location.
-        install(CODE
-            "execute_process(COMMAND ${Python_EXECUTABLE} -m nanobind_stubgen lagrange WORKING_DIRECTORY ${SKBUILD_PLATLIB_DIR}/lagrange)"
-            COMPONENT Lagrange_Python_Runtime)
+        foreach(module_name IN ITEMS ${active_modules})
+            nanobind_add_stub(
+                lagrange_python_stubgen_${module_name}
+                INSTALL_TIME
+                MODULE lagrange.${module_name}
+                OUTPUT ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange/${module_name}.pyi
+                DEPENDS lagrange_python
+                COMPONENT Lagrange_Python_Runtime
+                PYTHON_PATH ${SKBUILD_PLATLIB_DIR}/lagrange/
+                VERBOSE
+            )
+        endforeach()
     endif()
 endfunction()
+
+# 5. dump lagrange version
+if(SKBUILD)
+    file(WRITE ${SKBUILD_PLATLIB_DIR}/lagrange/_version.py "__version__='${lagrange_version}'")
+endif()

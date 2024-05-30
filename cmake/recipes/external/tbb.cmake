@@ -141,9 +141,16 @@ endif()
 install(TARGETS tbb_tbb EXPORT TBB)
 
 # Set -fPIC flag and IDE folder name for tbb targets
-foreach(name IN ITEMS tbb_def_files tbb_static tbb tbbmalloc tbbmalloc_static tbb_tbb)
+foreach(name IN ITEMS tbb_def_files tbb_static tbb tbbmalloc tbbmalloc_static tbbmalloc_proxy tbb_tbb)
     if(TARGET ${name})
         set_target_properties(${name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
-        set_target_properties(${name} PROPERTIES FOLDER third_party)
+        set_target_properties(${name} PROPERTIES FOLDER third_party/tbb)
     endif()
 endforeach()
+
+# Silence some compiler warnings
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+    target_compile_options(tbb PRIVATE
+        "-Wno-class-memaccess"
+    )
+endif()

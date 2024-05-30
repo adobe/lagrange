@@ -20,9 +20,7 @@ from .assets import single_triangle, cube
 class TestComputeDihedralAngles:
     def test_cube(self, cube):
         mesh = cube
-        attr_id = lagrange.compute_dihedral_angles(
-            mesh, output_attribute_name="dihedral_angles"
-        )
+        attr_id = lagrange.compute_dihedral_angles(mesh, output_attribute_name="dihedral_angles")
         assert mesh.has_attribute("dihedral_angles")
         assert mesh.get_attribute_name(attr_id) == "dihedral_angles"
 

@@ -63,9 +63,7 @@ def match_attribute(mesh, mesh2, id1, id2):
     attr_name = "__unit_test__"
     # Convert both attributes to corner attribute and compare the per-corner value.
     id1 = lagrange.map_attribute(mesh, id1, attr_name, lagrange.AttributeElement.Corner)
-    id2 = lagrange.map_attribute(
-        mesh2, id2, attr_name, lagrange.AttributeElement.Corner
-    )
+    id2 = lagrange.map_attribute(mesh2, id2, attr_name, lagrange.AttributeElement.Corner)
 
     attr1 = mesh.attribute(id1)
     attr2 = mesh2.attribute(id2)
@@ -131,9 +129,7 @@ class TestIO:
             assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.UV, required)
             assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.Normal, required)
             if filename.suffix != ".obj":
-                assert_same_attribute(
-                    mesh, mesh2, lagrange.AttributeUsage.Color, required
-                )
+                assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.Color, required)
 
             if selected_attributes is not None:
                 for attr_id in selected_attributes:
@@ -195,9 +191,7 @@ class TestIO:
         mesh = triangle_with_uv_normal_color
         self.save_and_load(mesh)
 
-    def test_single_triangle_with_attributes_explicit(
-        self, triangle_with_uv_normal_color
-    ):
+    def test_single_triangle_with_attributes_explicit(self, triangle_with_uv_normal_color):
         mesh = triangle_with_uv_normal_color
         attr_ids = mesh.get_matching_attribute_ids()
         assert len(attr_ids) != 0

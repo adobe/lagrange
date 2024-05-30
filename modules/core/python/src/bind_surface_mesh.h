@@ -310,7 +310,8 @@ void bind_surface_mesh(nanobind::module_& m)
                     } else if (self.has_edges() && num_elements == self.get_num_edges()) {
                         elem_type = AttributeElement::Edge;
                     } else {
-                        throw nb::type_error("Cannot infer attribute element type from initial_values!");
+                        throw nb::type_error(
+                            "Cannot infer attribute element type from initial_values!");
                     }
                 }
 
@@ -591,7 +592,19 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def(
         "delete_attribute",
         [](MeshType& self, std::string_view name) { self.delete_attribute(name); },
-        "name"_a);
+        "name"_a,
+        R"(Delete an attribute by name.
+
+:param name: Name of the attribute.
+:type name: str)");
+    surface_mesh_class.def(
+        "delete_attribute",
+        [](MeshType& self, AttributeId id) { self.delete_attribute(self.get_attribute_name(id)); },
+        "id"_a,
+        R"(Delete an attribute by id.
+
+:param id: Id of the attribute.
+:type id: AttributeId)");
     surface_mesh_class.def("has_attribute", &MeshType::has_attribute);
     surface_mesh_class.def(
         "is_attribute_indexed",
@@ -956,15 +969,18 @@ If not provided, the edges are initialized in an arbitrary order.
 
     surface_mesh_class.def(
         "get_matching_attribute_ids",
-        [](MeshType& self, AttributeElement* element, AttributeUsage* usage, Index num_channels) {
+        [](MeshType& self,
+           std::optional<AttributeElement> element,
+           std::optional<AttributeUsage> usage,
+           Index num_channels) {
             std::vector<AttributeId> attr_ids;
             attr_ids.reserve(4);
             self.seq_foreach_attribute_id([&](AttributeId attr_id) {
                 const auto name = self.get_attribute_name(attr_id);
                 if (self.attr_name_is_reserved(name)) return;
                 const auto& attr = self.get_attribute_base(attr_id);
-                if (element != nullptr && attr.get_element_type() != *element) return;
-                if (usage != nullptr && attr.get_usage() != *usage) return;
+                if (element && attr.get_element_type() != *element) return;
+                if (usage && attr.get_usage() != *usage) return;
                 if (num_channels != 0 && attr.get_num_channels() != num_channels) return;
                 attr_ids.push_back(attr_id);
             });

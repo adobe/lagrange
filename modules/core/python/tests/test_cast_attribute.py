@@ -36,9 +36,7 @@ class TestCastAttribute:
         assert mesh.attribute("test").dtype == np.uint8
 
         # Cast to another attribute with type int32
-        attr_id = lagrange.cast_attribute(
-            mesh, "test", np.int32, output_attribute_name="test2"
-        )
+        attr_id = lagrange.cast_attribute(mesh, "test", np.int32, output_attribute_name="test2")
         assert mesh.get_attribute_name(attr_id) == "test2"
         assert mesh.attribute("test2").dtype == np.int32
         assert mesh.attribute("test").dtype == np.uint8  # Same as before

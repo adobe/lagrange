@@ -36,7 +36,7 @@ Tensor<ValueType> create_empty_tensor()
     // Tensor object must have a non-null data point.
     static ValueType dummy_data;
     size_t shape[] = {0};
-    return {&dummy_data, 1, shape};
+    return {&dummy_data, 1, shape, nb::handle()};
 }
 
 bool is_vector(const Shape& shape)

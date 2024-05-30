@@ -38,7 +38,7 @@ namespace legacy {
 std::unique_ptr<aiScene> load_scene_assimp(const lagrange::fs::path& filename);
 std::unique_ptr<aiScene> load_scene_assimp_from_memory(const void* buffer, size_t size);
 
-template <typename MeshType, 
+template <typename MeshType,
     std::enable_if_t<lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 std::vector<std::unique_ptr<MeshType>> load_mesh_assimp(const lagrange::fs::path& filename);
 template <typename MeshType>
@@ -79,7 +79,7 @@ inline std::unique_ptr<aiScene> load_scene_assimp_from_memory(const void* buffer
     return std::unique_ptr<aiScene>(importer.GetOrphanedScene());
 }
 
-template <typename MeshType, 
+template <typename MeshType,
     std::enable_if_t<lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* /* = nullptr */>
 std::vector<std::unique_ptr<MeshType>> load_mesh_assimp(const lagrange::fs::path& filename)
 {
@@ -140,7 +140,7 @@ std::unique_ptr<MeshType> convert_mesh_assimp(const aiMesh* mesh)
     if (FacetArray::ColsAtCompileTime != Eigen::Dynamic && FacetArray::ColsAtCompileTime != nvpf) {
         logger().warn(
             "FacetArray cannot hold facets with n!={} vertex per facet, triangulating",
-            FacetArray::ColsAtCompileTime);
+            static_cast<int>(FacetArray::ColsAtCompileTime));
         triangulate = true;
         nvpf = 3;
     }

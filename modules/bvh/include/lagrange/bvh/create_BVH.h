@@ -45,9 +45,6 @@ std::unique_ptr<BVH<VertexArray, ElementArray>> create_BVH( //
     default: //
         throw std::runtime_error("Unsupported BVH engine type: " + bvhtype_to_string(engine_type));
     }
-
-    // Don't complain dear compiler
-    return nullptr;
 }
 
 /**

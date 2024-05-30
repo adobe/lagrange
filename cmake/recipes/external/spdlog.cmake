@@ -25,6 +25,7 @@ endif()
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME "spdlog")
 
 # Versions of fmt bundled with spdlog:
+# - spdlog 1.14.1 -> fmt 10.2.1
 # - spdlog 1.13.0 -> fmt 9.1.0
 # - spdlog 1.12.0 -> fmt 9.1.0
 # - spdlog 1.11.0 -> fmt 9.1.0
@@ -33,7 +34,7 @@ include(CPM)
 CPMAddPackage(
     NAME spdlog
     GITHUB_REPOSITORY gabime/spdlog
-    GIT_TAG v1.13.0
+    GIT_TAG v1.14.1
 )
 
 set_target_properties(spdlog PROPERTIES POSITION_INDEPENDENT_CODE ON)

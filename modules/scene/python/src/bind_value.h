@@ -35,7 +35,6 @@ struct type_caster<lagrange::scene::Value>
     {
         using CasterT = make_caster<T>;
 
-        flags |= (uint8_t)cast_flags::none_disallowed;
         CasterT caster;
         if (!caster.from_python(src, flags, cleanup)) return false;
         value.set(caster.operator cast_t<T>());

@@ -14,6 +14,7 @@
 #include <lagrange/utils/invalid.h>
 
 #include <cstddef>
+#include <vector>
 
 namespace lagrange::scene {
 
@@ -61,6 +62,9 @@ struct RemeshingOptions
 
     /// Behavior for meshes without instances in the scene.
     UninstantiatedMeshesStrategy uninstantiated_meshes_strategy = UninstantiatedMeshesStrategy::None;
+
+    /// Optional per-instance weights/importance. Must be > 0.
+    std::vector<float> per_instance_importance;
 };
 
 } // namespace lagrange::scene

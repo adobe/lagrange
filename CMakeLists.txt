@@ -32,6 +32,7 @@ endif()
 cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) # Honor visibility properties for all target types.
+set(CMAKE_POLICY_DEFAULT_CMP0069 NEW) # INTERPROCEDURAL_OPTIMIZATION is enforced when enabled.
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # Avoid overriding normal variables with option()
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
 set(CMAKE_POLICY_DEFAULT_CMP0126 NEW) # Avoid overriding normal variables with set(CACHE)
@@ -269,6 +270,19 @@ if(LAGRANGE_MODULE_ANORIGAMI OR LAGRANGE_MODULE_MESHPROC OR LAGRANGE_MODULE_CONT
     if(NOT ARPACK_BUILD_FROM_SOURCE)
         set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
         option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
+    endif()
+endif()
+
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    # Enable Blosc/Zlib for OpenVDB in toplevel builds
+    option(USE_BLOSC "" ON)
+    option(USE_ZLIB "" ON)
+
+    # ASM (used by Blosc) and MASM (used by legacy TBB) may be needed in the same build, so we enable
+    # them both at the top-level, otherwise this CMake error can be triggered:
+    # https://gitlab.kitware.com/cmake/cmake/-/issues/25042
+    if(MSVC)
+        enable_language(ASM ASM_MASM)
     endif()
 endif()
 

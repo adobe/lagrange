@@ -19,5 +19,5 @@ include(CPM)
 CPMAddPackage(
     NAME tracy
     GITHUB_REPOSITORY wolfpld/tracy
-    GIT_TAG v0.9.1
+    GIT_TAG v0.10
 )

@@ -34,8 +34,8 @@ include(CMakeDependentOption)
 cmake_dependent_option(OPENVDB_INSTALL_CMAKE_MODULES "" OFF "OPENVDB_BUILD_CORE" OFF)
 
 # TODO: Enable Blosc/Zlib
-option(USE_BLOSC "" OFF) # maybe later
-option(USE_ZLIB "" OFF) # maybe later
+option(USE_BLOSC "" OFF)
+option(USE_ZLIB "" OFF)
 option(USE_LOG4CPLUS "" OFF) # maybe later
 option(USE_EXR "" OFF)
 option(USE_CCACHE "" OFF)
@@ -113,6 +113,20 @@ function(openvdb_import_target)
     include(ilmbase)
     ignore_package(TBB)
     ignore_package(Boost)
+
+    if(USE_ZLIB)
+        ignore_package(ZLIB)
+        include(miniz)
+        if(NOT TARGET ZLIB::ZLIB)
+            get_target_property(_aliased miniz::miniz ALIASED_TARGET)
+            add_library(ZLIB::ZLIB ALIAS ${_aliased})
+        endif()
+    endif()
+
+    if(USE_BLOSC)
+        include(blosc)
+        ignore_package(Blosc)
+    endif()
 
     # Ready to include openvdb CMake
     include(CPM)

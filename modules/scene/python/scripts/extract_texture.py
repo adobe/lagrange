@@ -30,9 +30,7 @@ def parse_args():
 def dump_texture(img, filename):
     img.uri = filename
     img_buffer = img.image
-    buffer = img_buffer.data.reshape(
-        (img_buffer.height, img_buffer.width, img_buffer.num_channels)
-    )
+    buffer = img_buffer.data.reshape((img_buffer.height, img_buffer.width, img_buffer.num_channels))
     if img_buffer.num_channels == 4:
         im = Image.fromarray(buffer, "RGBA")
     elif img_buffer.num_channels == 3:
@@ -61,9 +59,9 @@ def main():
                     assert tex.image != lagrange.invalid_index
                     img = scene.images[tex.image]
                     if len(img.image.data) != 0:
-                        texture_filename = output_filename.with_suffix(
-                            ".png"
-                        ).with_stem(f"{basename}_{texture_count:03}")
+                        texture_filename = output_filename.with_suffix(".png").with_stem(
+                            f"{basename}_{texture_count:03}"
+                        )
                         dump_texture(img, texture_filename)
                         texture_count += 1
 
