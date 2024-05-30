@@ -19,12 +19,16 @@ message(STATUS "Third-party (external): creating target 'Blosc::blosc'")
 # option(PREFER_EXTERNAL_ZLIB "Find and use external Zlib library instead of included sources." ON)
 # include(miniz)
 
-include(CPM)
-CPMAddPackage(
-    NAME blosc
-    GITHUB_REPOSITORY Blosc/c-blosc
-    GIT_TAG v1.21.5
-)
+block()
+    set(BUILD_TESTS OFF)
+
+    include(CPM)
+    CPMAddPackage(
+        NAME blosc
+        GITHUB_REPOSITORY Blosc/c-blosc
+        GIT_TAG v1.21.5
+    )
+endblock()
 
 set_target_properties(blosc_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
