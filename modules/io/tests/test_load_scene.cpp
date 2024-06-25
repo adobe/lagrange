@@ -23,8 +23,10 @@
 #include <lagrange/io/save_mesh_obj.h>
 #include <lagrange/io/save_scene_gltf.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/utils/utils.h>
 #include <lagrange/views.h>
+
 #include <catch2/catch_approx.hpp>
 
 using namespace lagrange;
@@ -70,11 +72,13 @@ TEST_CASE("load_scene_animatedCube", "[io]")
     SECTION("gltf")
     {
         scene = io::load_scene_gltf<SceneType>(filename, opt);
+        REQUIRE(scene.meshes.front().get_num_vertices() == 36);
     }
 #ifdef LAGRANGE_WITH_ASSIMP
     SECTION("assimp")
     {
         scene = io::load_scene_assimp<SceneType>(filename, opt);
+        REQUIRE(scene.meshes.front().get_num_vertices() == 24);
     }
 #endif
 
@@ -88,8 +92,6 @@ TEST_CASE("load_scene_animatedCube", "[io]")
     REQUIRE(scene.skeletons.empty());
     //REQUIRE(!scene.animations.empty()); // TODO
     auto mesh = scene.meshes.front();
-    // assimp is too smart and merges the vertices
-    REQUIRE((mesh.get_num_vertices() == 36 || mesh.get_num_vertices() == 24));
     REQUIRE(mesh.get_num_facets() == 12);
     REQUIRE(mesh.has_attribute(AttributeName::normal));
     REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
@@ -100,6 +102,7 @@ TEST_CASE("load_scene_avocado", "[io]")
     io::LoadOptions opt;
     using SceneType = scene::Scene32f;
     using MeshType = SceneType::MeshType;
+    opt.stitch_vertices = true;
 
     SceneType scene;
     std::string uv_attr_name = std::string(AttributeName::texcoord) + "_0";
@@ -161,7 +164,7 @@ TEST_CASE("load_scene_avocado", "[io]")
     REQUIRE(scene.skeletons.empty());
     REQUIRE(scene.animations.empty());
     MeshType mesh = scene.meshes.front();
-    REQUIRE(mesh.get_num_vertices() == 406);
+    REQUIRE(mesh.get_num_vertices() == 363);
     REQUIRE(mesh.get_num_facets() == 682);
     REQUIRE(mesh.has_attribute(uv_attr_name));
     REQUIRE(mesh.has_attribute(AttributeName::normal));
@@ -194,10 +197,13 @@ TEST_CASE("load_scene_avocado", "[io]")
     std::vector<Eigen::Vector2f> vt_truth = {
         Eigen::Vector2f(0.86037403, 0.66977674),
         Eigen::Vector2f(0.88697016, 0.687139),
-        Eigen::Vector2f(0.87410265, 0.7009108)};
+        Eigen::Vector2f(0.87410265, 0.7009108),
+    };
     for (int i = 0; i < 3; ++i) {
-        auto vt = uv_values->get_row(uv_indices->get(f0[i]));
-        REQUIRE(Eigen::Vector2f(vt[0], vt[1]).isApprox(vt_truth[f0[i]], p));
+        auto vt = uv_values->get_row(uv_indices->get(i));
+        const Eigen::Vector2f x(vt[0], vt[1]);
+        const Eigen::Vector2f y = vt_truth[i];
+        REQUIRE(x.isApprox(y, p));
     }
 }
 

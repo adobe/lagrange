@@ -80,19 +80,24 @@ void bind_mesh_cleanup(nanobind::module_& m)
 
     m.def(
         "remove_duplicate_vertices",
-        [](MeshType& mesh, std::optional<std::vector<AttributeId>> extra_attributes) {
+        [](MeshType& mesh,
+           std::optional<std::vector<AttributeId>> extra_attributes,
+           bool boundary_only) {
             RemoveDuplicateVerticesOptions opts;
             if (extra_attributes.has_value()) {
                 opts.extra_attributes = std::move(extra_attributes.value());
             }
+            opts.boundary_only = boundary_only;
             remove_duplicate_vertices(mesh, opts);
         },
         "mesh"_a,
         "extra_attributes"_a = nb::none(),
+        "boundary_only"_a = false,
         R"(Remove duplicate vertices from a mesh.
 
 :param mesh:             The input mesh.
-:param extra_attributes: Two vertices are considered duplicates if they have the same position and the same values for all attributes in `extra_attributes`.)");
+:param extra_attributes: Two vertices are considered duplicates if they have the same position and the same values for all attributes in `extra_attributes`.
+:param boundary_only:    Only remove duplicate vertices on the boundary.)");
 
     m.def(
         "remove_duplicate_facets",

@@ -22,12 +22,31 @@ using namespace lagrange;
 // this file is a single gltf with embedded buffers
 TEST_CASE("load_mesh_gltf", "[io]")
 {
-    auto mesh = io::load_mesh_gltf<lagrange::SurfaceMesh32f>(
-        testing::get_data_path("open/io/three_cubes_instances.gltf"));
-    REQUIRE(mesh.get_num_vertices() == 3 * 24);
-    REQUIRE(mesh.get_num_facets() == 3 * 12);
-    REQUIRE(mesh.has_attribute(AttributeName::normal));
-    REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
+    SECTION("stitched")
+    {
+        lagrange::io::LoadOptions options;
+        options.stitch_vertices = true;
+        auto mesh = io::load_mesh_gltf<lagrange::SurfaceMesh32f>(
+            testing::get_data_path("open/io/three_cubes_instances.gltf"),
+            options);
+        REQUIRE(mesh.get_num_vertices() == 3 * 8);
+        REQUIRE(mesh.get_num_facets() == 3 * 12);
+        REQUIRE(mesh.has_attribute(AttributeName::normal));
+        REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
+    }
+
+    SECTION("unstitched")
+    {
+        lagrange::io::LoadOptions options;
+        options.stitch_vertices = false;
+        auto mesh = io::load_mesh_gltf<lagrange::SurfaceMesh32f>(
+            testing::get_data_path("open/io/three_cubes_instances.gltf"),
+            options);
+        REQUIRE(mesh.get_num_vertices() == 3 * 24);
+        REQUIRE(mesh.get_num_facets() == 3 * 12);
+        REQUIRE(mesh.has_attribute(AttributeName::normal));
+        REQUIRE(mesh.has_attribute(std::string(AttributeName::texcoord) + "_0"));
+    }
 }
 
 TEST_CASE("load_simple_scene_gltf", "[io]")

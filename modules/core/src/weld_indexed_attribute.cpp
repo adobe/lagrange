@@ -14,9 +14,11 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/invert_mapping.h>
+#include <lagrange/internal/visit_attribute.h>
 #include <lagrange/utils/DisjointSets.h>
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
 
@@ -31,16 +33,15 @@
 
 namespace lagrange {
 
-namespace internal {
+namespace {
 
-template <typename ValueType, typename Scalar, typename Index>
+template <typename ValueType, typename Scalar, typename Index, typename Func>
 void weld_indexed_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId attr_id,
-    function_ref<bool(Index, Index)> equal)
+    IndexedAttribute<ValueType, Index>& attr,
+    Func equal)
 {
     mesh.initialize_edges();
-    auto& attr = mesh.template ref_indexed_attribute<ValueType>(attr_id);
     auto& attr_values = attr.values();
     auto values = matrix_view(attr_values);
     auto indices = matrix_ref(attr.indices());
@@ -48,6 +49,7 @@ void weld_indexed_attribute(
     const Index num_vertices = mesh.get_num_vertices();
     const Index num_values = static_cast<Index>(values.rows());
 
+    // Sort and find duplicate rows
     std::vector<Index> index_map(num_values);
     std::iota(index_map.begin(), index_map.end(), 0);
     tbb::parallel_for((Index)0, num_vertices, [&](Index vi) {
@@ -67,6 +69,8 @@ void weld_indexed_attribute(
         auto num_unique_indices = std::distance(first, last);
         if (num_unique_indices <= 1) return;
 
+        // TODO: This is not thread-safe if corners from multiple vertices are assigned the same
+        // indices (e.g. a cube where each facet is assigned the same uv vertices).
         for (auto itr = first; itr != last; itr++) {
             Index i = *itr;
             if (index_map[i] != i) continue;
@@ -117,31 +121,62 @@ void weld_indexed_attribute(
     });
 }
 
-} // namespace internal
+template <typename DerivedA, typename DerivedB>
+bool allclose(
+    const Eigen::DenseBase<DerivedA>& a,
+    const Eigen::DenseBase<DerivedB>& b,
+    const typename DerivedA::RealScalar& rtol =
+        Eigen::NumTraits<typename DerivedA::RealScalar>::dummy_precision(),
+    const typename DerivedA::RealScalar& atol =
+        Eigen::NumTraits<typename DerivedA::RealScalar>::epsilon())
+{
+    return ((a.derived() - b.derived()).array().abs() <= (atol + rtol * b.derived().array().abs()))
+        .all();
+}
+
+} // namespace
 
 template <typename Scalar, typename Index>
-void weld_indexed_attribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId attr_id)
+void weld_indexed_attribute(
+    SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId attr_id,
+    const WeldOptions& options)
 {
-#define LA_X_weld_indexed_attribute(_, ValueType)                              \
-    if (mesh.template is_attribute_type<ValueType>(attr_id)) {                 \
-        auto& attr = mesh.template get_indexed_attribute<ValueType>(attr_id);  \
-        auto& values = matrix_view(attr.values());                             \
-        internal::weld_indexed_attribute<ValueType, Scalar, Index>(            \
-            mesh,                                                              \
-            attr_id,                                                           \
-            [&values](Index i, Index j) -> bool {                              \
-                return (values.row(i).array() == values.row(j).array()).all(); \
-            });                                                                \
-        return;                                                                \
-    }
-    LA_ATTRIBUTE_X(weld_indexed_attribute, 0)
-#undef LA_X_weld_indexed_attribute
+    lagrange::internal::visit_attribute_write(mesh, attr_id, [&](auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+        if constexpr (AttributeType::IsIndexed) {
+            using ValueType = typename AttributeType::ValueType;
+            auto values = matrix_view(attr.values());
+            if (options.epsilon_rel.has_value() || options.epsilon_abs.has_value()) {
+                const ValueType eps_rel = options.epsilon_rel.has_value()
+                                              ? safe_cast<ValueType>(options.epsilon_rel.value())
+                                              : Eigen::NumTraits<ValueType>::dummy_precision();
+                const ValueType eps_abs = options.epsilon_abs.has_value()
+                                              ? safe_cast<ValueType>(options.epsilon_abs.value())
+                                              : Eigen::NumTraits<ValueType>::epsilon();
+                weld_indexed_attribute(
+                    mesh,
+                    attr,
+                    [&](Index i, Index j) -> bool {
+                        return allclose(values.row(i), values.row(j), eps_rel, eps_abs);
+                    });
+            } else {
+                weld_indexed_attribute(
+                    mesh,
+                    attr,
+                    [&](Index i, Index j) -> bool {
+                        return (values.row(i).array() == values.row(j).array()).all();
+                    });
+            }
+        }
+    });
 }
 
 #define LA_X_weld_indexed_attribute(ValueType, Scalar, Index)        \
     template LA_CORE_API void weld_indexed_attribute<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                                 \
-        AttributeId);
+        AttributeId,                                                 \
+        const WeldOptions& options);
 
 LA_SURFACE_MESH_X(weld_indexed_attribute, 0)
 

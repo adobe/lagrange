@@ -24,6 +24,8 @@
 
 #include <mshio/mshio.h>
 
+#include "stitch_mesh.h"
+
 #include <algorithm>
 
 namespace lagrange::io {
@@ -251,6 +253,10 @@ MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& options)
     extract_vertex_attributes(spec, mesh, options);
     extract_facet_attributes(spec, mesh, options);
     extract_corner_attributes(spec, mesh, options);
+
+    if (options.stitch_vertices) {
+        stitch_mesh(mesh);
+    }
 
     return mesh;
 }

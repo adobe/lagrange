@@ -88,7 +88,6 @@ struct LoadOptions
 
     LA_IGNORE_DEPRECATION_WARNING_END
 
-
     /// Triangulate any polygonal facet with > 3 vertices
     bool triangulate = false;
 
@@ -115,6 +114,9 @@ struct LoadOptions
 
     /// Load external images
     bool load_images = true;
+
+    /// Stitch duplicate boundary vertices together when loading file formats such as glTF
+    bool stitch_vertices = false;
 
     /**
      * Search path for related files, such as .mtl, .bin, or image textures.

@@ -68,8 +68,11 @@ AttributeId compute_seam_edges(
                 la_debug_assert(v[1] == v1);
                 if (!prev_indices.has_value()) {
                     prev_indices = {indices[c0], indices[c1]};
-                } else if ((*prev_indices)[0] != indices[c0] || (*prev_indices)[1] != indices[c1]) {
-                    output_is_seam[e] = 1;
+                } else {
+                    if (((*prev_indices)[0] != indices[c0]) ||
+                        ((*prev_indices)[1] != indices[c1])) {
+                        output_is_seam[e] = 1;
+                    }
                 }
             });
         });

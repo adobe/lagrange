@@ -99,8 +99,12 @@ NB_MODULE(lagrange, m)
         # Create the lagrange directory containing stubs.
         file(MAKE_DIRECTORY ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange)
 
+        # Write __init__.pyi to import all stubs.
+        set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange/__init__.pyi)
+
         # Generate stubs for python binding within the install location.
         foreach(module_name IN ITEMS ${active_modules})
+            file(APPEND ${init_pyi_file} "import .${module_name} as ${module_name}\n")
             nanobind_add_stub(
                 lagrange_python_stubgen_${module_name}
                 INSTALL_TIME
