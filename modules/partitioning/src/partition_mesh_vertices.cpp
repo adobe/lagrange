@@ -28,19 +28,50 @@ namespace {
 
 } // namespace
 
-namespace lagrange {
-namespace partitioning {
+namespace lagrange::partitioning::internal {
 
 Eigen::Matrix<index_t, Eigen::Dynamic, 1> partition_mesh_vertices_raw(
-    index_t num_elems,
-    index_t num_nodes,
-    index_t *e_ptr,
-    index_t *e_ind,
-    index_t num_partitions)
+    index_t num_elems_,
+    index_t num_nodes_,
+    index_t elem_size_,
+    function_ref<void(span<int32_t>)> copy_32,
+    function_ref<void(span<int64_t>)> copy_64,
+    index_t num_partitions_)
 {
     static_assert(
-        std::is_same<::lagrange::partitioning::index_t, idx_t>::value,
-        "Index types don't match");
+        std::is_signed_v<index_t> == std::is_signed_v<idx_t>,
+        "Index type signedness mismatch");
+
+#if IDXTYPEWIDTH == 32
+    static_assert(std::is_same_v<idx_t, int32_t>, "Idx_t should be 32bit");
+#elif IDXTYPEWIDTH == 64
+    static_assert(std::is_same_v<idx_t, int64_t>, "Idx_t should be 64bit");
+#endif
+
+    idx_t num_elems = safe_cast<idx_t>(num_elems_);
+    idx_t num_nodes = safe_cast<idx_t>(num_nodes_);
+    idx_t elem_size = safe_cast<idx_t>(elem_size_);
+    idx_t num_partitions = safe_cast<idx_t>(num_partitions_);
+
+    // Copy input buffers
+    auto e_ptr = std::unique_ptr<idx_t[]>(new idx_t[num_elems + 1]);
+    for (idx_t f = 0; f < num_elems; ++f) {
+        e_ptr[f] = f * elem_size;
+    }
+    e_ptr[num_elems] = num_elems * elem_size;
+    auto e_ind = std::unique_ptr<idx_t[]>(new idx_t[num_elems * elem_size]);
+
+    // I tried using if constexpr (std::is_same_v<idx_t, int32_t>), but this would result in a
+    // compile error. Could be a bug in the clang compiler?
+#if IDXTYPEWIDTH == 32
+    copy_32(span<int32_t>(e_ind.get(), num_elems * elem_size));
+    (void)copy_64;
+#elif IDXTYPEWIDTH == 64
+    copy_64(span<int64_t>(e_ind.get(), num_elems * elem_size));
+    (void)copy_32;
+#else
+    static_assert("Unsupported index size");
+#endif
 
     // Sanity check
     Eigen::Matrix<index_t, Eigen::Dynamic, 1> partitions(num_nodes);
@@ -61,8 +92,8 @@ Eigen::Matrix<index_t, Eigen::Dynamic, 1> partition_mesh_vertices_raw(
     auto err = METIS_PartMeshNodal(
         &num_elems,
         &num_nodes,
-        e_ptr,
-        e_ind,
+        e_ptr.get(),
+        e_ind.get(),
         nullptr, // vwgt
         nullptr, // vsize
         &num_partitions,
@@ -93,10 +124,9 @@ Eigen::Matrix<index_t, Eigen::Dynamic, 1> partition_mesh_vertices_raw(
 
     // Convert back output
     for (idx_t i = 0; i < num_nodes; ++i) {
-        partitions(i) = n_part[i];
+        partitions(i) = static_cast<index_t>(n_part[i]);
     }
     return partitions;
 }
 
-} // namespace partitioning
-} // namespace lagrange
+} // namespace lagrange::partitioning::internal

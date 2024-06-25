@@ -309,12 +309,18 @@ void save_mesh_ply(
     // Vertex positions
     {
         auto pos = vertex_view(mesh);
-        auto vx = to_vector<Scalar>(pos.col(0));
-        auto vy = to_vector<Scalar>(pos.col(1));
-        auto vz = to_vector<Scalar>(pos.col(2));
-        ply.getElement("vertex").addProperty<Scalar>("x", vx);
-        ply.getElement("vertex").addProperty<Scalar>("y", vy);
-        ply.getElement("vertex").addProperty<Scalar>("z", vz);
+        if (pos.rows() == 0) {
+            ply.getElement("vertex").addProperty<Scalar>("x", {});
+            ply.getElement("vertex").addProperty<Scalar>("y", {});
+            ply.getElement("vertex").addProperty<Scalar>("z", {});
+        } else {
+            auto vx = to_vector<Scalar>(pos.col(0));
+            auto vy = to_vector<Scalar>(pos.col(1));
+            auto vz = to_vector<Scalar>(pos.col(2));
+            ply.getElement("vertex").addProperty<Scalar>("x", vx);
+            ply.getElement("vertex").addProperty<Scalar>("y", vy);
+            ply.getElement("vertex").addProperty<Scalar>("z", vz);
+        }
     }
 
     // Facet indices

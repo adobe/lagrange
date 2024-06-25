@@ -34,6 +34,10 @@ namespace lagrange {
  */
 struct VertexValenceOptions
 {
+    /// Optional per-edge attribute used as indicator function to restrict the graph used for vertex
+    /// valence computation.
+    std::string_view induced_by_attribute;
+
     /// Output vertex valence attribute name.
     std::string_view output_attribute_name = "@vertex_valence";
 };

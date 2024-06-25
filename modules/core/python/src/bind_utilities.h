@@ -33,6 +33,7 @@
 #include <lagrange/filter_attributes.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
+#include <lagrange/orientation.h>
 #include <lagrange/permute_facets.h>
 #include <lagrange/permute_vertices.h>
 #include <lagrange/python/tensor_utils.h>
@@ -510,7 +511,12 @@ argument. Each component id is in [0, num_components-1] range.
         .def_rw(
             "output_attribute_name",
             &VertexValenceOptions::output_attribute_name,
-            "The name of the output attribute");
+            "The name of the output attribute")
+        .def_rw(
+            "induced_by_attribute",
+            &VertexValenceOptions::induced_by_attribute,
+            "Optional per-edge attribute used as indicator function to restrict the graph used for "
+            "vertex valence computation");
 
     m.def(
         "compute_vertex_valence",
@@ -526,19 +532,26 @@ argument. Each component id is in [0, num_components-1] range.
 
     m.def(
         "compute_vertex_valence",
-        [](MeshType& mesh, std::optional<std::string_view> output_attribute_name) {
+        [](MeshType& mesh,
+           std::optional<std::string_view> output_attribute_name,
+           std::optional<std::string_view> induced_by_attribute) {
             VertexValenceOptions opt;
             if (output_attribute_name.has_value()) {
                 opt.output_attribute_name = output_attribute_name.value();
+            }
+            if (induced_by_attribute.has_value()) {
+                opt.induced_by_attribute = induced_by_attribute.value();
             }
             return lagrange::compute_vertex_valence<Scalar, Index>(mesh, opt);
         },
         "mesh"_a,
         "output_attribute_name"_a = nb::none(),
+        "induced_by_attribute"_a = nb::none(),
         R"(Compute vertex valence);
 
 :param mesh: The input mesh.
 :param output_attribute_name: The name of the output attribute.
+:param induced_by_attribute: Optional per-edge attribute used as indicator function to restrict the graph used for vertex valence computation.
 
 :returns: The vertex valence attribute id)");
 
@@ -1181,14 +1194,25 @@ well-defined and will be set to the special value 2 * M_PI.
 
     m.def(
         "weld_indexed_attribute",
-        nb::overload_cast<SurfaceMesh<Scalar, Index>&, AttributeId>(
-            &weld_indexed_attribute<Scalar, Index>),
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           AttributeId attribute_id,
+           std::optional<double> epsilon_rel,
+           std::optional<double> epsilon_abs) {
+            WeldOptions options;
+            options.epsilon_rel = epsilon_rel;
+            options.epsilon_abs = epsilon_abs;
+            return weld_indexed_attribute(mesh, attribute_id, options);
+        },
         "mesh"_a,
         "attribute_id"_a,
+        "epsilon_rel"_a = nb::none(),
+        "epsilon_abs"_a = nb::none(),
         R"(Weld indexed attribute.
 
 :param mesh:         The source mesh.
-:param attribute_id: The indexed attribute id to weld.)");
+:param attribute_id: The indexed attribute id to weld.
+:param epsilon_rel:  The relative tolerance for welding.
+:param epsilon_abs:  The absolute tolerance for welding.)");
 
     m.def(
         "compute_euler",
@@ -1227,6 +1251,16 @@ A mesh considered as manifold if it is both vertex and edge manifold.
 :param mesh: The source mesh.
 
 :return: Whether the mesh is manifold.)");
+
+    m.def(
+        "is_oriented",
+        &is_oriented<Scalar, Index>,
+        "mesh"_a,
+        R"(Check if the mesh is oriented.
+
+:param mesh: The source mesh.
+
+:return: Whether the mesh is oriented.)");
 
     m.def(
         "transform_mesh",

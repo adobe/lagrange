@@ -64,6 +64,8 @@ void populate_subdivision_module(nb::module_& m)
         [](const MeshType& mesh,
            unsigned num_levels,
            std::optional<lagrange::subdivision::SchemeType> scheme,
+           bool adaptive,
+           std::optional<float> max_edge_length,
            lagrange::subdivision::VertexBoundaryInterpolation vertex_boundary_interpolation,
            lagrange::subdivision::FaceVaryingInterpolation face_varying_interpolation,
            bool use_limit_surface,
@@ -79,6 +81,12 @@ void populate_subdivision_module(nb::module_& m)
            std::optional<std::string_view> output_limit_bitangents) {
             lagrange::subdivision::SubdivisionOptions options;
             options.scheme = scheme;
+            if (adaptive) {
+                options.refinement = lagrange::subdivision::RefinementType::EdgeAdaptive;
+                if (max_edge_length.has_value()) {
+                    options.max_edge_length = max_edge_length.value();
+                }
+            }
             options.num_levels = num_levels;
             options.vertex_boundary_interpolation = vertex_boundary_interpolation;
             options.face_varying_interpolation = face_varying_interpolation;
@@ -109,6 +117,8 @@ void populate_subdivision_module(nb::module_& m)
         "mesh"_a,
         "num_levels"_a,
         "scheme"_a = nb::none(),
+        "adaptive"_a = false,
+        "max_edge_length"_a = nb::none(),
         "vertex_boundary_interpolation"_a = Options{}.vertex_boundary_interpolation,
         "face_varying_interpolation"_a = Options{}.face_varying_interpolation,
         "use_limit_surface"_a = Options{}.use_limit_surface,

@@ -14,6 +14,8 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/utils/function_ref.h>
 
+#include <optional>
+
 namespace lagrange {
 
 ///
@@ -23,6 +25,20 @@ namespace lagrange {
 /// Various attribute processing utilities
 ///
 /// @{
+
+/// Options for welding indexed attributes
+struct WeldOptions
+{
+    /// If set, values whose relative difference (in L-inf norm) is less than epsilon are merged
+    /// together. If no absolute precision is set, a default absolute precision is used. Otherwise
+    /// both are used together.
+    std::optional<double> epsilon_rel;
+
+    /// If set, values whose absolute difference (in L-inf norm) is less than epsilon are merged
+    /// together. If no relative precision is set, a default relative precision is used. Otherwise
+    /// both are used together.
+    std::optional<double> epsilon_abs;
+};
 
 ///
 /// Weld an indexed attribute by combining all corners around a vertex with the same attribute
@@ -35,7 +51,10 @@ namespace lagrange {
 /// @param attr_id    The indexed attribute id.
 ///
 template <typename Scalar, typename Index>
-void weld_indexed_attribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId attr_id);
+void weld_indexed_attribute(
+    SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId attr_id,
+    const WeldOptions& options = {});
 
 /// @}
 

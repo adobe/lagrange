@@ -65,9 +65,6 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTopology(
         }
     }
 
-    // If we have any non-manifold vertices/edges, we need to set their tags before calling this function
-    populateBaseLocalIndices(refiner);
-
     return true;
 };
 

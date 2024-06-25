@@ -16,6 +16,8 @@
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_scene_obj.h>
 
+#include "stitch_mesh.h"
+
 // ====
 
 #include <lagrange/Attribute.h>
@@ -256,6 +258,10 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
             num_invalid_uv.load());
     }
     logger().trace("[load_mesh_obj] Loading complete");
+
+    if (options.stitch_vertices) {
+        stitch_mesh(result.mesh);
+    }
 
     return result;
 }

@@ -74,6 +74,24 @@ enum class FaceVaryingInterpolation {
 };
 
 ///
+/// Topology refinement method.
+///
+enum class RefinementType {
+    /// Each facet is subdivided a fixed number of time.
+    Uniform,
+
+    // TODO: Implement these. This involves creating a Far::PatchTable, extracting the subdivided
+    // facets, and welding T-junctions...
+    /// Each facet is subdivided adaptively according to the mesh curvature. Highly curved regions
+    /// will be refined more. Best suited for rendering applications.
+    // CurvatureAdaptive,
+
+    /// Each facet is tessellated based on a target edge length and max subdiv level. Best suited to
+    /// produce meshes with a uniform edge length when the input mesh has varying facet sizes.
+    EdgeAdaptive,
+};
+
+///
 /// Helper class to select which attributes to interpolate. By default, all compatible attributes
 /// will be smoothly interpolated (i.e. using "vertex" weights for per-vertex attributes, and using
 /// "face-varying" weights for indexed attributes).
@@ -174,9 +192,16 @@ struct SubdivisionOptions
     /// Number of subdivision level requested.
     unsigned num_levels = 1;
 
-    // TODO: Implement adaptive refinement
-    /// Whether to use adaptive refinement or uniform refinement.
-    // bool adaptive = false;
+    /// How to refine the mesh topology.
+    RefinementType refinement = RefinementType::Uniform;
+
+    /// @}
+    /// @name Adaptive tessellation options
+    /// @{
+
+    /// Maximum edge length for adaptive tessellation. If not specified, it is set to the longest
+    /// edge length divided by num_levels.
+    std::optional<float> max_edge_length;
 
     /// @}
     /// @name Interpolation Rules
@@ -227,6 +252,13 @@ struct SubdivisionOptions
     /// @{
 
     ///
+    /// [Adaptive subdivision only] Whether to preserve shared indices when interpolating indexed
+    /// attributes. Turn this off if your input UVs are overlapping, or the output UVs will not be
+    /// correctly interpolated.
+    ///
+    bool preserve_shared_indices = false;
+
+    ///
     /// A newly computed per-vertex attribute containing the normals to the limit surface. Skipped
     /// if left empty.
     ///
@@ -257,6 +289,16 @@ struct SubdivisionOptions
     std::string_view output_limit_bitangents;
 
     /// @}
+    /// @name Debugging options
+    /// @{
+
+    ///
+    /// Validate topology of the subdivision surface. For debugging only.
+    ///
+    ///
+    bool validate_topology = false;
+
+    /// @}
 };
 
 ///
@@ -273,7 +315,7 @@ struct SubdivisionOptions
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> subdivide_mesh(
     const SurfaceMesh<Scalar, Index>& mesh,
-    SubdivisionOptions options = {});
+    const SubdivisionOptions& options = {});
 
 /// @}
 

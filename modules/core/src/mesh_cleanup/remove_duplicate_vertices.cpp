@@ -15,6 +15,7 @@
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/invalid.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -45,10 +46,6 @@ void remove_duplicate_vertices(
     }
 
     // Step 1: Sort vertices with custom comp.
-    const auto num_vertices = mesh.get_num_vertices();
-    std::vector<Index> order(num_vertices);
-    std::iota(order.begin(), order.end(), 0);
-
     auto compare_vertex_attr = [&](Index vi, Index vj, AttributeId id) -> short {
         const auto& attr = mesh.template get_attribute<Scalar>(id);
         la_debug_assert(attr.get_element_type() == AttributeElement::Vertex);
@@ -148,35 +145,62 @@ void remove_duplicate_vertices(
         return result;
     };
 
+    const auto num_vertices = mesh.get_num_vertices();
+    std::vector<Index> order;
+    if (options.boundary_only) {
+        auto copy = mesh;
+        copy.initialize_edges();
+        std::vector<bool> is_boundary(num_vertices, false);
+        for (Index e = 0; e < copy.get_num_edges(); ++e) {
+            if (copy.is_boundary_edge(e)) {
+                for (auto v : copy.get_edge_vertices(e)) {
+                    if (!is_boundary[v]) {
+                        is_boundary[v] = true;
+                        order.push_back(v);
+                    }
+                }
+            }
+        }
+    } else {
+        order.resize(num_vertices);
+        std::iota(order.begin(), order.end(), 0);
+    }
+
     tbb::parallel_sort(order.begin(), order.end(), [&](Index vi, Index vj) {
         return compare_vertices(vi, vj) < 0;
     });
 
     // Step 2: Extract unique vertices.
-    std::vector<Index> old_to_new(num_vertices);
-    Index new_vertex_count = 0;
-    for (Index i = 0; i < num_vertices; i++) {
-        Index vi = order[i];
-        old_to_new[vi] = new_vertex_count;
-        for (Index j = i + 1; j < num_vertices; j++) {
-            Index vj = order[j];
-            if (compare_vertices(vi, vj) == 0) {
-                old_to_new[vj] = new_vertex_count;
-                i++;
-            } else {
-                break;
-            }
+    std::vector<Index> old_to_new(num_vertices, invalid<Index>());
+
+    // Iterate over sorted vertices to find duplicates
+    Index new_num_vertices = 0;
+    for (auto it_begin = order.begin(); it_begin != order.end();) {
+        // First the first vertex after it_begin that compares differently
+        auto it_end = std::find_if(it_begin, order.end(), [&](auto vj) {
+            return compare_vertices(*it_begin, vj) != 0;
+        });
+        // Assign all vertices in this range the same new vertex id
+        for (auto it = it_begin; it != it_end; ++it) {
+            old_to_new[*it] = new_num_vertices;
         }
-        new_vertex_count++;
+        ++new_num_vertices;
+        it_begin = it_end;
+    }
+    // Iterate over remaining vertices and assign new vertex ids
+    for (auto& v : old_to_new) {
+        if (v == invalid<Index>()) {
+            v = new_num_vertices++;
+        }
     }
 
     // Step 3: Use remap_vertices to combine duplicate vertices.
     remap_vertices<Scalar, Index>(mesh, old_to_new);
 }
 
-#define LA_X_remove_duplicate_vertices(_, Scalar, Index)    \
+#define LA_X_remove_duplicate_vertices(_, Scalar, Index)                \
     template LA_CORE_API void remove_duplicate_vertices<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                        \
+        SurfaceMesh<Scalar, Index>&,                                    \
         const RemoveDuplicateVerticesOptions&);
 LA_SURFACE_MESH_X(remove_duplicate_vertices, 0)
 

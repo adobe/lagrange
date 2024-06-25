@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/orientation.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/topology.h>
 
@@ -32,6 +33,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 1);
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(is_oriented(mesh));
     }
 
     SECTION("bow tie")
@@ -53,6 +55,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 1);
         REQUIRE(!is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(is_oriented(mesh));
     }
 
     SECTION("non-manifold edge")
@@ -75,6 +78,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 1);
         REQUIRE(!is_vertex_manifold(mesh));
         REQUIRE(!is_edge_manifold(mesh));
+        REQUIRE(!is_oriented(mesh));
     }
 
     SECTION("two triangles")
@@ -98,6 +102,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 2);
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(is_oriented(mesh));
     }
 
     SECTION("tet")
@@ -119,6 +124,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 2);
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(is_oriented(mesh));
     }
 
     SECTION("two tets sharing a vertex")
@@ -143,6 +149,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 3);
         REQUIRE(!is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(is_oriented(mesh));
     }
 
     SECTION("isolated vertices")
@@ -152,5 +159,45 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 1);
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
+    }
+
+    SECTION("nonmanifold vertex")
+    {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            "open/core/topology/nonmanifold_vertex.obj");
+        REQUIRE(compute_euler(mesh) == 1);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(is_oriented(mesh));
+    }
+
+    SECTION("nonmanifold edge")
+    {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            "open/core/topology/nonmanifold_edge.obj");
+        REQUIRE(compute_euler(mesh) == 1);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(!is_edge_manifold(mesh));
+        REQUIRE(!is_oriented(mesh));
+    }
+
+    SECTION("nonoriented edge")
+    {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            "open/core/topology/nonoriented_edge.obj");
+        REQUIRE(compute_euler(mesh) == 1);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(!is_oriented(mesh));
+    }
+
+    SECTION("mobius strip")
+    {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            "open/core/topology/moebius-160-10.ply");
+        REQUIRE(compute_euler(mesh) == 0);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(!is_oriented(mesh));
     }
 }

@@ -30,6 +30,7 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/BitField.h>
@@ -973,18 +974,15 @@ If not provided, the edges are initialized in an arbitrary order.
            std::optional<AttributeElement> element,
            std::optional<AttributeUsage> usage,
            Index num_channels) {
-            std::vector<AttributeId> attr_ids;
-            attr_ids.reserve(4);
-            self.seq_foreach_attribute_id([&](AttributeId attr_id) {
-                const auto name = self.get_attribute_name(attr_id);
-                if (self.attr_name_is_reserved(name)) return;
-                const auto& attr = self.get_attribute_base(attr_id);
-                if (element && attr.get_element_type() != *element) return;
-                if (usage && attr.get_usage() != *usage) return;
-                if (num_channels != 0 && attr.get_num_channels() != num_channels) return;
-                attr_ids.push_back(attr_id);
-            });
-            return attr_ids;
+            AttributeMatcher opts;
+            if (usage.has_value()) {
+                opts.usages = usage.value();
+            }
+            if (element.has_value()) {
+                opts.element_types = element.value();
+            }
+            opts.num_channels = num_channels;
+            return find_matching_attributes(self, opts);
         },
         "element"_a = nb::none(),
         "usage"_a = nb::none(),
@@ -996,6 +994,39 @@ If not provided, the edges are initialized in an arbitrary order.
 :param num_channels:  The target number of channels. 0 matches arbitrary number of channels.
 
 :returns: A list of attribute ids matching the target element, usage and number of channels.
+)");
+
+    surface_mesh_class.def(
+        "get_matching_attribute_id",
+        [](MeshType& self,
+           std::optional<AttributeElement> element,
+           std::optional<AttributeUsage> usage,
+           Index num_channels) {
+            std::optional<AttributeId> result;
+            self.seq_foreach_attribute_id([&](AttributeId attr_id) {
+                if (result.has_value()) {
+                    return;
+                }
+                const auto name = self.get_attribute_name(attr_id);
+                if (self.attr_name_is_reserved(name)) return;
+                const auto& attr = self.get_attribute_base(attr_id);
+                if (element && attr.get_element_type() != *element) return;
+                if (usage && attr.get_usage() != *usage) return;
+                if (num_channels != 0 && attr.get_num_channels() != num_channels) return;
+                result = attr_id;
+            });
+            return result;
+        },
+        "element"_a = nb::none(),
+        "usage"_a = nb::none(),
+        "num_channels"_a = 0,
+        R"(Get one matching attribute id with the desired element type, usage and number of channels.
+
+:param element:       The target element type. None matches all element types.
+:param usage:         The target usage type.  None matches all usage types.
+:param num_channels:  The target number of channels. 0 matches arbitrary number of channels.
+
+:returns: An attribute id matching the target element, usage and number of channels, if found. None otherwise.
 )");
 
     surface_mesh_class.def(

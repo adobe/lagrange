@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
+
 ///
 /// @defgroup   group-surfacemesh-utils Mesh utilities
 /// @ingroup    group-surfacemesh
@@ -84,5 +85,31 @@ bool is_manifold(const SurfaceMesh<Scalar, Index>& mesh)
     return is_edge_manifold(mesh) && is_vertex_manifold(mesh);
 }
 
+///
+/// Option struct for computing manifold flags.
+///
+struct VertexManifoldOptions
+{
+    /// Per-vertex attribute indicating whether a vertex is manifold.
+    std::string_view output_attribute_name = "@vertex_is_manifold";
+};
+
+///
+/// Compute a mesh attribute indicating vertex and edge manifoldness.
+///
+/// @param[in,out] mesh     Input mesh.
+/// @param[in]     options  Output attribute options.
+///
+/// @tparam        Scalar   Mesh scalar type.
+/// @tparam        Index    Mesh index type.
+///
+/// @return     Id of the newly added per-vertex attribute, of type uint8_t.
+///
+template <typename Scalar, typename Index>
+AttributeId compute_vertex_is_manifold(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const VertexManifoldOptions& options = {});
+
 /// @}
+
 } // namespace lagrange

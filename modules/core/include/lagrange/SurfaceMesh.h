@@ -635,7 +635,7 @@ public:
 
     ///
     /// Retrieves the number of vertex per facet in a regular mesh. If the mesh is a hybrid mesh, an
-    /// exception is thrown.s
+    /// exception is thrown.
     ///
     /// @return     The number of vertices per facet.
     ///
