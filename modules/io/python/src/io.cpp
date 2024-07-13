@@ -142,6 +142,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
            bool load_vertex_colors,
            bool load_object_ids,
            bool load_images,
+           bool stitch_vertices,
            const fs::path& search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
@@ -153,6 +154,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             opts.load_vertex_colors = load_vertex_colors;
             opts.load_object_ids = load_object_ids;
             opts.load_images = load_images;
+            opts.stitch_vertices = stitch_vertices;
             opts.search_path = search_path;
             return io::load_mesh<MeshType>(filename, opts);
         },
@@ -166,6 +168,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "load_vertex_colors"_a = io::LoadOptions().load_vertex_colors,
         "load_object_ids"_a = io::LoadOptions().load_object_ids,
         "load_images"_a = io::LoadOptions().load_images,
+        "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
         "search_path"_a = io::LoadOptions().search_path,
         R"(Load mesh from a file.
 
@@ -179,6 +182,8 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
 :param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
 :param load_images:        Whether to load external images if available. Defaults to True.
+:param stitch_vertices:    Whether to stitch vertices based on position. Defaults to False.
+:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
 
 :return SurfaceMesh: The mesh object extracted from the input string.)");
 

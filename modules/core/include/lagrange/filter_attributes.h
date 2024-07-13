@@ -51,7 +51,6 @@ struct AttributeFilter
     BitField<AttributeElement> included_element_types = BitField<AttributeElement>::all();
 };
 
-
 ///
 /// Create a list of attribute ids corresponding to the given filter.
 ///

@@ -24,7 +24,7 @@ struct SeamEdgesOptions
 
 ///
 /// Computes the seam edges for a given indexed attribute. A seam edge is an edge where either of
-/// its endpoint vertex has corners whose attribute index differ accross the edge.
+/// its endpoint vertex has corners whose attribute index differ across the edge.
 ///
 /// @param[in,out] mesh                  Input mesh. Modified to add edge information and compute
 ///                                      output seam edges.

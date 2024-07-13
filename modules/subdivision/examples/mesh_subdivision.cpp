@@ -10,20 +10,32 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/io/load_simple_scene.h>
 #include <lagrange/io/save_mesh.h>
 
+#include <lagrange/AttributeValueType.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_seam_edges.h>
+#include <lagrange/compute_vertex_valence.h>
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/map_attribute.h>
-#include <lagrange/cast_attribute.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
+#include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
+#include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/subdivision/midpoint_subdivision.h>
 #include <lagrange/subdivision/sqrt_subdivision.h>
+#include <lagrange/topology.h>
+#include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/views.h>
+#include <lagrange/weld_indexed_attribute.h>
 
 #include <CLI/CLI.hpp>
+
+#include <map>
 
 int main(int argc, char** argv)
 {
@@ -34,9 +46,14 @@ int main(int argc, char** argv)
         std::string scheme = "auto";
         bool output_btn = false;
         std::optional<float> autodetect_normal_threshold;
+        int log_level = 1; // debug
     } args;
 
     lagrange::subdivision::SubdivisionOptions options;
+
+    std::map<std::string, lagrange::subdivision::RefinementType> map{
+        {"Uniform", lagrange::subdivision::RefinementType::Uniform},
+        {"EdgeAdaptive", lagrange::subdivision::RefinementType::EdgeAdaptive}};
 
     CLI::App app{argv[0]};
     app.option_defaults()->always_capture_default();
@@ -53,30 +70,102 @@ int main(int argc, char** argv)
         "--limit",
         options.use_limit_surface,
         "Project vertex attributes to the limit surface");
+    app.add_option("--refinement", options.refinement, "Mesh refinement method")
+        ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
+    app.add_option(
+        "--edge-length",
+        options.max_edge_length,
+        "Max edge length target for adaptive refinement");
     app.add_flag("--normal", args.output_btn, "Compute limit normal as a vertex attribute");
+    app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
     CLI11_PARSE(app, argc, argv);
 
-    lagrange::logger().set_level(spdlog::level::debug);
+    args.log_level = std::max(0, std::min(6, args.log_level));
+    spdlog::set_level(static_cast<spdlog::level::level_enum>(args.log_level));
+
+    /////////////////////
+    // Load input mesh //
+    /////////////////////
 
     lagrange::logger().info("Loading input mesh: {}", args.input);
-    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32d>(args.input);
-    // gltf meshes are unindexed, so vertices at UV seams are duplicated
-    remove_duplicate_vertices(mesh);
+    lagrange::SurfaceMesh32d mesh;
+
+    bool is_gltf = std::set<std::string>{".gltf", ".glb"}.count(
+        lagrange::fs::path(args.input).extension().string());
+    if (is_gltf) {
+        lagrange::logger().warn(
+            "Input mesh is a glTF file. Essential connectivity information is lost when loading "
+            "from a glTF asset. We strongly advise using .fbx or .obj as an input file format "
+            "rather than glTF.");
+    }
+    lagrange::io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+    mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32d>(args.input, load_options);
     lagrange::logger().info(
         "Input mesh has {} vertices and {} facets",
         mesh.get_num_vertices(),
         mesh.get_num_facets());
 
-    if (args.autodetect_normal_threshold.has_value()) {
+    ///////////////////////
+    // Asset preparation //
+    ///////////////////////
+
+    // Weld any indexed attribute that we find
+    seq_foreach_named_attribute_read(mesh, [&](auto name, auto&& attr) {
+        if (mesh.attr_name_is_reserved(name)) {
+            return;
+        }
+        if (attr.get_element_type() == lagrange::AttributeElement::Indexed) {
+            lagrange::logger().info("Welding indexed attribute: {}", name);
+            lagrange::WeldOptions w_opts;
+            w_opts.epsilon_rel = 1e-3;
+            w_opts.epsilon_abs = 1e-3;
+            lagrange::weld_indexed_attribute(mesh, mesh.get_attribute_id(name), w_opts);
+        }
+    });
+    // Find an attribute to use as facet normal if possible (defines sharp edges)
+    std::optional<lagrange::AttributeId> normal_id =
+        lagrange::find_matching_attribute(mesh, lagrange::AttributeUsage::Normal);
+    if (normal_id.has_value()) {
         lagrange::logger().info(
-            "Autodetecting sharp edges with a threshold of {} degrees",
+            "Found indexed normal attribute: {}",
+            mesh.get_attribute_name(normal_id.value()));
+    }
+    // If autosmooth normals are requested by user, compute them (unless input asset already has
+    // normals)
+    if (!normal_id.has_value() && args.autodetect_normal_threshold.has_value()) {
+        lagrange::logger().info(
+            "Computing autosmooth normals with a threshold of {} degrees",
             args.autodetect_normal_threshold.value());
         float feature_angle_threshold = args.autodetect_normal_threshold.value() * M_PI / 180.f;
-        auto normal_id = lagrange::compute_normal<double, uint32_t>(mesh, feature_angle_threshold);
-        auto seam_id = lagrange::compute_seam_edges(mesh, normal_id);
-        auto sharpness_id = lagrange::cast_attribute<float>(mesh, seam_id, "sharpness");
-        options.edge_sharpness_attr = sharpness_id;
+        normal_id = lagrange::compute_normal<double, uint32_t>(mesh, feature_angle_threshold);
     }
+    // Finally, compute edge sharpness info based on indexed normal topology
+    if (normal_id.has_value()) {
+        lagrange::logger().info("Using mesh normals to set sharpness flag.");
+        auto seam_id = lagrange::compute_seam_edges(mesh, normal_id.value());
+        auto edge_sharpness_id = lagrange::cast_attribute<float>(mesh, seam_id, "edge_sharpness");
+        options.edge_sharpness_attr = edge_sharpness_id;
+
+        // Set vertex sharpness to 1 for leaf and junction vertices
+        lagrange::VertexValenceOptions v_opts;
+        v_opts.induced_by_attribute = mesh.get_attribute_name(seam_id);
+        auto valence_id = lagrange::compute_vertex_valence(mesh, v_opts);
+        auto valence = lagrange::attribute_vector_view<uint32_t>(mesh, valence_id);
+        auto vertex_sharpness_id = mesh.create_attribute<float>(
+            "vertex_sharpness",
+            lagrange::AttributeElement::Vertex,
+            lagrange::AttributeUsage::Scalar);
+        auto vertex_sharpness = lagrange::attribute_vector_ref<float>(mesh, vertex_sharpness_id);
+        for (uint32_t v = 0; v < mesh.get_num_vertices(); ++v) {
+            vertex_sharpness[v] = (valence[v] == 1 || valence[v] > 2 ? 1.f : 0.f);
+        }
+        options.vertex_sharpness_attr = vertex_sharpness_id;
+    }
+
+    //////////////////////
+    // Mesh subdivision //
+    //////////////////////
 
     if ((std::set<std::string>{"auto", "bilinear", "loop", "catmark"}).count(args.scheme)) {
         // Convert subdiv scheme to enum
@@ -88,9 +177,9 @@ int main(int argc, char** argv)
             options.scheme = lagrange::subdivision::SchemeType::Bilinear;
         }
 
-        if (args.output_btn && mesh.has_attribute("normal")) {
+        if (args.output_btn && normal_id.has_value()) {
             // Only output a single set of normals in this example
-            mesh.delete_attribute("normal");
+            mesh.delete_attribute(mesh.get_attribute_name(normal_id.value()));
         }
 
         if (args.output_btn) {
@@ -123,6 +212,11 @@ int main(int argc, char** argv)
     } else {
         throw std::runtime_error("Unsupported argument");
     }
+
+    //////////////////////
+    // Save output mesh //
+    //////////////////////
+
     lagrange::logger().info(
         "Output mesh has {} vertices and {} facets",
         mesh.get_num_vertices(),

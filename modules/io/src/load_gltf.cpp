@@ -16,6 +16,8 @@
 #include <lagrange/io/load_scene_gltf.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
 
+#include "stitch_mesh.h"
+
 // ====
 
 #include <lagrange/AttributeValueType.h>
@@ -501,6 +503,10 @@ MeshType convert_tinygltf_primitive_to_lagrange_mesh(
 
     // convert texture coordinates from st to uv
     scene::utils::convert_texcoord_uv_st(lmesh);
+
+    if (options.stitch_vertices) {
+        stitch_mesh(lmesh);
+    }
 
     return lmesh;
 }

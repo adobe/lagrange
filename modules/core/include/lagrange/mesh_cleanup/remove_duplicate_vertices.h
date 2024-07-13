@@ -29,6 +29,9 @@ struct RemoveDuplicateVerticesOptions
     /// Additional attributes to include for duplicate vertex detection.
     /// Two vertices are duplicates if their positions and all the extra attributes are the same.
     std::vector<AttributeId> extra_attributes = {};
+
+    /// Only remove duplicate vertices on the boundary.
+    bool boundary_only = false;
 };
 
 ///

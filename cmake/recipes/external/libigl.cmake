@@ -22,7 +22,7 @@ include(CPM)
 CPMAddPackage(
     NAME libigl
     GITHUB_REPOSITORY libigl/libigl
-    GIT_TAG 3ea7f9480967fcf6bf02ce9b993c0ea6d2fc45f6
+    GIT_TAG 01f2dc0a60a07f78219e906679645656c7c5ee40
 )
 
 set_target_properties(igl_core PROPERTIES FOLDER third_party/libigl)

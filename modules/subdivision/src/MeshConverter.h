@@ -26,4 +26,11 @@ struct MeshConverter
     const std::vector<AttributeId>& face_varying_attributes;
 };
 
+struct InterpolatedAttributeIds
+{
+    std::vector<AttributeId> smooth_vertex_attributes;
+    std::vector<AttributeId> linear_vertex_attributes;
+    std::vector<AttributeId> face_varying_attributes;
+};
+
 } // namespace lagrange::subdivision

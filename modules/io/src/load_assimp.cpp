@@ -34,6 +34,8 @@
     #include <lagrange/scene/scene_utils.h>
     #include <lagrange/utils/assert.h>
 
+    #include "stitch_mesh.h"
+
     #include <assimp/material.h>
     #include <assimp/Importer.hpp>
 
@@ -217,6 +219,10 @@ MeshType convert_mesh_assimp_to_lagrange(const aiMesh& aimesh, const LoadOptions
                 }
             }
         }
+    }
+
+    if (options.stitch_vertices) {
+        stitch_mesh(lmesh);
     }
 
     return lmesh;

@@ -16,6 +16,8 @@
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/load_simple_scene_fbx.h>
 
+#include "stitch_mesh.h"
+
 // ====
 
 #include <lagrange/IndexedAttribute.h>
@@ -236,6 +238,10 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
             &mesh->vertex_color.values[0].v[0],
             mesh->vertex_color.values.count * color_dim,
             attr.indices().ref_all().begin());
+    }
+
+    if (opt.stitch_vertices) {
+        stitch_mesh(lmesh);
     }
 
     return lmesh;
