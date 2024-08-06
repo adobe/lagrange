@@ -1072,56 +1072,56 @@ void test_ownership()
 
 } // namespace
 
-TEST_CASE("IndexedAttribute: Move-Copy", "[next]")
+TEST_CASE("IndexedAttribute: Move-Copy", "[attribute]")
 {
 #define LA_X_move_copy_indexed_values(I, S) test_move_copy_indexed<S, I>();
 #define LA_X_move_copy_indexed_indices(_, I) LA_ATTRIBUTE_X(move_copy_indexed_values, I)
     LA_SURFACE_MESH_INDEX_X(move_copy_indexed_indices, 0)
 }
 
-TEST_CASE("Attribute: Create", "[next]")
+TEST_CASE("Attribute: Create", "[attribute]")
 {
 #define LA_X_create_attribute(_, ValueType) test_create_attribute<ValueType>();
     LA_ATTRIBUTE_X(create_attribute, 0)
 }
 
-TEST_CASE("Attribute: Move-Copy Internal", "[next]")
+TEST_CASE("Attribute: Move-Copy Internal", "[attribute]")
 {
 #define LA_X_move_copy_internal(_, ValueType) test_move_copy_internal<ValueType>();
     LA_ATTRIBUTE_X(move_copy_internal, 0)
 }
 
-TEST_CASE("Attribute: Move-Copy External", "[next]")
+TEST_CASE("Attribute: Move-Copy External", "[attribute]")
 {
 #define LA_X_move_copy_external(_, ValueType) test_move_copy_external<ValueType>();
     LA_ATTRIBUTE_X(move_copy_external, 0)
 }
 
-TEST_CASE("Attribute: Data Access", "[next]")
+TEST_CASE("Attribute: Data Access", "[attribute]")
 {
 #define LA_X_data_access(_, ValueType) test_data_access<ValueType>();
     LA_ATTRIBUTE_X(data_access, 0)
 }
 
-TEST_CASE("Attribute: Write Policy", "[next]")
+TEST_CASE("Attribute: Write Policy", "[attribute]")
 {
 #define LA_X_write_policy(_, ValueType) test_write_policy<ValueType>();
     LA_ATTRIBUTE_X(write_policy, 0)
 }
 
-TEST_CASE("Attribute: Growth Policy", "[next]")
+TEST_CASE("Attribute: Growth Policy", "[attribute]")
 {
 #define LA_X_growth_policy(_, ValueType) test_growth_policy<ValueType>();
     LA_ATTRIBUTE_X(growth_policy, 0)
 }
 
-TEST_CASE("Attribute: Empty Buffers", "[next]")
+TEST_CASE("Attribute: Empty Buffers", "[attribute]")
 {
 #define LA_X_empty_buffers(_, ValueType) test_empty_buffers<ValueType>();
     LA_ATTRIBUTE_X(empty_buffers, 0)
 }
 
-TEST_CASE("Attribute: ownership", "[next]")
+TEST_CASE("Attribute: ownership", "[attribute]")
 {
 #define LA_X_ownership(_, ValueType) test_ownership<ValueType>();
     LA_ATTRIBUTE_X(ownership, 0)

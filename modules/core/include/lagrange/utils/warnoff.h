@@ -45,6 +45,7 @@
     #pragma clang diagnostic ignored "-Wmissing-field-initializers"
     #pragma clang diagnostic ignored "-Wconversion"
     #pragma clang diagnostic ignored "-Wunused-function"
+    #pragma clang diagnostic ignored "-Wbitwise-instead-of-logical"
 #elif defined(__GNUC__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-function-type"

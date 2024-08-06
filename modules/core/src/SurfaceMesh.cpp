@@ -1158,6 +1158,47 @@ auto SurfaceMesh<Scalar, Index>::delete_and_export_const_indexed_attribute(
 }
 
 template <typename Scalar, typename Index>
+AttributeId SurfaceMesh<Scalar, Index>::create_metadata(
+    std::string_view name,
+    std::string_view value)
+{
+    static_assert(sizeof(char) == sizeof(uint8_t));
+    auto id = create_attribute<uint8_t>(name, AttributeElement::Value, AttributeUsage::String);
+    set_metadata(id, value);
+    return id;
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::set_metadata(AttributeId id, std::string_view value)
+{
+    // TODO: Should we make this null-terminated?
+    auto& attr = ref_attribute<uint8_t>(id);
+    attr.resize_elements(value.size());
+    la_debug_assert(attr.get_usage() == AttributeUsage::String);
+    std::copy_n(value.begin(), value.size(), attr.ref_all().begin());
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::set_metadata(std::string_view name, std::string_view value)
+{
+    set_metadata(get_attribute_id(name), value);
+}
+
+template <typename Scalar, typename Index>
+std::string_view SurfaceMesh<Scalar, Index>::get_metadata(AttributeId id) const
+{
+    const auto& attr = get_attribute<uint8_t>(id);
+    la_debug_assert(attr.get_usage() == AttributeUsage::String);
+    return {reinterpret_cast<const char*>(attr.get_all().data()), attr.get_all().size()};
+}
+
+template <typename Scalar, typename Index>
+std::string_view SurfaceMesh<Scalar, Index>::get_metadata(std::string_view name) const
+{
+    return get_metadata(get_attribute_id(name));
+}
+
+template <typename Scalar, typename Index>
 bool SurfaceMesh<Scalar, Index>::has_attribute(std::string_view name) const
 {
     return m_attributes->contains(name);

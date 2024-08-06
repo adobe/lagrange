@@ -60,13 +60,13 @@ void forward_entity_event(Registry& r, Entity e)
 template <typename Component, typename ConstructEvent, typename DestroyEvent>
 void toggle_component_event(Registry& r)
 {
-    if (!get_event_emitter(r).contains<ConstructEvent>()) {
+    if (get_event_emitter(r).contains<ConstructEvent>()) {
         r.on_construct<Component>().template connect<&forward_entity_event<ConstructEvent>>();
     } else {
         r.on_construct<Component>().template disconnect<&forward_entity_event<ConstructEvent>>();
     }
 
-    if (!get_event_emitter(r).contains<DestroyEvent>()) {
+    if (get_event_emitter(r).contains<DestroyEvent>()) {
         r.on_destroy<Component>().template connect<&forward_entity_event<DestroyEvent>>();
     } else {
         r.on_destroy<Component>().template disconnect<&forward_entity_event<DestroyEvent>>();

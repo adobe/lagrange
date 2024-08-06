@@ -12,6 +12,7 @@
 #pragma once
 #include <lagrange/common.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {
 namespace raycasting {

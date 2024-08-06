@@ -35,3 +35,13 @@ set_target_properties(blosc_static PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if(NOT TARGET Blosc::blosc)
     add_library(Blosc::blosc ALIAS blosc_static)
 endif()
+
+foreach(name IN ITEMS
+    blosc_static
+    blosc_shared
+    bench
+    fuzz_compress
+    fuzz_decompress
+)
+    set_target_properties(${name} PROPERTIES FOLDER third_party/blosc)
+endforeach()

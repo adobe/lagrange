@@ -49,6 +49,7 @@ AttributeBase::AttributeBase(AttributeElement element, AttributeUsage usage, siz
     case AttributeUsage::FacetIndex: la_runtime_assert(num_channels == 1); break;
     case AttributeUsage::CornerIndex: la_runtime_assert(num_channels == 1); break;
     case AttributeUsage::EdgeIndex: la_runtime_assert(num_channels == 1); break;
+    case AttributeUsage::String: la_runtime_assert(num_channels == 1); break;
     default: throw Error("Unsupported usage");
     }
 }
@@ -79,6 +80,8 @@ Attribute<ValueType>::Attribute(AttributeElement element, AttributeUsage usage, 
     case AttributeUsage::Bitangent: la_runtime_assert(std::is_floating_point_v<ValueType>); break;
     case AttributeUsage::Color: break;
     case AttributeUsage::UV: break;
+    // TODO: Fix parsing error with la_runtime_assert() and <,> syntax
+    case AttributeUsage::String: la_runtime_assert((std::is_same_v<ValueType, uint8_t>)); break;
     default: throw Error("Unsupported usage");
     }
     LA_IGNORE_SWITCH_ENUM_WARNING_END

@@ -57,28 +57,26 @@ ConstVectorView<ValueType> vector_view(const Attribute<ValueType>& attribute)
 template <typename ValueType>
 RowMatrixView<ValueType> reshaped_ref(Attribute<ValueType>& attribute, size_t num_cols)
 {
-    la_runtime_assert(attribute.get_num_channels() == 1);
     if (attribute.empty()) {
         return {attribute.ref_all().data(), 0, Eigen::Index(num_cols)};
     }
-    la_runtime_assert(num_cols != 0 && attribute.get_num_elements() % num_cols == 0);
+    la_runtime_assert(num_cols != 0 && attribute.get_all().size() % num_cols == 0);
     return {
         attribute.ref_all().data(),
-        Eigen::Index(attribute.get_num_elements() / num_cols),
+        Eigen::Index(attribute.get_all().size() / num_cols),
         Eigen::Index(num_cols)};
 }
 
 template <typename ValueType>
 ConstRowMatrixView<ValueType> reshaped_view(const Attribute<ValueType>& attribute, size_t num_cols)
 {
-    la_runtime_assert(attribute.get_num_channels() == 1);
     if (attribute.empty()) {
         return {attribute.get_all().data(), 0, Eigen::Index(num_cols)};
     }
-    la_runtime_assert(num_cols != 0 && attribute.get_num_elements() % num_cols == 0);
+    la_runtime_assert(num_cols != 0 && attribute.get_all().size() % num_cols == 0);
     return {
         attribute.get_all().data(),
-        Eigen::Index(attribute.get_num_elements() / num_cols),
+        Eigen::Index(attribute.get_all().size() / num_cols),
         Eigen::Index(num_cols)};
 }
 
