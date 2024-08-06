@@ -2850,15 +2850,41 @@ void test_value_attribute()
     lagrange::testing::check_mesh(mesh);
 }
 
+template <typename Scalar, typename Index>
+void test_metadata_attribute()
+{
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertices(10);
+    mesh.add_triangles(5);
+
+    {
+        auto id = mesh.create_metadata("metadata", "something");
+        REQUIRE(mesh.get_metadata(id) == "something");
+        mesh.set_metadata(id, "काचं शक्नोम्यत्तुम् । नोपहिनस्ति माम् ॥");
+        REQUIRE(mesh.get_metadata(id) == "काचं शक्नोम्यत्तुम् । नोपहिनस्ति माम् ॥");
+    }
+
+    {
+        auto id = mesh.template create_attribute<uint8_t>(
+            "metadata2",
+            lagrange::AttributeElement::Value,
+            lagrange::AttributeUsage::String);
+        mesh.set_metadata(id, "my value");
+        REQUIRE(mesh.get_metadata(id) == "my value");
+    }
+
+    lagrange::testing::check_mesh(mesh);
+}
+
 } // namespace
 
-TEST_CASE("SurfaceMesh Construction", "[next]")
+TEST_CASE("SurfaceMesh Construction", "[mesh]")
 {
 #define LA_X_test_mesh_construction(_, Scalar, Index) test_mesh_construction<Scalar, Index>();
     LA_SURFACE_MESH_X(test_mesh_construction, 0)
 }
 
-TEST_CASE("SurfaceMesh: Remove Elements", "[next]")
+TEST_CASE("SurfaceMesh: Remove Elements", "[mesh]")
 {
     SECTION("Without edges")
     {
@@ -2873,13 +2899,13 @@ TEST_CASE("SurfaceMesh: Remove Elements", "[next]")
     }
 }
 
-TEST_CASE("SurfaceMesh: Storage", "[next]")
+TEST_CASE("SurfaceMesh: Storage", "[mesh]")
 {
 #define LA_X_test_mesh_storage(_, Scalar, Index) test_mesh_storage<Scalar, Index>();
     LA_SURFACE_MESH_X(test_mesh_storage, 0)
 }
 
-TEST_CASE("SurfaceMesh: Copy and Move", "[next]")
+TEST_CASE("SurfaceMesh: Copy and Move", "[mesh]")
 {
     SECTION("Without edges")
     {
@@ -2893,7 +2919,7 @@ TEST_CASE("SurfaceMesh: Copy and Move", "[next]")
     }
 }
 
-TEST_CASE("SurfaceMesh: Create Attribute", "[next]")
+TEST_CASE("SurfaceMesh: Create Attribute", "[mesh]")
 {
 #define LA_X_test_mesh_attribute(ValueType, Scalar, Index) \
     test_mesh_attribute<ValueType, Scalar, Index>();
@@ -2901,7 +2927,7 @@ TEST_CASE("SurfaceMesh: Create Attribute", "[next]")
     LA_ATTRIBUTE_X(test_mesh_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Normal Attribute", "[next]")
+TEST_CASE("SurfaceMesh: Normal Attribute", "[mesh]")
 {
 #define LA_X_test_normal_attribute(ValueType, Scalar, Index) \
     test_normal_attribute<ValueType, Scalar, Index>();
@@ -2910,7 +2936,7 @@ TEST_CASE("SurfaceMesh: Normal Attribute", "[next]")
     LA_ATTRIBUTE_X(test_normal_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Wrap Attribute", "[next]")
+TEST_CASE("SurfaceMesh: Wrap Attribute", "[mesh]")
 {
 #define LA_X_test_wrap_attribute(ValueType, Scalar, Index) \
     test_wrap_attribute<ValueType, Scalar, Index>();
@@ -2922,7 +2948,7 @@ TEST_CASE("SurfaceMesh: Wrap Attribute", "[next]")
     LA_SURFACE_MESH_X(test_wrap_attribute_special, 0)
 }
 
-TEST_CASE("SurfaceMesh: Export Attribute", "[next]")
+TEST_CASE("SurfaceMesh: Export Attribute", "[mesh]")
 {
 #define LA_X_test_export_attribute(ValueType, Scalar, Index) \
     test_export_attribute<ValueType, Scalar, Index>();
@@ -2935,7 +2961,7 @@ TEST_CASE("SurfaceMesh: Export Attribute", "[next]")
     LA_SURFACE_MESH_X(test_export_attribute_special, 0)
 }
 
-TEST_CASE("SurfaceMesh: Indexed Attribute", "[next]")
+TEST_CASE("SurfaceMesh: Indexed Attribute", "[mesh]")
 {
 #define LA_X_test_indexed_attribute(ValueType, Scalar, Index) \
     test_indexed_attribute<ValueType, Scalar, Index>();
@@ -2944,34 +2970,34 @@ TEST_CASE("SurfaceMesh: Indexed Attribute", "[next]")
     LA_ATTRIBUTE_X(test_indexed_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Resize Attribute Basic", "[next]")
+TEST_CASE("SurfaceMesh: Resize Attribute Basic", "[mesh]")
 {
 #define LA_X_test_resize_attribute_basic(_, Scalar, Index) \
     test_resize_attribute_basic<Scalar, Index>();
     LA_SURFACE_MESH_X(test_resize_attribute_basic, 0)
 }
 
-TEST_CASE("SurfaceMesh: Edit Facets With Edges", "[next]")
+TEST_CASE("SurfaceMesh: Edit Facets With Edges", "[mesh]")
 {
 #define LA_X_test_edit_facets_with_edges(_, Scalar, Index) \
     test_edit_facets_with_edges<Scalar, Index>();
     LA_SURFACE_MESH_X(test_edit_facets_with_edges, 0)
 }
 
-TEST_CASE("SurfaceMesh: User Edges", "[next]")
+TEST_CASE("SurfaceMesh: User Edges", "[mesh]")
 {
 #define LA_X_test_user_edges(_, Scalar, Index) test_user_edges<Scalar, Index>();
     LA_SURFACE_MESH_X(test_user_edges, 0)
 }
 
-TEST_CASE("SurfaceMesh: Reserved Attributes Basic", "[next]")
+TEST_CASE("SurfaceMesh: Reserved Attributes Basic", "[mesh]")
 {
 #define LA_X_test_reserved_attribute_basic(_, Scalar, Index) \
     test_reserved_attribute_basic<Scalar, Index>();
     LA_SURFACE_MESH_X(test_reserved_attribute_basic, 0)
 }
 
-TEST_CASE("SurfaceMesh: Custom Reserved Attributes", "[next]")
+TEST_CASE("SurfaceMesh: Custom Reserved Attributes", "[mesh]")
 {
 #define LA_X_test_custom_reserved_attributes(ValueType, Scalar, Index) \
     test_custom_reserved_attributes<ValueType, Scalar, Index>();
@@ -2980,7 +3006,7 @@ TEST_CASE("SurfaceMesh: Custom Reserved Attributes", "[next]")
     LA_ATTRIBUTE_X(test_custom_reserved_attributes_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Element Index Type", "[next]")
+TEST_CASE("SurfaceMesh: Element Index Type", "[mesh]")
 {
 #define LA_X_test_element_index_type(ValueType, Scalar, Index) \
     test_element_index_type<ValueType, Scalar, Index>();
@@ -2989,13 +3015,13 @@ TEST_CASE("SurfaceMesh: Element Index Type", "[next]")
     LA_ATTRIBUTE_X(test_element_index_type_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Element Index Resize", "[next]")
+TEST_CASE("SurfaceMesh: Element Index Resize", "[mesh]")
 {
 #define LA_X_test_element_index_resize(_, Scalar, Index) test_element_index_resize<Scalar, Index>();
     LA_SURFACE_MESH_X(test_element_index_resize, 0)
 }
 
-TEST_CASE("SurfaceMesh: Resize Attribute Type", "[next]")
+TEST_CASE("SurfaceMesh: Resize Attribute Type", "[mesh]")
 {
 #define LA_X_test_resize_attribute_type(ValueType, Scalar, Index) \
     test_resize_attribute_type<ValueType, Scalar, Index>();
@@ -3004,7 +3030,7 @@ TEST_CASE("SurfaceMesh: Resize Attribute Type", "[next]")
     LA_ATTRIBUTE_X(test_resize_attribute_type_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Copy Attribute", "[next]")
+TEST_CASE("SurfaceMesh: Copy Attribute", "[mesh]")
 {
 #define LA_X_test_copy_attribute(ValueType, Scalar, Index) \
     test_copy_attribute<ValueType, Scalar, Index>();
@@ -3012,25 +3038,25 @@ TEST_CASE("SurfaceMesh: Copy Attribute", "[next]")
     LA_ATTRIBUTE_X(test_copy_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Shrink To Fit", "[next]")
+TEST_CASE("SurfaceMesh: Shrink To Fit", "[mesh]")
 {
 #define LA_X_test_shrink_to_fit(_, Scalar, Index) test_shrink_to_fit<Scalar, Index>();
     LA_SURFACE_MESH_X(test_shrink_to_fit, 0)
 }
 
-TEST_CASE("SurfaceMesh: Compress If Regular", "[next]")
+TEST_CASE("SurfaceMesh: Compress If Regular", "[mesh]")
 {
 #define LA_X_test_compress_if_regular(_, Scalar, Index) test_compress_if_regular<Scalar, Index>();
     LA_SURFACE_MESH_X(test_compress_if_regular, 0)
 }
 
-TEST_CASE("SurfaceMesh: Test facets of size 1 and 2", "[next]")
+TEST_CASE("SurfaceMesh: Test facets of size 1 and 2", "[mesh]")
 {
 #define LA_X_test_1_and_2_facets(_, Scalar, Index) test_1_and_2_facets<Scalar, Index>();
     LA_SURFACE_MESH_X(test_1_and_2_facets, 0)
 }
 
-TEST_CASE("SurfaceMesh: Value Attribute", "[next]")
+TEST_CASE("SurfaceMesh: Value Attribute", "[mesh]")
 {
 #define LA_X_test_value_attribute(ValueType, Scalar, Index) \
     test_value_attribute<ValueType, Scalar, Index>();
@@ -3039,7 +3065,13 @@ TEST_CASE("SurfaceMesh: Value Attribute", "[next]")
     LA_ATTRIBUTE_X(test_value_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: sanity check", "[next]")
+TEST_CASE("SurfaceMesh: metadata", "[mesh]")
+{
+#define LA_X_test_metadata_attribute(_, Scalar, Index) test_metadata_attribute<Scalar, Index>();
+    LA_SURFACE_MESH_X(test_metadata_attribute, 0)
+}
+
+TEST_CASE("SurfaceMesh: sanity check", "[mesh]")
 {
     using namespace lagrange;
     using Scalar = double;

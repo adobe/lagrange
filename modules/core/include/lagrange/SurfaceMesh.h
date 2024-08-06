@@ -1537,6 +1537,62 @@ public:
 
 public:
     /// @}
+    /// @name Metadata attributes
+    /// @{
+
+    ///
+    /// Create a metadata attribute. Internally, a metadata attribute is simply
+    /// a regular mesh attribute with the following properties:
+    ///
+    /// - Element type is `AttributeElement::Value`
+    /// - Usage is `AttributeUsage::String`
+    /// - ValueType is `uint8_t`
+    /// - Number of channels is 1.
+    ///
+    /// @param      name   Attribute name.
+    /// @param      value  Attribute default value.
+    ///
+    /// @return     AttributeId Id of the newly created attribute
+    ///
+    AttributeId create_metadata(std::string_view name, std::string_view value);
+
+    ///
+    /// Write metadata attribute value.
+    ///
+    /// @param      id     Attribute id.
+    /// @param      value  Attribute value.
+    ///
+    void set_metadata(AttributeId id, std::string_view value);
+
+    ///
+    /// Write metadata attribute value.
+    ///
+    /// @param[in]  name   The name
+    /// @param      value  Attribute value.
+    /// @param      id    Attribute id.
+    ///
+    void set_metadata(std::string_view name, std::string_view value);
+
+    ///
+    /// Read metadata attribute value.
+    ///
+    /// @param      id    Attribute id.
+    ///
+    /// @return     Attribute value.
+    ///
+    std::string_view get_metadata(AttributeId id) const;
+
+    ///
+    /// Read metadata attribute value.
+    ///
+    /// @param      name  Attribute name.
+    ///
+    /// @return     Attribute value.
+    ///
+    std::string_view get_metadata(std::string_view name) const;
+
+public:
+    /// @}
     /// @name Attribute accessors
     /// @{
 

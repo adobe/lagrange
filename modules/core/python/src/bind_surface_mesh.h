@@ -968,6 +968,64 @@ If not provided, the edges are initialized in an arbitrary order.
     surface_mesh_class.def("get_one_corner_around_vertex", &MeshType::get_one_corner_around_vertex);
     surface_mesh_class.def("is_boundary_edge", &MeshType::is_boundary_edge);
 
+    struct MetaData
+    {
+        MeshType* mesh = nullptr;
+
+        std::vector<AttributeId> get_metadata() const
+        {
+            la_runtime_assert(mesh != nullptr, "MetaData is not initialized.");
+            lagrange::AttributeMatcher opts;
+            opts.usages = AttributeUsage::String;
+            opts.element_types = AttributeElement::Value;
+            opts.num_channels = 1;
+            return lagrange::find_matching_attributes(*mesh, opts);
+        }
+    };
+    auto meta_data_class = nb::class_<MetaData>(m, "MetaData");
+    meta_data_class.def("__len__", [](const MetaData& self) {
+        auto data = self.get_metadata();
+        return data.size();
+    });
+    meta_data_class.def("__getitem__", [](const MetaData& self, std::string_view key) {
+        return self.mesh->get_metadata(key);
+    });
+    meta_data_class.def(
+        "__setitem__",
+        [](MetaData& self, std::string_view key, std::string_view value) {
+            la_runtime_assert(self.mesh != nullptr, "MetaData is not initialized.");
+            if (self.mesh->has_attribute(key)) {
+                self.mesh->set_metadata(key, value);
+            } else {
+                self.mesh->create_metadata(key, value);
+            }
+        });
+    meta_data_class.def("__delitem__", [](MetaData& self, std::string_view key) {
+        la_runtime_assert(self.mesh != nullptr, "MetaData is not initialized.");
+        self.mesh->delete_attribute(key);
+    });
+    meta_data_class.def("__repr__", [](const MetaData& self) -> std::string {
+        auto data = self.get_metadata();
+        if (data.empty()) return "MetaData({})";
+
+        std::string r;
+        for (auto id : data) {
+            auto name = self.mesh->get_attribute_name(id);
+            auto value = self.mesh->get_metadata(id);
+            fmt::format_to(std::back_inserter(r), "  {}: {},\n", name, value);
+        }
+        return fmt::format("MetaData(\n{})", r);
+    });
+
+    surface_mesh_class.def_prop_ro(
+        "metadata",
+        [](MeshType& self) {
+            MetaData meta_data;
+            meta_data.mesh = &self;
+            return meta_data;
+        },
+        "Metadata of the mesh.");
+
     surface_mesh_class.def(
         "get_matching_attribute_ids",
         [](MeshType& self,

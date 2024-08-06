@@ -361,3 +361,12 @@ class TestSurfaceMesh:
         mesh = single_triangle
         position_attr = mesh.attribute(mesh.attr_id_vertex_to_position)
         assert position_attr.usage == lagrange.AttributeUsage.Position
+
+    def test_metadata(self, single_triangle):
+        mesh = single_triangle
+        mesh.metadata["author"] = "John"
+        assert mesh.metadata["author"] == "John"
+        mesh.metadata["author"] = "Jane"
+        assert mesh.metadata["author"] == "Jane"
+        mesh.metadata["author"] = "🐶"
+        assert mesh.metadata["author"] == "🐶"

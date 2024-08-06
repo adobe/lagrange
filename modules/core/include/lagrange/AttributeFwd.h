@@ -64,6 +64,7 @@ enum class AttributeUsage : uint16_t {
     FacetIndex = (1 << 9), ///< Single channel integer attribute indexing a mesh facet.
     CornerIndex = (1 << 10), ///< Single channel integer attribute indexing a mesh corner.
     EdgeIndex = (1 << 11), ///< Single channel integer attribute indexing a mesh edge.
+    String = (1 << 12), ///< Mesh attribute is a metadata string (stored as a uint8_t buffer).
 };
 
 /// Identified to be used to access an attribute. Attribute names are mapped to a unique identified
