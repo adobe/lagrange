@@ -56,7 +56,7 @@ void update_transform_hierarchy(Registry& registry)
 {
     auto view = registry.view<TreeNode>();
 
-    const bool check_change = !(ui::get_event_emitter(registry).contains<TransformChangedEvent>());
+    const bool check_change = ui::get_event_emitter(registry).contains<TransformChangedEvent>();
 
     for (auto e : view) {
         if (view.get<TreeNode>(e).parent == NullEntity) {

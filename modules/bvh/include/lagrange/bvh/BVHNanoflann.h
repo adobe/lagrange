@@ -55,7 +55,6 @@ public:
         return false;
     }
 
-
     void build(const VertexArray&, const ElementArray&) override
     {
         la_runtime_assert(0, "BVHNannoflann does not support elements.");

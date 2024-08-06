@@ -45,8 +45,8 @@ CPMAddPackage(
     GIT_TAG c1deb808faadd85a7a007447b62ae238a4be2337
 )
 
-set_target_properties(assimp PROPERTIES FOLDER third_party//assimp)
+set_target_properties(assimp PROPERTIES FOLDER third_party/assimp)
 if(TARGET UpdateAssimpLibsDebugSymbolsAndDLLs)
-    set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER third_party//assimp)
+    set_target_properties(UpdateAssimpLibsDebugSymbolsAndDLLs PROPERTIES FOLDER third_party/assimp)
 endif()
 set_target_properties(zlibstatic PROPERTIES FOLDER third_party)
