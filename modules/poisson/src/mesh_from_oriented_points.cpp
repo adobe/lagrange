@@ -24,6 +24,7 @@
 #include <Reconstructors.h>
 
 namespace lagrange::poisson {
+namespace {
 using ReconScalar = float;
 const unsigned int Dim = 3;
 
@@ -48,7 +49,8 @@ struct InputPointStream : public Reconstructor::InputSampleStream<ReconScalar, D
     bool base_read(Point<ReconScalar, Dim>& p, Point<ReconScalar, Dim>& n)
     {
         if (_current < _P.rows()) {
-            for (unsigned int d = 0; d < Dim; d++) p[d] = (ReconScalar)_P(_current, d), n[d] = (ReconScalar)_N(_current, d);
+            for (unsigned int d = 0; d < Dim; d++)
+                p[d] = (ReconScalar)_P(_current, d), n[d] = (ReconScalar)_N(_current, d);
             _current++;
             return true;
         } else
@@ -61,29 +63,29 @@ protected:
     unsigned int _current;
 };
 
-//template <typename PType, typename NType, typename Scalar, typename ValueType = Scalar>
-template <typename PType, typename NType, typename ValueType >
+// template <typename PType, typename NType, typename Scalar, typename ValueType = Scalar>
+template <typename PType, typename NType, typename ValueType>
 struct InputPointStreamWithAttribute
-    : public Reconstructor::InputSampleWithDataStream<ReconScalar, Dim, Point<ReconScalar> >
+    : public Reconstructor::InputSampleWithDataStream<ReconScalar, Dim, Point<ReconScalar>>
 {
     // Constructs a stream that contains the specified number of samples
     InputPointStreamWithAttribute(
         const PType& P,
         const NType& N,
-        const Attribute<ValueType>& attribute 
-    )
+        const Attribute<ValueType>& attribute)
         : _P(P)
         , _N(N)
         , _attribute(attribute)
         , _current(0)
         , _channels((unsigned int)_attribute.get_num_channels())
         , Reconstructor::InputSampleWithDataStream<ReconScalar, Dim, Point<ReconScalar>>(
-              Point < ReconScalar>(attribute.get_num_channels()))
+              Point<ReconScalar>(attribute.get_num_channels()))
     {
         la_runtime_assert(_P.rows() == _N.rows(), "Number of normals and points don't match");
         la_runtime_assert(_P.cols() == 3, "Points should be three-dimensional");
         la_runtime_assert(_N.cols() == 3, "Normals should be three-dimensional");
-        la_runtime_assert(_P.rows() == _attribute.get_num_elements(),
+        la_runtime_assert(
+            _P.rows() == _attribute.get_num_elements(),
             "Number of attribute elements doesn't match number of vertices");
     }
 
@@ -101,7 +103,7 @@ struct InputPointStreamWithAttribute
             }
 
             // Copy the attribute data
-            auto row = _attribute.get_row( _current );
+            auto row = _attribute.get_row(_current);
             for (unsigned int c = 0; c < _channels; c++) data[c] = (ReconScalar)row[c];
 
             _current++;
@@ -172,9 +174,13 @@ struct OutputVertexStreamWithAttribute
         _channels = (unsigned int)_attribute.get_num_channels();
     }
 
-    // Override the pure abstract method from Reconstructor::OutputVertexWidthDataStream< ReconScalar , Dim , Point< ReconScalar> >
-    void
-    base_write(Point<ReconScalar, Dim> p, Point<ReconScalar, Dim>, ReconScalar, Point<ReconScalar> data)
+    // Override the pure abstract method from Reconstructor::OutputVertexWidthDataStream<
+    // ReconScalar , Dim , Point< ReconScalar> >
+    void base_write(
+        Point<ReconScalar, Dim> p,
+        Point<ReconScalar, Dim>,
+        ReconScalar,
+        Point<ReconScalar> data)
     {
         size_t vId = _mesh.get_num_vertices();
         _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
@@ -187,6 +193,9 @@ protected:
     Attribute<ValueType>& _attribute;
     unsigned int _channels;
 };
+} // namespace
+
+
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     const SurfaceMesh<Scalar, Index>& points,
@@ -213,7 +222,7 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     span<const Scalar> attribute_data;
     if (!options.attribute_name.empty()) {
         attribute_data = points.template get_attribute<Scalar>(options.attribute_name).get_all();
-        const Scalar *foo = attribute_data.data(); // A raw pointer to the data
+        const Scalar* foo = attribute_data.data(); // A raw pointer to the data
         size_t sz = attribute_data.size();
     }
 
@@ -234,7 +243,7 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     typename ReconType::template SolutionParameters<ReconScalar> solverParams;
 
     solverParams.verbose = options.show_logging_output;
-    solverParams.confidence = (ReconScalar)( options.use_normal_length_as_confidence ? 1 : 0 );
+    solverParams.confidence = (ReconScalar)(options.use_normal_length_as_confidence ? 1 : 0);
     solverParams.pointWeight = options.interpolation_weight;
     solverParams.targetValue = 0.5f;
     if (!options.octree_depth) {
@@ -245,8 +254,9 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
         solverParams.depth = options.octree_depth;
     // Parameters for exracting the level-set surface
     Reconstructor::LevelSetExtractionParameters extractionParams;
-    extractionParams.linearFit = false;     // Provides smoother iso-surfacing for the indicator function
-    extractionParams.polygonMesh = false;   // Force triangular output
+    extractionParams.linearFit =
+        false; // Provides smoother iso-surfacing for the indicator function
+    extractionParams.polygonMesh = false; // Force triangular output
     extractionParams.verbose = options.show_logging_output;
 
 
@@ -267,7 +277,7 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
         implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
 
     } else { // There is attribute data
-        #if 0
+#if 0
 internal::visit_attribute_read(mesh, id, [&](auto &&attr) {
     using AttributeType = std::decay_t<decltype(attr)>;
     using ValueType = typename AttributeType::ValueType;
@@ -276,12 +286,12 @@ internal::visit_attribute_read(mesh, id, [&](auto &&attr) {
 });
 #endif
         lagrange::AttributeId id = points.get_attribute_id(options.attribute_name);
-        internal::visit_attribute_read(points, id, [&]( const auto& attribute) {
+        internal::visit_attribute_read(points, id, [&](auto&& attribute) {
             using AttributeType = std::decay_t<decltype(attribute)>;
             using ValueType = typename AttributeType::ValueType;
             // Get the attribute from the input
-//            const Attribute<Scalar>& attribute =
-//                points.template get_attribute<Scalar>(options.attribute_name);
+            //            const Attribute<Scalar>& attribute =
+            //                points.template get_attribute<Scalar>(options.attribute_name);
 
             // Add the attribute to the output mesh
             mesh.template create_attribute<ValueType>(
@@ -329,5 +339,4 @@ internal::visit_attribute_read(mesh, id, [&](auto &&attr) {
         const SurfaceMesh<Scalar, Index>& points,                  \
         const ReconstructionOptions& options);
 LA_SURFACE_MESH_X(mesh_reconstruction, 0)
-
 } // namespace lagrange::poisson
