@@ -12,7 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
-
+#include <functional>
 #include <string_view>
 
 namespace lagrange::poisson {
@@ -25,8 +25,20 @@ struct ReconstructionOptions
     /// Input normal attribute name. If empty, uses the first attribute with usage `Normal`.
     std::string_view input_normals;
 
-    /// Maximum octree depth.
-    int octree_depth = 8;
+    /// Maximum octree depth. (If the value is zero then log base 4 of the point count is used.)
+    unsigned int octree_depth = 0;
+
+    /// Point intrepolation weight (lambda)
+    float interpolation_weight = 2.f;
+
+    /// Use normal length as confidence
+    bool use_normal_length_as_confidence = false;
+
+    /// Attribute name of data to be interpolated at the vertices
+    std::string attribute_name;
+
+    /// Output logging information
+    bool show_logging_output = false;
 
     // <Add other parameters here>
 };

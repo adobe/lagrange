@@ -12,11 +12,18 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/poisson/mesh_from_oriented_points.h>
+#include <lagrange/find_matching_attributes.h>
+#include <lagrange/utils/assert.h>
+#include <lagrange/Attribute.h>
+#include <lagrange/cast_attribute.h>
 
 #include <CLI/CLI.hpp>
 
 int main(int argc, char** argv)
 {
+    using Scalar = float;
+    using Inex = uint32_t;
+
     struct
     {
         std::string input;
@@ -32,7 +39,53 @@ int main(int argc, char** argv)
     auto oriented_points = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(args.input);
 
     lagrange::logger().info("Running Poisson surface reconstruction");
-    auto mesh = lagrange::poisson::mesh_from_oriented_points(oriented_points);
+    lagrange::poisson::ReconstructionOptions recon_options;
+    recon_options.show_logging_output = true;
+    std::cout << "[WARNING] Fixing reconstruction depth at 8" << std::endl;
+    recon_options.octree_depth = 8;
+#if 0
+    bool u_char_color = false;
+#endif
+    if (auto id = find_matching_attribute(oriented_points, lagrange::AttributeUsage::Color);
+        id.has_value()) {
+#if 0
+        if (oriented_points.template is_attribute_type<unsigned char>(id.value()))
+        {
+            lagrange::cast_attribute_in_place<Scalar>(oriented_points, id.value());
+            lagrange::Attribute<Scalar > &attribute =
+                oriented_points.template ref_attribute<Scalar>(id.value());
+            for (size_t i = 0; i < attribute.get_num_elements(); i++) {
+                auto row = attribute.ref_row(i);
+                for (unsigned int c = 0; c < attribute.get_num_channels(); c++ )
+                    if( row[c]<0 ) row[c] = 0;
+                    else if( row[c]>255 ) row[c] = 255;
+            }
+            u_char_color = true;
+        }
+        else 
+            {
+            la_runtime_assert(
+                oriented_points.is_attribute_type<Scalar>(id.value()),
+                "Could not parse color type ");
+        }
+#endif
+
+        recon_options.attribute_name = oriented_points.get_attribute_name(id.value());
+    }
+
+    auto mesh = lagrange::poisson::mesh_from_oriented_points(oriented_points,recon_options);
+
+ #if 0
+    if (u_char_color) {
+        std::cout << "Converting color back" << std::endl;
+        if (auto id = find_matching_attribute(mesh, lagrange::AttributeUsage::Color);
+            id.has_value()) {
+            lagrange::cast_attribute_in_place<unsigned char>(mesh, id.value());
+        } else
+            std::cout << "Couldn't find color" << std::endl;
+
+    }
+#endif
 
     lagrange::logger().info("Saving result: {}", args.output);
     lagrange::io::save_mesh(args.output, mesh);

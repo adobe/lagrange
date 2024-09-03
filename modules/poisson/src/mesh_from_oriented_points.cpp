@@ -13,10 +13,12 @@
 #include <lagrange/poisson/mesh_from_oriented_points.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/Attribute.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
+#include <lagrange/internal/visit_attribute.h>
 
 #include <PreProcessor.h>
 #include <Reconstructors.h>
@@ -59,6 +61,64 @@ protected:
     unsigned int _current;
 };
 
+//template <typename PType, typename NType, typename Scalar, typename ValueType = Scalar>
+template <typename PType, typename NType, typename ValueType >
+struct InputPointStreamWithAttribute
+    : public Reconstructor::InputSampleWithDataStream<ReconScalar, Dim, Point<ReconScalar> >
+{
+    // Constructs a stream that contains the specified number of samples
+    InputPointStreamWithAttribute(
+        const PType& P,
+        const NType& N,
+        const Attribute<ValueType>& attribute 
+    )
+        : _P(P)
+        , _N(N)
+        , _attribute(attribute)
+        , _current(0)
+        , _channels((unsigned int)_attribute.get_num_channels())
+        , Reconstructor::InputSampleWithDataStream<ReconScalar, Dim, Point<ReconScalar>>(
+              Point < ReconScalar>(attribute.get_num_channels()))
+    {
+        la_runtime_assert(_P.rows() == _N.rows(), "Number of normals and points don't match");
+        la_runtime_assert(_P.cols() == 3, "Points should be three-dimensional");
+        la_runtime_assert(_N.cols() == 3, "Normals should be three-dimensional");
+        la_runtime_assert(_P.rows() == _attribute.get_num_elements(),
+            "Number of attribute elements doesn't match number of vertices");
+    }
+
+    // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
+    void reset(void) { _current = 0; }
+
+    // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
+    bool base_read(Point<ReconScalar, Dim>& p, Point<ReconScalar, Dim>& n, Point<ReconScalar>& data)
+    {
+        if (_current < _P.rows()) {
+            // Copy the positions and the normals
+            for (unsigned int d = 0; d < Dim; d++) {
+                p[d] = (ReconScalar)_P(_current, d);
+                n[d] = (ReconScalar)_N(_current, d);
+            }
+
+            // Copy the attribute data
+            auto row = _attribute.get_row( _current );
+            for (unsigned int c = 0; c < _channels; c++) data[c] = (ReconScalar)row[c];
+
+            _current++;
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+protected:
+    const PType& _P;
+    const NType& _N;
+    const Attribute<ValueType>& _attribute;
+    unsigned int _channels;
+    unsigned int _current;
+};
+
 // A stream into which we can write polygons of the form std::vector< node_index_type >
 template <typename Scalar, typename Index>
 struct OutputTriangleStream : public Reconstructor::OutputFaceStream<2>
@@ -92,13 +152,41 @@ struct OutputVertexStream : public Reconstructor::OutputVertexStream<ReconScalar
     // Override the pure abstract method from Reconstructor::OutputVertexStream< Scalar , Dim >
     void base_write(Point<ReconScalar, Dim> p, Point<ReconScalar, Dim>, ReconScalar)
     {
-        _mesh.add_vertex({(ReconScalar)p[0], (ReconScalar)p[1], (ReconScalar)p[2]});
+        _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
     }
 
 protected:
     SurfaceMesh<Scalar, Index>& _mesh;
 };
 
+// A stream into which we can write the output vertices of the extracted mesh
+template <typename Scalar, typename Index, typename ValueType>
+struct OutputVertexStreamWithAttribute
+    : public Reconstructor::OutputVertexWithDataStream<ReconScalar, Dim, Point<ReconScalar>>
+{
+    // Construct a stream that adds vertices into the coordinates
+    OutputVertexStreamWithAttribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId attribute_id)
+        : _mesh(mesh)
+        , _attribute(_mesh.template ref_attribute<ValueType>(attribute_id))
+    {
+        _channels = (unsigned int)_attribute.get_num_channels();
+    }
+
+    // Override the pure abstract method from Reconstructor::OutputVertexWidthDataStream< ReconScalar , Dim , Point< ReconScalar> >
+    void
+    base_write(Point<ReconScalar, Dim> p, Point<ReconScalar, Dim>, ReconScalar, Point<ReconScalar> data)
+    {
+        size_t vId = _mesh.get_num_vertices();
+        _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
+        auto row = _attribute.ref_row(vId);
+        for (unsigned int c = 0; c < _channels; c++) row[c] = (ValueType)data[c];
+    }
+
+protected:
+    SurfaceMesh<Scalar, Index>& _mesh;
+    Attribute<ValueType>& _attribute;
+    unsigned int _channels;
+};
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     const SurfaceMesh<Scalar, Index>& points,
@@ -122,15 +210,18 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
         normal_id = points.get_attribute_id(options.input_normals);
     }
 
+    span<const Scalar> attribute_data;
+    if (!options.attribute_name.empty()) {
+        attribute_data = points.template get_attribute<Scalar>(options.attribute_name).get_all();
+        const Scalar *foo = attribute_data.data(); // A raw pointer to the data
+        size_t sz = attribute_data.size();
+    }
+
     // Eigen-like matrix of normal vectors
     auto N = attribute_matrix_view<Scalar>(points, normal_id);
 
     // TODO: Fill in the implementation here. Reconstruct mesh from (P, N) matrices.
     SurfaceMesh<Scalar, Index> mesh;
-
-    InputPointStream< decltype(P), decltype(N)> inputPoints(P, N);
-    OutputVertexStream<Scalar, Index> outputVertices(mesh);
-    OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
 
     // The type of reconstruction
     using ReconType = Reconstructor::Poisson;
@@ -142,24 +233,90 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     // Parameters for performing the reconstruction
     typename ReconType::template SolutionParameters<ReconScalar> solverParams;
 
-    solverParams.verbose = true;    // Enable verbose output
-    solverParams.depth = 8;         // Reconstruction depth
-
+    solverParams.verbose = options.show_logging_output;
+    solverParams.confidence = (ReconScalar)( options.use_normal_length_as_confidence ? 1 : 0 );
+    solverParams.pointWeight = options.interpolation_weight;
+    solverParams.targetValue = 0.5f;
+    if (!options.octree_depth) {
+        solverParams.depth = (unsigned int)ceil(log(points.get_num_vertices()) / log(4.));
+        std::cout << "Setting depth from point count: " << points.get_num_vertices() << " -> "
+                  << solverParams.depth << std::endl;
+    } else
+        solverParams.depth = options.octree_depth;
     // Parameters for exracting the level-set surface
     Reconstructor::LevelSetExtractionParameters extractionParams;
     extractionParams.linearFit = false;     // Provides smoother iso-surfacing for the indicator function
-    extractionParams.verbose = true;        // Enable verbose output
     extractionParams.polygonMesh = false;   // Force triangular output
+    extractionParams.verbose = options.show_logging_output;
 
 
-    // The type of the reconstructor
-    using Implicit = typename ReconType::template Implicit<ReconScalar, Dim, FEMSig>;
+    if (options.attribute_name.empty()) { // There is no attribute data
 
-    // Construct the implicit representation
-    Implicit implicit(inputPoints, solverParams);
+        // The type of the reconstructor
+        using Implicit = typename ReconType::template Implicit<ReconScalar, Dim, FEMSig>;
 
-    // Extract the iso-surface
-    implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+        // The input data stream, generated from the points and normals
+        InputPointStream<decltype(P), decltype(N)> inputPoints(P, N);
+
+        // Construct the implicit representation
+        Implicit implicit(inputPoints, solverParams);
+
+        // Extract the iso-surface
+        OutputVertexStream<Scalar, Index> outputVertices(mesh);
+        OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
+        implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+
+    } else { // There is attribute data
+        #if 0
+internal::visit_attribute_read(mesh, id, [&](auto &&attr) {
+    using AttributeType = std::decay_t<decltype(attr)>;
+    using ValueType = typename AttributeType::ValueType;
+
+    ...
+});
+#endif
+        lagrange::AttributeId id = points.get_attribute_id(options.attribute_name);
+        internal::visit_attribute_read(points, id, [&]( const auto& attribute) {
+            using AttributeType = std::decay_t<decltype(attribute)>;
+            using ValueType = typename AttributeType::ValueType;
+            // Get the attribute from the input
+//            const Attribute<Scalar>& attribute =
+//                points.template get_attribute<Scalar>(options.attribute_name);
+
+            // Add the attribute to the output mesh
+            mesh.template create_attribute<ValueType>(
+                options.attribute_name,
+                AttributeElement::Vertex,
+                attribute.get_usage(),
+                attribute.get_num_channels());
+
+            // Get the attribute id from the input
+            AttributeId attribute_id = mesh.get_attribute_id(options.attribute_name);
+
+            // The type of the reconstructor
+            using Implicit =
+                typename ReconType::template Implicit<ReconScalar, Dim, FEMSig, Point<ReconScalar>>;
+
+            // The input data stream, generated from the points and normals
+            InputPointStreamWithAttribute<decltype(P), decltype(N), ValueType> inputPoints(
+                P,
+                N,
+                attribute);
+
+            // Construct the implicit representation
+            Implicit implicit(inputPoints, solverParams);
+
+            // Scale the color information to give extrapolation preference to data at finer depths
+            implicit.weightAuxDataByDepth((ReconScalar)32.);
+
+            // Extract the iso-surface
+            OutputVertexStreamWithAttribute<Scalar, Index, ValueType> outputVertices(
+                mesh,
+                attribute_id);
+            OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
+            implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+        });
+    }
 
     (void)P;
     (void)N;
