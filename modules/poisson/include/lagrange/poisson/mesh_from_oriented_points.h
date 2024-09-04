@@ -28,7 +28,7 @@ struct ReconstructionOptions
     /// Maximum octree depth. (If the value is zero then log base 4 of the point count is used.)
     unsigned int octree_depth = 0;
 
-    /// Point intrepolation weight (lambda)
+    /// Point interpolation weight (lambda)
     float interpolation_weight = 2.f;
 
     /// Use normal length as confidence

@@ -289,42 +289,46 @@ internal::visit_attribute_read(mesh, id, [&](auto &&attr) {
         internal::visit_attribute_read(points, id, [&](auto&& attribute) {
             using AttributeType = std::decay_t<decltype(attribute)>;
             using ValueType = typename AttributeType::ValueType;
-            // Get the attribute from the input
-            //            const Attribute<Scalar>& attribute =
-            //                points.template get_attribute<Scalar>(options.attribute_name);
+            if constexpr (AttributeType::IsIndexed) {
+                throw std::runtime_error("Interpolated attribute cannot be Indexed");
+            } else {
+                // Get the attribute from the input
+                //            const Attribute<Scalar>& attribute =
+                //                points.template get_attribute<Scalar>(options.attribute_name);
 
-            // Add the attribute to the output mesh
-            mesh.template create_attribute<ValueType>(
-                options.attribute_name,
-                AttributeElement::Vertex,
-                attribute.get_usage(),
-                attribute.get_num_channels());
+                // Add the attribute to the output mesh
+                mesh.template create_attribute<ValueType>(
+                    options.attribute_name,
+                    AttributeElement::Vertex,
+                    attribute.get_usage(),
+                    attribute.get_num_channels());
 
-            // Get the attribute id from the input
-            AttributeId attribute_id = mesh.get_attribute_id(options.attribute_name);
+                // Get the attribute id from the input
+                AttributeId attribute_id = mesh.get_attribute_id(options.attribute_name);
 
-            // The type of the reconstructor
-            using Implicit =
-                typename ReconType::template Implicit<ReconScalar, Dim, FEMSig, Point<ReconScalar>>;
+                // The type of the reconstructor
+                using Implicit =
+                    typename ReconType::template Implicit<ReconScalar, Dim, FEMSig, Point<ReconScalar>>;
 
-            // The input data stream, generated from the points and normals
-            InputPointStreamWithAttribute<decltype(P), decltype(N), ValueType> inputPoints(
-                P,
-                N,
-                attribute);
+                // The input data stream, generated from the points and normals
+                InputPointStreamWithAttribute<decltype(P), decltype(N), ValueType> inputPoints(
+                    P,
+                    N,
+                    attribute);
 
-            // Construct the implicit representation
-            Implicit implicit(inputPoints, solverParams);
+                // Construct the implicit representation
+                Implicit implicit(inputPoints, solverParams);
 
-            // Scale the color information to give extrapolation preference to data at finer depths
-            implicit.weightAuxDataByDepth((ReconScalar)32.);
+                // Scale the color information to give extrapolation preference to data at finer depths
+                implicit.weightAuxDataByDepth((ReconScalar)32.);
 
-            // Extract the iso-surface
-            OutputVertexStreamWithAttribute<Scalar, Index, ValueType> outputVertices(
-                mesh,
-                attribute_id);
-            OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
-            implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+                // Extract the iso-surface
+                OutputVertexStreamWithAttribute<Scalar, Index, ValueType> outputVertices(
+                    mesh,
+                    attribute_id);
+                OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
+                implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+            }
         });
     }
 
