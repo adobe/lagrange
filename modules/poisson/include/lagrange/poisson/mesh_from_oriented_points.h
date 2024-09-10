@@ -12,7 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
-#include <functional>
+
 #include <string_view>
 
 namespace lagrange::poisson {
@@ -35,12 +35,10 @@ struct ReconstructionOptions
     bool use_normal_length_as_confidence = false;
 
     /// Attribute name of data to be interpolated at the vertices
-    std::string attribute_name;
+    std::string_view attribute_name;
 
     /// Output logging information
     bool show_logging_output = false;
-
-    // <Add other parameters here>
 };
 
 ///
