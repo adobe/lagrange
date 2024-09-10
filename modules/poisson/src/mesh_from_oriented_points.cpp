@@ -233,6 +233,7 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
 
     span<const Scalar> attribute_data;
     if (!options.attribute_name.empty()) {
+        la_runtime_assert(points.has_attribute(options.attribute_name));
         attribute_data = points.template get_attribute<Scalar>(options.attribute_name).get_all();
         const Scalar* foo = attribute_data.data(); // A raw pointer to the data
         size_t sz = attribute_data.size();
