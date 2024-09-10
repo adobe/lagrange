@@ -24,33 +24,37 @@
 #include <Reconstructors.h>
 
 namespace lagrange::poisson {
+
 namespace {
+
 using ReconScalar = float;
 const unsigned int Dim = 3;
 
-template <typename PType, typename NType>
+template <typename MeshScalar>
 struct InputPointStream : public PoissonRecon::Reconstructor::InputSampleStream<ReconScalar, Dim>
 {
     // Constructs a stream that contains the specified number of samples
-    InputPointStream(const PType& P, const NType& N)
+    InputPointStream(span<const MeshScalar> P, span<const MeshScalar> N)
         : _P(P)
         , _N(N)
         , _current(0)
     {
-        la_runtime_assert(_P.rows() == _N.rows(), "Number of normals and points don't match");
-        la_runtime_assert(_P.cols() == 3, "Points should be three-dimensional");
-        la_runtime_assert(_N.cols() == 3, "Normals should be three-dimensional");
+        la_runtime_assert(_P.size() == _N.size(), "Number of normals and points don't match");
     }
 
     // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
     void reset(void) { _current = 0; }
 
     // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
-    bool base_read(PoissonRecon::Point<ReconScalar, Dim>& p, PoissonRecon::Point<ReconScalar, Dim>& n)
+    bool base_read(
+        PoissonRecon::Point<ReconScalar, Dim>& p,
+        PoissonRecon::Point<ReconScalar, Dim>& n)
     {
-        if (_current < _P.rows()) {
-            for (unsigned int d = 0; d < Dim; d++)
-                p[d] = (ReconScalar)_P(_current, d), n[d] = (ReconScalar)_N(_current, d);
+        if (_current * Dim < _P.size()) {
+            for (unsigned int d = 0; d < Dim; d++) {
+                p[d] = static_cast<ReconScalar>(_P[_current * Dim + d]);
+                n[d] = static_cast<ReconScalar>(_N[_current * Dim + d]);
+            }
             _current++;
             return true;
         } else
@@ -58,21 +62,20 @@ struct InputPointStream : public PoissonRecon::Reconstructor::InputSampleStream<
     }
 
 protected:
-    const PType& _P;
-    const NType& _N;
+    span<const MeshScalar> _P;
+    span<const MeshScalar> _N;
     unsigned int _current;
 };
 
-// template <typename PType, typename NType, typename Scalar, typename ValueType = Scalar>
-template <typename PType, typename NType, typename ValueType>
+template <typename MeshScalar, typename ValueType>
 struct InputPointStreamWithAttribute
     : public PoissonRecon::Reconstructor::
           InputSampleWithDataStream<ReconScalar, Dim, PoissonRecon::Point<ReconScalar>>
 {
     // Constructs a stream that contains the specified number of samples
     InputPointStreamWithAttribute(
-        const PType& P,
-        const NType& N,
+        span<const MeshScalar> P,
+        span<const MeshScalar> N,
         const Attribute<ValueType>& attribute)
         : _P(P)
         , _N(N)
@@ -83,11 +86,9 @@ struct InputPointStreamWithAttribute
               InputSampleWithDataStream<ReconScalar, Dim, PoissonRecon::Point<ReconScalar>>(
                   PoissonRecon::Point<ReconScalar>(attribute.get_num_channels()))
     {
-        la_runtime_assert(_P.rows() == _N.rows(), "Number of normals and points don't match");
-        la_runtime_assert(_P.cols() == 3, "Points should be three-dimensional");
-        la_runtime_assert(_N.cols() == 3, "Normals should be three-dimensional");
+        la_runtime_assert(_P.size() == _N.size(), "Number of normals and points don't match");
         la_runtime_assert(
-            _P.rows() == _attribute.get_num_elements(),
+            _P.size() / Dim == _attribute.get_num_elements(),
             "Number of attribute elements doesn't match number of vertices");
     }
 
@@ -100,16 +101,18 @@ struct InputPointStreamWithAttribute
         PoissonRecon::Point<ReconScalar, Dim>& n,
         PoissonRecon::Point<ReconScalar>& data)
     {
-        if (_current < _P.rows()) {
+        if (_current * Dim < _P.size()) {
             // Copy the positions and the normals
             for (unsigned int d = 0; d < Dim; d++) {
-                p[d] = (ReconScalar)_P(_current, d);
-                n[d] = (ReconScalar)_N(_current, d);
+                p[d] = static_cast<ReconScalar>(_P[_current * Dim + d]);
+                n[d] = static_cast<ReconScalar>(_N[_current * Dim + d]);
             }
 
             // Copy the attribute data
             auto row = _attribute.get_row(_current);
-            for (unsigned int c = 0; c < _channels; c++) data[c] = (ReconScalar)row[c];
+            for (unsigned int c = 0; c < _channels; c++) {
+                data[c] = static_cast<ReconScalar>(row[c]);
+            }
 
             _current++;
             return true;
@@ -119,8 +122,8 @@ struct InputPointStreamWithAttribute
     }
 
 protected:
-    const PType& _P;
-    const NType& _N;
+    span<const MeshScalar> _P;
+    span<const MeshScalar> _N;
     const Attribute<ValueType>& _attribute;
     unsigned int _channels;
     unsigned int _current;
@@ -213,8 +216,8 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     la_runtime_assert(points.get_dimension() == 3);
     la_runtime_assert(points.get_num_facets() == 0, "Input mesh must be a point cloud!");
 
-    // Eigen-like matrix of points coordinates
-    auto P = vertex_view(points);
+    // Input point coordinate attribute
+    auto& input_coords = points.get_vertex_to_position();
 
     // Retrieve input normal attribute id
     AttributeId normal_id;
@@ -235,8 +238,11 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
         size_t sz = attribute_data.size();
     }
 
-    // Eigen-like matrix of normal vectors
-    auto N = attribute_matrix_view<Scalar>(points, normal_id);
+    // Retrieve input normal attribute buffer
+    auto& input_normals = points.template get_attribute<Scalar>(normal_id);
+    la_runtime_assert(
+        input_normals.get_num_channels() == 3,
+        "Input normals should only have 3 channels");
 
     SurfaceMesh<Scalar, Index> mesh;
 
@@ -275,7 +281,7 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
         using Implicit = typename ReconType::template Implicit<ReconScalar, Dim, FEMSig>;
 
         // The input data stream, generated from the points and normals
-        InputPointStream<decltype(P), decltype(N)> inputPoints(P, N);
+        InputPointStream<Scalar> inputPoints(input_coords.get_all(), input_normals.get_all());
 
         // Construct the implicit representation
         Implicit implicit(inputPoints, solverParams);
@@ -312,9 +318,9 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
                     template Implicit<ReconScalar, Dim, FEMSig, PoissonRecon::Point<ReconScalar>>;
 
                 // The input data stream, generated from the points and normals
-                InputPointStreamWithAttribute<decltype(P), decltype(N), ValueType> inputPoints(
-                    P,
-                    N,
+                InputPointStreamWithAttribute<Scalar, ValueType> inputPoints(
+                    input_coords.get_all(),
+                    input_normals.get_all(),
                     attribute);
 
                 // Construct the implicit representation
@@ -333,9 +339,6 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
             }
         });
     }
-
-    (void)P;
-    (void)N;
 
     return mesh;
 }
