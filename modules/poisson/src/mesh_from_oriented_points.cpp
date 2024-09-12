@@ -298,13 +298,13 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     // Parameters for performing the reconstruction
     typename ReconType::template SolutionParameters<ReconScalar> solverParams;
 
-    solverParams.verbose = options.show_logging_output;
+    solverParams.verbose = options.verbose;
     solverParams.confidence = (ReconScalar)(options.use_normal_length_as_confidence ? 1 : 0);
     solverParams.pointWeight = options.interpolation_weight;
     solverParams.targetValue = 0.5f;
     if (!options.octree_depth) {
         solverParams.depth = (unsigned int)ceil(log(points.get_num_vertices()) / log(4.));
-        if (options.show_logging_output)
+        if (options.verbose)
             std::cout << "Setting depth from point count: " << points.get_num_vertices() << " -> "
                       << solverParams.depth << std::endl;
     } else
@@ -317,7 +317,7 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     extractionParams.linearFit =
         false; // Provides smoother iso-surfacing for the indicator function
     extractionParams.polygonMesh = false; // Force triangular output
-    extractionParams.verbose = options.show_logging_output;
+    extractionParams.verbose = options.verbose;
 
 
     if (options.interpolated_attribute_name.empty()) { // There is no attribute data

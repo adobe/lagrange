@@ -45,12 +45,12 @@ struct ReconstructionOptions
     /// low-confidence regions as a post-process.
     std::string_view output_vertex_depth_attribute_name;
 
-    /// Output logging information
-    bool show_logging_output = false;
+    /// Output logging information (directly printed to std::cout)
+    bool verbose = false;
 };
 
 ///
-/// Reconstruct a triangle mesh from an oriented point cloud.
+/// Creates a triangle mesh from an oriented point cloud using Poisson surface reconstruction.
 ///
 /// @param[in]  points   Input point clouds with normal attributes.
 /// @param[in]  options  Reconstruction options.
