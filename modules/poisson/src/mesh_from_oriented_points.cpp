@@ -205,14 +205,14 @@ protected:
     Attribute<ValueType>& _attribute;
     unsigned int _channels;
 };
-} // namespace
-
-
-template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
+template <PoissonRecon::BoundaryType BoundaryType, typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     const SurfaceMesh<Scalar, Index>& points,
     const ReconstructionOptions& options)
 {
+std::cout << "Boundary type: " << BoundaryType << std::endl;
+    //    PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)1);
+
     la_runtime_assert(points.get_dimension() == 3);
     la_runtime_assert(points.get_num_facets() == 0, "Input mesh must be a point cloud!");
 
@@ -251,8 +251,8 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     using ReconType = PoissonRecon::Reconstructor::Poisson;
 
     // Finite-elements signature
-    static const unsigned int FEMSig = PoissonRecon::
-        FEMDegreeAndBType<ReconType::DefaultFEMDegree, ReconType::DefaultFEMBoundary>::Signature;
+    static const unsigned int FEMSig =
+        PoissonRecon::FEMDegreeAndBType<ReconType::DefaultFEMDegree, BoundaryType>::Signature;
 
     // Parameters for performing the reconstruction
     typename ReconType::template SolutionParameters<ReconScalar> solverParams;
@@ -342,6 +342,23 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     }
 
     return mesh;
+}
+} // namespace
+
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
+    const SurfaceMesh<Scalar, Index>& points,
+    const ReconstructionOptions& options)
+{
+    if (options.use_dirichlet_boundary)
+        return _mesh_from_oriented_points<PoissonRecon::BoundaryType::BOUNDARY_DIRICHLET>(
+            points,
+            options);
+    else
+        return _mesh_from_oriented_points<PoissonRecon::BoundaryType::BOUNDARY_NEUMANN>(
+            points,
+            options);
 }
 
 #define LA_X_mesh_reconstruction(_, Scalar, Index)                 \

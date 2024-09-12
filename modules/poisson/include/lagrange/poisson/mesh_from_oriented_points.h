@@ -34,6 +34,9 @@ struct ReconstructionOptions
     /// Use normal length as confidence
     bool use_normal_length_as_confidence = false;
 
+    /// Use dirichlet boundary conditions
+    bool use_dirichlet_boundary = false;
+
     /// Attribute name of data to be interpolated at the vertices
     std::string_view attribute_name;
 

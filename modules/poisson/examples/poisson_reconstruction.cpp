@@ -42,7 +42,7 @@ int main(int argc, char** argv)
     lagrange::poisson::ReconstructionOptions recon_options;
     recon_options.show_logging_output = true;
     std::cout << "[WARNING] Fixing reconstruction depth at 8" << std::endl;
-    recon_options.octree_depth = 8;
+//    recon_options.octree_depth = 8;
     if (auto id = find_matching_attribute(oriented_points, lagrange::AttributeUsage::Color);
         id.has_value()) {
 
