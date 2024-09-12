@@ -28,11 +28,17 @@ int main(int argc, char** argv)
     {
         std::string input;
         std::string output = "output.obj";
+        bool dirichlet_boundaries = false;
+        bool verbose = false;
+        unsigned int depth = 0;
     } args;
 
     CLI::App app{argv[0]};
     app.add_option("input", args.input, "Input point cloud.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
+    app.add_option("--depth", args.depth, "max reconstruction depth.");
+    app.add_flag("--dirichlet", args.dirichlet_boundaries, "enable dirichlet bounary conditions.");
+    app.add_flag("--verbose", args.verbose, "enable verbose output.");
     CLI11_PARSE(app, argc, argv)
 
     lagrange::logger().info("Loading input mesh: {}", args.input);
@@ -40,7 +46,9 @@ int main(int argc, char** argv)
 
     lagrange::logger().info("Running Poisson surface reconstruction");
     lagrange::poisson::ReconstructionOptions recon_options;
-    recon_options.show_logging_output = true;
+    recon_options.show_logging_output = args.verbose;
+    recon_options.use_dirichlet_boundary = args.dirichlet_boundaries;
+    recon_options.octree_depth = args.depth;
     std::cout << "[WARNING] Fixing reconstruction depth at 8" << std::endl;
 //    recon_options.octree_depth = 8;
     if (auto id = find_matching_attribute(oriented_points, lagrange::AttributeUsage::Color);

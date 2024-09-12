@@ -210,7 +210,6 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     const SurfaceMesh<Scalar, Index>& points,
     const ReconstructionOptions& options)
 {
-std::cout << "Boundary type: " << BoundaryType << std::endl;
     //    PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)1);
 
     la_runtime_assert(points.get_dimension() == 3);
