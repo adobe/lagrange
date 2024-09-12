@@ -19,8 +19,9 @@ include(CPM)
 CPMAddPackage(
     NAME poissonrecon
     GITHUB_REPOSITORY mkazhdan/PoissonRecon
-    GIT_TAG 1449a82e7189f9f109f3b0f77c9bf766d2b87d88
+    GIT_TAG 5960db7a3ba4f398dfa9f740c0a4fce9a66e2989
 )
 
 add_library(poissonrecon::poissonrecon INTERFACE IMPORTED GLOBAL)
 target_include_directories(poissonrecon::poissonrecon INTERFACE "${poissonrecon_SOURCE_DIR}/Src")
+target_compile_definitions(poissonrecon::poissonrecon INTERFACE "SANITIZED_PR")
