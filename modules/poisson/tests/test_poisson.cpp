@@ -32,8 +32,8 @@ TEST_CASE("Poisson surface reconstruction", "[poisson]")
     }
     {
         lagrange::poisson::ReconstructionOptions recon_options;
-//        recon_options.show_logging_output = true;
-        recon_options.attribute_name = "Vertex_Color";
+        recon_options.input_output_attribute_name = "Vertex_Color";
+        recon_options.output_vertex_depth_attribute_name = "value";
 
         auto input_mesh =
             lagrange::testing::load_surface_mesh<Scalar, Index>("open/poisson/sphere.striped.ply");

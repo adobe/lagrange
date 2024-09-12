@@ -30,6 +30,7 @@ int main(int argc, char** argv)
         std::string output = "output.obj";
         bool dirichlet_boundaries = false;
         bool verbose = false;
+        bool output_vertex_depth = false;
         unsigned int depth = 0;
     } args;
 
@@ -39,6 +40,7 @@ int main(int argc, char** argv)
     app.add_option("--depth", args.depth, "max reconstruction depth.");
     app.add_flag("--dirichlet", args.dirichlet_boundaries, "enable dirichlet bounary conditions.");
     app.add_flag("--verbose", args.verbose, "enable verbose output.");
+    app.add_flag("--vertexDepth", args.output_vertex_depth, "enable outputting of vertex depth.");
     CLI11_PARSE(app, argc, argv)
 
     lagrange::logger().info("Loading input mesh: {}", args.input);
@@ -49,12 +51,12 @@ int main(int argc, char** argv)
     recon_options.show_logging_output = args.verbose;
     recon_options.use_dirichlet_boundary = args.dirichlet_boundaries;
     recon_options.octree_depth = args.depth;
-    std::cout << "[WARNING] Fixing reconstruction depth at 8" << std::endl;
-//    recon_options.octree_depth = 8;
+    if (args.output_vertex_depth) recon_options.output_vertex_depth_attribute_name = "value";
+
     if (auto id = find_matching_attribute(oriented_points, lagrange::AttributeUsage::Color);
         id.has_value()) {
 
-        recon_options.attribute_name = oriented_points.get_attribute_name(id.value());
+        recon_options.input_output_attribute_name = oriented_points.get_attribute_name(id.value());
     }
 
     auto mesh = lagrange::poisson::mesh_from_oriented_points(oriented_points,recon_options);

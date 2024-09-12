@@ -151,39 +151,70 @@ protected:
 };
 
 // A stream into which we can write the output vertices of the extracted mesh
-template <typename Scalar, typename Index>
+template <typename Scalar, typename Index, bool OutputVertexDepth >
 struct OutputVertexStream : public PoissonRecon::Reconstructor::OutputVertexStream<ReconScalar, Dim>
 {
     // Construct a stream that adds vertices into the coordinates
     OutputVertexStream(SurfaceMesh<Scalar, Index>& mesh)
         : _mesh(mesh)
-    {}
+    {
+        static_assert(!OutputVertexDepth, "[ERROR] Expected output vertex depth attribute");
+    }
+    OutputVertexStream(SurfaceMesh<Scalar, Index>& mesh, AttributeId vertex_depth_attribute_id)
+        : _mesh(mesh)
+        , _vertex_depth_attribute(&_mesh.template ref_attribute<Scalar>(vertex_depth_attribute_id))
+    {
+        static_assert(OutputVertexDepth, "[ERROR] Did not expect output vertex depth attribute");
+    }
+
 
     // Override the pure abstract method from Reconstructor::OutputVertexStream< Scalar , Dim >
     void base_write(
         PoissonRecon::Point<ReconScalar, Dim> p,
         PoissonRecon::Point<ReconScalar, Dim>,
-        ReconScalar)
+        ReconScalar vDepth )
     {
+        size_t vId = _mesh.get_num_vertices();
+
         _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
+
+        if constexpr( OutputVertexDepth) {
+            auto row = _vertex_depth_attribute->ref_row(vId);
+            row[0] = (Scalar)vDepth;
+        }
     }
 
 protected:
     SurfaceMesh<Scalar, Index>& _mesh;
+    Attribute<Scalar>* _vertex_depth_attribute;
 };
 
 // A stream into which we can write the output vertices of the extracted mesh
-template <typename Scalar, typename Index, typename ValueType>
+template <typename Scalar, typename Index, typename ValueType, bool OutputVertexDepth>
 struct OutputVertexStreamWithAttribute
     : public PoissonRecon::Reconstructor::
           OutputVertexWithDataStream<ReconScalar, Dim, PoissonRecon::Point<ReconScalar>>
 {
     // Construct a stream that adds vertices into the coordinates
-    OutputVertexStreamWithAttribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId attribute_id)
+    OutputVertexStreamWithAttribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId value_attribute_id)
         : _mesh(mesh)
-        , _attribute(_mesh.template ref_attribute<ValueType>(attribute_id))
+        , _value_attribute(_mesh.template ref_attribute<ValueType>(value_attribute_id))
     {
-        _channels = (unsigned int)_attribute.get_num_channels();
+        static_assert(!OutputVertexDepth, "[ERROR] Expected output vertex depth attribute");
+        _value_channels = (unsigned int)_value_attribute.get_num_channels();
+    }
+
+
+    OutputVertexStreamWithAttribute(
+        SurfaceMesh<Scalar, Index>& mesh,
+        AttributeId value_attribute_id,
+        AttributeId vertex_depth_attribute_id)
+        : _mesh(mesh)
+        , _value_attribute(_mesh.template ref_attribute<ValueType>(value_attribute_id))
+        , _vertex_depth_attribute(&_mesh.template ref_attribute<Scalar>(vertex_depth_attribute_id))
+    {
+        static_assert(OutputVertexDepth, "[ERROR] Did not expect output vertex depth attribute");
+        _value_channels = (unsigned int)_value_attribute.get_num_channels();
     }
 
     // Override the pure abstract method from Reconstructor::OutputVertexWidthDataStream<
@@ -191,19 +222,27 @@ struct OutputVertexStreamWithAttribute
     void base_write(
         PoissonRecon::Point<ReconScalar, Dim> p,
         PoissonRecon::Point<ReconScalar, Dim>,
-        ReconScalar,
+        ReconScalar vDepth,
         PoissonRecon::Point<ReconScalar> data)
     {
         size_t vId = _mesh.get_num_vertices();
+
         _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
-        auto row = _attribute.ref_row(vId);
-        for (unsigned int c = 0; c < _channels; c++) row[c] = (ValueType)data[c];
+
+        auto row = _value_attribute.ref_row(vId);
+        for (unsigned int c = 0; c < _value_channels; c++) row[c] = (ValueType)data[c];
+
+        if constexpr (OutputVertexDepth) {
+            auto row = _vertex_depth_attribute->ref_row(vId);
+            row[0] = (Scalar)vDepth;
+        }
     }
 
 protected:
     SurfaceMesh<Scalar, Index>& _mesh;
-    Attribute<ValueType>& _attribute;
-    unsigned int _channels;
+    Attribute<ValueType>& _value_attribute;
+    unsigned int _value_channels;
+    Attribute<Scalar>* _vertex_depth_attribute;
 };
 template <PoissonRecon::BoundaryType BoundaryType, typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
@@ -231,9 +270,10 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     }
 
     span<const Scalar> attribute_data;
-    if (!options.attribute_name.empty()) {
-        la_runtime_assert(points.has_attribute(options.attribute_name));
-        attribute_data = points.template get_attribute<Scalar>(options.attribute_name).get_all();
+    if (!options.input_output_attribute_name.empty()) {
+        la_runtime_assert(points.has_attribute(options.input_output_attribute_name));
+        attribute_data =
+            points.template get_attribute<Scalar>(options.input_output_attribute_name).get_all();
         const Scalar* foo = attribute_data.data(); // A raw pointer to the data
         size_t sz = attribute_data.size();
     }
@@ -267,6 +307,9 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
                       << solverParams.depth << std::endl;
     } else
         solverParams.depth = options.octree_depth;
+
+    if (!options.output_vertex_depth_attribute_name.empty()) solverParams.outputDensity = true;
+
     // Parameters for exracting the level-set surface
     PoissonRecon::Reconstructor::LevelSetExtractionParameters extractionParams;
     extractionParams.linearFit =
@@ -275,7 +318,7 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     extractionParams.verbose = options.show_logging_output;
 
 
-    if (options.attribute_name.empty()) { // There is no attribute data
+    if (options.input_output_attribute_name.empty()) { // There is no attribute data
 
         // The type of the reconstructor
         using Implicit = typename ReconType::template Implicit<ReconScalar, Dim, FEMSig>;
@@ -287,12 +330,28 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
         Implicit implicit(inputPoints, solverParams);
 
         // Extract the iso-surface
-        OutputVertexStream<Scalar, Index> outputVertices(mesh);
-        OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
-        implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+        if (options.output_vertex_depth_attribute_name.empty()) {
+            OutputVertexStream<Scalar, Index, false> outputVertices(mesh);
+            OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
+            implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+        }
+        else
+        {
+            mesh.template create_attribute<Scalar>(
+                options.output_vertex_depth_attribute_name,
+                AttributeElement::Vertex,
+                AttributeUsage::Scalar);
+
+            AttributeId vertex_depth_attribute_id =
+                mesh.get_attribute_id(options.output_vertex_depth_attribute_name);
+
+            OutputVertexStream<Scalar, Index, true> outputVertices(mesh, vertex_depth_attribute_id);
+            OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
+            implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+        }
 
     } else { // There is attribute data
-        lagrange::AttributeId id = points.get_attribute_id(options.attribute_name);
+        lagrange::AttributeId id = points.get_attribute_id(options.input_output_attribute_name);
         internal::visit_attribute_read(points, id, [&](auto&& attribute) {
             using AttributeType = std::decay_t<decltype(attribute)>;
             using ValueType = typename AttributeType::ValueType;
@@ -305,13 +364,14 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
 
                 // Add the attribute to the output mesh
                 mesh.template create_attribute<ValueType>(
-                    options.attribute_name,
+                    options.input_output_attribute_name,
                     AttributeElement::Vertex,
-                    attribute.get_usage(),
+                    attribute.get_usage(), // AttributeUsage::Scalar
                     attribute.get_num_channels());
 
                 // Get the attribute id from the input
-                AttributeId attribute_id = mesh.get_attribute_id(options.attribute_name);
+                AttributeId attribute_id =
+                    mesh.get_attribute_id(options.input_output_attribute_name);
 
                 // The type of the reconstructor
                 using Implicit = typename ReconType::
@@ -331,11 +391,28 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
                 implicit.weightAuxDataByDepth((ReconScalar)32.);
 
                 // Extract the iso-surface
-                OutputVertexStreamWithAttribute<Scalar, Index, ValueType> outputVertices(
-                    mesh,
-                    attribute_id);
-                OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
-                implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+                if (options.output_vertex_depth_attribute_name.empty()) {
+                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, false> outputVertices(
+                        mesh,
+                        attribute_id);
+                    OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
+                    implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+                } else {
+                    mesh.template create_attribute<Scalar>(
+                        options.output_vertex_depth_attribute_name,
+                        AttributeElement::Vertex,
+                        AttributeUsage::Scalar);
+
+                    AttributeId vertex_depth_attribute_id =
+                        mesh.get_attribute_id(options.output_vertex_depth_attribute_name);
+
+                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, true> outputVertices(
+                        mesh,
+                        attribute_id,
+                        vertex_depth_attribute_id);
+                    OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
+                    implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+                }
             }
         });
     }

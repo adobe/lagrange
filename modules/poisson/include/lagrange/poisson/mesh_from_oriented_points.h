@@ -38,7 +38,10 @@ struct ReconstructionOptions
     bool use_dirichlet_boundary = false;
 
     /// Attribute name of data to be interpolated at the vertices
-    std::string_view attribute_name;
+    std::string_view input_output_attribute_name;
+    
+    /// Output density attribute
+    std::string_view output_vertex_depth_attribute_name;
 
     /// Output logging information
     bool show_logging_output = false;
