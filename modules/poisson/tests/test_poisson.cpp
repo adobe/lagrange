@@ -32,7 +32,7 @@ TEST_CASE("Poisson surface reconstruction", "[poisson]")
     }
     {
         lagrange::poisson::ReconstructionOptions recon_options;
-        recon_options.input_output_attribute_name = "Vertex_Color";
+        recon_options.interpolated_attribute_name = "Vertex_Color";
         recon_options.output_vertex_depth_attribute_name = "value";
 
         auto input_mesh =

@@ -38,9 +38,11 @@ struct ReconstructionOptions
     bool use_dirichlet_boundary = false;
 
     /// Attribute name of data to be interpolated at the vertices
-    std::string_view input_output_attribute_name;
-    
-    /// Output density attribute
+    std::string_view interpolated_attribute_name;
+
+    /// Output density attribute name. We use a point's target octree depth as a measure of the
+    /// sampling density. A lower number means a low sampling density, and can be used to prune
+    /// low-confidence regions as a post-process.
     std::string_view output_vertex_depth_attribute_name;
 
     /// Output logging information
