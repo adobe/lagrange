@@ -151,7 +151,7 @@ protected:
 };
 
 // A stream into which we can write the output vertices of the extracted mesh
-template <typename Scalar, typename Index, bool OutputVertexDepth >
+template <typename Scalar, typename Index, bool OutputVertexDepth>
 struct OutputVertexStream : public PoissonRecon::Reconstructor::OutputVertexStream<ReconScalar, Dim>
 {
     // Construct a stream that adds vertices into the coordinates
@@ -172,13 +172,13 @@ struct OutputVertexStream : public PoissonRecon::Reconstructor::OutputVertexStre
     void base_write(
         PoissonRecon::Point<ReconScalar, Dim> p,
         PoissonRecon::Point<ReconScalar, Dim>,
-        ReconScalar vDepth )
+        ReconScalar vDepth)
     {
         size_t vId = _mesh.get_num_vertices();
 
         _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
 
-        if constexpr( OutputVertexDepth) {
+        if constexpr (OutputVertexDepth) {
             auto row = _vertex_depth_attribute->ref_row(vId);
             row[0] = (Scalar)vDepth;
         }
@@ -196,7 +196,9 @@ struct OutputVertexStreamWithAttribute
           OutputVertexWithDataStream<ReconScalar, Dim, PoissonRecon::Point<ReconScalar>>
 {
     // Construct a stream that adds vertices into the coordinates
-    OutputVertexStreamWithAttribute(SurfaceMesh<Scalar, Index>& mesh, AttributeId value_attribute_id)
+    OutputVertexStreamWithAttribute(
+        SurfaceMesh<Scalar, Index>& mesh,
+        AttributeId value_attribute_id)
         : _mesh(mesh)
         , _value_attribute(_mesh.template ref_attribute<ValueType>(value_attribute_id))
     {
@@ -270,10 +272,10 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     }
 
     span<const Scalar> attribute_data;
-    if (!options.input_output_attribute_name.empty()) {
-        la_runtime_assert(points.has_attribute(options.input_output_attribute_name));
+    if (!options.interpolated_attribute_name.empty()) {
+        la_runtime_assert(points.has_attribute(options.interpolated_attribute_name));
         attribute_data =
-            points.template get_attribute<Scalar>(options.input_output_attribute_name).get_all();
+            points.template get_attribute<Scalar>(options.interpolated_attribute_name).get_all();
         const Scalar* foo = attribute_data.data(); // A raw pointer to the data
         size_t sz = attribute_data.size();
     }
@@ -296,13 +298,13 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     // Parameters for performing the reconstruction
     typename ReconType::template SolutionParameters<ReconScalar> solverParams;
 
-    solverParams.verbose = options.show_logging_output;
+    solverParams.verbose = options.verbose;
     solverParams.confidence = (ReconScalar)(options.use_normal_length_as_confidence ? 1 : 0);
     solverParams.pointWeight = options.interpolation_weight;
     solverParams.targetValue = 0.5f;
     if (!options.octree_depth) {
         solverParams.depth = (unsigned int)ceil(log(points.get_num_vertices()) / log(4.));
-        if (options.show_logging_output)
+        if (options.verbose)
             std::cout << "Setting depth from point count: " << points.get_num_vertices() << " -> "
                       << solverParams.depth << std::endl;
     } else
@@ -315,10 +317,10 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     extractionParams.linearFit =
         false; // Provides smoother iso-surfacing for the indicator function
     extractionParams.polygonMesh = false; // Force triangular output
-    extractionParams.verbose = options.show_logging_output;
+    extractionParams.verbose = options.verbose;
 
 
-    if (options.input_output_attribute_name.empty()) { // There is no attribute data
+    if (options.interpolated_attribute_name.empty()) { // There is no attribute data
 
         // The type of the reconstructor
         using Implicit = typename ReconType::template Implicit<ReconScalar, Dim, FEMSig>;
@@ -334,9 +336,7 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
             OutputVertexStream<Scalar, Index, false> outputVertices(mesh);
             OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
             implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
-        }
-        else
-        {
+        } else {
             mesh.template create_attribute<Scalar>(
                 options.output_vertex_depth_attribute_name,
                 AttributeElement::Vertex,
@@ -351,7 +351,7 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
         }
 
     } else { // There is attribute data
-        lagrange::AttributeId id = points.get_attribute_id(options.input_output_attribute_name);
+        lagrange::AttributeId id = points.get_attribute_id(options.interpolated_attribute_name);
         internal::visit_attribute_read(points, id, [&](auto&& attribute) {
             using AttributeType = std::decay_t<decltype(attribute)>;
             using ValueType = typename AttributeType::ValueType;
@@ -364,14 +364,14 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
 
                 // Add the attribute to the output mesh
                 mesh.template create_attribute<ValueType>(
-                    options.input_output_attribute_name,
+                    options.interpolated_attribute_name,
                     AttributeElement::Vertex,
                     attribute.get_usage(), // AttributeUsage::Scalar
                     attribute.get_num_channels());
 
                 // Get the attribute id from the input
                 AttributeId attribute_id =
-                    mesh.get_attribute_id(options.input_output_attribute_name);
+                    mesh.get_attribute_id(options.interpolated_attribute_name);
 
                 // The type of the reconstructor
                 using Implicit = typename ReconType::

@@ -31,7 +31,6 @@ if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
-# Add later
-# if(LAGRANGE_MODULE_PYTHON)
-#     add_subdirectory(python)
-# endif()
+if(LAGRANGE_MODULE_PYTHON)
+    add_subdirectory(python)
+endif()

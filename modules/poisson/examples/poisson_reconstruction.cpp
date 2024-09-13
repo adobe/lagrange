@@ -9,21 +9,18 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/Attribute.h>
+#include <lagrange/cast_attribute.h>
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/poisson/mesh_from_oriented_points.h>
-#include <lagrange/find_matching_attributes.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/Attribute.h>
-#include <lagrange/cast_attribute.h>
 
 #include <CLI/CLI.hpp>
 
 int main(int argc, char** argv)
 {
-    using Scalar = float;
-    using Inex = uint32_t;
-
     struct
     {
         std::string input;
@@ -48,18 +45,17 @@ int main(int argc, char** argv)
 
     lagrange::logger().info("Running Poisson surface reconstruction");
     lagrange::poisson::ReconstructionOptions recon_options;
-    recon_options.show_logging_output = args.verbose;
+    recon_options.verbose = args.verbose;
     recon_options.use_dirichlet_boundary = args.dirichlet_boundaries;
     recon_options.octree_depth = args.depth;
     if (args.output_vertex_depth) recon_options.output_vertex_depth_attribute_name = "value";
 
     if (auto id = find_matching_attribute(oriented_points, lagrange::AttributeUsage::Color);
         id.has_value()) {
-
-        recon_options.input_output_attribute_name = oriented_points.get_attribute_name(id.value());
+        recon_options.interpolated_attribute_name = oriented_points.get_attribute_name(id.value());
     }
 
-    auto mesh = lagrange::poisson::mesh_from_oriented_points(oriented_points,recon_options);
+    auto mesh = lagrange::poisson::mesh_from_oriented_points(oriented_points, recon_options);
 
     lagrange::logger().info("Saving result: {}", args.output);
     lagrange::io::save_mesh(args.output, mesh);
