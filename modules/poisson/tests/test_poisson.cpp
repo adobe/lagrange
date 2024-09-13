@@ -16,7 +16,7 @@ TEST_CASE("Poisson surface reconstruction", "[poisson]")
 
     {
         lagrange::poisson::ReconstructionOptions recon_options;
-        // recon_options.show_logging_output = true;
+        // recon_options.verbose = true;
 
         auto input_mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/ball.obj");
         lagrange::compute_vertex_normal(input_mesh);

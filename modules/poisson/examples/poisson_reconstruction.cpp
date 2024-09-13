@@ -45,7 +45,7 @@ int main(int argc, char** argv)
 
     lagrange::logger().info("Running Poisson surface reconstruction");
     lagrange::poisson::ReconstructionOptions recon_options;
-    recon_options.show_logging_output = args.verbose;
+    recon_options.verbose = args.verbose;
     recon_options.use_dirichlet_boundary = args.dirichlet_boundaries;
     recon_options.octree_depth = args.depth;
     if (args.output_vertex_depth) recon_options.output_vertex_depth_attribute_name = "value";
