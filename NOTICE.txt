@@ -151,6 +151,14 @@ This codebase contains a modified portion of code from Geogram which can be obta
     OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from hilbert_curves which can be obtained at:
+  * SOURCE:
+    * https://github.com/rawrunprotected/hilbert_curves
+
+  * LICENSE:
+    * https://github.com/rawrunprotected/hilbert_curves/blob/master/README.md
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from ImGui Progress Indicators which can be obtained at:
   * SOURCE:
     * https://github.com/ocornut/imgui/issues/1901

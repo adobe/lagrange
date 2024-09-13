@@ -31,6 +31,9 @@ struct VolumeToMeshOptions
 
     /// Toggle relaxing disoriented triangles during adaptive meshing.
     bool relax_disoriented_triangles = true;
+
+    /// If non-empty, compute vertex normals from the volume and store them in the appropriately named attribute
+    std::string_view normal_attribute_name = "";
 };
 
 ///

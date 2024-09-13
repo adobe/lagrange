@@ -40,6 +40,7 @@ MeshType load_mesh(std::istream& input_stream, const LoadOptions& options)
     case FileFormat::Gltf: return load_mesh_gltf<MeshType>(input_stream, options);
     case FileFormat::Ply: return load_mesh_ply<MeshType>(input_stream, options);
     case FileFormat::Obj: return load_mesh_obj<MeshType>(input_stream, options);
+    case FileFormat::Fbx: return load_mesh_fbx<MeshType>(input_stream, options);
     default:
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_mesh_assimp<MeshType>(input_stream, options);

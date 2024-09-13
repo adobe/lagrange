@@ -22,6 +22,7 @@
 #include <lagrange/io/load_mesh.impl.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
@@ -235,6 +236,41 @@ TEST_CASE("compute_tangent_bitangent_bug01", "[core][tangent]" LA_CORP_FLAG LA_S
     map_attribute(mesh, "@bitangent", "corner_bitangent", lagrange::AttributeElement::Corner);
     lagrange::logger().debug("map_attribute to corner (normal)");
     map_attribute(mesh, "@normal", "corner_normal", lagrange::AttributeElement::Corner);
+}
+
+TEST_CASE("compute_tangent_bitangent_nonmanifold", "[core][tangent]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto filenames = {
+        "moebius-160-10.ply",
+        "nonmanifold_edge.obj",
+        "nonmanifold_vertex.obj",
+        "nonoriented_edge.obj"};
+
+    for (auto filename : filenames) {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            std::string("open/core/topology/") + filename);
+        lagrange::triangulate_polygonal_facets(mesh);
+
+        // Compute trivial UVs
+        auto id = mesh.template create_attribute<Scalar>(
+            "uv",
+            lagrange::AttributeElement::Indexed,
+            2,
+            lagrange::AttributeUsage::UV);
+        auto& attr = mesh.template ref_indexed_attribute<Scalar>(id);
+        attr.values().resize_elements(mesh.get_num_vertices());
+        matrix_ref(attr.values()) = vertex_view(mesh).leftCols(2);
+        vector_ref(attr.indices()) = vector_view(mesh.get_corner_to_vertex());
+
+        const Scalar eps = 1e-3;
+        lagrange::logger().debug("compute_normal()");
+        lagrange::compute_normal(mesh, M_PI * 0.5 - eps);
+        lagrange::logger().debug("compute_indexed_tangent_bitangent()");
+        lagrange::compute_tangent_bitangent(mesh);
+    }
 }
 
 TEST_CASE("compute_tangent_bitangent cube", "[core][tangent]")

@@ -13,13 +13,9 @@ if(NOT CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
     return()
 endif()
 
-# Xcode 15's new linker will crash. We suggest either using the classical linker, or upgrading to Xcode 15.1.
-# AppleClang Compiler ID for Xcode 15.0 is 15.0.0.15000040
-# AppleClang Compiler ID for Xcode 15.1 and 15.2 is 15.0.0.15000100
-if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0.0.15000040 AND
-   CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15.0.0.15000100
-)
-    # First let's check if we are using the classical linker
+# First let's check if we are using the classical linker with Xcode 15+
+set(is_using_classical_linker TRUE)
+if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0.0)
     set(is_using_classical_linker FALSE)
     foreach(type IN ITEMS EXE SHARED MODULE)
         set(suffix_types "none")
@@ -41,8 +37,15 @@ if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0.0.15000040 AND
             endif()
         endforeach()
     endforeach()
+endif()
 
-    # If not, display an error message
+# Xcode 15's new linker will crash. We suggest either using the classical linker, or upgrading to Xcode 15.1.
+# AppleClang Compiler ID for Xcode 15.0 is 15.0.0.15000040
+# AppleClang Compiler ID for Xcode 15.1 and 15.2 is 15.0.0.15000100
+if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0.0.15000040 AND
+   CMAKE_CXX_COMPILER_VERSION VERSION_LESS 15.0.0.15000100
+)
+    # If using the classical linker, display an error message
     if(NOT is_using_classical_linker)
         option(LAGRANGE_IGNORE_XCODE_15_LINKER_ERROR "Turn Xcode 15 linker check from an error into a warning" OFF)
         if(LAGRANGE_IGNORE_XCODE_15_LINKER_ERROR)
@@ -60,4 +63,27 @@ if(CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 15.0.0.15000040 AND
             ${postfix}
         )
     endif()
+endif()
+
+# Fix linker warnings with Xcode 13+. Example warning:
+#
+#     ld: warning: direct access in function 'xxx' from file 'yyy.cpp.o' to global weak symbol 'typeinfo for
+#     lagrange::Attribute<signed char>' from file 'modules/core/Release/liblagrange_core.a(Attribute.cpp.o)' means the
+#     weak symbol cannot be overridden at runtime. This was likely caused by different translation units being compiled
+#     with different visibility settings.
+#
+if(LAGRANGE_TOPLEVEL_PROJECT AND
+    CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0.0 AND
+    is_using_classical_linker AND
+    NOT DEFINED CMAKE_CXX_VISIBILITY_PRESET
+)
+    # Currently, OneTBB cannot be built with hidden visibility (TBB 2020 has a similar issue):
+    # https://github.com/oneapi-src/oneTBB/issues/713
+    # https://github.com/oneapi-src/oneTBB/pull/1114
+    # message(WARNING
+    #     "Using Xcode 13+ or Xcode 15+ with the classical linker. By default Lagrange will compile with "
+    #     "-fvisibility=hidden to avoid linker warnings. If you encounter issues, please set "
+    #     "CMAKE_CXX_VISIBILITY_PRESET explicitly when configuring Lagrange"
+    # )
+    # set(CMAKE_CXX_VISIBILITY_PRESET hidden)
 endif()

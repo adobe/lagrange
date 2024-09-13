@@ -31,12 +31,16 @@ endif()
 
 cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
+if(POLICY CMP0156)
+    cmake_policy(SET CMP0156 NEW)
+endif()
 set(CMAKE_POLICY_DEFAULT_CMP0063 NEW) # Honor visibility properties for all target types.
 set(CMAKE_POLICY_DEFAULT_CMP0069 NEW) # INTERPROCEDURAL_OPTIMIZATION is enforced when enabled.
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # Avoid overriding normal variables with option()
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
 set(CMAKE_POLICY_DEFAULT_CMP0126 NEW) # Avoid overriding normal variables with set(CACHE)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW) # Set the timestamps of all extracted contents to the time of the extraction.
+set(CMAKE_POLICY_DEFAULT_CMP0156 NEW) # De-duplicate libraries on link lines based on linker capabilities.
 
 # Include user-provided default options if available. We do that before the main
 # `project()` so that we can define the C/C++ compilers from the option file.
@@ -326,10 +330,10 @@ include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
-include(lagrange_tbb_sanitizer)
+include(lagrange_set_sanitizers)
+include(lagrange_tbb_sanitizers)
 include(lagrange_warnings)
 include(lagrange_xcode_check)
-include(sanitizers)
 
 if(LAGRANGE_TOPLEVEL_PROJECT)
     include(lagrange_global_flags)

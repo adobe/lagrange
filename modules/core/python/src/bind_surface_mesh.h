@@ -63,8 +63,7 @@ void bind_surface_mesh(nanobind::module_& m)
         "vertex"_a,
         R"(Add a vertex to the mesh.
 
-:param vertex: vertex coordinates
-:type vertex: numpy.ndarray or list)");
+:param vertex: vertex coordinates)");
 
     // Handy overload to take python list as argument.
     surface_mesh_class.def("add_vertex", [](MeshType& self, nb::list b) {
@@ -201,8 +200,8 @@ void bind_surface_mesh(nanobind::module_& m)
         "create_attribute",
         [](MeshType& self,
            std::string_view name,
-           std::optional<AttributeElement> element,
-           std::optional<AttributeUsage> usage,
+           std::variant<std::monostate, AttributeElement, std::string_view> element,
+           std::variant<std::monostate, AttributeUsage, std::string_view> usage,
            std::variant<std::monostate, GenericTensor, nb::list> initial_values,
            std::variant<std::monostate, Tensor<Index>, GenericTensor, nb::list> initial_indices,
            std::optional<Index> num_channels,
@@ -210,21 +209,164 @@ void bind_surface_mesh(nanobind::module_& m)
             const bool with_initial_values = initial_values.index() != 0;
             const bool with_initial_indices = initial_indices.index() != 0;
 
+            // Infer number of channels.
+            Index n = invalid<Index>();
+            if (num_channels.has_value()) {
+                n = num_channels.value();
+            } else if (with_initial_values) {
+                if (initial_values.index() == 1) {
+                    const auto& values = std::get<GenericTensor>(initial_values);
+                    la_runtime_assert(
+                        values.ndim() == 1 || values.ndim() == 2,
+                        "Only vector or matrix are accepted as initial values.");
+                    n = values.ndim() == 1 ? 1 : static_cast<Index>(values.shape(1));
+                } else if (initial_values.index() == 2) {
+                    n = 1;
+                }
+            } else {
+                throw nb::type_error("Either number of channels or initial values are required!");
+            }
+
+            // Infer element type.
+            AttributeElement elem_type;
+            std::visit(
+                [&](auto&& value) {
+                    using T = std::decay_t<decltype(value)>;
+                    if constexpr (std::is_same_v<T, AttributeElement>) {
+                        elem_type = value;
+                    } else if (with_initial_indices) {
+                        elem_type = AttributeElement::Indexed;
+                    } else if constexpr (std::is_same_v<T, std::string_view>) {
+                        if (value == "Vertex") {
+                            elem_type = AttributeElement::Vertex;
+                        } else if (value == "Facet") {
+                            elem_type = AttributeElement::Facet;
+                        } else if (value == "Edge") {
+                            elem_type = AttributeElement::Edge;
+                        } else if (value == "Corner") {
+                            elem_type = AttributeElement::Corner;
+                        } else if (value == "Value") {
+                            elem_type = AttributeElement::Value;
+                        } else if (value == "Indexed") {
+                            elem_type = AttributeElement::Indexed;
+                        } else {
+                            throw nb::type_error("Invalid element type!");
+                        }
+                    } else if (with_initial_values) {
+                        // TODO guess element type based on the shape of initial values.
+                        const Index num_vertices = self.get_num_vertices();
+                        const Index num_facets = self.get_num_facets();
+                        const Index num_corners = self.get_num_corners();
+                        const Index num_edges =
+                            self.has_edges() ? self.get_num_edges() : invalid<Index>();
+
+                        Index num_rows = invalid<Index>();
+                        if (initial_values.index() == 1) {
+                            const auto& values = std::get<GenericTensor>(initial_values);
+                            num_rows = values.shape(0);
+                        } else if (initial_values.index() == 2) {
+                            const auto& values = std::get<nb::list>(initial_values);
+                            num_rows = nb::len(values);
+                        }
+                        la_debug_assert(num_rows != invalid<Index>());
+
+                        if (num_rows == num_vertices) {
+                            la_runtime_assert(
+                                num_rows != num_facets,
+                                "Cannot infer attribute element due to ambiguity: vertices vs "
+                                "facets");
+                            la_runtime_assert(
+                                num_rows != num_edges,
+                                "Cannot infer attribute element due to ambiguity: vertices vs "
+                                "edges");
+                            la_runtime_assert(
+                                num_rows != num_corners,
+                                "Cannot infer attribute element due to ambiguity: vertices vs "
+                                "corners");
+                            elem_type = AttributeElement::Vertex;
+                        } else if (num_rows == num_facets) {
+                            la_runtime_assert(
+                                num_rows != num_edges,
+                                "Cannot infer attribute element due to ambiguity: facets vs "
+                                "edges");
+                            la_runtime_assert(
+                                num_rows != num_corners,
+                                "Cannot infer attribute element due to ambiguity: facets vs "
+                                "corners");
+                            elem_type = AttributeElement::Facet;
+                        } else if (num_rows == num_corners) {
+                            la_runtime_assert(
+                                num_rows != num_edges,
+                                "Cannot infer attribute element due to ambiguity: corners vs "
+                                "edges");
+                            elem_type = AttributeElement::Corner;
+                        } else if (num_rows == num_edges) {
+                            elem_type = AttributeElement::Edge;
+                        } else {
+                            throw nb::type_error(
+                                "Cannot infer attribute element type from initial_values!");
+                        }
+                    } else {
+                        throw nb::type_error("Invalid element type!");
+                    }
+                },
+                element);
+
+            // Infer usage.
+            AttributeUsage usage_type;
+            std::visit(
+                [&](auto&& value) {
+                    using T = std::decay_t<decltype(value)>;
+                    if constexpr (std::is_same_v<T, AttributeUsage>) {
+                        usage_type = value;
+                    } else if constexpr (std::is_same_v<T, std::string_view>) {
+                        if (value == "Vector") {
+                            usage_type = AttributeUsage::Vector;
+                        } else if (value == "Scalar") {
+                            usage_type = AttributeUsage::Scalar;
+                        } else if (value == "Position") {
+                            usage_type = AttributeUsage::Position;
+                        } else if (value == "Normal") {
+                            usage_type = AttributeUsage::Normal;
+                        } else if (value == "Tangent") {
+                            usage_type = AttributeUsage::Tangent;
+                        } else if (value == "Bitangent") {
+                            usage_type = AttributeUsage::Bitangent;
+                        } else if (value == "Color") {
+                            usage_type = AttributeUsage::Color;
+                        } else if (value == "UV") {
+                            usage_type = AttributeUsage::UV;
+                        } else if (value == "VertexIndex") {
+                            usage_type = AttributeUsage::VertexIndex;
+                        } else if (value == "FacetIndex") {
+                            usage_type = AttributeUsage::FacetIndex;
+                        } else if (value == "CornerIndex") {
+                            usage_type = AttributeUsage::CornerIndex;
+                        } else if (value == "EdgeIndex") {
+                            usage_type = AttributeUsage::EdgeIndex;
+                        } else {
+                            throw nb::type_error("Invalid usage type!");
+                        }
+                    } else {
+                        if (n == 1) {
+                            usage_type = AttributeUsage::Scalar;
+                        } else {
+                            usage_type = AttributeUsage::Vector;
+                        }
+                    }
+                },
+                usage);
+
             auto create_attribute = [&](auto values) {
                 using ValueType = typename std::decay_t<decltype(values)>::element_type;
 
                 span<const ValueType> init_values;
                 span<const Index> init_indices;
                 std::vector<Index> index_storage;
-                Index n = num_channels.value_or(1);
-                AttributeElement elem_type;
-                AttributeUsage usage_type;
 
                 // Extract initial values.
                 if (with_initial_values) {
                     init_values = values;
-                    la_debug_assert(num_channels.has_value());
-                    n = num_channels.value();
                     la_debug_assert(values.size() % n == 0);
                 } else {
                     la_runtime_assert(
@@ -261,68 +403,8 @@ void bind_surface_mesh(nanobind::module_& m)
                 } else if (const nb::list* list_ptr = std::get_if<nb::list>(&initial_indices)) {
                     la_debug_assert(with_initial_indices);
                     const nb::list& py_list = *list_ptr;
-                    auto indices = nb::cast<std::vector<Index>>(py_list);
-                    init_indices = span<Index>(indices.begin(), indices.size());
-                }
-
-                // Extract the proper attribute element.
-                if (element.has_value()) {
-                    elem_type = element.value();
-                } else if (with_initial_indices) {
-                    elem_type = AttributeElement::Indexed;
-                } else {
-                    // Guess element type based on the shape of initial values.
-                    la_runtime_assert(
-                        with_initial_values,
-                        "Initial values are required to derive the appropriate element type.");
-                    la_debug_assert(!init_values.empty());
-                    la_debug_assert(init_values.size() % n == 0);
-                    Index num_elements = static_cast<Index>(init_values.size()) / n;
-                    if (num_elements == self.get_num_vertices()) {
-                        la_runtime_assert(
-                            num_elements != self.get_num_facets(),
-                            "Cannot infer attribute element due to ambiguity: "
-                            "vertices vs facets");
-                        la_runtime_assert(
-                            !self.has_edges() || num_elements != self.get_num_edges(),
-                            "Cannot infer attribute element due to ambiguity: "
-                            "vertices vs edges");
-                        la_runtime_assert(
-                            num_elements != self.get_num_corners(),
-                            "Cannot infer attribute element due to ambiguity: "
-                            "vertices vs corners");
-                        elem_type = AttributeElement::Vertex;
-                    } else if (num_elements == self.get_num_facets()) {
-                        la_runtime_assert(
-                            !self.has_edges() || num_elements != self.get_num_edges(),
-                            "Cannot infer attribute element due to ambiguity: "
-                            "facets vs edges");
-                        la_runtime_assert(
-                            num_elements != self.get_num_corners(),
-                            "Cannot infer attribute element due to ambiguity: "
-                            "facets vs corners");
-                        elem_type = AttributeElement::Facet;
-                    } else if (num_elements == self.get_num_corners()) {
-                        la_runtime_assert(
-                            !self.has_edges() || num_elements != self.get_num_edges(),
-                            "Cannot infer attribute element due to ambiguity: "
-                            "corners vs edges");
-                        elem_type = AttributeElement::Corner;
-                    } else if (self.has_edges() && num_elements == self.get_num_edges()) {
-                        elem_type = AttributeElement::Edge;
-                    } else {
-                        throw nb::type_error(
-                            "Cannot infer attribute element type from initial_values!");
-                    }
-                }
-
-                // Extract the proper usage.
-                if (usage.has_value()) {
-                    usage_type = usage.value();
-                } else if (n == 1) {
-                    usage_type = AttributeUsage::Scalar;
-                } else {
-                    usage_type = AttributeUsage::Vector;
+                    index_storage = nb::cast<std::vector<Index>>(py_list);
+                    init_indices = span<Index>(index_storage.begin(), index_storage.size());
                 }
 
                 return self.template create_attribute<ValueType>(
@@ -337,29 +419,20 @@ void bind_surface_mesh(nanobind::module_& m)
 
             if (const GenericTensor* tensor_ptr = std::get_if<GenericTensor>(&initial_values)) {
                 const auto& values = *tensor_ptr;
-#define LA_X_create_attribute(_, ValueType)                                                  \
-    if (values.dtype() == nb::dtype<ValueType>()) {                                          \
-        Tensor<ValueType> local_values(values.handle());                                     \
-        auto [value_data, value_shape, value_stride] = tensor_to_span(local_values);         \
-        la_runtime_assert(is_dense(value_shape, value_stride));                              \
-        if (!num_channels.has_value()) {                                                     \
-            num_channels = value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]); \
-        } else {                                                                             \
-            Index n = value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);      \
-            la_runtime_assert(                                                               \
-                n == num_channels.value(),                                                   \
-                "Number of channels does not match initial_values");                         \
-        }                                                                                    \
-        return create_attribute(value_data);                                                 \
+#define LA_X_create_attribute(_, ValueType)                                                 \
+    if (values.dtype() == nb::dtype<ValueType>()) {                                         \
+        Tensor<ValueType> local_values(values.handle());                                    \
+        auto [value_data, value_shape, value_stride] = tensor_to_span(local_values);        \
+        la_runtime_assert(is_dense(value_shape, value_stride));                             \
+        if (num_channels.has_value()) {                                                     \
+            Index nn = value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);    \
+            la_runtime_assert(nn == n, "Number of channels does not match initial_values"); \
+        }                                                                                   \
+        return create_attribute(value_data);                                                \
     }
                 LA_ATTRIBUTE_X(create_attribute, 0)
 #undef LA_X_create_attribute
             } else if (const nb::list* list_ptr = std::get_if<nb::list>(&initial_values)) {
-                if (!num_channels.has_value()) {
-                    logger().info(
-                        "Automatically set num_channels to 1 for list-typed initial_values.");
-                    num_channels = 1;
-                }
                 auto values = nb::cast<std::vector<double>>(*list_ptr);
                 return create_attribute(span<double>(values.data(), values.size()));
             } else if (dtype.has_value()) {
@@ -410,22 +483,32 @@ void bind_surface_mesh(nanobind::module_& m)
         "initial_indices"_a = nb::none(),
         "num_channels"_a = nb::none(),
         "dtype"_a = nb::none(),
+        nb::sig("def create_attribute(self, "
+                "name: str, "
+                "element: typing.Union[AttributeElement, "
+                "typing.Literal["
+                "'Vertex', 'Facet', 'Edge', 'Corner', 'Value', 'Indexed'"
+                "], None] = None, "
+                "usage: typing.Union[AttributeUsage, "
+                "typing.Literal["
+                "'Vector', 'Scalar', 'Position', 'Normal', 'Tangent', 'Bitangent', 'Color', 'UV', "
+                "'VertexIndex', 'FacetIndex', 'CornerIndex', 'EdgeIndex'"
+                "], None] = None, "
+                "initial_values: typing.Union[numpy.typing.NDArray, typing.List[float], None] = None, "
+                "initial_indices: typing.Union[numpy.typing.NDArray, typing.List[int], None] = None, "
+                "num_channels: typing.Optional[int] = None, "
+                "dtype: typing.Optional[numpy.typing.DTypeLike] = None) -> AttributeId"),
         R"(Create an attribute.
 
 :param name: Name of the attribute.
-:type name: str
 :param element: Element type of the attribute. If None, derive from the shape of initial values.
-:type element: AttributeElement, optional
 :param usage: Usage type of the attribute. If None, derive from the shape of initial values or the number of channels.
-:type usage: AttributeUsage, optional
 :param initial_values: Initial values of the attribute.
-:type initial_values: numpy.ndarray, optional
 :param initial_indices: Initial indices of the attribute (Indexed attribute only).
-:type initial_indices: numpy.ndarray, optional
 :param num_channels: Number of channels of the attribute.
-:type num_channels: int, optional
 :param dtype: Data type of the attribute.
-:type dtype: valid numpy.dtype, optional
+
+:returns: The id of the created attribute.
 
 .. note::
    If `element` is None, it will be derived based on the cardinality of the mesh elements.
@@ -433,10 +516,7 @@ void bind_surface_mesh(nanobind::module_& m)
    In addition, explicit `element` specification is required for value attributes.
 
 .. note::
-   If `usage` is None, it will be derived based on the shape of `initial_values` or `num_channels` if specified.
-
-:returns: The id of the created attribute.
-)");
+   If `usage` is None, it will be derived based on the shape of `initial_values` or `num_channels` if specified.)");
 
     surface_mesh_class.def(
         "create_attribute_from",
@@ -447,11 +527,8 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Shallow copy an attribute from another mesh.
 
 :param name: Name of the attribute.
-:type name: str
 :param source_mesh: Source mesh.
-:type source_mesh: SurfaceMesh
 :param source_name: Name of the attribute in the source mesh. If empty, use the same name as `name`.
-:type source_name: str, optional
 
 :returns: The id of the created attribute.)");
 
@@ -505,13 +582,9 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Wrap an existing numpy array as an attribute.
 
 :param name: Name of the attribute.
-:type name: str
 :param element: Element type of the attribute.
-:type element: AttributeElement
 :param usage: Usage type of the attribute.
-:type usage: AttributeUsage
 :param values: Values of the attribute.
-:type values: numpy.ndarray
 
 :returns: The id of the created attribute.)");
     surface_mesh_class.def(
@@ -574,13 +647,9 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Wrap an existing numpy array as an indexed attribute.
 
 :param name: Name of the attribute.
-:type name: str
 :param usage: Usage type of the attribute.
-:type usage: AttributeUsage
 :param values: Values of the attribute.
-:type values: numpy.ndarray
 :param indices: Indices of the attribute.
-:type indices: numpy.ndarray
 
 :returns: The id of the created attribute.)");
     surface_mesh_class.def("duplicate_attribute", &MeshType::duplicate_attribute);
@@ -596,16 +665,14 @@ void bind_surface_mesh(nanobind::module_& m)
         "name"_a,
         R"(Delete an attribute by name.
 
-:param name: Name of the attribute.
-:type name: str)");
+:param name: Name of the attribute.)");
     surface_mesh_class.def(
         "delete_attribute",
         [](MeshType& self, AttributeId id) { self.delete_attribute(self.get_attribute_name(id)); },
         "id"_a,
         R"(Delete an attribute by id.
 
-:param id: Id of the attribute.
-:type id: AttributeId)");
+:param id: Id of the attribute.)");
     surface_mesh_class.def("has_attribute", &MeshType::has_attribute);
     surface_mesh_class.def(
         "is_attribute_indexed",
@@ -637,7 +704,8 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(
                 !self.is_attribute_indexed(id),
                 fmt::format(
-                    "Attribute {} is indexed!  Please use `indexed_attribute` property instead.",
+                    "Attribute {} is indexed!  Please use `indexed_attribute` property "
+                    "instead.",
                     id));
             if (!sharing) ensure_attribute_is_not_shared(self, id);
             return PyAttribute(self._ref_attribute_ptr(id));
@@ -647,9 +715,7 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Get an attribute by id.
 
 :param id: Id of the attribute.
-:type id: AttributeId
 :param sharing: Whether to allow sharing the attribute with other meshes.
-:type sharing: bool
 
 :returns: The attribute.)");
     surface_mesh_class.def(
@@ -669,9 +735,7 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Get an attribute by name.
 
 :param name: Name of the attribute.
-:type name: str
 :param sharing: Whether to allow sharing the attribute with other meshes.
-:type sharing: bool
 
 :return: The attribute.)");
     surface_mesh_class.def(
@@ -690,9 +754,7 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Get an indexed attribute by id.
 
 :param id: Id of the attribute.
-:type id: AttributeId
 :param sharing: Whether to allow sharing the attribute with other meshes.
-:type sharing: bool
 
 :returns: The indexed attribute.)");
     surface_mesh_class.def(
@@ -711,9 +773,7 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Get an indexed attribute by name.
 
 :param name: Name of the attribute.
-:type name: str
 :param sharing: Whether to allow sharing the attribute with other meshes.
-:type sharing: bool
 
 :returns: The indexed attribute.)");
     surface_mesh_class.def("__attribute_ref_count__", [](MeshType& self, AttributeId id) {
@@ -790,9 +850,7 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Wrap a tensor as vertices.
 
 :param tensor: The tensor to wrap.
-:type tensor: numpy.ndarray
 :param num_vertices: Number of vertices.
-:type num_vertices: int
 
 :return: The id of the wrapped vertices attribute.)");
     surface_mesh_class.def(
@@ -816,11 +874,8 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Wrap a tensor as a list of regular facets.
 
 :param tensor: The tensor to wrap.
-:type tensor: numpy.ndarray
 :param num_facets: Number of facets.
-:type num_facets: int
 :param vertex_per_facet: Number of vertices per facet.
-:type vertex_per_facet: int
 
 :return: The id of the wrapped facet attribute.)");
     surface_mesh_class.def(
@@ -854,13 +909,9 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Wrap a tensor as a list of hybrid facets.
 
 :param offsets: The offset indices into the facets array.
-:type offsets: numpy.ndarray
 :param num_facets: Number of facets.
-:type num_facets: int
 :param facets: The indices of the vertices of the facets.
-:type facets: numpy.ndarray
 :param num_corners: Number of corners.
-:type num_corners: int
 
 :return: The id of the wrapped facet attribute.)");
     surface_mesh_class.def_static("attr_name_is_reserved", &MeshType::attr_name_is_reserved);
@@ -941,8 +992,7 @@ void bind_surface_mesh(nanobind::module_& m)
 The `edges` tensor provides a predefined ordering of the edges.
 If not provided, the edges are initialized in an arbitrary order.
 
-:param edges: M x 2 tensor of predefined edge vertex indices, where M is the number of edges.
-:type edges: numpy.ndarray, optional)");
+:param edges: M x 2 tensor of predefined edge vertex indices, where M is the number of edges.)");
     surface_mesh_class.def("clear_edges", &MeshType::clear_edges);
     surface_mesh_class.def_prop_ro("has_edges", &MeshType::has_edges);
     surface_mesh_class.def("get_edge", &MeshType::get_edge);
@@ -1100,8 +1150,8 @@ If not provided, the edges are initialized in an arbitrary order.
         [](MeshType& self, [[maybe_unused]] std::optional<nb::dict> memo) -> MeshType {
             MeshType mesh = self;
             par_foreach_attribute_write(mesh, [](auto&& attr) {
-                // For most of the attributes, just getting a writable reference will trigger a copy
-                // of the buffer thanks to the copy-on-write mechanism and the default
+                // For most of the attributes, just getting a writable reference will trigger a
+                // copy of the buffer thanks to the copy-on-write mechanism and the default
                 // CopyIfExternal copy policy.
 
                 using AttributeType = std::decay_t<decltype(attr)>;
@@ -1127,9 +1177,9 @@ If not provided, the edges are initialized in an arbitrary order.
 
     surface_mesh_class.def(
         "clone",
-        [](MeshType& self) {
+        [](MeshType& self) -> MeshType {
             auto py_self = nb::find(self);
-            return py_self.attr("__deepcopy__")();
+            return nb::cast<MeshType>(py_self.attr("__deepcopy__")());
         },
         R"(Create a deep copy of this mesh.)");
 }
