@@ -272,16 +272,29 @@ class TestIO:
 
         scene.add(node)
 
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            tmp_dir_path = pathlib.Path(tmp_dir)
-            stamp = datetime.datetime.now().isoformat().replace(":", ".")
-            filename = tmp_dir_path / f"{stamp}.gltf"
-            lagrange.io.save_scene(filename, scene)
-            scene2 = lagrange.io.load_scene(filename)
-
+        def check_scene(scene2):
             assert len(scene2.meshes) == 1
             assert len(scene2.nodes) == 1
             assert scene2.nodes[0].extensions.size == 1
 
             my_ext = scene2.nodes[0].extensions.data["my_ext"]
             assert my_ext["num"] == 12
+
+        # Save and load the scene using file.
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_dir_path = pathlib.Path(tmp_dir)
+            stamp = datetime.datetime.now().isoformat().replace(":", ".")
+            filename = tmp_dir_path / f"{stamp}.gltf"
+            lagrange.io.save_scene(filename, scene)
+            scene2 = lagrange.io.load_scene(filename)
+            check_scene(scene2)
+
+
+        # Save and load the scene using string.
+        data = lagrange.io.scene_to_string(scene, "gltf")
+        scene2 = lagrange.io.string_to_scene(data)
+        check_scene(scene2)
+
+        data = lagrange.io.scene_to_string(scene, "glb")
+        scene3 = lagrange.io.string_to_scene(data)
+        check_scene(scene3)

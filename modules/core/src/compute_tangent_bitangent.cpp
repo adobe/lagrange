@@ -242,12 +242,19 @@ void accumulate_tangent_bitangent(
                 if (fi == fj) return;
                 if (si != sj) return;
                 Index vj = facets(fj, lvj);
-                Index lvj2 = (lvj + 2) % 3;
-                Index vj2 = facets(fj, lvj2);
+                Index lvj2;
+                Index vj2;
                 if (vi != vj) {
+                    // Manifold case where vi, vj are opposite endpoints of eij.
+                    // We choose vj2 as the previous vertex around fj.
                     lvj2 = lvj;
                     lvj = (lvj + 1) % 3;
                     vj = facets(fj, lvj);
+                    vj2 = facets(fj, lvj2);
+                } else {
+                    // Nonmanifold case where vi, vj are the same.
+                    // We choose vj2 as the *next* vertex around fj.
+                    lvj2 = (lvj + 1) % 3;
                     vj2 = facets(fj, lvj2);
                 }
                 la_debug_assert(vi == vj);

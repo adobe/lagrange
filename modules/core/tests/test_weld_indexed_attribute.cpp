@@ -84,6 +84,49 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
             REQUIRE(values.get(i, 1) == v[1]);
         }
     }
+
+    SECTION("Integer attribute")
+    {
+        using ValueType = uint32_t;
+        std::array<ValueType, 6> values{0, 100, 101, 102, 99, 1};
+        std::array<Index, 6> indices{0, 1, 2, 3, 4, 5};
+        auto id = mesh.create_attribute<ValueType>(
+            "test",
+            AttributeElement::Indexed,
+            AttributeUsage::Scalar,
+            1,
+            values,
+            indices);
+
+        SECTION("epsilon=0.001")
+        {
+            WeldOptions options;
+            options.epsilon_rel = 0.001;
+            weld_indexed_attribute(mesh, id, options);
+
+            auto& attr = mesh.get_indexed_attribute<ValueType>(id);
+            auto& welded_values = attr.values();
+            auto& welded_indices = attr.indices();
+
+            REQUIRE(welded_values.get_num_elements() == 6);
+            REQUIRE(welded_indices.get(1) != welded_indices.get(4));
+            REQUIRE(welded_indices.get(2) != welded_indices.get(3));
+        }
+        SECTION("epsilon=0.02")
+        {
+            WeldOptions options;
+            options.epsilon_rel = 0.02;
+            weld_indexed_attribute(mesh, id, options);
+
+            auto& attr = mesh.get_indexed_attribute<ValueType>(id);
+            auto& welded_values = attr.values();
+            auto& welded_indices = attr.indices();
+
+            REQUIRE(welded_values.get_num_elements() == 4);
+            REQUIRE(welded_indices.get(1) == welded_indices.get(4));
+            REQUIRE(welded_indices.get(2) == welded_indices.get(3));
+        }
+    }
 }
 
 TEST_CASE("weld_indexed_attribute hybrid mesh", "[core][attribute][surface]")

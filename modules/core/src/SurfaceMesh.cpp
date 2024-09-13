@@ -2430,6 +2430,16 @@ auto SurfaceMesh<Scalar, Index>::get_edge_vertices(Index e) const -> std::array<
 }
 
 template <typename Scalar, typename Index>
+Index SurfaceMesh<Scalar, Index>::get_next_corner_around_facet(Index c) const
+{
+    Index f = get_corner_facet(c);
+    Index c0 = get_facet_corner_begin(f);
+    Index lv = c - c0;
+    Index nv = get_facet_size(f);
+    return c0 + (lv + 1) % nv;
+}
+
+template <typename Scalar, typename Index>
 Index SurfaceMesh<Scalar, Index>::find_edge_from_vertices(Index v0, Index v1) const
 {
     Index ei = invalid<Index>();

@@ -49,6 +49,16 @@ struct AttributeFilter
 
     /// List of attribute element types to include. By default, all element types are included.
     BitField<AttributeElement> included_element_types = BitField<AttributeElement>::all();
+
+    /// If set, match all attributes that satisfy any of the filters in this list.
+    ///
+    /// @note       A filter cannot contain both or_filters and and_filters.
+    std::vector<AttributeFilter> or_filters;
+
+    /// If set, match all attributes that satisfy all of the filters in this list.
+    ///
+    /// @note       A filter cannot contain both or_filters and and_filters.
+    std::vector<AttributeFilter> and_filters;
 };
 
 ///

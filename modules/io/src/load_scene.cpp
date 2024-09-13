@@ -14,6 +14,7 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/io/api.h>
+#include <lagrange/io/internal/detect_file_format.h>
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/load_scene_gltf.h>
 #include <lagrange/io/load_scene_obj.h>
@@ -23,6 +24,8 @@
 #ifdef LAGRANGE_WITH_ASSIMP
     #include <lagrange/io/load_scene_assimp.h>
 #endif
+
+#include <istream>
 
 namespace lagrange::io {
 
@@ -45,10 +48,26 @@ SceneType load_scene(const fs::path& filename, const LoadOptions& options)
 #endif
     }
 }
+
+template <typename SceneType>
+SceneType load_scene(std::istream& input_stream, const LoadOptions& options)
+{
+    switch (internal::detect_file_format(input_stream)) {
+    case FileFormat::Gltf: return load_scene_gltf<SceneType>(input_stream, options);
+    case FileFormat::Fbx: return load_scene_fbx<SceneType>(input_stream, options);
+    default: throw std::runtime_error("Unsupported format.");
+    }
+}
+
+
 #define LA_X_load_scene(_, S, I)                      \
     template LA_IO_API scene::Scene<S, I> load_scene( \
         const fs::path& filename,                     \
+        const LoadOptions& options);                  \
+    template LA_IO_API scene::Scene<S, I> load_scene( \
+        std::istream& input_stream,                   \
         const LoadOptions& options);
+
 LA_SCENE_X(load_scene, 0);
 
 } // namespace lagrange::io

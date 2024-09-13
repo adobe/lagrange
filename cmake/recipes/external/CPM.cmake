@@ -6,7 +6,7 @@
 # accordance with the terms of the Adobe license agreement accompanying
 # it.
 #
-set(CPM_DOWNLOAD_VERSION 0.39.0)
+set(CPM_DOWNLOAD_VERSION 0.40.2)
 
 if(CPM_SOURCE_CACHE)
   set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
