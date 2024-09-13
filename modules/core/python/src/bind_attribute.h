@@ -215,6 +215,7 @@ void bind_attribute(nanobind::module_& m)
             };
             self.process(wrap_tensor);
         },
+        nb::for_getter(nb::sig("def data(self, /) -> numpy.typing.NDArray")),
         "Raw data buffer of the attribute.");
     attr_class.def_prop_ro(
         "dtype",

@@ -22,6 +22,7 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.autosummary",
     "sphinx.ext.napoleon",
+    "sphinx_autodoc_typehints",
     "autoapi.extension",
 ]
 
@@ -40,6 +41,9 @@ autosummary_generate = True
 templates_path = ["_templates"]
 exclude_patterns = []
 
+# Auto typehints settings
+autodoc_typehints = "description"
+always_use_bars_union = True
 
 # -- Options for HTML output -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output

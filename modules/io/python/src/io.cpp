@@ -54,7 +54,8 @@ void populate_io_module(nb::module_& m)
     using Scalar = double;
     using Index = uint32_t;
     using MeshType = SurfaceMesh<Scalar, Index>;
-    using SceneType = scene::SimpleScene<Scalar, Index, 3>;
+    using SimpleSceneType = scene::SimpleScene<Scalar, Index, 3>;
+    using SceneType = lagrange::scene::Scene<Scalar, Index>;
 
     nb::class_<io::LoadOptions>(m, "LoadOptions")
         .def(nb::init<>())
@@ -72,12 +73,6 @@ void populate_io_module(nb::module_& m)
     nb::enum_<io::FileEncoding>(m, "FileEncoding")
         .value("Binary", io::FileEncoding::Binary)
         .value("Ascii", io::FileEncoding::Ascii);
-    nb::enum_<io::FileFormat>(m, "FileFormat")
-        .value("Obj", io::FileFormat::Obj)
-        .value("Ply", io::FileFormat::Ply)
-        .value("Gltf", io::FileFormat::Gltf)
-        .value("Msh", io::FileFormat::Msh)
-        .value("Unknown", io::FileFormat::Unknown);
     nb::class_<io::SaveOptions> save_options(m, "SaveOptions");
     save_options.def(nb::init<>())
         .def_rw("encoding", &io::SaveOptions::encoding)
@@ -195,7 +190,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             if (search_path.has_value()) {
                 opts.search_path = std::move(search_path.value());
             }
-            return io::load_simple_scene<SceneType>(filename, opts);
+            return io::load_simple_scene<SimpleSceneType>(filename, opts);
         },
         "filename"_a,
         "triangulate"_a = false,
@@ -210,7 +205,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 
     m.def(
         "save_simple_scene",
-        [](const fs::path& filename, const SceneType& scene, bool binary) {
+        [](const fs::path& filename, const SimpleSceneType& scene, bool binary) {
             io::SaveOptions opts;
             opts.encoding = binary ? io::FileEncoding::Binary : io::FileEncoding::Ascii;
             io::save_simple_scene(filename, scene, opts);
@@ -293,7 +288,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         R"(Convert a binary string to a mesh.
 
 The binary string should use one of the supported formats. Supported formats include `obj`, `ply`,
-`gltf`, `glb` and `msh`. Format is automatically detected.
+`gltf`, `glb`, `fbx` and `msh`. Format is automatically detected.
 
 :param data:        A binary string representing the mesh data in a supported format.
 :param triangulate: Whether to triangulate the mesh if it is not already triangulated. Defaults to False.
@@ -302,7 +297,9 @@ The binary string should use one of the supported formats. Supported formats inc
 
     m.def(
         "load_scene",
-        io::load_scene<scene::Scene<Scalar, Index>>,
+        [](const fs::path& filename, const io::LoadOptions& options) {
+            return io::load_scene<SceneType>(filename, options);
+        },
         "filename"_a,
         "options"_a = io::LoadOptions(),
         R"(Load a scene.
@@ -313,8 +310,30 @@ The binary string should use one of the supported formats. Supported formats inc
 :return Scene: The loaded scene object.)");
 
     m.def(
+        "string_to_scene",
+        [](nb::bytes data, bool triangulate) {
+            std::stringstream ss;
+            ss.write(data.c_str(), data.size());
+            io::LoadOptions opts;
+            opts.triangulate = triangulate;
+            return io::load_scene<SceneType>(ss, opts);
+        },
+        "data"_a,
+        "triangulate"_a = false,
+        R"(Convert a binary string to a scene.
+
+The binary string should use one of the supported formats (i.e. `gltf`, `glb` and `fbx`).
+
+:param data:        A binary string representing the scene data in a supported format.
+:param triangulate: Whether to triangulate the scene if it is not already triangulated. Defaults to False.
+
+:return Scene: The scene object extracted from the input string.)");
+
+    m.def(
         "save_scene",
-        io::save_scene<Scalar, Index>,
+        [](const fs::path& filename,
+           const scene::Scene<Scalar, Index>& scene,
+           const io::SaveOptions& options) { io::save_scene(filename, scene, options); },
         "filename"_a,
         "scene"_a,
         "options"_a = io::SaveOptions(),
@@ -323,6 +342,58 @@ The binary string should use one of the supported formats. Supported formats inc
 :param filename:    The output file name.
 :param scene:       The scene to save.
 :param options:     Save options. Check the class for more details.)");
+
+    m.def(
+        "scene_to_string",
+        [](const scene::Scene<Scalar, Index>& scene,
+           std::string_view format,
+           bool binary,
+           bool exact_match,
+           bool embed_images,
+           std::optional<std::vector<AttributeId>> selected_attributes) {
+            lagrange::io::SaveOptions opts;
+            opts.encoding = binary ? io::FileEncoding::Binary : io::FileEncoding::Ascii;
+            opts.attribute_conversion_policy =
+                exact_match ? io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly
+                            : io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+            opts.embed_images = embed_images;
+            if (selected_attributes.has_value()) {
+                opts.selected_attributes = std::move(selected_attributes.value());
+                opts.output_attributes = io::SaveOptions::OutputAttributes::SelectedOnly;
+            } else {
+                opts.output_attributes = io::SaveOptions::OutputAttributes::All;
+            }
+
+            std::stringstream ss;
+            if (format == "gltf") {
+                opts.encoding = io::FileEncoding::Ascii;
+                io::save_scene(ss, scene, lagrange::io::FileFormat::Gltf, opts);
+            } else if (format == "glb") {
+                opts.encoding = io::FileEncoding::Binary;
+                io::save_scene(ss, scene, lagrange::io::FileFormat::Gltf, opts);
+            } else {
+                throw std::invalid_argument(fmt::format("Unsupported format: {}", format));
+            }
+
+            // TODO: switch to ss.view() when C++20 is available.
+            std::string data = ss.str();
+            return nb::bytes(data.data(), data.size());
+        },
+        "scene"_a,
+        "format"_a,
+        "binary"_a = true,
+        "exact_match"_a = true,
+        "embed_images"_a = false,
+        "selected_attributes"_a = nb::none(),
+        R"(Convert a scene to a binary string based on specified format.
+
+:param scene:    The input scene.
+:param format:   Format to use. Supported formats are "gltf" and "glb".
+:param binary:   Whether to save the scene in binary format if supported. Defaults to True. Only `glb` supports binary format.
+:param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
+:param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.
+
+:return str: The string representing the input scene.)");
 }
 
 } // namespace lagrange::python

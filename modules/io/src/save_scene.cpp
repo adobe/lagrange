@@ -17,6 +17,8 @@
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/utils/strings.h>
 
+#include <ostream>
+
 namespace lagrange::io {
 
 template <typename Scalar, typename Index>
@@ -35,10 +37,28 @@ void save_scene(
     }
 }
 
+template <typename Scalar, typename Index>
+void save_scene(
+    std::ostream& output_stream,
+    const scene::Scene<Scalar, Index>& scene,
+    FileFormat format,
+    const SaveOptions& options)
+{
+    switch (format) {
+    case FileFormat::Gltf: save_scene_gltf(output_stream, scene, options); break;
+    default: throw std::runtime_error("Unrecognized file format!");
+    }
+}
+
 #define LA_X_save_scene(_, S, I)         \
-    template LA_IO_API void save_scene(            \
+    template LA_IO_API void save_scene(  \
         const fs::path& filename,        \
         const scene::Scene<S, I>& scene, \
+        const SaveOptions& options);     \
+    template LA_IO_API void save_scene(  \
+        std::ostream& output_stream,     \
+        const scene::Scene<S, I>& scene, \
+        FileFormat format,               \
         const SaveOptions& options);
 LA_SCENE_X(save_scene, 0);
 #undef LA_X_save_scene

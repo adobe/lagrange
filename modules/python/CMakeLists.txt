@@ -52,11 +52,8 @@ set_target_properties(lagrange_python PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${CMAK
 
 # 4. generate lagrange_binding.cpp (to be called after all modules are loaded.)
 #    and add install rule for stubgen.
-function(lagrange_generate_python_binding_module)
-    if (NOT TARGET lagrange_python)
-        message(FATAL_ERROR "Target lagrange_python does not exist!")
-    endif()
 
+function(lagrange_generate_binding_file)
     set(include_lines "")
     set(bind_lines "")
     get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
@@ -92,7 +89,56 @@ NB_MODULE(lagrange, m)
 
     configure_file(${binding_file_in} ${binding_file} COPYONLY)
     target_sources(lagrange_python PRIVATE ${binding_file})
+endfunction()
 
+
+function(lagrange_generate_init_file)
+    set(init_lines "")
+    get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
+    foreach(module_name IN ITEMS ${active_modules})
+        list(APPEND init_lines "from .lagrange import ${module_name}")
+    endforeach()
+
+    # Generate __init__.py to import all modules.
+    set(init_file ${SKBUILD_PLATLIB_DIR}/lagrange/__init__.py)
+    file(WRITE ${init_file} [[
+#
+# Copyright 2022 Adobe. All rights reserved.
+# This file is licensed to you under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License. You may obtain a copy
+# of the License at http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under
+# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+# OF ANY KIND, either express or implied. See the License for the specific language
+# governing permissions and limitations under the License.
+#
+from .lagrange.core import *
+from ._logging import logger
+from ._version import __version__
+
+del _logging, lagrange  # type: ignore
+
+# Import all modules.
+]])
+
+    foreach(line IN ITEMS ${init_lines})
+        file(APPEND ${init_file} ${line}\n)
+    endforeach()
+endfunction()
+
+function(lagrange_generate_python_binding_module)
+    if (NOT TARGET lagrange_python)
+        message(FATAL_ERROR "Target lagrange_python does not exist!")
+    endif()
+
+    # Generate lagrange_binding.cpp.
+    lagrange_generate_binding_file()
+
+    # Generate __init__.py to import all modules.
+    if (SKBUILD)
+        lagrange_generate_init_file()
+    endif()
 
     # Lastly, add stubgen installation command.
     if(SKBUILD)
@@ -103,8 +149,10 @@ NB_MODULE(lagrange, m)
         set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange/__init__.pyi)
 
         # Generate stubs for python binding within the install location.
+        get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
         foreach(module_name IN ITEMS ${active_modules})
-            file(APPEND ${init_pyi_file} "import .${module_name} as ${module_name}\n")
+            message(STATUS "Generating stub for lagrange.${module_name}")
+            file(APPEND ${init_pyi_file} "from . import ${module_name}\n")
             nanobind_add_stub(
                 lagrange_python_stubgen_${module_name}
                 INSTALL_TIME

@@ -199,6 +199,7 @@ AttributeId compute_vertex_is_manifold(
     SurfaceMesh<Scalar, Index>& mesh,
     const VertexManifoldOptions& options)
 {
+    mesh.initialize_edges();
     AttributeId id = internal::find_or_create_attribute<uint8_t>(
         mesh,
         options.output_attribute_name,

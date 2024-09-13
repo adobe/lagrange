@@ -48,7 +48,9 @@ int main(int argc, char** argv)
     recon_options.verbose = args.verbose;
     recon_options.use_dirichlet_boundary = args.dirichlet_boundaries;
     recon_options.octree_depth = args.depth;
-    if (args.output_vertex_depth) recon_options.output_vertex_depth_attribute_name = "value";
+    if (args.output_vertex_depth) {
+        recon_options.output_vertex_depth_attribute_name = "value";
+    }
 
     if (auto id = find_matching_attribute(oriented_points, lagrange::AttributeUsage::Color);
         id.has_value()) {

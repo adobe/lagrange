@@ -13,7 +13,9 @@
 #include <lagrange/poisson/mesh_from_oriented_points.h>
 
 #include <lagrange/Attribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/internal/visit_attribute.h>
 #include <lagrange/utils/Error.h>
@@ -255,9 +257,10 @@ protected:
 
 template <PoissonRecon::BoundaryType BoundaryType, typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
-    const SurfaceMesh<Scalar, Index>& points,
+    const SurfaceMesh<Scalar, Index>& points_,
     const ReconstructionOptions& options)
 {
+    SurfaceMesh<Scalar, Index> points = points_; // cheap with copy-on-write
     // PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)1);
 
     la_runtime_assert(points.get_dimension() == 3);
@@ -286,6 +289,11 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     }
 
     // Retrieve input normal attribute buffer
+    if (!points.template is_attribute_type<Scalar>(normal_id)) {
+        logger().warn("Input normals do not have the same scalar type as the input points. Casting "
+                      "attribute.");
+        normal_id = cast_attribute_in_place<Scalar>(points, normal_id);
+    }
     auto& input_normals = points.template get_attribute<Scalar>(normal_id);
     la_runtime_assert(
         input_normals.get_num_channels() == 3,
@@ -309,11 +317,13 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     solver_params.targetValue = 0.5f;
     if (!options.octree_depth) {
         solver_params.depth = (unsigned int)ceil(log(points.get_num_vertices()) / log(4.));
-        if (options.verbose)
-            std::cout << "Setting depth from point count: " << points.get_num_vertices() << " -> "
-                      << solver_params.depth << std::endl;
-    } else
+        logger().debug(
+            "Setting depth from point count: {} -> {}",
+            points.get_num_vertices(),
+            solver_params.depth);
+    } else {
         solver_params.depth = options.octree_depth;
+    }
 
     if (!options.output_vertex_depth_attribute_name.empty()) solver_params.outputDensity = true;
 

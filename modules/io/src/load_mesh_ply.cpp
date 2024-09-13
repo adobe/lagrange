@@ -303,23 +303,20 @@ MeshType load_mesh_ply(std::istream& input_stream, const LoadOptions& options)
 
     happly::Element& vertex_element = ply.getElement("vertex");
     const Index num_vertices = Index(vertex_element.count);
-    {
-        // Use double to ensure we can always load in the data with Happly's type promotion.
-        const std::vector<double>& xPos = vertex_element.getProperty<double>("x");
-        const std::vector<double>& yPos = vertex_element.getProperty<double>("y");
-        const std::vector<double>& zPos = vertex_element.getProperty<double>("z");
-        if constexpr (std::is_same_v<Scalar, float>) {
-            if (vertex_element.hasPropertyType<double>("x")) {
-                logger().warn("Loading PLY file with scalar type float but the file contains "
-                              "double precision data. This may result in loss of precision.");
-            }
-        }
-        mesh.add_vertices(num_vertices, [&](Index v, span<Scalar> p) -> void {
-            p[0] = static_cast<Scalar>(xPos[v]);
-            p[1] = static_cast<Scalar>(yPos[v]);
-            p[2] = static_cast<Scalar>(zPos[v]);
-        });
+
+#define LA_X_try_ValueType(_, T)                                               \
+    if (vertex_element.template hasPropertyType<T>("x")) {                     \
+        const std::vector<T> xPos = vertex_element.getProperty<T>("x");        \
+        const std::vector<T> yPos = vertex_element.getProperty<T>("y");        \
+        const std::vector<T> zPos = vertex_element.getProperty<T>("z");        \
+        mesh.add_vertices(num_vertices, [&](Index v, span<Scalar> p) -> void { \
+            p[0] = static_cast<Scalar>(xPos[v]);                               \
+            p[1] = static_cast<Scalar>(yPos[v]);                               \
+            p[2] = static_cast<Scalar>(zPos[v]);                               \
+        });                                                                    \
     }
+    LA_ATTRIBUTE_X(try_ValueType, 0)
+#undef LA_X_try_ValueType
 
     if (ply.hasElement("face")) {
         const std::vector<std::vector<Index>>& facets = ply.getFaceIndices<Index>();

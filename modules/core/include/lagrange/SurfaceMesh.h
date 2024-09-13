@@ -2186,6 +2186,17 @@ public:
     Index find_edge_from_vertices(Index v0, Index v1) const;
 
     ///
+    /// Gets the next corner around the facet associated to a corner. If the corner `c` has local
+    /// index `lv`, the first corner of the facet is `c0`, and the facet has `nv` vertices, this
+    /// function returns `c0 + (lv + 1) % nv`.
+    ///
+    /// @param[in]  c     Corner index.
+    ///
+    /// @return     The next corner around facet.
+    ///
+    Index get_next_corner_around_facet(Index c) const;
+
+    ///
     /// Get the index of the first corner around a given edge.
     ///
     /// @param[in]  e     Queried edge index.

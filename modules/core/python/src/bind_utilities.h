@@ -39,6 +39,7 @@
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/python/utils/StackVector.h>
 #include <lagrange/remap_vertices.h>
+#include <lagrange/reorder_mesh.h>
 #include <lagrange/separate_by_components.h>
 #include <lagrange/separate_by_facet_groups.h>
 #include <lagrange/topology.h>
@@ -91,7 +92,7 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "output_attribute_name",
             &VertexNormalOptions::output_attribute_name,
-            "Output attribute name. Default is '@vertex_normal'.")
+            "Output attribute name. Default is `@vertex_normal`.")
         .def_rw(
             "weight_type",
             &VertexNormalOptions::weight_type,
@@ -100,7 +101,7 @@ void bind_utilities(nanobind::module_& m)
             "weighted_corner_normal_attribute_name",
             &VertexNormalOptions::weighted_corner_normal_attribute_name,
             "Precomputed weighted corner normals attribute name."
-            "Default is '@weighted_corner_normal'. "
+            "Default is `@weighted_corner_normal`. "
             "If attribute exists, the weighted corner normals will be "
             "used instead of recomputing them.")
         .def_rw(
@@ -167,7 +168,7 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "output_attribute_name",
             &FacetNormalOptions::output_attribute_name,
-            "Output attribute name. Default: '@facet_normal'");
+            "Output attribute name. Default: `@facet_normal`");
 
     m.def(
         "compute_facet_normal",
@@ -202,7 +203,7 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "output_attribute_name",
             &NormalOptions::output_attribute_name,
-            "Output attribute name. Default: '@normal'")
+            "Output attribute name. Default: `@normal`")
         .def_rw(
             "weight_type",
             &NormalOptions::weight_type,
@@ -210,7 +211,7 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "facet_normal_attribute_name",
             &NormalOptions::facet_normal_attribute_name,
-            "Facet normal attribute name to use. Default is '@facet_normal'.")
+            "Facet normal attribute name to use. Default is `@facet_normal`.")
         .def_rw(
             "recompute_facet_normals",
             &NormalOptions::recompute_facet_normals,
@@ -256,13 +257,9 @@ Edge with dihedral angles larger than `feature_angle_threshold` are considered a
 Vertices listed in `cone_vertices` are considered as cone vertices, which is always sharp.
 
 :param mesh: input mesh
-:type mesh: SurfaceMesh
 :param feature_angle_threshold: feature angle threshold
-:type feature_angle_threshold: float, optional
 :param cone_vertices: cone vertices
-:type cone_vertices: list[int] or numpy.ndarray, optional
 :param options: normal options
-:type optional: NormalOptions, optional
 
 :returns: the id of the indexed normal attribute.
 )");
@@ -311,21 +308,13 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         R"(Compute indexed normal attribute (Pythonic API).
 
 :param mesh: input mesh
-:type mesh: SurfaceMesh
 :param feature_angle_threshold: feature angle threshold
-:type feature_angle_threshold: float, optional
 :param cone_vertices: cone vertices
-:type cone_vertices: list[int] or numpy.ndarray, optional
 :param output_attribute_name: output normal attribute name
-:type output_attribute_name: str, optional
 :param weight_type: normal weighting type
-:type weight_type: NormalWeightingType, optional
 :param facet_normal_attribute_name: facet normal attribute name
-:type facet_normal_attribute_name: str, optional
 :param recompute_facet_normals: whether to recompute facet normals
-:type recompute_facet_normals: bool, optional
 :param keep_facet_normals: whether to keep the computed facet normal attribute
-:type keep_facet_normals: bool, optional
 
 :returns: the id of the indexed normal attribute.)");
 
@@ -386,9 +375,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         R"(Combine a list of meshes into a single mesh.
 
 :param meshes: input meshes
-:type meshes: list[SurfaceMesh]
 :param preserve_attributes: whether to preserve attributes
-:type preserve_attributes: bool
 
 :returns: the combined mesh)");
 
@@ -419,7 +406,6 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         R"(Unify the index buffer of the mesh.  All indexed attributes will be unified.
 
 :param mesh: The mesh to unify.
-:type mesh: SurfaceMesh
 
 :returns: The unified mesh.)");
 
@@ -431,9 +417,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         R"(Unify the index buffer of the mesh for selected attributes.
 
 :param mesh: The mesh to unify.
-:type mesh: SurfaceMesh
 :param attribute_ids: The selected attribute ids to unify.
-:type attribute_ids: list of int
 
 :returns: The unified mesh.)");
 
@@ -445,9 +429,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         R"(Unify the index buffer of the mesh for selected attributes.
 
 :param mesh: The mesh to unify.
-:type mesh: SurfaceMesh
 :param attribute_names: The selected attribute names to unify.
-:type attribute_names: list of str
 
 :returns: The unified mesh.)");
 
@@ -560,11 +542,11 @@ argument. Each component id is in [0, num_components-1] range.
         .def_rw(
             "tangent_attribute_name",
             &TangentBitangentOptions::tangent_attribute_name,
-            "The name of the output tangent attribute, default is '@tangent'")
+            "The name of the output tangent attribute, default is `@tangent`")
         .def_rw(
             "bitangent_attribute_name",
             &TangentBitangentOptions::bitangent_attribute_name,
-            "The name of the output bitangent attribute, default is '@bitangent'")
+            "The name of the output bitangent attribute, default is `@bitangent`")
         .def_rw(
             "uv_attribute_name",
             &TangentBitangentOptions::uv_attribute_name,
@@ -769,7 +751,7 @@ argument. Each component id is in [0, num_components-1] range.
         .def_rw(
             "input_attribute_name",
             &MeshAreaOptions::input_attribute_name,
-            "The name of the pre-computed facet area attribute, default is '@facet_area'.")
+            "The name of the pre-computed facet area attribute, default is `@facet_area`.")
         .def_rw(
             "use_signed_area",
             &MeshAreaOptions::use_signed_area,
@@ -913,8 +895,8 @@ argument. Each component id is in [0, num_components-1] range.
 
 :param mesh: The input mesh.
 :param weighting_type: The weighting type. Default is `Area`.
-:param facet_centroid_attribute_name: The name of the pre-computed facet centroid attribute if available. Default is '@facet_centroid'.
-:param facet_area_attribute_name: The name of the pre-computed facet area attribute if available. Default is '@facet_area'.
+:param facet_centroid_attribute_name: The name of the pre-computed facet centroid attribute if available. Default is `@facet_centroid`.
+:param facet_area_attribute_name: The name of the pre-computed facet area attribute if available. Default is `@facet_area`.
 
 :returns: The mesh centroid.)");
 
@@ -1005,6 +987,33 @@ argument. Each component id is in [0, num_components-1] range.
 :param old_to_new: permutation vector for vertices
 :param collision_policy_float: The collision policy for float attributes.
 :param collision_policy_integral: The collision policy for integral attributes.)");
+
+    m.def(
+        "reorder_mesh",
+        [](MeshType& mesh, std::string_view method) {
+            lagrange::ReorderingMethod reorder_method;
+            if (method == "Lexicographic" || method == "lexicographic") {
+                reorder_method = ReorderingMethod::Lexicographic;
+            } else if (method == "Morton" || method == "morton") {
+                reorder_method = ReorderingMethod::Morton;
+            } else if (method == "Hilbert" || method == "hilbert") {
+                reorder_method = ReorderingMethod::Hilbert;
+            } else if (method == "None" || method == "none") {
+                reorder_method = ReorderingMethod::None;
+            } else {
+                throw std::runtime_error(fmt::format("Invalid reordering method: {}", method));
+            }
+
+            lagrange::reorder_mesh(mesh, reorder_method);
+        },
+        "mesh"_a,
+        "method"_a = "Morton",
+        R"(Reorder a mesh in place.
+
+:param mesh: input mesh
+:param method: reordering method, options are 'Lexicographic', 'Morton', 'Hilbert', 'None' (default is 'Morton').)",
+        nb::sig("def reorder_mesh(mesh: SurfaceMesh, "
+                "method: typing.Literal['Lexicographic', 'Morton', 'Hilbert', 'None']) -> None"));
 
     m.def(
         "separate_by_facet_groups",

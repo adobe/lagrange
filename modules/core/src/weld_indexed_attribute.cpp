@@ -146,27 +146,26 @@ void weld_indexed_attribute(
         using AttributeType = std::decay_t<decltype(attr)>;
         if constexpr (AttributeType::IsIndexed) {
             using ValueType = typename AttributeType::ValueType;
+            using RealType = typename Eigen::NumTraits<ValueType>::NonInteger;
             auto values = matrix_view(attr.values());
             if (options.epsilon_rel.has_value() || options.epsilon_abs.has_value()) {
-                const ValueType eps_rel = options.epsilon_rel.has_value()
-                                              ? safe_cast<ValueType>(options.epsilon_rel.value())
-                                              : Eigen::NumTraits<ValueType>::dummy_precision();
-                const ValueType eps_abs = options.epsilon_abs.has_value()
-                                              ? safe_cast<ValueType>(options.epsilon_abs.value())
-                                              : Eigen::NumTraits<ValueType>::epsilon();
-                weld_indexed_attribute(
-                    mesh,
-                    attr,
-                    [&](Index i, Index j) -> bool {
-                        return allclose(values.row(i), values.row(j), eps_rel, eps_abs);
-                    });
+                const RealType eps_rel = options.epsilon_rel.has_value()
+                                             ? safe_cast<RealType>(options.epsilon_rel.value())
+                                             : Eigen::NumTraits<RealType>::dummy_precision();
+                const RealType eps_abs = options.epsilon_abs.has_value()
+                                             ? safe_cast<RealType>(options.epsilon_abs.value())
+                                             : Eigen::NumTraits<RealType>::epsilon();
+                weld_indexed_attribute(mesh, attr, [&, eps_rel, eps_abs](Index i, Index j) -> bool {
+                    return allclose(
+                        values.row(i).template cast<RealType>(),
+                        values.row(j).template cast<RealType>(),
+                        eps_rel,
+                        eps_abs);
+                });
             } else {
-                weld_indexed_attribute(
-                    mesh,
-                    attr,
-                    [&](Index i, Index j) -> bool {
-                        return (values.row(i).array() == values.row(j).array()).all();
-                    });
+                weld_indexed_attribute(mesh, attr, [&](Index i, Index j) -> bool {
+                    return (values.row(i).array() == values.row(j).array()).all();
+                });
             }
         }
     });

@@ -16,7 +16,9 @@
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
 #include <lagrange/mesh_cleanup/remove_isolated_vertices.h>
 #include <lagrange/mesh_cleanup/remove_null_area_facets.h>
+#include <lagrange/mesh_cleanup/remove_short_edges.h>
 #include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
+#include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -128,6 +130,26 @@ vertices. E.g. a quad of the form (0, 0, 1, 1) is degenerate, while a quad of th
 is not.
 
 :param mesh: The input mesh for inplace modification.)");
+
+    m.def(
+        "remove_short_edges",
+        &remove_short_edges<Scalar, Index>,
+        "mesh"_a,
+        "threshold"_a = 0,
+        R"(Remove short edges from a mesh.
+
+:param mesh:      The input mesh for inplace modification.
+:param threshold: The minimum edge length below which an edge is considered short.)");
+
+    m.def(
+        "resolve_vertex_nonmanifoldness",
+        &resolve_vertex_nonmanifoldness<Scalar, Index>,
+        "mesh"_a,
+        R"(Resolve vertex non-manifoldness in a mesh.
+
+:param mesh: The input mesh for inplace modification.
+
+:raises RuntimeError: If the input mesh is not edge-manifold.)");
 }
 
 } // namespace lagrange::python
