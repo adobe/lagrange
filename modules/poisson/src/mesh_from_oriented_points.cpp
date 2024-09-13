@@ -35,36 +35,39 @@ struct InputPointStream : public PoissonRecon::Reconstructor::InputSampleStream<
 {
     // Constructs a stream that contains the specified number of samples
     InputPointStream(span<const MeshScalar> P, span<const MeshScalar> N)
-        : _P(P)
-        , _N(N)
-        , _current(0)
+        : m_points(P)
+        , m_normals(N)
+        , m_current(0)
     {
-        la_runtime_assert(_P.size() == _N.size(), "Number of normals and points don't match");
+        la_runtime_assert(
+            m_points.size() == m_normals.size(),
+            "Number of normals and points don't match");
     }
 
     // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
-    void reset(void) { _current = 0; }
+    void reset(void) { m_current = 0; }
 
     // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
     bool base_read(
         PoissonRecon::Point<ReconScalar, Dim>& p,
         PoissonRecon::Point<ReconScalar, Dim>& n)
     {
-        if (_current * Dim < _P.size()) {
+        if (m_current * Dim < m_points.size()) {
             for (unsigned int d = 0; d < Dim; d++) {
-                p[d] = static_cast<ReconScalar>(_P[_current * Dim + d]);
-                n[d] = static_cast<ReconScalar>(_N[_current * Dim + d]);
+                p[d] = static_cast<ReconScalar>(m_points[m_current * Dim + d]);
+                n[d] = static_cast<ReconScalar>(m_normals[m_current * Dim + d]);
             }
-            _current++;
+            m_current++;
             return true;
-        } else
+        } else {
             return false;
+        }
     }
 
 protected:
-    span<const MeshScalar> _P;
-    span<const MeshScalar> _N;
-    unsigned int _current;
+    span<const MeshScalar> m_points;
+    span<const MeshScalar> m_normals;
+    unsigned int m_current;
 };
 
 template <typename MeshScalar, typename ValueType>
@@ -77,23 +80,25 @@ struct InputPointStreamWithAttribute
         span<const MeshScalar> P,
         span<const MeshScalar> N,
         const Attribute<ValueType>& attribute)
-        : _P(P)
-        , _N(N)
-        , _attribute(attribute)
-        , _current(0)
-        , _channels((unsigned int)_attribute.get_num_channels())
+        : m_points(P)
+        , m_normals(N)
+        , m_attribute(attribute)
+        , m_current(0)
+        , m_num_channels((unsigned int)m_attribute.get_num_channels())
         , PoissonRecon::Reconstructor::
               InputSampleWithDataStream<ReconScalar, Dim, PoissonRecon::Point<ReconScalar>>(
                   PoissonRecon::Point<ReconScalar>(attribute.get_num_channels()))
     {
-        la_runtime_assert(_P.size() == _N.size(), "Number of normals and points don't match");
         la_runtime_assert(
-            _P.size() / Dim == _attribute.get_num_elements(),
+            m_points.size() == m_normals.size(),
+            "Number of normals and points don't match");
+        la_runtime_assert(
+            m_points.size() / Dim == m_attribute.get_num_elements(),
             "Number of attribute elements doesn't match number of vertices");
     }
 
     // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
-    void reset(void) { _current = 0; }
+    void reset(void) { m_current = 0; }
 
     // Overrides the pure abstract method from InputSampleStream< Scalar , Dim >
     bool base_read(
@@ -101,20 +106,20 @@ struct InputPointStreamWithAttribute
         PoissonRecon::Point<ReconScalar, Dim>& n,
         PoissonRecon::Point<ReconScalar>& data)
     {
-        if (_current * Dim < _P.size()) {
+        if (m_current * Dim < m_points.size()) {
             // Copy the positions and the normals
             for (unsigned int d = 0; d < Dim; d++) {
-                p[d] = static_cast<ReconScalar>(_P[_current * Dim + d]);
-                n[d] = static_cast<ReconScalar>(_N[_current * Dim + d]);
+                p[d] = static_cast<ReconScalar>(m_points[m_current * Dim + d]);
+                n[d] = static_cast<ReconScalar>(m_normals[m_current * Dim + d]);
             }
 
             // Copy the attribute data
-            auto row = _attribute.get_row(_current);
-            for (unsigned int c = 0; c < _channels; c++) {
+            auto row = m_attribute.get_row(m_current);
+            for (unsigned int c = 0; c < m_num_channels; c++) {
                 data[c] = static_cast<ReconScalar>(row[c]);
             }
 
-            _current++;
+            m_current++;
             return true;
         } else {
             return false;
@@ -122,11 +127,11 @@ struct InputPointStreamWithAttribute
     }
 
 protected:
-    span<const MeshScalar> _P;
-    span<const MeshScalar> _N;
-    const Attribute<ValueType>& _attribute;
-    unsigned int _channels;
-    unsigned int _current;
+    span<const MeshScalar> m_points;
+    span<const MeshScalar> m_normals;
+    const Attribute<ValueType>& m_attribute;
+    unsigned int m_num_channels;
+    unsigned int m_current;
 };
 
 // A stream into which we can write polygons of the form std::vector< node_index_type >
@@ -135,19 +140,18 @@ struct OutputTriangleStream : public PoissonRecon::Reconstructor::OutputFaceStre
 {
     // Construct a stream that adds polygons to the vector of polygons
     OutputTriangleStream(SurfaceMesh<Scalar, Index>& mesh)
-        : _mesh(mesh)
+        : m_mesh(mesh)
     {}
-
 
     // Override the pure abstract method from OutputPolygonStream
     void base_write(const std::vector<PoissonRecon::node_index_type>& polygon)
     {
         la_runtime_assert(polygon.size() == Dim, "Expected triangular face");
-        _mesh.add_triangle((Index)polygon[0], (Index)polygon[1], (Index)polygon[2]);
+        m_mesh.add_triangle((Index)polygon[0], (Index)polygon[1], (Index)polygon[2]);
     }
 
 protected:
-    SurfaceMesh<Scalar, Index>& _mesh;
+    SurfaceMesh<Scalar, Index>& m_mesh;
 };
 
 // A stream into which we can write the output vertices of the extracted mesh
@@ -156,17 +160,18 @@ struct OutputVertexStream : public PoissonRecon::Reconstructor::OutputVertexStre
 {
     // Construct a stream that adds vertices into the coordinates
     OutputVertexStream(SurfaceMesh<Scalar, Index>& mesh)
-        : _mesh(mesh)
+        : m_mesh(mesh)
     {
         static_assert(!OutputVertexDepth, "[ERROR] Expected output vertex depth attribute");
     }
+
     OutputVertexStream(SurfaceMesh<Scalar, Index>& mesh, AttributeId vertex_depth_attribute_id)
-        : _mesh(mesh)
-        , _vertex_depth_attribute(&_mesh.template ref_attribute<Scalar>(vertex_depth_attribute_id))
+        : m_mesh(mesh)
+        , m_vertex_depth_attribute(
+              &m_mesh.template ref_attribute<Scalar>(vertex_depth_attribute_id))
     {
         static_assert(OutputVertexDepth, "[ERROR] Did not expect output vertex depth attribute");
     }
-
 
     // Override the pure abstract method from Reconstructor::OutputVertexStream< Scalar , Dim >
     void base_write(
@@ -174,19 +179,19 @@ struct OutputVertexStream : public PoissonRecon::Reconstructor::OutputVertexStre
         PoissonRecon::Point<ReconScalar, Dim>,
         ReconScalar vDepth)
     {
-        size_t vId = _mesh.get_num_vertices();
+        size_t v_id = m_mesh.get_num_vertices();
 
-        _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
+        m_mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
 
         if constexpr (OutputVertexDepth) {
-            auto row = _vertex_depth_attribute->ref_row(vId);
+            auto row = m_vertex_depth_attribute->ref_row(v_id);
             row[0] = (Scalar)vDepth;
         }
     }
 
 protected:
-    SurfaceMesh<Scalar, Index>& _mesh;
-    Attribute<Scalar>* _vertex_depth_attribute;
+    SurfaceMesh<Scalar, Index>& m_mesh;
+    Attribute<Scalar>* m_vertex_depth_attribute;
 };
 
 // A stream into which we can write the output vertices of the extracted mesh
@@ -199,24 +204,24 @@ struct OutputVertexStreamWithAttribute
     OutputVertexStreamWithAttribute(
         SurfaceMesh<Scalar, Index>& mesh,
         AttributeId value_attribute_id)
-        : _mesh(mesh)
-        , _value_attribute(_mesh.template ref_attribute<ValueType>(value_attribute_id))
+        : m_mesh(mesh)
+        , m_value_attribute(m_mesh.template ref_attribute<ValueType>(value_attribute_id))
     {
         static_assert(!OutputVertexDepth, "[ERROR] Expected output vertex depth attribute");
-        _value_channels = (unsigned int)_value_attribute.get_num_channels();
+        m_num_value_channels = (unsigned int)m_value_attribute.get_num_channels();
     }
-
 
     OutputVertexStreamWithAttribute(
         SurfaceMesh<Scalar, Index>& mesh,
         AttributeId value_attribute_id,
         AttributeId vertex_depth_attribute_id)
-        : _mesh(mesh)
-        , _value_attribute(_mesh.template ref_attribute<ValueType>(value_attribute_id))
-        , _vertex_depth_attribute(&_mesh.template ref_attribute<Scalar>(vertex_depth_attribute_id))
+        : m_mesh(mesh)
+        , m_value_attribute(m_mesh.template ref_attribute<ValueType>(value_attribute_id))
+        , m_vertex_depth_attribute(
+              &m_mesh.template ref_attribute<Scalar>(vertex_depth_attribute_id))
     {
         static_assert(OutputVertexDepth, "[ERROR] Did not expect output vertex depth attribute");
-        _value_channels = (unsigned int)_value_attribute.get_num_channels();
+        m_num_value_channels = (unsigned int)m_value_attribute.get_num_channels();
     }
 
     // Override the pure abstract method from Reconstructor::OutputVertexWidthDataStream<
@@ -227,31 +232,32 @@ struct OutputVertexStreamWithAttribute
         ReconScalar vDepth,
         PoissonRecon::Point<ReconScalar> data)
     {
-        size_t vId = _mesh.get_num_vertices();
+        size_t v_id = m_mesh.get_num_vertices();
 
-        _mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
+        m_mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
 
-        auto row = _value_attribute.ref_row(vId);
-        for (unsigned int c = 0; c < _value_channels; c++) row[c] = (ValueType)data[c];
+        auto row = m_value_attribute.ref_row(v_id);
+        for (unsigned int c = 0; c < m_num_value_channels; c++) row[c] = (ValueType)data[c];
 
         if constexpr (OutputVertexDepth) {
-            auto row = _vertex_depth_attribute->ref_row(vId);
+            auto row = m_vertex_depth_attribute->ref_row(v_id);
             row[0] = (Scalar)vDepth;
         }
     }
 
 protected:
-    SurfaceMesh<Scalar, Index>& _mesh;
-    Attribute<ValueType>& _value_attribute;
-    unsigned int _value_channels;
-    Attribute<Scalar>* _vertex_depth_attribute;
+    SurfaceMesh<Scalar, Index>& m_mesh;
+    Attribute<ValueType>& m_value_attribute;
+    unsigned int m_num_value_channels;
+    Attribute<Scalar>* m_vertex_depth_attribute;
 };
+
 template <PoissonRecon::BoundaryType BoundaryType, typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
+SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     const SurfaceMesh<Scalar, Index>& points,
     const ReconstructionOptions& options)
 {
-    //    PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)1);
+    // PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)1);
 
     la_runtime_assert(points.get_dimension() == 3);
     la_runtime_assert(points.get_num_facets() == 0, "Input mesh must be a point cloud!");
@@ -292,32 +298,32 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
     using ReconType = PoissonRecon::Reconstructor::Poisson;
 
     // Finite-elements signature
-    static const unsigned int FEMSig =
+    constexpr unsigned int FEMSig =
         PoissonRecon::FEMDegreeAndBType<ReconType::DefaultFEMDegree, BoundaryType>::Signature;
 
     // Parameters for performing the reconstruction
-    typename ReconType::template SolutionParameters<ReconScalar> solverParams;
+    typename ReconType::template SolutionParameters<ReconScalar> solver_params;
 
-    solverParams.verbose = options.verbose;
-    solverParams.confidence = (ReconScalar)(options.use_normal_length_as_confidence ? 1 : 0);
-    solverParams.pointWeight = options.interpolation_weight;
-    solverParams.targetValue = 0.5f;
+    solver_params.verbose = options.verbose;
+    solver_params.confidence = (ReconScalar)(options.use_normal_length_as_confidence ? 1 : 0);
+    solver_params.pointWeight = options.interpolation_weight;
+    solver_params.targetValue = 0.5f;
     if (!options.octree_depth) {
-        solverParams.depth = (unsigned int)ceil(log(points.get_num_vertices()) / log(4.));
+        solver_params.depth = (unsigned int)ceil(log(points.get_num_vertices()) / log(4.));
         if (options.verbose)
             std::cout << "Setting depth from point count: " << points.get_num_vertices() << " -> "
-                      << solverParams.depth << std::endl;
+                      << solver_params.depth << std::endl;
     } else
-        solverParams.depth = options.octree_depth;
+        solver_params.depth = options.octree_depth;
 
-    if (!options.output_vertex_depth_attribute_name.empty()) solverParams.outputDensity = true;
+    if (!options.output_vertex_depth_attribute_name.empty()) solver_params.outputDensity = true;
 
     // Parameters for exracting the level-set surface
-    PoissonRecon::Reconstructor::LevelSetExtractionParameters extractionParams;
-    extractionParams.linearFit =
+    PoissonRecon::Reconstructor::LevelSetExtractionParameters extraction_params;
+    extraction_params.linearFit =
         false; // Provides smoother iso-surfacing for the indicator function
-    extractionParams.polygonMesh = false; // Force triangular output
-    extractionParams.verbose = options.verbose;
+    extraction_params.polygonMesh = false; // Force triangular output
+    extraction_params.verbose = options.verbose;
 
 
     if (options.interpolated_attribute_name.empty()) { // There is no attribute data
@@ -326,16 +332,16 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
         using Implicit = typename ReconType::template Implicit<ReconScalar, Dim, FEMSig>;
 
         // The input data stream, generated from the points and normals
-        InputPointStream<Scalar> inputPoints(input_coords.get_all(), input_normals.get_all());
+        InputPointStream<Scalar> input_points(input_coords.get_all(), input_normals.get_all());
 
         // Construct the implicit representation
-        Implicit implicit(inputPoints, solverParams);
+        Implicit implicit(input_points, solver_params);
 
         // Extract the iso-surface
         if (options.output_vertex_depth_attribute_name.empty()) {
-            OutputVertexStream<Scalar, Index, false> outputVertices(mesh);
-            OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
-            implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+            OutputVertexStream<Scalar, Index, false> output_vertices(mesh);
+            OutputTriangleStream<Scalar, Index> output_triangles(mesh);
+            implicit.extractLevelSet(output_vertices, output_triangles, extraction_params);
         } else {
             mesh.template create_attribute<Scalar>(
                 options.output_vertex_depth_attribute_name,
@@ -345,9 +351,9 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
             AttributeId vertex_depth_attribute_id =
                 mesh.get_attribute_id(options.output_vertex_depth_attribute_name);
 
-            OutputVertexStream<Scalar, Index, true> outputVertices(mesh, vertex_depth_attribute_id);
-            OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
-            implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+            OutputVertexStream<Scalar, Index, true> output_vertices(mesh, vertex_depth_attribute_id);
+            OutputTriangleStream<Scalar, Index> output_triangles(mesh);
+            implicit.extractLevelSet(output_vertices, output_triangles, extraction_params);
         }
 
     } else { // There is attribute data
@@ -358,10 +364,6 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
             if constexpr (AttributeType::IsIndexed) {
                 throw std::runtime_error("Interpolated attribute cannot be Indexed");
             } else {
-                // Get the attribute from the input
-                //            const Attribute<Scalar>& attribute =
-                //                points.template get_attribute<Scalar>(options.attribute_name);
-
                 // Add the attribute to the output mesh
                 mesh.template create_attribute<ValueType>(
                     options.interpolated_attribute_name,
@@ -378,13 +380,13 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
                     template Implicit<ReconScalar, Dim, FEMSig, PoissonRecon::Point<ReconScalar>>;
 
                 // The input data stream, generated from the points and normals
-                InputPointStreamWithAttribute<Scalar, ValueType> inputPoints(
+                InputPointStreamWithAttribute<Scalar, ValueType> input_points(
                     input_coords.get_all(),
                     input_normals.get_all(),
                     attribute);
 
                 // Construct the implicit representation
-                Implicit implicit(inputPoints, solverParams);
+                Implicit implicit(input_points, solver_params);
 
                 // Scale the color information to give extrapolation preference to data at finer
                 // depths
@@ -392,11 +394,11 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
 
                 // Extract the iso-surface
                 if (options.output_vertex_depth_attribute_name.empty()) {
-                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, false> outputVertices(
+                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, false> output_vertices(
                         mesh,
                         attribute_id);
-                    OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
-                    implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+                    OutputTriangleStream<Scalar, Index> output_triangles(mesh);
+                    implicit.extractLevelSet(output_vertices, output_triangles, extraction_params);
                 } else {
                     mesh.template create_attribute<Scalar>(
                         options.output_vertex_depth_attribute_name,
@@ -406,12 +408,12 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
                     AttributeId vertex_depth_attribute_id =
                         mesh.get_attribute_id(options.output_vertex_depth_attribute_name);
 
-                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, true> outputVertices(
+                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, true> output_vertices(
                         mesh,
                         attribute_id,
                         vertex_depth_attribute_id);
-                    OutputTriangleStream<Scalar, Index> outputTriangles(mesh);
-                    implicit.extractLevelSet(outputVertices, outputTriangles, extractionParams);
+                    OutputTriangleStream<Scalar, Index> output_triangles(mesh);
+                    implicit.extractLevelSet(output_vertices, output_triangles, extraction_params);
                 }
             }
         });
@@ -419,8 +421,8 @@ SurfaceMesh<Scalar, Index> _mesh_from_oriented_points(
 
     return mesh;
 }
-} // namespace
 
+} // namespace
 
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
@@ -428,11 +430,11 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     const ReconstructionOptions& options)
 {
     if (options.use_dirichlet_boundary)
-        return _mesh_from_oriented_points<PoissonRecon::BoundaryType::BOUNDARY_DIRICHLET>(
+        return mesh_from_oriented_points_internal<PoissonRecon::BoundaryType::BOUNDARY_DIRICHLET>(
             points,
             options);
     else
-        return _mesh_from_oriented_points<PoissonRecon::BoundaryType::BOUNDARY_NEUMANN>(
+        return mesh_from_oriented_points_internal<PoissonRecon::BoundaryType::BOUNDARY_NEUMANN>(
             points,
             options);
 }
@@ -442,4 +444,5 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
         const SurfaceMesh<Scalar, Index>& points,                  \
         const ReconstructionOptions& options);
 LA_SURFACE_MESH_X(mesh_reconstruction, 0)
+
 } // namespace lagrange::poisson
