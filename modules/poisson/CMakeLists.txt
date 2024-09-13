@@ -12,6 +12,9 @@
 
 # 1. define module
 lagrange_add_module()
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set_target_properties(lagrange_poisson PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
 
 # 2. dependencies
 include(poissonrecon) # create a my_lib.cmake in `recipes/external/` (mshio.cmake is a good example)

@@ -80,14 +80,14 @@ struct InputPointStreamWithAttribute
         span<const MeshScalar> P,
         span<const MeshScalar> N,
         const Attribute<ValueType>& attribute)
-        : m_points(P)
-        , m_normals(N)
-        , m_attribute(attribute)
-        , m_current(0)
-        , m_num_channels((unsigned int)m_attribute.get_num_channels())
-        , PoissonRecon::Reconstructor::
+        : PoissonRecon::Reconstructor::
               InputSampleWithDataStream<ReconScalar, Dim, PoissonRecon::Point<ReconScalar>>(
                   PoissonRecon::Point<ReconScalar>(attribute.get_num_channels()))
+        , m_points(P)
+        , m_normals(N)
+        , m_attribute(attribute)
+        , m_num_channels((unsigned int)m_attribute.get_num_channels())
+        , m_current(0)
     {
         la_runtime_assert(
             m_points.size() == m_normals.size(),
@@ -237,11 +237,12 @@ struct OutputVertexStreamWithAttribute
         m_mesh.add_vertex({(Scalar)p[0], (Scalar)p[1], (Scalar)p[2]});
 
         auto row = m_value_attribute.ref_row(v_id);
-        for (unsigned int c = 0; c < m_num_value_channels; c++) row[c] = (ValueType)data[c];
+        for (unsigned int c = 0; c < m_num_value_channels; c++) {
+            row[c] = (ValueType)data[c];
+        }
 
         if constexpr (OutputVertexDepth) {
-            auto row = m_vertex_depth_attribute->ref_row(v_id);
-            row[0] = (Scalar)vDepth;
+            m_vertex_depth_attribute->ref(v_id) = (Scalar)vDepth;
         }
     }
 
@@ -282,8 +283,6 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
         la_runtime_assert(points.has_attribute(options.interpolated_attribute_name));
         attribute_data =
             points.template get_attribute<Scalar>(options.interpolated_attribute_name).get_all();
-        const Scalar* foo = attribute_data.data(); // A raw pointer to the data
-        size_t sz = attribute_data.size();
     }
 
     // Retrieve input normal attribute buffer
@@ -351,7 +350,9 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
             AttributeId vertex_depth_attribute_id =
                 mesh.get_attribute_id(options.output_vertex_depth_attribute_name);
 
-            OutputVertexStream<Scalar, Index, true> output_vertices(mesh, vertex_depth_attribute_id);
+            OutputVertexStream<Scalar, Index, true> output_vertices(
+                mesh,
+                vertex_depth_attribute_id);
             OutputTriangleStream<Scalar, Index> output_triangles(mesh);
             implicit.extractLevelSet(output_vertices, output_triangles, extraction_params);
         }
@@ -394,9 +395,8 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
 
                 // Extract the iso-surface
                 if (options.output_vertex_depth_attribute_name.empty()) {
-                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, false> output_vertices(
-                        mesh,
-                        attribute_id);
+                    OutputVertexStreamWithAttribute<Scalar, Index, ValueType, false>
+                        output_vertices(mesh, attribute_id);
                     OutputTriangleStream<Scalar, Index> output_triangles(mesh);
                     implicit.extractLevelSet(output_vertices, output_triangles, extraction_params);
                 } else {
