@@ -38,12 +38,9 @@ def fibonacci_sphere(num_points=1000):
 
 class TestPoissonReconstruction:
     def test_triangle(self):
-        lagrange.logger.setLevel(logging.INFO)
         points = fibonacci_sphere()
         normals = points
         colors = np.zeros_like(points, dtype=np.float32, order="C")
-        mesh = lagrange.poisson.mesh_from_oriented_points(
-            points, normals, octree_depth=8, colors=colors
-        )
+        mesh = lagrange.poisson.mesh_from_oriented_points(points, normals, colors=colors)
         assert mesh.num_vertices > 4000
         assert mesh.num_facets > 8000
