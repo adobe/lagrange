@@ -52,10 +52,11 @@ TEST_CASE("PoissonRecon: Octree", "[poisson]")
     }
 }
 
-TEST_CASE("PoissonRecon: Colors", "[poisson]")
+namespace {
+
+template <typename Scalar, typename Index>
+void poisson_recon_with_colors()
 {
-    using Scalar = float;
-    using Index = uint32_t;
     lagrange::poisson::ReconstructionOptions recon_options;
     recon_options.interpolated_attribute_name = "Vertex_Color";
     recon_options.output_vertex_depth_attribute_name = "value";
@@ -67,8 +68,21 @@ TEST_CASE("PoissonRecon: Colors", "[poisson]")
     auto mesh1 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
     auto mesh2 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
 
+    REQUIRE(mesh1.has_attribute("Vertex_Color"));
+    REQUIRE(mesh1.has_attribute("value"));
+
     REQUIRE(mesh1.get_num_facets() > 0);
+    REQUIRE(compute_euler(mesh1) == 2);
+    REQUIRE(is_manifold(mesh1));
 
     REQUIRE(vertex_view(mesh1) == vertex_view(mesh2));
     REQUIRE(facet_view(mesh1) == facet_view(mesh2));
+}
+
+} // namespace
+
+TEST_CASE("PoissonRecon: Colors", "[poisson]")
+{
+    poisson_recon_with_colors<float, uint32_t>();
+    poisson_recon_with_colors<double, uint32_t>();
 }
