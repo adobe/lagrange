@@ -440,14 +440,15 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     const SurfaceMesh<Scalar, Index>& points,
     const ReconstructionOptions& options)
 {
-    if (options.use_dirichlet_boundary)
+    if (options.use_dirichlet_boundary) {
         return mesh_from_oriented_points_internal<PoissonRecon::BoundaryType::BOUNDARY_DIRICHLET>(
             points,
             options);
-    else
+    } else {
         return mesh_from_oriented_points_internal<PoissonRecon::BoundaryType::BOUNDARY_NEUMANN>(
             points,
             options);
+    }
 }
 
 #define LA_X_mesh_reconstruction(_, Scalar, Index)                 \
