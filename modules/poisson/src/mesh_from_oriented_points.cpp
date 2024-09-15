@@ -264,7 +264,8 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
 {
     SurfaceMesh<Scalar, Index> points = points_; // cheap with copy-on-write
 
-    switch (options.num_threads) {
+    unsigned int num_threads = 1; // options.num_threads;
+    switch (num_threads) {
     case 0:
         PoissonRecon::ThreadPool::Init(static_cast<PoissonRecon::ThreadPool::ParallelType>(0));
         break;
@@ -272,7 +273,7 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     default:
         PoissonRecon::ThreadPool::Init(
             static_cast<PoissonRecon::ThreadPool::ParallelType>(0),
-            options.num_threads);
+            num_threads);
     }
 
     la_runtime_assert(points.get_dimension() == 3);
