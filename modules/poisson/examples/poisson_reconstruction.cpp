@@ -25,24 +25,25 @@ int main(int argc, char** argv)
     {
         std::string input;
         std::string output = "output.obj";
-        bool dirichlet_boundaries = false;
-        bool verbose = false;
         bool output_vertex_depth = false;
-        unsigned int depth = 0;
-        unsigned int num_threads = 1;
     } args;
+
+    lagrange::poisson::ReconstructionOptions recon_options;
 
     CLI::App app{argv[0]};
     app.add_option("input", args.input, "Input point cloud.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
-    app.add_option("--depth", args.depth, "max reconstruction depth.");
-    app.add_option("--threads", args.num_threads, "number of parallelization threads.");
-    app.add_flag("--dirichlet", args.dirichlet_boundaries, "enable dirichlet boundary conditions.");
-    app.add_flag("--verbose", args.verbose, "enable verbose output.");
-    app.add_flag("--vertex-depth", args.output_vertex_depth, "enable outputting of vertex depth.");
+    app.add_option("--depth", recon_options.octree_depth, "Max reconstruction depth.");
+    app.add_option("--threads", recon_options.num_threads, "Number of parallelization threads.");
+    app.add_flag(
+        "--dirichlet",
+        recon_options.use_dirichlet_boundary,
+        "Enable dirichlet boundary conditions.");
+    app.add_flag("--verbose", recon_options.verbose, "Enable verbose output.");
+    app.add_flag("--vertex-depth", args.output_vertex_depth, "Enable outputting of vertex depth.");
     CLI11_PARSE(app, argc, argv)
 
-    if (args.verbose) {
+    if (recon_options.verbose) {
         lagrange::logger().set_level(spdlog::level::debug);
     }
 
@@ -50,11 +51,6 @@ int main(int argc, char** argv)
     auto oriented_points = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(args.input);
 
     lagrange::logger().info("Running Poisson surface reconstruction");
-    lagrange::poisson::ReconstructionOptions recon_options;
-    recon_options.verbose = args.verbose;
-    recon_options.use_dirichlet_boundary = args.dirichlet_boundaries;
-    recon_options.octree_depth = args.depth;
-    recon_options.num_threads = args.num_threads;
     if (args.output_vertex_depth) {
         recon_options.output_vertex_depth_attribute_name = "value";
     }
