@@ -22,8 +22,8 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
 
-//#include <omp.h>
-//#define _OPENMP
+// #include <omp.h>
+// #define _OPENMP
 #include <PreProcessor.h>
 #include <Reconstructors.h>
 
@@ -263,13 +263,15 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     const ReconstructionOptions& options)
 {
     SurfaceMesh<Scalar, Index> points = points_; // cheap with copy-on-write
-    
+
     switch (options.num_threads) {
-    case 0: PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)0); break;
+    case 0:
+        PoissonRecon::ThreadPool::Init(static_cast<PoissonRecon::ThreadPool::ParallelType>(0));
+        break;
     case 1: PoissonRecon::ThreadPool::Init(PoissonRecon::ThreadPool::NONE); break;
     default:
         PoissonRecon::ThreadPool::Init(
-            (PoissonRecon::ThreadPool::ParallelType)0,
+            static_cast<PoissonRecon::ThreadPool::ParallelType>(0),
             options.num_threads);
     }
 
@@ -333,9 +335,6 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
             "Setting depth from point count: {} -> {}",
             points.get_num_vertices(),
             solver_params.depth);
-        if (options.verbose)
-            std::cout << "Points to depth: " << points.get_num_vertices() << " -> "
-                      << solver_params.depth << std::endl;
     } else {
         solver_params.depth = options.octree_depth;
     }

@@ -37,10 +37,14 @@ int main(int argc, char** argv)
     app.add_option("output", args.output, "Output mesh.");
     app.add_option("--depth", args.depth, "max reconstruction depth.");
     app.add_option("--threads", args.num_threads, "number of parallelization threads.");
-    app.add_flag("--dirichlet", args.dirichlet_boundaries, "enable dirichlet bounary conditions.");
+    app.add_flag("--dirichlet", args.dirichlet_boundaries, "enable dirichlet boundary conditions.");
     app.add_flag("--verbose", args.verbose, "enable verbose output.");
-    app.add_flag("--vertexDepth", args.output_vertex_depth, "enable outputting of vertex depth.");
+    app.add_flag("--vertex-depth", args.output_vertex_depth, "enable outputting of vertex depth.");
     CLI11_PARSE(app, argc, argv)
+
+    if (args.verbose) {
+        lagrange::logger().set_level(spdlog::level::debug);
+    }
 
     lagrange::logger().info("Loading input mesh: {}", args.input);
     auto oriented_points = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(args.input);
