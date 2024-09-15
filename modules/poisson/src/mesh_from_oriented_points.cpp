@@ -22,6 +22,8 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
 
+//#include <omp.h>
+//#define _OPENMP
 #include <PreProcessor.h>
 #include <Reconstructors.h>
 
@@ -261,7 +263,15 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     const ReconstructionOptions& options)
 {
     SurfaceMesh<Scalar, Index> points = points_; // cheap with copy-on-write
-    // PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)1);
+    
+    switch (options.num_threads) {
+    case 0: PoissonRecon::ThreadPool::Init((PoissonRecon::ThreadPool::ParallelType)0); break;
+    case 1: PoissonRecon::ThreadPool::Init(PoissonRecon::ThreadPool::NONE); break;
+    default:
+        PoissonRecon::ThreadPool::Init(
+            (PoissonRecon::ThreadPool::ParallelType)0,
+            options.num_threads);
+    }
 
     la_runtime_assert(points.get_dimension() == 3);
     la_runtime_assert(points.get_num_facets() == 0, "Input mesh must be a point cloud!");
@@ -317,11 +327,15 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     solver_params.pointWeight = options.interpolation_weight;
     solver_params.targetValue = 0.5f;
     if (!options.octree_depth) {
-        solver_params.depth = (unsigned int)ceil(log(points.get_num_vertices()) / log(4.));
+        solver_params.depth =
+            std::min<unsigned int>(8, (unsigned int)ceil(log(points.get_num_vertices()) / log(4.)));
         logger().debug(
             "Setting depth from point count: {} -> {}",
             points.get_num_vertices(),
             solver_params.depth);
+        if (options.verbose)
+            std::cout << "Points to depth: " << points.get_num_vertices() << " -> "
+                      << solver_params.depth << std::endl;
     } else {
         solver_params.depth = options.octree_depth;
     }

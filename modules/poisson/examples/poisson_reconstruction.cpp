@@ -29,12 +29,14 @@ int main(int argc, char** argv)
         bool verbose = false;
         bool output_vertex_depth = false;
         unsigned int depth = 0;
+        unsigned int num_threads = 1;
     } args;
 
     CLI::App app{argv[0]};
     app.add_option("input", args.input, "Input point cloud.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
     app.add_option("--depth", args.depth, "max reconstruction depth.");
+    app.add_option("--threads", args.num_threads, "number of parallelization threads.");
     app.add_flag("--dirichlet", args.dirichlet_boundaries, "enable dirichlet bounary conditions.");
     app.add_flag("--verbose", args.verbose, "enable verbose output.");
     app.add_flag("--vertexDepth", args.output_vertex_depth, "enable outputting of vertex depth.");
@@ -48,6 +50,7 @@ int main(int argc, char** argv)
     recon_options.verbose = args.verbose;
     recon_options.use_dirichlet_boundary = args.dirichlet_boundaries;
     recon_options.octree_depth = args.depth;
+    recon_options.num_threads = args.num_threads;
     if (args.output_vertex_depth) {
         recon_options.output_vertex_depth_attribute_name = "value";
     }
