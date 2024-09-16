@@ -23,6 +23,8 @@
 #include <lagrange/views.h>
 #include <lagrange/utils/scope_guard.h>
 
+// #include <omp.h>
+// #define _OPENMP
 #include <PreProcessor.h>
 #include <Reconstructors.h>
 
@@ -269,7 +271,7 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
 
     SurfaceMesh<Scalar, Index> points = points_; // cheap with copy-on-write
 
-    unsigned int num_threads = options.num_threads;
+    unsigned int num_threads = 1; // options.num_threads;
     switch (num_threads) {
     case 0:
         PoissonRecon::ThreadPool::Init(static_cast<PoissonRecon::ThreadPool::ParallelType>(0));
