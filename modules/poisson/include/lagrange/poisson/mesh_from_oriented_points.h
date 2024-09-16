@@ -29,8 +29,7 @@ struct ReconstructionOptions
     unsigned int octree_depth = 0;
 
     /// Number of threads to use. (If the value is zero then the number of threads on the machine is used.)
-    /// (Disabled for now due to possible bugs)
-    // unsigned int num_threads = 1;
+    unsigned int num_threads = 0;
 
     /// Point interpolation weight (lambda)
     float interpolation_weight = 2.f;

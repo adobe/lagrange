@@ -21,9 +21,8 @@
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
+#include <lagrange/utils/scope_guard.h>
 
-// #include <omp.h>
-// #define _OPENMP
 #include <PreProcessor.h>
 #include <Reconstructors.h>
 
@@ -257,14 +256,20 @@ protected:
     Attribute<Scalar>* m_vertex_depth_attribute;
 };
 
+std::atomic_flag g_is_running = ATOMIC_FLAG_INIT;
+
 template <PoissonRecon::BoundaryType BoundaryType, typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     const SurfaceMesh<Scalar, Index>& points_,
     const ReconstructionOptions& options)
 {
+    if (g_is_running.test_and_set()) {
+        throw Error("Poisson reconstruction is not reentrant!");
+    }
+
     SurfaceMesh<Scalar, Index> points = points_; // cheap with copy-on-write
 
-    unsigned int num_threads = 1; // options.num_threads;
+    unsigned int num_threads = options.num_threads;
     switch (num_threads) {
     case 0:
         PoissonRecon::ThreadPool::Init(static_cast<PoissonRecon::ThreadPool::ParallelType>(0));
@@ -275,6 +280,10 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
             static_cast<PoissonRecon::ThreadPool::ParallelType>(0),
             num_threads);
     }
+    auto _ = make_scope_guard([]() {
+        PoissonRecon::ThreadPool::Terminate();
+        g_is_running.clear();
+    });
 
     la_runtime_assert(points.get_dimension() == 3);
     la_runtime_assert(points.get_num_facets() == 0, "Input mesh must be a point cloud!");
