@@ -16,7 +16,7 @@ TEST_CASE("PoissonRecon: Simple", "[poisson]")
     using Index = uint32_t;
 
     lagrange::poisson::ReconstructionOptions recon_options;
-    recon_options.num_threads = 1;
+    // recon_options.num_threads = 1;
 
     auto input_mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/ball.obj");
     lagrange::compute_vertex_normal(input_mesh);
@@ -61,7 +61,7 @@ void poisson_recon_with_colors()
     lagrange::poisson::ReconstructionOptions recon_options;
     recon_options.interpolated_attribute_name = "Vertex_Color";
     recon_options.output_vertex_depth_attribute_name = "value";
-    recon_options.num_threads = 1;
+    // recon_options.num_threads = 1;
 
     auto input_mesh =
         lagrange::testing::load_surface_mesh<Scalar, Index>("open/poisson/sphere.striped.ply");
