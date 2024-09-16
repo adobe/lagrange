@@ -195,7 +195,6 @@ inline void sg_detail::scope_guard<Callback>::dismiss() noexcept
 
 ////////////////////////////////////////////////////////////////////////////////
 
-
 template <typename Callback>
 inline auto sg_detail::make_scope_guard(Callback&& callback) noexcept(
     std::is_nothrow_constructible<Callback, Callback&&>::value) -> sg_detail::scope_guard<Callback>
