@@ -13,10 +13,10 @@
 #include <lagrange/poisson/mesh_from_oriented_points.h>
 
 #include <lagrange/AttributeTypes.h>
+#include <lagrange/Logger.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
-#include <lagrange/Logger.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -65,7 +65,7 @@ void populate_poisson_module(nb::module_& m)
                     is_dense(normals_shape, normals_stride),
                 "Input normals should be a N x 3 matrix");
 
-            mesh.wrap_as_vertices(positions_data, positions_shape[0]);
+            mesh.wrap_as_vertices(positions_data, static_cast<Index>(positions_shape[0]));
             mesh.wrap_as_attribute<Scalar>(
                 "normals",
                 AttributeElement::Vertex,
@@ -132,21 +132,19 @@ void populate_poisson_module(nb::module_& m)
 :param use_dirichlet_boundary: Use Dirichlet boundary conditions.
 :param colors: Optional color attribute to interpolate (N x K matrix).
 :param output_vertex_depth_attribute_name: Output density attribute name. We use a point's target octree depth as a measure of the sampling density. A lower number means a low sampling density, and can be used to prune low-confidence regions as a post-process.
-:param verbose: Output logging information (directly printed to std::cout).)",
+:param verbose: Output logging information (directly printed to standard output).)",
         nb::sig("def mesh_from_oriented_points("
-                "numpy.typing.NDArray[np.float64], "
-                "numpy.typing.NDArray[np.float64], "
-                "int = 0, "
-                "float = 2.0, "
-                "bool = False, "
-                "bool = False, "
-                "typing.Optional[numpy.typing.NDArray] = None, "
-                "str = '', "
-                "bool = False) -> lagrange.SurfaceMesh32f")
+                "points : numpy.typing.NDArray[numpy.float64], "
+                "normals : numpy.typing.NDArray[numpy.float64], "
+                "octree_depth : int = 0, "
+                "interpolation_weight : float = 2.0, "
+                "use_normal_length_as_confidence : bool = False, "
+                "use_dirichlet_boundary : bool = False, "
+                "colors : typing.Optional[numpy.typing.NDArray] = None, "
+                "output_vertex_depth_attribute_name : str = '', "
+                "verbose : bool = False) -> lagrange.SurfaceMesh32f")
 
     );
-
-    // TODO: Fill-in later
 }
 
 } // namespace lagrange::python

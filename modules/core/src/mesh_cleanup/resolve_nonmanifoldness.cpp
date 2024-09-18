@@ -12,7 +12,8 @@
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
-#include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
+#include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
+#include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 
@@ -28,12 +29,12 @@
 #include <string_view>
 #include <vector>
 
-
 namespace lagrange {
 
 template <typename Scalar, typename Index>
-void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
+void resolve_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
 {
+    remove_topologically_degenerate_facets(mesh);
     mesh.initialize_edges();
 
     auto get_next_corner_around_vertex = [&](Index ci) {
@@ -44,10 +45,7 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
         ci = (ci == c_begin) ? c_end - 1 : ci - 1;
         Index ei = mesh.get_corner_edge(ci);
         const Index num_corners_around_edge = mesh.count_num_corners_around_edge(ei);
-        la_runtime_assert(
-            num_corners_around_edge == 2 || num_corners_around_edge == 1,
-            "Nonmanifold edge detected");
-        if (num_corners_around_edge == 1) return invalid<Index>();
+        if (num_corners_around_edge != 2) return invalid<Index>();
 
         ci = mesh.get_next_corner_around_edge(ci);
         if (ci == invalid<Index>()) {
@@ -59,10 +57,7 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
     auto get_prev_corner_around_vertex = [&](Index ci) {
         Index ei = mesh.get_corner_edge(ci);
         const Index num_corners_around_edge = mesh.count_num_corners_around_edge(ei);
-        la_runtime_assert(
-            num_corners_around_edge == 2 || num_corners_around_edge == 1,
-            "Nonmanifold edge detected");
-        if (num_corners_around_edge == 1) return invalid<Index>();
+        if (num_corners_around_edge != 2) return invalid<Index>();
 
         ci = mesh.get_next_corner_around_edge(ci);
         if (ci == invalid<Index>()) {
@@ -79,12 +74,13 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
     };
 
     const Index orig_num_vertices = mesh.get_num_vertices();
-    std::atomic<Index> num_vertices = mesh.get_num_vertices();
+    std::atomic<Index> num_vertices = orig_num_vertices;
     std::vector<Index> corner_map(mesh.get_num_corners(), invalid<Index>());
     tbb::concurrent_vector<Index> vertex_map(num_vertices);
     std::iota(vertex_map.begin(), vertex_map.end(), 0);
     tbb::parallel_for(Index(0), orig_num_vertices, [&](Index vi) {
         Index neighborhood_count = 0;
+
         mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
             la_debug_assert(mesh.get_corner_vertex(ci) == vi);
             if (corner_map[ci] != invalid<Index>()) return;
@@ -93,9 +89,10 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
             // Traverse corners counterclockwise
             Index cj = ci;
             do {
-                la_runtime_assert(
-                    mesh.get_corner_vertex(cj) == vi,
-                    "Facets are inconsistently oriented");
+                if (mesh.get_corner_vertex(cj) != vi) {
+                    // Facets are inconsistently oriented
+                    break;
+                }
                 corner_map[cj] = vertex_id;
                 cj = get_next_corner_around_vertex(cj);
 
@@ -104,9 +101,10 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
             // Traverse corners clockwise
             cj = ci;
             do {
-                la_runtime_assert(
-                    mesh.get_corner_vertex(cj) == vi,
-                    "Facets are inconsistently oriented");
+                if (mesh.get_corner_vertex(cj) != vi) {
+                    // Facets are inconsistently oriented
+                    break;
+                }
                 corner_map[cj] = vertex_id;
                 cj = get_prev_corner_around_vertex(cj);
             } while (cj != ci && cj != invalid<Index>());
@@ -118,7 +116,7 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
             vertex_map.grow_by(static_cast<size_t>(neighborhood_count - 1), vi);
         }
     });
-    if (num_vertices == mesh.get_num_vertices()) return;
+    if (num_vertices == orig_num_vertices) return;
 
     // Reset connectivity information.
     seq_foreach_named_attribute_read<AttributeElement::Edge>(
@@ -159,9 +157,7 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
     // Facet/corner/index/value attributes are unchanged.
 }
 
-#define LA_X_resolve_vertex_nonmanifoldness(_, Scalar, Index)                \
-    template LA_CORE_API void resolve_vertex_nonmanifoldness<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&);
-LA_SURFACE_MESH_X(resolve_vertex_nonmanifoldness, 0)
-
+#define LA_X_resolve_nonmanifoldness(_, Scalar, Index) \
+    template LA_CORE_API void resolve_nonmanifoldness<Scalar, Index>(SurfaceMesh<Scalar, Index>&);
+LA_SURFACE_MESH_X(resolve_nonmanifoldness, 0)
 } // namespace lagrange
