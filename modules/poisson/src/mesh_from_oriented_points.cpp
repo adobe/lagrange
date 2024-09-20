@@ -20,8 +20,8 @@
 #include <lagrange/internal/visit_attribute.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/views.h>
 #include <lagrange/utils/scope_guard.h>
+#include <lagrange/views.h>
 
 // #include <omp.h>
 // #define _OPENMP
@@ -33,7 +33,7 @@ namespace lagrange::poisson {
 namespace {
 
 using ReconScalar = float;
-const unsigned int Dim = 3;
+constexpr unsigned int Dim = 3;
 
 template <typename MeshScalar>
 struct InputPointStream : public PoissonRecon::Reconstructor::InputSampleStream<ReconScalar, Dim>
@@ -329,10 +329,6 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     // The type of reconstruction
     using ReconType = PoissonRecon::Reconstructor::Poisson;
 
-    // Finite-elements signature
-    constexpr unsigned int FEMSig =
-        PoissonRecon::FEMDegreeAndBType<ReconType::DefaultFEMDegree, BoundaryType>::Signature;
-
     // Parameters for performing the reconstruction
     typename ReconType::template SolutionParameters<ReconScalar> solver_params;
 
@@ -362,6 +358,9 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
 
 
     if (options.interpolated_attribute_name.empty()) { // There is no attribute data
+        // Finite-elements signature
+        constexpr unsigned int FEMSig =
+            PoissonRecon::FEMDegreeAndBType<ReconType::DefaultFEMDegree, BoundaryType>::Signature;
 
         // The type of the reconstructor
         using Implicit = typename ReconType::template Implicit<ReconScalar, Dim, FEMSig>;
@@ -411,6 +410,11 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
                 // Get the attribute id from the input
                 AttributeId attribute_id =
                     mesh.get_attribute_id(options.interpolated_attribute_name);
+
+
+                // Finite-elements signature
+                constexpr unsigned int FEMSig = PoissonRecon::
+                    FEMDegreeAndBType<ReconType::DefaultFEMDegree, BoundaryType>::Signature;
 
                 // The type of the reconstructor
                 using Implicit = typename ReconType::

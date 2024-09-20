@@ -54,6 +54,7 @@
 # option(LAGRANGE_MODULE_IMAGE_IO     "Build module lagrange::image_io"     ON)
 # option(LAGRANGE_MODULE_IO           "Build module lagrange::io"           ON)
 # option(LAGRANGE_MODULE_PARTITIONING "Build module lagrange::partitioning" ON)
+# option(LAGRANGE_MODULE_POISSON      "Build module lagrange::poisson"      ON)
 # option(LAGRANGE_MODULE_PYTHON       "Build module lagrange::python"       ON)
 # option(LAGRANGE_MODULE_RAYCASTING   "Build module lagrange::raycasting"   ON)
 # option(LAGRANGE_MODULE_SCENE        "Build module lagrange::scene"        ON)

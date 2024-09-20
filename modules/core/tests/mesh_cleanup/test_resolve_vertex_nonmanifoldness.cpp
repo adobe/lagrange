@@ -222,13 +222,10 @@ TEST_CASE(
     REQUIRE(vertex_manifold.sum() == 141406);
 
 
-    BENCHMARK_ADVANCED("resolve_vertex_nonmanifoldness")
-    (Catch::Benchmark::Chronometer meter)
+    BENCHMARK("resolve_vertex_nonmanifoldness")
     {
         auto mesh_copy = mesh;
-        meter.measure([&]() {
-            resolve_vertex_nonmanifoldness(mesh_copy);
-            return mesh_copy;
-        });
+        resolve_vertex_nonmanifoldness(mesh_copy);
+        return mesh_copy;
     };
 }

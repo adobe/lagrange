@@ -10,14 +10,254 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
-#include <iostream>
+#include <catch2/benchmark/catch_benchmark.hpp>
 
 #include <lagrange/common.h>
+#include <lagrange/compute_components.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
+#include <lagrange/mesh_convert.h>
+#include <lagrange/testing/check_mesh.h>
+#include <lagrange/topology.h>
+
+TEST_CASE("resolve_nonmanifoldness", "[nonmanifold][surface][cleanup]")
+{
+    using namespace lagrange;
+
+    using Scalar = double;
+    using Index = uint32_t;
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+
+    SECTION("single triangle")
+    {
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+
+        resolve_nonmanifoldness(mesh);
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+    }
+
+    SECTION("two triangles")
+    {
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 0, 3);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+
+        resolve_nonmanifoldness(mesh);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+    }
+
+    SECTION("two triangles, inconsistent orientation")
+    {
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 1, 3);
+
+        lagrange::testing::check_mesh(mesh);
+
+        resolve_nonmanifoldness(mesh);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(mesh.get_num_vertices() == 6);
+    }
+
+    SECTION("three triangles adjacent to a nonmanifold edge")
+    {
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_vertex({1, 1, 1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 0, 3);
+        mesh.add_triangle(0, 1, 4);
+
+        lagrange::testing::check_mesh(mesh);
+
+        resolve_nonmanifoldness(mesh);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(mesh.get_num_vertices() == 9);
+    }
+
+    SECTION("two tets touching at a vertex")
+    {
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_vertex({-1, 0, 0});
+        mesh.add_vertex({0, -1, 0});
+        mesh.add_vertex({0, 0, -1});
+
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+        mesh.add_triangle(0, 3, 1);
+        mesh.add_triangle(3, 2, 1);
+        mesh.add_triangle(0, 4, 5);
+        mesh.add_triangle(0, 5, 6);
+        mesh.add_triangle(0, 6, 4);
+        mesh.add_triangle(6, 5, 4);
+
+        ComponentOptions opt;
+        opt.connectivity_type = ConnectivityType::Vertex;
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(compute_components(mesh, opt) == 1);
+
+        resolve_nonmanifoldness(mesh);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(compute_components(mesh, opt) == 2);
+    }
+
+    SECTION("two tets touching at an edge")
+    {
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_vertex({-1, 0, 0});
+        mesh.add_vertex({0, -1, 0});
+
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+        mesh.add_triangle(0, 3, 1);
+        mesh.add_triangle(3, 2, 1);
+        mesh.add_triangle(0, 4, 5);
+        mesh.add_triangle(0, 5, 3);
+        mesh.add_triangle(0, 3, 4);
+        mesh.add_triangle(3, 5, 4);
+
+        ComponentOptions opt;
+        opt.connectivity_type = ConnectivityType::Vertex;
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(!is_edge_manifold(mesh));
+        REQUIRE(compute_components(mesh, opt) == 1);
+
+        resolve_nonmanifoldness(mesh);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(compute_components(mesh, opt) == 2);
+    }
+
+    SECTION("topologically degenerated facets")
+    {
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 3, 1);
+        mesh.add_triangle(1, 1, 2);
+        mesh.add_triangle(1, 1, 3);
+        mesh.add_triangle(1, 1, 1);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(!is_vertex_manifold(mesh));
+        REQUIRE(!is_edge_manifold(mesh));
+
+        resolve_nonmanifoldness(mesh);
+
+        lagrange::testing::check_mesh(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.get_num_vertices() == 4);
+    }
+}
+
+TEST_CASE(
+    "resolve_nonmanifoldness slow",
+    "[nonmanifold][surface][cleanup]" LA_SLOW_FLAG LA_CORP_FLAG)
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SECTION("splash")
+    {
+        auto mesh =
+            lagrange::testing::load_surface_mesh<Scalar, Index>("corp/core/splash_08_debug.obj");
+        REQUIRE(!is_vertex_manifold(mesh));
+        lagrange::resolve_nonmanifoldness(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+    }
+
+    SECTION("desk")
+    {
+        auto mesh =
+            lagrange::testing::load_surface_mesh<Scalar, Index>("corp/core/z_desk_full_mockup.obj");
+        REQUIRE(!is_vertex_manifold(mesh));
+        lagrange::resolve_nonmanifoldness(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+    }
+}
+
+TEST_CASE("resolve_nonmanifoldness benchmark", "[nonmanifold][surface][cleanup][!benchmark]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
+    const Index num_facets = mesh.get_num_facets();
+    for (Index i = 0; i < num_facets; i++) {
+        auto f = mesh.get_facet_vertices(i);
+        mesh.add_triangle(f[0], f[1], f[2]);
+    }
+
+    BENCHMARK("resolve_nonmanifoldness")
+    {
+        resolve_nonmanifoldness(mesh);
+    };
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    using MeshType = TriangleMesh3D;
+    auto legacy_mesh = to_legacy_mesh<MeshType>(mesh);
+    BENCHMARK("legacy::resolve_nonmanifoldness")
+    {
+        return legacy::resolve_nonmanifoldness(*legacy_mesh);
+    };
+#endif
+}
 
 
-TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+TEST_CASE("legacy::resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
 {
     using namespace lagrange;
 
@@ -237,7 +477,7 @@ TEST_CASE("resolve_manifoldness", "[nonmanifold][Mesh][cleanup]")
     }
 }
 
-TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh]" LA_SLOW_FLAG LA_CORP_FLAG)
+TEST_CASE("legacy::resolve_manifoldness slow", "[nonmanifold][Mesh]" LA_SLOW_FLAG LA_CORP_FLAG)
 {
     using namespace lagrange;
 
@@ -254,7 +494,8 @@ TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh]" LA_SLOW_FLAG LA_COR
 
     SECTION("desk")
     {
-        auto mesh = lagrange::testing::load_mesh<TriangleMesh3D>("corp/core/z_desk_full_mockup.obj");
+        auto mesh =
+            lagrange::testing::load_mesh<TriangleMesh3D>("corp/core/z_desk_full_mockup.obj");
         mesh->initialize_topology();
         REQUIRE(!mesh->is_vertex_manifold());
 
@@ -265,3 +506,4 @@ TEST_CASE("resolve_manifoldness_slow", "[nonmanifold][Mesh]" LA_SLOW_FLAG LA_COR
         REQUIRE(mesh->is_vertex_manifold());
     }
 }
+#endif

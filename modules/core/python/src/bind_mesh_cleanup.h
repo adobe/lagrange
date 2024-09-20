@@ -18,6 +18,7 @@
 #include <lagrange/mesh_cleanup/remove_null_area_facets.h>
 #include <lagrange/mesh_cleanup/remove_short_edges.h>
 #include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
+#include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
 
 // clang-format off
@@ -150,6 +151,14 @@ is not.
 :param mesh: The input mesh for inplace modification.
 
 :raises RuntimeError: If the input mesh is not edge-manifold.)");
+
+    m.def(
+        "resolve_nonmanifoldness",
+        &resolve_nonmanifoldness<Scalar, Index>,
+        "mesh"_a,
+        R"(Resolve both vertex and edge nonmanifoldness in a mesh.
+
+:param mesh: The input mesh for inplace modification.)");
 }
 
 } // namespace lagrange::python
