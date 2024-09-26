@@ -76,6 +76,7 @@
     #pragma GCC diagnostic ignored "-Wunused-result"
     #pragma GCC diagnostic ignored "-Wunused-variable"
     #pragma GCC diagnostic ignored "-Wunused-function"
+    #pragma GCC diagnostic ignored "-Wstringop-overflow="
 #elif defined(_MSC_VER)
     #pragma warning(push)
     #pragma warning(disable : 26439) // This kind of function may not throw. Declare it 'noexcept'
