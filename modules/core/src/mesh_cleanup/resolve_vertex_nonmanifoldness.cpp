@@ -36,59 +36,23 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
 {
     mesh.initialize_edges();
 
-    auto get_next_corner_around_vertex = [&](Index ci) {
-        const Index fi = mesh.get_corner_facet(ci);
-        const Index c_begin = mesh.get_facet_corner_begin(fi);
-        const Index c_end = mesh.get_facet_corner_end(fi);
-
-        ci = (ci == c_begin) ? c_end - 1 : ci - 1;
-        Index ei = mesh.get_corner_edge(ci);
-        const Index num_corners_around_edge = mesh.count_num_corners_around_edge(ei);
-        la_runtime_assert(
-            num_corners_around_edge == 2 || num_corners_around_edge == 1,
-            "Nonmanifold edge detected");
-        if (num_corners_around_edge == 1) return invalid<Index>();
-
-        ci = mesh.get_next_corner_around_edge(ci);
-        if (ci == invalid<Index>()) {
-            ci = mesh.get_first_corner_around_edge(ei);
-        }
-        return ci;
-    };
-
-    auto get_prev_corner_around_vertex = [&](Index ci) {
-        Index ei = mesh.get_corner_edge(ci);
-        const Index num_corners_around_edge = mesh.count_num_corners_around_edge(ei);
-        la_runtime_assert(
-            num_corners_around_edge == 2 || num_corners_around_edge == 1,
-            "Nonmanifold edge detected");
-        if (num_corners_around_edge == 1) return invalid<Index>();
-
-        ci = mesh.get_next_corner_around_edge(ci);
-        if (ci == invalid<Index>()) {
-            ci = mesh.get_first_corner_around_edge(ei);
-        }
-        la_debug_assert(ci != invalid<Index>());
-
-        const Index fi = mesh.get_corner_facet(ci);
-        const Index c_begin = mesh.get_facet_corner_begin(fi);
-        const Index c_end = mesh.get_facet_corner_end(fi);
-
-        ci = (ci + 1 == c_end) ? c_begin : ci + 1;
-        return ci;
-    };
-
     const Index orig_num_vertices = mesh.get_num_vertices();
-    std::atomic<Index> num_vertices = mesh.get_num_vertices();
     std::vector<Index> corner_map(mesh.get_num_corners(), invalid<Index>());
-    tbb::concurrent_vector<Index> vertex_map(num_vertices);
+    tbb::concurrent_vector<Index> vertex_map(orig_num_vertices);
     std::iota(vertex_map.begin(), vertex_map.end(), 0);
     tbb::parallel_for(Index(0), orig_num_vertices, [&](Index vi) {
         Index neighborhood_count = 0;
         mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
             la_debug_assert(mesh.get_corner_vertex(ci) == vi);
             if (corner_map[ci] != invalid<Index>()) return;
-            Index vertex_id = neighborhood_count == 0 ? vi : num_vertices + neighborhood_count - 1;
+            Index vertex_id = invalid<Index>();
+            if (neighborhood_count > 0) {
+                auto itr = vertex_map.grow_by(1, vi);
+                vertex_id = itr - vertex_map.begin();
+            } else {
+                vertex_id = vi;
+            }
+            la_debug_assert(vertex_id != invalid<Index>());
 
             // Traverse corners counterclockwise
             Index cj = ci;
@@ -97,7 +61,7 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
                     mesh.get_corner_vertex(cj) == vi,
                     "Facets are inconsistently oriented");
                 corner_map[cj] = vertex_id;
-                cj = get_next_corner_around_vertex(cj);
+                cj = mesh.get_counterclockwise_corner_around_vertex(cj);
 
             } while (cj != ci && cj != invalid<Index>());
 
@@ -108,16 +72,13 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
                     mesh.get_corner_vertex(cj) == vi,
                     "Facets are inconsistently oriented");
                 corner_map[cj] = vertex_id;
-                cj = get_prev_corner_around_vertex(cj);
+                cj = mesh.get_clockwise_corner_around_vertex(cj);
             } while (cj != ci && cj != invalid<Index>());
 
             neighborhood_count++;
         });
-        if (neighborhood_count > 1) {
-            num_vertices += neighborhood_count - 1;
-            vertex_map.grow_by(static_cast<size_t>(neighborhood_count - 1), vi);
-        }
     });
+    Index num_vertices = static_cast<Index>(vertex_map.size());
     if (num_vertices == mesh.get_num_vertices()) return;
 
     // Reset connectivity information.

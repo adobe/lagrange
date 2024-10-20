@@ -11,33 +11,75 @@
  */
 #include <lagrange/utils/fpe.h>
 
-#if defined(_WIN32) || defined(LA_DISABLE_FPE)
+#include <lagrange/utils/build.h>
 
-namespace {
+#if defined(LA_DISABLE_FPE)
 
-#define FE_DIVBYZERO 0
-#define FE_INVALID 0
-#define FE_OVERFLOW 0
+namespace lagrange {
 
-inline int feenableexcept(unsigned int /*excepts*/)
+void enable_fpe() {}
+
+void disable_fpe() {}
+
+} // namespace lagrange
+
+#elif LAGRANGE_TARGET_OS(WINDOWS)
+
+    #include <float.h>
+    #include <stdio.h>
+    #include <exception>
+    #pragma fenv_access(on)
+
+namespace lagrange {
+
+void enable_fpe()
 {
-    return 0;
+    unsigned int enable_bits = _EM_INVALID | _EM_DENORMAL | _EM_ZERODIVIDE | _EM_OVERFLOW | _EM_UNDERFLOW;
+
+    // Clear any pending FP exceptions. This must be done
+    // prior to enabling FP exceptions since otherwise there
+    // may be a "deferred crash" as soon the exceptions are
+    // enabled.
+    _clearfp();
+
+    // Zero out the specified bits, leaving other bits alone.
+    _controlfp_s(0, ~enable_bits, enable_bits);
 }
 
-inline int fedisableexcept(unsigned int /*excepts*/)
+void disable_fpe()
 {
-    return 0;
+    // Set all of the exception flags, which suppresses FP
+    // exceptions on the x87 and SSE units.
+    _controlfp_s(0, _MCW_EM, _MCW_EM);
 }
 
-} // namespace
+} // namespace lagrange
 
-#elif defined(__linux__)
+#elif LAGRANGE_TARGET_OS(LINUX)
 
-#include <fenv.h>
+    #include <fenv.h>
 
-#elif defined(__APPLE__)
+namespace lagrange {
 
-#include <fenv.h>
+void enable_fpe()
+{
+    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+}
+
+void disable_fpe()
+{
+    fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+}
+
+} // namespace lagrange
+
+#elif LAGRANGE_TARGET_OS(APPLE)
+
+    #include <fenv.h>
+
+    #if LAGRANGE_TARGET_PLATFORM(x86_64)
+
+namespace lagrange {
 
 // Source: http://www-personal.umich.edu/~williams/archive/computation/fe-handling-example.c
 // SPDX-License-Identifier: CC-PDDC
@@ -48,10 +90,10 @@ inline int fedisableexcept(unsigned int /*excepts*/)
 //
 // All modifications are Copyright 2020 Adobe.
 
-namespace {
-
-inline int feenableexcept(unsigned int excepts)
+void enable_fpe()
 {
+    unsigned int excepts = FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW;
+
     static fenv_t fenv;
     unsigned int new_excepts = excepts & FE_ALL_EXCEPT;
     // previous masks
@@ -69,8 +111,10 @@ inline int feenableexcept(unsigned int excepts)
     return fesetenv(&fenv) ? -1 : old_excepts;
 }
 
-inline int fedisableexcept(unsigned int excepts)
+void disable_fpe()
 {
+    unsigned int excepts = FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW;
+
     static fenv_t fenv;
     unsigned int new_excepts = excepts & FE_ALL_EXCEPT;
     // all previous masks
@@ -88,26 +132,65 @@ inline int fedisableexcept(unsigned int excepts)
     return fesetenv(&fenv) ? -1 : old_excepts;
 }
 
-} // namespace
+} // namespace lagrange
 
-#else
+    #elif LAGRANGE_TARGET_PLATFORM(arm64)
 
-#pragma error("Unsupported platform")
-
-#endif
-
-////////////////////////////////////////////////////////////////////////////////
+        #include <fenv.h>
+        #include <math.h>
+        #include <signal.h>
+        #include <stdio.h>
+        #include <stdlib.h>
 
 namespace lagrange {
 
+static void fpe_signal_action([[maybe_unused]] int sig, siginfo_t* sip, [[maybe_unused]] void* scp)
+{
+    /* see signal.h for codes */
+    int fe_code = sip->si_code;
+    if (fe_code == ILL_ILLTRP) {
+        printf("Illegal trap detected\n");
+    } else {
+        printf("Code detected : %d\n", fe_code);
+    }
+
+    int i = fetestexcept(FE_INVALID);
+    if (i & FE_INVALID) {
+        printf("---> Invalid valued detected\n");
+    }
+
+    abort();
+}
+
 void enable_fpe()
 {
-    feenableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+    fenv_t env;
+    fegetenv(&env);
+    env.__fpcr = env.__fpcr | __fpcr_trap_invalid;
+    fesetenv(&env);
+
+    struct sigaction act;
+    act.sa_sigaction = fpe_signal_action;
+    sigemptyset(&act.sa_mask);
+    act.sa_flags = SA_SIGINFO;
+    sigaction(SIGILL, &act, NULL);
 }
 
 void disable_fpe()
 {
-    fedisableexcept(FE_DIVBYZERO | FE_INVALID | FE_OVERFLOW);
+    // Not implemented.
 }
 
 } // namespace lagrange
+
+    #else
+
+        #pragma error("Unsupported platform")
+
+    #endif
+
+#else
+
+    #pragma error("Unsupported OS")
+
+#endif

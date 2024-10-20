@@ -16,19 +16,24 @@ TEST_CASE("PoissonRecon: Simple", "[poisson]")
     using Index = uint32_t;
 
     lagrange::poisson::ReconstructionOptions recon_options;
-    // recon_options.num_threads = 1;
+#ifndef NDEBUG
+    recon_options.octree_depth = 5;
+#endif
 
     auto input_mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/ball.obj");
     lagrange::compute_vertex_normal(input_mesh);
     input_mesh.clear_facets();
 
-    auto mesh1 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
-    auto mesh2 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
+    tbb::task_arena arena(1);
+    arena.execute([&] {
+        auto mesh1 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
+        auto mesh2 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
 
-    REQUIRE(mesh1.get_num_facets() > 0);
+        REQUIRE(mesh1.get_num_facets() > 0);
 
-    REQUIRE(vertex_view(mesh1) == vertex_view(mesh2));
-    REQUIRE(facet_view(mesh1) == facet_view(mesh2));
+        REQUIRE(vertex_view(mesh1) == vertex_view(mesh2));
+        REQUIRE(facet_view(mesh1) == facet_view(mesh2));
+    });
 }
 
 TEST_CASE("PoissonRecon: Octree", "[poisson]")
@@ -42,15 +47,26 @@ TEST_CASE("PoissonRecon: Octree", "[poisson]")
     lagrange::compute_vertex_normal(input_mesh);
     input_mesh.clear_facets();
 
-    std::vector<Index> expected_nf = {11296, 8, 104, 504, 2056, 8008};
-    for (unsigned depth = 0; depth < 6; ++depth) {
-        recon_options.octree_depth = depth;
-        recon_options.use_dirichlet_boundary = true;
-        auto mesh = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
-        REQUIRE(mesh.get_num_facets() == expected_nf[depth]);
-        REQUIRE(compute_euler(mesh) == 2);
-        REQUIRE(is_manifold(mesh));
-    }
+#ifndef NDEBUG
+    unsigned min_depth = 1;
+    unsigned max_depth = 5;
+#else
+    unsigned min_depth = 0;
+    unsigned max_depth = 6;
+#endif
+
+    tbb::task_arena arena(1);
+    arena.execute([&] {
+        std::vector<Index> expected_nf = {11296, 8, 104, 504, 2056, 8008};
+        for (unsigned depth = min_depth; depth < max_depth; ++depth) {
+            recon_options.octree_depth = depth;
+            recon_options.use_dirichlet_boundary = true;
+            auto mesh = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
+            CHECK(mesh.get_num_facets() == expected_nf[depth]);
+            REQUIRE(compute_euler(mesh) == 2);
+            REQUIRE(is_manifold(mesh));
+        }
+    });
 }
 
 namespace {
@@ -61,24 +77,29 @@ void poisson_recon_with_colors()
     lagrange::poisson::ReconstructionOptions recon_options;
     recon_options.interpolated_attribute_name = "Vertex_Color";
     recon_options.output_vertex_depth_attribute_name = "value";
-    // recon_options.num_threads = 1;
+#ifndef NDEBUG
+    recon_options.octree_depth = 5;
+#endif
 
     auto input_mesh =
         lagrange::testing::load_surface_mesh<Scalar, Index>("open/poisson/sphere.striped.ply");
     input_mesh.clear_facets();
 
-    auto mesh1 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
-    auto mesh2 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
+    tbb::task_arena arena(1);
+    arena.execute([&] {
+        auto mesh1 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
+        auto mesh2 = lagrange::poisson::mesh_from_oriented_points(input_mesh, recon_options);
 
-    REQUIRE(mesh1.has_attribute("Vertex_Color"));
-    REQUIRE(mesh1.has_attribute("value"));
+        REQUIRE(mesh1.has_attribute("Vertex_Color"));
+        REQUIRE(mesh1.has_attribute("value"));
 
-    REQUIRE(mesh1.get_num_facets() > 0);
-    REQUIRE(compute_euler(mesh1) == 2);
-    REQUIRE(is_manifold(mesh1));
+        REQUIRE(mesh1.get_num_facets() > 0);
+        REQUIRE(compute_euler(mesh1) == 2);
+        REQUIRE(is_manifold(mesh1));
 
-    REQUIRE(vertex_view(mesh1) == vertex_view(mesh2));
-    REQUIRE(facet_view(mesh1) == facet_view(mesh2));
+        REQUIRE(vertex_view(mesh1) == vertex_view(mesh2));
+        REQUIRE(facet_view(mesh1) == facet_view(mesh2));
+    });
 }
 
 } // namespace

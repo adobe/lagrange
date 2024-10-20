@@ -348,7 +348,6 @@ TEST_CASE("compute_normal nmtest", "[core][normal]" LA_CORP_FLAG)
         std::string nrm_name(mesh.get_attribute_name(nrm_id));
         mesh = lagrange::unify_index_buffer(mesh, {nrm_id});
         mesh.rename_attribute(nrm_name, "Vertex_Normal"); // match ply attribute name
-        mesh.rename_attribute("color", "Vertex_Color"); // match ply attribute name
 
         auto filename = fmt::format("nmtest_normal_{}.ply", angle_threshold_deg);
 

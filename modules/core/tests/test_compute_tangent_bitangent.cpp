@@ -381,7 +381,6 @@ TEST_CASE("compute_tangent_bitangent nmtest", "[core][tangent]" LA_CORP_FLAG)
             auto [t_id, bt_id] = lagrange::compute_tangent_bitangent(mesh, opt);
             mesh = lagrange::unify_index_buffer(mesh, {nrm_id, t_id, bt_id});
             mesh.rename_attribute(nrm_name, "Vertex_Normal"); // match ply attribute name
-            mesh.rename_attribute("color", "Vertex_Color"); // match ply attribute name
 
             auto filename = fmt::format(
                 "nmtest_{}_{}.ply",

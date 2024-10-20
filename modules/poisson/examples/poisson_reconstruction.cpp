@@ -14,6 +14,7 @@
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
+#include <lagrange/isoline.h>
 #include <lagrange/poisson/mesh_from_oriented_points.h>
 #include <lagrange/utils/assert.h>
 
@@ -26,6 +27,7 @@ int main(int argc, char** argv)
         std::string input;
         std::string output = "output.obj";
         bool output_vertex_depth = false;
+        std::optional<double> trim_depth;
     } args;
 
     lagrange::poisson::ReconstructionOptions recon_options;
@@ -34,13 +36,18 @@ int main(int argc, char** argv)
     app.add_option("input", args.input, "Input point cloud.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
     app.add_option("--depth", recon_options.octree_depth, "Max reconstruction depth.");
-    // app.add_option("--threads", recon_options.num_threads, "Number of parallelization threads."); // disabled for now
     app.add_flag(
         "--dirichlet",
         recon_options.use_dirichlet_boundary,
         "Enable dirichlet boundary conditions.");
     app.add_flag("--verbose", recon_options.verbose, "Enable verbose output.");
-    app.add_flag("--vertex-depth", args.output_vertex_depth, "Enable outputting of vertex depth.");
+    auto depth_opt = app.add_flag(
+        "--vertex-depth",
+        args.output_vertex_depth,
+        "Enable outputting of vertex depth.");
+    auto trim_opt =
+        app.add_option("--trim-depth", args.trim_depth, "Trim surface at specified depth.")
+            ->needs(depth_opt);
     CLI11_PARSE(app, argc, argv)
 
     if (recon_options.verbose) {
@@ -61,6 +68,16 @@ int main(int argc, char** argv)
     }
 
     auto mesh = lagrange::poisson::mesh_from_oriented_points(oriented_points, recon_options);
+
+    if (args.trim_depth.has_value()) {
+        lagrange::logger().info("Trimming surface at depth = {}", args.trim_depth.value());
+        lagrange::IsolineOptions iso_options;
+        iso_options.isovalue = args.trim_depth.value();
+        iso_options.attribute_id =
+            mesh.get_attribute_id(recon_options.output_vertex_depth_attribute_name);
+        iso_options.keep_below = false;
+        mesh = lagrange::trim_by_isoline(mesh, iso_options);
+    }
 
     lagrange::logger().info("Saving result: {}", args.output);
     lagrange::io::save_mesh(args.output, mesh);
