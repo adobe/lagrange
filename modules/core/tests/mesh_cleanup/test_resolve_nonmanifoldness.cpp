@@ -198,6 +198,25 @@ TEST_CASE("resolve_nonmanifoldness", "[nonmanifold][surface][cleanup]")
         REQUIRE(mesh.get_num_facets() == 2);
         REQUIRE(mesh.get_num_vertices() == 4);
     }
+
+    SECTION("ball")
+    {
+        mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/ball.obj");
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+
+        const auto num_facets = mesh.get_num_facets();
+        std::vector<Index> even_facets(num_facets / 2);
+        for (Index i = 0; i < num_facets; i += 2) {
+            even_facets[i / 2] = i;
+        }
+        mesh.remove_facets(even_facets);
+        REQUIRE(!is_vertex_manifold(mesh));
+
+        resolve_nonmanifoldness(mesh);
+        REQUIRE(is_vertex_manifold(mesh));
+        REQUIRE(is_edge_manifold(mesh));
+    }
 }
 
 TEST_CASE(

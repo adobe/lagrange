@@ -2207,7 +2207,7 @@ public:
 
     ///
     /// Gets the next corner around the edge associated to a corner. If the corner is the last one
-    /// in the chain, this function returns INVALID<Index>.
+    /// in the chain, this function returns invalid<Index>().
     ///
     /// @param[in]  c     Corner index.
     ///
@@ -2263,6 +2263,39 @@ public:
     /// @return     Number of corners incident to the queried vertex.
     ///
     Index count_num_corners_around_vertex(Index v) const;
+
+    ///
+    /// Get the adjacent corner around the vertex associated to a corner in the counterclockwise
+    /// direction.
+    ///
+    /// @note  If the vertex is a non-manifold vertex, only one "umbrella" (a set of connected
+    ///        corners based on edge-connectivity) will be visited.
+    ///
+    /// @note  If the traversal reaches a boundary or a non-manifold edge, the next adjacent corner
+    ///        is not well defined. It will return `invalid<Index>()` in this case.
+    ///
+    /// @param[in]  c     Corner index.
+    ///
+    /// @return     Index of the adjacent (counterclockwise) corner around the vertex.
+    ///             If the next corner is not well defined, it will return `invalid<Index>()`.
+    ///
+    Index get_counterclockwise_corner_around_vertex(Index c) const;
+
+    ///
+    /// Get the adjacent corner around the vertex associated to a corner in the clockwise direction.
+    ///
+    /// @note  If the vertex is a non-manifold vertex, only one "umbrella" (a set of connected
+    ///        corners based on edge-connectivity) will be visited.
+    ///
+    /// @note  If the traversal reaches a boundary or a non-manifold edge, the prev adjacent corner
+    ///        is not well defined. It will return `invalid<Index>()` in this case.
+    ///
+    /// @param[in]  c     Corner index.
+    ///
+    /// @return     Index of the adjacent (clockwise) corner around the vertex.
+    ///             If the previous corner is not well defined, it will return `invalid<Index>()`.
+    ///
+    Index get_clockwise_corner_around_vertex(Index c) const;
 
     ///
     /// Get the index of one facet around a given edge.

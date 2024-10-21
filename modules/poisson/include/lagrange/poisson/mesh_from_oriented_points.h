@@ -28,10 +28,6 @@ struct ReconstructionOptions
     /// Maximum octree depth. (If the value is zero then the minimum of 8 and log base 4 of the point count is used.)
     unsigned int octree_depth = 0;
 
-    /// Number of threads to use. (If the value is zero then the number of threads on the machine is used.)
-    /// (Disabled for now)
-    // unsigned int num_threads = 1;
-
     /// Point interpolation weight (lambda)
     float interpolation_weight = 2.f;
 

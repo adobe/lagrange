@@ -483,21 +483,22 @@ void bind_surface_mesh(nanobind::module_& m)
         "initial_indices"_a = nb::none(),
         "num_channels"_a = nb::none(),
         "dtype"_a = nb::none(),
-        nb::sig("def create_attribute(self, "
-                "name: str, "
-                "element: typing.Union[AttributeElement, "
-                "typing.Literal["
-                "'Vertex', 'Facet', 'Edge', 'Corner', 'Value', 'Indexed'"
-                "], None] = None, "
-                "usage: typing.Union[AttributeUsage, "
-                "typing.Literal["
-                "'Vector', 'Scalar', 'Position', 'Normal', 'Tangent', 'Bitangent', 'Color', 'UV', "
-                "'VertexIndex', 'FacetIndex', 'CornerIndex', 'EdgeIndex'"
-                "], None] = None, "
-                "initial_values: typing.Union[numpy.typing.NDArray, typing.List[float], None] = None, "
-                "initial_indices: typing.Union[numpy.typing.NDArray, typing.List[int], None] = None, "
-                "num_channels: typing.Optional[int] = None, "
-                "dtype: typing.Optional[numpy.typing.DTypeLike] = None) -> AttributeId"),
+        nb::sig(
+            "def create_attribute(self, "
+            "name: str, "
+            "element: typing.Union[AttributeElement, "
+            "typing.Literal["
+            "'Vertex', 'Facet', 'Edge', 'Corner', 'Value', 'Indexed'"
+            "], None] = None, "
+            "usage: typing.Union[AttributeUsage, "
+            "typing.Literal["
+            "'Vector', 'Scalar', 'Position', 'Normal', 'Tangent', 'Bitangent', 'Color', 'UV', "
+            "'VertexIndex', 'FacetIndex', 'CornerIndex', 'EdgeIndex'"
+            "], None] = None, "
+            "initial_values: typing.Union[numpy.typing.NDArray, typing.List[float], None] = None, "
+            "initial_indices: typing.Union[numpy.typing.NDArray, typing.List[int], None] = None, "
+            "num_channels: typing.Optional[int] = None, "
+            "dtype: typing.Optional[numpy.typing.DTypeLike] = None) -> AttributeId"),
         R"(Create an attribute.
 
 :param name: Name of the attribute.
@@ -1013,6 +1014,38 @@ If not provided, the edges are initialized in an arbitrary order.
     surface_mesh_class.def(
         "count_num_corners_around_vertex",
         &MeshType::count_num_corners_around_vertex);
+    surface_mesh_class.def(
+        "get_counterclockwise_corner_around_vertex",
+        &MeshType::get_counterclockwise_corner_around_vertex,
+        "corner"_a,
+        R"(Get the counterclockwise corner around the vertex associated with the input corner.
+
+.. note::
+    If the vertex is a non-manifold vertex, only one "umbrella" (a set of connected
+    corners based on edge-connectivity) will be visited.
+
+    If the traversal reaches a boundary or a non-manifold edge, the next adjacent corner
+    is not well defined. It will return `invalid_index` in this case.
+
+:param corner: The input corner index.
+
+:returns: The counterclockwise corner index or `invalid_index` if none exists.)");
+    surface_mesh_class.def(
+        "get_clockwise_corner_around_vertex",
+        &MeshType::get_clockwise_corner_around_vertex,
+        "corner"_a,
+        R"(Get the clockwise corner around the vertex associated with the input corner.
+
+.. note::
+    If the vertex is a non-manifold vertex, only one "umbrella" (a set of connected
+    corners based on edge-connectivity) will be visited.
+
+    If the traversal reaches a boundary or a non-manifold edge, the next adjacent corner
+    is not well defined. It will return `invalid_index` in this case.
+
+:param corner: The input corner index.
+
+:returns: The clockwise corner index or `invalid_index` if none exists.)");
     surface_mesh_class.def("get_one_facet_around_edge", &MeshType::get_one_facet_around_edge);
     surface_mesh_class.def("get_one_corner_around_edge", &MeshType::get_one_corner_around_edge);
     surface_mesh_class.def("get_one_corner_around_vertex", &MeshType::get_one_corner_around_vertex);

@@ -37,9 +37,13 @@ else()
         SOURCES
             ${CMAKE_CURRENT_LIST_DIR}/src/fpe.cpp
             ${CMAKE_CURRENT_BINARY_DIR}/lagrange_fpe_main.cpp
+        CMAKE_FLAGS
+            "-DINCLUDE_DIRECTORIES=${CMAKE_CURRENT_LIST_DIR}/include"
+        OUTPUT_VARIABLE LAGRANGE_SUPPORT_FPE_OUTPUT
     )
     if(NOT LAGRANGE_SUPPORT_FPE)
         message(WARNING "Lagrange: disabling unsupported FPE code")
+        message(DEBUG "FPE support check output: ${LAGRANGE_SUPPORT_FPE_OUTPUT}")
         target_compile_definitions(lagrange_core PRIVATE -DLA_DISABLE_FPE)
     endif()
 endif()

@@ -31,6 +31,7 @@
 #include <lagrange/compute_vertex_valence.h>
 #include <lagrange/extract_submesh.h>
 #include <lagrange/filter_attributes.h>
+#include <lagrange/isoline.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
 #include <lagrange/orientation.h>
@@ -1340,6 +1341,65 @@ A mesh considered as manifold if it is both vertex and edge manifold.
 :param metric:                The distortion metric. Default is MIPS.
 
 :return: The facet attribute id for distortion.)");
+
+    m.def(
+        "trim_by_isoline",
+        [](const MeshType& mesh,
+           std::variant<AttributeId, std::string_view> attribute,
+           double isovalue,
+           bool keep_below) {
+            IsolineOptions opt;
+            if (std::holds_alternative<AttributeId>(attribute)) {
+                opt.attribute_id = std::get<AttributeId>(attribute);
+            } else {
+                opt.attribute_id =
+                    mesh.get_attribute_id(std::get<std::string_view>(attribute));
+            }
+            opt.isovalue = isovalue;
+            opt.keep_below = keep_below;
+            return trim_by_isoline(mesh, opt);
+        },
+        "mesh"_a,
+        "attribute"_a,
+        "isovalue"_a = IsolineOptions().isovalue,
+        "keep_below"_a = IsolineOptions().keep_below,
+        R"(Trim a mesh by the isoline of an implicit function defined on the mesh vertices/corners.
+
+The input mesh must be a triangle mesh.
+
+:param mesh:       Input triangle mesh to trim.
+:param attribute:  Attribute id or name of the scalar field to use. Can be a vertex or indexed attribute.
+:param isovalue:   Isovalue to trim with.
+:param keep_below: Whether to keep the part below the isoline.
+
+:return: The trimmed mesh.)");
+
+    m.def(
+        "extract_isoline",
+        [](const MeshType& mesh,
+           std::variant<AttributeId, std::string_view> attribute,
+           double isovalue) {
+            IsolineOptions opt;
+            if (std::holds_alternative<AttributeId>(attribute)) {
+                opt.attribute_id = std::get<AttributeId>(attribute);
+            } else {
+                opt.attribute_id = mesh.get_attribute_id(std::get<std::string_view>(attribute));
+            }
+            opt.isovalue = isovalue;
+            return extract_isoline(mesh, opt);
+        },
+        "mesh"_a,
+        "attribute"_a,
+        "isovalue"_a = IsolineOptions().isovalue,
+        R"(Extract the isoline of an implicit function defined on the mesh vertices/corners.
+
+The input mesh must be a triangle mesh.
+
+:param mesh:       Input triangle mesh to extract the isoline from.
+:param attribute:  Attribute id or name of the scalar field to use. Can be a vertex or indexed attribute.
+:param isovalue:   Isovalue to extract.
+
+:return: A mesh whose facets is a collection of size 2 elements representing the extracted isoline.)");
 
     using AttributeNameOrId = AttributeFilter::AttributeNameOrId;
     m.def(

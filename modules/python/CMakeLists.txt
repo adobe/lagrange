@@ -32,6 +32,26 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_python PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
 
+if(SKBUILD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+        find_program(HAS_DSYMUTIL dsymutil)
+        if(HAS_DSYMUTIL)
+            add_custom_command(TARGET lagrange_python POST_BUILD
+                COMMAND dsymutil $<TARGET_FILE:lagrange_python>
+            )
+        endif()
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+        find_program(HAS_OBJCOPY objcopy)
+        if (HAS_OBJCOPY)
+            add_custom_command(TARGET lagrange_python POST_BUILD
+                COMMAND objcopy --only-keep-debug $<TARGET_FILE:lagrange_python> $<TARGET_FILE:lagrange_python>.debug
+                COMMAND objcopy --strip-debug $<TARGET_FILE:lagrange_python>
+                COMMAND objcopy --add-gnu-debuglink=$<TARGET_FILE:lagrange_python>.debug $<TARGET_FILE:lagrange_python>
+            )
+        endif()
+    endif()
+endif()
+
 message(STATUS "Lagrange: creating target 'lagrange::python'")
 if(TBB_PREFER_STATIC)
     message(FATAL_ERROR "TBB must be compiled as shared library for python binding to work.")
@@ -44,6 +64,17 @@ if(SKBUILD)
         DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
         COMPONENT Lagrange_Python_Runtime
     )
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        if (HAS_DSYMUTIL)
+            install(DIRECTORY $<TARGET_FILE:lagrange_python>.dSYM
+                DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
+                COMPONENT Lagrange_Python_Runtime)
+        elseif (HAS_OBJCOPY)
+            install(FILES $<TARGET_FILE:lagrange_python>.debug
+                DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
+                COMPONENT Lagrange_Python_Runtime)
+        endif()
+    endif()
 endif()
 
 # 3. output location

@@ -273,7 +273,7 @@ tinyobj::ObjReader load_obj(const fs::path& filename, const LoadOptions& options
     logger().trace("[load_mesh_obj] Parsing obj file: {}", filename.string());
     tinyobj::ObjReaderConfig config;
     config.triangulate = options.triangulate;
-    config.vertex_color = options.load_vertex_colors;
+    config.vertex_color = false;
     config.mtl_search_path = options.search_path.string();
     reader.ParseFromFile(filename.string(), config);
 
@@ -288,7 +288,7 @@ load_obj(std::istream& input_stream_obj, std::istream& input_stream_mtl, const L
     logger().trace("[load_mesh_obj] Parsing obj from stream");
     tinyobj::ObjReaderConfig config;
     config.triangulate = options.triangulate;
-    config.vertex_color = options.load_vertex_colors;
+    config.vertex_color = false;
     config.mtl_search_path = options.search_path.string();
 
     std::istreambuf_iterator<char> data_itr_obj(input_stream_obj), end_of_stream_obj;

@@ -201,7 +201,7 @@ void reorder_mesh(SurfaceMesh<Scalar, Index>& mesh, ReorderingMethod method)
 }
 
 #define LA_X_reorder_mesh(_, Scalar, Index) \
-    template void reorder_mesh<Scalar, Index>(SurfaceMesh<Scalar, Index>&, ReorderingMethod);
+    template LA_CORE_API void reorder_mesh<Scalar, Index>(SurfaceMesh<Scalar, Index>&, ReorderingMethod);
 LA_SURFACE_MESH_X(reorder_mesh, 0)
 
 } // namespace lagrange

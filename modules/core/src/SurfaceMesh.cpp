@@ -2500,6 +2500,51 @@ auto SurfaceMesh<Scalar, Index>::count_num_corners_around_vertex(Index v) const 
 }
 
 template <typename Scalar, typename Index>
+auto SurfaceMesh<Scalar, Index>::get_counterclockwise_corner_around_vertex(Index ci) const -> Index
+{
+    const Index vi = get_corner_vertex(ci);
+    const Index fi = get_corner_facet(ci);
+    const Index c_begin = get_facet_corner_begin(fi);
+    const Index c_end = get_facet_corner_end(fi);
+
+    ci = (ci == c_begin) ? c_end - 1 : ci - 1;
+    const Index ei = get_corner_edge(ci);
+    const Index num_corners_around_edge = count_num_corners_around_edge(ei);
+    if (num_corners_around_edge != 2) return invalid<Index>();
+
+    ci = get_next_corner_around_edge(ci);
+    if (ci == invalid<Index>()) {
+        ci = get_first_corner_around_edge(ei);
+    }
+
+    // Check for consistent orientation.
+    return get_corner_vertex(ci) == vi ? ci : invalid<Index>();
+}
+
+template <typename Scalar, typename Index>
+auto SurfaceMesh<Scalar, Index>::get_clockwise_corner_around_vertex(Index ci) const -> Index
+{
+    const Index vi = get_corner_vertex(ci);
+    const Index ei = get_corner_edge(ci);
+    const Index num_corners_around_edge = count_num_corners_around_edge(ei);
+    if (num_corners_around_edge != 2) return invalid<Index>();
+
+    ci = get_next_corner_around_edge(ci);
+    if (ci == invalid<Index>()) {
+        ci = get_first_corner_around_edge(ei);
+    }
+    la_debug_assert(ci != invalid<Index>());
+
+    const Index fi = get_corner_facet(ci);
+    const Index c_begin = get_facet_corner_begin(fi);
+    const Index c_end = get_facet_corner_end(fi);
+
+    ci = (ci + 1 == c_end) ? c_begin : ci + 1;
+    // Check for consistent orientation.
+    return get_corner_vertex(ci) == vi ? ci : invalid<Index>();
+}
+
+template <typename Scalar, typename Index>
 auto SurfaceMesh<Scalar, Index>::count_num_corners_around_edge(Index e) const -> Index
 {
     // Count number of incident corners
