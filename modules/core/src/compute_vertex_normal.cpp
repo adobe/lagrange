@@ -51,7 +51,7 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
     if (mesh.has_edges()) {
         tbb::parallel_for(Index(0), num_vertices, [&](Index vi) {
             mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
-                normals.row(vi) +=
+                normals.row(vi).template head<3>() +=
                     internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
             });
             normals.row(vi).stableNormalize();
