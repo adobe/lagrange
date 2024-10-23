@@ -25,11 +25,3 @@ CPMAddPackage(
 add_library(poissonrecon::poissonrecon INTERFACE IMPORTED GLOBAL)
 target_include_directories(poissonrecon::poissonrecon SYSTEM INTERFACE "${poissonrecon_SOURCE_DIR}/Src")
 target_compile_definitions(poissonrecon::poissonrecon INTERFACE "SANITIZED_PR")
-
-# Silence some compiler warnings
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-    target_compile_options(poissonrecon::poissonrecon INTERFACE
-        "-Wno-maybe-uninitialized"
-        "-Wno-stringop-overflow"
-    )
-endif()
