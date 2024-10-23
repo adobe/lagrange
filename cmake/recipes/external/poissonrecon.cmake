@@ -30,5 +30,6 @@ target_compile_definitions(poissonrecon::poissonrecon INTERFACE "SANITIZED_PR")
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     target_compile_options(poissonrecon::poissonrecon INTERFACE
         "-Wno-maybe-uninitialized"
+        "-Wno-stringop-overflow"
     )
 endif()
