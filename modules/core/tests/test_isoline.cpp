@@ -23,6 +23,7 @@
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/views.h>
+#include <lagrange/utils/warning.h>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -50,8 +51,10 @@ create_grid(const Index n, const Index m, const Index num_dims, const Scalar del
         for (auto j : lagrange::range(m)) {
             const Scalar iscaled = Scalar(i) / (n - 1);
             const Scalar jscaled = Scalar(j) / (m - 1);
+LA_IGNORE_ARRAY_BOUNDS_BEGIN
             Eigen::RowVector3<Scalar> pt(iscaled, jscaled, 0);
             vertices.row(j * n + i) = pt.head(num_dims);
+LA_IGNORE_ARRAY_BOUNDS_END
         }
     }
     for (auto i : lagrange::range(n - 1)) {

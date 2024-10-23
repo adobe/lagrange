@@ -15,6 +15,7 @@
 #include <lagrange/compute_weighted_corner_normal.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 #include "internal/compute_weighted_corner_normal.h"
@@ -46,15 +47,17 @@ AttributeId compute_weighted_corner_normal(
     la_debug_assert(static_cast<Index>(normals.rows()) == num_corners);
 
     tbb::parallel_for(Index(0), num_corners, [&](Index ci) {
+        LA_IGNORE_ARRAY_BOUNDS_BEGIN
         normals.row(ci) += internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
+        LA_IGNORE_ARRAY_BOUNDS_END
     });
 
     return id;
 }
 
-#define LA_X_compute_weighted_corner_normal(_, Scalar, Index)           \
+#define LA_X_compute_weighted_corner_normal(_, Scalar, Index)                       \
     template LA_CORE_API AttributeId compute_weighted_corner_normal<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                                    \
+        SurfaceMesh<Scalar, Index>&,                                                \
         CornerNormalOptions);
 LA_SURFACE_MESH_X(compute_weighted_corner_normal, 0)
 

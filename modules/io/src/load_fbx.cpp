@@ -32,6 +32,7 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/utils.h>
+#include <lagrange/utils/warning.h>
 
 #include <ufbx.h>
 
@@ -309,8 +310,10 @@ SceneType load_simple_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
         if (node->mesh) {
             size_t mesh_idx = element_index[node->mesh->element_id];
             la_runtime_assert(mesh_idx != invalid_element_index);
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
             AffineTransform t =
                 convert_transform_ufbx_to_lagrange<AffineTransform>(node->node_to_world);
+            LA_IGNORE_ARRAY_BOUNDS_END
             lscene.add_instance({Index(mesh_idx), t});
         }
     }

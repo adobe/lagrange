@@ -28,8 +28,12 @@
 #define MULTI_THREADING_INCLUDED
 using namespace lagrange::poisson::threadpool;
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <PreProcessor.h>
 #include <Reconstructors.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange::poisson {
 

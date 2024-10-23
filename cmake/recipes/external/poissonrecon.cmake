@@ -23,5 +23,5 @@ CPMAddPackage(
 )
 
 add_library(poissonrecon::poissonrecon INTERFACE IMPORTED GLOBAL)
-target_include_directories(poissonrecon::poissonrecon INTERFACE "${poissonrecon_SOURCE_DIR}/Src")
+target_include_directories(poissonrecon::poissonrecon SYSTEM INTERFACE "${poissonrecon_SOURCE_DIR}/Src")
 target_compile_definitions(poissonrecon::poissonrecon INTERFACE "SANITIZED_PR")

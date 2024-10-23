@@ -52,9 +52,9 @@
     #pragma GCC diagnostic ignored "-Wclass-memaccess"
     #pragma GCC diagnostic ignored "-Wconversion"
     #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
+    #pragma GCC diagnostic ignored "-Wdeprecated"
     #pragma GCC diagnostic ignored "-Wdeprecated-copy"
     #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    #pragma GCC diagnostic ignored "-Wdeprecated"
     #pragma GCC diagnostic ignored "-Wextra-semi"
     #pragma GCC diagnostic ignored "-Wignored-qualifiers"
     #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -67,15 +67,16 @@
     #pragma GCC diagnostic ignored "-Wsign-compare"
     #pragma GCC diagnostic ignored "-Wsign-conversion"
     #pragma GCC diagnostic ignored "-Wstrict-aliasing"
+    #pragma GCC diagnostic ignored "-Wstringop-overflow"
     #pragma GCC diagnostic ignored "-Wswitch-default"
     #pragma GCC diagnostic ignored "-Wundef"
     #pragma GCC diagnostic ignored "-Wuninitialized"
     #pragma GCC diagnostic ignored "-Wunused-but-set-variable"
+    #pragma GCC diagnostic ignored "-Wunused-function"
     #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
     #pragma GCC diagnostic ignored "-Wunused-parameter"
     #pragma GCC diagnostic ignored "-Wunused-result"
     #pragma GCC diagnostic ignored "-Wunused-variable"
-    #pragma GCC diagnostic ignored "-Wunused-function"
 #elif defined(_MSC_VER)
     #pragma warning(push)
     #pragma warning(disable : 26439) // This kind of function may not throw. Declare it 'noexcept'

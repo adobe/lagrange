@@ -21,6 +21,7 @@
 #include <lagrange/marching_triangles.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/safe_cast.h>
+#include <lagrange/utils/warning.h>
 
 namespace {
 
@@ -126,8 +127,10 @@ create_square(const int n, const int m, const Index num_dims, const Scalar delta
         for (auto j : range(m)) {
             const Scalar iscaled = Scalar(i) / (n - 1);
             const Scalar jscaled = Scalar(j) / (m - 1);
+LA_IGNORE_ARRAY_BOUNDS_BEGIN
             Eigen::Matrix<Scalar, 1, 3> pt(iscaled, jscaled, 0);
             vertices.row(j * n + i) = pt.head(num_dims);
+LA_IGNORE_ARRAY_BOUNDS_END
         }
     }
     for (auto i : range(n - 1)) {

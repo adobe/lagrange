@@ -90,7 +90,7 @@ std::unique_ptr<MeshType> resolve_nonmanifoldness(MeshType& mesh)
      */
     auto is_inconsistently_oriented = [&mesh, &get_orientation](const Index ei) -> bool {
         const auto e = mesh.get_edge_vertices(ei);
-        std::array<bool, 2> orientations;
+        std::array<bool, 2> orientations{false, false};
         size_t count = 0;
         mesh.foreach_facets_around_edge(ei, [&](Index fid) {
             orientations[count] = get_orientation(e[0], e[1], fid);

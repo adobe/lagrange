@@ -142,6 +142,15 @@
 /// @hideinitializer
 #define LA_IGNORE_RANGE_LOOP_ANALYSIS_END LA_DISABLE_WARNING_END
 
+/// Ignore warning "out of bounds subscripts or offsets into arrays"
+/// This is used to bypass the following GCC bug:
+/// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106247
+/// @hideinitializer
+#define LA_IGNORE_ARRAY_BOUNDS_BEGIN LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_GCC(-Warray-bounds)
+/// @hideinitializer
+#define LA_IGNORE_ARRAY_BOUNDS_END LA_DISABLE_WARNING_END
+
 // clang-format on
 
 /// @}
