@@ -332,7 +332,7 @@ SceneType load_simple_scene_assimp(const aiScene& scene, const LoadOptions& opti
     }
     std::function<void(aiNode*, AffineTransform)> visit_node;
     visit_node = [&](aiNode* node, const AffineTransform& parent_transform) -> void {
-        AffineTransform node_transform;
+        AffineTransform node_transform(AffineTransform::Identity());
         if constexpr (SceneType::Dim == 3) {
             node_transform =
                 convert_transform_assimp_to_lagrange<AffineTransform>(node->mTransformation);
