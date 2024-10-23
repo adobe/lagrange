@@ -20,6 +20,7 @@
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/geometry3d.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 #include "internal/bucket_sort.h"
@@ -172,7 +173,9 @@ AttributeId compute_normal_internal(
         for (Index i = buckets.representative_offsets[r]; i < buckets.representative_offsets[r + 1];
              ++i) {
             Index c = buckets.sorted_elements[i];
+LA_IGNORE_ARRAY_BOUNDS_BEGIN
             normal_values.row(r) += compute_weighted_corner_normal(c).transpose();
+LA_IGNORE_ARRAY_BOUNDS_END
         }
         normal_values.row(r).stableNormalize();
     });
