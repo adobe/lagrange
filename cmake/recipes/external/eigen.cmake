@@ -61,6 +61,14 @@ if(EIGEN_WITH_MKL)
     )
 endif()
 
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_GREATER_EQUAL 12)
+    # Bypass the following GCC bug.
+    # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106247
+    target_compile_options(Eigen3_Eigen INTERFACE
+        "-Wno-array-bounds"
+    )
+endif()
+
 # On Windows, enable natvis files to improve debugging experience
 if(WIN32 AND eigen_SOURCE_DIR)
     target_sources(Eigen3_Eigen INTERFACE $<BUILD_INTERFACE:${eigen_SOURCE_DIR}/debug/msvc/eigen.natvis>)
