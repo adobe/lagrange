@@ -173,9 +173,9 @@ AttributeId compute_normal_internal(
         for (Index i = buckets.representative_offsets[r]; i < buckets.representative_offsets[r + 1];
              ++i) {
             Index c = buckets.sorted_elements[i];
-LA_IGNORE_ARRAY_BOUNDS_BEGIN
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
             normal_values.row(r) += compute_weighted_corner_normal(c).transpose();
-LA_IGNORE_ARRAY_BOUNDS_END
+            LA_IGNORE_ARRAY_BOUNDS_END
         }
         normal_values.row(r).stableNormalize();
     });
@@ -250,21 +250,21 @@ AttributeId compute_normal(
     return attr_id;
 }
 
-#define LA_X_compute_normal(_, Scalar, Index)           \
+#define LA_X_compute_normal(_, Scalar, Index)                       \
     template LA_CORE_API AttributeId compute_normal<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index> & mesh,              \
-        function_ref<bool(Index)>,                      \
-        span<const Index>,                              \
-        NormalOptions);                                 \
+        SurfaceMesh<Scalar, Index> & mesh,                          \
+        function_ref<bool(Index)>,                                  \
+        span<const Index>,                                          \
+        NormalOptions);                                             \
     template LA_CORE_API AttributeId compute_normal<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index> & mesh,              \
-        function_ref<bool(Index, Index)>,               \
-        span<const Index>,                              \
-        NormalOptions);                                 \
+        SurfaceMesh<Scalar, Index> & mesh,                          \
+        function_ref<bool(Index, Index)>,                           \
+        span<const Index>,                                          \
+        NormalOptions);                                             \
     template LA_CORE_API AttributeId compute_normal<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index> & mesh,              \
-        Scalar,                                         \
-        span<const Index>,                              \
+        SurfaceMesh<Scalar, Index> & mesh,                          \
+        Scalar,                                                     \
+        span<const Index>,                                          \
         NormalOptions);
 LA_SURFACE_MESH_X(compute_normal, 0)
 

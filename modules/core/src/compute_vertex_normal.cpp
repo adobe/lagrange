@@ -17,6 +17,7 @@
 #include <lagrange/compute_weighted_corner_normal.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 #include "internal/compute_weighted_corner_normal.h"
@@ -51,8 +52,10 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
     if (mesh.has_edges()) {
         tbb::parallel_for(Index(0), num_vertices, [&](Index vi) {
             mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
+                LA_IGNORE_ARRAY_BOUNDS_BEGIN
                 normals.row(vi) +=
                     internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
+                LA_IGNORE_ARRAY_BOUNDS_END
             });
             normals.row(vi).stableNormalize();
         });
@@ -93,9 +96,9 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
     return id;
 }
 
-#define LA_X_compute_vertex_normal(_, Scalar, Index)           \
+#define LA_X_compute_vertex_normal(_, Scalar, Index)                       \
     template LA_CORE_API AttributeId compute_vertex_normal<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                           \
+        SurfaceMesh<Scalar, Index>&,                                       \
         VertexNormalOptions);
 LA_SURFACE_MESH_X(compute_vertex_normal, 0)
 
