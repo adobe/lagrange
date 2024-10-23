@@ -44,7 +44,6 @@ jobs:
 
 
   upload_pypi:
-    if: false
     name: Upload wheels to PyPI
     runs-on: ubuntu-latest
     needs: [build_wheel]
