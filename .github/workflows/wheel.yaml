@@ -26,7 +26,7 @@ jobs:
           xcode-version: '15.2'
 
       - name: Update g++
-        if: runner.os == 'ubuntu-22.04'
+        if: runner.os == 'Linux'
         run: |
             sudo apt-get update
             sudo apt-get install -y g++
