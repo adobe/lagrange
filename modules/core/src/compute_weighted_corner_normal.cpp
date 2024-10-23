@@ -46,16 +46,15 @@ AttributeId compute_weighted_corner_normal(
     la_debug_assert(static_cast<Index>(normals.rows()) == num_corners);
 
     tbb::parallel_for(Index(0), num_corners, [&](Index ci) {
-        normals.row(ci).template head<3>() +=
-            internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
+        normals.row(ci) += internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
     });
 
     return id;
 }
 
-#define LA_X_compute_weighted_corner_normal(_, Scalar, Index)                       \
+#define LA_X_compute_weighted_corner_normal(_, Scalar, Index)           \
     template LA_CORE_API AttributeId compute_weighted_corner_normal<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                                                \
+        SurfaceMesh<Scalar, Index>&,                                    \
         CornerNormalOptions);
 LA_SURFACE_MESH_X(compute_weighted_corner_normal, 0)
 
