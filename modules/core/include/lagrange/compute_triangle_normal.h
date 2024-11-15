@@ -15,3 +15,5 @@
     #include <lagrange/legacy/compute_triangle_normal.h>
 #endif
 
+// For SurfaceMesh class, please refer to compute_facet_normal.h
+

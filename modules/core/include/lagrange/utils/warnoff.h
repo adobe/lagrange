@@ -69,6 +69,7 @@
     #pragma GCC diagnostic ignored "-Wstrict-aliasing"
     #pragma GCC diagnostic ignored "-Wstringop-overflow"
     #pragma GCC diagnostic ignored "-Wswitch-default"
+    #pragma GCC diagnostic ignored "-Wtautological-compare"
     #pragma GCC diagnostic ignored "-Wundef"
     #pragma GCC diagnostic ignored "-Wuninitialized"
     #pragma GCC diagnostic ignored "-Wunused-but-set-variable"

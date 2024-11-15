@@ -2876,13 +2876,200 @@ void test_metadata_attribute()
     lagrange::testing::check_mesh(mesh);
 }
 
+template <typename Scalar, typename Index>
+void test_foreach_facet_around_facet()
+{
+    // STEF
+
+    {
+        // manifold hybrid mesh
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertices(10);
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_polygon({1, 3, 4, 2});
+        mesh.add_polygon({0, 2, 6, 8, 5});
+        mesh.add_polygon({2, 4, 7, 6});
+        mesh.add_triangle(6, 9, 8);
+        mesh.add_triangle(6, 7, 9);
+        mesh.initialize_edges(); // This is needed to ensure m_reserved_ids.corner_to_edge !=
+                                 // invalid_attribute_id()
+        lagrange::testing::check_mesh(mesh);
+
+
+        std::vector<bool> visited(mesh.get_num_facets(), false);
+        auto visit_neighbors = [&](Index f) { visited[f] = true; };
+
+        std::vector<bool> neighbor_of_facet_0 = {false, true, true, false, false, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(0, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_0[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_1 = {true, false, false, true, false, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(1, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_1[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_2 = {true, false, false, true, true, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(2, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_2[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_3 = {false, true, true, false, false, true};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(3, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_3[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_4 = {false, false, true, false, false, true};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(4, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_4[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_5 = {false, false, false, true, true, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(5, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_5[f]);
+        }
+    }
+
+
+    {
+        // manifold hybrid mesh cylinder
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertices(6);
+        mesh.add_triangle(0, 2, 3);
+        mesh.add_triangle(2, 4, 3);
+        mesh.add_polygon({1, 5, 4, 2});
+        mesh.add_polygon({0, 3, 5, 1});
+        mesh.initialize_edges(); // TODO is this needed?
+        lagrange::testing::check_mesh(mesh);
+
+        std::vector<bool> visited(mesh.get_num_facets(), false);
+        auto visit_neighbors = [&](Index f) { visited[f] = true; };
+
+        std::vector<bool> neighbor_of_facet_0 = {false, true, false, true};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(0, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_0[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_1 = {true, false, true, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(1, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_1[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_2 = {false, true, false, true};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(2, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_2[f]);
+        }
+        std::vector<bool> neighbor_of_facet_3 = {true, false, true, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(3, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_3[f]);
+        }
+    }
+
+    {
+        // non-manifold triangular mesh
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertices(6);
+        mesh.add_triangle(0, 4, 5);
+        mesh.add_triangle(0, 1, 4);
+        mesh.add_triangle(1, 2, 4);
+        mesh.add_triangle(1, 3, 4);
+        mesh.initialize_edges(); // TODO is this needed?
+        /* lagrange::testing::check_mesh(mesh); */
+
+        std::vector<bool> visited(mesh.get_num_facets(), false);
+        auto visit_neighbors = [&](Index f) { visited[f] = true; };
+
+        std::vector<bool> neighbor_of_facet_0 = {false, true, false, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(0, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_0[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_1 = {true, false, true, true};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(1, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_1[f]);
+        }
+
+        std::vector<bool> neighbor_of_facet_2 = {false, true, false, true};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(2, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_2[f]);
+        }
+        std::vector<bool> neighbor_of_facet_3 = {false, true, true, false};
+        visited.assign(mesh.get_num_facets(), false);
+        mesh.foreach_facet_around_facet(3, visit_neighbors);
+        for (Index f = 0; f < mesh.get_num_facets(); f++) {
+            REQUIRE(visited[f] == neighbor_of_facet_3[f]);
+        }
+    }
+
+    {
+        // one triangle
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertices(3);
+        mesh.add_triangle(0, 1, 2);
+        mesh.initialize_edges(); // TODO is this needed?
+        lagrange::testing::check_mesh(mesh);
+
+        bool has_neighbor = false;
+        auto visit_neighbor = [&has_neighbor](Index) { has_neighbor = true; };
+        mesh.foreach_facet_around_facet(0, visit_neighbor);
+        REQUIRE(!has_neighbor);
+    }
+
+    {
+        // two polygons sharing two edges
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertices(6);
+        mesh.add_polygon({0, 1, 5, 4});
+        mesh.add_polygon({1, 2, 3, 4, 5});
+
+        mesh.initialize_edges(); // TODO is this needed?
+        lagrange::testing::check_mesh(mesh);
+
+        std::vector<uint8_t> visited(mesh.get_num_facets(), 0);
+        auto visit_neighbor = [&visited](Index f) { visited[f]++; };
+
+        mesh.foreach_facet_around_facet(0, visit_neighbor);
+        REQUIRE(visited[0] == 0);
+        REQUIRE(visited[1] == 2);
+
+        visited.assign(mesh.get_num_facets(), 0);
+        mesh.foreach_facet_around_facet(1, visit_neighbor);
+        REQUIRE(visited[0] == 2);
+        REQUIRE(visited[1] == 0);
+    }
+}
+
 } // namespace
 
-TEST_CASE("SurfaceMesh Construction", "[mesh]")
-{
+TEST_CASE("SurfaceMesh Construction", "[mesh]"){
 #define LA_X_test_mesh_construction(_, Scalar, Index) test_mesh_construction<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_mesh_construction, 0)
-}
+    LA_SURFACE_MESH_X(test_mesh_construction, 0)}
 
 TEST_CASE("SurfaceMesh: Remove Elements", "[mesh]")
 {
@@ -2899,20 +3086,15 @@ TEST_CASE("SurfaceMesh: Remove Elements", "[mesh]")
     }
 }
 
-TEST_CASE("SurfaceMesh: Storage", "[mesh]")
-{
+TEST_CASE("SurfaceMesh: Storage", "[mesh]"){
 #define LA_X_test_mesh_storage(_, Scalar, Index) test_mesh_storage<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_mesh_storage, 0)
-}
+    LA_SURFACE_MESH_X(test_mesh_storage, 0)}
 
 TEST_CASE("SurfaceMesh: Copy and Move", "[mesh]")
 {
-    SECTION("Without edges")
-    {
+    SECTION("Without edges"){
 #define LA_X_test_copy_move_false(_, Scalar, Index) test_copy_move<Scalar, Index>(false);
-        LA_SURFACE_MESH_X(test_copy_move_false, 0)
-    }
-    SECTION("With edges")
+        LA_SURFACE_MESH_X(test_copy_move_false, 0)} SECTION("With edges")
     {
 #define LA_X_test_copy_move_true(_, Scalar, Index) test_copy_move<Scalar, Index>(true);
         LA_SURFACE_MESH_X(test_copy_move_true, 0)
@@ -2984,11 +3166,9 @@ TEST_CASE("SurfaceMesh: Edit Facets With Edges", "[mesh]")
     LA_SURFACE_MESH_X(test_edit_facets_with_edges, 0)
 }
 
-TEST_CASE("SurfaceMesh: User Edges", "[mesh]")
-{
+TEST_CASE("SurfaceMesh: User Edges", "[mesh]"){
 #define LA_X_test_user_edges(_, Scalar, Index) test_user_edges<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_user_edges, 0)
-}
+    LA_SURFACE_MESH_X(test_user_edges, 0)}
 
 TEST_CASE("SurfaceMesh: Reserved Attributes Basic", "[mesh]")
 {
@@ -3015,11 +3195,9 @@ TEST_CASE("SurfaceMesh: Element Index Type", "[mesh]")
     LA_ATTRIBUTE_X(test_element_index_type_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Element Index Resize", "[mesh]")
-{
+TEST_CASE("SurfaceMesh: Element Index Resize", "[mesh]"){
 #define LA_X_test_element_index_resize(_, Scalar, Index) test_element_index_resize<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_element_index_resize, 0)
-}
+    LA_SURFACE_MESH_X(test_element_index_resize, 0)}
 
 TEST_CASE("SurfaceMesh: Resize Attribute Type", "[mesh]")
 {
@@ -3038,23 +3216,17 @@ TEST_CASE("SurfaceMesh: Copy Attribute", "[mesh]")
     LA_ATTRIBUTE_X(test_copy_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: Shrink To Fit", "[mesh]")
-{
+TEST_CASE("SurfaceMesh: Shrink To Fit", "[mesh]"){
 #define LA_X_test_shrink_to_fit(_, Scalar, Index) test_shrink_to_fit<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_shrink_to_fit, 0)
-}
+    LA_SURFACE_MESH_X(test_shrink_to_fit, 0)}
 
-TEST_CASE("SurfaceMesh: Compress If Regular", "[mesh]")
-{
+TEST_CASE("SurfaceMesh: Compress If Regular", "[mesh]"){
 #define LA_X_test_compress_if_regular(_, Scalar, Index) test_compress_if_regular<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_compress_if_regular, 0)
-}
+    LA_SURFACE_MESH_X(test_compress_if_regular, 0)}
 
-TEST_CASE("SurfaceMesh: Test facets of size 1 and 2", "[mesh]")
-{
+TEST_CASE("SurfaceMesh: Test facets of size 1 and 2", "[mesh]"){
 #define LA_X_test_1_and_2_facets(_, Scalar, Index) test_1_and_2_facets<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_1_and_2_facets, 0)
-}
+    LA_SURFACE_MESH_X(test_1_and_2_facets, 0)}
 
 TEST_CASE("SurfaceMesh: Value Attribute", "[mesh]")
 {
@@ -3065,11 +3237,9 @@ TEST_CASE("SurfaceMesh: Value Attribute", "[mesh]")
     LA_ATTRIBUTE_X(test_value_attribute_aux, 0)
 }
 
-TEST_CASE("SurfaceMesh: metadata", "[mesh]")
-{
+TEST_CASE("SurfaceMesh: metadata", "[mesh]"){
 #define LA_X_test_metadata_attribute(_, Scalar, Index) test_metadata_attribute<Scalar, Index>();
-    LA_SURFACE_MESH_X(test_metadata_attribute, 0)
-}
+    LA_SURFACE_MESH_X(test_metadata_attribute, 0)}
 
 TEST_CASE("SurfaceMesh: sanity check", "[mesh]")
 {
@@ -3091,4 +3261,11 @@ TEST_CASE("SurfaceMesh: sanity check", "[mesh]")
     mesh.initialize_edges();
 
     lagrange::testing::check_mesh(mesh);
+}
+
+TEST_CASE("SurfaceMesh: foreach_facet_around_facet", "[mesh]")
+{
+#define LA_X_test_foreach_facet_around_facet(_, Scalar, Index) \
+    test_foreach_facet_around_facet<Scalar, Index>();
+    LA_SURFACE_MESH_X(test_foreach_facet_around_facet, 0)
 }

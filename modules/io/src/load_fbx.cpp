@@ -34,6 +34,7 @@
 #include <lagrange/utils/utils.h>
 #include <lagrange/utils/warning.h>
 
+#include <tbb/parallel_for.h>
 #include <ufbx.h>
 
 namespace lagrange::io {
@@ -95,7 +96,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
             AttributeUsage::Normal);
         auto& attr = lmesh.template ref_indexed_attribute<Scalar>(id);
         attr.indices().resize_elements(mesh->vertex_normal.indices.count);
-        attr.values().resize_elements(mesh->vertex_normal.values.count * dim);
+        attr.values().resize_elements(mesh->vertex_normal.values.count);
         std::copy_n(
             mesh->vertex_normal.indices.begin(),
             mesh->vertex_normal.indices.count,
@@ -119,7 +120,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
                 uv_dim);
             auto& attr = lmesh.template ref_indexed_attribute<Scalar>(id);
             attr.indices().resize_elements(uv_set.vertex_uv.indices.count);
-            attr.values().resize_elements(uv_set.vertex_uv.values.count * uv_dim);
+            attr.values().resize_elements(uv_set.vertex_uv.values.count);
             std::copy_n(
                 uv_set.vertex_uv.indices.begin(),
                 uv_set.vertex_uv.indices.count,
@@ -190,7 +191,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
             dim);
         auto& attr = lmesh.template ref_indexed_attribute<Scalar>(id);
         attr.indices().resize_elements(mesh->vertex_tangent.indices.count);
-        attr.values().resize_elements(mesh->vertex_tangent.values.count * dim);
+        attr.values().resize_elements(mesh->vertex_tangent.values.count);
         std::copy_n(
             mesh->vertex_tangent.indices.begin(),
             mesh->vertex_tangent.indices.count,
@@ -198,7 +199,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
         std::copy_n(
             &mesh->vertex_tangent.values[0].v[0],
             mesh->vertex_tangent.values.count * dim,
-            attr.indices().ref_all().begin());
+            attr.values().ref_all().begin());
     }
 
     // bitangent
@@ -210,7 +211,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
             dim);
         auto& attr = lmesh.template ref_indexed_attribute<Scalar>(id);
         attr.indices().resize_elements(mesh->vertex_bitangent.indices.count);
-        attr.values().resize_elements(mesh->vertex_bitangent.values.count * dim);
+        attr.values().resize_elements(mesh->vertex_bitangent.values.count);
         std::copy_n(
             mesh->vertex_bitangent.indices.begin(),
             mesh->vertex_bitangent.indices.count,
@@ -218,7 +219,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
         std::copy_n(
             &mesh->vertex_bitangent.values[0].v[0],
             mesh->vertex_bitangent.values.count * dim,
-            attr.indices().ref_all().begin());
+            attr.values().ref_all().begin());
     }
 
     // vertex color
@@ -230,7 +231,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
             color_dim);
         auto& attr = lmesh.template ref_indexed_attribute<Scalar>(id);
         attr.indices().resize_elements(mesh->vertex_color.indices.count);
-        attr.values().resize_elements(mesh->vertex_color.values.count * color_dim);
+        attr.values().resize_elements(mesh->vertex_color.values.count);
         std::copy_n(
             mesh->vertex_color.indices.begin(),
             mesh->vertex_color.indices.count,
@@ -238,7 +239,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
         std::copy_n(
             &mesh->vertex_color.values[0].v[0],
             mesh->vertex_color.values.count * color_dim,
-            attr.indices().ref_all().begin());
+            attr.values().ref_all().begin());
     }
 
     if (opt.stitch_vertices) {
@@ -299,11 +300,17 @@ SceneType load_simple_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
 
     SceneType lscene;
 
+    lscene.reserve_meshes(static_cast<Index>(scene->meshes.count));
     for (size_t i = 0; i < scene->meshes.count; ++i) {
         const ufbx_mesh* mesh = scene->meshes[i];
-        auto lmesh = convert_mesh_ufbx_to_lagrange<MeshType>(mesh, opt);
-        element_index[mesh->element_id] = lscene.add_mesh(lmesh);
+        element_index[mesh->element_id] = lscene.add_mesh(MeshType());
     }
+
+    tbb::parallel_for(size_t(0), scene->meshes.count, [&](size_t i) {
+        const ufbx_mesh* mesh = scene->meshes[i];
+        lscene.ref_mesh(static_cast<Index>(element_index[mesh->element_id])) =
+            convert_mesh_ufbx_to_lagrange<MeshType>(mesh, opt);
+    });
 
     for (size_t i = 0; i < scene->nodes.count; ++i) {
         const ufbx_node* node = scene->nodes[i];

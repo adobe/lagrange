@@ -48,7 +48,7 @@ include(CPM)
 CPMAddPackage(
     NAME nasoq
     GITHUB_REPOSITORY sympiler/nasoq
-    GIT_TAG fc2051dfa991160cd6dd326d0fb1580ffb77b93b
+    GIT_TAG 03bc29fc10fcc29b68e59fa18b081a1a45779e9b
 )
 
 target_link_libraries(nasoq PUBLIC BLAS::BLAS)

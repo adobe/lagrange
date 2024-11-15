@@ -21,6 +21,8 @@
 #include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
+#include <spdlog/fmt/ranges.h>
+
 namespace lagrange {
 
 namespace {

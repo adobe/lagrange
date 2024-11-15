@@ -12,19 +12,25 @@
 #include <lagrange/testing/common.h>
 #include <catch2/catch_approx.hpp>
 
+#include <lagrange/Attribute.h>
+#include <lagrange/compute_facet_normal.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/select_facets_by_normal_similarity.h>
+#include <lagrange/views.h>
 
+namespace {
 
 //
 // Compare the selection with some predefined expectations on a cylinder.
 //
-TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_similarity]")
+template <typename Scalar>
+void run()
 {
     // =========================
     // Set this to true, only if the results need to be visualized.
     // =========================
-    const bool should_dump_meshes = false;
+    // const bool should_dump_meshes = false;
 
 
     // =========================
@@ -32,19 +38,16 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
     // =========================
     using namespace lagrange;
 
-    using MeshType = TriangleMesh3D;
-    using Parameters = SelectFacetsByNormalSimilarityParameters<MeshType>;
-    using Index = MeshType::Index;
-    using AttributeArray = MeshType::AttributeArray;
-    using Scalar = MeshType::Scalar;
-    using VertexType = MeshType::VertexType;
+    using Index = uint32_t;
+    using MeshType = SurfaceMesh<Scalar, Index>;
+    using VertexType = typename Eigen::Vector3<Scalar>;
 
     // =========================
     // Helper lambdas
     // =========================
 
     // return number of true indices in a bit vector
-    auto get_bitvector_num_true = [](const std::vector<bool>& is_selected) -> Index {
+    auto get_bitvector_num_true = [](const lagrange::span<uint8_t> is_selected) -> Index {
         Index ans = 0;
         for (Index i = 0; i < static_cast<Index>(is_selected.size()); ++i) {
             if (is_selected[i]) {
@@ -54,34 +57,29 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
         return ans;
     };
 
-    // convert bitvector to attribute array
-    auto get_bitvector_as_attribute = [](const std::vector<bool>& is_selected) -> AttributeArray {
-        AttributeArray ans(is_selected.size(), 1);
-        for (Index i = 0; i < static_cast<Index>(is_selected.size()); ++i) {
-            ans(i) = static_cast<Scalar>(is_selected[i]);
-        }
-        return ans;
-    };
 
     // Get midpoint of a facet
-    auto get_facet_midpoint = [](std::shared_ptr<MeshType> mesh,
-                                 const Index facet_id) -> VertexType {
-        const auto face_vertex_ids = mesh->get_facets().row(facet_id).eval();
-        const auto v0 = mesh->get_vertices().row(face_vertex_ids(0)).eval();
-        const auto v1 = mesh->get_vertices().row(face_vertex_ids(1)).eval();
-        const auto v2 = mesh->get_vertices().row(face_vertex_ids(2)).eval();
-        const auto midpoint = ((v0 + v1 + v2) / 3.).eval();
-        return midpoint;
+    auto get_facet_midpoint = [](const MeshType& mesh, const Index facet_id) -> VertexType {
+        Index nvertices = mesh.get_facet_size(facet_id);
+        VertexType midpoint = VertexType::Zero();
+        for (Index i = 0; i < nvertices; i++) {
+            const auto v = mesh.get_position(mesh.get_facet_vertex(facet_id, i));
+            midpoint += VertexType(v.data());
+        }
+        return static_cast<Scalar>(1.0 / double(nvertices)) * midpoint;
     };
 
     // generate a cylinder -- copied from test_compute_curvature
     auto generate_cylinder = [](const Scalar radius,
                                 const Scalar height,
                                 const Index n_radial_segments,
-                                const Index n_vertical_segments) -> std::shared_ptr<MeshType> {
+                                const Index n_vertical_segments) -> MeshType {
         // 2 vertices for closing the top and bottom
         const Index n_vertices = n_radial_segments * (n_vertical_segments + 1) + 2;
-        Vertices3D vertices(n_vertices, 3);
+        MeshType mesh;
+        mesh.add_vertices(n_vertices);
+
+        auto vertices = vertex_ref(mesh); // returns an Eigen::Map
 
         for (const auto h : range(n_vertical_segments + 1)) {
             for (const auto r : range(n_radial_segments)) {
@@ -94,12 +92,6 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
         vertices.row(n_vertices - 1) << 0, 0, height;
 
         // set the triangles on the sides
-        const Index n_top_facets = n_radial_segments;
-        const Index n_bottom_facets = n_radial_segments;
-        const Index n_side_facets = 2 * n_radial_segments * n_vertical_segments;
-        const Index n_facets = n_top_facets + n_bottom_facets + n_side_facets;
-
-        Triangles facets(n_facets, 3);
         for (const auto h : range(n_vertical_segments)) {
             for (const auto r : range(n_radial_segments)) {
                 const Index i0 = h * n_radial_segments + r;
@@ -108,11 +100,11 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
                 const Index j1 = (h + 1) * n_radial_segments + (r + 1) % n_radial_segments;
                 // Alternate the diagonal edges
                 if (r % 2 == 0) {
-                    facets.row(2 * h * n_radial_segments + 2 * r) << i0, i1, j1;
-                    facets.row(2 * h * n_radial_segments + 2 * r + 1) << i0, j1, j0;
+                    mesh.add_triangle(i0, i1, j1);
+                    mesh.add_triangle(i0, j1, j0);
                 } else {
-                    facets.row(2 * h * n_radial_segments + 2 * r) << i0, i1, j0;
-                    facets.row(2 * h * n_radial_segments + 2 * r + 1) << j0, i1, j1;
+                    mesh.add_triangle(i0, i1, j0);
+                    mesh.add_triangle(j0, i1, j1);
                 }
             }
         }
@@ -122,7 +114,7 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
             const Index center = n_vertices - 2;
             const Index i0 = r;
             const Index i1 = (r + 1) % n_radial_segments;
-            facets.row(n_side_facets + r) << center, i0, i1;
+            mesh.add_triangle(center, i0, i1);
         }
 
         // triangles on the bottom
@@ -130,10 +122,10 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
             const Index center = n_vertices - 1;
             const Index i0 = n_vertical_segments * n_radial_segments + r;
             const Index i1 = n_vertical_segments * n_radial_segments + (r + 1) % n_radial_segments;
-            facets.row(n_side_facets + n_top_facets + r) << center, i0, i1;
+            mesh.add_triangle(center, i0, i1);
         }
 
-        return create_mesh(vertices, facets);
+        return mesh;
     };
 
     // =========================
@@ -146,75 +138,85 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
         const Index n_vertical_segments = 15;
         const Scalar height = 1.5;
         const Scalar radius = 2.;
-        //
+
         const Index n_side_facets = 2 * n_radial_segments * n_vertical_segments;
         const Index face_on_bottom_id = n_side_facets + 1;
         const Index face_on_side_id = 1;
-        //
+
         const Index n_vertices = n_radial_segments * (n_vertical_segments + 1) + 2;
         const Index vertex_on_bottom_mid_id = n_vertices - 2;
-        //
+
         auto mesh = generate_cylinder(radius, height, n_radial_segments, n_vertical_segments);
 
-        Parameters parameters;
-        parameters.flood_error_limit = 0.1;
-
+        SelectFacetsByNormalSimilarityOptions options;
+        options.flood_error_limit = 0.1;
         SECTION("select-on-bottom")
         {
+            SelectFacetsByNormalSimilarityOptions options_bottom = options;
             // Set the seed and run the selection
             // but prevent one face to be selected
             const Index seed_id = face_on_bottom_id;
-            parameters.should_smooth_boundary = false;
-            //
-            const Index dont_select_this = face_on_bottom_id + 1;
-            // parameters.is_facet_selectable.resize(mesh->get_num_facets(), true);
-            // parameters.is_facet_selectable[dont_select_this] = false;
-            std::vector<Index> selectables;
-            for (auto i : range(mesh->get_num_facets())) {
-                if (i != dont_select_this) {
-                    selectables.push_back(i);
-                }
-            }
-            parameters.set_selectable_facets(*mesh, selectables);
+            options_bottom.num_smooth_iterations = 0;
+            options_bottom.is_facet_selectable_attribute_name = "@is_facet_selectable";
 
-            auto is_facet_selected =
-                lagrange::select_facets_by_normal_similarity(*mesh, seed_id, parameters);
+            const Index dont_select_this = face_on_bottom_id + 1;
+            AttributeId selectability_id = internal::find_or_create_attribute<uint8_t>(
+                mesh,
+                options_bottom.is_facet_selectable_attribute_name.value(),
+                Facet,
+                AttributeUsage::Scalar,
+                /* number of channels*/ 1,
+                internal::ResetToDefault::Yes);
+            lagrange::span<uint8_t> attr_ref =
+                mesh.template ref_attribute<uint8_t>(selectability_id).ref_all();
+            std::fill(attr_ref.begin(), attr_ref.end(), 1);
+            attr_ref[dont_select_this] = 0;
+
+
+            lagrange::select_facets_by_normal_similarity(mesh, seed_id, options_bottom);
 
             // Make sure only and only the bottom is selected
-            for (const auto facet_id : range(mesh->get_num_facets())) {
+            AttributeId selected_id = internal::find_attribute<uint8_t>(
+                mesh,
+                options_bottom.output_attribute_name,
+                Facet,
+                AttributeUsage::Scalar,
+                /* num channels */ 1);
+            const lagrange::span<uint8_t> is_facet_selected =
+                mesh.template ref_attribute<uint8_t>(selected_id).ref_all();
+            for (const auto facet_id : range(mesh.get_num_facets())) {
                 const auto midpoint = get_facet_midpoint(mesh, facet_id);
                 if (facet_id == dont_select_this) {
-                    REQUIRE(is_facet_selected[facet_id] == false);
+                    REQUIRE(is_facet_selected[facet_id] == 0);
                 } else if (midpoint.z() == Catch::Approx(0.)) {
-                    REQUIRE(is_facet_selected[facet_id] == true);
+                    REQUIRE(is_facet_selected[facet_id] != 0);
                 } else {
-                    REQUIRE(is_facet_selected[facet_id] == false);
+                    REQUIRE(is_facet_selected[facet_id] == 0);
                 }
             } // end of testing
 
-            // Dump the mesh if needed
-            if (should_dump_meshes) {
-                if (!mesh->has_facet_attribute("is_selected")) {
-                    mesh->add_facet_attribute("is_selected");
-                }
-                auto attrib = get_bitvector_as_attribute(is_facet_selected);
-                mesh->import_facet_attribute("is_selected", attrib);
-                io::save_mesh("test_select_facets_by_normal_similarity__cylinder_0.vtk", *mesh);
-                io::save_mesh("test_select_facets_by_normal_similarity__cylinder_0.obj", *mesh);
-            }
         } // end of select on bottom
         SECTION("select-on-side")
         {
+            SelectFacetsByNormalSimilarityOptions options_side = options;
             // Set the seed and run the selection
             const Index seed_id = face_on_side_id;
-            parameters.should_smooth_boundary = false;
-            //
-            std::vector<bool> is_facet_selected =
-                lagrange::select_facets_by_normal_similarity(*mesh, seed_id, parameters);
+            options_side.num_smooth_iterations = 0;
+
+            lagrange::select_facets_by_normal_similarity(mesh, seed_id, options_side);
+
+            AttributeId selected_id = internal::find_attribute<uint8_t>(
+                mesh,
+                options_side.output_attribute_name,
+                Facet,
+                AttributeUsage::Scalar,
+                /* num channels */ 1);
+            const lagrange::span<uint8_t> is_facet_selected =
+                mesh.template ref_attribute<uint8_t>(selected_id).ref_all();
 
             // Make sure only the faces on the row of the seed
             // and the adjacent rows are selected
-            for (const auto facet_id : range(mesh->get_num_facets())) {
+            for (const auto facet_id : range(mesh.get_num_facets())) {
                 const auto facet_midpoint = get_facet_midpoint(mesh, facet_id);
                 const double dtheta = 2 * M_PI / n_radial_segments;
                 const Scalar y_min_lim = -sin(dtheta) * radius;
@@ -225,74 +227,81 @@ TEST_CASE("select_facets_by_normal_similarity", "[select_facets_by_normal_simila
                                                          (facet_midpoint.x() > x_min_lim);
 
                 if (facet_midpoint.z() == Catch::Approx(0.)) { // don't select bottom
-                    REQUIRE(is_facet_selected[facet_id] == false);
+                    REQUIRE(is_facet_selected[facet_id] == 0);
                 } else if (facet_midpoint.z() == Catch::Approx(height)) { // don't select top
-                    REQUIRE(is_facet_selected[facet_id] == false);
+                    REQUIRE(is_facet_selected[facet_id] == 0);
                 } else if (is_face_in_the_right_region) { // only select right part of the side
-                    // std::cout << facet_id << ";" << facet_midpoint.y() << "; " << y_min_lim <<
-                    // ";" << y_max_lim << std::endl;
-                    REQUIRE(is_facet_selected[facet_id] == true);
+                    REQUIRE(is_facet_selected[facet_id] != 0);
                 } else { // don't select other parts
-                    REQUIRE(is_facet_selected[facet_id] == false);
+                    REQUIRE(is_facet_selected[facet_id] == 0);
                 }
             } // end of testing
 
-            if (should_dump_meshes) {
-                if (!mesh->has_facet_attribute("is_selected")) {
-                    mesh->add_facet_attribute("is_selected");
-                }
-                auto attrib = get_bitvector_as_attribute(is_facet_selected);
-                mesh->import_facet_attribute("is_selected", attrib);
-                io::save_mesh("test_select_facets_by_normal_similarity__cylinder_1.vtk", *mesh);
-                io::save_mesh("test_select_facets_by_normal_similarity__cylinder_1.obj", *mesh);
-            }
         } // end of select on side
         SECTION("smooth-selection-boundary")
         {
+            SelectFacetsByNormalSimilarityOptions options_nosmoothbdry = options;
+            SelectFacetsByNormalSimilarityOptions options_smoothbdry = options;
             // Move the bottom vertex of the mesh, so that some of the bottom triangles
             // also get selected. I push  it towards the seed.
             {
-                auto vertices = mesh->get_vertices();
-                vertices.row(vertex_on_bottom_mid_id) << 1.9, 0.3, -.3;
-                mesh->initialize(vertices, mesh->get_facets());
+                auto p = mesh.ref_position(vertex_on_bottom_mid_id);
+                p[0] = 1.9f;
+                p[1] = 0.3f;
+                p[2] = -.3f;
+                FacetNormalOptions fn_options;
+                fn_options.output_attribute_name = options_smoothbdry.facet_normal_attribute_name;
+                compute_facet_normal(mesh, fn_options);
             }
 
             // Set the seed and run the selection
             // once with and once without smoothing the selection boundary
             const Index seed_id = face_on_side_id;
-            //
-            parameters.should_smooth_boundary = false;
-            std::vector<bool> is_facet_selected_no_smooth =
-                lagrange::select_facets_by_normal_similarity(*mesh, seed_id, parameters);
-            //
-            parameters.should_smooth_boundary = true;
-            std::vector<bool> is_facet_selected_with_smooth =
-                lagrange::select_facets_by_normal_similarity(*mesh, seed_id, parameters);
+
+            options_nosmoothbdry.num_smooth_iterations = 0;
+            options_nosmoothbdry.output_attribute_name = "@is_selected_nosmoothbdry";
+            lagrange::select_facets_by_normal_similarity(mesh, seed_id, options_nosmoothbdry);
+
+            AttributeId selected_id_nosmoothbdry = internal::find_attribute<uint8_t>(
+                mesh,
+                options_nosmoothbdry.output_attribute_name,
+                Facet,
+                AttributeUsage::Scalar,
+                /* num channels */ 1);
+            const lagrange::span<uint8_t> is_facet_selected_nosmoothbdry =
+                mesh.template ref_attribute<uint8_t>(selected_id_nosmoothbdry).ref_all();
+
+            options_smoothbdry.num_smooth_iterations = 3;
+            options_smoothbdry.output_attribute_name = "@is_selected_smoothbdry";
+            lagrange::select_facets_by_normal_similarity(mesh, seed_id, options_smoothbdry);
+
+            AttributeId selected_id_smoothbdry = internal::find_attribute<uint8_t>(
+                mesh,
+                options_smoothbdry.output_attribute_name,
+                Facet,
+                AttributeUsage::Scalar,
+                /* num channels */ 1);
+            const lagrange::span<uint8_t> is_facet_selected_smoothbdry =
+                mesh.template ref_attribute<uint8_t>(selected_id_smoothbdry).ref_all();
 
 
             // Smoothing should allow one extra triangle to appear
-            const Index n_selected_no_smooth = get_bitvector_num_true(is_facet_selected_no_smooth);
-            const Index n_selected_with_smooth =
-                get_bitvector_num_true(is_facet_selected_with_smooth);
-            REQUIRE(n_selected_no_smooth + 1 == n_selected_with_smooth);
+            const Index n_selected_nosmoothbdry =
+                get_bitvector_num_true(is_facet_selected_nosmoothbdry);
+            const Index n_selected_smoothbdry =
+                get_bitvector_num_true(is_facet_selected_smoothbdry);
+            REQUIRE(n_selected_nosmoothbdry + 1 == n_selected_smoothbdry);
 
-            if (should_dump_meshes) {
-                if (!mesh->has_facet_attribute("is_selected_no_smooth")) {
-                    mesh->add_facet_attribute("is_selected_no_smooth");
-                }
-                auto attrib = get_bitvector_as_attribute(is_facet_selected_no_smooth);
-                mesh->import_facet_attribute("is_selected_no_smooth", attrib);
-                //
-                if (!mesh->has_facet_attribute("is_selected_with_smooth")) {
-                    mesh->add_facet_attribute("is_selected_with_smooth");
-                }
-                attrib = get_bitvector_as_attribute(is_facet_selected_with_smooth);
-                mesh->import_facet_attribute("is_selected_with_smooth", attrib);
-                //
-                io::save_mesh("test_select_facets_by_normal_similarity__cylinder_2.vtk", *mesh);
-                io::save_mesh("test_select_facets_by_normal_similarity__cylinder_2.obj", *mesh);
-            }
         } // end of smooth-boundary
-    } // end of cuboid
+    } // end of cylinder
+} // end of run
+} // end of namespace
 
-} // end of the test section
+TEST_CASE("select_facets_by_normal_similarity<float>", "[select_facets_by_normal_similarity]")
+{
+    run<float>();
+}
+TEST_CASE("select_facets_by_normal_similarity<double>", "[select_facets_by_normal_similarity]")
+{
+    run<double>();
+}

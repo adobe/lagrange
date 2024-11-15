@@ -16,13 +16,13 @@ endif()
 message(STATUS "Third-party (external): creating target 'nlohmann_json::nlohmann_json'")
 
 # nlohmann_json is a big repo for a single header, so we just download the release archive
-set(NLOHMANNJSON_VERSION "v3.11.2")
+set(NLOHMANNJSON_VERSION "v3.11.3")
 
 include(CPM)
 CPMAddPackage(
     NAME nlohmann_json
     URL "https://github.com/nlohmann/json/releases/download/${NLOHMANNJSON_VERSION}/include.zip"
-    URL_HASH SHA256=e5c7a9f49a16814be27e4ed0ee900ecd0092bfb7dbfca65b5a421b774dccaaed
+    URL_HASH SHA256=a22461d13119ac5c78f205d3df1db13403e58ce1bb1794edc9313677313f4a9d
 )
 
 add_library(nlohmann_json INTERFACE)

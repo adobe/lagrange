@@ -24,6 +24,7 @@
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_greedy_coloring.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/compute_pointcloud_pca.h>
 #include <lagrange/compute_seam_edges.h>
 #include <lagrange/compute_tangent_bitangent.h>
 #include <lagrange/compute_uv_distortion.h>
@@ -49,6 +50,8 @@
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/weld_indexed_attribute.h>
+#include <lagrange/select_facets_by_normal_similarity.h>
+#include <lagrange/select_facets_in_frustum.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -318,6 +321,28 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :param keep_facet_normals: whether to keep the computed facet normal attribute
 
 :returns: the id of the indexed normal attribute.)");
+
+    using ConstArray3d = nb::ndarray<const double, nb::shape<-1, 3>, nb::c_contig, nb::device::cpu>;
+    m.def(
+        "compute_pointcloud_pca",
+        [](ConstArray3d points, bool shift_centroid, bool normalize) {
+            ComputePointcloudPCAOptions options;
+            options.shift_centroid = shift_centroid;
+            options.normalize = normalize;
+            PointcloudPCAOutput<Scalar> output =
+                compute_pointcloud_pca<Scalar>({points.data(), points.size()}, options);
+            return std::make_tuple(output.center, output.eigenvectors, output.eigenvalues);
+        },
+        "points"_a,
+        "shift_centroid"_a = ComputePointcloudPCAOptions().shift_centroid,
+        "normalize"_a = ComputePointcloudPCAOptions().normalize,
+        R"(Compute principal components of a point cloud.
+
+:param points: Input points.
+:param shift_centroid: When true: covariance = (P-centroid)^T (P-centroid), when false: covariance = (P)^T (P).
+:param normalize: Should we divide the result by number of points?
+
+:returns: tuple of (center, eigenvectors, eigenvalues).)");
 
     m.def(
         "compute_greedy_coloring",
@@ -1352,8 +1377,7 @@ A mesh considered as manifold if it is both vertex and edge manifold.
             if (std::holds_alternative<AttributeId>(attribute)) {
                 opt.attribute_id = std::get<AttributeId>(attribute);
             } else {
-                opt.attribute_id =
-                    mesh.get_attribute_id(std::get<std::string_view>(attribute));
+                opt.attribute_id = mesh.get_attribute_id(std::get<std::string_view>(attribute));
             }
             opt.isovalue = isovalue;
             opt.keep_below = keep_below;
@@ -1535,6 +1559,112 @@ The input mesh must be a triangle mesh.
 :param output_attribute_name: The output attribute name. If none, cast will replace the input attribute.
 
 :returns: The id of the new attribute.)");
+
+    m.def(
+        "select_facets_by_normal_similarity",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+            Index seed_facet_id,
+            std::optional<double> flood_error_limit,
+            std::optional<double> flood_second_to_first_order_limit_ratio,
+            std::optional<std::string_view> facet_normal_attribute_name,
+            std::optional<std::string_view> is_facet_selectable_attribute_name,
+            std::optional<std::string_view> output_attribute_name,
+            std::optional<std::string_view> search_type,
+            std::optional<int> num_smooth_iterations) {
+        // Set options in the C++ struct
+        SelectFacetsByNormalSimilarityOptions options;
+        if (flood_error_limit.has_value()) 
+            options.flood_error_limit = flood_error_limit.value();
+        if (flood_second_to_first_order_limit_ratio.has_value())
+            options.flood_second_to_first_order_limit_ratio = flood_second_to_first_order_limit_ratio.value();
+        if (facet_normal_attribute_name.has_value())
+            options.facet_normal_attribute_name = facet_normal_attribute_name.value();
+        if (is_facet_selectable_attribute_name.has_value()) {
+            options.is_facet_selectable_attribute_name = is_facet_selectable_attribute_name;
+        }
+        if (output_attribute_name.has_value())
+            options.output_attribute_name = output_attribute_name.value();
+        if (search_type.has_value()) {
+            if (search_type.value() == "BFS")
+                options.search_type = SelectFacetsByNormalSimilarityOptions::SearchType::BFS;
+            else if (search_type.value() == "DFS")
+                options.search_type = SelectFacetsByNormalSimilarityOptions::SearchType::DFS;
+            else
+                throw std::runtime_error(fmt::format("Invalid search type: {}", search_type.value()));
+        }
+        if (num_smooth_iterations.has_value())
+            options.num_smooth_iterations = num_smooth_iterations.value();
+
+        return select_facets_by_normal_similarity<Scalar, Index>(mesh, seed_facet_id, options);
+        },
+            "mesh"_a, /* `_a` is a literal for nanobind to create nb::args, a required argument */
+            "seed_facet_id"_a,
+            "flood_error_limit"_a = nb::none(),
+            "flood_second_to_first_order_limit_ratio"_a = nb::none(),
+            "facet_normal_attribute_name"_a = nb::none(),
+            "is_facet_selectable_attribute_name"_a = nb::none(),
+            "output_attribute_name"_a = nb::none(),
+            "search_type"_a = nb::none(),
+            "num_smooth_iterations"_a = nb::none(),
+            R"(Select facets by normal similarity (Pythonic API).
+
+:param mesh: Input mesh.
+:param seed_facet_id: Index of the seed facet.
+:param flood_error_limit: Tolerance for normals of the seed and the selected facets. Higher limit leads to larger selected region. 
+:param flood_second_to_first_order_limit_ratio: Ratio of the flood_error_limit and the tolerance for normals of neighboring selected facets. Higher ratio leads to more curvature in selected region.
+:param facet_normal_attribute_name: Attribute name of the facets normal. If the mesh doesn't have this attribute, it will call compute_facet_normal to compute it.
+:param is_facet_selectable_attribute_name: If provided, this function will look for this attribute to determine if a facet is selectable.
+:param output_attribute_name: Attribute name of whether a facet is selected.
+:param search_type: Use 'BFS' for breadth-first search or 'DFS' for depth-first search.
+:param num_smooth_iterations: Number of iterations to smooth the boundary of the selected region.
+
+:returns: Id of the attribute on whether a facet is selected.)",
+    nb::sig("def select_facets_by_normal_similarity(mesh: SurfaceMesh, "
+            "seed_facet_id: int, "
+            "flood_error_limit: float | None = None, "
+            "flood_second_to_first_order_limit_ratio: float | None = None, "
+            "facet_normal_attribute_name: str | None = None, "
+            "is_facet_selectable_attribute_name: str | None = None, "
+            "output_attribute_name: str | None = None, "
+            "search_type: typing.Literal['BFS', 'DFS'] | None = None,"
+            "num_smooth_iterations: int | None = None) -> int")
+    );
+
+    m.def(
+        "select_facets_in_frustum",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+            std::array<std::array<Scalar, 3>, 4> frustum_plane_points,
+            std::array<std::array<Scalar, 3>, 4> frustum_plane_normals,
+            std::optional<bool> greedy,
+            std::optional<std::string_view> output_attribute_name) {
+        // Set options in the C++ struct
+        Frustum<Scalar> frustum;
+        for (size_t i=0; i < 4; ++i) {
+            frustum.planes[i].point = frustum_plane_points[i];
+            frustum.planes[i].normal = frustum_plane_normals[i];
+        }
+        FrustumSelectionOptions options;
+        if (greedy.has_value()) 
+            options.greedy = greedy.value();
+        if (output_attribute_name.has_value())
+            options.output_attribute_name = output_attribute_name.value();
+
+        return select_facets_in_frustum<Scalar, Index>(mesh, frustum, options);
+        },
+            "mesh"_a,
+            "frustum_plane_points"_a,
+            "frustum_plane_normals"_a,
+            "greedy"_a = nb::none(),
+            "output_attribute_name"_a = nb::none(),
+            R"(Select facets in a frustum (Pythonic API).
+
+:param mesh: Input mesh.
+:param frustum_plane_points: Four points on each of the frustum planes.
+:param frustum_plane_normals: Four normals of each of the frustum planes.
+:param greedy: If true, the function returns as soon as the first facet is found.
+:param output_attribute_name: Attribute name of whether a facet is selected.
+
+:returns: Whether any facets got selected.)");
 }
 
 } // namespace lagrange::python

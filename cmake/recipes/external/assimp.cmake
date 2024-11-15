@@ -43,6 +43,12 @@ CPMAddPackage(
     NAME assimp
     GITHUB_REPOSITORY assimp/assimp
     GIT_TAG c1deb808faadd85a7a007447b62ae238a4be2337
+
+    PATCHES
+        # Prevent Assimp from meddling with compiler flags in debug mode.
+        # See internal lagrange-lib/#1303 for more details.
+        # Remember to update this patch when updating Assimp.
+        assimp.patch
 )
 
 set_target_properties(assimp PROPERTIES FOLDER third_party/assimp)

@@ -1956,6 +1956,44 @@ void SurfaceMesh<Scalar, Index>::remove_facets(function_ref<bool(Index)> should_
     resize_edges_internal(num_edges_new);
 }
 
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::flip_facets(span<const Index> facets_to_flip)
+{
+    std::vector<Index> old_to_new_corners(get_num_corners());
+    std::iota(old_to_new_corners.begin(), old_to_new_corners.end(), 0);
+    for (Index f : facets_to_flip) {
+        const Index c_first = get_facet_corner_begin(f);
+        const Index c_last = get_facet_corner_end(f);
+        std::reverse(old_to_new_corners.begin() + c_first, old_to_new_corners.begin() + c_last);
+    }
+    reindex_corners_internal(
+        [&](Index c) { return old_to_new_corners[c]; },
+        CornerMappingType::ReversingFacets);
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::flip_facets(std::initializer_list<const Index> facets_to_flip)
+{
+    flip_facets(span<const Index>(facets_to_flip));
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::flip_facets(function_ref<bool(Index)> should_flip_func)
+{
+    std::vector<Index> old_to_new_corners(get_num_corners());
+    std::iota(old_to_new_corners.begin(), old_to_new_corners.end(), 0);
+    for (Index f = 0; f < get_num_facets(); ++f) {
+        if (should_flip_func(f)) {
+            const Index c_first = get_facet_corner_begin(f);
+            const Index c_last = get_facet_corner_end(f);
+            std::reverse(old_to_new_corners.begin() + c_first, old_to_new_corners.begin() + c_last);
+        }
+    }
+    reindex_corners_internal(
+        [&](Index c) { return old_to_new_corners[c]; },
+        CornerMappingType::ReversingFacets);
+}
+
 namespace {
 
 template <typename Index, typename Attr>
@@ -2582,6 +2620,24 @@ bool SurfaceMesh<Scalar, Index>::is_boundary_edge(Index e) const
 }
 
 template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::foreach_facet_around_facet(Index f, function_ref<void(Index)> func)
+    const
+{
+    // Loop over edges
+    for (Index c = get_facet_corner_begin(f); c != get_facet_corner_end(f); ++c) {
+        Index e = get_corner_edge(c);
+        auto func_skip_self = [f, &func](Index fi) {
+            if (fi != f) {
+                func(fi);
+            }
+        };
+
+        // Loop over facets around edge
+        foreach_facet_around_edge(e, func_skip_self);
+    }
+}
+
+template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::foreach_facet_around_vertex(
     Index v,
     function_ref<void(Index)> func) const
@@ -2765,6 +2821,43 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
     const Index num_corners = get_num_corners();
     const Index num_facets = get_num_facets();
 
+    // Compute corner remapping
+    Index new_num_corners = 0;
+    if (is_hybrid()) {
+        std::vector<Index> old_to_new_corners(num_corners);
+        for (Index f = 0; f < num_facets; ++f) {
+            for (Index c = get_facet_corner_begin(f); c < get_facet_corner_end(f); ++c) {
+                if (old_to_new_facets[f] == invalid<Index>()) {
+                    old_to_new_corners[c] = invalid<Index>();
+                } else {
+                    old_to_new_corners[c] = new_num_corners;
+                    ++new_num_corners;
+                }
+            }
+        }
+        reindex_corners_internal(
+            [&](Index c) noexcept { return old_to_new_corners[c]; },
+            CornerMappingType::RemovingFacets);
+    } else {
+        const Index nvpf = get_vertex_per_facet();
+        for (Index f = 0; f < num_facets; ++f) {
+            if (old_to_new_facets[f] != invalid<Index>()) {
+                new_num_corners += nvpf;
+            }
+        }
+        reindex_corners_internal(
+            [&](Index c) {
+                const Index new_f = old_to_new_facets[c / nvpf];
+                const Index lv = c % nvpf;
+                if (new_f == invalid<Index>()) {
+                    return invalid<Index>();
+                } else {
+                    return new_f * nvpf + lv;
+                }
+            },
+            CornerMappingType::RemovingFacets);
+    }
+
     auto reindex_edges = [&](auto old_to_new_edges) {
         // Update content of EdgeIndex attributes
         seq_foreach_attribute_write(*this, [&](auto&& attr) {
@@ -2789,110 +2882,6 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
         });
     };
 
-    auto reindex_corners = [&](auto old_to_new_corners) {
-        // Repair connectivity chains and skip over deleted corners
-        std::array<std::array<AttributeId, 2>, 2> ids = {
-            {{{m_reserved_ids.vertex_to_first_corner(),
-               m_reserved_ids.next_corner_around_vertex()}},
-             {{m_reserved_ids.edge_to_first_corner(), m_reserved_ids.next_corner_around_edge()}}}};
-        for (auto [id_first, id_next] : ids) {
-            if (id_first != invalid_attribute_id()) {
-                auto first_corner = ref_attribute<Index>(id_first).ref_all();
-                auto next_corner = ref_attribute<Index>(id_next).ref_all();
-                auto next_valid_corner = [&](Index ci) {
-                    // Find the next corner that is not discarded
-                    Index cj = next_corner[ci];
-                    while (cj != invalid<Index>() && old_to_new_corners(cj) == invalid<Index>()) {
-                        cj = next_corner[cj];
-                    }
-                    return cj;
-                };
-                for (Index& c0 : first_corner) {
-                    if (id_first == m_reserved_ids.vertex_to_first_corner() &&
-                        c0 == invalid<Index>()) {
-                        // Isolated vertex, skip
-                        continue;
-                    }
-                    if (old_to_new_corners(c0) == invalid<Index>()) {
-                        // Replace head by next valid corner
-                        c0 = next_valid_corner(c0);
-                    }
-                    for (Index c = c0; c != invalid<Index>(); c = next_corner[c]) {
-                        // Iterate over the singly linked list and replace invalid items
-                        if (next_corner[c] != invalid<Index>()) {
-                            next_corner[c] = next_valid_corner(c);
-                        }
-                    }
-                }
-            }
-        }
-
-        // Update content of CornerIndex attributes
-        seq_foreach_attribute_write(*this, [&](auto&& attr) {
-            update_element_index<Index>(
-                attr,
-                AttributeUsage::CornerIndex,
-                num_corners,
-                old_to_new_corners);
-        });
-
-        // Move corner & indexed attributes
-        auto move_corner_attributes = [&](auto&& attr) {
-            for (Index c = 0; c < num_corners; ++c) {
-                if (old_to_new_corners(c) != invalid<Index>()) {
-                    if (old_to_new_corners(c) != c) {
-                        auto from = attr.get_row(c);
-                        auto to = attr.ref_row(old_to_new_corners(c));
-                        std::copy(from.begin(), from.end(), to.begin());
-                    }
-                }
-            }
-        };
-        seq_foreach_attribute_write<AttributeElement::Indexed | AttributeElement::Corner>(
-            *this,
-            [&](auto&& attr) {
-                using AttributeType = std::decay_t<decltype(attr)>;
-                if constexpr (AttributeType::IsIndexed) {
-                    move_corner_attributes(attr.indices());
-                } else {
-                    move_corner_attributes(attr);
-                }
-            });
-    };
-
-    // Compute corner remapping
-    Index new_num_corners = 0;
-    if (is_hybrid()) {
-        std::vector<Index> old_to_new_corners(num_corners);
-        for (Index f = 0; f < num_facets; ++f) {
-            for (Index c = get_facet_corner_begin(f); c < get_facet_corner_end(f); ++c) {
-                if (old_to_new_facets[f] == invalid<Index>()) {
-                    old_to_new_corners[c] = invalid<Index>();
-                } else {
-                    old_to_new_corners[c] = new_num_corners;
-                    ++new_num_corners;
-                }
-            }
-        }
-        reindex_corners([&](Index c) noexcept { return old_to_new_corners[c]; });
-    } else {
-        const Index nvpf = get_vertex_per_facet();
-        for (Index f = 0; f < num_facets; ++f) {
-            if (old_to_new_facets[f] != invalid<Index>()) {
-                new_num_corners += nvpf;
-            }
-        }
-        reindex_corners([&](Index c) {
-            const Index new_f = old_to_new_facets[c / nvpf];
-            const Index lv = c % nvpf;
-            if (new_f == invalid<Index>()) {
-                return invalid<Index>();
-            } else {
-                return new_f * nvpf + lv;
-            }
-        });
-    }
-
     // Compute edge remapping
     Index new_num_edges = 0;
     if (has_edges()) {
@@ -2909,6 +2898,7 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
         }
         reindex_edges([&](Index e) noexcept { return old_to_new_edges[e]; });
     }
+
 
     // Update content of FacetIndex attributes
     auto remap_f = [&](Index i) { return old_to_new_facets[i]; };
@@ -2930,6 +2920,162 @@ auto SurfaceMesh<Scalar, Index>::reindex_facets_internal(span<const Index> old_t
     });
 
     return std::make_pair(new_num_corners, new_num_edges);
+}
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::reindex_corners_internal(
+    function_ref<Index(Index)> old_to_new_corners,
+    CornerMappingType mapping_type)
+{
+    const Index num_facets = get_num_facets();
+    const Index num_corners = get_num_corners();
+
+    //
+    // When reversing facets, we need to remap the following attributes differently:
+    // 1. $corner_to_edge
+    // 2. $edge_to_first_corner
+    // 3. $next_corner_around_edge
+    // 4. $facet_to_first_corner
+    //
+    // For attributes (1)-(3), the corners are used to identify an edge, when reversing facets we
+    // need to use the previous corner around the facet to denote the same edge instead.
+    //
+    // For attribute (4), we do not remap it at all, since the first corner of the facet remains
+    // the same.
+    //
+    // Ideally we'd have a different ElementType for FacetVertex and FacetEdge, but for now we're
+    // just hardcoding this behavior.
+    //
+    std::vector<Index> corner_to_prev_corner;
+    if (mapping_type == CornerMappingType::ReversingFacets &&
+        m_reserved_ids.edge_to_first_corner() != invalid_attribute_id()) {
+        corner_to_prev_corner.resize(num_corners);
+        std::iota(corner_to_prev_corner.begin(), corner_to_prev_corner.end(), 0);
+        for (Index f = 0; f < num_facets; ++f) {
+            const Index c0 = get_facet_corner_begin(f);
+            if (old_to_new_corners(c0) == c0) {
+                // Facet not flipped, continue
+                continue;
+            }
+            const Index nv = get_facet_size(f);
+            for (Index lv = 0; lv < nv; ++lv) {
+                const Index c = c0 + lv;
+                corner_to_prev_corner[c] = c0 + (lv + nv - 1) % nv;
+            }
+        }
+    }
+
+    auto old_to_new_corners_shifted = [&](Index c) {
+        if (mapping_type == CornerMappingType::ReversingFacets && !corner_to_prev_corner.empty()) {
+            return corner_to_prev_corner[old_to_new_corners(c)];
+        } else {
+            return old_to_new_corners(c);
+        }
+    };
+
+    // Repair connectivity chains and skip over deleted corners.
+    std::array<std::array<AttributeId, 2>, 2> ids = {
+        {{{m_reserved_ids.vertex_to_first_corner(), m_reserved_ids.next_corner_around_vertex()}},
+         {{m_reserved_ids.edge_to_first_corner(), m_reserved_ids.next_corner_around_edge()}}}};
+    for (auto [id_first, id_next] : ids) {
+        if (id_first != invalid_attribute_id()) {
+            auto first_corner = ref_attribute<Index>(id_first).ref_all();
+            auto next_corner = ref_attribute<Index>(id_next).ref_all();
+            auto next_valid_corner = [&](Index ci) {
+                // Find the next corner that is not discarded
+                Index cj = next_corner[ci];
+                while (cj != invalid<Index>() && old_to_new_corners(cj) == invalid<Index>()) {
+                    cj = next_corner[cj];
+                }
+                return cj;
+            };
+            for (Index& c0 : first_corner) {
+                if (id_first == m_reserved_ids.vertex_to_first_corner() && c0 == invalid<Index>()) {
+                    // Isolated vertex, skip
+                    continue;
+                }
+                if (old_to_new_corners(c0) == invalid<Index>()) {
+                    // Replace head by next valid corner
+                    c0 = next_valid_corner(c0);
+                }
+                for (Index c = c0; c != invalid<Index>(); c = next_corner[c]) {
+                    // Iterate over the singly linked list and replace invalid items
+                    if (next_corner[c] != invalid<Index>()) {
+                        next_corner[c] = next_valid_corner(c);
+                    }
+                }
+            }
+        }
+    }
+
+    seq_foreach_named_attribute_write(*this, [&](auto name, auto&& attr) {
+        if (mapping_type == CornerMappingType::ReversingFacets &&
+            name == s_reserved_names.facet_to_first_corner()) {
+            // Don't remap the "first corner" of a facet when reversing facet indices
+            return;
+        }
+        if (mapping_type == CornerMappingType::ReversingFacets &&
+            (name == s_reserved_names.edge_to_first_corner() ||
+             name == s_reserved_names.next_corner_around_edge())) {
+            update_element_index<Index>(
+                attr,
+                AttributeUsage::CornerIndex,
+                num_corners,
+                old_to_new_corners_shifted);
+        } else {
+            update_element_index<Index>(
+                attr,
+                AttributeUsage::CornerIndex,
+                num_corners,
+                old_to_new_corners);
+        }
+    });
+
+    // Move corner & indexed attributes
+    auto move_corner_attributes = [&](auto&& attr, bool shift) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+        using ValueType = typename AttributeType::ValueType;
+        std::vector<ValueType> tmp;
+        if (mapping_type == CornerMappingType::ReversingFacets) {
+            tmp.resize(attr.get_num_channels());
+        }
+        for (Index c = 0; c < num_corners; ++c) {
+            Index new_c = old_to_new_corners(c);
+            if (shift) {
+                new_c = corner_to_prev_corner[new_c];
+            }
+            if (new_c != invalid<Index>()) {
+                if (new_c != c) {
+                    auto to = attr.ref_row(new_c);
+                    if (mapping_type == CornerMappingType::RemovingFacets) {
+                        auto from = attr.get_row(c);
+                        std::copy(from.begin(), from.end(), to.begin());
+                    } else {
+                        if (new_c < c) {
+                            auto from = attr.ref_row(c);
+                            std::copy(to.begin(), to.end(), tmp.begin());
+                            std::copy(from.begin(), from.end(), to.begin());
+                            std::copy(tmp.begin(), tmp.end(), from.begin());
+                        }
+                    }
+                }
+            }
+        }
+    };
+    seq_foreach_named_attribute_write<AttributeElement::Indexed | AttributeElement::Corner>(
+        *this,
+        [&](auto name, auto&& attr) {
+            using AttributeType = std::decay_t<decltype(attr)>;
+            bool shift =
+                (mapping_type == CornerMappingType::ReversingFacets &&
+                 (name == s_reserved_names.corner_to_edge() ||
+                  name == s_reserved_names.next_corner_around_edge()));
+            if constexpr (AttributeType::IsIndexed) {
+                move_corner_attributes(attr.indices(), shift);
+            } else {
+                move_corner_attributes(attr, shift);
+            }
+        });
 }
 
 template <typename Scalar, typename Index>

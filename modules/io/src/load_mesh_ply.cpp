@@ -57,6 +57,8 @@ void extract_normal(
     std::string attr_name =
         fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
 
+    logger().debug("Reading normal attribute {} -> {}", name, attr_name);
+
     auto id = mesh.template create_attribute<ValueType>(attr_name, element, usage, 3);
     auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
     la_runtime_assert(static_cast<Index>(attr.size()) == num_entries * 3);
@@ -83,6 +85,8 @@ void extract_vertex_uv(
     std::string attr_name =
         fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
 
+    logger().debug("Reading uv attribute {} -> {}", name, attr_name);
+
     auto id = mesh.template create_attribute<ValueType>(attr_name, element, usage, 2);
     auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
     for (Index i = 0; i < num_vertices; ++i) {
@@ -108,6 +112,8 @@ void extract_color(
     std::string attr_name =
         fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
     Index num_channels = has_alpha ? 4 : 3;
+
+    logger().debug("Reading color attribute {} -> {}", name, attr_name);
 
     auto id = mesh.template create_attribute<ValueType>(attr_name, element, usage, num_channels);
     auto attr = mesh.template ref_attribute<ValueType>(id).ref_all();
