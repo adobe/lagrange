@@ -35,13 +35,16 @@ enum class TestCase : int {
     Rotation = 3,
     SymmetryXY = 4,
     SymmetryXZ = 5,
-    NumTestCases = 6,
+    NegativeScaling = 6,
+    NegativeScalingReorient = 7,
+    NumTestCases = 8,
 };
 
 void test_transform_mesh_2d(TestCase test_case)
 {
     using Scalar = double;
     using Index = uint32_t;
+    using RowVector3i = Eigen::Matrix<Index, 1, 3>;
 
     lagrange::SurfaceMesh<Scalar, Index> mesh(2);
     mesh.add_vertex({0, 0});
@@ -67,6 +70,7 @@ void test_transform_mesh_2d(TestCase test_case)
     auto& uv_attr = mesh.get_indexed_attribute<Scalar>(id_uv);
 
     auto vertices = vertex_view(mesh);
+    auto facets = facet_view(mesh);
     auto uv = lagrange::matrix_view(uv_attr.values());
 
     for (Index v = 0; v < 3; ++v) {
@@ -83,6 +87,7 @@ void test_transform_mesh_2d(TestCase test_case)
         lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Scaling(Scalar(2))));
         REQUIRE(vertices.row(1) == Eigen::RowVector2d(2, 0));
         REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, 2));
+        REQUIRE(facets.row(0) == RowVector3i(0, 1, 2));
         break;
     case TestCase::NonUniformScaling:
         lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Scaling(Scalar(2), Scalar(3))));
@@ -108,6 +113,24 @@ void test_transform_mesh_2d(TestCase test_case)
         REQUIRE(vertices.row(1) == Eigen::RowVector2d(1, 0));
         REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, -1));
         break;
+    case TestCase::NegativeScaling:
+        lagrange::transform_mesh(mesh, Eigen::Affine2d(Eigen::Scaling(Scalar(-1), Scalar(2))));
+        REQUIRE(vertices.row(1) == Eigen::RowVector2d(-1, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, 2));
+        REQUIRE(facets.row(0) == RowVector3i(0, 1, 2));
+        break;
+    case TestCase::NegativeScalingReorient: {
+        lagrange::TransformOptions topt;
+        topt.reorient = true;
+        lagrange::transform_mesh(
+            mesh,
+            Eigen::Affine2d(Eigen::Scaling(Scalar(-1), Scalar(2))),
+            topt);
+        REQUIRE(vertices.row(1) == Eigen::RowVector2d(-1, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector2d(0, 2));
+        REQUIRE(facets.row(0) == RowVector3i(2, 1, 0));
+        break;
+    }
     default: break;
     }
     }
@@ -117,6 +140,7 @@ void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
 {
     using Scalar = double;
     using Index = uint32_t;
+    using RowVector3i = Eigen::Matrix<Index, 1, 3>;
 
     lagrange::SurfaceMesh<Scalar, Index> mesh;
     mesh.add_vertex({0, 0, 0});
@@ -151,6 +175,7 @@ void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
     auto& bitangent_attr = mesh.get_indexed_attribute<Scalar>(id_bitangent);
 
     auto vertices = vertex_view(mesh);
+    auto facets = facet_view(mesh);
     auto uv = lagrange::matrix_view(uv_attr.values());
     auto nrm = lagrange::matrix_view(nrm_attr.values());
     auto tangent = lagrange::matrix_view(tangent_attr.values());
@@ -228,6 +253,33 @@ void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
         REQUIRE(tangent.row(0).head<3>() == Eigen::RowVector3d(1, 0, 0));
         REQUIRE(bitangent.row(0).head<3>() == Eigen::RowVector3d(0, -1, 0));
         break;
+
+    case TestCase::NegativeScaling:
+        lagrange::transform_mesh(
+            mesh,
+            Eigen::Affine3d(Eigen::Scaling(Scalar(-1))));
+        REQUIRE(vertices.row(1) == Eigen::RowVector3d(-1, 0, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector3d(0, -1, 0));
+        REQUIRE(nrm.row(0).head<3>() == Eigen::RowVector3d(0, 0, 1));
+        REQUIRE(tangent.row(0).head<3>() == Eigen::RowVector3d(-1, 0, 0));
+        REQUIRE(bitangent.row(0).head<3>() == Eigen::RowVector3d(0, -1, 0));
+        REQUIRE(facets.row(0) == RowVector3i(0, 1, 2));
+        break;
+    case TestCase::NegativeScalingReorient: {
+        lagrange::TransformOptions topt;
+        topt.reorient = true;
+        lagrange::transform_mesh(
+            mesh,
+            Eigen::Affine3d(Eigen::Scaling(Scalar(-1))),
+            topt);
+        REQUIRE(vertices.row(1) == Eigen::RowVector3d(-1, 0, 0));
+        REQUIRE(vertices.row(2) == Eigen::RowVector3d(0, -1, 0));
+        REQUIRE(nrm.row(0).head<3>() == Eigen::RowVector3d(0, 0, -1));
+        REQUIRE(tangent.row(0).head<3>() == Eigen::RowVector3d(1, 0, 0));
+        REQUIRE(bitangent.row(0).head<3>() == Eigen::RowVector3d(0, 1, 0));
+        REQUIRE(facets.row(0) == RowVector3i(2, 1, 0));
+        break;
+    }
     default: break;
     }
     }
@@ -245,7 +297,8 @@ TEST_CASE("transform_mesh_2d", "[next]")
 TEST_CASE("transform_mesh_3d", "[next]")
 {
     for (int i = 0; i < static_cast<int>(TestCase::NumTestCases); ++i) {
-        test_transform_mesh_3d(false, static_cast<TestCase>(i));
-        test_transform_mesh_3d(true, static_cast<TestCase>(i));
+        for (bool pad_with_sign : {false, true}) {
+            test_transform_mesh_3d(pad_with_sign, static_cast<TestCase>(i));
+        }
     }
 }

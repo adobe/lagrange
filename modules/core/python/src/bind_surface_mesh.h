@@ -1210,11 +1210,18 @@ If not provided, the edges are initialized in an arbitrary order.
 
     surface_mesh_class.def(
         "clone",
-        [](MeshType& self) -> MeshType {
-            auto py_self = nb::find(self);
-            return nb::cast<MeshType>(py_self.attr("__deepcopy__")());
+        [](MeshType& self, bool strip) -> MeshType {
+            if (strip) {
+                return MeshType::stripped_copy(self);
+            } else {
+                auto py_self = nb::find(self);
+                return nb::cast<MeshType>(py_self.attr("__deepcopy__")());
+            }
         },
-        R"(Create a deep copy of this mesh.)");
+        "strip"_a = false,
+        R"(Create a deep copy of this mesh.
+
+:param strip: If True, strip the mesh of all attributes except for the reserved attributes.)");
 }
 
 } // namespace lagrange::python

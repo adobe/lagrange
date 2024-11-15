@@ -20,6 +20,7 @@
 #include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
+#include <lagrange/mesh_cleanup/split_long_edges.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -159,6 +160,40 @@ is not.
         R"(Resolve both vertex and edge nonmanifoldness in a mesh.
 
 :param mesh: The input mesh for inplace modification.)");
+
+    m.def(
+        "split_long_edges",
+        [](MeshType& mesh,
+           float max_edge_length,
+           bool recursive,
+           std::optional<std::string_view> active_region_attribute,
+           std::optional<std::string_view> edge_length_attribute) {
+            SplitLongEdgesOptions opts;
+            opts.max_edge_length = max_edge_length;
+            opts.recursive = recursive;
+            if (active_region_attribute.has_value())
+                opts.active_region_attribute = active_region_attribute.value();
+            if (edge_length_attribute.has_value())
+                opts.edge_length_attribute = edge_length_attribute.value();
+            split_long_edges(mesh, std::move(opts));
+        },
+        "mesh"_a,
+        "max_edge_length"_a = 0.1f,
+        "recursive"_a = true,
+        "active_region_attribute"_a = nb::none(),
+        "edge_length_attribute"_a = nb::none(),
+        R"(Split edges that are longer than `max_edge_length`.
+
+:param mesh:                  The input mesh for inplace modification.
+:param max_edge_length:       Maximum edge length. Edges longer than this value will be split.
+:param recursive:              If true, the operation will be applied recursively until no edge is longer than `max_edge_length`.
+:param active_region_attribute: The facet attribute name that will be used to determine the active region.
+                                If `None`, all edges will be considered.
+                                Otherwise, only edges that are part of the active region will be split.
+                                The attribute must be of value type `uint8_t`.
+:param edge_length_attribute:  The edge length attribute name that will be used to determine the edge length.
+                               If `None`, the function will compute the edge lengths.
+)");
 }
 
 } // namespace lagrange::python

@@ -111,8 +111,16 @@
 
 /// Ignore self move
 /// @hideinitializer
+#if defined(__GNUC__) && __GNUC__ >= 13
+// -Wself-move is introduced in GCC 13.
+#define LA_IGNORE_SELF_MOVE_GCC LA_DISABLE_WARNING_GCC(-Wself-move)
+#else
+#define LA_IGNORE_SELF_MOVE_GCC
+#endif
+/// @hideinitializer
 #define LA_IGNORE_SELF_MOVE_WARNING_BEGIN LA_DISABLE_WARNING_BEGIN \
     LA_DISABLE_WARNING_CLANG(-Wself-move) \
+    LA_IGNORE_SELF_MOVE_GCC \
     LA_DISABLE_WARNING_MSVC(26800)
 /// @hideinitializer
 #define LA_IGNORE_SELF_MOVE_WARNING_END LA_DISABLE_WARNING_END

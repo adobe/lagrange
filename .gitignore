@@ -80,3 +80,6 @@ LagrangeOptions.cmake
 # clangd
 compile_commands.json
 keyfile.txt
+
+# ctags
+tags

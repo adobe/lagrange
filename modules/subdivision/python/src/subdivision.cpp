@@ -136,6 +136,8 @@ void populate_subdivision_module(nb::module_& m)
 :param mesh:                  The source mesh.
 :param num_levels:            The number of levels of subdivision to apply.
 :param scheme:                The subdivision scheme to use.
+:param adaptive:              Whether to use adaptive subdivision.
+:param max_edge_length:       The maximum edge length for adaptive subdivision.
 :param vertex_boundary_interpolation:  Vertex boundary interpolation rule.
 :param face_varying_interpolation:     Face-varying interpolation rule.
 :param use_limit_surface:      Interpolate all data to the limit surface.

@@ -32,6 +32,11 @@ struct TransformOptions
 
     /// If enabled, tangents and bitangents are normalized after transformation.
     bool normalize_tangents_bitangents = true;
+
+    /// If enabled, when applying a transform with negative determinant:
+    /// 1. Normals, tangents and bitangents are flipped.
+    /// 2. Facet orientations are reversed.
+    bool reorient = false;
 };
 
 ///

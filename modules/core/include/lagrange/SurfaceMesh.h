@@ -552,6 +552,28 @@ public:
     void remove_facets(function_ref<bool(Index)> should_remove_func);
 
     ///
+    /// Reverses the orientation of a list of facets.
+    ///
+    /// @param[in]  facets_to_flip  List of facets to be reversed.
+    ///
+    void flip_facets(span<const Index> facets_to_flip);
+
+    ///
+    /// Reverses the orientation of a list of facets.
+    ///
+    /// @param[in]  facets_to_flip  List of facets to be reversed.
+    ///
+    void flip_facets(std::initializer_list<const Index> facets_to_flip);
+
+    ///
+    /// Reverses the orientation of a list of facets.
+    ///
+    /// @param[in]  should_flip_func  Indicator function returning whether a facet should be
+    ///                               reversed.
+    ///
+    void flip_facets(function_ref<bool(Index)> should_flip_func);
+
+    ///
     /// Clear buffer for mesh vertices and other vertex attributes. Since this function also removes
     /// any invalid facet, the entire mesh will be cleared.
     ///
@@ -2353,6 +2375,14 @@ public:
     void foreach_facet_around_edge(Index e, function_ref<void(Index)> func) const;
 
     ///
+    /// Applies a function to each of the facets around a prescribed facet.
+    ///
+    /// @param[in]  f     Queried facet index.
+    /// @param[in]  func  Callback to apply to each incident facet.
+    ///
+    void foreach_facet_around_facet(Index f, function_ref<void(Index)> func) const;
+
+    ///
     /// Applies a function to each facet around a prescribed vertex.
     ///
     /// @warning    If a facet is incident to the same vertex multiple times (e.g. facet {0, 1, 0,
@@ -2469,6 +2499,28 @@ protected:
     /// @return     A pair (nc, ne) containing the new number of corners & edges, respectively.
     ///
     std::pair<Index, Index> reindex_facets_internal(span<const Index> old_to_new);
+
+    ///
+    /// Assumptions on the corner mapping received by the internal reindexing method.
+    ///
+    enum class CornerMappingType {
+        /// Buffer is being compressed, so it is safe to move data without an intermediate buffer.
+        RemovingFacets,
+
+        /// Facets are being flipped, so it is safe to simply swap rows i and j when i < j.
+        ReversingFacets,
+    };
+
+    ///
+    /// Reindex mesh corners according to the given mapping. This function is used internally when
+    /// reindexing facets and when reversing facet orientations.
+    ///
+    /// @param[in]  old_to_new_corners  Mapping old corner index -> new corner index.
+    /// @param[in]  mapping_type        Corner mapping type.
+    ///
+    void reindex_corners_internal(
+        function_ref<Index(Index)> old_to_new_corners,
+        CornerMappingType mapping_type);
 
     ///
     /// Resize the buffers associated to a specific element type in the mesh. Newly inserted

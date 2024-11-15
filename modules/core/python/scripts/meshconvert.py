@@ -21,6 +21,7 @@ def parse_args():
     parser.add_argument("input_mesh", help="input mesh file")
     parser.add_argument("output_mesh", help="output mesh file")
     parser.add_argument("--triangulate", "-t", action="store_true", help="triangulate the mesh")
+    parser.add_argument("--stitch-vertices", '-s', action="store_true", help="stitch vertices")
     parser.add_argument(
         "--logging-level",
         "-l",
@@ -58,7 +59,7 @@ def main():
             lagrange.io.save_mesh(args.output_mesh, mesh)
     else:
         lagrange.logger.info(f"Loading input mesh from {args.input_mesh}")
-        mesh = lagrange.io.load_mesh(args.input_mesh)
+        mesh = lagrange.io.load_mesh(args.input_mesh, stitch_vertices=args.stitch_vertices)
         if not mesh.is_regular and args.triangulate:
             lagrange.triangulate_polygonal_facets(mesh)
         lagrange.logger.info(f"Saving output mesh in {args.output_mesh}")

@@ -12,9 +12,9 @@
 
 #include <lagrange/select_facets_in_frustum.h>
 
-#include <lagrange/internal/find_attribute_utils.h>
-#include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/Attribute.h>
+#include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/tbb.h>
 #include <lagrange/views.h>
 
@@ -25,7 +25,6 @@
 #include <atomic>
 
 
-
 namespace lagrange {
 
 template <typename Scalar, typename Index>
@@ -34,30 +33,30 @@ bool select_facets_in_frustum(
     const Frustum<Scalar>& frustum,
     const FrustumSelectionOptions& options)
 {
-    using Point3D = typename Eigen::Vector3<Scalar>;
-    const Point3D n0(frustum.planes[0].normal.data());
-    const Point3D n1(frustum.planes[1].normal.data());
-    const Point3D n2(frustum.planes[2].normal.data());
-    const Point3D n3(frustum.planes[3].normal.data());
-    const Point3D p0(frustum.planes[0].point.data());
-    const Point3D p1(frustum.planes[1].point.data());
-    const Point3D p2(frustum.planes[2].point.data());
-    const Point3D p3(frustum.planes[3].point.data());
+    using Vector3 = typename Eigen::Vector3<Scalar>;
+    const Vector3 n0(frustum.planes[0].normal.data());
+    const Vector3 n1(frustum.planes[1].normal.data());
+    const Vector3 n2(frustum.planes[2].normal.data());
+    const Vector3 n3(frustum.planes[3].normal.data());
+    const Vector3 p0(frustum.planes[0].point.data());
+    const Vector3 p1(frustum.planes[1].point.data());
+    const Vector3 p2(frustum.planes[2].point.data());
+    const Vector3 p3(frustum.planes[3].point.data());
 
     const Index num_facets = mesh.get_num_facets();
 
     // Per-thread buffers to store intermediate results.
     struct LocalBuffers
     {
-        Point3D v0, v1, v2; // Triangle vertices.
-        Point3D q0, q1, q2, q3; // Intermediate tet vertices.
+        Vector3 v0, v1, v2; // Triangle vertices.
+        Vector3 q0, q1, q2, q3; // Intermediate tet vertices.
         std::array<double, 2> r0, r1, r2; // Triangle projections.
     };
     tbb::enumerable_thread_specific<LocalBuffers> temp_vars;
 
-    auto edge_overlap_with_negative_octant = [](const Point3D& q0, const Point3D& q1) -> bool {
+    auto edge_overlap_with_negative_octant = [](const Vector3& q0, const Vector3& q1) -> bool {
         Scalar t_min = 0, t_max = 1;
-        const Point3D e = {q0[0] - q1[0], q0[1] - q1[1], q0[2] - q1[2]};
+        const Vector3 e = {q0[0] - q1[0], q0[1] - q1[1], q0[2] - q1[2]};
         if (e[0] > 0) {
             t_max = std::min(t_max, -q1[0] / e[0]);
         } else if (e[0] < 0) {
@@ -86,8 +85,8 @@ bool select_facets_in_frustum(
     };
 
     auto compute_plane =
-        [](const Point3D& q0, const Point3D& q1, const Point3D& q2) -> std::pair<Point3D, Scalar> {
-        const Point3D n = {
+        [](const Vector3& q0, const Vector3& q1, const Vector3& q2) -> std::pair<Vector3, Scalar> {
+        const Vector3 n = {
             q0[2] * (q2[1] - q1[1]) + q1[2] * (q0[1] - q2[1]) + q2[2] * (q1[1] - q0[1]),
             q0[0] * (q2[2] - q1[2]) + q1[0] * (q0[2] - q2[2]) + q2[0] * (q1[2] - q0[2]),
             q0[1] * (q2[0] - q1[0]) + q1[1] * (q0[0] - q2[0]) + q2[1] * (q1[0] - q0[0])};
@@ -104,10 +103,10 @@ bool select_facets_in_frustum(
         return 0;
     };
 
-    auto triangle_intersects_negative_axis = [&](const Point3D& q0,
-                                                 const Point3D& q1,
-                                                 const Point3D& q2,
-                                                 const Point3D& n,
+    auto triangle_intersects_negative_axis = [&](const Vector3& q0,
+                                                 const Vector3& q1,
+                                                 const Vector3& q2,
+                                                 const Vector3& n,
                                                  const Scalar c,
                                                  const int axis) -> bool {
         auto& r0 = temp_vars.local().r0;
@@ -143,7 +142,7 @@ bool select_facets_in_frustum(
     };
 
     auto triangle_intersects_negative_axes =
-        [&](const Point3D& q0, const Point3D& q1, const Point3D& q2) -> bool {
+        [&](const Vector3& q0, const Vector3& q1, const Vector3& q2) -> bool {
         const auto r = compute_plane(q0, q1, q2);
         if (triangle_intersects_negative_axis(q0, q1, q2, r.first, r.second, 0)) return true;
         if (triangle_intersects_negative_axis(q0, q1, q2, r.first, r.second, 1)) return true;
@@ -152,7 +151,7 @@ bool select_facets_in_frustum(
     };
 
     auto tet_overlap_with_negative_octant =
-        [&](const Point3D& q0, const Point3D& q1, const Point3D& q2, const Point3D& q3) -> bool {
+        [&](const Vector3& q0, const Vector3& q1, const Vector3& q2, const Vector3& q3) -> bool {
         // Check 1: Check if any tet vertices is in negative octant.
         if ((q0.array() < 0).all()) return true;
         if ((q1.array() < 0).all()) return true;

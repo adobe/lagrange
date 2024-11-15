@@ -99,10 +99,10 @@ AttributeId compute_edge_is_oriented(
     return id;
 }
 
-#define LA_X_topology(_, Scalar, Index)                                                           \
-    template LA_CORE_API bool is_oriented<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh); \
-    template LA_CORE_API AttributeId compute_edge_is_oriented(                                    \
-        SurfaceMesh<Scalar, Index>& mesh,                                                         \
+#define LA_X_topology(_, Scalar, Index)                                            \
+    template LA_CORE_API bool is_oriented(const SurfaceMesh<Scalar, Index>& mesh); \
+    template LA_CORE_API AttributeId compute_edge_is_oriented(                     \
+        SurfaceMesh<Scalar, Index>& mesh,                                          \
         const OrientationOptions& options);
 LA_SURFACE_MESH_X(topology, 0)
 
