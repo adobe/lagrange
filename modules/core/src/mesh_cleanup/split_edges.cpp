@@ -108,12 +108,12 @@ std::vector<Index> split_edges(
     std::vector<std::array<Index, 2>> parent_edge(
         num_output_vertices,
         {invalid<Index>(), invalid<Index>()});
-    tbb::parallel_for(Index(0), num_edges, [&](Index eid) {
+    for (Index eid = 0; eid < num_edges; eid++) {
         auto split_pts = get_edge_split_pts(eid);
         for (auto vid : split_pts) {
             parent_edge[vid] = mesh.get_edge_vertices(eid);
         }
-    });
+    }
 
     struct LocalBuffers
     {
