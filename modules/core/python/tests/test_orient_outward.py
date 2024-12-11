@@ -9,20 +9,18 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET glad::glad)
-    return()
-endif()
+import lagrange
+from .assets import cube
 
-message(STATUS "Third-party: creating target 'glad::glad'")
+import numpy as np
+import pytest
 
-include(FetchContent)
-FetchContent_Declare(
-    glad
-    GIT_REPOSITORY https://github.com/libigl/libigl-glad.git
-    GIT_TAG        ead2d21fd1d9f566d8f9a9ce99ddf85829258c7a
-)
 
-FetchContent_MakeAvailable(glad)
-add_library(glad::glad ALIAS glad)
+class TestOrientOutward:
+    def test_cube(self, cube):
+        mesh1 = cube.clone()
+        lagrange.orient_outward(mesh1)
+        mesh2 = cube.clone()
+        lagrange.orient_outward(mesh2, positive=False)
 
-set_target_properties(glad PROPERTIES FOLDER third_party)
+        assert not np.allclose(mesh1.facets, mesh2.facets)

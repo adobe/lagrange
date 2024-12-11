@@ -137,7 +137,7 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
                     // the visibility button later
                     const float workrect_max = ImGui::GetCurrentWindow()->WorkRect.Max.x;
                     ImGui::GetCurrentWindow()->WorkRect.Max.x =
-                        (workrect_max - eyebutton_width - ImGui::GetStyle().ItemSpacing.x);
+                        (workrect_max - eyebutton_width - ImGui::GetStyle().ItemSpacing.x / 2);
 
                     node_open =
                         ImGui::TreeNodeEx((void*)(intptr_t)e, node_flags, "%s", nameicon.c_str()) &&
@@ -156,7 +156,9 @@ void scene_panel_system(Registry& registry, Entity panel_entity)
                     Control visibility in the Default layer
                 */
                 {
-                    ImGui::SameLine(ImGui::GetContentRegionMax().x - eyebutton_width - ImGui::GetStyle().ItemSpacing.x);
+                    ImGui::SameLine(
+                        ImGui::GetWindowWidth() - eyebutton_width -
+                        ImGui::GetStyle().WindowPadding.x - ImGui::GetStyle().ItemSpacing.x / 2);
                     bool visible = ui::is_in_layer(registry, e, DefaultLayers::Default);
                     if (button_unstyled(visible ? ICON_FA_EYE : ICON_FA_EYE_SLASH)) {
                         if (visible) {

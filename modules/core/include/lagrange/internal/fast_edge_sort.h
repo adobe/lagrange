@@ -15,7 +15,11 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/timing.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_sort.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <algorithm>
 #include <numeric>

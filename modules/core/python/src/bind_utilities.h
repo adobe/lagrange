@@ -23,6 +23,7 @@
 #include <lagrange/compute_edge_lengths.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_greedy_coloring.h>
+#include <lagrange/compute_mesh_covariance.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_pointcloud_pca.h>
 #include <lagrange/compute_seam_edges.h>
@@ -35,6 +36,7 @@
 #include <lagrange/isoline.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
+#include <lagrange/orient_outward.h>
 #include <lagrange/orientation.h>
 #include <lagrange/permute_facets.h>
 #include <lagrange/permute_vertices.h>
@@ -42,16 +44,17 @@
 #include <lagrange/python/utils/StackVector.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/reorder_mesh.h>
+#include <lagrange/select_facets_by_normal_similarity.h>
+#include <lagrange/select_facets_in_frustum.h>
 #include <lagrange/separate_by_components.h>
 #include <lagrange/separate_by_facet_groups.h>
+#include <lagrange/thicken_and_close_mesh.h>
 #include <lagrange/topology.h>
 #include <lagrange/transform_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/weld_indexed_attribute.h>
-#include <lagrange/select_facets_by_normal_similarity.h>
-#include <lagrange/select_facets_in_frustum.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -64,6 +67,7 @@
 #include <nanobind/stl/tuple.h>
 #include <nanobind/stl/vector.h>
 #include <nanobind/stl/unordered_set.h>
+#include <nanobind/stl/array.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -424,6 +428,20 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :param output_attribute_name: Output attribute name.
 
 :returns: Attribute id for the output per-edge seam attribute (1 is a seam, 0 is not).)");
+
+    m.def(
+        "orient_outward",
+        [](MeshType& mesh, bool positive) {
+            OrientOptions options;
+            options.positive = positive;
+            orient_outward<Scalar, Index>(mesh, options);
+        },
+        "mesh"_a,
+        "positive"_a = OrientOptions().positive,
+        R"(Orient the facets of a mesh so that the signed volume of each connected component is positive or negative.
+
+:param mesh: Input mesh.
+:param positive: Whether to orient each volume positively or negatively.)");
 
     m.def(
         "unify_index_buffer",
@@ -1561,56 +1579,80 @@ The input mesh must be a triangle mesh.
 :returns: The id of the new attribute.)");
 
     m.def(
+        "compute_mesh_covariance",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           std::array<Scalar, 3> center,
+           std::optional<std::string_view> active_facets_attribute_name)
+            -> std::array<std::array<Scalar, 3>, 3> {
+            MeshCovarianceOptions options;
+            options.center = center;
+            options.active_facets_attribute_name = active_facets_attribute_name;
+            return compute_mesh_covariance<Scalar, Index>(mesh, options);
+        },
+        "mesh"_a,
+        "center"_a,
+        "active_facets_attribute_name"_a = nb::none(),
+        R"(Compute the covariance matrix of a mesh w.r.t. a center (Pythonic API).
+
+:param mesh: Input mesh.
+:param center: The center of the covariance computation.
+:param active_facets_attribute_name: (optional) Attribute name of whether a facet should be considered in the computation.
+
+:returns: The 3 by 3 covariance matrix, which should be symmetric.)");
+
+    m.def(
         "select_facets_by_normal_similarity",
         [](SurfaceMesh<Scalar, Index>& mesh,
-            Index seed_facet_id,
-            std::optional<double> flood_error_limit,
-            std::optional<double> flood_second_to_first_order_limit_ratio,
-            std::optional<std::string_view> facet_normal_attribute_name,
-            std::optional<std::string_view> is_facet_selectable_attribute_name,
-            std::optional<std::string_view> output_attribute_name,
-            std::optional<std::string_view> search_type,
-            std::optional<int> num_smooth_iterations) {
-        // Set options in the C++ struct
-        SelectFacetsByNormalSimilarityOptions options;
-        if (flood_error_limit.has_value()) 
-            options.flood_error_limit = flood_error_limit.value();
-        if (flood_second_to_first_order_limit_ratio.has_value())
-            options.flood_second_to_first_order_limit_ratio = flood_second_to_first_order_limit_ratio.value();
-        if (facet_normal_attribute_name.has_value())
-            options.facet_normal_attribute_name = facet_normal_attribute_name.value();
-        if (is_facet_selectable_attribute_name.has_value()) {
-            options.is_facet_selectable_attribute_name = is_facet_selectable_attribute_name;
-        }
-        if (output_attribute_name.has_value())
-            options.output_attribute_name = output_attribute_name.value();
-        if (search_type.has_value()) {
-            if (search_type.value() == "BFS")
-                options.search_type = SelectFacetsByNormalSimilarityOptions::SearchType::BFS;
-            else if (search_type.value() == "DFS")
-                options.search_type = SelectFacetsByNormalSimilarityOptions::SearchType::DFS;
-            else
-                throw std::runtime_error(fmt::format("Invalid search type: {}", search_type.value()));
-        }
-        if (num_smooth_iterations.has_value())
-            options.num_smooth_iterations = num_smooth_iterations.value();
+           Index seed_facet_id,
+           std::optional<double> flood_error_limit,
+           std::optional<double> flood_second_to_first_order_limit_ratio,
+           std::optional<std::string_view> facet_normal_attribute_name,
+           std::optional<std::string_view> is_facet_selectable_attribute_name,
+           std::optional<std::string_view> output_attribute_name,
+           std::optional<std::string_view> search_type,
+           std::optional<int> num_smooth_iterations) {
+            // Set options in the C++ struct
+            SelectFacetsByNormalSimilarityOptions options;
+            if (flood_error_limit.has_value())
+                options.flood_error_limit = flood_error_limit.value();
+            if (flood_second_to_first_order_limit_ratio.has_value())
+                options.flood_second_to_first_order_limit_ratio =
+                    flood_second_to_first_order_limit_ratio.value();
+            if (facet_normal_attribute_name.has_value())
+                options.facet_normal_attribute_name = facet_normal_attribute_name.value();
+            if (is_facet_selectable_attribute_name.has_value()) {
+                options.is_facet_selectable_attribute_name = is_facet_selectable_attribute_name;
+            }
+            if (output_attribute_name.has_value())
+                options.output_attribute_name = output_attribute_name.value();
+            if (search_type.has_value()) {
+                if (search_type.value() == "BFS")
+                    options.search_type = SelectFacetsByNormalSimilarityOptions::SearchType::BFS;
+                else if (search_type.value() == "DFS")
+                    options.search_type = SelectFacetsByNormalSimilarityOptions::SearchType::DFS;
+                else
+                    throw std::runtime_error(
+                        fmt::format("Invalid search type: {}", search_type.value()));
+            }
+            if (num_smooth_iterations.has_value())
+                options.num_smooth_iterations = num_smooth_iterations.value();
 
-        return select_facets_by_normal_similarity<Scalar, Index>(mesh, seed_facet_id, options);
+            return select_facets_by_normal_similarity<Scalar, Index>(mesh, seed_facet_id, options);
         },
-            "mesh"_a, /* `_a` is a literal for nanobind to create nb::args, a required argument */
-            "seed_facet_id"_a,
-            "flood_error_limit"_a = nb::none(),
-            "flood_second_to_first_order_limit_ratio"_a = nb::none(),
-            "facet_normal_attribute_name"_a = nb::none(),
-            "is_facet_selectable_attribute_name"_a = nb::none(),
-            "output_attribute_name"_a = nb::none(),
-            "search_type"_a = nb::none(),
-            "num_smooth_iterations"_a = nb::none(),
-            R"(Select facets by normal similarity (Pythonic API).
+        "mesh"_a, /* `_a` is a literal for nanobind to create nb::args, a required argument */
+        "seed_facet_id"_a,
+        "flood_error_limit"_a = nb::none(),
+        "flood_second_to_first_order_limit_ratio"_a = nb::none(),
+        "facet_normal_attribute_name"_a = nb::none(),
+        "is_facet_selectable_attribute_name"_a = nb::none(),
+        "output_attribute_name"_a = nb::none(),
+        "search_type"_a = nb::none(),
+        "num_smooth_iterations"_a = nb::none(),
+        R"(Select facets by normal similarity (Pythonic API).
 
 :param mesh: Input mesh.
 :param seed_facet_id: Index of the seed facet.
-:param flood_error_limit: Tolerance for normals of the seed and the selected facets. Higher limit leads to larger selected region. 
+:param flood_error_limit: Tolerance for normals of the seed and the selected facets. Higher limit leads to larger selected region.
 :param flood_second_to_first_order_limit_ratio: Ratio of the flood_error_limit and the tolerance for normals of neighboring selected facets. Higher ratio leads to more curvature in selected region.
 :param facet_normal_attribute_name: Attribute name of the facets normal. If the mesh doesn't have this attribute, it will call compute_facet_normal to compute it.
 :param is_facet_selectable_attribute_name: If provided, this function will look for this attribute to determine if a facet is selectable.
@@ -1619,44 +1661,42 @@ The input mesh must be a triangle mesh.
 :param num_smooth_iterations: Number of iterations to smooth the boundary of the selected region.
 
 :returns: Id of the attribute on whether a facet is selected.)",
-    nb::sig("def select_facets_by_normal_similarity(mesh: SurfaceMesh, "
-            "seed_facet_id: int, "
-            "flood_error_limit: float | None = None, "
-            "flood_second_to_first_order_limit_ratio: float | None = None, "
-            "facet_normal_attribute_name: str | None = None, "
-            "is_facet_selectable_attribute_name: str | None = None, "
-            "output_attribute_name: str | None = None, "
-            "search_type: typing.Literal['BFS', 'DFS'] | None = None,"
-            "num_smooth_iterations: int | None = None) -> int")
-    );
+        nb::sig("def select_facets_by_normal_similarity(mesh: SurfaceMesh, "
+                "seed_facet_id: int, "
+                "flood_error_limit: float | None = None, "
+                "flood_second_to_first_order_limit_ratio: float | None = None, "
+                "facet_normal_attribute_name: str | None = None, "
+                "is_facet_selectable_attribute_name: str | None = None, "
+                "output_attribute_name: str | None = None, "
+                "search_type: typing.Literal['BFS', 'DFS'] | None = None,"
+                "num_smooth_iterations: int | None = None) -> int"));
 
     m.def(
         "select_facets_in_frustum",
         [](SurfaceMesh<Scalar, Index>& mesh,
-            std::array<std::array<Scalar, 3>, 4> frustum_plane_points,
-            std::array<std::array<Scalar, 3>, 4> frustum_plane_normals,
-            std::optional<bool> greedy,
-            std::optional<std::string_view> output_attribute_name) {
-        // Set options in the C++ struct
-        Frustum<Scalar> frustum;
-        for (size_t i=0; i < 4; ++i) {
-            frustum.planes[i].point = frustum_plane_points[i];
-            frustum.planes[i].normal = frustum_plane_normals[i];
-        }
-        FrustumSelectionOptions options;
-        if (greedy.has_value()) 
-            options.greedy = greedy.value();
-        if (output_attribute_name.has_value())
-            options.output_attribute_name = output_attribute_name.value();
+           std::array<std::array<Scalar, 3>, 4> frustum_plane_points,
+           std::array<std::array<Scalar, 3>, 4> frustum_plane_normals,
+           std::optional<bool> greedy,
+           std::optional<std::string_view> output_attribute_name) {
+            // Set options in the C++ struct
+            Frustum<Scalar> frustum;
+            for (size_t i = 0; i < 4; ++i) {
+                frustum.planes[i].point = frustum_plane_points[i];
+                frustum.planes[i].normal = frustum_plane_normals[i];
+            }
+            FrustumSelectionOptions options;
+            if (greedy.has_value()) options.greedy = greedy.value();
+            if (output_attribute_name.has_value())
+                options.output_attribute_name = output_attribute_name.value();
 
-        return select_facets_in_frustum<Scalar, Index>(mesh, frustum, options);
+            return select_facets_in_frustum<Scalar, Index>(mesh, frustum, options);
         },
-            "mesh"_a,
-            "frustum_plane_points"_a,
-            "frustum_plane_normals"_a,
-            "greedy"_a = nb::none(),
-            "output_attribute_name"_a = nb::none(),
-            R"(Select facets in a frustum (Pythonic API).
+        "mesh"_a,
+        "frustum_plane_points"_a,
+        "frustum_plane_normals"_a,
+        "greedy"_a = nb::none(),
+        "output_attribute_name"_a = nb::none(),
+        R"(Select facets in a frustum (Pythonic API).
 
 :param mesh: Input mesh.
 :param frustum_plane_points: Four points on each of the frustum planes.
@@ -1665,6 +1705,45 @@ The input mesh must be a triangle mesh.
 :param output_attribute_name: Attribute name of whether a facet is selected.
 
 :returns: Whether any facets got selected.)");
+
+    m.def(
+        "thicken_and_close_mesh",
+        [](MeshType& mesh,
+           std::optional<Scalar> offset_amount,
+           std::variant<std::monostate, std::array<double, 3>, std::string_view> direction,
+           std::optional<double> mirror_ratio,
+           std::optional<size_t> num_segments,
+           std::optional<std::vector<std::string>> indexed_attributes) {
+            ThickenAndCloseOptions options;
+
+            if (auto array_val = std::get_if<std::array<double, 3>>(&direction)) {
+                options.direction = *array_val;
+            } else if (auto string_val = std::get_if<std::string_view>(&direction)) {
+                options.direction = *string_val;
+            }
+            options.offset_amount = offset_amount.value_or(options.offset_amount);
+            options.mirror_ratio = std::move(mirror_ratio);
+            options.num_segments = num_segments.value_or(options.num_segments);
+            options.indexed_attributes = indexed_attributes.value_or(options.indexed_attributes);
+
+            return thicken_and_close_mesh<Scalar, Index>(mesh, options);
+        },
+        "mesh"_a,
+        "offset_amount"_a = nb::none(),
+        "direction"_a = nb::none(),
+        "mirror_ratio"_a = nb::none(),
+        "num_segments"_a = nb::none(),
+        "indexed_attributes"_a = nb::none(),
+        R"(Thicken a mesh by offsetting it, and close the shape into a thick 3D solid.
+
+:param mesh: Input mesh.
+:param direction: Direction of the offset. Can be an attribute name or a fixed 3D vector.
+:param offset_amount: Amount of offset.
+:param mirror_ratio: Ratio of the offset amount to mirror the mesh.
+:param num_segments: Number of segments to use for the thickening.
+:param indexed_attributes: List of indexed attributes to copy to the new mesh.
+
+:returns: The thickened and closed mesh.)");
 }
 
 } // namespace lagrange::python

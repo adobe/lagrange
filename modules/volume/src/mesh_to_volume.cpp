@@ -52,7 +52,10 @@ public:
     size_t pointCount() const { return static_cast<size_t>(m_mesh.get_num_vertices()); }
 
     /// Number of vertices for a given facet.
-    size_t vertexCount(size_t f) const { return static_cast<size_t>(m_mesh.get_facet_size(f)); }
+    size_t vertexCount(size_t f) const
+    {
+        return static_cast<size_t>(m_mesh.get_facet_size(static_cast<Index>(f)));
+    }
 
     ///
     /// Return a vertex position in the grid index space.
@@ -63,7 +66,7 @@ public:
     ///
     void getIndexSpacePoint(size_t f, size_t lv, openvdb::Vec3d& pos) const
     {
-        auto p = m_mesh.get_position(m_mesh.get_facet_vertex(f, lv));
+        auto p = m_mesh.get_position(m_mesh.get_facet_vertex(static_cast<Index>(f), static_cast<Index>(lv)));
         pos = openvdb::Vec3d(p[0], p[1], p[2]);
         pos = m_transform.worldToIndex(pos);
     }

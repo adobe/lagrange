@@ -10,7 +10,6 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/Attribute.h>
-#include <lagrange/cast_attribute.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>

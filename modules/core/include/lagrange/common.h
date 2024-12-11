@@ -16,7 +16,11 @@
 #include <limits>
 #include <memory>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <Eigen/Core>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange {
 

@@ -13,8 +13,8 @@ description = "A robust geometry processing engine"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
-    "numpy>=1.23",
-    "colorama>=0.4.5",
+    "numpy>=1.25",
+    "colorama>=0.4.6",
 ]
 dynamic = ["version"]
 

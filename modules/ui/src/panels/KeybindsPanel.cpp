@@ -189,7 +189,7 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
 
                 Keybinds::Keybind tmp_keybind(ImGuiKey_None, {});
 
-                for (int i = ImGuiKey_None; i < ImGuiKey_COUNT; ++i) {
+                for (int i = ImGuiKey_NamedKey_BEGIN; i < ImGuiKey_NamedKey_END; ++i) {
                     if (safe_cast<size_t>(tmp_keybind.modifier_count) ==
                         tmp_keybind.modifiers.max_size())
                         break;

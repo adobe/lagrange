@@ -25,8 +25,13 @@
 #include <lagrange/utils/tracy.h>
 #include <lagrange/views.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_sort.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
 #include <Eigen/Geometry>
 
 #include <algorithm>

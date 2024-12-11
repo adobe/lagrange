@@ -1,10 +1,13 @@
 ////////////////////////////////////////////////////////////////////////////////
+#include <lagrange/Logger.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/save_mesh.h>
+#include <lagrange/poisson/AttributeEvaluator.h>
 #include <lagrange/poisson/mesh_from_oriented_points.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/topology.h>
+#include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/views.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -108,4 +111,63 @@ TEST_CASE("PoissonRecon: Colors", "[poisson]")
 {
     poisson_recon_with_colors<float, uint32_t>();
     poisson_recon_with_colors<double, uint32_t>();
+}
+
+namespace {
+
+template <typename Scalar, typename ValueType>
+void test_samples(const lagrange::poisson::AttributeEvaluator& evaluator)
+{
+    Eigen::Matrix3<Scalar> positions;
+    Eigen::Matrix3<ValueType> colors;
+    positions.col(0) << -1, 0, 0;
+    positions.col(1) << 0, 1, 0;
+    positions.col(2) << 1, 0, 0;
+
+    for (int i = 0; i < 3; i++) {
+        evaluator.eval<Scalar, ValueType>({positions.col(i).data(), 3}, {colors.col(i).data(), 3});
+    }
+
+    lagrange::logger().debug("Positions:\n{}", positions);
+    lagrange::logger().debug("Colors:\n{}", colors);
+
+    REQUIRE(colors.col(0).isApprox(Eigen::Vector3<ValueType>(1, 0, 0)));
+    REQUIRE(colors.col(1).isApprox(Eigen::Vector3<ValueType>(0, 1, 0)));
+    REQUIRE(colors.col(2).isApprox(Eigen::Vector3<ValueType>(0, 0, 1)));
+}
+
+} // namespace
+
+TEST_CASE("PoissonRecon: Attribute Evaluator", "[poisson]")
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    auto input_mesh =
+        lagrange::testing::load_surface_mesh<Scalar, Index>("open/poisson/sphere.striped.ply");
+
+    // TODO: We need better utils for attribute conversion
+    input_mesh.create_attribute<Scalar>(
+        "color",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Color,
+        3);
+    auto colors = lagrange::attribute_matrix_ref<Scalar>(input_mesh, "color");
+    colors =
+        lagrange::attribute_matrix_view<uint8_t>(input_mesh, "Vertex_Color").cast<Scalar>() / 255.f;
+
+    lagrange::poisson::EvaluatorOptions eval_options;
+    eval_options.interpolated_attribute_name = "color";
+#ifndef NDEBUG
+    eval_options.octree_depth = 5;
+#else
+    eval_options.octree_depth = 6;
+#endif
+
+    tbb::task_arena arena(1);
+    arena.execute([&] {
+        auto evaluator = lagrange::poisson::AttributeEvaluator(input_mesh, eval_options);
+        test_samples<float, Scalar>(evaluator);
+        test_samples<double, Scalar>(evaluator);
+    });
 }

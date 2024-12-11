@@ -49,13 +49,11 @@ struct NoPadding
 
 void draw_imgui_gl_texture(GLuint tex_id, int w, int h)
 {
-    const ImTextureID texID = reinterpret_cast<void*>((long long int)(tex_id));
-
     const ImVec2 uv0 = ImVec2(0, 1);
     const ImVec2 uv1 = ImVec2(1, 0);
 
     ImGui::Image(
-        texID,
+        static_cast<ImTextureID>(tex_id),
         ImVec2(float(w), float(h)),
         uv0,
         uv1,

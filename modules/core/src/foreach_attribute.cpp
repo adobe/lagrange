@@ -12,7 +12,11 @@
 
 #include <lagrange/foreach_attribute.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange::details {
 

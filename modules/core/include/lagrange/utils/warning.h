@@ -156,6 +156,7 @@
 /// @hideinitializer
 #define LA_IGNORE_ARRAY_BOUNDS_BEGIN LA_DISABLE_WARNING_BEGIN \
     LA_DISABLE_WARNING_GCC(-Warray-bounds)
+    LA_DISABLE_WARNING_GCC(-Wstringop-overread)
 /// @hideinitializer
 #define LA_IGNORE_ARRAY_BOUNDS_END LA_DISABLE_WARNING_END
 

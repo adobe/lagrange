@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/mesh_cleanup/detect_degenerate_facets.h>
+#include <lagrange/mesh_cleanup/remove_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_facets.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
 #include <lagrange/mesh_cleanup/remove_isolated_vertices.h>
@@ -194,6 +195,19 @@ is not.
 :param edge_length_attribute:  The edge length attribute name that will be used to determine the edge length.
                                If `None`, the function will compute the edge lengths.
 )");
+
+    m.def(
+        "remove_degenerate_facets",
+        &remove_degenerate_facets<Scalar, Index>,
+        "mesh"_a,
+        R"(Remove degenerate facets from a mesh.
+
+..note:
+    The current method assumes input mesh is triangular.
+    Use `triangulate_polygonal_facets` if the input mesh is not triangular.
+    Non-degenerate facets adjacent to degenerte facets may be re-triangulated as a result of the removal.
+
+:param mesh: The mesh for inplace modification.)");
 }
 
 } // namespace lagrange::python

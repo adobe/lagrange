@@ -26,7 +26,6 @@ namespace lagrange {
 struct LA_CORE_API Error : public std::runtime_error
 {
     using runtime_error::runtime_error;
-
     ~Error() override;
 };
 
@@ -37,6 +36,15 @@ struct LA_CORE_API BadCastError : public Error
 {
     BadCastError() : Error("bad cast") {}
     ~BadCastError() override;
+};
+
+///
+/// An exception of this type is thrown when a parsing error occurs.
+///
+struct LA_CORE_API ParsingError : public Error
+{
+    using Error::Error;
+    ~ParsingError() override;
 };
 
 /// @}

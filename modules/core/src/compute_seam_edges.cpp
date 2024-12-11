@@ -21,7 +21,11 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/warning.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <optional>
 

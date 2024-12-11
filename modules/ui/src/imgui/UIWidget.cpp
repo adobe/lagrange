@@ -112,12 +112,11 @@ bool UIWidget::operator()(Texture& value, int width /* = 0*/, int height /* = 0*
         return res;
     }
 
-    ImTextureID texID = reinterpret_cast<void*>((long long int)(value.get_id()));
     ImVec2 uv0 = ImVec2(0, 1);
     ImVec2 uv1 = ImVec2(1, 0);
 
     ImGui::Image(
-        texID,
+        static_cast<ImTextureID>(value.get_id()),
         ImVec2(float(width), float(height)),
         uv0,
         uv1,

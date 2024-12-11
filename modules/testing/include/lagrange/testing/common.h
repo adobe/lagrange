@@ -83,6 +83,13 @@ namespace lagrange {
 namespace testing {
 
 ///
+/// Gets the the test data directory.
+///
+/// @return     Path to the test data directory.
+///
+LA_TESTING_API fs::path get_data_dir();
+
+///
 /// Gets the absolute path to a file in the test data directory. This function asserts that the file
 /// exists.
 ///

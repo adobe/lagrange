@@ -23,7 +23,7 @@ include(CPM)
 CPMAddPackage(
     NAME clipper2
     GITHUB_REPOSITORY AngusJohnson/Clipper2
-    GIT_TAG Clipper2_1.2.0
+    GIT_TAG Clipper2_1.4.0
     SOURCE_SUBDIR CPP
 )
 

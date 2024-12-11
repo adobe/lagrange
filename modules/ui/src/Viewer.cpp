@@ -1013,21 +1013,10 @@ void Viewer::start_imgui_frame()
             ImGuiStyleVar_ScrollbarRounding,
             style.ScrollbarRounding * m_ui_scaling);
     }
-
-    // Imgui Tab styling
-    {
-        ImGui::PushStyleColor(ImGuiCol_Tab, ImColor(255, 255, 255, 255).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabActive, ImColor(255, 255, 255, 255).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabHovered, ImColor(255, 255, 255, 255).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabUnfocusedActive, ImColor(ImGui::Spectrum::GRAY200).Value);
-        ImGui::PushStyleColor(ImGuiCol_TabUnfocused, ImColor(ImGui::Spectrum::GRAY400).Value);
-    }
 }
 
 void Viewer::end_imgui_frame()
 {
-    ImGui::PopStyleColor(5);
-
     ImGui::PopStyleVar(5);
     ImGui::Render(); // note: this renders to imgui's vertex buffers, not to screen
 }
