@@ -111,7 +111,7 @@ std::vector<Index> split_edges(
     for (Index eid = 0; eid < num_edges; eid++) {
         auto split_pts = get_edge_split_pts(eid);
         for (auto vid : split_pts) {
-            if (parent_edges[vid][0] == invalid<Index>()) {
+            if (parent_edge[vid][0] == invalid<Index>()) {
                 parent_edge[vid] = mesh.get_edge_vertices(eid);
             }
         }
