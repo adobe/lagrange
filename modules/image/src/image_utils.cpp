@@ -136,7 +136,7 @@ ImageHistogram create_image_histogram(const image::ImageView<float>& image, cons
 float compute_otsu_threshold(const ImageHistogram& histogram, float upper_limit)
 {
     // Find the bin that corresponds to the upper_limit
-    int upper_limit_bin = 0;
+    size_t upper_limit_bin = 0;
     for (auto i : range(histogram.boundaries.size())) {
         if (histogram.boundaries[i] > upper_limit) {
             upper_limit_bin = i;

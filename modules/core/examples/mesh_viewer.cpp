@@ -77,7 +77,7 @@ void register_mesh(std::string_view mesh_name, SurfaceMesh mesh)
             .unaryExpr([&](float x) { return std::is_floating_point_v<ValueType> ? x : x / 255.f; })
             // Gamma correction
             .unaryExpr([](float x) {
-                float gamma = 2.2;
+                float gamma = 2.2f;
                 return std::pow(x, gamma);
             });
     };

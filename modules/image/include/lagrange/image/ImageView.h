@@ -13,7 +13,12 @@
 
 #include <lagrange/image/ImageStorage.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
 #include <vector>
 
 namespace lagrange {

@@ -23,10 +23,9 @@
 #include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
-#include <tbb/parallel_for.h>
-
 // clang-format off
 #include <lagrange/utils/warnoff.h>
+#include <tbb/parallel_for.h>
 #include <spdlog/fmt/fmt.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on

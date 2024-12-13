@@ -11,69 +11,44 @@
  */
 #pragma once
 
-#include <Eigen/Core>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/legacy/compute_mesh_covariance.h>
+#endif
 
-#include <lagrange/Mesh.h>
-#include <lagrange/utils/range.h>
+#include <lagrange/SurfaceMesh.h>
+#include <optional>
 
 namespace lagrange {
 
-// Compute the covariance matrix
-// mesh_ref, reference to the mesh
-// center, the point around which the covariance is computed.
-// active_facets, the facets that are included in the covariance computation.
-//                Empty would imply all facets.
-//
-// Adapted from https://github.com/mkazhdan/ShapeSPH/blob/master/Util/TriangleMesh.h#L101
-template <typename MeshType>
-Eigen::Matrix<typename MeshType::Scalar, 3, 3> compute_mesh_covariance( //
-    const MeshType &mesh_ref,
-    const typename MeshType::VertexType &center,
-    const typename MeshType::IndexList &active_facets = typename MeshType::IndexList())
-{ //
+///
+/// Options struct for computing mesh covariance.
+///
+struct MeshCovarianceOptions
+{
+    /// The center around which the covariance is computed.
+    std::array<double, 3> center = {0, 0, 0};
+    /// The attribute name for the active facets in covariance computation.
+    /// If empty, all facets are active.
+    std::optional<std::string_view> active_facets_attribute_name;
+};
 
-    using Scalar = typename MeshType::Scalar;
-    using Vector3 = Eigen::Matrix<Scalar, 1, 3>;
-    using Matrix3 = Eigen::Matrix<Scalar, 3, 3>;
-
-    const auto &vertices = mesh_ref.get_vertices();
-    const auto &facets = mesh_ref.get_facets();
-
-    la_runtime_assert(vertices.cols() == 3, "Currently, only 3 dimensions are supported");
-    la_runtime_assert(facets.cols() == 3, "Currently, only triangles are supported");
-
-    Matrix3 factors;
-    factors.row(0) << Scalar(1. / 2), Scalar(1. / 3), Scalar(1. / 6);
-    factors.row(1) << Scalar(1. / 3), Scalar(1. / 4), Scalar(1. / 8);
-    factors.row(2) << Scalar(1. / 6), Scalar(1. / 8), Scalar(1. / 12);
-
-    auto triangle_covariance = [&factors](
-                                   const Vector3 &v1,
-                                   const Vector3 &v2,
-                                   const Vector3 &v3,
-                                   const Vector3 &c) -> Matrix3 {
-        const Scalar a = (v2 - v1).cross(v3 - v1).norm();
-        Matrix3 p;
-        p.row(0) = v1 - c;
-        p.row(1) = v3 - v1;
-        p.row(2) = v2 - v3;
-
-        const Matrix3 covariance = a * p.transpose() * factors * p;
-
-        return covariance;
-    };
-
-    Matrix3 covariance = Matrix3::Zero();
-    for (auto facet_id : range_sparse(mesh_ref.get_num_facets(), active_facets)) {
-        const Vector3 v0 = vertices.row(facets(facet_id, 0));
-        const Vector3 v1 = vertices.row(facets(facet_id, 1));
-        const Vector3 v2 = vertices.row(facets(facet_id, 2));
-        covariance += triangle_covariance(v0, v1, v2, center);
-    } // over triangles
-
-    // Return
-    return covariance;
-}
-
+/**
+ * Compute the covariance matrix w.r.t. a given center (default to zeros).
+ *
+ * @param[in]  mesh     The input mesh.
+ * @param[in]  options  Optional arguments.
+ *
+ * @tparam     Scalar   The scalar type of the mesh.
+ * @tparam     Index    The index type of the mesh.
+ *
+ * @return     The covariance matrix in column-major order (but it should be symmetric).
+ *
+ * @see        MeshCovarianceOptions. Adapted from
+ *             https://github.com/mkazhdan/ShapeSPH/blob/master/Util/TriangleMesh.h#L101
+ */
+template <typename Scalar, typename Index>
+std::array<std::array<Scalar, 3>, 3> compute_mesh_covariance(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const MeshCovarianceOptions& options = {});
 
 } // namespace lagrange

@@ -11,9 +11,13 @@
  */
 #include <lagrange/utils/tbb.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <tbb/task.h>
 #include <tbb/task_group.h>
 #include <tbb/blocked_range.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #ifndef TBB_INTERFACE_VERSION_MAJOR
 #error "TBB_INTERFACE_VERSION_MAJOR macro is not defined"

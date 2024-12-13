@@ -36,6 +36,13 @@ struct ThreadPool
     template <typename Function>
     static void ParallelFor(size_t begin, size_t end, Function&& func)
     {
+     // Keeping this commented block for quick debugging of multithread issues.
+#if 0
+        int thread_index = 0;
+        for (size_t i = begin; i < end; ++i) {
+            func(thread_index, i);
+        }
+#else
         tbb::parallel_for(
             tbb::blocked_range<size_t>(begin, end),
             [&](const tbb::blocked_range<size_t>& r) {
@@ -45,6 +52,8 @@ struct ThreadPool
                     func(thread_index, i);
                 }
             });
+
+#endif
     }
 };
 

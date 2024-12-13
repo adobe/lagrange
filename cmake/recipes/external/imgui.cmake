@@ -36,7 +36,7 @@ block()
     CPMAddPackage(
         NAME imgui
         GITHUB_REPOSITORY adobe/imgui
-        GIT_TAG fbaad5ad4cc881f9139c3e9fa9d5747d285b1940 # docking_v1.90.4
+        GIT_TAG dff188effaa59c5c4d502868b96bd717207adb9c # docking_v1.91.5
     )
 endblock()
 

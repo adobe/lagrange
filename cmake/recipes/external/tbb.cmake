@@ -58,8 +58,8 @@ set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME TBB)
 include(CPM)
 CPMAddPackage(
     NAME tbb
-    GITHUB_REPOSITORY wjakob/tbb
-    GIT_TAG 9e219e24fe223b299783200f217e9d27790a87b0
+    GITHUB_REPOSITORY jdumas/tbb
+    GIT_TAG fc14676e566fce307558f5bf48c5e16fe81a4a58
 )
 
 # Install rules for the tbb_static target (not defined by upstream CMakeLists.txt)

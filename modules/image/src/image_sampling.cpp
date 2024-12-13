@@ -246,7 +246,7 @@ float percentile(const image::ImageView<float>& image, const float x, const int 
 {
     std::vector<int> histogram(num_bins, 0);
     const auto size = image.get_view_size();
-    int total_pixels = size[0] * size[1];
+    size_t total_pixels = size[0] * size[1];
 
     float min_val = image(0, 0);
     float max_val = image(0, 0);

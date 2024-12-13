@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/api.h>
 #include <Eigen/Core>
 
 namespace lagrange {
@@ -18,10 +19,10 @@ namespace lagrange {
 namespace internal {
 
 /// @internal
-bool point_on_segment_2d(Eigen::Vector2d p, Eigen::Vector2d a, Eigen::Vector2d b);
+bool LA_CORE_API point_on_segment_2d(Eigen::Vector2d p, Eigen::Vector2d a, Eigen::Vector2d b);
 
 /// @internal
-bool point_on_segment_3d(Eigen::Vector3d p, Eigen::Vector3d a, Eigen::Vector3d b);
+bool LA_CORE_API point_on_segment_3d(Eigen::Vector3d p, Eigen::Vector3d a, Eigen::Vector3d b);
 
 }
 

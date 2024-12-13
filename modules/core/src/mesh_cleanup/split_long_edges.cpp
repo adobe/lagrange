@@ -15,12 +15,12 @@
 #include <lagrange/cast_attribute.h>
 #include <lagrange/compute_edge_lengths.h>
 #include <lagrange/foreach_attribute.h>
-#include <lagrange/map_attribute.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/utils/span.h>
 #include <lagrange/views.h>
 
-#include "split_triangle.h"
+#include "split_edges.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -28,6 +28,8 @@
 #include <tbb/enumerable_thread_specific.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
+
+#include <numeric>
 
 namespace lagrange {
 
@@ -69,7 +71,6 @@ void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions op
     const Index dim = mesh.get_dimension();
     const Index num_input_vertices = mesh.get_num_vertices();
     const Index num_edges = mesh.get_num_edges();
-    const Index num_input_facets = mesh.get_num_facets();
 
     constexpr std::string_view internal_active_region_attribute_name =
         "@__active_region_internal__";
@@ -95,14 +96,6 @@ void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions op
         bool r = false;
         mesh.foreach_facet_around_edge(eid, [&](auto fid) { r |= is_active(fid); });
         return r;
-    };
-
-    // A facet may be involved in splitting if one of its edges is active.
-    auto is_facet_involved = [&](Index fid) {
-        auto e0 = mesh.get_edge(fid, 0);
-        auto e1 = mesh.get_edge(fid, 1);
-        auto e2 = mesh.get_edge(fid, 2);
-        return is_edge_active(e0) || is_edge_active(e1) || is_edge_active(e2);
     };
 
     EdgeLengthOptions edge_length_options;
@@ -142,6 +135,12 @@ void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions op
 
         edge_split_indices[eid + 1] = edge_split_indices[eid] + n - 1;
     };
+
+    if (internal_active_region_attribute_id != invalid<AttributeId>()) {
+        // Remove the internal active region attribute
+        mesh.delete_attribute(internal_active_region_attribute_name);
+    }
+
     if (additional_vertices.empty()) return;
 
     // Update vertices
@@ -149,7 +148,6 @@ void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions op
     mesh.add_vertices(
         num_additional_vertices,
         {additional_vertices.data(), additional_vertices.size()});
-    auto output_vertices = vertex_view(mesh);
 
     // Interpolate vertex attributes for newly added vertices
     par_foreach_named_attribute_write<AttributeElement::Vertex>(
@@ -167,186 +165,17 @@ void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions op
             }
         });
 
-    // Split triangles
-    std::vector<Index> original_triangle_index;
-    std::vector<Index> split_triangles;
-    std::vector<size_t> split_triangles_offsets;
-    original_triangle_index.reserve(num_input_facets);
-    split_triangles.reserve(num_input_facets);
-    split_triangles_offsets.reserve(num_input_facets + 1);
-    split_triangles_offsets.push_back(0);
+    std::vector<Index> edge_split_pts(num_additional_vertices);
+    std::iota(edge_split_pts.begin(), edge_split_pts.end(), num_input_vertices);
 
-    // Compute the number of additional facets
-    Index num_additional_facets = 0;
-    for (Index fid = 0; fid < num_input_facets; fid++) {
-        if (!is_facet_involved(fid)) continue;
-        Index chain_size = 3;
-        for (Index i = 0; i < 3; i++) {
-            Index eid = mesh.get_edge(fid, i);
-            la_debug_assert(eid != invalid<Index>());
+    auto facets_to_remove = split_edges(
+        mesh,
+        function_ref<span<Index>(Index)>([&](Index eid) -> span<Index> {
             Index n = edge_split_indices[eid + 1] - edge_split_indices[eid];
-            chain_size += n;
-        }
-        if (chain_size == 3) continue;
-        num_additional_facets += chain_size - 2;
-        split_triangles_offsets.push_back(num_additional_facets * 3);
-        original_triangle_index.push_back(fid);
-    }
-    split_triangles.resize(num_additional_facets * 3, invalid<Index>());
-
-    tbb::enumerable_thread_specific<std::vector<Index>> chain_buffer;
-    tbb::enumerable_thread_specific<std::vector<Index>> queue_buffer;
-    tbb::enumerable_thread_specific<std::vector<Index>> visited_buffer;
-    tbb::parallel_for(size_t(0), original_triangle_index.size(), [&](size_t idx) {
-        auto fid = original_triangle_index[idx];
-        auto& chain = chain_buffer.local();
-        chain.clear();
-        chain.reserve(64);
-
-        auto corners = mesh.get_facet_vertices(fid);
-        Index corner_index[3] = {invalid<Index>(), invalid<Index>(), invalid<Index>()};
-        for (Index i = 0; i < 3; i++) {
-            Index v0 = corners[i];
-            chain.push_back(v0);
-            corner_index[i] = static_cast<Index>(chain.size() - 1);
-
-            Index eid = mesh.get_edge(fid, i);
-            la_debug_assert(eid != invalid<Index>());
-            Index n = edge_split_indices[eid + 1] - edge_split_indices[eid];
-            if (mesh.get_edge_vertices(eid)[0] == v0) {
-                // Edge is oriented in the same direction as the triangle.
-                for (Index j = 0; j < n; j++) {
-                    chain.push_back(num_input_vertices + edge_split_indices[eid] + j);
-                }
-            } else {
-                // Edge is oriented in the opposite direction.
-                la_debug_assert(mesh.get_edge_vertices(eid)[1] == v0);
-                for (Index j = 0; j < n; j++) {
-                    chain.push_back(num_input_vertices + edge_split_indices[eid] + n - 1 - j);
-                }
-            }
-        }
-        la_debug_assert(chain.size() > 3);
-        size_t num_sub_triangles = chain.size() - 2;
-        size_t curr_size = split_triangles_offsets[idx];
-        span<Index> sub_triangulation(split_triangles.data() + curr_size, num_sub_triangles * 3);
-        auto& visited = visited_buffer.local();
-        visited.resize(chain.size() * 3);
-        split_triangle<Scalar, Index>(
-            static_cast<Index>(output_vertices.rows()),
-            span<const Scalar>(output_vertices.data(), output_vertices.size()),
-            chain,
-            visited,
-            queue_buffer.local(),
-            corner_index[0],
-            corner_index[1],
-            corner_index[2],
-            sub_triangulation);
-    });
-
-    // Clear edge data structure since the edge data is costly to maintain,
-    // and we will be updating triangulation anyway.
-    mesh.clear_edges();
-
-    la_debug_assert(split_triangles.size() % 3 == 0);
-    mesh.add_triangles(num_additional_facets, {split_triangles.data(), split_triangles.size()});
-
-    // Propagate facet attributes
-    par_foreach_named_attribute_write<AttributeElement::Facet>(
-        mesh,
-        [&](std::string_view name, auto&& attr) {
-            if (mesh.attr_name_is_reserved(name)) return;
-            auto data = matrix_ref(attr);
-            for (size_t i = 0; i < original_triangle_index.size(); i++) {
-                for (size_t j = split_triangles_offsets[i] / 3;
-                     j < split_triangles_offsets[i + 1] / 3;
-                     j++) {
-                    data.row(num_input_facets + static_cast<Index>(j)) =
-                        data.row(original_triangle_index[i]);
-                }
-            }
-        });
-
-    auto map_corner_attribute = [&](auto&& data, auto&& corner_to_index) {
-        auto facets = facet_view(mesh);
-        for (size_t i = 0; i < original_triangle_index.size(); i++) {
-            for (size_t j = split_triangles_offsets[i] / 3; j < split_triangles_offsets[i + 1] / 3;
-                 j++) {
-                Index fid = num_input_facets + static_cast<Index>(j);
-
-                for (Index k = 0; k < 3; k++) {
-                    Index curr_cid = fid * 3 + k;
-                    Index vid = facets(fid, k);
-                    if (vid < num_input_vertices) {
-                        // Corner comes from a corner in the original triangulation.
-                        Index ori_cid = invalid<Index>();
-                        for (Index l = 0; l < 3; l++) {
-                            if (vid == facets(original_triangle_index[i], l)) {
-                                ori_cid = original_triangle_index[i] * 3 + l;
-                            }
-                        }
-                        la_debug_assert(ori_cid != invalid<Index>());
-                        data.row(corner_to_index(curr_cid)) = data.row(corner_to_index(ori_cid));
-                    } else {
-                        // Corner comes from a split edge.
-                        auto [v0, v1, t] = additional_vertex_sources[vid - num_input_vertices];
-
-                        Index ori_c0 = invalid<Index>();
-                        Index ori_c1 = invalid<Index>();
-                        for (Index l = 0; l < 3; l++) {
-                            if (v0 == facets(original_triangle_index[i], l)) {
-                                ori_c0 = original_triangle_index[i] * 3 + l;
-                            }
-                            if (v1 == facets(original_triangle_index[i], l)) {
-                                ori_c1 = original_triangle_index[i] * 3 + l;
-                            }
-                        }
-                        la_debug_assert(ori_c0 != invalid<Index>());
-                        la_debug_assert(ori_c1 != invalid<Index>());
-                        interpolate_row(
-                            data,
-                            corner_to_index(curr_cid),
-                            corner_to_index(ori_c0),
-                            corner_to_index(ori_c1),
-                            t);
-                    }
-                }
-            }
-        }
-    };
-
-    if (internal_active_region_attribute_id != invalid<AttributeId>()) {
-        // Remove the internal active region attribute
-        mesh.delete_attribute(internal_active_region_attribute_name);
-    }
-
-    // Convert indexed attributes to corner attributes
-    std::vector<AttributeId> indexed_attribute_ids;
-    seq_foreach_named_attribute_read<AttributeElement::Indexed>(
-        mesh,
-        [&](std::string_view name, [[maybe_unused]] auto&& attr) {
-            if (mesh.attr_name_is_reserved(name)) return;
-            indexed_attribute_ids.push_back(mesh.get_attribute_id(name));
-        });
-    for (auto& attr_id : indexed_attribute_ids) {
-        attr_id = map_attribute_in_place(mesh, attr_id, AttributeElement::Corner);
-    }
-
-    // Propagate corner attributes
-    par_foreach_named_attribute_write<AttributeElement::Corner>(
-        mesh,
-        [&](std::string_view name, auto&& attr) {
-            if (mesh.attr_name_is_reserved(name)) return;
-            auto data = matrix_ref(attr);
-            map_corner_attribute(data, [&](Index cid) { return cid; });
-        });
-
-    // Map back to indexed attributes
-    for (auto attr_id : indexed_attribute_ids) {
-        map_attribute_in_place(mesh, attr_id, AttributeElement::Indexed);
-    }
-
-    mesh.remove_facets(original_triangle_index);
+            return span<Index>(edge_split_pts.data() + edge_split_indices[eid], n);
+        }),
+        function_ref<bool(Index)>([](Index) { return true; }));
+    mesh.remove_facets(facets_to_remove);
 
     if (options.recursive) {
         split_long_edges(mesh, options);

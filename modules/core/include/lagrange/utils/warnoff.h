@@ -48,13 +48,17 @@
     #pragma clang diagnostic ignored "-Wbitwise-instead-of-logical"
 #elif defined(__GNUC__)
     #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wpragmas"
+    // Not all warnings are supported by older version of GCC.
+    // So the line above has to come first.
+    #pragma GCC diagnostic ignored "-Warray-bounds"
     #pragma GCC diagnostic ignored "-Wcast-function-type"
     #pragma GCC diagnostic ignored "-Wclass-memaccess"
     #pragma GCC diagnostic ignored "-Wconversion"
     #pragma GCC diagnostic ignored "-Wctor-dtor-privacy"
-    #pragma GCC diagnostic ignored "-Wdeprecated"
     #pragma GCC diagnostic ignored "-Wdeprecated-copy"
     #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    #pragma GCC diagnostic ignored "-Wdeprecated"
     #pragma GCC diagnostic ignored "-Wextra-semi"
     #pragma GCC diagnostic ignored "-Wignored-qualifiers"
     #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"

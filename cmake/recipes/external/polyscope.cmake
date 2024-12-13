@@ -28,8 +28,9 @@ include(glad)
 include(CPM)
 CPMAddPackage(
     NAME polyscope
-    GITHUB_REPOSITORY nmwsharp/polyscope
-    GIT_TAG bb034326842313151c9419e51fac20c6c4ef8a93
+    GITHUB_REPOSITORY haskha/polyscope # change back to latest nmwsharp/polyscope after #306 is merged
+    GIT_TAG fc4046ee65d05cf30a2160d09eef484d1d06a363
 )
 
 add_library(polyscope::polyscope ALIAS polyscope)
+set_target_properties(polyscope PROPERTIES FOLDER third_party)

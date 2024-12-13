@@ -22,7 +22,7 @@ include(CPM)
 CPMAddPackage(
     NAME WindingNumber
     GITHUB_REPOSITORY jdumas/WindingNumber
-    GIT_TAG d0083297a9c3459a61573c0a0b4c0586ea84b727
+    GIT_TAG a48b8f555b490afe7aab9159c7daaf83fa2cdf8e
 )
 
 set_target_properties(WindingNumber PROPERTIES FOLDER third_party)

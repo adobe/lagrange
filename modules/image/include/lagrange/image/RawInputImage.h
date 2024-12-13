@@ -94,7 +94,7 @@ public:
 
     size_t get_size_precision() const
     {
-        return static_cast<size_t>(1u << static_cast<uint32_t>(m_pixel_precision));
+        return static_cast<size_t>(1llu << static_cast<uint32_t>(m_pixel_precision));
     }
 
     size_t get_num_channels() const

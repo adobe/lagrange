@@ -149,8 +149,10 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
         if (n_dims == 2) {
             answer = index_nd(1) * grid_dims(0) + index_nd(0);
         } else if (n_dims == 3) {
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
             answer = index_nd(2) * grid_dims(1) * grid_dims(0) + index_nd(1) * grid_dims(0) +
                      index_nd(0);
+            LA_IGNORE_ARRAY_BOUNDS_END
         } else {
             la_runtime_assert(0, "This dimension is not supported");
         }

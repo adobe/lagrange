@@ -1,1 +1,1 @@
-anorigami;deformers;meshproc;quadrangulation
+anorigami;baking;deformers;meshproc;quadrangulation

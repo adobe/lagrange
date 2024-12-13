@@ -9,20 +9,20 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET glad::glad)
-    return()
-endif()
+import lagrange
 
-message(STATUS "Third-party: creating target 'glad::glad'")
+from .assets import single_triangle, cube
 
-include(FetchContent)
-FetchContent_Declare(
-    glad
-    GIT_REPOSITORY https://github.com/libigl/libigl-glad.git
-    GIT_TAG        ead2d21fd1d9f566d8f9a9ce99ddf85829258c7a
-)
 
-FetchContent_MakeAvailable(glad)
-add_library(glad::glad ALIAS glad)
+class TestThickenAndCloseMesh:
+    def test_triangle(self, single_triangle):
+        mesh = single_triangle
+        mesh = lagrange.thicken_and_close_mesh(mesh, 0.1)
+        assert mesh.num_vertices == 6
+        assert mesh.num_facets == 8
 
-set_target_properties(glad PROPERTIES FOLDER third_party)
+    def test_cube(self, cube):
+        mesh = cube
+        mesh2 = lagrange.thicken_and_close_mesh(mesh, 0.1)
+        assert mesh2.num_vertices == mesh.num_vertices * 2
+        assert mesh2.num_facets == mesh.num_facets * 2

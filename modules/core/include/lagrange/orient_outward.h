@@ -24,7 +24,7 @@ namespace lagrange {
 ///
 struct OrientOptions
 {
-    /// Orient to have positive signed volume.
+    /// Whether to orient each volume positively or negatively.
     bool positive = true;
 };
 
