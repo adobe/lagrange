@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/poisson/CommonOptions.h>
 
 #include <array>
 #include <memory>
@@ -22,28 +23,47 @@ namespace lagrange::poisson {
 ///
 /// Option struct for Poisson surface reconstruction.
 ///
-struct EvaluatorOptions
+struct EvaluatorOptions : public CommonOptions
 {
-    /// Maximum octree depth. (If the value is zero then the minimum of 8 and log base 4 of the point count is used.)
-    unsigned int octree_depth = 0;
-
     /// Attribute name of data to be interpolated at the vertices
     std::string_view interpolated_attribute_name;
-
-    /// Output logging information (directly printed to std::cout)
-    bool verbose = false;
 };
 
+///
+/// Attribute evaluator class. Once constructed, it allows interpolating a signal from point cloud
+/// data.
+///
 class AttributeEvaluator
 {
 public:
+    ///
+    /// Constructs a new attribute evaluator for a point cloud.
+    ///
+    /// @param[in]  points   Point cloud to evaluate.
+    /// @param[in]  options  Attribute evaluation option.
+    ///
+    /// @tparam     Scalar   Point cloud scalar type.
+    /// @tparam     Index    Point cloud index type.
+    ///
     template <typename Scalar, typename Index>
     AttributeEvaluator(
         const SurfaceMesh<Scalar, Index>& points,
         const EvaluatorOptions& options = {});
 
+    ///
+    /// Destroys the object.
+    ///
     ~AttributeEvaluator();
 
+    ///
+    /// Evaluate the extrapolated attribute at any point in 3D space.
+    ///
+    /// @param[in]  pos        Position to evalute at.
+    /// @param[in]  out        Output buffer to write the evaluated attribute values.
+    ///
+    /// @tparam     Scalar     Point coordinate scalar type.
+    /// @tparam     ValueType  Attribute value type.
+    ///
     template <typename Scalar, typename ValueType>
     void eval(span<const Scalar> pos, span<ValueType> out) const;
 

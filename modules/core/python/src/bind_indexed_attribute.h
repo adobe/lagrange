@@ -28,7 +28,8 @@ void bind_indexed_attribute(nanobind::module_& m)
     namespace nb = nanobind;
     using namespace nb::literals;
 
-    auto indexed_attr_class = nb::class_<PyIndexedAttribute>(m, "IndexedAttribute");
+    auto indexed_attr_class =
+        nb::class_<PyIndexedAttribute>(m, "IndexedAttribute", "Index attribute");
 
     indexed_attr_class.def_prop_ro("element_type", [](PyIndexedAttribute& self) {
         return self->get_element_type();

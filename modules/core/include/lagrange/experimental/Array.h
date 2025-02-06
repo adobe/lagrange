@@ -15,6 +15,7 @@
 #include <lagrange/common.h>
 #include <lagrange/experimental/Scalar.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/strings.h>
 
@@ -75,10 +76,14 @@ public:
     auto down_cast() -> std::add_pointer_t<std::decay_t<std::remove_pointer_t<DerivedPtr>>>
     {
         using Derived = std::decay_t<std::remove_pointer_t<DerivedPtr>>;
+#if LAGRANGE_ENABLE_RTTI
+        return dynamic_cast<Derived*>(this);
+#else
         if (is_base_of<Derived>()) {
             return static_cast<Derived*>(this);
         }
         return nullptr;
+#endif
     }
 
     template <typename DerivedPtr>
@@ -86,10 +91,14 @@ public:
         -> std::add_pointer_t<std::add_const_t<std::decay_t<std::remove_pointer_t<DerivedPtr>>>>
     {
         using Derived = std::decay_t<std::remove_pointer_t<DerivedPtr>>;
+#if LAGRANGE_ENABLE_RTTI
+        return dynamic_cast<const Derived*>(this);
+#else
         if (is_base_of<Derived>()) {
             return static_cast<const Derived*>(this);
         }
         return nullptr;
+#endif
     }
 
     template <typename Derived>

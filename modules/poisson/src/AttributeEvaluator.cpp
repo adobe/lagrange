@@ -165,6 +165,7 @@ AttributeEvaluator::AttributeEvaluator(
             typename PoissonRecon::Extrapolator::Implicit<ReconScalar, Dim, VectorX<ValueType>>::
                 Parameters e_params;
             e_params.verbose = options.verbose;
+            e_params.samplesPerNode = options.samples_per_node;
             e_params.depth = ensure_octree_depth(options.octree_depth, points.get_num_vertices());
 
             VectorX<ValueType> zero(attribute.get_num_channels());

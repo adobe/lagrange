@@ -35,6 +35,7 @@ set(BOOST_INCLUDE_LIBRARIES
     crc
     date_time
     filesystem
+    format
     functional
     graph
     heap
@@ -46,6 +47,7 @@ set(BOOST_INCLUDE_LIBRARIES
     math
     numeric/conversion
     numeric/interval
+    numeric/ublas
     polygon
     system
     thread
@@ -76,51 +78,25 @@ option(BOOST_IOSTREAMS_ENABLE_BZIP2 "Boost.Iostreams: Enable BZip2 support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_LZMA "Boost.Iostreams: Enable LZMA support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
 
-# Needed by Boost::accumulators. See:
-# https://github.com/boostorg/ublas/pull/142
-add_library(boost_numeric_ublas INTERFACE)
-add_library(Boost::numeric_ublas ALIAS boost_numeric_ublas)
-
 if(SKBUILD)
     set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
     set(BUILD_SHARED_LIBS ON)
 endif()
 
-# Boost 1.82.0 is the min version we can use that supports upstream modern
-# CMake targets (Boost::boost, Boost::headers, etc.)
+# Modern CMake target support was added in Boost 1.82.0
+# CMake support for boost::numeric_ublas was added in Boost 1.84.0
 include(CPM)
 CPMAddPackage(
     NAME Boost
-    VERSION 1.82.0
+    VERSION 1.84.0
     GITHUB_REPOSITORY "boostorg/boost"
-    GIT_TAG "boost-1.82.0"
+    GIT_TAG "boost-1.84.0"
     EXCLUDE_FROM_ALL ON
 )
 
 if(SKBUILD)
     set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
 endif()
-
-target_include_directories(boost_numeric_ublas INTERFACE
-    "${Boost_SOURCE_DIR}/libs/numeric/ublas/include"
-)
-target_link_libraries(boost_numeric_ublas
-  INTERFACE
-    Boost::compute
-    Boost::concept_check
-    Boost::config
-    Boost::core
-    Boost::iterator
-    Boost::mpl
-    Boost::numeric_interval
-    Boost::range
-    Boost::serialization
-    Boost::smart_ptr
-    Boost::static_assert
-    Boost::type_traits
-    Boost::typeof
-)
-target_compile_features(boost_numeric_ublas INTERFACE cxx_std_11)
 
 # Due to MKL, we may require the release runtime (/MD) even when compiling in Debug mode.
 #

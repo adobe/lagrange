@@ -471,8 +471,9 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
     typename ReconType::template SolutionParameters<ReconScalar> solver_params;
 
     solver_params.verbose = options.verbose;
-    solver_params.confidence = (ReconScalar)(options.use_normal_length_as_confidence ? 1 : 0);
+    solver_params.confidence = options.use_normal_length_as_confidence;
     solver_params.pointWeight = options.interpolation_weight;
+    solver_params.samplesPerNode = options.samples_per_node;
     solver_params.depth = ensure_octree_depth(options.octree_depth, points.get_num_vertices());
     solver_params.perLevelDataScaleFactor = 32.f;
 

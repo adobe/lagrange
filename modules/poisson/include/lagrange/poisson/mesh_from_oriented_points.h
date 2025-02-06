@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/poisson/CommonOptions.h>
 
 #include <string_view>
 
@@ -20,13 +21,10 @@ namespace lagrange::poisson {
 ///
 /// Option struct for Poisson surface reconstruction.
 ///
-struct ReconstructionOptions
+struct ReconstructionOptions : public CommonOptions
 {
     /// Input normal attribute name. If empty, uses the first attribute with usage `Normal`.
     std::string_view input_normals;
-
-    /// Maximum octree depth. (If the value is zero then the minimum of 8 and log base 4 of the point count is used.)
-    unsigned int octree_depth = 0;
 
     /// Point interpolation weight (lambda)
     float interpolation_weight = 2.f;
@@ -44,9 +42,6 @@ struct ReconstructionOptions
     /// sampling density. A lower number means a low sampling density, and can be used to prune
     /// low-confidence regions as a post-process.
     std::string_view output_vertex_depth_attribute_name;
-
-    /// Output logging information (directly printed to std::cout)
-    bool verbose = false;
 };
 
 ///

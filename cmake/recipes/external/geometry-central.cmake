@@ -23,8 +23,8 @@ message(STATUS "Third-party (external): creating target 'geometry-central::geome
 include(CPM)
 CPMAddPackage(
     NAME geometry-central
-    GITHUB_REPOSITORY qnzhou/geometry-central
-    GIT_TAG 532359bcef04703360aa9300c5cd904faa372639
+    GITHUB_REPOSITORY jdumas/geometry-central
+    GIT_TAG fcba48bfe8fa419c5469937ce9d77feccc69ebed
 )
 
 set_target_properties(geometry-central PROPERTIES FOLDER third_party)

@@ -19,7 +19,7 @@ if(NOT COMMAND fonts_add_font)
     CPMAddPackage(
         NAME imgui_fonts
         GITHUB_REPOSITORY HasKha/imgui-fonts
-        GIT_TAG 24e4eca2d0e51d5214780391a94663a08f884762
+        GIT_TAG aa4a4c83be6a6b275a74809e853fd272b4eaaaa1
     )
 
 endif()
@@ -32,3 +32,4 @@ endblock()
 
 set_target_properties(fonts_fontawesome6 PROPERTIES FOLDER third_party)
 set_target_properties(fonts_source_sans_pro_regular PROPERTIES FOLDER third_party)
+set_target_properties(IconFontCppHeaders PROPERTIES FOLDER third_party)

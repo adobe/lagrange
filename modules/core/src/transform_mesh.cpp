@@ -17,6 +17,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/fmt_eigen.h>
@@ -95,10 +96,11 @@ Eigen::Matrix2<Scalar> compute_cotransform(
 } // namespace
 
 template <typename Scalar, typename Index, int Dimension>
-void transform_mesh(
+void transform_mesh_internal(
     SurfaceMesh<Scalar, Index>& mesh,
     const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
-    const TransformOptions& options)
+    const TransformOptions& options,
+    const BitField<AttributeUsage>& included_usages)
 {
     la_runtime_assert(mesh.get_dimension() == Dimension, "Mesh dimension doesn't match transform");
 
@@ -135,6 +137,10 @@ void transform_mesh(
                 values.template leftCols<Dimension>() = Y.transpose().template cast<ValueType>();
             };
             HigherPrecisionType sign(options.reorient && is_reflection ? -1 : 1);
+            if (!included_usages.test(attr_read.get_usage())) {
+                logger().debug("Skipping transform for attribute: {}", name);
+                return;
+            }
             switch (attr_read.get_usage()) {
             case AttributeUsage::Position: set(A * X); break;
             case AttributeUsage::Normal:
@@ -188,6 +194,15 @@ void transform_mesh(
 }
 
 template <typename Scalar, typename Index, int Dimension>
+void transform_mesh(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
+    const TransformOptions& options)
+{
+    transform_mesh_internal(mesh, transform, options, BitField<AttributeUsage>::all());
+}
+
+template <typename Scalar, typename Index, int Dimension>
 SurfaceMesh<Scalar, Index> transformed_mesh(
     SurfaceMesh<Scalar, Index> mesh,
     const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
@@ -197,7 +212,18 @@ SurfaceMesh<Scalar, Index> transformed_mesh(
     return mesh;
 }
 
+// TODO: Rely on LA_SIMPLE_SCENE_X to iterate over Dimension as well...
 #define LA_X_transform_mesh(_, Scalar, Index)                                           \
+    template LA_CORE_API void transform_mesh_internal(                                  \
+        SurfaceMesh<Scalar, Index>& mesh,                                               \
+        const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform,                    \
+        const TransformOptions& options,                                                \
+        const BitField<AttributeUsage>& included_usages);                               \
+    template LA_CORE_API void transform_mesh_internal(                                  \
+        SurfaceMesh<Scalar, Index>& mesh,                                               \
+        const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform,                    \
+        const TransformOptions& options,                                                \
+        const BitField<AttributeUsage>& included_usages);                               \
     template LA_CORE_API void transform_mesh<Scalar, Index, 2>(                         \
         SurfaceMesh<Scalar, Index> & mesh,                                              \
         const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform,                    \

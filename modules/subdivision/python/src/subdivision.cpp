@@ -33,17 +33,23 @@ void populate_subdivision_module(nb::module_& m)
     using Index = uint32_t;
     using MeshType = SurfaceMesh<Scalar, Index>;
 
-    nb::enum_<lagrange::subdivision::SchemeType>(m, "SchemeType")
+    nb::enum_<lagrange::subdivision::SchemeType>(m, "SchemeType", "Subdivision scheme type")
         .value("Bilinear", lagrange::subdivision::SchemeType::Bilinear)
         .value("CatmullClark", lagrange::subdivision::SchemeType::CatmullClark)
         .value("Loop", lagrange::subdivision::SchemeType::Loop);
 
-    nb::enum_<lagrange::subdivision::VertexBoundaryInterpolation>(m, "VertexBoundaryInterpolation")
+    nb::enum_<lagrange::subdivision::VertexBoundaryInterpolation>(
+        m,
+        "VertexBoundaryInterpolation",
+        "Vertex boundary interpolation rule")
         .value("NoInterpolation", lagrange::subdivision::VertexBoundaryInterpolation::None)
         .value("EdgeOnly", lagrange::subdivision::VertexBoundaryInterpolation::EdgeOnly)
         .value("EdgeAndCorner", lagrange::subdivision::VertexBoundaryInterpolation::EdgeAndCorner);
 
-    nb::enum_<lagrange::subdivision::FaceVaryingInterpolation>(m, "FaceVaryingInterpolation")
+    nb::enum_<lagrange::subdivision::FaceVaryingInterpolation>(
+        m,
+        "FaceVaryingInterpolation",
+        "Face-varying interpolation rule")
         .value("Smooth", lagrange::subdivision::FaceVaryingInterpolation::None)
         .value("CornersOnly", lagrange::subdivision::FaceVaryingInterpolation::CornersOnly)
         .value("CornersPlus1", lagrange::subdivision::FaceVaryingInterpolation::CornersPlus1)
@@ -53,7 +59,8 @@ void populate_subdivision_module(nb::module_& m)
 
     nb::enum_<lagrange::subdivision::InterpolatedAttributes::SelectionType>(
         m,
-        "InterpolatedAttributesSelection")
+        "InterpolatedAttributesSelection",
+        "Selection tag for interpolated attributes")
         .value("All", lagrange::subdivision::InterpolatedAttributes::SelectionType::All)
         .value("Empty", lagrange::subdivision::InterpolatedAttributes::SelectionType::None)
         .value("Selected", lagrange::subdivision::InterpolatedAttributes::SelectionType::Selected);

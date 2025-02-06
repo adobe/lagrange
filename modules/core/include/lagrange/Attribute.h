@@ -167,7 +167,8 @@ public:
             std::is_same_v<ValueType, uint8_t> || std::is_same_v<ValueType, uint16_t> ||
             std::is_same_v<ValueType, uint32_t> || std::is_same_v<ValueType, uint64_t> ||
             std::is_same_v<ValueType, float> || std::is_same_v<ValueType, double>,
-        "Attribute's ValueType template parameter can only be float, double, or a fixed size integer type.");
+        "Attribute's ValueType template parameter can only be float, double, or a fixed size "
+        "integer type.");
 
 public:
     ///
@@ -377,18 +378,32 @@ public:
     AttributeWritePolicy get_write_policy() const { return m_write_policy; }
 
     ///
-    /// Set copy policy for external buffers.
+    /// Sets the copy policy for external buffers.
     ///
     /// @param[in] policy  New policy
     ///
     void set_copy_policy(AttributeCopyPolicy policy) { m_copy_policy = policy; }
 
     ///
-    /// Get the copy policy for external buffers.
+    /// Gets the copy policy for external buffers.
     ///
     /// @return     The attribute copy policy.
     ///
     AttributeCopyPolicy get_copy_policy() const { return m_copy_policy; }
+
+    ///
+    /// Sets the cast policy.
+    ///
+    /// @param[in]  policy  New policy.
+    ///
+    void set_cast_policy(AttributeCastPolicy policy) { m_cast_policy = policy; }
+
+    ///
+    /// Gets the cast policy.
+    ///
+    /// @return     The attribute cast policy.
+    ///
+    AttributeCastPolicy get_cast_policy() const { return m_cast_policy; }
 
     ///
     /// Creates an internal copy of the attribute data. The attribute buffer must be external before
@@ -698,6 +713,9 @@ protected:
 
     /// Copy policy for external buffers.
     AttributeCopyPolicy m_copy_policy = AttributeCopyPolicy::CopyIfExternal;
+
+    /// Cast policy when converting from this attribute.
+    AttributeCastPolicy m_cast_policy = AttributeCastPolicy::RemapInvalidIndices;
 
     /// Flag to determine whether an attribute is using an external or internal buffer. We need this
     /// flag to distinguish if an empty buffer is internally managed or external.

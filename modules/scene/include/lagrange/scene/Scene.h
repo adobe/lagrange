@@ -130,11 +130,11 @@ struct LA_SCENE_API ImageExperimental
 // use).
 struct LA_SCENE_API TextureInfo
 {
-    // Texture index. Index in scene.textures vector.
+    /// Texture index. Index in scene.textures vector.
     ElementId index = invalid_element;
 
-    // Index of UV coordinates. Usually stored in the mesh as `texcoord_x` attribute where x is this
-    // variable. This is typically 0.
+    /// Index of UV coordinates. Usually stored in the mesh as `texcoord_x` attribute where x is this
+    /// variable. This is typically 0.
     int texcoord = 0;
 };
 
@@ -184,13 +184,13 @@ struct LA_SCENE_API MaterialExperimental
 struct LA_SCENE_API Texture
 {
     std::string name;
-    ElementId image = invalid<ElementId>(); // index of image in scene.images vector
+    ElementId image = invalid_element; // index of image in scene.images vector
 
     enum TextureFilter : int {
         Undefined = 0,
         Nearest = 9728,
         Linear = 9729,
-        NearestMimpapNearest = 9984,
+        NearestMipmapNearest = 9984,
         LinearMipmapNearest = 9985,
         NearestMipmapLinear = 9986,
         LinearMipmapLinear = 9987

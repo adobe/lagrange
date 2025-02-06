@@ -1744,6 +1744,35 @@ The input mesh must be a triangle mesh.
 :param indexed_attributes: List of indexed attributes to copy to the new mesh.
 
 :returns: The thickened and closed mesh.)");
+
+    m.def("extract_boundary_loops",
+            &extract_boundary_loops<Scalar, Index>,
+            "mesh"_a,
+            R"(Extract boundary loops from a mesh.
+
+:param mesh: Input mesh.
+
+:returns: A list of boundary loops, each represented as a list of vertex indices.)");
+
+    m.def("extract_boundary_edges", [](MeshType& mesh) {
+        mesh.initialize_edges();
+        Index num_edges = mesh.get_num_edges();
+        std::vector<Index> bd_edges;
+        bd_edges.reserve(num_edges);
+        for (Index ei =0; ei < num_edges; ++ei) {
+            if (mesh.is_boundary_edge(ei)) {
+                bd_edges.push_back(ei);
+            }
+        }
+        return bd_edges;
+    },
+    "mesh"_a,
+    R"(Extract boundary edges from a mesh.
+
+:param mesh: Input mesh.
+
+:returns: A list of boundary edge indices.)");
+
 }
 
 } // namespace lagrange::python

@@ -202,8 +202,9 @@ std::vector<Index> split_edges(
         for (Index i = 0; i < 3; i++) {
             if (vertices(v0, i) == vertices(v1, i)) continue;
             Scalar d = vertices(v0, i) - vertices(v1, i);
-            if (abs(d) > diff) {
+            if (std::abs(d) > diff) {
                 t = (vertices(v, i) - vertices(v1, i)) / d;
+                diff = std::abs(d);
             }
         }
         return t;

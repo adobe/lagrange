@@ -98,6 +98,15 @@ void bind_attribute(nanobind::module_& m)
             self.process([&](auto& attr) { attr.set_copy_policy(policy); });
         },
         "Copy policy of the attribute.");
+    attr_class.def_prop_rw(
+        "cast_policy",
+        [](PyAttribute& self) {
+            return self.process([](auto& attr) { return attr.get_cast_policy(); });
+        },
+        [](PyAttribute& self, AttributeCastPolicy policy) {
+            self.process([&](auto& attr) { attr.set_cast_policy(policy); });
+        },
+        "Copy policy of the attribute.");
     attr_class.def(
         "create_internal_copy",
         [](PyAttribute& self) { self.process([](auto& attr) { attr.create_internal_copy(); }); },

@@ -15,6 +15,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/scene/Scene.h>
+#include <lagrange/scene/internal/scene_string_utils.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/utils/assert.h>
 
@@ -23,15 +24,16 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Eigen/Core>
-#include <nanobind/nanobind.h>
 #include <nanobind/eigen/dense.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/filesystem.h>
+#include <nanobind/eval.h>
+#include <nanobind/nanobind.h>
 #include <nanobind/stl/array.h>
-#include <nanobind/stl/variant.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/bind_vector.h>
 #include <nanobind/stl/bind_map.h>
+#include <nanobind/stl/bind_vector.h>
+#include <nanobind/stl/filesystem.h>
+#include <nanobind/stl/optional.h>
+#include <nanobind/stl/string.h>
+#include <nanobind/stl/variant.h>
 #include <nanobind/trampoline.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
@@ -40,25 +42,6 @@
 namespace lagrange::python {
 
 namespace nb = nanobind;
-
-#pragma GCC visibility push(hidden)
-struct UserDataConverterTrampoline : public lagrange::scene::UserDataConverter
-{
-    NB_TRAMPOLINE(lagrange::scene::UserDataConverter, 5);
-
-    bool is_supported(const std::string& key) const override
-    {
-        NB_OVERRIDE_PURE(is_supported, key);
-    }
-    bool can_read(const std::string& key) const override { NB_OVERRIDE(can_read, key); }
-    bool can_write(const std::string& key) const override { NB_OVERRIDE(can_write, key); }
-    std::any read(const lagrange::scene::Value& value) const override { NB_OVERRIDE(read, value); }
-    lagrange::scene::Value write(const std::any& value) const override
-    {
-        NB_OVERRIDE(write, value);
-    }
-};
-#pragma GCC visibility pop
 
 void bind_scene(nb::module_& m)
 {
@@ -84,44 +67,34 @@ void bind_scene(nb::module_& m)
     nb::bind_vector<std::vector<unsigned char>>(m, "BufferList");
     nb::bind_map<std::unordered_map<std::string, lagrange::scene::Value>>(m, "ValueUnorderedMap");
     nb::bind_map<std::map<std::string, lagrange::scene::Value>>(m, "ValueMap");
-    // nb::bind_map<std::unordered_map<std::string, std::any>>(m, "anyMap");
 
 
     nb::class_<lagrange::scene::Extensions>(m, "Extensions")
+        .def("__repr__", [](const lagrange::scene::Extensions& self) { return scene::internal::to_string(self); })
         .def_prop_ro("size", &Extensions::size)
         .def_prop_ro("empty", &Extensions::empty)
         .def_rw("data", &Extensions::data);
-    // .def_prop_rw(
-    //     "user_data",
-    //     [](const Extensions& ext) -> std::unordered_map<std::string, void*> {
-    //         std::unordered_map<std::string, void*> ret;
-    //         for (const auto& [key, val] : ext.user_data) {
-    //             ret.insert({key, std::any_cast<void*>(val)});
-    //         }
-    //         return ret;
-    //     },
-    //     [](Extensions& ext, std::unordered_map<std::string, void*> data) -> void {
-    //         ext.user_data.clear();
-    //         for (const auto& [key, val] : data) {
-    //             ext.user_data.insert({key, val});
-    //         }
-    //     });
-
-    // nb::class_<UserDataConverter, UserDataConverterTrampoline>(m, "UserExtension")
-    //     .def("is_supported", &UserDataConverter::is_supported)
-    //     .def("can_read", &UserDataConverter::can_read)
-    //     .def("can_write", &UserDataConverter::can_write)
-    //     .def("read", &UserDataConverter::read)
-    //     .def("write", &UserDataConverter::write);
 
     nb::class_<SceneMeshInstance>(m, "SceneMeshInstance", "Mesh and material index of a node")
         .def(nb::init<>())
-        .def_rw("mesh", &SceneMeshInstance::mesh)
+        .def(
+            "__repr__",
+            [](const SceneMeshInstance& self) { return scene::internal::to_string(self); })
+        .def_prop_rw(
+            "mesh",
+            [](SceneMeshInstance& self) -> std::optional<ElementId> {
+                if (self.mesh != invalid_element)
+                    return self.mesh;
+                else
+                    return {};
+            },
+            [](SceneMeshInstance& self, ElementId mesh) { self.mesh = mesh; },
+            "Mesh index in the scene.meshes vector (None if invalid)")
         .def_rw("materials", &SceneMeshInstance::materials);
 
     nb::class_<Node>(m, "Node")
         .def(nb::init<>())
-        .def("__repr__", [](const Node& node) { return fmt::format("Node('{}')", node.name); })
+        .def("__repr__", [](const Node& self) { return scene::internal::to_string(self); })
         .def_rw("name", &Node::name)
         .def_prop_rw(
             "transform",
@@ -142,7 +115,16 @@ void bind_scene(nb::module_& m)
                 }
             },
             "The affine transform associated with this node")
-        .def_rw("parent", &Node::parent)
+        .def_prop_rw(
+            "parent",
+            [](Node& node) -> std::optional<ElementId> {
+                if (node.parent != invalid_element)
+                    return node.parent;
+                else
+                    return {};
+            },
+            [](Node& node, ElementId parent) { node.parent = parent; },
+            "Parent node index (None if no parent)")
         .def_rw("children", &Node::children)
         .def_rw("meshes", &Node::meshes)
         .def_rw("cameras", &Node::cameras)
@@ -151,6 +133,9 @@ void bind_scene(nb::module_& m)
 
     nb::class_<ImageBufferExperimental> image_buffer(m, "ImageBuffer");
     image_buffer.def(nb::init<>())
+        .def(
+            "__repr__",
+            [](const ImageBufferExperimental& self) { return scene::internal::to_string(self); })
         .def_ro("width", &ImageBufferExperimental::width, "Image width")
         .def_ro("height", &ImageBufferExperimental::height, "Image height")
         .def_ro(
@@ -304,27 +289,56 @@ void bind_scene(nb::module_& m)
 
     nb::class_<ImageExperimental> image(m, "Image");
     image.def(nb::init<>())
+        .def(
+            "__repr__",
+            [](const ImageExperimental& self) { return scene::internal::to_string(self); })
         .def_rw("name", &ImageExperimental::name, "Name of the image object")
         .def_rw("image", &ImageExperimental::image, "Image buffer")
-        .def_rw("uri", &ImageExperimental::uri, "URI of the image file")
+        .def_prop_rw(
+            "uri",
+            [](const ImageExperimental& self) -> std::optional<std::string> {
+                if (self.uri.empty())
+                    return {};
+                else
+                    return self.uri.string();
+            },
+            [](ImageExperimental& self, std::optional<std::string> uri) {
+                if (uri.has_value())
+                    self.uri = fs::path(uri.value());
+                else
+                    self.uri = fs::path();
+            },
+            "URI of the image file")
         .def_rw(
             "extensions",
             &ImageExperimental::extensions,
-            "Additional data associated with the image")
-        .def("__repr__", [](const ImageExperimental& self) {
-            return fmt::format("Image ('{}')", self.name);
-        });
+            "Additional data associated with the image");
 
     nb::class_<TextureInfo>(m, "TextureInfo")
         .def(nb::init<>())
-        .def_rw("index", &TextureInfo::index)
+        .def("__repr__", [](const TextureInfo& self) { return scene::internal::to_string(self); })
+        .def_prop_rw(
+            "index",
+            [](const TextureInfo& self) -> std::optional<ElementId> {
+                if (self.index != invalid_element)
+                    return self.index;
+                else
+                    return {};
+            },
+            [](TextureInfo& self, std::optional<ElementId> index) {
+                if (index.has_value())
+                    self.index = index.value();
+                else
+                    self.index = invalid_element;
+            },
+            "Texture index in scene.textures vector. `None` if not set.")
         .def_rw("texcoord", &TextureInfo::texcoord);
 
     nb::class_<MaterialExperimental> material(m, "Material");
     material.def(nb::init<>())
         .def(
             "__repr__",
-            [](const MaterialExperimental& mat) { return fmt::format("Material('{}')", mat.name); })
+            [](const MaterialExperimental& self) { return scene::internal::to_string(self); })
         .def_rw("name", &MaterialExperimental::name)
         .def_rw("base_color_value", &MaterialExperimental::base_color_value)
         .def_rw("base_color_texture", &MaterialExperimental::base_color_texture)
@@ -342,7 +356,7 @@ void bind_scene(nb::module_& m)
         .def_rw("double_sided", &MaterialExperimental::double_sided)
         .def_rw("extensions", &MaterialExperimental::extensions);
 
-    nb::enum_<MaterialExperimental::AlphaMode>(material, "AlphaMode")
+    nb::enum_<MaterialExperimental::AlphaMode>(material, "AlphaMode", "Alpha mode")
         .value("Opaque", MaterialExperimental::AlphaMode::Opaque)
         .value("Mask", MaterialExperimental::AlphaMode::Mask)
         .value("Blend", MaterialExperimental::AlphaMode::Blend);
@@ -350,9 +364,18 @@ void bind_scene(nb::module_& m)
 
     nb::class_<Texture> texture(m, "Texture", "Texture");
     texture.def(nb::init<>())
-        .def("__repr__", [](const Texture& t) { return fmt::format("Texture('{}')", t.name); })
+        .def("__repr__", [](const Texture& self) { return scene::internal::to_string(self); })
         .def_rw("name", &Texture::name)
-        .def_rw("image", &Texture::image)
+        .def_prop_rw(
+            "image",
+            [](Texture& self) -> std::optional<ElementId> {
+                if (self.image != invalid_element)
+                    return self.image;
+                else
+                    return {};
+            },
+            [](Texture& self, ElementId img) { self.image = img; },
+            "Texture image index in scene.images vector (None if invalid)")
         .def_rw("mag_filter", &Texture::mag_filter)
         .def_rw("min_filter", &Texture::min_filter)
         .def_rw("wrap_u", &Texture::wrap_u)
@@ -362,23 +385,23 @@ void bind_scene(nb::module_& m)
         .def_rw("rotation", &Texture::rotation)
         .def_rw("extensions", &Texture::extensions);
 
-    nb::enum_<Texture::WrapMode>(texture, "WrapMode")
+    nb::enum_<Texture::WrapMode>(texture, "WrapMode", "Texture wrap mode")
         .value("Wrap", Texture::WrapMode::Wrap)
         .value("Clamp", Texture::WrapMode::Clamp)
         .value("Decal", Texture::WrapMode::Decal)
         .value("Mirror", Texture::WrapMode::Mirror);
-    nb::enum_<Texture::TextureFilter>(texture, "TextureFilter")
+    nb::enum_<Texture::TextureFilter>(texture, "TextureFilter", "Texture filter mode")
         .value("Undefined", Texture::TextureFilter::Undefined)
         .value("Nearest", Texture::TextureFilter::Nearest)
         .value("Linear", Texture::TextureFilter::Linear)
-        .value("NearestMimpapNearest", Texture::TextureFilter::NearestMimpapNearest)
+        .value("NearestMipmapNearest", Texture::TextureFilter::NearestMipmapNearest)
         .value("LinearMipmapNearest", Texture::TextureFilter::LinearMipmapNearest)
         .value("NearestMipmapLinear", Texture::TextureFilter::NearestMipmapLinear)
         .value("LinearMipmapLinear", Texture::TextureFilter::LinearMipmapLinear);
 
     nb::class_<Light> light(m, "Light", "Light");
     light.def(nb::init<>())
-        .def("__repr__", [](const Light& l) { return fmt::format("Light('{}')", l.name); })
+        .def("__repr__", [](const Light& self) { return scene::internal::to_string(self); })
         .def_rw("name", &Light::name)
         .def_rw("type", &Light::type)
         .def_rw("position", &Light::position)
@@ -398,7 +421,7 @@ void bind_scene(nb::module_& m)
         .def_rw("size", &Light::size)
         .def_rw("extensions", &Light::extensions);
 
-    nb::enum_<Light::Type>(light, "Type")
+    nb::enum_<Light::Type>(light, "Type", "Light type")
         .value("Undefined", Light::Type::Undefined)
         .value("Directional", Light::Type::Directional)
         .value("Point", Light::Type::Point)
@@ -408,7 +431,7 @@ void bind_scene(nb::module_& m)
 
     nb::class_<Camera> camera(m, "Camera", "Camera");
     camera.def(nb::init<>())
-        .def("__repr__", [](const Camera& c) { return fmt::format("Camera('{}')", c.name); })
+        .def("__repr__", [](const Camera& self) { return scene::internal::to_string(self); })
         .def_rw("name", &Camera::name)
         .def_rw("position", &Camera::position)
         .def_rw("up", &Camera::up)
@@ -426,26 +449,29 @@ void bind_scene(nb::module_& m)
             "vfov"_a)
         .def_rw("extensions", &Camera::extensions);
 
-    nb::enum_<Camera::Type>(camera, "Type")
+    nb::enum_<Camera::Type>(camera, "Type", "Camera type")
         .value("Perspective", Camera::Type::Perspective)
         .value("Orthographic", Camera::Type::Orthographic);
 
     nb::class_<Animation>(m, "Animation", "")
         .def(nb::init<>())
-        .def("__repr__", [](const Animation& a) { return fmt::format("Animation('{}')", a.name); })
+        .def("__repr__", [](const Animation& self) { return scene::internal::to_string(self); })
         .def_rw("name", &Animation::name)
         .def_rw("extensions", &Animation::extensions);
 
 
     nb::class_<Skeleton>(m, "Skeleton", "")
         .def(nb::init<>())
+        .def("__repr__", [](const Skeleton& self) { return scene::internal::to_string(self); })
         .def_rw("meshes", &Skeleton::meshes)
         .def_rw("extensions", &Skeleton::extensions);
 
 
     nb::class_<SceneType>(m, "Scene", "A 3D scene")
         .def(nb::init<>())
-        .def("__repr__", [](const SceneType& s) { return fmt::format("Scene('{}')", s.name); })
+        .def(
+            "__repr__",
+            [](const SceneType& self) { return scene::internal::to_string(self); })
         .def_rw("name", &SceneType::name)
         .def_rw("nodes", &SceneType::nodes)
         .def_rw("root_nodes", &SceneType::root_nodes)
@@ -512,7 +538,7 @@ void bind_scene(nb::module_& m)
         R"(Compute the global transform associated with a node.
 
 :param scene: The input node.
-:param node_idx: The index of the taget node.
+:param node_idx: The index of the target node.
 
 :returns: The global transform of the target node, which is the combination of transforms from this node all the way to the root.
     )");

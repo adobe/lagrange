@@ -48,7 +48,7 @@ void bind_mesh_cleanup(nanobind::module_& m)
         "mesh"_a,
         R"(Remove isolated vertices from a mesh.
 
-.. note:
+.. note::
     A vertex is considered isolated if it is not referenced by any facet.
 
 :param mesh: The input mesh for inplace modification.)");
@@ -59,7 +59,7 @@ void bind_mesh_cleanup(nanobind::module_& m)
         "mesh"_a,
         R"(Detect degenerate facets in a mesh.
 
-.. note:
+.. note::
     Only __exaxtly__ degenerate facets are detected.
 
 :param mesh: The input mesh.
@@ -202,7 +202,7 @@ is not.
         "mesh"_a,
         R"(Remove degenerate facets from a mesh.
 
-..note:
+.. note::
     The current method assumes input mesh is triangular.
     Use `triangulate_polygonal_facets` if the input mesh is not triangular.
     Non-degenerate facets adjacent to degenerte facets may be re-triangulated as a result of the removal.

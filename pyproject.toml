@@ -1,53 +1,56 @@
 [build-system]
+build-backend = "scikit_build_core.build"
+
 requires = [
     "scikit-build-core==0.8.2",
     "typing-extensions~=4.1",
 ]
 
-build-backend = "scikit_build_core.build"
-
 [project]
 name = "lagrange-open"
-maintainers = [{name = "Lagrange Core Team", email = "lagrange-core@adobe.com"}]
 description = "A robust geometry processing engine"
 readme = "README.md"
+maintainers = [ { name = "Lagrange Core Team", email = "lagrange-core@adobe.com" } ]
 requires-python = ">=3.9"
-dependencies = [
-    "numpy>=1.25",
-    "colorama>=0.4.6",
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: C++",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Programming Language :: Python :: 3 :: Only",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 ]
-dynamic = ["version"]
+dynamic = [ "version" ]
 
-[project.urls]
-repo = "https://github.com/adobe/lagrange"
-doc = "https://opensource.adobe.com/lagrange-docs"
+dependencies = [
+    "colorama>=0.4.6",
+    "numpy>=1.25",
+]
+urls.doc = "https://opensource.adobe.com/lagrange-docs"
+urls.repo = "https://github.com/adobe/lagrange"
 
-[project.optional-dependencies]
+[dependency-groups]
+dev = [
+    { include-group = "lint" },
+    { include-group = "test" },
+]
+
 test = [
-    "pytest>=7.0.0"
+    "pytest>=7.0.0",
 ]
 lint = [
+    "mypy==1.1.1",
     "ruff==0.4.3",
-    "mypy==1.1.1"
 ]
-packaging = [
-    "twine>=4.0.0"
-]
-dev = [
-    "lagrange[test]",
-    "lagrange[lint]",
-    "lagrange[packaging]"
-]
-
-[tool.black]
-line_length = 100
-
-[tool.ruff]
-line-length = 100
 
 [tool.scikit-build]
-install.components = ["Lagrange_Python_Runtime"]
-wheel.packages = ["modules/python/lagrange"]
+install.components = [ "Lagrange_Python_Runtime" ]
+wheel.packages = [ "modules/python/lagrange" ]
 
 [tool.scikit-build.cmake.define]
 LAGRANGE_ASSERT_DEBUG_BREAK = false
@@ -67,3 +70,13 @@ TBB_PREFER_STATIC = false
 provider = "scikit_build_core.metadata.regex"
 input = "VERSION"
 regex = "(?P<value>\\d+\\.\\d+\\.\\d+)"
+
+[tool.black]
+line_length = 100
+
+[tool.ruff]
+line-length = 100
+
+[tool.pyproject-fmt]
+indent = 4
+keep_full_version = true

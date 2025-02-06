@@ -68,7 +68,7 @@ public:
 
         constexpr int max_leaf = 10; // TODO: Experiment with different values.
         m_tree = std::make_unique<KDTree>(m_vertices.cols(), m_vertices, max_leaf);
-        m_tree->index->buildIndex();
+        m_tree->index_->buildIndex();
     }
 
     bool does_support_query_closest_point() const override
@@ -82,7 +82,7 @@ public:
 
         typename KDTree::IndexType out_idx[1];
         Scalar out_sq_dist[1];
-        auto num_valid_pts = m_tree->index->knnSearch(p.data(), 1, out_idx, out_sq_dist);
+        auto num_valid_pts = m_tree->index_->knnSearch(p.data(), 1, out_idx, out_sq_dist);
 
         if (num_valid_pts == 0) {
             throw std::runtime_error("Nanoflann did not find any valid closest points.");
@@ -107,7 +107,7 @@ public:
         std::vector<typename KDTree::IndexType> out_idxs(k);
         std::vector<Scalar> out_sq_dists(k);
         auto num_valid_pts =
-            m_tree->index->knnSearch(p.data(), k, out_idxs.data(), out_sq_dists.data());
+            m_tree->index_->knnSearch(p.data(), k, out_idxs.data(), out_sq_dists.data());
 
         rs.resize(num_valid_pts);
         for (size_t i = 0; i < num_valid_pts; i++) {
@@ -129,12 +129,11 @@ public:
         la_runtime_assert(m_tree);
         std::vector<ClosestPoint> r;
 
-        std::vector<std::pair<typename KDTree::IndexType, Scalar>> output;
-        nanoflann::SearchParams params(
-            32, // This parameter is ignored.
+        std::vector<nanoflann::ResultItem<typename KDTree::IndexType, Scalar>> output;
+        nanoflann::SearchParameters params(
             0, // Epsilon, should be 0.
             true); // Sort result by distance.
-        m_tree->index->radiusSearch(p.data(), radius * radius, output, params);
+        m_tree->index_->radiusSearch(p.data(), radius * radius, output, params);
 
         r.reserve(output.size());
         for (const auto& entry : output) {

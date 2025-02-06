@@ -45,6 +45,7 @@ void populate_poisson_module(nb::module_& m)
         [](Tensor<Scalar> positions,
            Tensor<Scalar> normals,
            unsigned octree_depth,
+           float samples_per_node,
            float interpolation_weight,
            bool use_normal_length_as_confidence,
            bool use_dirichlet_boundary,
@@ -76,6 +77,7 @@ void populate_poisson_module(nb::module_& m)
             Options options;
             options.input_normals = "normals";
             options.octree_depth = octree_depth;
+            options.samples_per_node = samples_per_node;
             options.interpolation_weight = interpolation_weight;
             options.use_normal_length_as_confidence = use_normal_length_as_confidence;
             options.use_dirichlet_boundary = use_dirichlet_boundary;
@@ -116,6 +118,7 @@ void populate_poisson_module(nb::module_& m)
         "points"_a,
         "normals"_a,
         "octree_depth"_a = Options().octree_depth,
+        "samples_per_node"_a = Options().samples_per_node,
         "interpolation_weight"_a = Options().interpolation_weight,
         "use_normal_length_as_confidence"_a = Options().use_normal_length_as_confidence,
         "use_dirichlet_boundary"_a = Options().use_dirichlet_boundary,
@@ -126,25 +129,14 @@ void populate_poisson_module(nb::module_& m)
 
 :param points: Input point cloud positions (N x 3 matrix).
 :param normals: Input point cloud normals (N x 3 matrix).
+:param samples_per_node: Number of samples per node.
 :param octree_depth: Maximum octree depth. (If the value is zero then log base 4 of the point count is used.)
 :param interpolation_weight: Point interpolation weight (lambda).
 :param use_normal_length_as_confidence: Use normal length as confidence.
 :param use_dirichlet_boundary: Use Dirichlet boundary conditions.
 :param colors: Optional color attribute to interpolate (N x K matrix).
 :param output_vertex_depth_attribute_name: Output density attribute name. We use a point's target octree depth as a measure of the sampling density. A lower number means a low sampling density, and can be used to prune low-confidence regions as a post-process.
-:param verbose: Output logging information (directly printed to standard output).)",
-        nb::sig("def mesh_from_oriented_points("
-                "points : numpy.typing.NDArray[numpy.float64], "
-                "normals : numpy.typing.NDArray[numpy.float64], "
-                "octree_depth : int = 0, "
-                "interpolation_weight : float = 2.0, "
-                "use_normal_length_as_confidence : bool = False, "
-                "use_dirichlet_boundary : bool = False, "
-                "colors : typing.Optional[numpy.typing.NDArray] = None, "
-                "output_vertex_depth_attribute_name : str = '', "
-                "verbose : bool = False) -> lagrange.SurfaceMesh32f")
-
-    );
+:param verbose: Output logging information (directly printed to standard output).)");
 }
 
 } // namespace lagrange::python

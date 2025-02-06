@@ -185,6 +185,23 @@ void bind_enum(nb::module_& m)
             AttributeCopyPolicy::ErrorIfExternal,
             "Error if external buffer is used");
 
+    nb::enum_<AttributeCastPolicy>(
+        m,
+        "AttributeCastPolicy",
+        "Policy for remapping invalid values when casting to a different value type")
+        .value(
+            "RemapInvalidIndices",
+            AttributeCastPolicy::RemapInvalidIndices,
+            "Map invalue values only if the AttributeUsage represents indices")
+        .value(
+            "RemapInvalidAlways",
+            AttributeCastPolicy::RemapInvalidAlways,
+            "Always remap invalid values from source type to target type, regardless of AttributeUsage")
+        .value(
+            "DoNotRemapInvalid",
+            AttributeCastPolicy::DoNotRemapInvalid,
+            "Do not remap invalid values. They are simply static_cast<> to the target type");
+
     nb::enum_<AttributeDeletePolicy>(
         m,
         "AttributeDeletePolicy",

@@ -29,7 +29,7 @@ namespace lagrange::io::internal {
  */
 std::unique_ptr<aiScene> load_assimp(
     const fs::path& filename,
-    unsigned int flags = aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
+    unsigned int flags = aiProcess_CalcTangentSpace |
                          aiProcess_GenUVCoords | aiProcess_PopulateArmatureData);
 
 /**
@@ -37,7 +37,7 @@ std::unique_ptr<aiScene> load_assimp(
  */
 std::unique_ptr<aiScene> load_assimp(
     std::istream& input_stream,
-    unsigned int flags = aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace |
+    unsigned int flags = aiProcess_CalcTangentSpace |
                          aiProcess_GenUVCoords | aiProcess_PopulateArmatureData);
 
 /**

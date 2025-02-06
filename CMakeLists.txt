@@ -160,9 +160,7 @@ endif()
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL                "Build all lagrange modules" OFF)
 
-# When building the usd module, we need to use TBB 2020
 if(LAGRANGE_MODULE_USD OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
-    option(LAGRANGE_WITH_ONETBB "Build Lagrange with OneTBB 2021 rather than TBB 2020" OFF)
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
 endif()
 
@@ -184,7 +182,6 @@ option(LAGRANGE_UNIT_TESTS              "Build all unit tests"                  
 option(LAGRANGE_USE_PCH                 "Enable precompiled headers"                           OFF)
 option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            OFF)
 option(LAGRANGE_USE_WASM_THREADS        "Enable threads (-pthread) with Emscripten"            ON)
-option(LAGRANGE_WITH_ONETBB             "Build Lagrange with OneTBB 2021 rather than TBB 2020" ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)
 
 # Set build type as a normal variable to prevent subprojects from overriding it as a option/CACHE variable (thanks to CMP0077/CMP0126)
@@ -361,14 +358,6 @@ endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG TRUE)
 find_package(Threads REQUIRED GLOBAL)
-
-# Include OneTBB early to provide TBB::tbb target
-if(LAGRANGE_WITH_ONETBB)
-    set(MKL_VERSION 2021.3.0 CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
-    include(onetbb)
-else()
-    set(MKL_VERSION 2020.4 CACHE STRING "MKL version to use (2020.4 or 2021.3.0)")
-endif()
 
 # Enable unit testing at the root level
 if(LAGRANGE_UNIT_TESTS)

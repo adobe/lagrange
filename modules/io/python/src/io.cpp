@@ -57,7 +57,7 @@ void populate_io_module(nb::module_& m)
     using SimpleSceneType = scene::SimpleScene<Scalar, Index, 3>;
     using SceneType = lagrange::scene::Scene<Scalar, Index>;
 
-    nb::class_<io::LoadOptions>(m, "LoadOptions")
+    nb::class_<io::LoadOptions>(m, "LoadOptions", "Load options")
         .def(nb::init<>())
         .def_rw("triangulate", &io::LoadOptions::triangulate)
         .def_rw("load_normals", &io::LoadOptions::load_normals)
@@ -68,23 +68,27 @@ void populate_io_module(nb::module_& m)
         .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
         .def_rw("load_object_ids", &io::LoadOptions::load_object_ids)
         .def_rw("search_path", &io::LoadOptions::search_path);
-    //.def_rw("extension_converters", &io::LoadOptions::extension_converters);
 
-    nb::enum_<io::FileEncoding>(m, "FileEncoding")
+    nb::enum_<io::FileEncoding>(m, "FileEncoding", "File encoding type")
         .value("Binary", io::FileEncoding::Binary)
         .value("Ascii", io::FileEncoding::Ascii);
-    nb::class_<io::SaveOptions> save_options(m, "SaveOptions");
+    nb::class_<io::SaveOptions> save_options(m, "SaveOptions", "Save options");
     save_options.def(nb::init<>())
         .def_rw("encoding", &io::SaveOptions::encoding)
         .def_rw("output_attributes", &io::SaveOptions::output_attributes)
         .def_rw("selected_attributes", &io::SaveOptions::selected_attributes)
         .def_rw("attribute_conversion_policy", &io::SaveOptions::attribute_conversion_policy)
         .def_rw("embed_images", &io::SaveOptions::embed_images);
-    //.def_rw("extension_converters", &io::SaveOptions::extension_converters);
-    nb::enum_<io::SaveOptions::OutputAttributes>(save_options, "OutputAttributes")
+    nb::enum_<io::SaveOptions::OutputAttributes>(
+        save_options,
+        "OutputAttributes",
+        "Output attribute mode")
         .value("All", io::SaveOptions::OutputAttributes::All)
         .value("SelectedOnly", io::SaveOptions::OutputAttributes::SelectedOnly);
-    nb::enum_<io::SaveOptions::AttributeConversionPolicy>(save_options, "AttributeConversionPolicy")
+    nb::enum_<io::SaveOptions::AttributeConversionPolicy>(
+        save_options,
+        "AttributeConversionPolicy",
+        "Attribute conversion policy")
         .value("ExactMatchOnly", io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly)
         .value("ConvertAsNeeded", io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded);
 

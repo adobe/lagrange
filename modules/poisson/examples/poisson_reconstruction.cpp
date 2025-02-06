@@ -35,6 +35,10 @@ int main(int argc, char** argv)
     app.add_option("input", args.input, "Input point cloud.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
     app.add_option("--depth", recon_options.octree_depth, "Max reconstruction depth.");
+    app.add_option(
+        "--samples-per-node",
+        recon_options.samples_per_node,
+        "Min number of samples/node for refinement.");
     app.add_flag(
         "--dirichlet",
         recon_options.use_dirichlet_boundary,

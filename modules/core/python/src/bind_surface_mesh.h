@@ -50,7 +50,7 @@ void bind_surface_mesh(nanobind::module_& m)
 
     using MeshType = SurfaceMesh<Scalar, Index>;
 
-    auto surface_mesh_class = nb::class_<MeshType>(m, "SurfaceMesh");
+    auto surface_mesh_class = nb::class_<MeshType>(m, "SurfaceMesh", "Surface mesh data structure");
     surface_mesh_class.def(nb::init<Index>(), nb::arg("dimension") = 3);
     surface_mesh_class.def(
         "add_vertex",
@@ -1065,7 +1065,7 @@ If not provided, the edges are initialized in an arbitrary order.
             return lagrange::find_matching_attributes(*mesh, opts);
         }
     };
-    auto meta_data_class = nb::class_<MetaData>(m, "MetaData");
+    auto meta_data_class = nb::class_<MetaData>(m, "MetaData", "Metadata `dict` of the mesh");
     meta_data_class.def("__len__", [](const MetaData& self) {
         auto data = self.get_metadata();
         return data.size();
