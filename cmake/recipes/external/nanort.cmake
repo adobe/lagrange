@@ -15,14 +15,14 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'nanort::nanort'")
 
-set(NANORT_VERSION b32f38ba93cbf562a5f2b1a20b20f1f211b56087)
+set(NANORT_VERSION cdf474ae9176b87a9334c858bb06c9e028ed0e0d)
 set(NANORT_URL "https://raw.githubusercontent.com/lighttransport/nanort/${NANORT_VERSION}/nanort.h")
 
 include(CPM)
 CPMAddPackage(
     NAME nanort
     URL ${NANORT_URL}
-    URL_HASH MD5=e1074db25f36bca57b3c903276a93ffe
+    URL_HASH MD5=8f6c22c5b57246809ba29b02467fdc2c
     DOWNLOAD_NO_EXTRACT 1
     DOWNLOAD_ONLY ON
 )

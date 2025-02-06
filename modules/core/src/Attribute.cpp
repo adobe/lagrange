@@ -14,6 +14,7 @@
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
+#include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -101,6 +102,7 @@ Attribute<ValueType>::Attribute(Attribute<ValueType>&& other) noexcept
     , m_growth_policy(other.m_growth_policy)
     , m_write_policy(other.m_write_policy)
     , m_copy_policy(other.m_copy_policy)
+    , m_cast_policy(other.m_cast_policy)
     , m_is_external(other.m_is_external)
     , m_is_read_only(other.m_is_read_only)
     , m_num_elements(other.m_num_elements)
@@ -125,6 +127,7 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(Attribute<ValueType>&& oth
         m_growth_policy = other.m_growth_policy;
         m_write_policy = other.m_write_policy;
         m_copy_policy = other.m_copy_policy;
+        m_cast_policy = other.m_cast_policy;
         m_is_external = other.m_is_external;
         m_is_read_only = other.m_is_read_only;
         m_num_elements = other.m_num_elements;
@@ -150,6 +153,7 @@ Attribute<ValueType>::Attribute(const Attribute<ValueType>& other)
     , m_growth_policy(other.m_growth_policy)
     , m_write_policy(other.m_write_policy)
     , m_copy_policy(other.m_copy_policy)
+    , m_cast_policy(other.m_cast_policy)
     , m_is_external(other.m_is_external)
     , m_is_read_only(other.m_is_read_only)
     , m_num_elements(other.m_num_elements)
@@ -179,6 +183,7 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(const Attribute<ValueType>
         m_growth_policy = other.m_growth_policy;
         m_write_policy = other.m_write_policy;
         m_copy_policy = other.m_copy_policy;
+        m_cast_policy = other.m_cast_policy;
         m_is_external = other.m_is_external;
         m_is_read_only = other.m_is_read_only;
         m_num_elements = other.m_num_elements;
@@ -220,6 +225,7 @@ Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(
     target.m_growth_policy = source.m_growth_policy;
     target.m_write_policy = source.m_write_policy;
     target.m_copy_policy = source.m_copy_policy;
+    target.m_cast_policy = source.m_cast_policy;
     target.m_is_external = false;
     target.m_is_read_only = false;
     target.m_num_elements = source.m_num_elements;
@@ -235,17 +241,36 @@ Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(
     }
 
     target.m_data.reserve(std::max(source.m_data.capacity(), source.m_const_view.size()));
-    std::transform(
-        source.m_const_view.begin(),
-        source.m_const_view.end(),
-        std::back_inserter(target.m_data),
-        [](auto&& v) {
-            if (v == invalid<SourceValueType>()) {
-                return invalid<TargetValueType>();
-            } else {
-                return static_cast<TargetValueType>(v);
-            }
-        });
+
+    constexpr BitField<AttributeUsage> indices_mask = [] {
+        BitField<AttributeUsage> mask;
+        mask.set(AttributeUsage::VertexIndex);
+        mask.set(AttributeUsage::EdgeIndex);
+        mask.set(AttributeUsage::FacetIndex);
+        mask.set(AttributeUsage::CornerIndex);
+        return mask;
+    }();
+    if (source.m_cast_policy == AttributeCastPolicy::RemapInvalidAlways ||
+        (source.m_cast_policy == AttributeCastPolicy::RemapInvalidIndices &&
+         indices_mask.test(source.get_usage()))) {
+        std::transform(
+            source.m_const_view.begin(),
+            source.m_const_view.end(),
+            std::back_inserter(target.m_data),
+            [](auto&& v) {
+                if (v == invalid<SourceValueType>()) {
+                    return invalid<TargetValueType>();
+                } else {
+                    return static_cast<TargetValueType>(v);
+                }
+            });
+    } else {
+        std::transform(
+            source.m_const_view.begin(),
+            source.m_const_view.end(),
+            std::back_inserter(target.m_data),
+            [](auto&& v) { return static_cast<TargetValueType>(v); });
+    }
 
     target.update_views();
 
@@ -641,19 +666,19 @@ LA_ATTRIBUTE_X(attr, 0)
     LA_X_##mode(data, double)
 // clang-format on
 
-#define LA_X_cast_from(SourceValueType, TargetValueType)                          \
+#define LA_X_cast_from(SourceValueType, TargetValueType)                                      \
     template LA_CORE_API Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(    \
-        const Attribute<SourceValueType>& other);                                 \
+        const Attribute<SourceValueType>& other);                                             \
     template LA_CORE_API Attribute<TargetValueType>& Attribute<TargetValueType>::cast_assign( \
         const Attribute<SourceValueType>& other);
 #define LA_X_cast_from_aux(_, SourceValueType) LA_ATTRIBUTE2_X(cast_from, SourceValueType)
 LA_ATTRIBUTE_X(cast_from_aux, 0)
 
-#define LA_X_attribute_get_type(_, ValueType)                                     \
-    template <>                                                                   \
+#define LA_X_attribute_get_type(_, ValueType)                                                 \
+    template <>                                                                               \
     [[nodiscard]] LA_CORE_API AttributeValueType Attribute<ValueType>::get_value_type() const \
-    {                                                                             \
-        return AttributeValueType::e_##ValueType;                                 \
+    {                                                                                         \
+        return AttributeValueType::e_##ValueType;                                             \
     }
 LA_ATTRIBUTE_X(attribute_get_type, 0)
 

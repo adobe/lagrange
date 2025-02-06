@@ -1,5 +1,6 @@
 ////////////////////////////////////////////////////////////////////////////////
 #include <lagrange/Logger.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/save_mesh.h>
@@ -146,18 +147,11 @@ TEST_CASE("PoissonRecon: Attribute Evaluator", "[poisson]")
     auto input_mesh =
         lagrange::testing::load_surface_mesh<Scalar, Index>("open/poisson/sphere.striped.ply");
 
-    // TODO: We need better utils for attribute conversion
-    input_mesh.create_attribute<Scalar>(
-        "color",
-        lagrange::AttributeElement::Vertex,
-        lagrange::AttributeUsage::Color,
-        3);
-    auto colors = lagrange::attribute_matrix_ref<Scalar>(input_mesh, "color");
-    colors =
-        lagrange::attribute_matrix_view<uint8_t>(input_mesh, "Vertex_Color").cast<Scalar>() / 255.f;
+    lagrange::cast_attribute_in_place<Scalar>(input_mesh, "Vertex_Color");
+    lagrange::attribute_matrix_ref<Scalar>(input_mesh, "Vertex_Color") /= 255.f;
 
     lagrange::poisson::EvaluatorOptions eval_options;
-    eval_options.interpolated_attribute_name = "color";
+    eval_options.interpolated_attribute_name = "Vertex_Color";
 #ifndef NDEBUG
     eval_options.octree_depth = 5;
 #else

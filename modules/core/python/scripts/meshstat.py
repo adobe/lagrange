@@ -89,6 +89,14 @@ def print_extra_info(mesh, info):
     print_property("num_components", num_components)
     info["num_components"] = num_components
 
+    # boundary check
+    bd_edges = lagrange.extract_boundary_edges(mesh)
+    print_property("closed", len(bd_edges) == 0, True)
+    if len(bd_edges) > 0:
+        print_property("num_boundary_edges", len(bd_edges), 0)
+        bd_loops = lagrange.extract_boundary_loops(mesh)
+        print_property("num_boundary_loops", len(bd_loops), 0)
+
     # manifold check
     edge_manifold = lagrange.is_edge_manifold(mesh)
     if edge_manifold:

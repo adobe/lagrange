@@ -30,7 +30,7 @@ void populate_image_module(nb::module_& m)
 {
     using namespace lagrange::image;
 
-    nb::enum_<ImagePrecision>(m, "ImagePrecision")
+    nb::enum_<ImagePrecision>(m, "ImagePrecision", "Image pixel precision")
         .value("uint8", ImagePrecision::uint8)
         .value("int8", ImagePrecision::int8)
         .value("uint32", ImagePrecision::uint32)
@@ -40,26 +40,33 @@ void populate_image_module(nb::module_& m)
         .value("float16", ImagePrecision::float16)
         .value("unknown", ImagePrecision::unknown);
 
-    nb::enum_<ImageChannel>(m, "ImageChannel")
+    nb::enum_<ImageChannel>(m, "ImageChannel", "Image channel")
         .value("one", image::ImageChannel::one)
         .value("three", image::ImageChannel::three)
         .value("four", image::ImageChannel::four)
         .value("unknown", image::ImageChannel::unknown);
 
     // the image class is due for a rework so this is a temporary minimal API to access the data.
-    nb::class_<ImageStorage>(m, "ImageStorage")
-        .def(nb::init<size_t, size_t, size_t>())
+    nb::class_<ImageStorage>(m, "ImageStorage", "Image storage class")
+        .def(nb::init<size_t, size_t, size_t>(), "width"_a, "height"_a, "alignment"_a)
         .def_prop_ro(
             "width",
-            [](const ImageStorage& img) -> size_t { return img.get_full_size().x(); })
+            [](const ImageStorage& img) -> size_t { return img.get_full_size().x(); },
+            "Image width")
         .def_prop_ro(
             "height",
-            [](const ImageStorage& img) -> size_t { return img.get_full_size().y(); })
-        .def_prop_ro("stride", &ImageStorage::get_full_stride)
-        .def_prop_ro("data", [](ImageStorage& img) {
-            span<unsigned char> s(img.data(), img.get_full_size().x() * img.get_full_size().y());
-            return span_to_tensor<unsigned char>(s, nb::find(&img));
-        });
+            [](const ImageStorage& img) -> size_t { return img.get_full_size().y(); },
+            "Image height")
+        .def_prop_ro("stride", &ImageStorage::get_full_stride, "Image stride")
+        .def_prop_ro(
+            "data",
+            [](ImageStorage& img) {
+                span<unsigned char> s(
+                    img.data(),
+                    img.get_full_size().x() * img.get_full_size().y());
+                return span_to_tensor<unsigned char>(s, nb::find(&img));
+            },
+            "Raw image data");
 }
 
 } // namespace lagrange::python

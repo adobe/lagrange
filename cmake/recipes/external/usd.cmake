@@ -15,10 +15,6 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'usd::usd'")
 
-if (LAGRANGE_WITH_ONETBB)
-    message(FATAL_ERROR "USD does not support oneTBB yet. You must build with LAGRANGE_WITH_ONETBB=OFF")
-endif()
-
 # Note: the linked USD repo below does NOT work, we need to make our own mirror or push changes to github.
 # 1.In all of USD's cmake files, replace:
 #   ${CMAKE_SOURCE_DIR} with ${PROJECT_SOURCE_DIR}
@@ -89,23 +85,14 @@ function(usd_import_target)
 
     # Import our own targets
     include(tbb)
-    include(boost)
     ignore_package(TBB)
-    ignore_package(Boost)
     set(Tbb_VERSION 2019.0 CACHE STRING "" FORCE)
-    set(Boost_LIB_VERSION 1.70 CACHE STRING "" FORCE)
 
     # We have to spoof the following variables:
-    # - Boost_PYTHON_LIBRARY
-    # - Boost_INCLUDE_DIRS
     # - TBB_tbb_LIBRARY
     # - TBB_INCLUDE_DIRS
-    # - PYTHON_INCLUDE_DIRS
     set(TBB_tbb_LIBRARY TBB::tbb)
     set(TBB_INCLUDE_DIRS "")
-    set(Boost_PYTHON_LIBRARY "")
-    set(PYTHON_INCLUDE_DIRS "")
-    set(Boost_INCLUDE_DIRS "")
 
     # Always build USD as shared libraries to allow for plugins. Calling functions such as
     # pxr::UsdStage::IsSupportedFile will call Sdf_GetExtension in fileFormat.cpp, which triggers
@@ -116,13 +103,12 @@ function(usd_import_target)
     CPMAddPackage(
         NAME usd
         GIT_REPOSITORY git@git.corp.adobe.com:thirdparty/USD.git
-        GIT_TAG 8d94ea49a4b534b7a2fe94ac3375d49323f5ec16
+        GIT_TAG c70ef8cd5da03bb2345746c802ef15b1de4f3814 # lagrange/v24.11
     )
     pop_variable(CMAKE_DEBUG_POSTFIX)
     pop_variable(BUILD_SHARED_LIBS)
 
     unignore_package(TBB)
-    unignore_package(Boost)
 endfunction()
 
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
@@ -137,40 +123,6 @@ set(USD_headers_TARGETS arch tf gf js trace work plug
     vt ar kind sdf ndr sdr pcp usd usdGeom usdVol usdMedia
     usdShade usdLux usdProc usdRender usdHydra usdRi usdSkel
     usdUI usdUtils usdPhysics)
-
-# Manually inject Boost dependencies after the fact. We bulk inject all the relevant libraries we
-# found in the USD repo. This is ugly, but since USD is in the process of "de-boostifying" their
-# codebase, we can't be bothered to fix their upstream CMake in the meantime.
-add_library(usd_boost INTERFACE IMPORTED GLOBAL)
-target_link_libraries(usd_boost INTERFACE
-    Boost::any
-    Boost::assign
-    Boost::bind
-    Boost::callable_traits
-    Boost::container
-    Boost::crc
-    Boost::function
-    Boost::functional
-    Boost::iterator
-    Boost::lexical_cast
-    Boost::mpl
-    Boost::multi_index
-    Boost::numeric_conversion
-    Boost::optional
-    Boost::preprocessor
-    Boost::ptr_container
-    Boost::range
-    Boost::smart_ptr
-    Boost::type_traits
-    Boost::utility
-    Boost::variant
-    Boost::vmd
-)
-foreach(name IN ITEMS ${USD_base_TARGETS} ${USD_usd_TARGETS})
-    if(TARGET ${name})
-        target_link_libraries(${name} usd_boost)
-    endif()
-endforeach()
 
 # Set IDE folder for targets + add usd:: alias
 foreach(name IN ITEMS ${USD_headers_TARGETS})

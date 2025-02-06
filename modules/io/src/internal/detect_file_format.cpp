@@ -43,6 +43,8 @@ FileFormat detect_file_format(std::istream& input_stream)
     } else if (starts_with(header_str, "Kayda")) {
         // FBX binary header starts with "Kaydara FBX Binary".
         return FileFormat::Fbx;
+    } else if (starts_with(header_str, "solid")) {
+        return FileFormat::Stl;
     } else {
         for (auto& flag : {"v", "f", "o", "u", "s", "g", "#"}) {
             if (starts_with(header_str, flag)) {

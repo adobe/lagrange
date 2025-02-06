@@ -564,3 +564,92 @@ TEST_CASE("cast external", "[core][surface][cast]")
         REQUIRE(!colors_sh.is_read_only());
     }
 }
+
+
+TEST_CASE("cast invalid", "[core][surface][cast]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+    using OtherScalar = float;
+    using OtherIndex = uint64_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(2, 1, 3);
+
+    std::array<Scalar, 4> colors_values = {0.1, 0.2, 0.3, lagrange::invalid<Scalar>()};
+    auto colors_id = mesh.create_attribute<Scalar>(
+        "colors",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Color,
+        1,
+        colors_values);
+
+    std::array<Index, 4> group_values = {0, lagrange::invalid<Index>(), 2, 100};
+    auto groups_id = mesh.create_attribute<Index>(
+        "groups",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Scalar,
+        1,
+        group_values);
+
+    std::array<Index, 4> v2f_values = {0, 1, lagrange::invalid<Index>(), 0};
+    auto v2f_id = mesh.create_attribute<Index>(
+        "v2f",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::FacetIndex,
+        1,
+        v2f_values);
+
+    SECTION("default remap") {
+        auto other_mesh = lagrange::cast<OtherScalar, OtherIndex>(mesh);
+        auto colors = lagrange::attribute_vector_view<OtherScalar>(other_mesh, "colors");
+        auto groups = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "groups");
+        auto v2f = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "v2f");
+        // invalid<float>() and invalid<double>() are the same
+        REQUIRE(colors[3] == static_cast<OtherScalar>(lagrange::invalid<Scalar>()));
+        REQUIRE(colors[3] == lagrange::invalid<OtherScalar>());
+        REQUIRE(groups[1] == static_cast<OtherIndex>(lagrange::invalid<Index>()));
+        REQUIRE(groups[1] != lagrange::invalid<OtherIndex>());
+        REQUIRE(v2f[2] != static_cast<OtherIndex>(lagrange::invalid<Index>()));
+        REQUIRE(v2f[2] == lagrange::invalid<OtherIndex>());
+    }
+
+    SECTION("always remap") {
+        mesh.ref_attribute<Scalar>(colors_id).set_cast_policy(lagrange::AttributeCastPolicy::RemapInvalidAlways);
+        mesh.ref_attribute<Scalar>(groups_id).set_cast_policy(lagrange::AttributeCastPolicy::RemapInvalidAlways);
+        mesh.ref_attribute<Scalar>(v2f_id).set_cast_policy(lagrange::AttributeCastPolicy::RemapInvalidAlways);
+        auto other_mesh = lagrange::cast<OtherScalar, OtherIndex>(mesh);
+        auto colors = lagrange::attribute_vector_view<OtherScalar>(other_mesh, "colors");
+        auto groups = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "groups");
+        auto v2f = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "v2f");
+        // invalid<float>() and invalid<double>() are the same
+        REQUIRE(colors[3] == static_cast<OtherScalar>(lagrange::invalid<Scalar>()));
+        REQUIRE(colors[3] == lagrange::invalid<OtherScalar>());
+        REQUIRE(groups[1] != static_cast<OtherIndex>(lagrange::invalid<Index>()));
+        REQUIRE(groups[1] == lagrange::invalid<OtherIndex>());
+        REQUIRE(v2f[2] != static_cast<OtherIndex>(lagrange::invalid<Index>()));
+        REQUIRE(v2f[2] == lagrange::invalid<OtherIndex>());
+    }
+
+    SECTION("never remap") {
+        mesh.ref_attribute<Scalar>(colors_id).set_cast_policy(lagrange::AttributeCastPolicy::DoNotRemapInvalid);
+        mesh.ref_attribute<Scalar>(groups_id).set_cast_policy(lagrange::AttributeCastPolicy::DoNotRemapInvalid);
+        mesh.ref_attribute<Scalar>(v2f_id).set_cast_policy(lagrange::AttributeCastPolicy::DoNotRemapInvalid);
+        auto other_mesh = lagrange::cast<OtherScalar, OtherIndex>(mesh);
+        auto colors = lagrange::attribute_vector_view<OtherScalar>(other_mesh, "colors");
+        auto groups = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "groups");
+        auto v2f = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "v2f");
+        // invalid<float>() and invalid<double>() are the same
+        REQUIRE(colors[3] == static_cast<OtherScalar>(lagrange::invalid<Scalar>()));
+        REQUIRE(colors[3] == lagrange::invalid<OtherScalar>());
+        REQUIRE(groups[1] == static_cast<OtherIndex>(lagrange::invalid<Index>()));
+        REQUIRE(groups[1] != lagrange::invalid<OtherIndex>());
+        REQUIRE(v2f[2] == static_cast<OtherIndex>(lagrange::invalid<Index>()));
+        REQUIRE(v2f[2] != lagrange::invalid<OtherIndex>());
+    }
+}

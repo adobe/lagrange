@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME nanoflann
     GITHUB_REPOSITORY jlblancoc/nanoflann
-    GIT_TAG v1.3.2
+    GIT_TAG v1.6.3
     DOWNLOAD_ONLY ON
 )
 

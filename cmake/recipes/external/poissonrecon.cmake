@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME poissonrecon
     GITHUB_REPOSITORY mkazhdan/PoissonRecon
-    GIT_TAG 8718872658a3a9eb032e951caca80146a59fc975
+    GIT_TAG afab8a67cfaa566221802bb473a82e8882f74d17
 )
 
 add_library(poissonrecon::poissonrecon INTERFACE IMPORTED GLOBAL)

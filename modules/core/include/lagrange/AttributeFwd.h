@@ -83,7 +83,7 @@ inline constexpr AttributeId invalid_attribute_id()
 /// starting with "$" are reserved for internal use. Creating a reserved attribute name requires an
 /// explicit policy flag to be passed to the appropriate function.
 ///
-enum class AttributeCreatePolicy {
+enum class AttributeCreatePolicy : uint8_t {
     ErrorIfReserved, ///< Default deletion policy, throw an exception if attribute name is reserved.
     Force, ///< Force creation of reserved attribute names.
 };
@@ -93,13 +93,20 @@ enum class AttributeCreatePolicy {
 /// attribute buffer, and we have reached the capacity of the provided span, we can either throw an
 /// exception (default behavior), or warn and create an internal copy of the buffer data.
 ///
-enum class AttributeGrowthPolicy {
-    ErrorIfExternal, ///< Throws an exception when trying to grow an external buffer (even if the new size is
-    ///< still within the buffer capacity).
-    AllowWithinCapacity, ///< Allow attribute growth as long as it remains within the capacity of the external
-    ///< buffer. Will throw an error if a reallocation is needed.
-    WarnAndCopy, ///< Logs a warning and copy the buffer data if it grows beyond the buffer capacity.
-    SilentCopy, ///< Silently copy the buffer data if it grows beyond the buffer capacity.
+enum class AttributeGrowthPolicy : uint8_t {
+    /// Throws an exception when trying to grow an external buffer (even if the new size is still
+    /// within the buffer capacity).
+    ErrorIfExternal,
+
+    /// Allow attribute growth as long as it remains within the capacity of the external buffer.
+    /// Will throw an error if a reallocation is needed.
+    AllowWithinCapacity,
+
+    /// Logs a warning and copy the buffer data if it grows beyond the buffer capacity.
+    WarnAndCopy,
+
+    /// Silently copy the buffer data if it grows beyond the buffer capacity.
+    SilentCopy,
 };
 
 ///
@@ -107,12 +114,20 @@ enum class AttributeGrowthPolicy {
 /// `shrink_to_fit()` to save memory. Shrinkage can happen either when mesh elements have been
 /// removed by another operation, or if the attribute has been created with additional capacity.
 ///
-enum class AttributeShrinkPolicy {
-    ErrorIfExternal, ///< Throws an exception when trying to shrink an external buffer (even if the new size is
-    ///< still within the buffer capacity). This is the default policy.
-    IgnoreIfExternal, ///< Ignore external buffers when trying to shrink an attribute.
-    WarnAndCopy, ///< Logs a warning and creates an internal copy of the buffer data when shrinking below capacity.
-    SilentCopy, ///< Silently copy the buffer data when shrinking below capacity.
+enum class AttributeShrinkPolicy : uint8_t {
+    /// Throws an exception when trying to shrink an external buffer (even if the new size is still
+    /// within the buffer capacity). This is the default policy.
+    ErrorIfExternal,
+
+    /// Ignore external buffers when trying to shrink an attribute.
+    IgnoreIfExternal,
+
+    /// Logs a warning and creates an internal copy of the buffer data when shrinking below
+    /// capacity.
+    WarnAndCopy,
+
+    /// Silently copy the buffer data when shrinking below capacity.
+    SilentCopy,
 };
 
 ///
@@ -120,7 +135,7 @@ enum class AttributeShrinkPolicy {
 /// a read-only external buffer will throw an exception. Alternatively, we can issue a warning a
 /// perform a copy of the buffer data.
 ///
-enum class AttributeWritePolicy {
+enum class AttributeWritePolicy : uint8_t {
     ErrorIfReadOnly, ///< Throws an exception when trying to write to a read-only buffer.
     WarnAndCopy, ///< Logs a warning and copy the buffer data.
     SilentCopy, ///< Silently copy the buffer data.
@@ -131,7 +146,7 @@ enum class AttributeWritePolicy {
 /// created, meaning we can use the resulting pointer to manage the lifetime of the allocated
 /// data.
 ///
-enum class AttributeExportPolicy {
+enum class AttributeExportPolicy : uint8_t {
     CopyIfExternal, ///< Copy the buffer during export if the attribute points to an external buffer.
     CopyIfUnmanaged, ///< Copy the buffer during export if the attribute points to an unmanaged external buffer.
     KeepExternalPtr, ///< Keep the raw pointer to the external buffer data. Use with caution.
@@ -143,7 +158,7 @@ enum class AttributeExportPolicy {
 /// default, a copy is created, meaning we can use the copied attribute to
 /// manage the lifetime of the allocated data.
 ///
-enum class AttributeCopyPolicy {
+enum class AttributeCopyPolicy : uint8_t {
     CopyIfExternal, ///< Copy the buffer during copy if the attribute points to an external buffer.
     KeepExternalPtr, ///< Keep the raw pointer to the external buffer data. Use with caution.
     ErrorIfExternal, ///< Throw an exception if the attribute points to an external buffer.
@@ -154,9 +169,20 @@ enum class AttributeCopyPolicy {
 /// with "$" are reserved for internal use. Deleting a reserved attribute name requires an explicit
 /// policy flag to be passed to the appropriate function.
 ///
-enum class AttributeDeletePolicy {
+enum class AttributeDeletePolicy : uint8_t {
     ErrorIfReserved, ///< Default deletion policy, throw an exception if attribute name is reserved.
     Force, ///< Force deletion of reserved attribute names.
+};
+
+///
+/// Policy for remapping invalid values when casting to a different value type. By default, invalid
+/// values are remapped from source type to target type if the AttributeUsage represents element
+/// indices.
+///
+enum class AttributeCastPolicy : uint8_t {
+    RemapInvalidIndices, ///< Map invalue values only if the AttributeUsage represents indices.
+    RemapInvalidAlways, ///< Always remap invalid values from source type to target type, regardless of AttributeUsage.
+    DoNotRemapInvalid, ///< Do not remap invalid values. They are simply static_cast<> to the target type.
 };
 
 ///

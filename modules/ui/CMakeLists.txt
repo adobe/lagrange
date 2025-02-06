@@ -58,6 +58,7 @@ target_link_libraries(lagrange_ui
         imguizmo::imguizmo
         fonts::fontawesome6
         fonts::source_sans_pro_regular
+        juliettef::IconFontCppHeaders 
         nlohmann_json::nlohmann_json
         EnTT::EnTT
         nanoflann::nanoflann

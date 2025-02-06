@@ -78,7 +78,7 @@ TEST_CASE("load_scene_animatedCube", "[io]")
     SECTION("assimp")
     {
         scene = io::load_scene_assimp<SceneType>(filename, opt);
-        REQUIRE(scene.meshes.front().get_num_vertices() == 24);
+        REQUIRE(scene.meshes.front().get_num_vertices() == 36);
     }
 #endif
 

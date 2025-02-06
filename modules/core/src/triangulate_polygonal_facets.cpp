@@ -14,6 +14,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/delaunay_split.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -53,27 +54,14 @@ void append_triangles_from_quad(
         }
     }
 
-    auto sq_area = [&](Index v0, Index v1, Index v2) -> Scalar {
-        LAGRANGE_ZONE_SCOPED;
-        return Scalar(0.25) * (points.row(v1) - points.row(v0))
-                                  .cross(points.row(v2) - points.row(v0))
-                                  .squaredNorm();
-    };
+    auto lv = internal::delaunay_split(points.row(0), points.row(1), points.row(2), points.row(3));
 
-    // Choose split that minimizes the squared area of each triangle
-    auto lv = [&]() -> std::array<std::array<Index, 3>, 2> {
-        if (sq_area(0, 1, 2) + sq_area(0, 2, 3) < sq_area(0, 1, 3) + sq_area(1, 2, 3)) {
-            return {{{0, 1, 2}, {0, 2, 3}}};
-        } else {
-            return {{{0, 1, 3}, {1, 2, 3}}};
-        }
-    }();
     {
         LAGRANGE_ZONE_SCOPED;
         const auto corner_begin = mesh.get_facet_corner_begin(f);
         for (Index lf : {0, 1}) {
             for (Index k = 0; k < 3; ++k) {
-                new_to_old_corners.push_back(corner_begin + lv[lf][k]);
+                new_to_old_corners.push_back(corner_begin + static_cast<Index>(lv[lf][k]));
             }
             new_to_old_facets.push_back(f);
         }

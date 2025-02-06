@@ -37,8 +37,9 @@ namespace legacy {
  * a sufficient but not necessary condition for the boundary loops to be
  * simple.
  */
-template <typename MeshType, std::enable_if_t<MeshTrait<MeshType>::is_mesh(), bool> = true>
-std::vector<std::vector<typename MeshType::Index>> extract_boundary_loops(MeshType& mesh)
+template <typename MeshType>
+std::enable_if_t<MeshTrait<MeshType>::is_mesh(), std::vector<std::vector<typename MeshType::Index>>>
+extract_boundary_loops(MeshType& mesh)
 {
     using Index = typename MeshType::Index;
     const Index num_vertices = mesh.get_num_vertices();
