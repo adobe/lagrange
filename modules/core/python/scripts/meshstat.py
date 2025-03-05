@@ -16,11 +16,13 @@
 import argparse
 import lagrange
 import colorama
+import platform
 import json
 import pathlib
 import numpy as np
 
-colorama.just_fix_windows_console()
+if platform.system() == "Windows":
+    colorama.just_fix_windows_console()
 
 
 def print_header(message):

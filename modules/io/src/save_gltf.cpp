@@ -233,10 +233,15 @@ void populate_vertices(
     accessor.type = TINYGLTF_TYPE_VEC3;
     accessor.count = lmesh.get_num_vertices();
     auto V = vertex_view(lmesh);
-    auto bb_max = V.colwise().maxCoeff();
-    auto bb_min = V.colwise().minCoeff();
-    accessor.maxValues = {double(bb_max(0)), double(bb_max(1)), double(bb_max(2))};
-    accessor.minValues = {double(bb_min(0)), double(bb_min(1)), double(bb_min(2))};
+    if (V.rows() > 0) {
+        auto bb_max = V.colwise().maxCoeff();
+        auto bb_min = V.colwise().minCoeff();
+        accessor.maxValues = {double(bb_max(0)), double(bb_max(1)), double(bb_max(2))};
+        accessor.minValues = {double(bb_min(0)), double(bb_min(1)), double(bb_min(2))};
+    } else {
+        accessor.maxValues = {0, 0, 0};
+        accessor.minValues = {0, 0, 0};
+    }
     int accessor_index = int(model.accessors.size());
     model.accessors.push_back(accessor);
 
@@ -851,6 +856,9 @@ tinygltf::Model lagrange_scene_to_gltf_model(
 
     // TODO animations
 
+    size_t num_nodes = lscene.nodes.size();
+    std::vector<int> node_indices(num_nodes, invalid<int>());
+
     std::function<int(const scene::Node&)> visit_node;
     visit_node = [&](const scene::Node& lnode) -> int {
         tinygltf::Node node;
@@ -879,6 +887,10 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             node.mesh = mesh_idx;
         }
 
+        if (!lnode.transform.matrix().isIdentity()) {
+            node.matrix = std::vector<double>(lnode.transform.data(), lnode.transform.data() + 16);
+        }
+
         if (!lnode.extensions.empty()) {
             node.extensions = convert_extension_map(lnode.extensions, options);
         }
@@ -887,15 +899,27 @@ tinygltf::Model lagrange_scene_to_gltf_model(
         model.nodes.push_back(node);
 
         for (const size_t lagrange_child_idx : lnode.children) {
-            int child_idx = visit_node(lscene.nodes[lagrange_child_idx]);
-            model.nodes[node_idx].children.push_back(child_idx);
+            if (node_indices[lagrange_child_idx] != invalid<int>()) {
+                // already visited
+                model.nodes[node_idx].children.push_back(node_indices[lagrange_child_idx]);
+            } else {
+                // visit child
+                int child_idx = visit_node(lscene.nodes[lagrange_child_idx]);
+                model.nodes[node_idx].children.push_back(child_idx);
+                node_indices[lagrange_child_idx] = child_idx;
+            }
         }
 
         return node_idx;
     };
-    for (const scene::Node& lnode : lscene.nodes) {
+    for (size_t i=0; i<num_nodes; i++) {
+        if (node_indices[i] != invalid<int>()) continue;
+
+        const scene::Node& lnode = lscene.nodes[i];
         int lnode_idx = visit_node(lnode);
         scene.nodes.push_back(lnode_idx);
+
+        node_indices[i] = lnode_idx;
     }
 
     return model;

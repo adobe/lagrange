@@ -23,7 +23,7 @@
 
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-TEST_CASE("DijkstraDistance Legacy", "[dijstra][triangle]")
+TEST_CASE("DijkstraDistance Legacy", "[dijkstra][triangle]")
 {
     using namespace lagrange;
 
@@ -52,7 +52,7 @@ TEST_CASE("DijkstraDistance Legacy", "[dijstra][triangle]")
 #endif
 
 
-TEST_CASE("DijkstraDistance", "[dijstra][surface][triangle]")
+TEST_CASE("DijkstraDistance", "[dijkstra][surface][triangle]")
 {
     using namespace lagrange;
     using Scalar = double;

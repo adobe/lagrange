@@ -35,8 +35,8 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 option(SPDLOG_INSTALL "Generate the install target" OFF)
 option(SPDLOG_FMT_EXTERNAL "Use external fmt library instead of bundled" ON)
 
-include(spdlog)
-include(eigen)
+lagrange_find_package(spdlog REQUIRED)
+lagrange_find_package(Eigen3 REQUIRED)
 
 include(CTest)
 

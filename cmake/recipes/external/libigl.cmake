@@ -15,7 +15,7 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'igl::core'")
 
-include(eigen)
+lagrange_find_package(Eigen3 REQUIRED)
 option(LIBIGL_INSTALL "Enable installation of libigl targets" ON)
 
 include(CPM)

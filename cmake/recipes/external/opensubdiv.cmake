@@ -9,11 +9,11 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET opensubdiv::opensubdiv)
+if(TARGET OpenSubdiv::osdCPU_static)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating target 'opensubdiv::opensubdiv'")
+message(STATUS "Third-party (external): creating target 'OpenSubdiv::osdCPU_static'")
 
 block()
     set(NO_EXAMPLES ON)
@@ -39,7 +39,7 @@ block()
     # We trick OpenSubdiv's CMake into _not_ calling `find_package(TBB)` by setting `TBB_FOUND` to `ON`.
     set(TBB_FOUND ON)
     set(TBB_CXX_FLAGS "")
-    include(tbb)
+    lagrange_find_package(TBB CONFIG REQUIRED)
 
     include(CPM)
     CPMAddPackage(
@@ -50,13 +50,8 @@ block()
 
     # Note: OpenSubdiv doesn't support being compiled as a shared library on Windows:
     # https://github.com/PixarAnimationStudios/OpenSubdiv/issues/71
-    if(BUILD_SHARED_LIBS AND TARGET osd_dynamic_cpu)
-        add_library(opensubdiv::opensubdiv ALIAS osd_dynamic_cpu)
-        set(OPENSUBDIV_TARGET osd_dynamic_cpu)
-    else()
-        add_library(opensubdiv::opensubdiv ALIAS osd_static_cpu)
-        set(OPENSUBDIV_TARGET osd_static_cpu)
-    endif()
+    add_library(OpenSubdiv::osdCPU_static ALIAS osd_static_cpu)
+    set(OPENSUBDIV_TARGET osd_static_cpu)
 
     # OpenSubdiv's code uses relative header include paths, and fails to properly set a transitive include directory
     # that propagates to dependent targets, so we need to set it up manually.

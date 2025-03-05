@@ -23,7 +23,7 @@ include(tinyobjloader)
 include(tinygltf)
 include(libigl) # TODO: remove libigl later
 include(mshio)
-include(happly)
+lagrange_find_package(happly REQUIRED)
 include(ufbx)
 target_link_libraries(lagrange_io
     PUBLIC

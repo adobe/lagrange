@@ -9,11 +9,11 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET openvdb::openvdb)
+if(TARGET OpenVDB::openvdb)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating target 'openvdb::openvdb'")
+message(STATUS "Third-party (external): creating target 'OpenVDB::openvdb'")
 
 if(WIN32)
     # On Windows, prefer shared lib for OpenVDB, otherwise we can run into
@@ -54,6 +54,10 @@ endif()
 if(NOT CMAKE_MSVC_RUNTIME_LIBRARY)
     # Workaround https://github.com/AcademySoftwareFoundation/openvdb/issues/1131
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+endif()
+
+if(USE_BLOSC)
+    include(blosc)
 endif()
 
 # Note: OpenVDB will link against TBB::tbbmalloc or TBB::tbbmalloc_proxy if available.
@@ -108,8 +112,15 @@ function(openvdb_import_target)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
     # Import our own targets
-    include(tbb)
-    include(boost)
+    lagrange_find_package(TBB CONFIG REQUIRED)
+    lagrange_find_package(Boost REQUIRED COMPONENTS
+        algorithm
+        any
+        interprocess
+        iostreams
+        numeric_conversion
+        uuid
+    )
     include(ilmbase)
     ignore_package(TBB)
     ignore_package(Boost)
@@ -124,8 +135,18 @@ function(openvdb_import_target)
     endif()
 
     if(USE_BLOSC)
-        include(blosc)
         ignore_package(Blosc)
+    endif()
+
+    if(CMAKE_CXX_COMPILER_ID MATCHES "(Clang|GNU)")
+        include(CheckCXXCompilerFlag)
+        set(flag -Wno-missing-template-arg-list-after-template-kw)
+        if(NOT DEFINED IS_SUPPORTED_${flag})
+            check_cxx_compiler_flag("${flag}" IS_SUPPORTED_${flag})
+        endif()
+        if(IS_SUPPORTED_${flag})
+            add_compile_options(${flag})
+        endif()
     endif()
 
     # Ready to include openvdb CMake
@@ -158,10 +179,22 @@ function(openvdb_import_target)
     # Forward ALIAS target for openvdb
     get_target_property(_aliased openvdb ALIASED_TARGET)
     if(_aliased)
-        message(STATUS "Creating 'openvdb::openvdb' as a new ALIAS target for '${_aliased}'.")
-        add_library(openvdb::openvdb ALIAS ${_aliased})
+        message(STATUS "Creating 'OpenVDB::openvdb' as a new ALIAS target for '${_aliased}'.")
+        add_library(OpenVDB::openvdb ALIAS ${_aliased})
     else()
-        add_library(openvdb::openvdb ALIAS openvdb)
+        add_library(OpenVDB::openvdb ALIAS openvdb)
+    endif()
+
+    # Copy miniz.h as zlib.h to have blosc use miniz symbols (which are aliased through #define in miniz.h)
+    if(USE_ZLIB AND TARGET miniz::miniz)
+        FetchContent_GetProperties(miniz)
+        file(MAKE_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/include")
+        configure_file(${miniz_SOURCE_DIR}/miniz.h ${CMAKE_CURRENT_BINARY_DIR}/include/zlib.h COPYONLY)
+
+        get_target_property(_aliased OpenVDB::openvdb ALIASED_TARGET)
+        include(GNUInstallDirs)
+        target_include_directories(${_aliased} SYSTEM BEFORE PRIVATE
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
     endif()
 endfunction()
 
