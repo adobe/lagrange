@@ -4,7 +4,7 @@ Project Lagrange is an initiative to bring the power of robust geometry processi
 
 ### Modular design
 
-Large features should be decomposed into smaller single functionality modules that are as decoupled as possible from each other. Modular design enables unit testing, prevents small change from propagating widely in the code base, and makes adding new functionalities easy.
+Large features should be decomposed into smaller single functionality modules that are as decoupled as possible from each other. Modular design enables unit testing, prevents small changes from propagating widely in the code base, and makes adding new functionalities easy.
 
 ### Preconditions + guarantees
 
@@ -12,7 +12,7 @@ Algorithmic correctness should be rigorously enforced. This is achieved by clear
 
 ### Interface + compute engine
 
-The interface of a functionality should be decoupled from the computation algorithms. This makes swapping out an algorithm with a better algorithm possible and ideally should not require change in client codes.
+The interface of a functionality should be decoupled from the computation algorithms. This makes swapping out an algorithm with a better algorithm possible and ideally should not require changes in client codes.
 
 ### Large scale testing
 

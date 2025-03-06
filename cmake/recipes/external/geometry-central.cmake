@@ -14,11 +14,17 @@ if (TARGET geometry-central::geometry-central)
 endif()
 
 # Include dependencies before geometry-central tries to find them.
-include(happly)
-include(nanoflann)
-include(nanort)
+lagrange_find_package(happly REQUIRED)
+lagrange_find_package(nanoflann REQUIRED)
+lagrange_find_package(nanort REQUIRED)
+lagrange_find_package(Eigen3 REQUIRED)
 
 message(STATUS "Third-party (external): creating target 'geometry-central::geometry-central'")
+
+# TODO: Patch upstream geometry-central to use the correct nanoflann::nanoflann target name
+if(NOT TARGET nanoflann)
+    add_library(nanoflann ALIAS nanoflann::nanoflann)
+endif()
 
 include(CPM)
 CPMAddPackage(

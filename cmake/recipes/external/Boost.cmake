@@ -61,11 +61,11 @@ if(APPLE)
         # Build universal binaries on macOS
         set(BOOST_CONTEXT_ARCHITECTURE "combined" CACHE STRING "Boost.Context architecture")
         set(BOOST_CONTEXT_ABI "sysv" CACHE STRING "Boost.Context ABI")
-    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
+    elseif(arm64 IN_LIST CMAKE_OSX_ARCHITECTURES)
         # Build for arm64 architecture on macOS
         set(BOOST_CONTEXT_ARCHITECTURE "arm64" CACHE STRING "Boost.Context architecture")
         set(BOOST_CONTEXT_ABI "aapcs" CACHE STRING "Boost.Context ABI")
-    elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
+    elseif(x86_64 IN_LIST CMAKE_OSX_ARCHITECTURES)
         # Build for x86_64 architecture on macOS
         set(BOOST_CONTEXT_ARCHITECTURE "x86_64" CACHE STRING "Boost.Context architecture")
         set(BOOST_CONTEXT_ABI "sysv" CACHE STRING "Boost.Context ABI")

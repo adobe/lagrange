@@ -13,7 +13,7 @@
 lagrange_add_module(INTERFACE)
 
 # 2. dependencies
-include(nanoflann)
+lagrange_find_package(nanoflann REQUIRED)
 include(libigl)
 target_link_libraries(lagrange_bvh INTERFACE
     lagrange::core

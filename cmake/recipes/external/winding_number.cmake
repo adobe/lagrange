@@ -15,7 +15,7 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'WindingNumber::WindingNumber'")
 
-include(tbb)
+lagrange_find_package(TBB CONFIG REQUIRED)
 include(simde)
 
 include(CPM)

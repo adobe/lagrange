@@ -15,12 +15,12 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'BLAS::BLAS'")
 
-if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64" OR "${CMAKE_OSX_ARCHITECTURES}" MATCHES "arm64")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR "arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
     # Use Accelerate on macOS M1
     set(BLA_VENDOR Apple)
     find_package(BLAS REQUIRED)
 else()
     # Use MKL on other platforms
-    include(mkl)
-    add_library(BLAS::BLAS ALIAS mkl::mkl)
+    lagrange_find_package(MKL CONFIG REQUIRED GLOBAL)
+    add_library(BLAS::BLAS ALIAS MKL::MKL)
 endif()

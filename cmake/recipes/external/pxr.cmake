@@ -84,7 +84,7 @@ function(usd_import_target)
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
     # Import our own targets
-    include(tbb)
+    lagrange_find_package(TBB CONFIG REQUIRED)
     ignore_package(TBB)
     set(Tbb_VERSION 2019.0 CACHE STRING "" FORCE)
 

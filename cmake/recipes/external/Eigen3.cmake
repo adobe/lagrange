@@ -51,10 +51,10 @@ if(EIGEN_DONT_VECTORIZE)
 endif()
 
 if(EIGEN_WITH_MKL)
-    # TODO: Checks that, on 64bits systems, `mkl::mkl` is using the LP64 interface
+    # TODO: Checks that, on 64bits systems, `MKL::MKL` is using the LP64 interface
     # (by looking at the compile definition of the target)
-    include(mkl)
-    target_link_libraries(Eigen3_Eigen INTERFACE mkl::mkl)
+    lagrange_find_package(MKL CONFIG REQUIRED GLOBAL)
+    target_link_libraries(Eigen3_Eigen INTERFACE MKL::MKL)
     target_compile_definitions(Eigen3_Eigen INTERFACE
         EIGEN_USE_MKL_ALL
         EIGEN_USE_LAPACKE_STRICT

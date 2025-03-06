@@ -78,7 +78,7 @@ bool attribute_is_approx_equivalent(
  * Check if two meshes have equivalent attributes for the specified usage.
  *
  * For special usage attributes, we do not rely on attribute names.  Instead, we check for all
- * possible attriabute pairs with matching usage type for equivalance. Two attributes are equivalent
+ * possible attribute pairs with matching usage type for equivalance. Two attributes are equivalent
  * if they are the same (upto casting) when they are both mapped to corner attribute.
  *
  * @tparam usage   The target usage of the attributes.

@@ -28,6 +28,7 @@
 #include <lagrange/compute_pointcloud_pca.h>
 #include <lagrange/compute_seam_edges.h>
 #include <lagrange/compute_tangent_bitangent.h>
+#include <lagrange/compute_uv_charts.h>
 #include <lagrange/compute_uv_distortion.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/compute_vertex_valence.h>
@@ -54,6 +55,7 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/uv_mesh.h>
 #include <lagrange/weld_indexed_attribute.h>
 
 // clang-format off
@@ -1745,34 +1747,99 @@ The input mesh must be a triangle mesh.
 
 :returns: The thickened and closed mesh.)");
 
-    m.def("extract_boundary_loops",
-            &extract_boundary_loops<Scalar, Index>,
-            "mesh"_a,
-            R"(Extract boundary loops from a mesh.
+    m.def(
+        "extract_boundary_loops",
+        &extract_boundary_loops<Scalar, Index>,
+        "mesh"_a,
+        R"(Extract boundary loops from a mesh.
 
 :param mesh: Input mesh.
 
 :returns: A list of boundary loops, each represented as a list of vertex indices.)");
 
-    m.def("extract_boundary_edges", [](MeshType& mesh) {
-        mesh.initialize_edges();
-        Index num_edges = mesh.get_num_edges();
-        std::vector<Index> bd_edges;
-        bd_edges.reserve(num_edges);
-        for (Index ei =0; ei < num_edges; ++ei) {
-            if (mesh.is_boundary_edge(ei)) {
-                bd_edges.push_back(ei);
+    m.def(
+        "extract_boundary_edges",
+        [](MeshType& mesh) {
+            mesh.initialize_edges();
+            Index num_edges = mesh.get_num_edges();
+            std::vector<Index> bd_edges;
+            bd_edges.reserve(num_edges);
+            for (Index ei = 0; ei < num_edges; ++ei) {
+                if (mesh.is_boundary_edge(ei)) {
+                    bd_edges.push_back(ei);
+                }
             }
-        }
-        return bd_edges;
-    },
-    "mesh"_a,
-    R"(Extract boundary edges from a mesh.
+            return bd_edges;
+        },
+        "mesh"_a,
+        R"(Extract boundary edges from a mesh.
 
 :param mesh: Input mesh.
 
 :returns: A list of boundary edge indices.)");
 
+    m.def(
+        "compute_uv_charts",
+        [](MeshType& mesh,
+           std::string_view uv_attribute_name,
+           std::string_view output_attribute_name,
+           std::string_view connectivity_type) {
+            UVChartOptions options;
+            options.uv_attribute_name = uv_attribute_name;
+            options.output_attribute_name = output_attribute_name;
+            if (connectivity_type == "Vertex") {
+                options.connectivity_type = UVChartOptions::ConnectivityType::Vertex;
+            } else if (connectivity_type == "Edge") {
+                options.connectivity_type = UVChartOptions::ConnectivityType::Edge;
+            } else {
+                throw std::runtime_error(
+                    fmt::format("Invalid connectivity type: {}", connectivity_type));
+            }
+            return compute_uv_charts(mesh, options);
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = UVChartOptions().uv_attribute_name,
+        "output_attribute_name"_a = UVChartOptions().output_attribute_name,
+        "connectivity_type"_a = "Edge",
+        R"(Compute UV charts.
+
+@param mesh: Input mesh.
+@param uv_attribute_name: Name of the UV attribute.
+@param output_attribute_name: Name of the output attribute to store the chart ids.
+@param connectivity_type: Type of connectivity to use for chart computation. Can be "Vertex" or "Edge".
+
+@returns: A list of chart ids for each vertex.)");
+
+    m.def(
+        "uv_mesh_view",
+        [](const MeshType& mesh, std::string_view uv_attribute_name) {
+            UVMeshOptions options;
+            options.uv_attribute_name = uv_attribute_name;
+            return uv_mesh_view(mesh, options);
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = UVMeshOptions().uv_attribute_name,
+        R"(Extract a UV mesh view from a 3D mesh.
+
+:param mesh: Input mesh.
+:param uv_attribute_name: Name of the (indexed or vertex) UV attribute.
+
+:return: A new mesh representing the UV mesh.)");
+    m.def(
+        "uv_mesh_ref",
+        [](MeshType& mesh, std::string_view uv_attribute_name) {
+            UVMeshOptions options;
+            options.uv_attribute_name = uv_attribute_name;
+            return uv_mesh_ref(mesh, options);
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = UVMeshOptions().uv_attribute_name,
+        R"(Extract a UV mesh reference from a 3D mesh.
+
+:param mesh: Input mesh.
+:param uv_attribute_name: Name of the (indexed or vertex) UV attribute.
+
+:return: A new mesh representing the UV mesh.)");
 }
 
 } // namespace lagrange::python
