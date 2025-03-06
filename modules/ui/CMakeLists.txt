@@ -21,7 +21,7 @@ target_compile_features(lagrange_ui PUBLIC cxx_std_17)
 
 # 2. dependencies
 lagrange_include_modules(io)
-include(nanoflann)
+lagrange_find_package(nanoflann REQUIRED)
 if(NOT EMSCRIPTEN)
     include(gl3w)
 endif()

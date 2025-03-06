@@ -19,15 +19,7 @@ else()
 endif()
 
 # Check required CMake version
-set(REQUIRED_CMAKE_VERSION "3.25.0")
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    cmake_minimum_required(VERSION ${REQUIRED_CMAKE_VERSION})
-else()
-    # Don't use cmake_minimum_required here to avoid implicitly overriding parent policies
-    if(${CMAKE_VERSION} VERSION_LESS ${REQUIRED_CMAKE_VERSION})
-        message(FATAL_ERROR "CMake required version to build Lagrange is ${REQUIRED_CMAKE_VERSION}")
-    endif()
-endif()
+cmake_minimum_required(VERSION 3.25.0)
 
 cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
@@ -40,6 +32,7 @@ set(CMAKE_POLICY_DEFAULT_CMP0077 NEW) # Avoid overriding normal variables with o
 set(CMAKE_POLICY_DEFAULT_CMP0091 NEW) # MSVC runtime library flags are selected by an abstraction.
 set(CMAKE_POLICY_DEFAULT_CMP0126 NEW) # Avoid overriding normal variables with set(CACHE)
 set(CMAKE_POLICY_DEFAULT_CMP0135 NEW) # Set the timestamps of all extracted contents to the time of the extraction.
+set(CMAKE_POLICY_DEFAULT_CMP0137 NEW) # try_compile() passes platform variables in project mode.
 set(CMAKE_POLICY_DEFAULT_CMP0156 NEW) # De-duplicate libraries on link lines based on linker capabilities.
 
 # Include user-provided default options if available. We do that before the main
@@ -94,8 +87,16 @@ if((LAGRANGE_CCACHE_PROGRAM STREQUAL "ccache") AND CCACHE_PROGRAM)
     endforeach()
 endif()
 
-# Set default macOS deployment target
-if(LAGRANGE_TOPLEVEL_PROJECT)
+# Set default macOS deployment target.
+#
+# If vcpkg is used, we use the default OSX deployment target. Ideally vcpkg
+# should follow the OSX deployment target defined by CMake. See the following
+# issue for more detail:
+# https://github.com/microsoft/vcpkg/issues/39981
+#
+# Since VCPKG_INSTALLED_DIR is not defined yet before the first project() call,
+# we use CMAKE_TOOLCHAIN_FILE to detect if we use vcpkg...
+if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
 endif()
 
@@ -164,6 +165,13 @@ if(LAGRANGE_MODULE_USD OR (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
 endif()
 
+# When using vcpkg, use find_package() to find external libraries
+if(DEFINED VCPKG_INSTALLED_DIR)
+    set(LAGRANGE_USE_FIND_PACKAGE_DEFAULT ON)
+else()
+    set(LAGRANGE_USE_FIND_PACKAGE_DEFAULT OFF)
+endif()
+
 # General CMake options
 option(LAGRANGE_ASSERT_DEBUG_BREAK      "Assert will break into debugger on failure"           ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_COMPILE_TESTS           "Enable compilation tests"                             ${LAGRANGE_COMPILE_TESTS_DEFAULT})
@@ -171,7 +179,6 @@ option(LAGRANGE_COPY_RUNTIME_DEPS       "Copy runtime dependencies into executab
 option(LAGRANGE_DISABLE_FPE             "Disable floating point exception code"                OFF)
 option(LAGRANGE_DOCUMENTATION           "Build Doxygen documentation"                          OFF)
 option(LAGRANGE_ENABLE_GPU_TESTS        "Enable unit tests that run on the GPU"                ON)
-option(LAGRANGE_ENABLE_LEGACY_FUNCTIONS "Enable support for legacy functions."                 ON)
 option(LAGRANGE_EXAMPLES                "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt and eigen"     ${LAGRANGE_FMT_EIGEN_FIX_DEFAULT})
 option(LAGRANGE_INSTALL                 "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
@@ -183,6 +190,7 @@ option(LAGRANGE_USE_PCH                 "Enable precompiled headers"            
 option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            OFF)
 option(LAGRANGE_USE_WASM_THREADS        "Enable threads (-pthread) with Emscripten"            ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)
+option(LAGRANGE_USE_FIND_PACKAGE        "Defer to find_package() to find external libraries"   ${LAGRANGE_USE_FIND_PACKAGE_DEFAULT})
 
 # Set build type as a normal variable to prevent subprojects from overriding it as a option/CACHE variable (thanks to CMP0077/CMP0126)
 if(DEFINED BUILD_SHARED_LIBS)
@@ -295,7 +303,7 @@ endif()
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
 # we need to use the MSVC runtime library flag globally for the whole project.
 file(READ "cmake/lagrange/lagrangeMklModules.txt" LAGRANGE_MKL_MODULES)
-if(LAGRANGE_TOPLEVEL_PROJECT)
+if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED VCPKG_INSTALLED_DIR)
     if(LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL)
         # Set MSVC runtime library globally for all targets
         message(STATUS "Forcing /MD globally due to LAGRANGE_ALL requiring MKL")
@@ -328,6 +336,7 @@ include(lagrange_add_python_binding)
 include(lagrange_add_test)
 include(lagrange_cpm_cache)
 include(lagrange_download_data)
+include(lagrange_find_package)
 include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
@@ -404,7 +413,7 @@ if(LAGRANGE_INSTALL)
     include(GNUInstallDirs)
     set(project_config_in "${PROJECT_SOURCE_DIR}/cmake/lagrange/lagrangeConfig.cmake.in")
     set(project_config_out "${CMAKE_CURRENT_BINARY_DIR}/LagrangeConfig.cmake")
-    set(config_targets_file "LagrangeConfigTargets.cmake")
+    set(config_targets_file "LagrangeTargets.cmake")
     set(version_config_file "${CMAKE_CURRENT_BINARY_DIR}/LagrangeConfigVersion.cmake")
     set(export_dest_dir "${CMAKE_INSTALL_LIBDIR}/cmake/lagrange")
 

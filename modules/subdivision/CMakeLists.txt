@@ -14,14 +14,14 @@ lagrange_add_module()
 
 # 2. dependencies
 include(libigl)
-include(opensubdiv)
+lagrange_find_package(OpenSubdiv CONFIG REQUIRED)
 target_link_libraries(lagrange_subdivision
     PUBLIC
         lagrange::core
 # TODO: Once we remove legacy headers, make those deps private:
 # PRIVATE
         igl::core
-        opensubdiv::opensubdiv
+        OpenSubdiv::osdCPU_static
 )
 
 # 3. unit tests and examples

@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/mesh_cleanup/close_small_holes.h>
 #include <lagrange/mesh_cleanup/detect_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/remove_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_facets.h>
@@ -19,6 +20,7 @@
 #include <lagrange/mesh_cleanup/remove_null_area_facets.h>
 #include <lagrange/mesh_cleanup/remove_short_edges.h>
 #include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
+#include <lagrange/mesh_cleanup/rescale_uv_charts.h>
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
@@ -208,6 +210,50 @@ is not.
     Non-degenerate facets adjacent to degenerte facets may be re-triangulated as a result of the removal.
 
 :param mesh: The mesh for inplace modification.)");
+
+    m.def(
+        "close_small_holes",
+        [](MeshType& mesh, size_t max_hole_size, bool triangulate_holes) {
+            CloseSmallHolesOptions options;
+            options.max_hole_size = max_hole_size;
+            options.triangulate_holes = triangulate_holes;
+            close_small_holes(mesh, options);
+        },
+        "mesh"_a,
+        "max_hole_size"_a = CloseSmallHolesOptions().max_hole_size,
+        "triangulate_holes"_a = CloseSmallHolesOptions().triangulate_holes,
+        R"(Close small holes in a mesh.
+
+:param mesh: The input mesh for inplace modification.
+:param max_hole_size: The maximum number of vertices on a hole to be closed.
+:param triangulate_holes: Whether to triangulate holes. If false, holes will be filled by polygons.)");
+
+    m.def(
+        "rescale_uv_charts",
+        [](MeshType& mesh,
+           std::string_view uv_attribute_name,
+           std::string_view chart_id_attribute_name,
+           double uv_area_threshold) {
+            RescaleUVOptions options;
+            options.uv_attribute_name = uv_attribute_name;
+            options.chart_id_attribute_name = chart_id_attribute_name;
+            options.uv_area_threshold = uv_area_threshold;
+            rescale_uv_charts(mesh, options);
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = RescaleUVOptions().uv_attribute_name,
+        "chart_id_attribute_name"_a = RescaleUVOptions().chart_id_attribute_name,
+        "uv_area_threshold"_a = RescaleUVOptions().uv_area_threshold,
+        R"(Rescale UV charts such that their aspect ratios match their 3D images.
+
+:param mesh: The input mesh for inplace modification.
+:param uv_attribute_name: The uv attribute name to use for rescaling.
+                         If empty, the first UV attribute found will be used.
+:param chart_id_attribute_name: The name used for storing the patch ID attribute.
+                                If empty, patches will be computed based on UV chart connectivity.
+:param uv_area_threshold: The threshold for UV area. 
+                         UV triangles with area smaller than this threshold will not contribute to scale factor computation.
+)");
 }
 
 } // namespace lagrange::python

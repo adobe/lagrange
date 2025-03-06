@@ -13,7 +13,7 @@
 lagrange_add_module()
 
 # 2. dependencies
-include(embree)
+lagrange_find_package(embree 3 CONFIG REQUIRED)
 lagrange_include_modules(bvh)
 target_link_libraries(lagrange_raycasting PUBLIC
     lagrange::core

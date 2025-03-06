@@ -2,7 +2,7 @@
 build-backend = "scikit_build_core.build"
 
 requires = [
-    "scikit-build-core==0.8.2",
+    "scikit-build-core==0.10.7",
     "typing-extensions~=4.1",
 ]
 
@@ -28,7 +28,8 @@ classifiers = [
 dynamic = [ "version" ]
 
 dependencies = [
-    "colorama>=0.4.6",
+    "colorama>=0.4.4 ; platform_system != 'Windows'",
+    "colorama>=0.4.6 ; platform_system == 'Windows'",
     "numpy>=1.25",
 ]
 urls.doc = "https://opensource.adobe.com/lagrange-docs"
@@ -49,10 +50,27 @@ lint = [
 ]
 
 [tool.scikit-build]
+ninja.version = ">=1.11.1"
+ninja.make-fallback = false
 install.components = [ "Lagrange_Python_Runtime" ]
 wheel.packages = [ "modules/python/lagrange" ]
 
+build-dir = "build-python"
+editable.rebuild = false
+
+# Debug related options
+# cmd: uv sync [--verbose] [--reinstall-package lagrange]
+# ---------------------
+#
+# build.verbose = true
+# editable.verbose = false
+# logging.level = "INFO"
+#
+# cmake.build-type = "Debug"
+# install.strip = false
+
 [tool.scikit-build.cmake.define]
+CMAKE_GENERATOR = "Ninja"
 LAGRANGE_ASSERT_DEBUG_BREAK = false
 LAGRANGE_EXAMPLES = false
 LAGRANGE_INSTALL = false
@@ -80,3 +98,6 @@ line-length = 100
 [tool.pyproject-fmt]
 indent = 4
 keep_full_version = true
+
+[tool.uv]
+python-preference = "only-managed"

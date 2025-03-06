@@ -18,27 +18,23 @@ endif()
 # nasoq::eigen_interface depends on nasoq::nasoq.
 # nasoq::nasoq does NOT include nasoq::eigen_interface.
 
-include(blas)
-include(eigen)
+lagrange_find_package(Eigen3 REQUIRED)
 include(metis)
-include(lapack)
 
 option(NASOQ_WITH_EIGEN "Build NASOQ Eigen interface" ON)
 
+include(blas)
+include(lapack)
 
-if("${CMAKE_SYSTEM_PROCESSOR}" MATCHES "arm64" OR "${CMAKE_OSX_ARCHITECTURES}" MATCHES "arm64")
+if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR "arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
     # Change to accelerate after https://github.com/sympiler/nasoq/pull/27 is merged
     set(NASOQ_BLAS_BACKEND "OpenBLAS" CACHE STRING "BLAS implementation for NASOQ to use")
+    set(NASOQ_USE_CLAPACK ON)
+    include(openblas)
 else()
     # use MKL on windows, linux, apple intel
     set(NASOQ_BLAS_BACKEND "MKL" CACHE STRING "BLAS implementation for NASOQ to use")
-endif()
-
-if(NASOQ_BLAS_BACKEND STREQUAL "MKL")
-    include(mkl)
-elseif(NASOQ_BLAS_BACKEND STREQUAL "OpenBLAS")
-    option(NASOQ_USE_CLAPACK "Use CLAPACK as the LAPACK implementation" ON)
-    include(openblas)
+    add_library(mkl::mkl ALIAS MKL::MKL) # TODO: Patch Nasoq to use MKL::MKL target name
 endif()
 
 message(STATUS "Third-party (external): creating target 'nasoq::nasoq'")

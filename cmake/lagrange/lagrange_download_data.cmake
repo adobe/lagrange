@@ -21,7 +21,7 @@ function(lagrange_download_data)
 
     if(LAGRANGE_EXTERNAL_ONLY)
         # For now we use CMake ExternalProject to git clone the repository containing the test data.
-        # In the future we might switch to another provider and download each file directy.
+        # In the future we might switch to another provider and download each file directly.
         include(ExternalProject)
         include(FetchContent)
         ExternalProject_Add(

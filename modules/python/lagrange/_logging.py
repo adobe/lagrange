@@ -11,8 +11,10 @@
 #
 import logging
 import colorama
+import platform
 
-colorama.just_fix_windows_console()
+if platform.system() == "Windows":
+    colorama.just_fix_windows_console()
 
 logger = logging.getLogger("lagrange")
 handler = logging.StreamHandler()

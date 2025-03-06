@@ -85,7 +85,7 @@ function(embree_import_target)
     # Embree wants to be able to export() its target, and expects a target named `TBB` to exist.
     # Somehow we stil need to define `TBB_INCLUDE_DIRS`, and linking against `TBB` isn't sufficient
     # to compile embree targets properly.
-    include(tbb)
+    lagrange_find_package(TBB CONFIG REQUIRED)
     ignore_package(TBB)
     get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
     add_library(TBB INTERFACE)
