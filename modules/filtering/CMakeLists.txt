@@ -17,8 +17,26 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 # 2. dependencies
+if(LAGRANGE_NO_INTERNAL)
+    if(APPLE)
+        # Without Nasoq, we simply use Accelerate on all macOS platforms
+        set(BLA_VENDOR Apple)
+        find_package(BLAS REQUIRED)
+        target_compile_definitions(lagrange_filtering PRIVATE LA_SOLVER_ACCELERATE)
+    else()
+        include(blas) # Accelerate on arm64 macOS, MKL on other platforms
+    endif()
+else()
+    include(blas) # Accelerate on arm64 macOS, MKL on other platforms
+
+    # TODO: Ideally we'd always use Accelerate on macOS and pick backend solver based on platform in the C++ code.
+    # But because of legacy Nasoq stuff we only use Accelerate on x64 macOS. So for now let's propagate that info.
+    if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR "arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+        target_compile_definitions(lagrange_filtering PRIVATE LA_SOLVER_ACCELERATE)
+    endif()
+endif()
+
 include(shape_gradient_domain)
-include(blas) # Accelerate on macOS, MKL on other platforms
 target_link_libraries(lagrange_filtering
     PUBLIC
         lagrange::core
@@ -26,12 +44,6 @@ target_link_libraries(lagrange_filtering
         shape_gradient_domain::shape_gradient_domain
         BLAS::BLAS
 )
-
-# TODO: Ideally we'd always use Accelerate on macOS and pick backend solver based on platform in the C++ code.
-# But because of legacy Nasoq stuff we only use Accelerate on x64 macOS. So for now let's propagate that info.
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR "arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
-    target_compile_definitions(lagrange_filtering PRIVATE LA_SOLVER_ACCELERATE)
-endif()
 
 # 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
