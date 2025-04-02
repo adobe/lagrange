@@ -1,0 +1,66 @@
+{
+  "mkl-2024.2.2-py2.py3-none-manylinux1_i686.whl": {
+    "md5": "41540ab4e5c7325596f2847f058de355",
+    "blake": "f5a3eca31ce232dfa6605279dc168a911615a560b169b519bbb4a90d172e84ad"
+  },
+  "mkl-2024.2.2-py2.py3-none-manylinux1_x86_64.whl": {
+    "md5": "49d837554275db2a22da07a807ea2e92",
+    "blake": "b8788e11186efdf608fee944196abd078bedd89db9460ec3370c9b260db3a231"
+  },
+  "mkl-2024.2.2-py2.py3-none-win32.whl": {
+    "md5": "5993c1544261027490fae1239dea07c0",
+    "blake": "e5ca76021feedd622eb2fb8f9e3349e4e1132c01556f06679dc2499b8853956e"
+  },
+  "mkl-2024.2.2-py2.py3-none-win_amd64.whl": {
+    "md5": "6f70500fd3778a03a02ad9f6a8229acb",
+    "blake": "100049b12dfda989a03e0139d1ce630bd8c388bb708db42e1cfe86c5db66e745"
+  },
+  "mkl_devel-2024.2.2-py2.py3-none-manylinux1_i686.whl": {
+    "md5": "9e641d101a04049320abaa0a65e3f47a",
+    "blake": "99049f90f16ebccc1c0db104ee5d310bfbbe392e264e2d6d90b2b5ad651cdf94"
+  },
+  "mkl_devel-2024.2.2-py2.py3-none-manylinux1_x86_64.whl": {
+    "md5": "c47a433bec59461e02e528ad7a5c7b0a",
+    "blake": "cec511a375ee99ceae06a74c77cc5cc465036ea85a26db0c2dbcec3a44bd527a"
+  },
+  "mkl_devel-2024.2.2-py2.py3-none-win32.whl": {
+    "md5": "61e7b58daa631975641e129765dd59cd",
+    "blake": "15da23bdabf1eb5235f456ff2af5274f2ed099fc28927cf859805d95e2ca2458"
+  },
+  "mkl_devel-2024.2.2-py2.py3-none-win_amd64.whl": {
+    "md5": "8986c742855292e2781e7ded6b49436b",
+    "blake": "3bacb6ef92de949f074935c0a8d3b1cfe8a0d113368de39a8c072a7fd77ba335"
+  },
+  "mkl_include-2024.2.2-py2.py3-none-manylinux1_i686.whl": {
+    "md5": "2892662558c31f0a72063c235d0e79d4",
+    "blake": "d3905c4d3907a3bae2ed91cbf55e2eac047ac8ed36bd935267b236663c6d794c"
+  },
+  "mkl_include-2024.2.2-py2.py3-none-manylinux1_x86_64.whl": {
+    "md5": "7c648916d58e2f3325fae3b6e246c217",
+    "blake": "a0c8490f8712ccc5b216ea83706436c076f9ad0ffb7bbf21dcbdb710791ce368"
+  },
+  "mkl_include-2024.2.2-py2.py3-none-win32.whl": {
+    "md5": "fd8fd4b496b27877484259ac7b4135e1",
+    "blake": "a4e685f7d42f1a62f063ac4f4e8cb140893d2099242eb3ddea499eda22d31b91"
+  },
+  "mkl_include-2024.2.2-py2.py3-none-win_amd64.whl": {
+    "md5": "6bdb08703d6054969dc70e4667d955ef",
+    "blake": "7567d5ed174eba3ebb75e4d0a71ca1d6c225d22b9c50897c1f0f981108bc4681"
+  },
+  "mkl_static-2024.2.2-py2.py3-none-manylinux1_i686.whl": {
+    "md5": "86f49e3d8bfbec08e0dab262e16294c4",
+    "blake": "00e2b270ed5488b21c96e2ee784869c91301161d60e4ebff5ea289f85128d149"
+  },
+  "mkl_static-2024.2.2-py2.py3-none-manylinux1_x86_64.whl": {
+    "md5": "f5250dfd8402a9cd5a338c2fdeec8fc1",
+    "blake": "058eb413b09994f4a25329e08aec241abb8c4e6c835b17c4bcd47b2da69a808b"
+  },
+  "mkl_static-2024.2.2-py2.py3-none-win32.whl": {
+    "md5": "73f7ce444ab62ca45b887f6110c5f138",
+    "blake": "1979bf8bf43dc804ebbd0980f5dde7d2704b7e29c107cfbf57588450ea933a55"
+  },
+  "mkl_static-2024.2.2-py2.py3-none-win_amd64.whl": {
+    "md5": "1d5bec42ae87d3467f320d7852033774",
+    "blake": "d4b3c2c139a5170dcc5cd62e45e97fcad016875f046b15b6824c303fd0e2c42a"
+  }
+}

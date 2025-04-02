@@ -34,8 +34,8 @@ set_property(CACHE MKL_LINKING PROPERTY STRINGS ${MKL_LINKINK_CHOICES})
 message(STATUS "MKL linking strategy: ${MKL_LINKING}")
 
 # MKL version
-set(MKL_VERSION "2024.2.1" CACHE STRING "MKL version to use (2024.2.1)")
-set(MKL_VERSION_CHOICES 2024.2.1)
+set(MKL_VERSION "2024.2.2" CACHE STRING "MKL version to use (2024.2.2)")
+set(MKL_VERSION_CHOICES 2024.2.2)
 set_property(CACHE MKL_VERSION PROPERTY STRINGS ${MKL_VERSION_CHOICES})
 message(STATUS "MKL version: ${MKL_VERSION}")
 
@@ -77,31 +77,17 @@ endif()
 
 #
 # How to get URL info:
-# https://pypi.org/pypi/mkl/2024.2.1/json
+# https://pypi.org/pypi/mkl/2024.2.2/json
 #
 # URL format:
 # https://files.pythonhosted.org/packages/${digest_a}/${digest_b}/${digest_c}/${name}-${version}-${python_tag}-${abi_tag}-${platform_tag}.whl
 #
+# for name in mkl mkl-devel mkl-include mkl-static; do curl -s https://pypi.org/pypi/${name}/2024.2.2/json; done | jq -s 'reduce (.[] | {urls}.[].[] | {(.filename): {md5: .digests.md5, blake: .digests.blake2b_256}}) as $item ({}; . + $item)'
+#
 # For now we just extract the blake2b_256 hashes manually.
 #
-if(MKL_VERSION VERSION_EQUAL 2024.2.1)
-    set(mkl-linux-64-md5 95ae2d0f0ac0f0d75b5e6eebfe950a61)
-    set(mkl-win-64-md5 e00cd0a87e5b4eb30abf963fcff35c4a)
-    set(mkl-include-linux-64-md5 cd093868db92753f621cbc3b32a551c7)
-    set(mkl-include-win-64-md5 d389bf244e188613090b5e4fb1dff1b0)
-    set(mkl-static-linux-64-md5 2a30a478886c6baaf4c608005f9bb504)
-    set(mkl-static-win-64-md5 5c09cba82702c538184b44d3969062e8)
-    set(mkl-devel-linux-64-md5 e2952a0647f5a8119a90ce5e546614b9)
-    set(mkl-devel-win-64-md5 616e14b105c8c47aa81f23f7eafa320b)
-
-    set(mkl-linux-64-blake2b d817d88e4a21f06ea24b2dc0b01658f31bee229daad07f8d4850ba398ddf6235)
-    set(mkl-win-64-blake2b 7c2695144302ad2df906529b875f66d3e210bef0b7df7b114a85a7d797bc2b40)
-    set(mkl-include-linux-64-blake2b 9135878af3209787537f1e93e721cacc9b2a72230cf579854e65a7a920e5de33)
-    set(mkl-include-win-64-blake2b aeb7e4ff13142b932fefe698d14a0bf04461f617093ef30a74ec64cb41955ebb)
-    set(mkl-static-linux-64-blake2b d2d6903974cae7612e2c7ed42d3ccbe65cf0cbbf2130e5a882bb420308c2cba0)
-    set(mkl-static-win-64-blake2b 443aa2861e049e56ab09be99567dc993474fc15a315338d71371242170122f27)
-    set(mkl-devel-linux-64-blake2b 27000e05a83be406a744cb3591496d3dab8b4d7d00ea18ffccda9cfcc36b9cc7)
-    set(mkl-devel-win-64-blake2b 5f27d3be9e360c1e31f899e9ae80d4d5f32293311f66f0c17e2e52faf8430b26)
+if(MKL_VERSION VERSION_EQUAL 2024.2.2)
+    file(READ ${CMAKE_CURRENT_LIST_DIR}/MKL.json MKL_HASHES_JSON)
 else()
     message(FATAL_ERROR "MKL version not supported")
 endif()
@@ -117,19 +103,24 @@ endif()
 
 include(CPM)
 foreach(name IN ITEMS ${MKL_REMOTES})
-    set(digest_full ${${name}-${MKL_PLATFORM}-blake2b})
-    string(SUBSTRING ${digest_full} 0 2 digest_a)
-    string(SUBSTRING ${digest_full} 2 2 digest_b)
-    string(SUBSTRING ${digest_full} 4 -1 digest_c)
     set(version ${MKL_VERSION})
     set(python_tag py2.py3)
     set(abi_tag none)
     set(platform_tag ${MKL_PLATFORM_TAG})
     string(REPLACE "-" "_" pkg_name ${name})
+    set(mkl_wheel_name "${pkg_name}-${version}-${python_tag}-${abi_tag}-${platform_tag}.whl")
+
+    string(JSON mkl_wheel_info GET ${MKL_HASHES_JSON} ${mkl_wheel_name})
+    string(JSON mkl_wheel_blake GET ${mkl_wheel_info} blake)
+    string(JSON mkl_wheel_md5 GET ${mkl_wheel_info} md5)
+    string(SUBSTRING ${mkl_wheel_blake} 0 2 digest_a)
+    string(SUBSTRING ${mkl_wheel_blake} 2 2 digest_b)
+    string(SUBSTRING ${mkl_wheel_blake} 4 -1 digest_c)
+
     CPMAddPackage(
         NAME ${name}
         URL "https://files.pythonhosted.org/packages/${digest_a}/${digest_b}/${digest_c}/${pkg_name}-${version}-${python_tag}-${abi_tag}-${platform_tag}.whl"
-        URL_MD5 ${${name}-${MKL_PLATFORM}-md5}
+        URL_MD5 ${mkl_wheel_md5}
     )
 endforeach()
 
@@ -146,7 +137,7 @@ else()
     if(WIN32)
         set(MKL_LIB_SUFFIX "_dll")
     endif()
-    if(MKL_VERSION STREQUAL 2024.2.1)
+    if(MKL_VERSION STREQUAL 2024.2.2)
         set(MKL_DLL_SUFFIX ".2")
     endif()
     file(GLOB MKL_LIB_HINTS LIST_DIRECTORIES true "${mkl_SOURCE_DIR}/*.data" "${mkl-devel_SOURCE_DIR}/*.data")
@@ -220,8 +211,6 @@ function(mkl_add_imported_library name)
         else()
             # Find dll file and set IMPORTED_LOCATION to the .dll file
             string(TOUPPER mkl_${name}_dll DLLVAR)
-            message("LIB_HINTS: ${MKL_LIB_HINTS}")
-            message("LIB_PATH_SUFFIXES: ${MKL_LIB_PATH_SUFFIXES}")
             find_file(${DLLVAR}
                 NAMES mkl_${name}${MKL_DLL_SUFFIX}.dll
                 HINTS ${MKL_LIB_HINTS}
@@ -303,9 +292,6 @@ function(mkl_add_shared_libraries)
             else()
                 set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}${MKL_DLL_SUFFIX})
             endif()
-            message("MKL_LIB_HINTS: ${MKL_LIB_HINTS}")
-            message("MKL_LIB_PATH_SUFFIXES: ${MKL_LIB_PATH_SUFFIXES}")
-            message("mkl_search_name: ${mkl_search_name}")
             find_library(${DLLVAR}
                 NAMES ${mkl_search_name}
                 HINTS ${MKL_LIB_HINTS}
