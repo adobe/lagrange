@@ -473,7 +473,7 @@ endif()
 
 # If using TBB, we need to specify the dependency
 if(MKL_THREADING STREQUAL "tbb")
-    include(tbb)
+    lagrange_find_package(TBB CONFIG REQUIRED)
     if(TARGET MKL::tbb_thread)
         target_link_libraries(MKL::tbb_thread INTERFACE TBB::tbb)
     endif()
