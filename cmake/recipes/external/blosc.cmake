@@ -80,7 +80,7 @@ block()
     CPMAddPackage(
         NAME blosc
         GITHUB_REPOSITORY Blosc/c-blosc
-        GIT_TAG v1.21.5
+        GIT_TAG 051b9d2cb9437e375dead8574f66d80ebce47bee
     )
 
     include(GNUInstallDirs)

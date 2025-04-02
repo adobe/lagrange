@@ -94,6 +94,7 @@ function(embree_import_target)
 
     # Ready to include embree's atrocious CMake
     include(CPM)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
     CPMAddPackage(
         NAME embree
         GITHUB_REPOSITORY embree/embree
