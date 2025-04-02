@@ -116,6 +116,7 @@ jobs:
         run: |
           mkdir -p build
           cd build
+          cmake --version
           cmake .. -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
             -DLAGRANGE_JENKINS=ON \
@@ -186,6 +187,7 @@ jobs:
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          cmake --version
           cmake -G Ninja ^
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -DLAGRANGE_JENKINS=ON ^
