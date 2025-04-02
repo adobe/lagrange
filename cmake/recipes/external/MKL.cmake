@@ -191,13 +191,22 @@ function(mkl_add_imported_library name)
 
     # Find library file
     string(TOUPPER mkl_${name}_library LIBVAR)
+    # A bit hacky but MKL libs are weird...
+    set(OLD_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
+    if(LINUX)
+        set(CMAKE_FIND_LIBRARY_SUFFIXES "")
+        set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}.so${MKL_DLL_SUFFIX})
+    else()
+        set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX})
+    endif()
     find_library(${LIBVAR}
-        NAMES mkl_${name}${MKL_LIB_SUFFIX}
+        NAMES ${mkl_search_name}
         HINTS ${MKL_LIB_HINTS}
         PATH_SUFFIXES ${MKL_LIB_PATH_SUFFIXES}
         NO_DEFAULT_PATH
         REQUIRED
     )
+    set(CMAKE_FIND_LIBRARY_SUFFIXES ${OLD_CMAKE_FIND_LIBRARY_SUFFIXES})
     message(STATUS "Creating target MKL::${name} for lib file: ${${LIBVAR}}")
 
     # Set imported location
@@ -286,14 +295,17 @@ function(mkl_add_shared_libraries)
             )
         else()
             string(TOUPPER mkl_${name} DLLVAR)
-            set(OLD_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
             # A bit hacky but MKL libs are weird...
+            set(OLD_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
             if(LINUX)
                 set(CMAKE_FIND_LIBRARY_SUFFIXES "")
                 set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}.so${MKL_DLL_SUFFIX})
             else()
                 set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}${MKL_DLL_SUFFIX})
             endif()
+            message("MKL_LIB_HINTS: ${MKL_LIB_HINTS}")
+            message("MKL_LIB_PATH_SUFFIXES: ${MKL_LIB_PATH_SUFFIXES}")
+            message("mkl_search_name: ${mkl_search_name}")
             find_library(${DLLVAR}
                 NAMES ${mkl_search_name}
                 HINTS ${MKL_LIB_HINTS}
@@ -440,13 +452,13 @@ endif()
 mkl_add_shared_libraries(def)
 
 # Kernel - Optional
-mkl_add_shared_libraries(avx avx2 avx512 mc mc3)
+mkl_add_shared_libraries(avx2 avx512 mc3)
 
 # Vector Mathematics - Required
 mkl_add_shared_libraries(vml_def vml_cmpt)
 
 # Vector Mathematics - Optional
-mkl_add_shared_libraries(vml_avx vml_avx2 vml_avx512 vml_mc vml_mc2 vml_mc3)
+mkl_add_shared_libraries(vml_avx2 vml_avx512 vml_mc3)
 
 # Compile definitions.
 if(MKL_INTERFACE STREQUAL "ilp64")
