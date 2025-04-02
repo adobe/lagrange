@@ -82,9 +82,9 @@ endif()
 # URL format:
 # https://files.pythonhosted.org/packages/${digest_a}/${digest_b}/${digest_c}/${name}-${version}-${python_tag}-${abi_tag}-${platform_tag}.whl
 #
-# for name in mkl mkl-devel mkl-include mkl-static; do curl -s https://pypi.org/pypi/${name}/2024.2.2/json; done | jq -s 'reduce (.[] | {urls}.[].[] | {(.filename): {md5: .digests.md5, blake: .digests.blake2b_256}}) as $item ({}; . + $item)'
+# Let's use jq to extract the checksum info into a separate JSON file:
 #
-# For now we just extract the blake2b_256 hashes manually.
+# for name in mkl mkl-devel mkl-include mkl-static; do curl -s https://pypi.org/pypi/${name}/2024.2.2/json; done | jq -s 'reduce (.[] | {urls}.[].[] | {(.filename): {md5: .digests.md5, blake: .digests.blake2b_256}}) as $item ({}; . + $item)' > MKL.json
 #
 if(MKL_VERSION VERSION_EQUAL 2024.2.2)
     file(READ ${CMAKE_CURRENT_LIST_DIR}/MKL.json MKL_HASHES_JSON)
