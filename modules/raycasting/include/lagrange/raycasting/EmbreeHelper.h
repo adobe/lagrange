@@ -11,12 +11,16 @@
  */
 #pragma once
 
+#include <lagrange/raycasting/api.h>
 #include <embree3/rtcore.h>
 
 namespace lagrange {
 namespace raycasting {
 namespace EmbreeHelper {
+
+LA_RAYCASTING_API
 void ensure_no_errors(const RTCDevice& device);
+
 } // namespace EmbreeHelper
 } // namespace raycasting
 } // namespace lagrange

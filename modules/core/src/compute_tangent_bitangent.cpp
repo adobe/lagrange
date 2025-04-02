@@ -358,7 +358,8 @@ void corner_tangent_bitangent_raw(
     AttributeId uv_id,
     AttributeId normal_id,
     Eigen::MatrixBase<DerivedT>& tangents,
-    Eigen::MatrixBase<DerivedB>& bitangents)
+    Eigen::MatrixBase<DerivedB>& bitangents,
+    bool orthogonalize_bitangent)
 {
     auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(uv_id);
     auto& normal_attr = mesh.template get_indexed_attribute<Scalar>(normal_id);
@@ -395,8 +396,13 @@ void corner_tangent_bitangent_raw(
                 Eigen::RowVector3<Scalar> nrm = normal_values.row(normal_indices(f, lv));
                 tangents.row(f * nvpf + lv).template head<3>() =
                     project_on_plane(t, nrm).stableNormalized();
-                bitangents.row(f * nvpf + lv).template head<3>() =
-                    project_on_plane(bt, nrm).stableNormalized();
+                if (orthogonalize_bitangent) {
+                    bitangents.row(f * nvpf + lv).template head<3>() =
+                        Scalar(sign ? 1 : -1) * nrm.cross(t).stableNormalized();
+                } else {
+                    bitangents.row(f * nvpf + lv).template head<3>() =
+                        project_on_plane(bt, nrm).stableNormalized();
+                }
                 if (pad_with_sign) {
                     tangents.row(f * nvpf + lv).w() = Scalar(sign ? 1 : -1);
                     bitangents.row(f * nvpf + lv).w() = Scalar(sign ? 1 : -1);
@@ -468,8 +474,13 @@ void corner_tangent_bitangent_raw(
                     normal_values.row(normal_indices(corner_begin + lv));
                 tangents.row(corner_begin + lv).template head<3>() =
                     project_on_plane(t, nrm).stableNormalized();
-                bitangents.row(corner_begin + lv).template head<3>() =
-                    project_on_plane(bt, nrm).stableNormalized();
+                if (orthogonalize_bitangent) {
+                    bitangents.row(corner_begin + lv).template head<3>() =
+                        Scalar(sign ? 1 : -1) * nrm.cross(t).stableNormalized();
+                } else {
+                    bitangents.row(corner_begin + lv).template head<3>() =
+                        project_on_plane(bt, nrm).stableNormalized();
+                }
                 if (pad_with_sign) {
                     tangents.row(corner_begin + lv).w() = Scalar(sign ? 1 : -1);
                     bitangents.row(corner_begin + lv).w() = Scalar(sign ? 1 : -1);
@@ -535,7 +546,13 @@ TangentBitangentResult compute_tangent_bitangent(
         auto bitangents = attribute_matrix_ref<Scalar>(mesh, result.bitangent_id);
 
         logger().debug("Compute corner tangent info");
-        corner_tangent_bitangent_raw(mesh, uv_id, normal_id, tangents, bitangents);
+        corner_tangent_bitangent_raw(
+            mesh,
+            uv_id,
+            normal_id,
+            tangents,
+            bitangents,
+            options.orthogonalize_bitangent);
     } else if (options.output_element_type == AttributeElement::Indexed) {
         using MatrixType = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
@@ -543,7 +560,13 @@ TangentBitangentResult compute_tangent_bitangent(
         MatrixType corner_bitangents(mesh.get_num_corners(), num_channels);
 
         logger().debug("Compute corner tangent info");
-        corner_tangent_bitangent_raw(mesh, uv_id, normal_id, corner_tangents, corner_bitangents);
+        corner_tangent_bitangent_raw(
+            mesh,
+            uv_id,
+            normal_id,
+            corner_tangents,
+            corner_bitangents,
+            options.orthogonalize_bitangent);
 
         logger().debug("Accumulate tangent info");
         result.tangent_id = internal::find_or_create_attribute<Scalar>(
@@ -575,9 +598,9 @@ TangentBitangentResult compute_tangent_bitangent(
     return result;
 }
 
-#define LA_X_compute_tangent_bitangent(_, Scalar, Index)       \
+#define LA_X_compute_tangent_bitangent(_, Scalar, Index)                   \
     template LA_CORE_API TangentBitangentResult compute_tangent_bitangent( \
-        SurfaceMesh<Scalar, Index>& mesh,                      \
+        SurfaceMesh<Scalar, Index>& mesh,                                  \
         TangentBitangentOptions options);
 LA_SURFACE_MESH_X(compute_tangent_bitangent, 0)
 

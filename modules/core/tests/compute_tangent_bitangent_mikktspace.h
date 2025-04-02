@@ -91,6 +91,7 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
     {
         int num_facets;
         int num_channels;
+        bool orthogonalize_bitangent;
 
         span<const Scalar> position_values;
         span<const Index> position_indices;
@@ -108,6 +109,7 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
     LocalData data;
     data.num_facets = lagrange::safe_cast<int>(mesh.get_num_facets());
     data.num_channels = static_cast<int>(num_channels);
+    data.orthogonalize_bitangent = options.orthogonalize_bitangent;
     data.position_values = mesh.get_vertex_to_position().get_all();
     data.position_indices = mesh.get_corner_to_vertex().get_all();
     data.normal_values = mesh.template get_indexed_attribute<Scalar>(normal_id).values().get_all();
@@ -164,8 +166,9 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
                                        const int iFace,
                                        const int iVert) {
         auto _data = reinterpret_cast<LocalData*>(pContext->m_pUserData);
-        auto tangent =
-            _data->tangents.subspan((iFace * NVPF + iVert) * _data->num_channels, _data->num_channels);
+        auto tangent = _data->tangents.subspan(
+            (iFace * NVPF + iVert) * _data->num_channels,
+            _data->num_channels);
         tangent[0] = static_cast<Scalar>(fvTangent[0]);
         tangent[1] = static_cast<Scalar>(fvTangent[1]);
         tangent[2] = static_cast<Scalar>(fvTangent[2]);
@@ -186,8 +189,9 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
         auto _data = reinterpret_cast<LocalData*>(pContext->m_pUserData);
         const float fSign = bIsOrientationPreserving ? 1.0f : (-1.0f);
 
-        auto tangent =
-            _data->tangents.subspan((iFace * NVPF + iVert) * _data->num_channels, _data->num_channels);
+        auto tangent = _data->tangents.subspan(
+            (iFace * NVPF + iVert) * _data->num_channels,
+            _data->num_channels);
         tangent[0] = static_cast<Scalar>(fvTangent[0]);
         tangent[1] = static_cast<Scalar>(fvTangent[1]);
         tangent[2] = static_cast<Scalar>(fvTangent[2]);
@@ -198,9 +202,20 @@ lagrange::TangentBitangentResult compute_tangent_bitangent_mikktspace(
         auto bitangent = _data->bitangents.subspan(
             (iFace * NVPF + iVert) * _data->num_channels,
             _data->num_channels);
-        bitangent[0] = static_cast<Scalar>(fvBiTangent[0]);
-        bitangent[1] = static_cast<Scalar>(fvBiTangent[1]);
-        bitangent[2] = static_cast<Scalar>(fvBiTangent[2]);
+        if (_data->orthogonalize_bitangent) {
+            const Index v = _data->normal_indices[iFace * NVPF + iVert];
+            auto nrm = _data->normal_values.subspan(v * DIM, DIM);
+            Eigen::Vector3f n(nrm[0], nrm[1], nrm[2]);
+            Eigen::Vector3f t(fvTangent[0], fvTangent[1], fvTangent[2]);
+            Eigen::Vector3f b = fSign * n.cross(t);
+            bitangent[0] = static_cast<Scalar>(b[0]);
+            bitangent[1] = static_cast<Scalar>(b[1]);
+            bitangent[2] = static_cast<Scalar>(b[2]);
+        } else {
+            bitangent[0] = static_cast<Scalar>(fvBiTangent[0]);
+            bitangent[1] = static_cast<Scalar>(fvBiTangent[1]);
+            bitangent[2] = static_cast<Scalar>(fvBiTangent[2]);
+        }
         if (bitangent.size() == 4) {
             bitangent[3] = static_cast<Scalar>(fSign);
         }

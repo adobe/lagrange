@@ -15,6 +15,8 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/scene/internal/scene_string_utils.h>
 
+#include <spdlog/fmt/ranges.h>
+
 #include <vector>
 
 namespace lagrange::scene::internal {

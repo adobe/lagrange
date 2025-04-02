@@ -15,9 +15,10 @@
 #endif
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/transform_mesh.h>
 #include <lagrange/utils/span.h>
 
-#include <vector>
+#include <Eigen/Geometry>
 
 namespace lagrange {
 
@@ -32,24 +33,62 @@ namespace lagrange {
 ///
 /// Normalize a mesh to fit in a unit box centered at the origin.
 ///
-/// @param[in]  mesh    Input mesh.
+/// @param[out]  mesh    Input mesh.
+/// @param[in]   options Transform options.
+///
+/// @tparam     Dimension  Mesh dimension.
+/// @tparam     Scalar     Mesh scalar type.
+/// @tparam     Index      Mesh index type.
+///
+/// @return The inverse transform, can be used to undo the normalization process.
+///
+template <size_t Dimension = 3, typename Scalar, typename Index>
+auto normalize_mesh_with_transform(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const TransformOptions& options = {}) -> Eigen::Transform<Scalar, Dimension, Eigen::Affine>;
+
+///
+/// Normalize a mesh to fit in a unit box centered at the origin.
+///
+/// @param[out]  mesh    Input mesh.
+/// @param[in]   options Transform options.
 ///
 /// @tparam     Scalar  Mesh scalar type.
 /// @tparam     Index   Mesh index type.
 ///
 template <typename Scalar, typename Index>
-void normalize_mesh(SurfaceMesh<Scalar, Index>& mesh);
+void normalize_mesh(SurfaceMesh<Scalar, Index>& mesh, const TransformOptions& options = {});
 
 ///
 /// Normalize a list of meshes to fit in a unit box centered at the origin.
 ///
-/// @param[in]  meshes  List of pointers to the meshes to modify.
+/// @param[out]  meshes  List of pointers to the meshes to modify.
+/// @param[in]   options Transform options.
+///
+/// @tparam     Dimension  Mesh dimension.
+/// @tparam     Scalar  Mesh scalar type.
+/// @tparam     Index   Mesh index type.
+///
+/// @return The inverse transform, can be used to undo the normalization process.
+///
+template <size_t Dimension = 3, typename Scalar, typename Index>
+auto normalize_meshes_with_transform(
+    span<SurfaceMesh<Scalar, Index>*> meshes,
+    const TransformOptions& options = {}) -> Eigen::Transform<Scalar, Dimension, Eigen::Affine>;
+
+///
+/// Normalize a list of meshes to fit in a unit box centered at the origin.
+///
+/// @param[out]  meshes  List of pointers to the meshes to modify.
+/// @param[in]   options Transform options.
 ///
 /// @tparam     Scalar  Mesh scalar type.
 /// @tparam     Index   Mesh index type.
 ///
 template <typename Scalar, typename Index>
-void normalize_meshes(span<SurfaceMesh<Scalar, Index>*> meshes);
+void normalize_meshes(
+    span<SurfaceMesh<Scalar, Index>*> meshes,
+    const TransformOptions& options = {});
 
 /// @}
 

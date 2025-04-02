@@ -17,49 +17,138 @@
 #include <lagrange/normalize_meshes.h>
 #include <lagrange/views.h>
 
+#include <optional>
+
 namespace lagrange {
 
-template <typename Scalar, typename Index>
-void normalize_mesh(SurfaceMesh<Scalar, Index>& mesh)
+template <size_t Dimension, typename Scalar, typename Index>
+auto normalize_mesh_with_transform(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const TransformOptions& options) -> Eigen::Transform<Scalar, Dimension, Eigen::Affine>
 {
-    auto vertices = vertex_ref(mesh);
-    if (vertices.rows() == 0) return;
+    auto ret = Eigen::Transform<Scalar, Dimension, Eigen::Affine>::Identity();
+    la_debug_assert(std::fabs(ret.matrix().determinant() - 1.0) < 1e-7);
 
-    auto bbox_min = vertices.colwise().minCoeff().eval();
-    auto bbox_max = vertices.colwise().maxCoeff().eval();
-    auto bbox_center = ((bbox_min + bbox_max) / 2).eval();
-    Scalar s = (bbox_max - bbox_min).norm() / 2;
-    if (s == 0) return;
+    if (mesh.get_dimension() != Dimension) return ret;
 
-    vertices.rowwise() -= bbox_center;
-    vertices = vertices / s;
+    const auto vertices = vertex_view(mesh);
+    if (vertices.rows() == 0) return ret;
+
+    const auto bbox_min = vertices.colwise().minCoeff().eval();
+    const auto bbox_max = vertices.colwise().maxCoeff().eval();
+    const auto bbox_center = ((bbox_min + bbox_max) / 2).eval();
+    const auto bbox_scale = (bbox_max - bbox_min).norm() / 2;
+    if (bbox_scale == 0) return ret;
+
+    ret.translation() = bbox_center;
+    ret.linear().diagonal().array() = bbox_scale;
+
+    transform_mesh(mesh, ret.inverse(), options);
+
+    return ret;
 }
 
 template <typename Scalar, typename Index>
-void normalize_meshes(span<SurfaceMesh<Scalar, Index>*> meshes)
+void normalize_mesh(SurfaceMesh<Scalar, Index>& mesh, const TransformOptions& options)
 {
-    Eigen::AlignedBox<Scalar, 3> bbox;
+    switch (mesh.get_dimension()) {
+    case 2: normalize_mesh_with_transform<2>(mesh, options); break;
+    case 3: normalize_mesh_with_transform<3>(mesh, options); break;
+    default: la_runtime_assert(false); break;
+    }
+}
+
+template <size_t Dimension, typename Scalar, typename Index>
+auto normalize_meshes_with_transform(
+    span<SurfaceMesh<Scalar, Index>*> meshes,
+    const TransformOptions& options) -> Eigen::Transform<Scalar, Dimension, Eigen::Affine>
+{
+    auto ret = Eigen::Transform<Scalar, Dimension, Eigen::Affine>::Identity();
+    la_debug_assert(std::fabs(ret.matrix().determinant() - 1.0) < 1e-7);
+
+    Eigen::AlignedBox<Scalar, Dimension> bbox;
     for (auto mesh_ptr : meshes) {
-        la_runtime_assert(mesh_ptr->get_dimension() == 3);
-        auto vertices = vertex_view(*mesh_ptr);
+        if (!mesh_ptr) return ret;
+        auto& mesh = *mesh_ptr;
+
+        if (mesh.get_dimension() != Dimension) return ret;
+
+        auto vertices = vertex_view(mesh);
+        if (vertices.rows() == 0) return ret;
+
         bbox.extend(vertices.colwise().minCoeff().transpose());
         bbox.extend(vertices.colwise().maxCoeff().transpose());
     }
 
-    if (bbox.isEmpty()) return;
-    Scalar s = (bbox.max() - bbox.min()).norm() / 2;
-    if (s == 0) return;
+    const auto bbox_min = bbox.min();
+    const auto bbox_max = bbox.max();
+    const auto bbox_center = ((bbox_min + bbox_max) / 2).eval();
+    const auto bbox_scale = (bbox_max - bbox_min).norm() / 2;
+    if (bbox_scale == 0) return ret;
+
+    ret.translation() = bbox_center;
+    ret.linear().diagonal().array() = bbox_scale;
 
     for (auto mesh_ptr : meshes) {
-        auto vertices = vertex_ref(*mesh_ptr);
-        vertices.rowwise() -= bbox.center().transpose();
-        vertices = vertices / s;
+        la_debug_assert(mesh_ptr);
+        la_debug_assert(mesh_ptr->get_dimension() == Dimension);
+        transform_mesh(*mesh_ptr, ret.inverse(), options);
+    }
+
+    return ret;
+}
+
+template <typename Scalar, typename Index>
+void normalize_meshes(span<SurfaceMesh<Scalar, Index>*> meshes, const TransformOptions& options)
+{
+    if (meshes.empty()) return;
+
+    std::optional<Index> maybe_dim = std::nullopt;
+    for (auto mesh_ptr : meshes) {
+        la_runtime_assert(mesh_ptr);
+        if (!maybe_dim) maybe_dim = mesh_ptr->get_dimension();
+        la_debug_assert(maybe_dim);
+        la_runtime_assert(*maybe_dim == mesh_ptr->get_dimension());
+    }
+
+    la_debug_assert(maybe_dim);
+    switch (*maybe_dim) {
+    case 2: normalize_meshes_with_transform<2>(meshes, options); break;
+    case 3: normalize_meshes_with_transform<3>(meshes, options); break;
+    default: la_runtime_assert(false); break;
     }
 }
 
-#define LA_X_normalize_meshes(_, Scalar, Index)                                 \
-    template LA_CORE_API void normalize_mesh(SurfaceMesh<Scalar, Index>& mesh); \
-    template LA_CORE_API void normalize_meshes(span<SurfaceMesh<Scalar, Index>*> meshes);
+// clang-format off
+
+#define LA_SURFACE_MESH_DIMENSION_X(mode, data) \
+    LA_X_##mode(data, float, uint32_t, 2u) \
+    LA_X_##mode(data, double, uint32_t, 2u) \
+    LA_X_##mode(data, float, uint64_t, 2u) \
+    LA_X_##mode(data, double, uint64_t, 2u) \
+    LA_X_##mode(data, float, uint32_t, 3u) \
+    LA_X_##mode(data, double, uint32_t, 3u) \
+    LA_X_##mode(data, float, uint64_t, 3u) \
+    LA_X_##mode(data, double, uint64_t, 3u)
+
+// clang-format on
+
+#define LA_X_normalize_meshes_with_transform(_, Scalar, Index, Dimension)                       \
+    template LA_CORE_API auto normalize_mesh_with_transform<Dimension>(                         \
+        SurfaceMesh<Scalar, Index> & mesh,                                                      \
+        const TransformOptions& options) -> Eigen::Transform<Scalar, Dimension, Eigen::Affine>; \
+    template LA_CORE_API auto normalize_meshes_with_transform<Dimension>(                       \
+        span<SurfaceMesh<Scalar, Index>*> meshes,                                               \
+        const TransformOptions& options) -> Eigen::Transform<Scalar, Dimension, Eigen::Affine>;
+LA_SURFACE_MESH_DIMENSION_X(normalize_meshes_with_transform, 0)
+
+#define LA_X_normalize_meshes(_, Scalar, Index)   \
+    template LA_CORE_API void normalize_mesh(     \
+        SurfaceMesh<Scalar, Index>& mesh,         \
+        const TransformOptions& options);         \
+    template LA_CORE_API void normalize_meshes(   \
+        span<SurfaceMesh<Scalar, Index>*> meshes, \
+        const TransformOptions& options);
 LA_SURFACE_MESH_X(normalize_meshes, 0)
 
 } // namespace lagrange

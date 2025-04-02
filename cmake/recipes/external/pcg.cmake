@@ -24,3 +24,11 @@ CPMAddPackage(
 
 add_library(pcg::pcg INTERFACE IMPORTED GLOBAL)
 target_include_directories(pcg::pcg INTERFACE "${pcg_SOURCE_DIR}/include")
+
+# PCG's auto-detection of endianness does not work properly for Windows on ARM.
+# Set the endianness explicitly if CMake knows it.
+if(CMAKE_CXX_BYTE_ORDER STREQUAL "BIG_ENDIAN")
+    target_compile_definitions(pcg::pcg INTERFACE PCG_LITTLE_ENDIAN=0)
+elseif(CMAKE_CXX_BYTE_ORDER STREQUAL "LITTLE_ENDIAN")
+    target_compile_definitions(pcg::pcg INTERFACE PCG_LITTLE_ENDIAN=1)
+endif()
