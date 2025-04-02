@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME cli11
     GITHUB_REPOSITORY CLIUtils/CLI11
-    GIT_TAG v2.3.2
+    GIT_TAG v2.5.0
 )
 
 set_target_properties(CLI11 PROPERTIES FOLDER third_party)
