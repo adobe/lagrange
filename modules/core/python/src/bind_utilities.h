@@ -376,40 +376,146 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :returns: Color attribute id.)");
 
     m.def(
-        "normalize_mesh",
-        &normalize_mesh<Scalar, Index>,
+        "normalize_mesh_with_transform",
+        [](MeshType& mesh,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents) -> Eigen::Matrix<Scalar, 4, 4> {
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            return normalize_mesh_with_transform(mesh, options).matrix();
+        },
         "mesh"_a,
+        "normalize_normals"_a = TransformOptions().normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
         R"(Normalize a mesh to fit into a unit box centered at the origin.
 
-:param mesh: input mesh)");
+:param mesh: Input mesh.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
+
+:return Inverse transform, can be used to undo the normalization process.)");
+
+
+    m.def(
+        "normalize_mesh_with_transform_2d",
+        [](MeshType& mesh,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents) -> Eigen::Matrix<Scalar, 3, 3> {
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            return normalize_mesh_with_transform<2>(mesh, options).matrix();
+        },
+        "mesh"_a,
+        "normalize_normals"_a = TransformOptions().normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
+        R"(Normalize a mesh to fit into a unit box centered at the origin.
+
+:param mesh: Input mesh.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
+
+:return Inverse transform, can be used to undo the normalization process.)");
+
+    m.def(
+        "normalize_mesh",
+        [](MeshType& mesh, bool normalize_normals, bool normalize_tangents_bitangents) -> void {
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            normalize_mesh(mesh, options);
+        },
+        "mesh"_a,
+        "normalize_normals"_a = TransformOptions().normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
+        R"(Normalize a mesh to fit into a unit box centered at the origin.
+
+:param mesh: Input mesh.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.)");
+
+    m.def(
+        "normalize_meshes_with_transform",
+        [](std::vector<MeshType*> meshes,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents) -> Eigen::Matrix<Scalar, 4, 4> {
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            span<MeshType*> meshes_span(meshes.data(), meshes.size());
+            return normalize_meshes_with_transform(meshes_span, options).matrix();
+        },
+        "meshes"_a,
+        "normalize_normals"_a = TransformOptions().normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
+        R"(Normalize a mesh to fit into a unit box centered at the origin.
+
+:param meshes: Input meshes.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
+
+:return Inverse transform, can be used to undo the normalization process.)");
+
+    m.def(
+        "normalize_meshes_with_transform_2d",
+        [](std::vector<MeshType*> meshes,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents) -> Eigen::Matrix<Scalar, 3, 3> {
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            span<MeshType*> meshes_span(meshes.data(), meshes.size());
+            return normalize_meshes_with_transform<2>(meshes_span, options).matrix();
+        },
+        "meshes"_a,
+        "normalize_normals"_a = TransformOptions().normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
+        R"(Normalize a mesh to fit into a unit box centered at the origin.
+
+:param meshes: Input meshes.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
+
+:return Inverse transform, can be used to undo the normalization process.)");
+
 
     m.def(
         "normalize_meshes",
-        [](std::vector<SurfaceMesh<Scalar, Index>*> meshes) {
-            span<SurfaceMesh<Scalar, Index>*> meshes_span(meshes.data(), meshes.size());
-            normalize_meshes(meshes_span);
+        [](std::vector<MeshType*> meshes,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents) {
+            TransformOptions options;
+            options.normalize_normals = normalize_normals;
+            options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            span<MeshType*> meshes_span(meshes.data(), meshes.size());
+            normalize_meshes(meshes_span, options);
         },
         "meshes"_a,
+        "normalize_normals"_a = TransformOptions().normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
         R"(Normalize a list of meshes to fit into a unit box centered at the origin.
 
-:param meshes: input meshes)");
+:param meshes: Input meshes.
+:param normalize_normals:             Whether to normalize normals.
+:param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.)");
 
     m.def(
         "combine_meshes",
-        [](std::vector<SurfaceMesh<Scalar, Index>*> meshes, bool preserve_vertices) {
+        [](std::vector<MeshType*> meshes, bool preserve_vertices) {
             return combine_meshes<Scalar, Index>(
                 meshes.size(),
-                [&](size_t i) -> const SurfaceMesh<Scalar, Index>& { return *meshes[i]; },
+                [&](size_t i) -> const MeshType& { return *meshes[i]; },
                 preserve_vertices);
         },
         "meshes"_a,
         "preserve_attributes"_a = true,
         R"(Combine a list of meshes into a single mesh.
 
-:param meshes: input meshes
-:param preserve_attributes: whether to preserve attributes
+:param meshes: Input meshes.
+:param preserve_attributes: Whether to preserve attributes.
 
-:returns: the combined mesh)");
+:returns: The combined mesh.)");
 
     m.def(
         "compute_seam_edges",
@@ -608,7 +714,12 @@ argument. Each component id is in [0, num_components-1] range.
         .def_rw(
             "pad_with_sign",
             &TangentBitangentOptions::pad_with_sign,
-            "Whether to pad the output tangent/bitangent with sign");
+            "Whether to pad the output tangent/bitangent with sign")
+        .def_rw(
+            "orthogonalize_bitangent",
+            &TangentBitangentOptions::orthogonalize_bitangent,
+            "Whether to compute the bitangent as cross(normal, tangent). If false, the bitangent "
+            "is computed as the derivative of v-coordinate");
 
     nb::class_<TangentBitangentResult>(m, "TangentBitangentResult", "Tangent bitangent result")
         .def(nb::init<>())
@@ -641,7 +752,8 @@ argument. Each component id is in [0, num_components-1] range.
            std::optional<std::string_view>(uv_attribute_name),
            std::optional<std::string_view>(normal_attribute_name),
            std::optional<AttributeElement>(output_attribute_type),
-           std::optional<bool>(pad_with_sign)) {
+           std::optional<bool>(pad_with_sign),
+           std::optional<bool>(orthogonalize_bitangent)) {
             TangentBitangentOptions opt;
             if (tangent_attribute_name.has_value()) {
                 opt.tangent_attribute_name = tangent_attribute_name.value();
@@ -661,6 +773,9 @@ argument. Each component id is in [0, num_components-1] range.
             if (pad_with_sign.has_value()) {
                 opt.pad_with_sign = pad_with_sign.value();
             }
+            if (orthogonalize_bitangent.has_value()) {
+                opt.orthogonalize_bitangent = orthogonalize_bitangent.value();
+            }
 
             auto r = compute_tangent_bitangent<Scalar, Index>(mesh, opt);
             return std::make_tuple(r.tangent_id, r.bitangent_id);
@@ -672,6 +787,7 @@ argument. Each component id is in [0, num_components-1] range.
         "normal_attribute_name"_a = nb::none(),
         "output_attribute_type"_a = nb::none(),
         "pad_with_sign"_a = nb::none(),
+        "orthogonalize_bitangent"_a = nb::none(),
         R"(Compute tangent and bitangent vector attributes (Pythonic API).
 
 :param mesh: The input mesh.
@@ -681,16 +797,14 @@ argument. Each component id is in [0, num_components-1] range.
 :param normal_attribute_name: The name of the normal attribute.
 :param output_attribute_type: The output element type.
 :param pad_with_sign: Whether to pad the output tangent/bitangent with sign.
+:param orthogonalize_bitangent: Whether to compute the bitangent as sign * cross(normal, tangent).
 
 :returns: The tangent and bitangent attribute ids)");
 
     m.def(
         "map_attribute",
-        static_cast<AttributeId (*)(
-            SurfaceMesh<Scalar, Index>&,
-            AttributeId,
-            std::string_view,
-            AttributeElement)>(&lagrange::map_attribute<Scalar, Index>),
+        static_cast<AttributeId (*)(MeshType&, AttributeId, std::string_view, AttributeElement)>(
+            &lagrange::map_attribute<Scalar, Index>),
         "mesh"_a,
         "old_attribute_id"_a,
         "new_attribute_name"_a,
@@ -706,11 +820,9 @@ argument. Each component id is in [0, num_components-1] range.
 
     m.def(
         "map_attribute",
-        static_cast<AttributeId (*)(
-            SurfaceMesh<Scalar, Index>&,
-            std::string_view,
-            std::string_view,
-            AttributeElement)>(&lagrange::map_attribute<Scalar, Index>),
+        static_cast<
+            AttributeId (*)(MeshType&, std::string_view, std::string_view, AttributeElement)>(
+            &lagrange::map_attribute<Scalar, Index>),
         "mesh"_a,
         "old_attribute_name"_a,
         "new_attribute_name"_a,
@@ -726,7 +838,7 @@ argument. Each component id is in [0, num_components-1] range.
 
     m.def(
         "map_attribute_in_place",
-        static_cast<AttributeId (*)(SurfaceMesh<Scalar, Index>&, AttributeId, AttributeElement)>(
+        static_cast<AttributeId (*)(MeshType&, AttributeId, AttributeElement)>(
             &map_attribute_in_place<Scalar, Index>),
         "mesh"_a,
         "id"_a,
@@ -741,8 +853,7 @@ argument. Each component id is in [0, num_components-1] range.
 
     m.def(
         "map_attribute_in_place",
-        static_cast<
-            AttributeId (*)(SurfaceMesh<Scalar, Index>&, std::string_view, AttributeElement)>(
+        static_cast<AttributeId (*)(MeshType&, std::string_view, AttributeElement)>(
             &map_attribute_in_place<Scalar, Index>),
         "mesh"_a,
         "name"_a,
@@ -897,7 +1008,7 @@ argument. Each component id is in [0, num_components-1] range.
 
     m.def(
         "compute_mesh_centroid",
-        [](const SurfaceMesh<Scalar, Index>& mesh, MeshCentroidOptions opt) {
+        [](const MeshType& mesh, MeshCentroidOptions opt) {
             const Index dim = mesh.get_dimension();
             std::vector<Scalar> centroid(dim, invalid<Scalar>());
             compute_mesh_centroid<Scalar, Index>(mesh, centroid, opt);
@@ -1249,7 +1360,7 @@ well-defined and will be set to the special value 2 * M_PI.
 
     m.def(
         "weld_indexed_attribute",
-        [](SurfaceMesh<Scalar, Index>& mesh,
+        [](MeshType& mesh,
            AttributeId attribute_id,
            std::optional<double> epsilon_rel,
            std::optional<double> epsilon_abs) {
@@ -1339,8 +1450,8 @@ A mesh considered as manifold if it is both vertex and edge manifold.
         },
         "mesh"_a,
         "affine_transform"_a,
-        "normalize_normals"_a = true,
-        "normalize_tangents_bitangents"_a = true,
+        "normalize_normals"_a = TransformOptions().normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
         "in_place"_a = true,
         R"(Apply affine transformation to a mesh.
 
@@ -1582,7 +1693,7 @@ The input mesh must be a triangle mesh.
 
     m.def(
         "compute_mesh_covariance",
-        [](SurfaceMesh<Scalar, Index>& mesh,
+        [](MeshType& mesh,
            std::array<Scalar, 3> center,
            std::optional<std::string_view> active_facets_attribute_name)
             -> std::array<std::array<Scalar, 3>, 3> {
@@ -1604,7 +1715,7 @@ The input mesh must be a triangle mesh.
 
     m.def(
         "select_facets_by_normal_similarity",
-        [](SurfaceMesh<Scalar, Index>& mesh,
+        [](MeshType& mesh,
            Index seed_facet_id,
            std::optional<double> flood_error_limit,
            std::optional<double> flood_second_to_first_order_limit_ratio,
@@ -1675,7 +1786,7 @@ The input mesh must be a triangle mesh.
 
     m.def(
         "select_facets_in_frustum",
-        [](SurfaceMesh<Scalar, Index>& mesh,
+        [](MeshType& mesh,
            std::array<std::array<Scalar, 3>, 4> frustum_plane_points,
            std::array<std::array<Scalar, 3>, 4> frustum_plane_normals,
            std::optional<bool> greedy,

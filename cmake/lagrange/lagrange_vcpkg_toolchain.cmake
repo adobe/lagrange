@@ -1,5 +1,5 @@
 #
-# Copyright 2024 Adobe. All rights reserved.
+# Copyright 2025 Adobe. All rights reserved.
 # This file is licensed to you under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
@@ -42,6 +42,7 @@ CPMAddPackage(
 )
 
 set(ENV{VCPKG_ROOT} "${vcpkg_SOURCE_DIR}")
+set(ENV{VCPKG_KEEP_ENV_VARS} "VCPKG_ROOT" $ENV{VCPKG_KEEP_ENV_VARS})
 
 # Since this file is included as a toolchain file via our CMake preset, we setup vcpkg.cmake
 # via CMAKE_PROJECT_TOP_LEVEL_INCLUDES instead. See the following threads for more information:

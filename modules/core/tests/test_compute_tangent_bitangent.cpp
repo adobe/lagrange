@@ -43,13 +43,17 @@
 namespace {
 
 template <typename Scalar, typename Index>
-auto corner_tangent_bitangent(lagrange::SurfaceMesh<Scalar, Index>& mesh, bool pad)
+auto corner_tangent_bitangent(
+    lagrange::SurfaceMesh<Scalar, Index>& mesh,
+    bool pad,
+    bool ortho = false)
 {
     REQUIRE(!mesh.has_attribute("@tangent"));
     REQUIRE(!mesh.has_attribute("@bitangent"));
     // Note: With C++20, we should switch to using designated initializers!
     lagrange::TangentBitangentOptions opt;
     opt.pad_with_sign = pad;
+    opt.orthogonalize_bitangent = ortho;
     opt.output_element_type = lagrange::AttributeElement::Corner;
     auto res = lagrange::compute_tangent_bitangent(mesh, opt);
     REQUIRE(mesh.has_attribute("@tangent"));
@@ -60,12 +64,16 @@ auto corner_tangent_bitangent(lagrange::SurfaceMesh<Scalar, Index>& mesh, bool p
 }
 
 template <typename Scalar, typename Index>
-auto indexed_tangent_bitangent(lagrange::SurfaceMesh<Scalar, Index>& mesh, bool pad)
+auto indexed_tangent_bitangent(
+    lagrange::SurfaceMesh<Scalar, Index>& mesh,
+    bool pad,
+    bool ortho = false)
 {
     REQUIRE(!mesh.has_attribute("@tangent"));
     REQUIRE(!mesh.has_attribute("@bitangent"));
     lagrange::TangentBitangentOptions opt;
     opt.pad_with_sign = pad;
+    opt.orthogonalize_bitangent = ortho;
     opt.output_element_type = lagrange::AttributeElement::Indexed;
     auto res = lagrange::compute_tangent_bitangent(mesh, opt);
     REQUIRE(mesh.has_attribute("@tangent"));
@@ -167,6 +175,48 @@ TEST_CASE("compute_tangent_bitangent", "[core][tangent]" LA_SLOW_DEBUG_FLAG)
             REQUIRE(J0 == J1);
             REQUIRE(I0 == J0);
         }
+    }
+}
+
+TEST_CASE("compute_tangent_bitangent_orthogonal", "[core][tangent]" LA_SLOW_DEBUG_FLAG)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/blub/blub.obj");
+
+    const Scalar EPS = 1e-3;
+    lagrange::logger().info("Computing indexed normals");
+    lagrange::AttributeId normal_id = lagrange::compute_normal(mesh, M_PI * 0.5 - EPS);
+
+    lagrange::AttributeId corner_normal_id =
+        map_attribute(mesh, normal_id, "corner_normal", lagrange::AttributeElement::Corner);
+    auto N = lagrange::attribute_matrix_view<Scalar>(mesh, corner_normal_id);
+
+    lagrange::logger().info("Computing tangent frame");
+
+    bool pad = true;
+    bool ortho = true;
+
+    SECTION("corner tangent/bitangent")
+    {
+        auto [T, B] = corner_tangent_bitangent(mesh, pad, ortho);
+        for (Index i = 0; i < T.rows(); i++) {
+            Eigen::RowVector3<Scalar> Nv = N.row(i);
+            Eigen::RowVector3<Scalar> Tv = T.row(i).head(3);
+            Eigen::RowVector3<Scalar> Bv = B.row(i).head(3);
+            Scalar sign = T(i, 3);
+            Eigen::RowVector3<Scalar> expected = sign * Nv.cross(Tv);
+            REQUIRE(Bv.isApprox(expected, 1e-6));
+        }
+    }
+
+    SECTION("indexed tangent/bitangent")
+    {
+        auto mesh0 = mesh;
+        auto mesh1 = mesh;
+        auto [T0, I0, B0, J0] = indexed_tangent_bitangent(mesh0, pad, true);
+        auto [T1, I1, B1, J1] = indexed_tangent_bitangent(mesh1, pad, false);
+        REQUIRE(!B0.isApprox(B1, 1e-6));
     }
 }
 
@@ -452,15 +502,19 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
         }
     };
 
-    auto compare_tangent_bitangent = [](const lagrange::SurfaceMesh<Scalar, Index>& mesh) {
+    auto compare_tangent_bitangent = [](const lagrange::SurfaceMesh<Scalar, Index>& mesh, bool ortho) {
         lagrange::logger().info("Computing tangent frame");
         auto mesh_mk = mesh;
         auto mesh_in = mesh;
+
+        lagrange::TangentBitangentOptions opt;
+        opt.orthogonalize_bitangent = ortho;
+
         // Mikktspace tangent/bitangent
-        lagrange::compute_tangent_bitangent_mikktspace(mesh_mk);
+        lagrange::compute_tangent_bitangent_mikktspace(mesh_mk, opt);
         {
             // Indexed tangent/bitangent
-            lagrange::compute_tangent_bitangent(mesh_in);
+            lagrange::compute_tangent_bitangent(mesh_in, opt);
             map_attribute(
                 mesh_in,
                 "@tangent",
@@ -498,20 +552,22 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
     original_mesh = weld_mesh(std::move(original_mesh));
 
     for (auto normal_type : {NormalType::Indexed, NormalType::Original, NormalType::Vertex}) {
-        if (normal_type == NormalType::Indexed) {
-            // NOTE: For some reason I had to change `0 -> 0.1` for arm64 Xcode14 unit test to pass.
-            // There's another mysterious floating point behavior with Xcode 14 that caused a
-            // discrepancy between Lagrange's implementation and mikktspace's implementation.
-            for (double angle_threshold_deg : {0., 45., 90., 180.}) {
+        for (auto orthogonalize_bitangent : {true, false}) {
+            if (normal_type == NormalType::Indexed) {
+                // NOTE: For some reason I had to change `0 -> 0.1` for arm64 Xcode14 unit test to pass.
+                // There's another mysterious floating point behavior with Xcode 14 that caused a
+                // discrepancy between Lagrange's implementation and mikktspace's implementation.
+                for (double angle_threshold_deg : {0., 45., 90., 180.}) {
+                    auto mesh = original_mesh;
+                    compute_normals(mesh, normal_type, static_cast<Scalar>(angle_threshold_deg));
+                    CAPTURE(angle_threshold_deg);
+                    compare_tangent_bitangent(mesh, orthogonalize_bitangent);
+                }
+            } else {
                 auto mesh = original_mesh;
-                compute_normals(mesh, normal_type, static_cast<Scalar>(angle_threshold_deg));
-                CAPTURE(angle_threshold_deg);
-                compare_tangent_bitangent(mesh);
+                compute_normals(mesh, normal_type, 0);
+                compare_tangent_bitangent(mesh, orthogonalize_bitangent);
             }
-        } else {
-            auto mesh = original_mesh;
-            compute_normals(mesh, normal_type, 0);
-            compare_tangent_bitangent(mesh);
         }
     }
 }

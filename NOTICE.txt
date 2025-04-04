@@ -84,6 +84,14 @@ This codebase contains a modified portion of code from Earcut which can be obtai
     * https://github.com/mapbox/earcut.hpp/blob/master/LICENSE
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from Eigen which can be obtained at:
+  * SOURCE:
+    * https://gitlab.com/libeigen/eigen/-/blob/master/Eigen/src/AccelerateSupport/AccelerateSupport.h
+
+  * LICENSE:
+    * https://gitlab.com/libeigen/eigen/-/blob/master/LICENSE
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from Embree which can be obtained at:
   * SOURCE:
     * https://github.com/embree/embree/blob/ae029e2ff83bebbbe8742c88aba5b0521aba1a23/tutorials/closest_point/closest_point_device.cpp#L261-L341

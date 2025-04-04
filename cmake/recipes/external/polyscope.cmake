@@ -34,3 +34,4 @@ CPMAddPackage(
 
 add_library(polyscope::polyscope ALIAS polyscope)
 set_target_properties(polyscope PROPERTIES FOLDER third_party)
+set_target_properties(glm PROPERTIES FOLDER third_party)

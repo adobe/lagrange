@@ -49,6 +49,11 @@ lint = [
     "ruff==0.4.3",
 ]
 
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+
 [tool.scikit-build]
 ninja.version = ">=1.11.1"
 ninja.make-fallback = false

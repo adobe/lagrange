@@ -29,7 +29,7 @@ TEST_CASE("normalize_meshes", "[surface][utilities]")
         mesh.add_quad(0, 1, 2, 3);
 
         normalize_mesh(mesh);
-        for (Index vi=0; vi<4; vi++) {
+        for (Index vi = 0; vi < 4; vi++) {
             auto v = mesh.get_position(vi);
             REQUIRE(v[0] >= -1);
             REQUIRE(v[0] <= 1);
@@ -38,6 +38,34 @@ TEST_CASE("normalize_meshes", "[surface][utilities]")
             REQUIRE(v[2] >= -1);
             REQUIRE(v[2] <= 1);
         }
+    }
+
+    SECTION("Single quad with transform")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_vertex({2, 0, 1});
+        mesh.add_vertex({2, 2, 1});
+        mesh.add_vertex({0, 2, 1});
+        mesh.add_quad(0, 1, 2, 3);
+
+        const auto transform = normalize_mesh_with_transform<3>(mesh);
+        for (Index vi = 0; vi < 4; vi++) {
+            auto v = mesh.get_position(vi);
+            REQUIRE(v[0] >= -1);
+            REQUIRE(v[0] <= 1);
+            REQUIRE(v[1] >= -1);
+            REQUIRE(v[1] <= 1);
+            REQUIRE(v[2] >= -1);
+            REQUIRE(v[2] <= 1);
+        }
+
+        auto transform_ = Eigen::Transform<Scalar, 3, Eigen::Affine>::Identity();
+        transform_.translation().array() = 1.0;
+        transform_.linear().diagonal().array() = sqrt(2.0);
+
+        const auto transform_error = (transform.matrix() - transform_.matrix()).array().abs().sum();
+        REQUIRE(transform_error < 1e-7);
     }
 
     SECTION("One quad and one triangle")
@@ -52,7 +80,7 @@ TEST_CASE("normalize_meshes", "[surface][utilities]")
         mesh.add_triangle(4, 2, 3);
 
         normalize_mesh(mesh);
-        for (Index vi=0; vi<4; vi++) {
+        for (Index vi = 0; vi < 4; vi++) {
             auto v = mesh.get_position(vi);
             REQUIRE(v[0] >= -1);
             REQUIRE(v[0] <= 1);

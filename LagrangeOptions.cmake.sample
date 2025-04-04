@@ -49,6 +49,7 @@
 
 # Optional modules in alphabetical order.
 # option(LAGRANGE_MODULE_BVH          "Build module lagrange::bvh"          ON)
+# option(LAGRANGE_MODULE_FILTERING    "Build module lagrange::filtering"    ON)
 # option(LAGRANGE_MODULE_FS           "Build module lagrange::fs"           ON)
 # option(LAGRANGE_MODULE_IMAGE        "Build module lagrange::image"        ON)
 # option(LAGRANGE_MODULE_IMAGE_IO     "Build module lagrange::image_io"     ON)

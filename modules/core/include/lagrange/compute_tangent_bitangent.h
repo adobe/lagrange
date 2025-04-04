@@ -57,6 +57,10 @@ struct TangentBitangentOptions
     /// Whether to pad the tangent/bitangent vectors with a 4th coordinate indicating the sign of
     /// the UV triangle.
     bool pad_with_sign = false;
+
+    /// Whether to compute the bitangent as sign * cross(normal, tangent)
+    /// If false, the bitangent is computed as the derivative of v-coordinate
+    bool orthogonalize_bitangent = false;
 };
 
 /// Result type of the compute_tangent_bitangent function.

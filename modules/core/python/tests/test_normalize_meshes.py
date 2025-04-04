@@ -39,6 +39,22 @@ class TestNormalizeMeshes:
         assert bbox_center == pytest.approx(np.zeros(3))
         assert norm(bbox_max - bbox_min) == pytest.approx(2)
 
+    def test_triangle_with_transform(self):
+        mesh = lagrange.SurfaceMesh()
+        mesh.vertices = np.array([[0, 0, 0], [10, 0, 0], [0, 10, 0]])
+        transform = lagrange.normalize_mesh_with_transform(mesh)
+        scale_ = 10.0 / np.sqrt(2)
+        transform_ = np.array(
+            [
+                [scale_, 0, 0, 5],
+                [0, scale_, 0, 5],
+                [0, 0, scale_, 0],
+                [0, 0, 0, 1],
+            ]
+        )
+        transform_error = np.abs(transform - transform_).max()
+        assert transform_error < 1e-7
+
     def test_small_triangle(self):
         mesh = lagrange.SurfaceMesh()
         mesh.vertices = np.array([[0, 0, 0], [1e-3, 0, 0], [0, 1e-3, 0]])
@@ -52,7 +68,6 @@ class TestNormalizeMeshes:
     def test_two_meshes(self):
         mesh1 = lagrange.SurfaceMesh()
         mesh1.vertices = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]])
-
         mesh2 = lagrange.SurfaceMesh()
         mesh2.vertices = np.array(
             [
@@ -61,12 +76,40 @@ class TestNormalizeMeshes:
                 [0, 1, 10],
             ]
         )
-
         lagrange.normalize_meshes([mesh1, mesh2])
-
         vertices = np.vstack([mesh1.vertices, mesh2.vertices])
         bbox_max = np.amax(vertices, axis=0)
         bbox_min = np.amin(vertices, axis=0)
         bbox_center = (bbox_max + bbox_min) / 2
         assert bbox_center == pytest.approx(np.zeros(3))
         assert norm(bbox_max - bbox_min) == pytest.approx(2)
+
+    def test_two_meshes_with_transform(self):
+        mesh1 = lagrange.SurfaceMesh()
+        mesh1.vertices = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]])
+        mesh2 = lagrange.SurfaceMesh()
+        mesh2.vertices = np.array(
+            [
+                [0, 0, 10],
+                [1, 0, 10],
+                [0, 1, 10],
+            ]
+        )
+        transform = lagrange.normalize_meshes_with_transform([mesh1, mesh2])
+        vertices = np.vstack([mesh1.vertices, mesh2.vertices])
+        bbox_max = np.amax(vertices, axis=0)
+        bbox_min = np.amin(vertices, axis=0)
+        bbox_center = (bbox_max + bbox_min) / 2
+        assert bbox_center == pytest.approx(np.zeros(3))
+        assert norm(bbox_max - bbox_min) == pytest.approx(2)
+        scale_ = np.sqrt(102.0) / 2.0
+        transform_ = np.array(
+            [
+                [scale_, 0, 0, 0.5],
+                [0, scale_, 0, 0.5],
+                [0, 0, scale_, 5.0],
+                [0, 0, 0, 1],
+            ]
+        )
+        transform_error = np.abs(transform - transform_).max()
+        assert transform_error < 1e-7

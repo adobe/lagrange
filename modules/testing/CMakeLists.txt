@@ -101,6 +101,9 @@ else()
     )
 endif()
 
+# Workaround for MB bug
+target_compile_definitions(lagrange_testing PUBLIC -DLA_SKIP_MAYFAIL_FLAG=\"\")
+
 # Generate main target
 add_library(lagrange_testing_main ${CMAKE_CURRENT_SOURCE_DIR}/main/main.cpp)
 target_link_libraries(lagrange_testing_main PUBLIC lagrange::core lagrange::testing)
