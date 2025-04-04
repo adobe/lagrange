@@ -31,7 +31,7 @@
 #ifdef LA_SOLVER_ACCELERATE
     #include "AccelerateSupport.h"
 #else
-    #if LAGRANGE_TARGET_OS(WASM)
+    #if LAGRANGE_TARGET_OS(WASM) || defined(LA_SANITIZE_THREAD)
         #include <Eigen/SparseCholesky>
     #else
         #include <Eigen/PardisoSupport>
@@ -76,7 +76,7 @@ using Real = double;
 #ifdef LA_SOLVER_ACCELERATE
 using Solver = AccelerateLDLT<Eigen::SparseMatrix<Real>>;
 #else
-    #if LAGRANGE_TARGET_OS(WASM)
+    #if LAGRANGE_TARGET_OS(WASM) || defined(LA_SANITIZE_THREAD)
 using Solver = Eigen::SimplicialLDLT<Eigen::SparseMatrix<Real>>;
     #else
 using Solver = Eigen::PardisoLDLT<Eigen::SparseMatrix<Real>>;

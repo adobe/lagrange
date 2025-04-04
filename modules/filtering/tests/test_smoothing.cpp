@@ -129,8 +129,8 @@ TEST_CASE("Mesh Smoothing", "[filtering]")
 
     // Check that multiple runs give similar results
     {
-        auto mesh1 = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
-        auto mesh2 = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
+        auto mesh1 = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/bunny_simple.obj");
+        auto mesh2 = mesh1;
 
         lagrange::filtering::mesh_smoothing(mesh1, smoothing_options);
         lagrange::filtering::mesh_smoothing(mesh2, smoothing_options);

@@ -36,6 +36,10 @@ else()
     endif()
 endif()
 
+if(USE_SANITIZER MATCHES "([Tt]hread)")
+    target_compile_definitions(lagrange_filtering PRIVATE LA_SANITIZE_THREAD)
+endif()
+
 include(shape_gradient_domain)
 target_link_libraries(lagrange_filtering
     PUBLIC
