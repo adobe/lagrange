@@ -76,6 +76,7 @@ editable.rebuild = false
 
 [tool.scikit-build.cmake.define]
 CMAKE_GENERATOR = "Ninja"
+CMAKE_GENERATOR_PLATFORM = ""
 LAGRANGE_ASSERT_DEBUG_BREAK = false
 LAGRANGE_EXAMPLES = false
 LAGRANGE_INSTALL = false
