@@ -1,9 +1,12 @@
 name: Python wheel
 
 on:
-  push:
-    tags:
-      - '*'
+  pull_request:
+    branches:
+      - main
+  release:
+    types:
+      - published
 
 jobs:
   build_wheel:
@@ -47,7 +50,7 @@ jobs:
     name: Upload wheels to PyPI
     runs-on: ubuntu-latest
     needs: [build_wheel]
-
+    if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/download-artifact@v4
         with:
