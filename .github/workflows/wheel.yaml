@@ -28,6 +28,10 @@ jobs:
         with:
           xcode-version: '15.2'
 
+      - name: Setup MSVC
+        if: runner.os == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:

@@ -105,6 +105,10 @@ file(READ "VERSION" lagrange_version)
 string(STRIP ${lagrange_version} lagrange_version)
 project(Lagrange VERSION ${lagrange_version})
 
+if(MINGW)
+    message(FATAL_ERROR "Please use the MSVC compiler on Windows")
+endif()
+
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
     set(LAGRANGE_NO_INTERNAL OFF)
