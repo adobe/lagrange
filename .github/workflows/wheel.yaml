@@ -32,11 +32,6 @@ jobs:
         if: runner.os == 'windows'
         uses: ilammy/msvc-dev-cmd@v1
 
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        with:
-          limit-access-to-actor: true
-
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
@@ -48,6 +43,12 @@ jobs:
           CIBW_TEST_REQUIRES: pytest
           MACOSX_DEPLOYMENT_TARGET: 11.00
           CIBW_BUILD_VERBOSITY: 2
+
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: ${{ failure() }}
+        with:
+          limit-access-to-actor: true
 
       - uses: actions/upload-artifact@v4
         with:
