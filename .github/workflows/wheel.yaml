@@ -32,6 +32,11 @@ jobs:
         if: runner.os == 'windows'
         uses: ilammy/msvc-dev-cmd@v1
 
+      - name: Setup upterm session
+        uses: lhotari/action-upterm@v1
+        with:
+          limit-access-to-users: jedumas
+
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
