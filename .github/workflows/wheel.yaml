@@ -43,6 +43,8 @@ jobs:
           CIBW_TEST_REQUIRES: pytest
           MACOSX_DEPLOYMENT_TARGET: 11.00
           CIBW_BUILD_VERBOSITY: 2
+          CIBW_DEBUG_TRACEBACK: true
+          CIBW_DEBUG_KEEP_CONTAINER: true
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
