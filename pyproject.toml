@@ -57,6 +57,7 @@ lint = [
 addopts = [
     "--import-mode=importlib",
 ]
+pythonpath = "."
 
 [tool.scikit-build]
 ninja.version = ">=1.11.1"
