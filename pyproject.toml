@@ -39,11 +39,6 @@ urls.repo = "https://github.com/adobe/lagrange"
 dev = [
     { include-group = "lint" },
     { include-group = "test" },
-    { include-group = "build" },
-]
-build = [
-    "auditwheel>=6.3.0",
-    "patchelf>=0.17.2.2",
 ]
 test = [
     "pytest>=7.0.0",
