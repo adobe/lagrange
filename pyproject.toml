@@ -67,9 +67,9 @@ editable.rebuild = false
 # cmd: uv sync [--verbose] [--reinstall-package lagrange]
 # ---------------------
 #
-# build.verbose = true
-# editable.verbose = false
-# logging.level = "INFO"
+build.verbose = true
+editable.verbose = true
+logging.level = "DEBUG"
 #
 cmake.build-type = "Debug"
 install.strip = false
