@@ -67,11 +67,11 @@ editable.rebuild = false
 # cmd: uv sync [--verbose] [--reinstall-package lagrange]
 # ---------------------
 #
-build.verbose = true
+# build.verbose = true
 editable.verbose = true
 logging.level = "DEBUG"
 #
-cmake.build-type = "Debug"
+# cmake.build-type = "Debug"
 install.strip = false
 
 [tool.scikit-build.cmake.define]
