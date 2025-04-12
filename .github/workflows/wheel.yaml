@@ -35,6 +35,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         env:
+          CIBW_BUILD_FRONTEND: "build[uv]"
           CIBW_ARCHS_LINUX: auto64
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
@@ -43,8 +44,6 @@ jobs:
           CIBW_TEST_REQUIRES: pytest
           MACOSX_DEPLOYMENT_TARGET: 11.00
           CIBW_BUILD_VERBOSITY: 2
-          CIBW_DEBUG_TRACEBACK: true
-          CIBW_DEBUG_KEEP_CONTAINER: true
 
       - name: Setup tmate session
         uses: mxschmitt/action-tmate@v3
