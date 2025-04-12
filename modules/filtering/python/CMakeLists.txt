@@ -19,9 +19,9 @@ endif()
 # and install it ourselves when building Python wheels.
 if(TARGET MKL::MKL)
     target_link_libraries(lagrange_python PRIVATE MKL::MKL)
-    if(SKBUILD AND LINUX)
-        target_compile_definitions(lagrange_python PRIVATE LAGRANGE_USE_MKL_SDL)
-    endif()
+    # if(SKBUILD AND LINUX)
+    #     target_compile_definitions(lagrange_python PRIVATE LAGRANGE_USE_MKL_SDL)
+    # endif()
 
     include(lagrange_runtime_dependencies)
     lagrange_get_dependencies(mkl_dependencies MKL::MKL)
