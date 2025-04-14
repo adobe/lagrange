@@ -43,7 +43,7 @@ jobs:
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_SKIP: "*-musllinux* pp*"
-          CIBW_REPAIR_WHEEL_COMMAND_LINUX: "auditwheel -vv repair -w {dest_dir} {wheel}"
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: "LD_LIBRARY_PATH=$PWD auditwheel -vv repair -w {dest_dir} {wheel}"
           CIBW_TEST_COMMAND: "pytest -s --pdb {project}/modules"
           CIBW_TEST_REQUIRES: pytest
           MACOSX_DEPLOYMENT_TARGET: 11.00
