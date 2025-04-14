@@ -390,6 +390,25 @@ target_include_directories(MKL::MKL INTERFACE ${MKL_INCLUDE_DIR})
 if(MKL_LINKING STREQUAL sdl)
     # Link against a single dynamic lib
     mkl_add_imported_library(rt)
+
+    # Add every other library as a runtime dependency (to ensure proper installation)
+
+    # Computational library
+    mkl_add_shared_libraries(core)
+
+    # Interface library
+    if(WIN32)
+        mkl_add_shared_libraries(intel_${MKL_INTERFACE} NO_DLL)
+    else()
+        mkl_add_shared_libraries(intel_${MKL_INTERFACE})
+    endif()
+
+    # Thread library
+    if(MKL_THREADING STREQUAL sequential)
+        mkl_add_shared_libraries(sequential)
+    else()
+        mkl_add_shared_libraries(tbb_thread)
+    endif()
 else()
     # Link against each component explicitly
 
@@ -411,21 +430,21 @@ else()
         mkl_add_imported_library(tbb_thread)
         mkl_set_dependencies(core intel_${MKL_INTERFACE} tbb_thread)
     endif()
-
-    # Instructions sets specific libraries
-
-    # Kernel - Required
-    mkl_add_shared_libraries(def)
-
-    # Kernel - Optional
-    mkl_add_shared_libraries(avx2 avx512 mc3)
-
-    # Vector Mathematics - Required
-    mkl_add_shared_libraries(vml_def vml_cmpt)
-
-    # Vector Mathematics - Optional
-    mkl_add_shared_libraries(vml_avx2 vml_avx512 vml_mc3)
 endif()
+
+# Instructions sets specific libraries
+
+# Kernel - Required
+mkl_add_shared_libraries(def)
+
+# Kernel - Optional
+mkl_add_shared_libraries(avx2 avx512 mc3)
+
+# Vector Mathematics - Required
+mkl_add_shared_libraries(vml_def vml_cmpt)
+
+# Vector Mathematics - Optional
+mkl_add_shared_libraries(vml_avx2 vml_avx512 vml_mc3)
 
 # Compile definitions.
 if(MKL_INTERFACE STREQUAL "ilp64")
