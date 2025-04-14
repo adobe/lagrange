@@ -68,8 +68,8 @@ editable.rebuild = false
 # ---------------------
 #
 # build.verbose = true
-# editable.verbose = true
-# logging.level = "DEBUG"
+# editable.verbose = false
+# logging.level = "INFO"
 #
 # cmake.build-type = "Debug"
 # install.strip = false
