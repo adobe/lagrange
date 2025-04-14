@@ -155,7 +155,7 @@ if(SKBUILD AND LINUX)
     # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
     # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
     #
-    set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+    set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
     option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
 
     # Set RPATH to $ORIGIN on Linux
