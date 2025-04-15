@@ -1,9 +1,12 @@
 name: Python wheel
 
 on:
-  push:
-    tags:
-      - '*'
+  pull_request:
+    branches:
+      - main
+  release:
+    types:
+      - published
 
 jobs:
   build_wheel:
@@ -25,14 +28,24 @@ jobs:
         with:
           xcode-version: '15.2'
 
+      - name: Setup MSVC
+        if: runner.os == 'windows'
+        uses: ilammy/msvc-dev-cmd@v1
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
       - name: Build wheels
-        uses: pypa/cibuildwheel@v2.21.3
+        uses: pypa/cibuildwheel@v2.23.2
         env:
+          CIBW_BUILD_FRONTEND: "build[uv]"
           CIBW_ARCHS_LINUX: auto64
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_SKIP: "*-musllinux* pp*"
-          CIBW_TEST_COMMAND: "pytest {project}/modules"
+          # Skip repairing the wheel on Linux until https://github.com/pypa/auditwheel/issues/574 is fixed
+          CIBW_REPAIR_WHEEL_COMMAND_LINUX: ""
+          CIBW_TEST_COMMAND: "pytest -s --pdb {project}/modules"
           CIBW_TEST_REQUIRES: pytest
           MACOSX_DEPLOYMENT_TARGET: 11.00
           CIBW_BUILD_VERBOSITY: 2
@@ -47,7 +60,7 @@ jobs:
     name: Upload wheels to PyPI
     runs-on: ubuntu-latest
     needs: [build_wheel]
-
+    if: github.event_name == 'release' && github.event.action == 'published'
     steps:
       - uses: actions/download-artifact@v4
         with:

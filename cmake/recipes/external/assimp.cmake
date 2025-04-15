@@ -42,7 +42,7 @@ include(CPM)
 CPMAddPackage(
     NAME assimp
     GITHUB_REPOSITORY assimp/assimp
-    GIT_TAG c1deb808faadd85a7a007447b62ae238a4be2337
+    GIT_TAG 2f3e72413f25897c1903e883a94fa5cf4293e26b
 
     PATCHES
         # Prevent Assimp from meddling with compiler flags in debug mode.
