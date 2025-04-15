@@ -71,8 +71,8 @@ editable.rebuild = false
 # editable.verbose = false
 # logging.level = "INFO"
 #
-cmake.build-type = "Debug"
-install.strip = false
+# cmake.build-type = "Debug"
+# install.strip = false
 
 [tool.scikit-build.cmake.define]
 CMAKE_GENERATOR = "Ninja"
