@@ -1,12 +1,12 @@
 diff --git i/CMakeLists.txt w/CMakeLists.txt
-index 88f69174a..7a3c580f7 100644
+index 517a957f4..0f8594369 100644
 --- i/CMakeLists.txt
 +++ w/CMakeLists.txt
-@@ -291,7 +291,6 @@ ELSEIF(MSVC)
+@@ -339,7 +339,6 @@ ELSEIF(MSVC)
    ENDIF()
-   # supress warning for double to float conversion if Double precission is activated
-   ADD_COMPILE_OPTIONS(/wd4244) 
+   # supress warning for double to float conversion if Double precision is activated
+   ADD_COMPILE_OPTIONS(/wd4244)
 -  SET(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /D_DEBUG /Zi /Od")
-   SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
-   SET(CMAKE_SHARED_LINKER_FLAGS_RELEASE "${CMAKE_SHARED_LINKER_FLAGS_RELEASE} /DEBUG:FULL /PDBALTPATH:%_PDB% /OPT:REF /OPT:ICF")
- ELSEIF (CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
+   # Allow user to disable PDBs
+   if(ASSIMP_INSTALL_PDB)
+     SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")

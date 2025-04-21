@@ -18,6 +18,8 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 
+#include <lagrange/python/setup_mkl.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <nanobind/nanobind.h>
@@ -35,6 +37,8 @@ using namespace nb::literals;
 
 void populate_filtering_module(nb::module_& m)
 {
+    setup_mkl();
+
     using Scalar = double;
     using Index = uint32_t;
 
