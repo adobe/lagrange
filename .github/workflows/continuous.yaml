@@ -31,10 +31,6 @@ jobs:
         exclude:
           - os: macos-13
             compiler: gcc
-          - os: macos-13
-            sanitizer: Thread
-          - os: macos-13
-            config: Debug
           - os: macos-14
             compiler: gcc
           - os: ubuntu-22.04
