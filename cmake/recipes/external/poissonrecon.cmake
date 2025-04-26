@@ -18,8 +18,8 @@ message(STATUS "Third-party (external): creating target 'poissonrecon::poissonre
 include(CPM)
 CPMAddPackage(
     NAME poissonrecon
-    GITHUB_REPOSITORY mkazhdan/PoissonRecon
-    GIT_TAG afab8a67cfaa566221802bb473a82e8882f74d17
+    GITHUB_REPOSITORY jdumas/PoissonRecon
+    GIT_TAG ff91c448f3530becfaae0dde259ddb243610c4c6
 )
 
 add_library(poissonrecon::poissonrecon INTERFACE IMPORTED GLOBAL)
