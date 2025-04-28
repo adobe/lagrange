@@ -20,13 +20,17 @@ if(SKBUILD)
 endif()
 
 # 1. define module
-include(nanobind tbb)
+include(nanobind)
+include(tbb)
+include(cpptrace)
 nanobind_add_module(lagrange_python NB_STATIC)
 set_target_properties(nanobind-static PROPERTIES FOLDER third_party)
 add_library(lagrange::python ALIAS lagrange_python)
 set_target_properties(lagrange_python PROPERTIES
     FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules"
     CXX_VISIBILITY_PRESET default)
+
+target_link_libraries(lagrange_python PUBLIC cpptrace::cpptrace)
 
 if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_python PROPERTIES COMPILE_WARNING_AS_ERROR ON)

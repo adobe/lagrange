@@ -15,6 +15,7 @@ lagrange_add_module(NO_INSTALL)
 set_target_properties(lagrange_testing PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")
 
 # 2. dependencies
+include(Catch2)
 lagrange_include_modules(io)
 target_link_libraries(lagrange_testing PUBLIC
     Catch2::Catch2
