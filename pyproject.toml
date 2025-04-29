@@ -71,7 +71,7 @@ editable.rebuild = false
 # editable.verbose = false
 # logging.level = "INFO"
 #
-cmake.build-type = "Debug"
+cmake.build-type = "RelWithDebInfo"
 install.strip = false
 
 [tool.scikit-build.cmake.define]
