@@ -20,7 +20,8 @@ if(SKBUILD)
 endif()
 
 # 1. define module
-include(nanobind tbb)
+include(nanobind)
+lagrange_find_package(TBB CONFIG REQUIRED)
 nanobind_add_module(lagrange_python NB_STATIC)
 set_target_properties(nanobind-static PROPERTIES FOLDER third_party)
 add_library(lagrange::python ALIAS lagrange_python)

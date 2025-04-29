@@ -57,8 +57,10 @@ block()
     # Prefer Config mode before Module mode to prevent embree from loading its own FindTBB.cmake
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
+    set(BUILD_SHARED OFF)
     set(BUILD_TESTS OFF)
     set(BUILD_FUZZERS OFF)
+    set(BUILD_BENCHMARKS OFF)
     set(PREFER_EXTERNAL_ZLIB ON)
     set(ZLIB_FOUND ON)
 
@@ -84,10 +86,12 @@ block()
     )
 
     include(GNUInstallDirs)
-    target_include_directories(blosc_static SYSTEM BEFORE PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
-    target_include_directories(blosc_shared SYSTEM BEFORE PRIVATE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+    foreach(name IN ITEMS blosc_static blosc_shared)
+        if(TARGET ${name})
+            target_include_directories(${name} SYSTEM BEFORE PRIVATE
+                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+        endif()
+    endforeach()
 
     unignore_package(ZLIB)
 endblock()
@@ -103,5 +107,7 @@ foreach(name IN ITEMS
     blosc_shared
     bench
 )
-    set_target_properties(${name} PROPERTIES FOLDER third_party/blosc)
+    if(TARGET ${name})
+        set_target_properties(${name} PROPERTIES FOLDER third_party/blosc)
+    endif()
 endforeach()
