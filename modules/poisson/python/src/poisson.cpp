@@ -28,8 +28,6 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <cpptrace/from_current.hpp>
-
 namespace lagrange::python {
 
 namespace nb = nanobind;
@@ -54,43 +52,40 @@ void populate_poisson_module(nb::module_& m)
            std::optional<GenericTensor> colors,
            std::string_view output_vertex_depth_attribute_name,
            bool verbose) {
-            CPPTRACE_TRY
-            {
-                auto mesh = lagrange::SurfaceMesh<Scalar, Index>();
+            auto mesh = lagrange::SurfaceMesh<Scalar, Index>();
 
-                auto [positions_data, positions_shape, positions_stride] =
-                    tensor_to_span(positions);
-                auto [normals_data, normals_shape, normals_stride] = tensor_to_span(normals);
+            auto [positions_data, positions_shape, positions_stride] = tensor_to_span(positions);
+            auto [normals_data, normals_shape, normals_stride] = tensor_to_span(normals);
 
-                la_runtime_assert(
-                    check_shape(positions_shape, invalid<size_t>(), 3) &&
-                        is_dense(positions_shape, positions_stride),
-                    "Input positions should be a N x 3 matrix");
-                la_runtime_assert(
-                    check_shape(normals_shape, invalid<size_t>(), 3) &&
-                        is_dense(normals_shape, normals_stride),
-                    "Input normals should be a N x 3 matrix");
+            la_runtime_assert(
+                check_shape(positions_shape, invalid<size_t>(), 3) &&
+                    is_dense(positions_shape, positions_stride),
+                "Input positions should be a N x 3 matrix");
+            la_runtime_assert(
+                check_shape(normals_shape, invalid<size_t>(), 3) &&
+                    is_dense(normals_shape, normals_stride),
+                "Input normals should be a N x 3 matrix");
 
-                mesh.wrap_as_vertices(positions_data, static_cast<Index>(positions_shape[0]));
-                mesh.wrap_as_attribute<Scalar>(
-                    "normals",
-                    AttributeElement::Vertex,
-                    AttributeUsage::Normal,
-                    3,
-                    normals_data);
+            mesh.wrap_as_vertices(positions_data, static_cast<Index>(positions_shape[0]));
+            mesh.wrap_as_attribute<Scalar>(
+                "normals",
+                AttributeElement::Vertex,
+                AttributeUsage::Normal,
+                3,
+                normals_data);
 
-                Options options;
-                options.input_normals = "normals";
-                options.octree_depth = octree_depth;
-                options.samples_per_node = samples_per_node;
-                options.interpolation_weight = interpolation_weight;
-                options.use_normal_length_as_confidence = use_normal_length_as_confidence;
-                options.use_dirichlet_boundary = use_dirichlet_boundary;
-                options.output_vertex_depth_attribute_name = output_vertex_depth_attribute_name;
-                options.verbose = verbose;
+            Options options;
+            options.input_normals = "normals";
+            options.octree_depth = octree_depth;
+            options.samples_per_node = samples_per_node;
+            options.interpolation_weight = interpolation_weight;
+            options.use_normal_length_as_confidence = use_normal_length_as_confidence;
+            options.use_dirichlet_boundary = use_dirichlet_boundary;
+            options.output_vertex_depth_attribute_name = output_vertex_depth_attribute_name;
+            options.verbose = verbose;
 
-                if (colors.has_value()) {
-                    bool unsupported_type = true;
+            if (colors.has_value()) {
+                bool unsupported_type = true;
 #define LA_X_assign_colors(_, ValueType)                                                \
     if (colors.value().dtype() == nb::dtype<ValueType>()) {                             \
         Tensor<ValueType> local_colors(colors.value().handle());                        \
@@ -108,25 +103,17 @@ void populate_poisson_module(nb::module_& m)
         options.interpolated_attribute_name = "colors";                                 \
         unsupported_type = false;                                                       \
     }
-                    LA_ATTRIBUTE_X(assign_colors, 0)
+                LA_ATTRIBUTE_X(assign_colors, 0)
 #undef LA_X_assign_colors
 
-                    if (unsupported_type) {
-                        throw std::runtime_error("Unsupported color attribute type.");
-                    } else {
-                        logger().info("Interpolating color attribute");
-                    }
+                if (unsupported_type) {
+                    throw std::runtime_error("Unsupported color attribute type.");
+                } else {
+                    logger().info("Interpolating color attribute");
                 }
+            }
 
-                return lagrange::poisson::mesh_from_oriented_points<Scalar, Index>(mesh, options);
-            }
-            CPPTRACE_CATCH(const std::exception& e)
-            {
-                lagrange::logger().error("Exception: {}", e.what());
-                cpptrace::from_current_exception().print();
-                throw e;
-            }
-            return lagrange::SurfaceMesh<Scalar, Index>();
+            return lagrange::poisson::mesh_from_oriented_points<Scalar, Index>(mesh, options);
         },
         "points"_a,
         "normals"_a,
