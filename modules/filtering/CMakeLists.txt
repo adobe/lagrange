@@ -28,8 +28,7 @@ if(NOT EMSCRIPTEN)
             # Hold off on using MKL for now to avoid bloating the package size.
             # include(blas) # Accelerate on arm64 macOS, MKL on other platforms
             # target_compile_definitions(lagrange_filtering PRIVATE LA_SOLVER_MKL)
-            add_library(BLAS IMPORTED INTERFACE GLOBAL)
-            add_library(BLAS::BLAS ALIAS BLAS)
+            add_library(BLAS::BLAS INTERFACE IMPORTED GLOBAL)
         endif()
     else()
         include(blas) # Accelerate on arm64 macOS, MKL on other platforms
