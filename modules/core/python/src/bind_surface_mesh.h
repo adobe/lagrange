@@ -827,7 +827,7 @@ void bind_surface_mesh(nanobind::module_& m)
                 make_shared_span(owner, values.data(), values.size()),
                 static_cast<Index>(num_facets),
                 static_cast<Index>(vertex_per_facet));
-            auto& attr = self.template ref_attribute<Scalar>(id);
+            auto& attr = self.template ref_attribute<Index>(id);
             attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
         },
         "Facets of the mesh.");
@@ -865,7 +865,7 @@ void bind_surface_mesh(nanobind::module_& m)
                 make_shared_span(owner, values.data(), values.size()),
                 num_facets,
                 vertex_per_facet);
-            auto& attr = self.template ref_attribute<Scalar>(id);
+            auto& attr = self.template ref_attribute<Index>(id);
             attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
             return id;
         },
@@ -899,7 +899,7 @@ void bind_surface_mesh(nanobind::module_& m)
                 num_facets,
                 make_shared_span(facets_owner, facets_data.data(), facets_data.size()),
                 num_corners);
-            auto& attr = self.template ref_attribute<Scalar>(id);
+            auto& attr = self.template ref_attribute<Index>(id);
             attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
             return id;
         },
