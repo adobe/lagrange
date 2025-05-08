@@ -47,7 +47,7 @@ jobs:
           CIBW_REPAIR_WHEEL_COMMAND_LINUX: ""
           CIBW_TEST_COMMAND: "pytest -s --pdb {project}/modules"
           CIBW_TEST_REQUIRES: pytest
-          MACOSX_DEPLOYMENT_TARGET: 11.00
+          MACOSX_DEPLOYMENT_TARGET: 13.00
           CIBW_BUILD_VERBOSITY: 2
 
       - uses: actions/upload-artifact@v4
