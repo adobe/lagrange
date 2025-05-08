@@ -4,6 +4,7 @@ on:
   pull_request:
     branches:
       - main
+      - qnzhou/v6.33.0
   release:
     types:
       - published
