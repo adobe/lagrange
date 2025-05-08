@@ -1214,7 +1214,7 @@ SurfaceMesh<Scalar, Index> subdivide_edge_adaptive(
     bool use_limit_positions = true;
     Scalar tess_interval;
 
-    // Only limit max edge tessellation if not target edge length is specified
+    // Only limit max edge tessellation if no target edge length is specified
     int tess_rate_max =
         (options.max_edge_length.has_value() ? std::numeric_limits<int>::max()
                                              : std::max(1u, options.num_levels));

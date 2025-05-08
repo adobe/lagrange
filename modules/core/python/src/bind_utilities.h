@@ -719,8 +719,13 @@ argument. Each component id is in [0, num_components-1] range.
             "orthogonalize_bitangent",
             &TangentBitangentOptions::orthogonalize_bitangent,
             "Whether to compute the bitangent as cross(normal, tangent). If false, the bitangent "
-            "is computed as the derivative of v-coordinate");
-
+            "is computed as the derivative of v-coordinate")
+        .def_rw(
+            "keep_existing_tangent",
+            &TangentBitangentOptions::keep_existing_tangent,
+            "Whether to recompute tangent if the tangent attribute (specified by "
+            "tangent_attribute_name) already exists. If true, bitangent is computed by normalizing "
+            "cross(normal, tangent) and param orthogonalize_bitangent must be true.");
     nb::class_<TangentBitangentResult>(m, "TangentBitangentResult", "Tangent bitangent result")
         .def(nb::init<>())
         .def_rw(
@@ -753,7 +758,8 @@ argument. Each component id is in [0, num_components-1] range.
            std::optional<std::string_view>(normal_attribute_name),
            std::optional<AttributeElement>(output_attribute_type),
            std::optional<bool>(pad_with_sign),
-           std::optional<bool>(orthogonalize_bitangent)) {
+           std::optional<bool>(orthogonalize_bitangent),
+           std::optional<bool>(keep_existing_tangent)) {
             TangentBitangentOptions opt;
             if (tangent_attribute_name.has_value()) {
                 opt.tangent_attribute_name = tangent_attribute_name.value();
@@ -776,6 +782,9 @@ argument. Each component id is in [0, num_components-1] range.
             if (orthogonalize_bitangent.has_value()) {
                 opt.orthogonalize_bitangent = orthogonalize_bitangent.value();
             }
+            if (keep_existing_tangent.has_value()) {
+                opt.keep_existing_tangent = keep_existing_tangent.value();
+            }
 
             auto r = compute_tangent_bitangent<Scalar, Index>(mesh, opt);
             return std::make_tuple(r.tangent_id, r.bitangent_id);
@@ -788,6 +797,7 @@ argument. Each component id is in [0, num_components-1] range.
         "output_attribute_type"_a = nb::none(),
         "pad_with_sign"_a = nb::none(),
         "orthogonalize_bitangent"_a = nb::none(),
+        "keep_existing_tangent"_a = nb::none(),
         R"(Compute tangent and bitangent vector attributes (Pythonic API).
 
 :param mesh: The input mesh.
@@ -798,6 +808,7 @@ argument. Each component id is in [0, num_components-1] range.
 :param output_attribute_type: The output element type.
 :param pad_with_sign: Whether to pad the output tangent/bitangent with sign.
 :param orthogonalize_bitangent: Whether to compute the bitangent as sign * cross(normal, tangent).
+:param keep_existing_tangent: Whether to recompute tangent if the tangent attribute (specified by tangent_attribute_name) already exists. If true, bitangent is computed by normalizing cross(normal, tangent) and param orthogonalize_bitangent must be true.
 
 :returns: The tangent and bitangent attribute ids)");
 

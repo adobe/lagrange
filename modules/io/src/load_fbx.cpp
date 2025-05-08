@@ -15,6 +15,7 @@
 #include <lagrange/io/load_mesh_fbx.h>
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/load_simple_scene_fbx.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 
 #include "stitch_mesh.h"
 
@@ -244,6 +245,9 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
 
     if (opt.stitch_vertices) {
         stitch_mesh(lmesh);
+    }
+    if (opt.triangulate) {
+        triangulate_polygonal_facets(lmesh);
     }
 
     return lmesh;

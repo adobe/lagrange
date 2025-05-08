@@ -17,11 +17,11 @@
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/io/api.h>
 #include <lagrange/io/load_mesh_msh.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/strings.h>
-
 #include <mshio/mshio.h>
 
 #include "stitch_mesh.h"
@@ -256,6 +256,9 @@ MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& options)
 
     if (options.stitch_vertices) {
         stitch_mesh(mesh);
+    }
+    if (options.triangulate) {
+        triangulate_polygonal_facets(mesh);
     }
 
     return mesh;

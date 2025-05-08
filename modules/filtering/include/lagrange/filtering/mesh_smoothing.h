@@ -26,6 +26,32 @@ namespace lagrange::filtering {
 struct SmoothingOptions
 {
     ///
+    /// The type of smoothing to be performed
+    ///
+    enum struct FilterMethod {
+        ///
+        /// Directly process the vertex positions
+        ///
+        /// * + No fold-overs
+        /// * - In the context of smoothing this is a shrinking flow
+        ///
+        VertexSmoothing,
+
+        ///
+        /// Process the normals and then fit the vertices to the normals
+        ///
+        /// * + Avoids shrinking
+        /// * - When the normals are filtered aggressively, it could lead to fold-over
+        ///
+        NormalSmoothing
+    };
+
+    ///
+    /// Type of smoothing to be performed
+    ///
+    FilterMethod filter_method = FilterMethod::NormalSmoothing;
+
+    ///
     /// @name Phase 1: Metric Modification
     ///
     /// Optionally, the metric is modified to scale distances across sharp features so that

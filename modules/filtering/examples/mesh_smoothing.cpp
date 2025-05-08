@@ -22,6 +22,7 @@ int main(int argc, char** argv)
         std::string input;
         std::string output = "output.obj";
         int log_level = 2; // normal
+        bool process_vertices = false;
     } args;
 
     lagrange::filtering::SmoothingOptions smooth_options;
@@ -46,10 +47,17 @@ int main(int argc, char** argv)
         "--normal-projection-weight",
         smooth_options.normal_projection_weight,
         "Normal projection weight.");
+    app.add_flag("--positions", args.process_vertices, "Filter vertices positions directly.");
+
     app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
 
     CLI11_PARSE(app, argc, argv)
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.log_level));
+
+    if (args.process_vertices) {
+        smooth_options.filter_method =
+            lagrange::filtering::SmoothingOptions::FilterMethod::VertexSmoothing;
+    }
 
     lagrange::logger().info("Loading input mesh: {}", args.input);
     auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(args.input);
@@ -58,6 +66,7 @@ int main(int argc, char** argv)
     lagrange::filtering::mesh_smoothing(mesh, smooth_options);
 
     lagrange::logger().info("Saving result: {}", args.output);
+
     lagrange::io::save_mesh(args.output, mesh);
 
     return 0;

@@ -40,14 +40,14 @@ function(lagrange_ui_add_example name)
         ${name}
         PRIVATE
         LAGRANGE_DATA_FOLDER="${LAGRANGE_DATA_FOLDER}"
-        )
+    )
 
     if(EMSCRIPTEN)
         target_link_options(${name} PUBLIC
             "SHELL:-s FORCE_FILESYSTEM"
-        )       
+        )
     endif()
-        
+
 
 endfunction()
 

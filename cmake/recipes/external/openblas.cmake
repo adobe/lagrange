@@ -13,30 +13,45 @@ if(TARGET OpenBLAS::OpenBLAS)
     return()
 endif()
 
-set(BLA_VENDOR OpenBLAS)
-find_package(BLAS QUIET)
-# note: to make the above find work you can manually install openblas.
-# You can also just call `conda install openblas`.
-# You may want to do that to avoid compiling openblas.
+message(STATUS "Third-party (external): creating target 'OpenBLAS::OpenBLAS'")
 
-if(BLAS_FOUND)
+block()
+    set(BUILD_WITHOUT_LAPACK ON)
+    set(BUILD_WITHOUT_LAPACKE ON)
+    set(BUILD_TESTING OFF)
+    set(BUILD_BENCHMARKS OFF)
+    set(USE_OPENMP OFF)
+    set(NOFORTRAN ON)
 
-    message(STATUS "Third-party (external): Creating target 'OpenBLAS::OpenBLAS' from imported BLAS::BLAS (${BLAS_LIBRARIES})")
+    include(CPM)
+    CPMAddPackage(
+        NAME OpenBLAS
+        GITHUB_REPOSITORY OpenMathLib/OpenBLAS
+        GIT_TAG v0.3.29
+    )
 
-    add_library(OpenBLAS INTERFACE)
-    add_library(OpenBLAS::OpenBLAS ALIAS OpenBLAS)
-    target_link_libraries(OpenBLAS INTERFACE BLAS::BLAS)
+    set(OpenBLAS_LIBNAME openblas${SUFFIX64_UNDERSCORE})
+    if(NOT TARGET OpenBLAS::OpenBLAS)
+        get_target_property(_aliased ${OpenBLAS_LIBNAME} ALIASED_TARGET)
+        if(_aliased)
+            message(STATUS "Creating 'OpenBLAS::OpenBLAS' as a new ALIAS target for '${_aliased}'.")
+            add_library(OpenBLAS::OpenBLAS ALIAS ${_aliased})
+            set(OpenBLAS_LIBNAME ${_aliased})
+        else()
+            add_library(OpenBLAS::OpenBLAS ALIAS ${OpenBLAS_LIBNAME})
+        endif()
+    endif()
+    set_target_properties(${OpenBLAS_LIBNAME} PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-    # Hack: the found target has no headers, so we manually do that.
-    # this might get fixed in cmake in the future, reference https://gitlab.kitware.com/cmake/cmake/-/issues/20268
-    find_path(OPENBLAS_INCLUDE_PATH
-        NAMES "openblas/cblas.h"
-        REQUIRED)
-    target_include_directories(OpenBLAS INTERFACE ${OPENBLAS_INCLUDE_PATH})
+    # Copy generated headers into expected subfolder
+    file(MAKE_DIRECTORY "${OpenBLAS_BINARY_DIR}/include/openblas")
+    configure_file(${CMAKE_BINARY_DIR}/generated/cblas.h "${OpenBLAS_BINARY_DIR}/include/openblas/cblas.h" COPYONLY)
+    configure_file(${CMAKE_BINARY_DIR}/openblas_config.h "${OpenBLAS_BINARY_DIR}/include/openblas_config.h" COPYONLY)
 
-else()
+    include(GNUInstallDirs)
+    target_include_directories(${OpenBLAS_LIBNAME} INTERFACE
+        $<BUILD_INTERFACE:${OpenBLAS_BINARY_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    )
 
-    # Not doing anything here, we let nasoq's openblas.cmake handle it
-
-endif()
-
+endblock()

@@ -15,14 +15,16 @@ endif()
 
 message(STATUS "Third-party: creating target 'glad::glad'")
 
-include(FetchContent)
-FetchContent_Declare(
-    glad
-    GIT_REPOSITORY https://github.com/libigl/libigl-glad.git
-    GIT_TAG        3b1d0005d1c4a07c0a3d23a0c3b38c7eedf027e0
-)
+block()
+    set(BUILD_SHARED_LIBS OFF)
+    include(CPM)
+    CPMAddPackage(
+        NAME glad
+        GIT_REPOSITORY https://github.com/libigl/libigl-glad.git
+        GIT_TAG        3b1d0005d1c4a07c0a3d23a0c3b38c7eedf027e0
+        )
+endblock()
 
-FetchContent_MakeAvailable(glad)
 add_library(glad::glad ALIAS glad)
 
 set_target_properties(glad PROPERTIES FOLDER third_party)

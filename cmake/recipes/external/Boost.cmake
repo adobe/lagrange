@@ -83,6 +83,14 @@ if(SKBUILD)
     set(BUILD_SHARED_LIBS ON)
 endif()
 
+set(BOOST_PATCHES "")
+if(EMSCRIPTEN)
+    # Wasm doesn't have rounding mode control yet, so we trick Boost::interval into thinking it has.
+    # https://github.com/WebAssembly/rounding-mode-control
+    # https://github.com/boostorg/interval/issues/44
+    set(BOOST_PATCHES PATCHES Boost.wasm.patch)
+endif()
+
 # Modern CMake target support was added in Boost 1.82.0
 # CMake support for boost::numeric_ublas was added in Boost 1.84.0
 include(CPM)
@@ -92,6 +100,7 @@ CPMAddPackage(
     GITHUB_REPOSITORY "boostorg/boost"
     GIT_TAG "boost-1.84.0"
     EXCLUDE_FROM_ALL ON
+    ${BOOST_PATCHES}
 )
 
 if(SKBUILD)
@@ -113,6 +122,10 @@ if(TARGET Boost::random)
     file(WRITE "${boost_dummy_autolink_dir}/auto_link.hpp.in" "")
     configure_file(${boost_dummy_autolink_dir}/auto_link.hpp.in ${boost_dummy_autolink_dir}/auto_link.hpp COPYONLY)
     target_include_directories(boost_random PRIVATE "${Boost_BINARY_DIR}/dummy")
+endif()
+
+if(EMSCRIPTEN)
+    target_compile_options(boost_container PUBLIC "-fdeclspec")
 endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ${OLD_CMAKE_POSITION_INDEPENDENT_CODE})

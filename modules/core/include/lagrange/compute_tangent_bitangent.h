@@ -61,6 +61,13 @@ struct TangentBitangentOptions
     /// Whether to compute the bitangent as sign * cross(normal, tangent)
     /// If false, the bitangent is computed as the derivative of v-coordinate
     bool orthogonalize_bitangent = false;
+
+    /// Whether to recompute tangent if the tangent attribute (specified by tangent_attribute_name)
+    /// already exists.
+    /// * If true, bitangent will be computed by sign * normalized(cross(normal, existing_tangent))
+    ///   - `orthogonalize_bitangent` must be true
+    /// * If false, the tangent will be recomputed and potentially overwritten.
+    bool keep_existing_tangent = false;
 };
 
 /// Result type of the compute_tangent_bitangent function.
@@ -76,9 +83,8 @@ struct TangentBitangentResult
 ///
 /// Compute mesh tangent and bitangent vectors orthogonal to the input mesh normals.
 ///
-/// @note       The input mesh must have existing indexed normal and UV attributes. The input UV
-///             attribute is used to orient the resulting T/B vectors coherently wrt to the UV
-///             mapping.
+/// @note       Unless `options.keep_existing_tangent` is true, the input mesh must have existing indexed normal and UV attributes.
+///             The input UV attribute is used to orient the resulting T/B vectors coherently wrt to the UV mapping.
 ///
 /// @param[in]  mesh     The input mesh.
 /// @param[in]  options  Optional arguments to control tangent/bitangent generation.

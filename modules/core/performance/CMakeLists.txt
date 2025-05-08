@@ -60,5 +60,5 @@ target_link_libraries(array lagrange::core lagrange::io)
 lagrange_add_performance(unify_index_buffer unify_index_buffer.cpp)
 target_link_libraries(unify_index_buffer lagrange::core lagrange::io)
 
-lagrange_add_performance(view_tangent_frame view_tangent_frame.cpp)
+lagrange_add_performance(view_tangent_frame WITH_UI view_tangent_frame.cpp)
 target_link_libraries(view_tangent_frame lagrange::core lagrange::io lagrange::ui CLI11::CLI11)

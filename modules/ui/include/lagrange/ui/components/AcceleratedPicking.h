@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/ui/utils/mesh.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <igl/AABB.h>

@@ -31,6 +31,7 @@ if(APPLE)
     set(EMBREE_MAX_ISA "NEON" CACHE STRING "Selects highest ISA to support.")
 elseif(EMSCRIPTEN)
     set(EMBREE_MAX_ISA "SSE2" CACHE STRING "Selects highest ISA to support.")
+    set(FLAGS_SSE2 "-msse -msse2 -msimd128") # set to non-empty to prevent embree from using incorrect flags
 else()
     set(EMBREE_MAX_ISA "DEFAULT" CACHE STRING "Selects highest ISA to support.")
 endif()
@@ -99,6 +100,12 @@ function(embree_import_target)
         NAME embree
         GITHUB_REPOSITORY embree/embree
         GIT_TAG v3.13.5
+
+        PATCHES
+            # Patch for emscripten compatibility. Fix available upstream in Embree 4+.
+            # https://github.com/RenderKit/embree/pull/365
+            # https://github.com/RenderKit/embree/issues/486
+            embree.patch
     )
 
     unignore_package(TBB)

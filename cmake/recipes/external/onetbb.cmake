@@ -19,6 +19,11 @@ message(STATUS "Third-party (external): creating target 'TBB::tbb' (OneTBB)")
 # adding machine-specific "-mrtm" and "-mwaitpkg" compile options.
 if(EMSCRIPTEN)
     set(CMAKE_SYSTEM_PROCESSOR "WASM")
+    option(TBB_DISABLE_HWLOC_AUTOMATIC_SEARCH "Disable automatic search for hwloc" ON)
+    if(BUILD_SHARED_LIBS)
+        message(FATAL_ERROR "Building TBB as a shared library is not supported on Emscripten")
+    endif()
+    option(TBBMALLOC_BUILD "Enable tbbmalloc build" OFF)
 endif()
 
 option(TBB_TEST "Enable testing" OFF)

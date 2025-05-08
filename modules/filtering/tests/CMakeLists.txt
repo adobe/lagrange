@@ -10,5 +10,3 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_test()
-
-target_link_libraries(test_lagrange_filtering PRIVATE shape_gradient_domain::shape_gradient_domain)

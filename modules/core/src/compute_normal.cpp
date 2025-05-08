@@ -161,8 +161,7 @@ AttributeId compute_normal_internal(
     attr_values.resize_elements(buckets.num_representatives);
     auto normal_values = matrix_ref(attr_values);
 
-    auto compute_weighted_corner_normal =
-        [&, facet_normal = facet_normal](Index ci) -> Eigen::Matrix<Scalar, 3, 1> {
+    auto compute_weighted_corner_normal = [&](Index ci) -> Eigen::Matrix<Scalar, 3, 1> {
         auto n = internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
         Scalar sign = std::copysign(1.f, n.dot(facet_normal.row(mesh.get_corner_facet(ci))));
         n *= sign;
@@ -232,7 +231,7 @@ AttributeId compute_normal(
         options.recompute_facet_normals);
     auto facet_normal = attribute_matrix_view<Scalar>(mesh, facet_normal_id);
 
-    auto is_smooth = [&, facet_normal = facet_normal](Index fi, Index fj) -> bool {
+    auto is_smooth = [&](Index fi, Index fj) -> bool {
         const Eigen::Matrix<Scalar, 1, 3> ni = facet_normal.row(fi);
         const Eigen::Matrix<Scalar, 1, 3> nj = facet_normal.row(fj);
 

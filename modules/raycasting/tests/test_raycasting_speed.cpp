@@ -16,7 +16,7 @@
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
-#include <igl/embree/EmbreeIntersector.h>
+// #include <igl/embree/EmbreeIntersector.h>
 #include <igl/random_dir.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
@@ -68,7 +68,7 @@ size_t raycast_ambient_occlusion(RayCasterPtr& caster, Mesh& mesh, Eigen::Matrix
 
 template <typename RayCasterPtr, typename Mesh>
 size_t
-raycast_ambient_occlusion_pack4(RayCasterPtr& caster, Mesh& mesh, Eigen::MatrixXd& directions)
+raycast_ambient_occlusion_pack4(RayCasterPtr& caster, Mesh& mesh, Eigen::MatrixXd& directions_)
 {
     using RayCaster = typename RayCasterPtr::element_type;
     using Scalar = typename RayCaster::Scalar;
@@ -79,7 +79,7 @@ raycast_ambient_occlusion_pack4(RayCasterPtr& caster, Mesh& mesh, Eigen::MatrixX
     using Mask4 = typename RayCaster::Mask4;
     std::atomic_size_t hit_counter(0);
     int num_vertices = mesh.get_num_vertices();
-    int num_directions = static_cast<int>(directions.rows());
+    int num_directions = static_cast<int>(directions_.rows());
 
     auto bitcount4 = [](uint8_t i) {
         i = i - ((i >> 1) & '\5');
@@ -130,6 +130,8 @@ raycast_ambient_occlusion_pack4(RayCasterPtr& caster, Mesh& mesh, Eigen::MatrixX
     return hit_counter;
 }
 
+// TODO: Re-enable after moving to Embree 4
+#if 0
 template <typename Mesh>
 size_t igl_ambient_occlusion(
     const igl::embree::EmbreeIntersector& engine,
@@ -152,6 +154,7 @@ size_t igl_ambient_occlusion(
     });
     return hit_counter;
 }
+#endif
 
 } // namespace
 
@@ -182,11 +185,13 @@ TEST_CASE("Raycasting Speed", "[raycasting][!benchmark]")
     };
 
     // Libigl raycaster
+    #if 0
     {
         igl::embree::EmbreeIntersector engine;
         engine.init(mesh->get_vertices().cast<float>(), mesh->get_facets().cast<int>());
         BENCHMARK("libigl") { return igl_ambient_occlusion(engine, *mesh, directions); };
     }
+    #endif
 
     // Lagrange 4-packed raycaster
     for (auto type : all_types) {

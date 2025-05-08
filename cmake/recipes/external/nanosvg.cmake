@@ -35,7 +35,7 @@ file(WRITE "${nanosvg_BINARY_DIR}/nanosvg.cpp.in" [[
 configure_file(${nanosvg_BINARY_DIR}/nanosvg.cpp.in ${nanosvg_BINARY_DIR}/nanosvg.cpp COPYONLY)
 
 # Define nanosvg library
-add_library(nanosvg ${nanosvg_BINARY_DIR}/nanosvg.cpp)
+add_library(nanosvg STATIC ${nanosvg_BINARY_DIR}/nanosvg.cpp)
 add_library(nanosvg::nanosvg ALIAS nanosvg)
 
 include(GNUInstallDirs)

@@ -35,6 +35,8 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <lagrange/testing/require_approx.h>
+
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     #include <lagrange/mesh_convert.h>
 #endif
@@ -200,7 +202,7 @@ TEST_CASE("compute_tangent_bitangent_orthogonal", "[core][tangent]" LA_SLOW_DEBU
     SECTION("corner tangent/bitangent")
     {
         auto [T, B] = corner_tangent_bitangent(mesh, pad, ortho);
-        for (Index i = 0; i < T.rows(); i++) {
+        for (Index i = 0; i < static_cast<Index>(T.rows()); i++) {
             Eigen::RowVector3<Scalar> Nv = N.row(i);
             Eigen::RowVector3<Scalar> Tv = T.row(i).head(3);
             Eigen::RowVector3<Scalar> Bv = B.row(i).head(3);
@@ -217,6 +219,139 @@ TEST_CASE("compute_tangent_bitangent_orthogonal", "[core][tangent]" LA_SLOW_DEBU
         auto [T0, I0, B0, J0] = indexed_tangent_bitangent(mesh0, pad, true);
         auto [T1, I1, B1, J1] = indexed_tangent_bitangent(mesh1, pad, false);
         REQUIRE(!B0.isApprox(B1, 1e-6));
+    }
+}
+
+TEST_CASE("compute_tangent_bitangent_keep_existing_indexed", "[core][tangent]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    const std::string name = "open/core/hemisphere.obj";
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(name);
+
+    // create UV by projecting vertex position to z = 0, then convert to indexed attribute
+    auto vertices = vertex_view(mesh);
+    std::vector<Scalar> uv_values(2 * mesh.get_num_vertices());
+    for (Index i = 0; i < mesh.get_num_vertices(); ++i) {
+        uv_values[2 * i + 0] = vertices.row(i)[0];
+        uv_values[2 * i + 1] = vertices.row(i)[1];
+    }
+    mesh.wrap_as_const_indexed_attribute<Scalar>(
+        "@uv",
+        lagrange::AttributeUsage::UV,
+        mesh.get_num_vertices(),
+        2,
+        uv_values,
+        mesh.get_corner_to_vertex().get_all());
+
+    // create normal and tangent attributes as indexed attributes of length 1
+    std::vector<Index> indices(mesh.get_num_corners());
+    std::fill(indices.begin(), indices.end(), Index(0));
+
+    std::vector<Scalar> normal_values(3, Scalar(0));
+    normal_values[1] = Scalar(1); // normal is UnitY
+    std::vector<Scalar> tangent_values(3, Scalar(0));
+    tangent_values[2] = Scalar(1); // normal is UnitZ
+
+    mesh.wrap_as_const_indexed_attribute<Scalar>(
+        "@dubious_normal",
+        lagrange::AttributeUsage::Normal,
+        1,
+        3,
+        normal_values,
+        indices);
+    mesh.wrap_as_const_indexed_attribute<Scalar>(
+        "@dubious_tangent",
+        lagrange::AttributeUsage::Tangent,
+        1,
+        3,
+        tangent_values,
+        indices);
+
+    lagrange::TangentBitangentOptions opt;
+    opt.keep_existing_tangent = true;
+    opt.orthogonalize_bitangent = true;
+    opt.tangent_attribute_name = "@dubious_tangent";
+    opt.bitangent_attribute_name = "@dubious_bitangent";
+    opt.normal_attribute_name = "@dubious_normal";
+    opt.uv_attribute_name = "@uv";
+    opt.output_element_type = lagrange::AttributeElement::Indexed;
+    opt.pad_with_sign = true;
+    auto result = lagrange::compute_tangent_bitangent(mesh, opt);
+    auto& bitangent_attrib = mesh.template get_indexed_attribute<Scalar>(result.bitangent_id);
+    auto bitangent_ref = matrix_view(bitangent_attrib.values());
+    for (Index i = 0; i < static_cast<Index>(bitangent_ref.rows()); ++i) {
+        // bitangent should be normal.cross(tangent) = UnitY.cross(UnitZ) = exactly UnitX
+        REQUIRE(
+            bitangent_ref.row(i).template head<3>() ==
+            bitangent_ref(i, 3) * Eigen::RowVector3<Scalar>::UnitX());
+    }
+}
+
+TEST_CASE("compute_tangent_bitangent_keep_existing_corner", "[core][tangent]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    const std::string name = "open/core/hemisphere.obj";
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(name);
+
+    // create UV by projecting vertex position to z = 0, then convert to indexed attribute
+    auto vertices = vertex_view(mesh);
+    std::vector<Scalar> uv_values(2 * mesh.get_num_vertices());
+    for (Index i = 0; i < mesh.get_num_vertices(); ++i) {
+        uv_values[2 * i + 0] = vertices.row(i)[0];
+        uv_values[2 * i + 1] = vertices.row(i)[1];
+    }
+    mesh.wrap_as_const_indexed_attribute<Scalar>(
+        "@uv",
+        lagrange::AttributeUsage::UV,
+        mesh.get_num_vertices(),
+        2,
+        uv_values,
+        mesh.get_corner_to_vertex().get_all());
+
+    // let normal be vertex position, and then store as indexed attribute
+    std::vector<Scalar> normal_values(3 * mesh.get_num_vertices());
+    std::copy(
+        vertices.data(),
+        vertices.data() + 3 * mesh.get_num_vertices(),
+        normal_values.begin());
+    mesh.wrap_as_const_indexed_attribute<Scalar>(
+        "@normal",
+        lagrange::AttributeUsage::Normal,
+        mesh.get_num_vertices(),
+        3,
+        normal_values,
+        mesh.get_corner_to_vertex().get_all());
+
+    // let tangent be latitude direction, and then store as corner attribute
+    lagrange::AttributeId tangent_id = mesh.create_attribute<Scalar>(
+        "@tangent",
+        lagrange::AttributeElement::Corner,
+        3,
+        lagrange::AttributeUsage::Tangent);
+    auto tangent_ref = lagrange::attribute_matrix_ref<Scalar>(mesh, tangent_id);
+    for (Index i = 0; i < mesh.get_num_corners(); ++i) {
+        auto vtx_pos = vertices.row(mesh.get_corner_vertex(i));
+        tangent_ref.row(i) << vtx_pos[1], -vtx_pos[0], Scalar(0);
+    }
+
+    lagrange::TangentBitangentOptions opt;
+    opt.keep_existing_tangent = true;
+    opt.orthogonalize_bitangent = true;
+    opt.pad_with_sign = false;
+    opt.tangent_attribute_name = "@tangent";
+    opt.bitangent_attribute_name = "@bitangent";
+    opt.normal_attribute_name = "@normal";
+    opt.uv_attribute_name = "@uv";
+    opt.output_element_type = lagrange::AttributeElement::Corner;
+    lagrange::compute_tangent_bitangent(mesh, opt);
+    lagrange::AttributeId bitangent_id = mesh.get_attribute_id(opt.bitangent_attribute_name);
+    auto bitangent_values = lagrange::attribute_matrix_view<Scalar>(mesh, bitangent_id);
+    for (Index i = 0; i < static_cast<Index>(bitangent_values.rows()); ++i) {
+        REQUIRE_THAT(bitangent_values.row(i).dot(tangent_ref.row(i)), Catch::Matchers::WithinAbs(0.0, 1e-6));
     }
 }
 
@@ -380,9 +515,9 @@ TEST_CASE("compute_tangent_bitangent cube", "[core][tangent]")
         Eigen::RowVector<Scalar, 3> n = normals.row(normal_indices(cid));
         Eigen::RowVector<Scalar, 3> t = tangents.row(cid);
         Eigen::RowVector<Scalar, 3> b = bitangents.row(cid);
-        REQUIRE(n.dot(t) == Catch::Approx(0));
-        REQUIRE(n.dot(b) == Catch::Approx(0));
-        REQUIRE(t.dot(b) == Catch::Approx(0));
+        REQUIRE_THAT(n.dot(t), Catch::Matchers::WithinAbs(Scalar(0), Scalar(1e-6)));
+        REQUIRE_THAT(n.dot(b), Catch::Matchers::WithinAbs(Scalar(0), Scalar(1e-6)));
+        REQUIRE_THAT(t.dot(b), Catch::Matchers::WithinAbs(Scalar(0), Scalar(1e-6)));
     }
 }
 
@@ -502,7 +637,8 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
         }
     };
 
-    auto compare_tangent_bitangent = [](const lagrange::SurfaceMesh<Scalar, Index>& mesh, bool ortho) {
+    auto compare_tangent_bitangent = [](const lagrange::SurfaceMesh<Scalar, Index>& mesh,
+                                        bool ortho) {
         lagrange::logger().info("Computing tangent frame");
         auto mesh_mk = mesh;
         auto mesh_in = mesh;
@@ -554,9 +690,10 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
     for (auto normal_type : {NormalType::Indexed, NormalType::Original, NormalType::Vertex}) {
         for (auto orthogonalize_bitangent : {true, false}) {
             if (normal_type == NormalType::Indexed) {
-                // NOTE: For some reason I had to change `0 -> 0.1` for arm64 Xcode14 unit test to pass.
-                // There's another mysterious floating point behavior with Xcode 14 that caused a
-                // discrepancy between Lagrange's implementation and mikktspace's implementation.
+                // NOTE: For some reason I had to change `0 -> 0.1` for arm64 Xcode14 unit test to
+                // pass. There's another mysterious floating point behavior with Xcode 14 that
+                // caused a discrepancy between Lagrange's implementation and mikktspace's
+                // implementation.
                 for (double angle_threshold_deg : {0., 45., 90., 180.}) {
                     auto mesh = original_mesh;
                     compute_normals(mesh, normal_type, static_cast<Scalar>(angle_threshold_deg));
