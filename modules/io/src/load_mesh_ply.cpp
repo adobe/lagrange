@@ -18,6 +18,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/io/api.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/build.h>
 #include <lagrange/utils/strings.h>

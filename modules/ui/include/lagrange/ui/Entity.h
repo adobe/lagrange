@@ -11,10 +11,14 @@
  */
 #pragma once
 
-#include <entt/entt.hpp>
 #include <functional>
 #include <string>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <entt/entt.hpp>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange {
 namespace ui {

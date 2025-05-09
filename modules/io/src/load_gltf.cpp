@@ -29,6 +29,7 @@
 #include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/scene/simple_scene_convert.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
@@ -506,6 +507,9 @@ MeshType convert_tinygltf_primitive_to_lagrange_mesh(
 
     if (options.stitch_vertices) {
         stitch_mesh(lmesh);
+    }
+    if (options.triangulate) {
+        triangulate_polygonal_facets(lmesh);
     }
 
     return lmesh;

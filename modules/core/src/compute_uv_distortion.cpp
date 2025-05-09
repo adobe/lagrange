@@ -12,6 +12,7 @@
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/compute_uv_distortion.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/assert.h>
@@ -44,7 +45,13 @@ AttributeId compute_uv_distortion(
         1,
         internal::ResetToDefault::No);
 
-    const auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(options.uv_attribute_name);
+    AttributeId uv_attr_id = mesh.get_attribute_id(options.uv_attribute_name);
+    bool tmp_uv_attr = false;
+    if (!mesh.template is_attribute_type<Scalar>(options.uv_attribute_name)) {
+        uv_attr_id = cast_attribute<Scalar>(mesh, options.uv_attribute_name, "@tmp_uv");
+        tmp_uv_attr = true;
+    }
+    const auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(uv_attr_id);
     auto uv_values = matrix_view(uv_attr.values());
     auto uv_indices = reshaped_view(uv_attr.indices(), 3);
     auto vertices = vertex_view(mesh);
@@ -58,19 +65,23 @@ AttributeId compute_uv_distortion(
         span<const Scalar, 3> V0{vertices.row(facets(fid, 0)).data(), 3};
         span<const Scalar, 3> V1{vertices.row(facets(fid, 1)).data(), 3};
         span<const Scalar, 3> V2{vertices.row(facets(fid, 2)).data(), 3};
-        span<const Scalar, 2> v0{uv_values.row(uv_indices(fid, 0)).data(), 3};
-        span<const Scalar, 2> v1{uv_values.row(uv_indices(fid, 1)).data(), 3};
-        span<const Scalar, 2> v2{uv_values.row(uv_indices(fid, 2)).data(), 3};
+        span<const Scalar, 2> v0{uv_values.row(uv_indices(fid, 0)).data(), 2};
+        span<const Scalar, 2> v1{uv_values.row(uv_indices(fid, 1)).data(), 2};
+        span<const Scalar, 2> v2{uv_values.row(uv_indices(fid, 2)).data(), 2};
 
         distortion_measure[fid] = triangle_uv_distortion(V0, V1, V2, v0, v1, v2, options.metric);
     });
 
+    if (tmp_uv_attr) {
+        mesh.delete_attribute(mesh.get_attribute_name(uv_attr_id));
+    }
+
     return id;
 }
 
-#define LA_X_compute_uv_distortion(_, Scalar, Index) \
-    template LA_CORE_API AttributeId compute_uv_distortion(      \
-        SurfaceMesh<Scalar, Index>&,                 \
+#define LA_X_compute_uv_distortion(_, Scalar, Index)        \
+    template LA_CORE_API AttributeId compute_uv_distortion( \
+        SurfaceMesh<Scalar, Index>&,                        \
         const UVDistortionOptions&);
 LA_SURFACE_MESH_X(compute_uv_distortion, 0)
 

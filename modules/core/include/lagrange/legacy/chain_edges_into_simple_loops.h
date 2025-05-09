@@ -282,7 +282,7 @@ bool chain_edges_into_simple_loops(
         remaining_edges.resize(num_edges - num_edges_removed, 2);
         for (Index e = 0, cnt = 0; e < num_edges; ++e) {
             if (!edge_is_removed[e]) {
-                la_debug_assert(cnt < remaining_edges.rows());
+                la_debug_assert(cnt < static_cast<Index>(remaining_edges.rows()));
                 remaining_edges.row(cnt++) = edges.row(e);
             }
         }

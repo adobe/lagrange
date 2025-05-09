@@ -605,7 +605,8 @@ TEST_CASE("cast invalid", "[core][surface][cast]")
         1,
         v2f_values);
 
-    SECTION("default remap") {
+    SECTION("default remap")
+    {
         auto other_mesh = lagrange::cast<OtherScalar, OtherIndex>(mesh);
         auto colors = lagrange::attribute_vector_view<OtherScalar>(other_mesh, "colors");
         auto groups = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "groups");
@@ -619,10 +620,14 @@ TEST_CASE("cast invalid", "[core][surface][cast]")
         REQUIRE(v2f[2] == lagrange::invalid<OtherIndex>());
     }
 
-    SECTION("always remap") {
-        mesh.ref_attribute<Scalar>(colors_id).set_cast_policy(lagrange::AttributeCastPolicy::RemapInvalidAlways);
-        mesh.ref_attribute<Scalar>(groups_id).set_cast_policy(lagrange::AttributeCastPolicy::RemapInvalidAlways);
-        mesh.ref_attribute<Scalar>(v2f_id).set_cast_policy(lagrange::AttributeCastPolicy::RemapInvalidAlways);
+    SECTION("always remap")
+    {
+        mesh.ref_attribute<Scalar>(colors_id).set_cast_policy(
+            lagrange::AttributeCastPolicy::RemapInvalidAlways);
+        mesh.ref_attribute<Index>(groups_id).set_cast_policy(
+            lagrange::AttributeCastPolicy::RemapInvalidAlways);
+        mesh.ref_attribute<Index>(v2f_id).set_cast_policy(
+            lagrange::AttributeCastPolicy::RemapInvalidAlways);
         auto other_mesh = lagrange::cast<OtherScalar, OtherIndex>(mesh);
         auto colors = lagrange::attribute_vector_view<OtherScalar>(other_mesh, "colors");
         auto groups = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "groups");
@@ -630,16 +635,25 @@ TEST_CASE("cast invalid", "[core][surface][cast]")
         // invalid<float>() and invalid<double>() are the same
         REQUIRE(colors[3] == static_cast<OtherScalar>(lagrange::invalid<Scalar>()));
         REQUIRE(colors[3] == lagrange::invalid<OtherScalar>());
+        CAPTURE(
+            lagrange::invalid<Index>(),
+            lagrange::invalid<OtherIndex>(),
+            sizeof(OtherIndex),
+            sizeof(Index));
         REQUIRE(groups[1] != static_cast<OtherIndex>(lagrange::invalid<Index>()));
         REQUIRE(groups[1] == lagrange::invalid<OtherIndex>());
         REQUIRE(v2f[2] != static_cast<OtherIndex>(lagrange::invalid<Index>()));
         REQUIRE(v2f[2] == lagrange::invalid<OtherIndex>());
     }
 
-    SECTION("never remap") {
-        mesh.ref_attribute<Scalar>(colors_id).set_cast_policy(lagrange::AttributeCastPolicy::DoNotRemapInvalid);
-        mesh.ref_attribute<Scalar>(groups_id).set_cast_policy(lagrange::AttributeCastPolicy::DoNotRemapInvalid);
-        mesh.ref_attribute<Scalar>(v2f_id).set_cast_policy(lagrange::AttributeCastPolicy::DoNotRemapInvalid);
+    SECTION("never remap")
+    {
+        mesh.ref_attribute<Scalar>(colors_id).set_cast_policy(
+            lagrange::AttributeCastPolicy::DoNotRemapInvalid);
+        mesh.ref_attribute<Index>(groups_id).set_cast_policy(
+            lagrange::AttributeCastPolicy::DoNotRemapInvalid);
+        mesh.ref_attribute<Index>(v2f_id).set_cast_policy(
+            lagrange::AttributeCastPolicy::DoNotRemapInvalid);
         auto other_mesh = lagrange::cast<OtherScalar, OtherIndex>(mesh);
         auto colors = lagrange::attribute_vector_view<OtherScalar>(other_mesh, "colors");
         auto groups = lagrange::attribute_vector_view<OtherIndex>(other_mesh, "groups");

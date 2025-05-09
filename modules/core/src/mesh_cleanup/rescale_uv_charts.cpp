@@ -149,10 +149,11 @@ void rescale_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const RescaleUVOptions&
             visited[v2] = true;
         }
     }
+    la_runtime_assert(uv_values.array().isFinite().all(), "UV values contain NaN or Inf.");
 }
 
 #define LA_X_rescale_uv_charts(_, Scalar, Index)    \
-    template void rescale_uv_charts<Scalar, Index>( \
+    template LA_CORE_API void rescale_uv_charts<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                \
         const RescaleUVOptions&);
 LA_SURFACE_MESH_X(rescale_uv_charts, 0)

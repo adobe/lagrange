@@ -31,6 +31,9 @@ if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR "arm64" IN_LIST CMAKE_OSX_ARCHITEC
     set(NASOQ_BLAS_BACKEND "OpenBLAS" CACHE STRING "BLAS implementation for NASOQ to use")
     set(NASOQ_USE_CLAPACK ON)
     include(openblas)
+    if(NOT TARGET OpenBLAS::OpenBLAS)
+        message(FATAL_ERROR "OpenBLAS not found")
+    endif()
 else()
     # use MKL on windows, linux, apple intel
     set(NASOQ_BLAS_BACKEND "MKL" CACHE STRING "BLAS implementation for NASOQ to use")
@@ -39,13 +42,16 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'nasoq::nasoq'")
 
-set(CMAKE_DISABLE_FIND_PACKAGE_OpenMP TRUE)
-include(CPM)
-CPMAddPackage(
-    NAME nasoq
-    GITHUB_REPOSITORY sympiler/nasoq
-    GIT_TAG 03bc29fc10fcc29b68e59fa18b081a1a45779e9b
-)
+block()
+    set(CMAKE_DISABLE_FIND_PACKAGE_OpenMP TRUE)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+    include(CPM)
+    CPMAddPackage(
+        NAME nasoq
+        GITHUB_REPOSITORY sympiler/nasoq
+        GIT_TAG 03bc29fc10fcc29b68e59fa18b081a1a45779e9b
+    )
+endblock()
 
 target_link_libraries(nasoq PUBLIC BLAS::BLAS)
 

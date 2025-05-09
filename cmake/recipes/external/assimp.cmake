@@ -15,8 +15,8 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'assimp::assimp'")
 
-option(BUILD_SHARED_LIBS "Build package with shared libraries." OFF)
-option(BUILD_TESTING "" OFF)
+set(BUILD_SHARED_LIBS OFF)
+set(BUILD_TESTING OFF)
 option(ASSIMP_BUILD_FRAMEWORK "Build package as Mac OS X Framework bundle." OFF)
 option(ASSIMP_DOUBLE_PRECISION "Set to ON to enable double precision processing" OFF)
 option(ASSIMP_NO_EXPORT "Disable Assimp's export functionality." OFF)
@@ -28,6 +28,7 @@ option(ASSIMP_INSTALL "Disable this if you want to use assimp as a submodule." O
 option(ASSIMP_INSTALL_PBD "" OFF)
 option(ASSIMP_INJECT_DEBUG_POSTFIX "Inject debug postfix in .a/.so/.dll lib names" OFF)
 option(ASSIMP_BUILD_PBRT_EXPORTER "Build Assimp with PBRT importer" OFF)
+option(ASSIMP_BUILD_USE_CCACHE "Use ccache to speed up compilation." OFF)
 
 # Disable 3MF exporter, since it requires kuba--/zip (which wraps a modified version of miniz)
 option(ASSIMP_BUILD_3MF_EXPORTER "Build Assimp with 3MF exporter" OFF)

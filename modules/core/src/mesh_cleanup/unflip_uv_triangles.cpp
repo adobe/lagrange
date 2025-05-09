@@ -17,8 +17,14 @@
 #include <lagrange/mesh_cleanup/unflip_uv_triangles.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/timing.h>
+#include <lagrange/utils/triangle_area.h>
+#include <lagrange/utils/triangle_orientation_2d.h>
+#include <lagrange/utils/triangle_uv_distortion.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
+
+#include <numeric>
+#include <vector>
 
 namespace lagrange {
 
@@ -69,8 +75,122 @@ void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions
             old_uv[1]);
     };
 
+    auto compute_offset = [](auto uv0,
+                             auto uv1,
+                             auto uv2,
+                             Scalar L01,
+                             Scalar L02,
+                             Scalar L12,
+                             Scalar l12,
+                             span<Scalar, 4> offsets_u,
+                             span<Scalar, 4> offsets_v) {
+        if (L12 == 0) {
+            offsets_u[0] = invalid<Scalar>();
+            offsets_u[1] = invalid<Scalar>();
+            offsets_u[2] = invalid<Scalar>();
+            offsets_u[3] = invalid<Scalar>();
+            offsets_v[0] = invalid<Scalar>();
+            offsets_v[1] = invalid<Scalar>();
+            offsets_v[2] = invalid<Scalar>();
+            offsets_v[3] = invalid<Scalar>();
+            return;
+        }
+
+        Scalar ref_l01 = l12 / L12 * L01;
+        Scalar ref_l02 = l12 / L12 * L02;
+
+        Scalar du01 = ref_l01 * ref_l01 - (uv0[1] - uv1[1]) * (uv0[1] - uv1[1]);
+        Scalar du02 = ref_l02 * ref_l02 - (uv0[1] - uv2[1]) * (uv0[1] - uv2[1]);
+        Scalar dv01 = ref_l01 * ref_l01 - (uv0[0] - uv1[0]) * (uv0[0] - uv1[0]);
+        Scalar dv02 = ref_l02 * ref_l02 - (uv0[0] - uv2[0]) * (uv0[0] - uv2[0]);
+
+        if (du01 > 0) {
+            offsets_u[0] = uv1[0] - uv0[0] + std::sqrt(du01);
+            offsets_u[1] = uv1[0] - uv0[0] - std::sqrt(du01);
+        } else {
+            offsets_u[0] = uv1[0] - uv0[0];
+            offsets_u[1] = uv1[0] - uv0[0];
+        }
+
+        if (du02 > 0) {
+            offsets_u[2] = uv2[0] - uv0[0] + std::sqrt(du02);
+            offsets_u[3] = uv2[0] - uv0[0] - std::sqrt(du02);
+        } else {
+            offsets_u[2] = uv2[0] - uv0[0];
+            offsets_u[3] = uv2[0] - uv0[0];
+        }
+
+        if (dv01 > 0) {
+            offsets_v[0] = uv1[1] - uv0[1] + std::sqrt(dv01);
+            offsets_v[1] = uv1[1] - uv0[1] - std::sqrt(dv01);
+        } else {
+            offsets_v[0] = uv1[1] - uv0[1];
+            offsets_v[1] = uv1[1] - uv0[1];
+        }
+
+        if (dv02 > 0) {
+            offsets_v[2] = uv2[1] - uv0[1] + std::sqrt(dv02);
+            offsets_v[3] = uv2[1] - uv0[1] - std::sqrt(dv02);
+        } else {
+            offsets_v[2] = uv2[1] - uv0[1];
+            offsets_v[3] = uv2[1] - uv0[1];
+        }
+    };
+
+    auto compute_offset_amount = [&](Index fid) {
+        auto p0 = vertices.row(facets(fid, 0)).eval();
+        auto p1 = vertices.row(facets(fid, 1)).eval();
+        auto p2 = vertices.row(facets(fid, 2)).eval();
+        auto uv0 = get_uv(fid, 0);
+        auto uv1 = get_uv(fid, 1);
+        auto uv2 = get_uv(fid, 2);
+
+        Scalar L01 = (p1 - p0).norm();
+        Scalar L02 = (p2 - p0).norm();
+        Scalar L12 = (p2 - p1).norm();
+        Scalar l01 = (uv1 - uv0).norm();
+        Scalar l02 = (uv2 - uv0).norm();
+        Scalar l12 = (uv2 - uv1).norm();
+
+        std::array<Scalar, 12> u_offsets;
+        std::array<Scalar, 12> v_offsets;
+
+        compute_offset(
+            uv0,
+            uv1,
+            uv2,
+            L01,
+            L02,
+            L12,
+            l12,
+            span<Scalar, 4>(u_offsets.data(), 4),
+            span<Scalar, 4>(v_offsets.data(), 4));
+        compute_offset(
+            uv1,
+            uv2,
+            uv0,
+            L12,
+            L01,
+            L02,
+            l02,
+            span<Scalar, 4>(u_offsets.data() + 4, 4),
+            span<Scalar, 4>(v_offsets.data() + 4, 4));
+        compute_offset(
+            uv2,
+            uv0,
+            uv1,
+            L02,
+            L12,
+            L01,
+            l01,
+            span<Scalar, 4>(u_offsets.data() + 8, 4),
+            span<Scalar, 4>(v_offsets.data() + 8, 4));
+
+        return std::make_pair(u_offsets, v_offsets);
+    };
+
     // Function to compute the u-scaling factor
-    auto compute_u_scaling_factor = [&](Index fid) {
+    auto compute_scaling_factor = [&](Index fid) {
         auto p0 = vertices.row(facets(fid, 0)).eval();
         auto p1 = vertices.row(facets(fid, 1)).eval();
         auto p2 = vertices.row(facets(fid, 2)).eval();
@@ -92,6 +212,7 @@ void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions
         Scalar e = uv2[0] - uv1[0];
         Scalar f = uv2[1] - uv1[1];
         logger().trace("a: {}, b: {}, c: {}, d: {}, e: {}, f: {}", a, b, c, d, e, f);
+        la_debug_assert(a * d != b * c, "UV triangle is degenerate");
 
         // Compute 3D edge lengths
         Scalar L01 = (p1 - p0).squaredNorm();
@@ -99,143 +220,181 @@ void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions
         Scalar L12 = (p2 - p1).squaredNorm();
         logger().trace("L01: {}, L02: {}, L12: {}", L01, L02, L12);
 
-        // Compute similarity ratio R
-        Scalar R0 = L01 / L02;
-        Scalar R1 = L01 / L12;
-        Scalar R2 = L02 / L12;
-        logger().trace("R0: {}, R1: {}, R2: {}", R0, R1, R2);
-
         // Compute scaling factor s
-        Scalar n0 = (R0 * d * d) - (b * b);
-        Scalar d0 = (a * a) - (R0 * c * c);
-        Scalar n1 = (R1 * f * f) - (b * b);
-        Scalar d1 = (a * a) - (R1 * e * e);
-        Scalar n2 = (R2 * f * f) - (d * d);
-        Scalar d2 = (c * c) - (R2 * e * e);
+        Scalar n0 = (L01 * d * d) - (L02 * b * b);
+        Scalar d0 = (L02 * a * a) - (L01 * c * c);
+        Scalar n1 = (L01 * f * f) - (L12 * b * b);
+        Scalar d1 = (L12 * a * a) - (L01 * e * e);
+        Scalar n2 = (L02 * f * f) - (L12 * d * d);
+        Scalar d2 = (L12 * c * c) - (L02 * e * e);
 
-        logger().trace("s^2: ({} + {} + {}) / 3", n0 / d0, n1 / d1, n2 / d2);
-
-        Scalar s = 0;
         Index n = 0;
-        if (n0 / d0 > 0) {
+        Scalar s = 0;
+
+        if (std::isfinite(n0 / d0) && n0 / d0 > 0) {
             s += n0 / d0;
             n++;
         }
-        if (n1 / d1 > 0) {
+        if (std::isfinite(n1 / d1) && n1 / d1 > 0) {
             s += n1 / d1;
             n++;
         }
-        if (n2 / d2 > 0) {
+        if (std::isfinite(n2 / d2) && n2 / d2 > 0) {
             s += n2 / d2;
             n++;
         }
-        s /= n;
 
         // Ensure the denominator is not zero or negative to avoid invalid sqrt
-        if (s <= 0) {
-            logger().warn(
-                "Invalid geometry or input data. Squared scale is non-positive: {}",
-                s);
-            return static_cast<Scalar>(-1.0); // Indicate an error
+        if (n == 0 || s <= 0) {
+            logger().warn("Invalid geometry or input data. Squared scale is non-positive: {}", s);
+            return invalid<Scalar>(); // Indicate an error
         }
 
-        return -std::sqrt(s);
+        la_debug_assert(std::isfinite(s / n));
+        la_debug_assert(std::isfinite(std::sqrt(s / n)));
+        return std::sqrt(s / n);
     };
 
-    // Function to compute the v-scaling factor
-    auto compute_v_scaling_factor = [&](Index fid) {
+    auto offset_uv = [&](Index fid) {
         auto p0 = vertices.row(facets(fid, 0)).eval();
         auto p1 = vertices.row(facets(fid, 1)).eval();
         auto p2 = vertices.row(facets(fid, 2)).eval();
+
         auto uv0 = get_uv(fid, 0);
         auto uv1 = get_uv(fid, 1);
         auto uv2 = get_uv(fid, 2);
 
-        logger().trace("p0: [{}, {}, {}]", p0[0], p0[1], p0[2]);
-        logger().trace("p1: [{}, {}, {}]", p1[0], p1[1], p1[2]);
-        logger().trace("p2: [{}, {}, {}]", p2[0], p2[1], p2[2]);
-        logger().trace("uv0: [{}, {}]", uv0[0], uv0[1]);
-        logger().trace("uv1: [{}, {}]", uv1[0], uv1[1]);
-        logger().trace("uv2: [{}, {}]", uv2[0], uv2[1]);
+        auto [u_offsets, v_offsets] = compute_offset_amount(fid);
 
-        Scalar a = uv1[0] - uv0[0];
-        Scalar b = uv1[1] - uv0[1];
-        Scalar c = uv2[0] - uv0[0];
-        Scalar d = uv2[1] - uv0[1];
-        Scalar e = uv2[0] - uv1[0];
-        Scalar f = uv2[1] - uv1[1];
-        logger().trace("a: {}, b: {}, c: {}, d: {}, e: {}, f: {}", a, b, c, d, e, f);
+        Eigen::Matrix<Scalar, 3, 2, Eigen::RowMajor> new_uv;
 
-        // Compute 3D edge lengths
-        Scalar L01 = (p1 - p0).squaredNorm();
-        Scalar L02 = (p2 - p0).squaredNorm();
-        Scalar L12 = (p2 - p1).squaredNorm();
-        logger().trace("L01: {}, L02: {}, L12: {}", L01, L02, L12);
+        Scalar opt_u_distortion = invalid<Scalar>();
+        Scalar opt_v_distortion = invalid<Scalar>();
+        Index opt_u_index = 0;
+        Index opt_v_index = 0;
+        Scalar opt_u_offset = invalid<Scalar>();
+        Scalar opt_v_offset = invalid<Scalar>();
 
-        // Compute similarity ratio R
-        Scalar R0 = L01 / L02;
-        Scalar R1 = L01 / L12;
-        Scalar R2 = L02 / L12;
-        logger().trace("R0: {}, R1: {}, R2: {}", R0, R1, R2);
+        for (Index i = 0; i < 12; i++) {
+            Scalar u_offset = u_offsets[i];
+            Scalar v_offset = v_offsets[i];
+            Index idx = i / 4;
 
-        // Compute scaling factor s
-        Scalar d0 = (R0 * d * d) - (b * b);
-        Scalar n0 = (a * a) - (R0 * c * c);
-        Scalar d1 = (R1 * f * f) - (b * b);
-        Scalar n1 = (a * a) - (R1 * e * e);
-        Scalar d2 = (R2 * f * f) - (d * d);
-        Scalar n2 = (c * c) - (R2 * e * e);
+            new_uv.row(0) = uv0;
+            new_uv.row(1) = uv1;
+            new_uv.row(2) = uv2;
 
-        logger().trace("s^2: ({} + {} + {}) / 3", n0 / d0, n1 / d1, n2 / d2);
+            Scalar distortion_u, distortion_v;
 
-        Scalar s = 0;
-        Index n = 0;
-        if (n0 / d0 > 0) {
-            s += n0 / d0;
-            n++;
+            new_uv(idx, 0) += u_offset;
+            distortion_u = triangle_uv_distortion<DistortionMetric::AreaRatio, Scalar>(
+                span<Scalar, 3>(p0.data(), 3),
+                span<Scalar, 3>(p1.data(), 3),
+                span<Scalar, 3>(p2.data(), 3),
+                span<Scalar, 2>(new_uv.data(), 2),
+                span<Scalar, 2>(new_uv.data() + 2, 2),
+                span<Scalar, 2>(new_uv.data() + 4, 2));
+            new_uv(idx, 0) -= u_offset;
+            la_debug_assert(std::isfinite(distortion_u));
+            distortion_u = std::abs(distortion_u - 1);
+
+            new_uv(idx, 1) += v_offset;
+            distortion_v = triangle_uv_distortion<DistortionMetric::AreaRatio, Scalar>(
+                span<Scalar, 3>(p0.data(), 3),
+                span<Scalar, 3>(p1.data(), 3),
+                span<Scalar, 3>(p2.data(), 3),
+                span<Scalar, 2>(new_uv.data(), 2),
+                span<Scalar, 2>(new_uv.data() + 2, 2),
+                span<Scalar, 2>(new_uv.data() + 4, 2));
+            la_debug_assert(std::isfinite(distortion_v));
+            distortion_v = std::abs(distortion_v - 1);
+
+            if (std::isfinite(distortion_u) && distortion_u > 0 &&
+                distortion_u < opt_u_distortion) {
+                opt_u_distortion = distortion_u;
+                opt_u_index = idx;
+                opt_u_offset = u_offset;
+            }
+            if (std::isfinite(distortion_v) && distortion_v > 0 &&
+                distortion_v < opt_v_distortion) {
+                opt_v_distortion = distortion_v;
+                opt_v_index = idx;
+                opt_v_offset = v_offset;
+            }
         }
-        if (n1 / d1 > 0) {
-            s += n1 / d1;
-            n++;
-        }
-        if (n2 / d2 > 0) {
-            s += n2 / d2;
-            n++;
-        }
-        s /= n;
+        logger().debug(
+            "fid: {}, opt_u_distortion: {}, opt_v_distortion: {}",
+            fid,
+            opt_u_distortion,
+            opt_v_distortion);
 
-        // Ensure the denominator is not zero or negative to avoid invalid sqrt
-        if (s <= 0) {
-            logger().warn(
-                "Invalid geometry or input data. Squared scale is non-positive: {}",
-                s);
-            return static_cast<Scalar>(-1.0); // Indicate an error
+        la_debug_assert(opt_u_distortion > 0);
+        if (std::min(opt_u_distortion, opt_v_distortion) > 0.5) {
+            return false;
         }
-
-        return -std::sqrt(s);
+        if (opt_u_distortion < opt_v_distortion) {
+            la_debug_assert(opt_u_distortion != invalid<Scalar>());
+            la_debug_assert(opt_u_distortion > 0);
+            switch (opt_u_index) {
+            case 0:
+                uv0[0] += opt_u_offset;
+                update_uv(fid, 0, uv0);
+                break;
+            case 1:
+                uv1[0] += opt_u_offset;
+                update_uv(fid, 1, uv1);
+                break;
+            case 2:
+                uv2[0] += opt_u_offset;
+                update_uv(fid, 2, uv2);
+                break;
+            }
+        } else {
+            la_debug_assert(opt_v_distortion != invalid<Scalar>());
+            la_debug_assert(opt_v_distortion > 0);
+            switch (opt_v_index) {
+            case 0:
+                uv0[1] += opt_v_offset;
+                update_uv(fid, 0, uv0);
+                break;
+            case 1:
+                uv1[1] += opt_v_offset;
+                update_uv(fid, 1, uv1);
+                break;
+            case 2:
+                uv2[1] += opt_v_offset;
+                update_uv(fid, 2, uv2);
+                break;
+            }
+        }
+        return true;
     };
 
-
-    auto unflip = [&](Index fid) {
-        Scalar su = compute_u_scaling_factor(fid);
-        Scalar sv = compute_v_scaling_factor(fid);
-        logger().trace("su: {}, sv: {}", su, sv);
-
+    auto rescale_uv = [&](Index fid, Scalar sign) {
         auto uv0 = get_uv(fid, 0);
         auto uv1 = get_uv(fid, 1);
         auto uv2 = get_uv(fid, 2);
+
+        Scalar s = compute_scaling_factor(fid);
+        logger().trace("s: {}", s);
+        if (s == invalid<Scalar>()) {
+            logger().warn("Invalid scaling factors. Skipping facet {}", fid);
+            return;
+        }
+
+        la_debug_assert(std::isfinite(s));
 
         auto [min_u, max_u] = std::minmax({uv0[0], uv1[0], uv2[0]});
         auto [min_v, max_v] = std::minmax({uv0[1], uv1[1], uv2[1]});
 
-        if (std::abs(su) < std::abs(sv)) {
-            uv0[0] = max_u + (uv0[0] - max_u) * su;
-            uv1[0] = max_u + (uv1[0] - max_u) * su;
-            uv2[0] = max_u + (uv2[0] - max_u) * su;
+        if (std::abs(s) < 1) {
+            uv0[0] = max_u + (uv0[0] - max_u) * s * sign;
+            uv1[0] = max_u + (uv1[0] - max_u) * s * sign;
+            uv2[0] = max_u + (uv2[0] - max_u) * s * sign;
         } else {
-            uv0[1] = max_v + (uv0[1] - max_v) * sv;
-            uv1[1] = max_v + (uv1[1] - max_v) * sv;
-            uv2[1] = max_v + (uv2[1] - max_v) * sv;
+            uv0[1] = max_v + (uv0[1] - max_v) / s * sign;
+            uv1[1] = max_v + (uv1[1] - max_v) / s * sign;
+            uv2[1] = max_v + (uv2[1] - max_v) / s * sign;
         }
 
         update_uv(fid, 0, uv0);
@@ -243,25 +402,45 @@ void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions
         update_uv(fid, 2, uv2);
     };
 
-    auto is_flipped = [&](const auto& uv0, const auto& uv1, const auto& uv2) {
-        Scalar area = uv0[0] * uv1[1] - uv0[1] * uv1[0] + uv1[0] * uv2[1] - uv1[1] * uv2[0] +
-                      uv2[0] * uv0[1] - uv2[1] * uv0[0];
-        return area < 0;
+    auto correct_uv_triangle = [&](Index fid, Scalar sign) {
+        bool offset_success = offset_uv(fid);
+        if (!offset_success) {
+            rescale_uv(fid, sign);
+        }
     };
 
     const Index num_facets = mesh.get_num_facets();
+
     for (Index fid = 0; fid < num_facets; fid++) {
+        auto p0 = vertices.row(facets(fid, 0)).eval();
+        auto p1 = vertices.row(facets(fid, 1)).eval();
+        auto p2 = vertices.row(facets(fid, 2)).eval();
+
         auto uv0 = get_uv(fid, 0);
         auto uv1 = get_uv(fid, 1);
         auto uv2 = get_uv(fid, 2);
 
-        if (is_flipped(uv0, uv1, uv2)) {
+        lagrange::logger().trace("uv0: [{}, {}]", uv0[0], uv0[1]);
+        lagrange::logger().trace("uv1: [{}, {}]", uv1[0], uv1[1]);
+        lagrange::logger().trace("uv2: [{}, {}]", uv2[0], uv2[1]);
+
+        Scalar ori_distortion = triangle_uv_distortion<DistortionMetric::MIPS, Scalar>(
+            span<const Scalar, 3>(p0.data(), 3),
+            span<const Scalar, 3>(p1.data(), 3),
+            span<const Scalar, 3>(p2.data(), 3),
+            span<const Scalar, 2>(uv0.data(), 2),
+            span<const Scalar, 2>(uv1.data(), 2),
+            span<const Scalar, 2>(uv2.data(), 2));
+
+        if (std::isfinite(ori_distortion) && (ori_distortion < 0 || ori_distortion > 50)) {
+            // Either UV triangle is flipped or has a very large distortion.
             logger().trace("Flipping facet {}", fid);
-            unflip(fid);
+            correct_uv_triangle(fid, -1);
         }
     }
 
     uv_values_attr.insert_elements({additional_uv_values.data(), additional_uv_values.size()});
+    la_runtime_assert(matrix_view(uv_values_attr).array().isFinite().all());
 
     weld_indexed_attribute(mesh, uv_attr_id);
 }

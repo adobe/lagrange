@@ -11,9 +11,11 @@
  */
 #include <lagrange/compute_tangent_bitangent.h>
 
+#include <lagrange/AttributeFwd.h>
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
@@ -94,6 +96,8 @@ bool triangle_uv_orientation(const Eigen::Matrix<Scalar, 3, 2>& uvs)
 /// Computes tangent and bitangent of a quad. If the quad is a point or line in the uv space, result
 /// is undefined. This function can handle two points of the quad being colocated in the uv space.
 ///
+/// @todo       This function currently only supports convex quads.
+///
 /// @param[in]  positions  4x3 matrix of corner positions, one position per row.
 /// @param[in]  uvs        4x2 matrix of corner uvs, one uv per row.
 ///
@@ -138,18 +142,20 @@ auto quad_tangent_bitangent(
 /// corners along their common edge share the same normal and uv index. The input mesh must have uv
 /// initialized, and have "normal" as indexed attributes.
 ///
-/// @param[in,out] mesh                 Input mesh.
-/// @param[in]     uv_id                Attribute id for the input indexed uvs.
-/// @param[in]     normal_id            Attribute id for the input indexed normals.
-/// @param[in]     tangent_id           Attribute id for the output indexed tangents.
-/// @param[in]     bitangent_id         Attribute id for the output indexed bitangents.
-/// @param[in]     corner_tangents      #C * (3|4) array of per-corner tangent vectors.
-/// @param[in]     corner_bitangents    #C * (3|4) array of per-corner bitangent vectors.
+/// @param[in,out] mesh               Input mesh.
+/// @param[in]     uv_id              Attribute id for the input indexed uvs.
+/// @param[in]     normal_id          Attribute id for the input indexed normals.
+/// @param[in]     tangent_id         Attribute id for the output indexed tangents. If
+///                                   invalid_attribute_id is provided, corner_tangents won't be
+///                                   written to any attribute.
+/// @param[in]     bitangent_id       Attribute id for the output indexed bitangents.
+/// @param[in]     corner_tangents    #C * (3|4) array of per-corner tangent vectors.
+/// @param[in]     corner_bitangents  #C * (3|4) array of per-corner bitangent vectors.
 ///
-/// @tparam        Scalar               Mesh scalar type.
-/// @tparam        Index                Mesh index type.
-/// @tparam        DerivedT             Tangent matrix type.
-/// @tparam        DerivedB             Bitangent matrix type.
+/// @tparam        Scalar             Mesh scalar type.
+/// @tparam        Index              Mesh index type.
+/// @tparam        DerivedT           Tangent matrix type.
+/// @tparam        DerivedB           Bitangent matrix type.
 ///
 template <typename Scalar, typename Index, typename DerivedT, typename DerivedB>
 void accumulate_tangent_bitangent(
@@ -273,32 +279,43 @@ void accumulate_tangent_bitangent(
     });
 
     // STEP 2: Perform averaging and reindex attribute
-    auto& tangents_attr = mesh.template ref_indexed_attribute<Scalar>(tangent_id);
+    const bool has_tangents = (tangent_id != invalid_attribute_id());
     auto& bitangents_attr = mesh.template ref_indexed_attribute<Scalar>(bitangent_id);
 
-    auto buckets = internal::bucket_sort(unified_indices, tangents_attr.indices().ref_all());
+    auto buckets = internal::bucket_sort(unified_indices, bitangents_attr.indices().ref_all());
 
-    // TODO: Share index buffer between the two attributes
-    std::copy_n(
-        tangents_attr.indices().get_all().begin(),
-        mesh.get_num_corners(),
-        bitangents_attr.indices().ref_all().begin());
+    auto tangent_values = [&] {
+        if (has_tangents) {
+            auto& tangents_attr = mesh.template ref_indexed_attribute<Scalar>(tangent_id);
 
-    logger().trace("Project and average tangent/bitangent");
-    auto& tangent_values_attr = tangents_attr.values();
-    tangent_values_attr.resize_elements(buckets.num_representatives);
-    auto tangent_values = matrix_ref(tangent_values_attr);
+            // Copy unified indices to tangent attribute index buffer
+            std::copy_n(
+                bitangents_attr.indices().get_all().begin(),
+                mesh.get_num_corners(),
+                tangents_attr.indices().ref_all().begin());
+
+            // Resize tangent attribute values
+            auto& tangent_values_attr = tangents_attr.values();
+            tangent_values_attr.resize_elements(buckets.num_representatives);
+            return matrix_ref(tangent_values_attr);
+        } else {
+            return RowMatrixView<Scalar>(nullptr, 0, 0);
+        }
+    }();
+
+    // Resize bitangent attribute values
     auto& bitangent_values_attr = bitangents_attr.values();
     bitangent_values_attr.resize_elements(buckets.num_representatives);
     auto bitangent_values = matrix_ref(bitangent_values_attr);
 
+    logger().trace("Project and average tangent/bitangent");
     tbb::parallel_for(Index(0), buckets.num_representatives, [&](Index r) {
         for (Index i = buckets.representative_offsets[r]; i < buckets.representative_offsets[r + 1];
              ++i) {
             Index c = buckets.sorted_elements[i];
             Index f = c / 3;
             Index lv = c % 3;
-            la_debug_assert(tangents_attr.indices().get(c) == r);
+            la_debug_assert(bitangents_attr.indices().get(c) == r);
 
             // Tangent frame
             RowVector3r t = corner_tangents.row(c).template head<3>();
@@ -313,22 +330,28 @@ void accumulate_tangent_bitangent(
             RowVector3r e02 = v2 - v0;
             Scalar w = projected_angle_between(e01, e02, nrm);
 
-            tangent_values.row(r).template head<3>() += t * w;
+            if (has_tangents) {
+                tangent_values.row(r).template head<3>() += t * w;
+            }
             bitangent_values.row(r).template head<3>() += bt * w;
             if (corner_tangents.cols() == 4) {
-                if (tangent_values(r, 3) == 0) {
-                    tangent_values(r, 3) = corner_tangents(c, 3);
+                if (bitangent_values(r, 3) == 0) {
+                    if (has_tangents) {
+                        tangent_values(r, 3) = corner_tangents(c, 3);
+                    }
                     bitangent_values(r, 3) = corner_bitangents(c, 3);
                 } else {
-                    assert(tangent_values(r, 3) == corner_tangents(c, 3));
-                    assert(bitangent_values(r, 3) == corner_bitangents(c, 3));
+                    la_debug_assert(!has_tangents || tangent_values(r, 3) == corner_tangents(c, 3));
+                    la_debug_assert(bitangent_values(r, 3) == corner_bitangents(c, 3));
                 }
             }
         }
     });
     logger().trace("Normalize vectors");
-    tbb::parallel_for(Index(0), Index(tangent_values.rows()), [&](Index c) {
-        tangent_values.row(c).template head<3>().stableNormalize();
+    tbb::parallel_for(Index(0), Index(bitangent_values.rows()), [&](Index c) {
+        if (has_tangents) {
+            tangent_values.row(c).template head<3>().stableNormalize();
+        }
         bitangent_values.row(c).template head<3>().stableNormalize();
     });
 }
@@ -341,16 +364,19 @@ void accumulate_tangent_bitangent(
 ///
 /// If the mesh is quad/mixed quad, a triangle from each quad is used for the computation.
 ///
-/// @param[in]     mesh        Input mesh.
-/// @param[in]     uv_id       Attribute id for the input indexed uvs.
-/// @param[in]     normal_id   Attribute id for the input indexed normals.
-/// @param[in,out] tangents    #C * (3|4) array of per-corner tangent vectors.
-/// @param[in,out] bitangents  #C * (3|4) array of per-corner bitangent vectors.
+/// @param[in]     mesh                     Input mesh.
+/// @param[in]     uv_id                    Attribute id for the input indexed uvs.
+/// @param[in]     normal_id                Attribute id for the input indexed normals.
+/// @param[in,out] tangents                 #C * (3|4) array of per-corner tangent vectors.
+/// @param[in,out] bitangents               #C * (3|4) array of per-corner bitangent vectors.
+/// @param[in]     orthogonalize_bitangent  Whether to compute the bitangent as sign * cross(normal,
+///                                         tangent) or as the derivative of the uv mapping.
+/// @param[in]     keep_existing_tangent    Whether to keep the existing input tangent attribute.
 ///
-/// @tparam        Scalar      Mesh scalar type.
-/// @tparam        Index       Mesh index type.
-/// @tparam        DerivedT    Tangent matrix type.
-/// @tparam        DerivedB    Bitangent matrix type.
+/// @tparam        Scalar                   Mesh scalar type.
+/// @tparam        Index                    Mesh index type.
+/// @tparam        DerivedT                 Tangent matrix type.
+/// @tparam        DerivedB                 Bitangent matrix type.
 ///
 template <typename Scalar, typename Index, typename DerivedT, typename DerivedB>
 void corner_tangent_bitangent_raw(
@@ -359,7 +385,8 @@ void corner_tangent_bitangent_raw(
     AttributeId normal_id,
     Eigen::MatrixBase<DerivedT>& tangents,
     Eigen::MatrixBase<DerivedB>& bitangents,
-    bool orthogonalize_bitangent)
+    bool orthogonalize_bitangent,
+    bool keep_existing_tangent)
 {
     auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(uv_id);
     auto& normal_attr = mesh.template get_indexed_attribute<Scalar>(normal_id);
@@ -394,11 +421,14 @@ void corner_tangent_bitangent_raw(
 
             for (Index lv = 0; lv < nvpf; lv++) {
                 Eigen::RowVector3<Scalar> nrm = normal_values.row(normal_indices(f, lv));
-                tangents.row(f * nvpf + lv).template head<3>() =
-                    project_on_plane(t, nrm).stableNormalized();
+                if (!keep_existing_tangent) {
+                    tangents.row(f * nvpf + lv).template head<3>() =
+                        project_on_plane(t, nrm).stableNormalized();
+                }
                 if (orthogonalize_bitangent) {
+                    Eigen::RowVector3<Scalar> tv = tangents.row(f * nvpf + lv).template head<3>();
                     bitangents.row(f * nvpf + lv).template head<3>() =
-                        Scalar(sign ? 1 : -1) * nrm.cross(t).stableNormalized();
+                        Scalar(sign ? 1 : -1) * nrm.cross(tv).stableNormalized();
                 } else {
                     bitangents.row(f * nvpf + lv).template head<3>() =
                         project_on_plane(bt, nrm).stableNormalized();
@@ -454,15 +484,16 @@ void corner_tangent_bitangent_raw(
                     // vertex method from "Polygon laplacian made simple", but this is left as a
                     // future improvement.
                     //
-                    //   Bunge, Astrid, et al. "Polygon laplacian made simple." Computer Graphics
-                    //   Forum. Vol. 39. No. 2. 2020.
+                    //   Bunge, Astrid, et al. "Polygon laplacian made simple." Computer
+                    //   Graphics Forum. Vol. 39. No. 2. 2020.
                     //   https://www.cs.jhu.edu/~misha/MyPapers/EUROG20.pdf
                     //
-                    //   Alexa, Marc, and Max Wardetzky. "Discrete Laplacians on general polygonal
-                    //   meshes." ACM SIGGRAPH 2011 papers. 2011. 1-10.
+                    //   Alexa, Marc, and Max Wardetzky. "Discrete Laplacians on general
+                    //   polygonal meshes." ACM SIGGRAPH 2011 papers. 2011. 1-10.
                     //   https://ddg.math.uni-goettingen.de/pub/Polygonal_Laplace.pdf
                     throw Error(fmt::format(
-                        "Facet {} has {} vertices. Only facets with 3 and 4 vertices are supported "
+                        "Facet {} has {} vertices. Only facets with 3 and 4 vertices are "
+                        "supported "
                         "at the moment.",
                         f,
                         facet.size()));
@@ -472,11 +503,15 @@ void corner_tangent_bitangent_raw(
             for (Index lv = 0; lv < static_cast<Index>(facet.size()); lv++) {
                 Eigen::RowVector3<Scalar> nrm =
                     normal_values.row(normal_indices(corner_begin + lv));
-                tangents.row(corner_begin + lv).template head<3>() =
-                    project_on_plane(t, nrm).stableNormalized();
+                if (!keep_existing_tangent) {
+                    tangents.row(corner_begin + lv).template head<3>() =
+                        project_on_plane(t, nrm).stableNormalized();
+                }
                 if (orthogonalize_bitangent) {
+                    Eigen::RowVector3<Scalar> tv =
+                        tangents.row(corner_begin + lv).template head<3>();
                     bitangents.row(corner_begin + lv).template head<3>() =
-                        Scalar(sign ? 1 : -1) * nrm.cross(t).stableNormalized();
+                        Scalar(sign ? 1 : -1) * nrm.cross(tv).stableNormalized();
                 } else {
                     bitangents.row(corner_begin + lv).template head<3>() =
                         project_on_plane(bt, nrm).stableNormalized();
@@ -504,6 +539,11 @@ TangentBitangentResult compute_tangent_bitangent(
         options.output_element_type == AttributeElement::Corner ||
             options.output_element_type == AttributeElement::Indexed,
         "Output element type must be Corner or Indexed");
+    if (options.keep_existing_tangent) {
+        la_runtime_assert(
+            options.orthogonalize_bitangent,
+            "When keeping existing tangent, orthogonalize_bitangent needs to be True.");
+    }
 
     auto uv_id = internal::find_matching_attribute<Scalar>(
         mesh,
@@ -526,6 +566,17 @@ TangentBitangentResult compute_tangent_bitangent(
     TangentBitangentResult result;
 
     if (options.output_element_type == AttributeElement::Corner) {
+        if (options.keep_existing_tangent) {
+            auto tangent_element_type =
+                mesh.get_attribute_base(options.tangent_attribute_name).get_element_type();
+            la_runtime_assert(
+                tangent_element_type == lagrange::AttributeElement::Corner,
+                fmt::format(
+                    "compute_tangent_bitangent with keep_existing_tangent enabled: "
+                    "input tangent is of element_type {}, while output element_type is {}.",
+                    internal::to_string(tangent_element_type),
+                    internal::to_string(options.output_element_type)));
+        }
         result.tangent_id = internal::find_or_create_attribute<Scalar>(
             mesh,
             options.tangent_attribute_name,
@@ -552,7 +603,8 @@ TangentBitangentResult compute_tangent_bitangent(
             normal_id,
             tangents,
             bitangents,
-            options.orthogonalize_bitangent);
+            options.orthogonalize_bitangent,
+            options.keep_existing_tangent);
     } else if (options.output_element_type == AttributeElement::Indexed) {
         using MatrixType = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
@@ -560,22 +612,53 @@ TangentBitangentResult compute_tangent_bitangent(
         MatrixType corner_bitangents(mesh.get_num_corners(), num_channels);
 
         logger().debug("Compute corner tangent info");
+
+        if (options.keep_existing_tangent) {
+            if (mesh.is_attribute_indexed(options.tangent_attribute_name)) {
+                auto& tangent_attrib =
+                    mesh.template get_indexed_attribute<Scalar>(options.tangent_attribute_name);
+                ConstRowMatrixView<Scalar> tangent_values = matrix_view(tangent_attrib.values());
+                ConstVectorView<Index> tangent_indices = vector_view(tangent_attrib.indices());
+                tbb::parallel_for(
+                    Index(0),
+                    mesh.get_num_corners(),
+                    [&corner_tangents, &tangent_values, &tangent_indices](Index c) {
+                        corner_tangents.row(c).template head<3>() = tangent_values.row(
+                            tangent_indices[c]); // fill with existing tangent values
+                    });
+            } else {
+                auto& tangent_attrib =
+                    mesh.template get_attribute<Scalar>(options.tangent_attribute_name);
+                la_runtime_assert(
+                    tangent_attrib.get_element_type() == lagrange::AttributeElement::Corner,
+                    fmt::format(
+                        "Invalid tangent attribute element_type {}. Only Indexed and Corner "
+                        "accepted. ",
+                        internal::to_string(tangent_attrib.get_element_type())));
+                corner_tangents = matrix_view(tangent_attrib); // copy existing tangent values
+            }
+        }
         corner_tangent_bitangent_raw(
             mesh,
             uv_id,
             normal_id,
             corner_tangents,
             corner_bitangents,
-            options.orthogonalize_bitangent);
+            options.orthogonalize_bitangent,
+            options.keep_existing_tangent);
 
         logger().debug("Accumulate tangent info");
-        result.tangent_id = internal::find_or_create_attribute<Scalar>(
-            mesh,
-            options.tangent_attribute_name,
-            AttributeElement::Indexed,
-            AttributeUsage::Tangent,
-            num_channels,
-            internal::ResetToDefault::Yes);
+        if (options.keep_existing_tangent) {
+            result.tangent_id = mesh.get_attribute_id(options.tangent_attribute_name);
+        } else {
+            result.tangent_id = internal::find_or_create_attribute<Scalar>(
+                mesh,
+                options.tangent_attribute_name,
+                AttributeElement::Indexed,
+                AttributeUsage::Tangent,
+                num_channels,
+                internal::ResetToDefault::Yes);
+        }
 
         result.bitangent_id = internal::find_or_create_attribute<Scalar>(
             mesh,
@@ -589,7 +672,7 @@ TangentBitangentResult compute_tangent_bitangent(
             mesh,
             uv_id,
             normal_id,
-            result.tangent_id,
+            options.keep_existing_tangent ? invalid_attribute_id() : result.tangent_id,
             result.bitangent_id,
             corner_tangents,
             corner_bitangents);

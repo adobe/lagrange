@@ -32,8 +32,8 @@
     #include <lagrange/scene/SceneTypes.h>
     #include <lagrange/scene/SimpleSceneTypes.h>
     #include <lagrange/scene/scene_utils.h>
+    #include <lagrange/triangulate_polygonal_facets.h>
     #include <lagrange/utils/assert.h>
-
     #include "stitch_mesh.h"
 
     #include <assimp/material.h>
@@ -223,6 +223,9 @@ MeshType convert_mesh_assimp_to_lagrange(const aiMesh& aimesh, const LoadOptions
 
     if (options.stitch_vertices) {
         stitch_mesh(lmesh);
+    }
+    if (options.triangulate) {
+        triangulate_polygonal_facets(lmesh);
     }
 
     return lmesh;

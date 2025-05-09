@@ -19,7 +19,9 @@
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/internal/string_from_scalar.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+
 
 namespace lagrange::internal {
 
@@ -27,8 +29,19 @@ namespace {
 
 enum class ShouldBeWritable { Yes, No };
 
+struct Result
+{
+    bool success = true;
+    std::string msg;
+};
+
+#define check_that(x, msh)         \
+    if (!(x)) {                    \
+        return Result{false, msh}; \
+    }
+
 template <typename ExpectedValueType, typename Scalar, typename Index>
-void check_attribute(
+Result check_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     AttributeId id,
     BitField<AttributeElement> expected_element,
@@ -36,26 +49,26 @@ void check_attribute(
     size_t expected_channels,
     ShouldBeWritable expected_writable)
 {
-    la_runtime_assert(
+    check_that(
         mesh.template is_attribute_type<ExpectedValueType>(id),
         fmt::format("Attribute type should be {}", string_from_scalar<ExpectedValueType>()));
 
     {
         const auto& attr = mesh.get_attribute_base(id);
-        la_runtime_assert(
+        check_that(
             attr.get_usage() == expected_usage,
             fmt::format(
                 "Attribute usage should be {}, not {}",
                 to_string(expected_usage),
                 to_string(attr.get_usage())));
-        la_runtime_assert(
+        check_that(
             expected_element.test(attr.get_element_type()),
             fmt::format(
                 "Attribute element type should be {}, not {}",
                 to_string(expected_element),
                 to_string(attr.get_element_type())));
         if (expected_channels != 0) {
-            la_runtime_assert(
+            check_that(
                 attr.get_num_channels() == expected_channels,
                 fmt::format(
                     "Attribute should have {} channels, not {}",
@@ -67,13 +80,15 @@ void check_attribute(
     if (expected_writable == ShouldBeWritable::Yes) {
         if (mesh.is_attribute_indexed(id)) {
             const auto& attr = mesh.template get_indexed_attribute<ExpectedValueType>(id);
-            la_runtime_assert(!attr.values().is_read_only(), "Attribute is read only");
-            la_runtime_assert(!attr.indices().is_read_only(), "Attribute is read only");
+            check_that(!attr.values().is_read_only(), "Attribute is read only");
+            check_that(!attr.indices().is_read_only(), "Attribute is read only");
         } else {
             const auto& attr = mesh.template get_attribute<ExpectedValueType>(id);
-            la_runtime_assert(!attr.is_read_only(), "Attribute is read only");
+            check_that(!attr.is_read_only(), "Attribute is read only");
         }
     }
+
+    return {true, ""};
 }
 
 } // namespace
@@ -98,13 +113,14 @@ AttributeId find_matching_attribute(
     } else {
         // Check user-provided attribute compatibility
         id = mesh.get_attribute_id(name);
-        check_attribute<ExpectedValueType>(
+        auto [ok, msg] = check_attribute<ExpectedValueType>(
             mesh,
             id,
             expected_element,
             expected_usage,
             expected_channels,
             ShouldBeWritable::No);
+        la_runtime_assert(ok, msg);
     }
 
     return id;
@@ -153,13 +169,14 @@ AttributeId find_attribute(
 
     // Check user-provided attribute compatibility
     id = mesh.get_attribute_id(name);
-    check_attribute<ExpectedValueType>(
+    auto [ok, msg] = check_attribute<ExpectedValueType>(
         mesh,
         id,
         expected_element,
         expected_usage,
         expected_channels,
         ShouldBeWritable::No);
+    la_runtime_assert(ok, msg);
 
     return id;
 }
@@ -186,13 +203,25 @@ AttributeId find_or_create_attribute(
     } else {
         // Sanity checks on user-given attribute name
         id = mesh.get_attribute_id(name);
-        check_attribute<ExpectedValueType>(
+        auto [ok, msg] = check_attribute<ExpectedValueType>(
             mesh,
             id,
             expected_element,
             expected_usage,
             expected_channels,
             ShouldBeWritable::Yes);
+        if (!ok) {
+            logger().debug(
+                "Attribute {} already exists, but is not compatible with the requested attribute. "
+                "Deleting it and creating a new one.",
+                name);
+            mesh.delete_attribute(name);
+            id = mesh.template create_attribute<ExpectedValueType>(
+                name,
+                expected_element,
+                expected_usage,
+                expected_channels);
+        }
         if (reset_tag == ResetToDefault::Yes) {
             if (expected_element != Indexed) {
                 auto& attr = mesh.template ref_attribute<ExpectedValueType>(id);

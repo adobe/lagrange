@@ -97,7 +97,7 @@ endif()
 # Since VCPKG_INSTALLED_DIR is not defined yet before the first project() call,
 # we use CMAKE_TOOLCHAIN_FILE to detect if we use vcpkg...
 if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
-    set(CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "Minimum OS X deployment version")
+    set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum OS X deployment version")
 endif()
 
 ################################################################################
@@ -176,11 +176,17 @@ else()
     set(LAGRANGE_USE_FIND_PACKAGE_DEFAULT OFF)
 endif()
 
+if(EMSCRIPTEN)
+    set(LAGRANGE_DISABLE_FPE_DEFAULT ON)
+else()
+    set(LAGRANGE_DISABLE_FPE_DEFAULT OFF)
+endif()
+
 # General CMake options
 option(LAGRANGE_ASSERT_DEBUG_BREAK      "Assert will break into debugger on failure"           ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_COMPILE_TESTS           "Enable compilation tests"                             ${LAGRANGE_COMPILE_TESTS_DEFAULT})
 option(LAGRANGE_COPY_RUNTIME_DEPS       "Copy runtime dependencies into executable folders"    ${LAGRANGE_TOPLEVEL_PROJECT})
-option(LAGRANGE_DISABLE_FPE             "Disable floating point exception code"                OFF)
+option(LAGRANGE_DISABLE_FPE             "Disable floating point exception code"                ${LAGRANGE_DISABLE_FPE_DEFAULT})
 option(LAGRANGE_DOCUMENTATION           "Build Doxygen documentation"                          OFF)
 option(LAGRANGE_ENABLE_GPU_TESTS        "Enable unit tests that run on the GPU"                ON)
 option(LAGRANGE_EXAMPLES                "Build all examples"                                   ${LAGRANGE_TOPLEVEL_PROJECT})
@@ -191,10 +197,11 @@ option(LAGRANGE_MORE_WARNINGS           "Increase the level of warnings when com
 option(LAGRANGE_PERFORMANCE_TESTS       "Build all performance tests"                          OFF)
 option(LAGRANGE_UNIT_TESTS              "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_USE_PCH                 "Enable precompiled headers"                           OFF)
-option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            OFF)
+option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            ON)
 option(LAGRANGE_USE_WASM_THREADS        "Enable threads (-pthread) with Emscripten"            ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)
 option(LAGRANGE_USE_FIND_PACKAGE        "Defer to find_package() to find external libraries"   ${LAGRANGE_USE_FIND_PACKAGE_DEFAULT})
+option(LAGRANGE_WASM_FAST_LINK          "Do not run binaryen optimizations and compile with -O1 for faster linking" OFF)
 
 # Set build type as a normal variable to prevent subprojects from overriding it as a option/CACHE variable (thanks to CMP0077/CMP0126)
 if(DEFINED BUILD_SHARED_LIBS)
@@ -274,11 +281,13 @@ if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL OR BUILD_SHARED_LIBS)
     option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
 endif()
 
-if(LAGRANGE_MODULE_ANORIGAMI OR
+if(NOT EMSCRIPTEN AND (
+    LAGRANGE_MODULE_ANORIGAMI OR
     LAGRANGE_MODULE_BAKING OR
     LAGRANGE_MODULE_MESHPROC OR
     LAGRANGE_MODULE_CONTOURING OR
-    (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL)
+    LAGRANGE_MODULE_DECAL OR
+    (LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL))
 )
     # When building anorigami module, we also need to compile tbbmalloc
     option(TBB_BUILD_TBBMALLOC "Build TBB malloc library"  ON) # TBB 2020 option

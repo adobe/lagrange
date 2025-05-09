@@ -165,6 +165,10 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
 {
     LAGRANGE_ZONE_SCOPED;
 
+    if (mesh.is_triangle_mesh()) {
+        return;
+    }
+
     const Index dim = mesh.get_dimension();
     la_runtime_assert(dim == 2 || dim == 3, "Mesh dimension must be 2 or 3");
 

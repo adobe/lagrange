@@ -1,0 +1,11 @@
+Submodule libs/config contains modified content
+diff --git i/libs/config/include/boost/config/platform/wasm.hpp w/libs/config/include/boost/config/platform/wasm.hpp
+index 682b8485..4fa96cf6 100644
+--- i/libs/config/include/boost/config/platform/wasm.hpp
++++ w/libs/config/include/boost/config/platform/wasm.hpp
+@@ -20,4 +20,4 @@
+ //
+ // fenv lacks the C++11 macros:
+ //
+-#define BOOST_NO_FENV_H
++// #define BOOST_NO_FENV_H

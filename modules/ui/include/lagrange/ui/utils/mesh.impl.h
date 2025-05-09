@@ -504,7 +504,7 @@ bool intersect_ray(
     using Scalar = typename MeshType::Scalar;
 
 
-    igl::Hit ihit;
+    igl::Hit<Scalar> ihit;
     bool res = igl::ray_mesh_intersect(
         origin.cast<Scalar>(),
         dir.cast<Scalar>(),

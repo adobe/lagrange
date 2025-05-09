@@ -28,6 +28,7 @@
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/build.h>
 
 #include <sstream>
 
@@ -81,6 +82,8 @@ TEST_CASE("save_mesh_attributes_all", "[io]")
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
+    // TODO: Support wasm in MshIO
+#if !LAGRANGE_TARGET_OS(WASM)
     SECTION("msh ascii")
     {
         opt.encoding = io::FileEncoding::Ascii;
@@ -102,6 +105,7 @@ TEST_CASE("save_mesh_attributes_all", "[io]")
         testing::ensure_approx_equivalent_usage<AttributeUsage::UV>(cube, loaded);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
+#endif
 
     SECTION("obj")
     {
@@ -176,6 +180,8 @@ TEST_CASE("save_mesh_attributes_selected", "[io]")
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
+    // TODO: Support wasm in MshIO
+#if !LAGRANGE_TARGET_OS(WASM)
     SECTION("msh ascii")
     {
         opt.encoding = io::FileEncoding::Ascii;
@@ -195,6 +201,7 @@ TEST_CASE("save_mesh_attributes_selected", "[io]")
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
+#endif
 
     SECTION("obj")
     {
@@ -259,6 +266,8 @@ TEST_CASE("save_mesh_indexed_attributes", "[io]")
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
 
+    // TODO: Support wasm in MshIO
+#if !LAGRANGE_TARGET_OS(WASM)
     SECTION("msh ascii")
     {
         opt.encoding = io::FileEncoding::Ascii;
@@ -278,6 +287,7 @@ TEST_CASE("save_mesh_indexed_attributes", "[io]")
         ensure_attributes_exist(loaded, false, true);
         testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(cube, loaded);
     }
+#endif
 
     SECTION("obj")
     {

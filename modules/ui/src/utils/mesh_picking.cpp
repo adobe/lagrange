@@ -414,7 +414,7 @@ intersect_ray(Registry& r, Entity in_e, const Eigen::Vector3f& origin, const Eig
 
     auto& ap = r.get<AcceleratedPicking>(e);
 
-    igl::Hit hit;
+    igl::Hit<float> hit;
     bool res =
         ap.root.intersect_ray(ap.V, ap.F, origin, dir, std::numeric_limits<float>::infinity(), hit);
 

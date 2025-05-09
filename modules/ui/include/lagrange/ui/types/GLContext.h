@@ -16,6 +16,7 @@
 // GLEW must come before GLFW
 #if defined(__EMSCRIPTEN__)
 #include <webgl/webgl2.h>
+#include <GL/gl.h>
 #else
 #include <GL/gl3w.h>
 #endif

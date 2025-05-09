@@ -20,6 +20,7 @@
 #include <lagrange/testing/check_mesh.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/testing/equivalence_check.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/views.h>
 
@@ -152,8 +153,11 @@ TEST_CASE("io/msh", "[mesh][io][msh]")
         options.selected_attributes.push_back(id2);
     }
 
+    // TODO: Support wasm in MshIO
+#if !LAGRANGE_TARGET_OS(WASM)
     REQUIRE_NOTHROW(io::save_mesh_msh(data, mesh, options));
     auto mesh2 = io::load_mesh_msh<SurfaceMesh<Scalar, Index>>(data);
     testing::check_mesh(mesh2);
     testing::ensure_approx_equivalent_mesh(mesh, mesh2);
+#endif
 }

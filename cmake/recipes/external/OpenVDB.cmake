@@ -47,8 +47,12 @@ option(OPENVDB_DISABLE_BOOST_IMPLICIT_LINKING "" OFF)
 option(OPENVDB_ENABLE_UNINSTALL "Adds a CMake uninstall target." OFF)
 option(OPENVDB_FUTURE_DEPRECATION "Generate messages for upcoming deprecation" OFF)
 
-if(NOT EMSCRIPTEN)
-    set(OPENVDB_SIMD AVX CACHE STRING "")
+set(OPENVDB_SIMD AVX CACHE STRING "")
+
+if(EMSCRIPTEN)
+    # Requires boost::interprocess, which uses SysV shared memory (not available on Emscripten).
+    # Might be possible to force Boost to use something else, but why bother?
+    option(OPENVDB_USE_DELAYED_LOADING "Build the core OpenVDB library with delayed-loading." OFF)
 endif()
 
 if(NOT CMAKE_MSVC_RUNTIME_LIBRARY)
@@ -149,12 +153,16 @@ function(openvdb_import_target)
         endif()
     endif()
 
+    if(EMSCRIPTEN AND OPENVDB_SIMD)
+        add_compile_options(-msimd128)
+    endif()
+
     # Ready to include openvdb CMake
     include(CPM)
     CPMAddPackage(
         NAME openvdb
         GITHUB_REPOSITORY AcademySoftwareFoundation/openvdb
-        GIT_TAG v11.0.0
+        GIT_TAG v12.0.1
     )
 
     unignore_package(TBB)

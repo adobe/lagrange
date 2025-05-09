@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#include <lagrange/ExactPredicates.h>
+#include <lagrange/ExactPredicatesShewchuk.h>
 #include <lagrange/utils/span.h>
 
 namespace lagrange {
@@ -20,7 +20,7 @@ enum class Orientation : short {
     Positive = 1,
     Zero = 0,
     Negative = -1
-}
+};
 
 /**
  * Compute orientation of a 2D triangle.

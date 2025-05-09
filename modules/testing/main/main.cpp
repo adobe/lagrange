@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/Logger.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/utils/fpe.h>
 
 #include <catch2/catch_session.hpp>
@@ -18,6 +19,14 @@
 
 #ifdef LAGRANGE_WITH_STACKWALKER
     #include <StackWalker.h>
+#endif
+
+#ifdef LAGRANGE_WITH_CPPTRACE
+    #include <cpptrace/from_current.hpp>
+#endif
+
+#if LAGRANGE_TARGET_OS(WASM)
+    #include <emscripten.h>
 #endif
 
 #include <cstdlib>
@@ -50,19 +59,55 @@ LONG WINAPI ExpFilter(EXCEPTION_POINTERS* pExp, DWORD dwExpCode)
     return EXCEPTION_EXECUTE_HANDLER;
 }
 
+} // namespace
+
+#endif
+
+namespace {
+
 int wrapped_run(Catch::Session& session)
 {
+#if LAGRANGE_TARGET_OS(WASM)
+    try {
+        return session.run();
+    } catch (const std::exception& e) {
+        lagrange::logger().critical("Exception: {}", e.what());
+
+        char callstack[4096];
+        emscripten_get_callstack(EM_LOG_C_STACK, callstack, sizeof(callstack));
+        std::puts(callstack);
+        return EXIT_FAILURE;
+    }
+#elif LAGRANGE_WITH_STACKWALKER
     __try {
         const auto session_ret = session.run();
         return session_ret;
     } __except (ExpFilter(GetExceptionInformation(), GetExceptionCode())) {
         return EXIT_FAILURE;
     }
+#elif LAGRANGE_WITH_CPPTRACE
+    CPPTRACE_TRY
+    {
+        return session.run();
+    }
+    CPPTRACE_CATCH(const std::exception& e)
+    {
+        lagrange::logger().critical("Exception: {}", e.what());
+        cpptrace::from_current_exception().print();
+        return EXIT_FAILURE;
+    }
+#else
+    return session.run();
+#endif
 }
 
-} // namespace
+#if LAGRANGE_TARGET_OS(WASM) && !defined(__EMSCRIPTEN_PTHREADS__)
+
+static_assert(false, "Emscripten must be compiled with pthreads support");
 
 #endif
+
+} // namespace
 
 int main(int argc, char* argv[])
 {
@@ -88,10 +133,5 @@ int main(int argc, char* argv[])
         lagrange::enable_fpe();
     }
 
-#ifdef LAGRANGE_WITH_STACKWALKER
-    const auto session_ret = wrapped_run(session);
-#else
-    const auto session_ret = session.run();
-#endif
-    return session_ret;
+    return wrapped_run(session);
 }

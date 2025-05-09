@@ -117,6 +117,20 @@ def print_extra_info(mesh, info):
     info["degenerate_facets"] = num_degenerate_facets
     print_property("num degenerate facets", len(num_degenerate_facets), 0)
 
+    # UV check
+    if mesh.get_matching_attribute_ids(usage=lagrange.AttributeUsage.UV) != []:
+        uv_attr_id = mesh.get_matching_attribute_id(usage=lagrange.AttributeUsage.UV)
+        if not mesh.is_attribute_indexed(uv_attr_id):
+            uv_attr_id = lagrange.map_attribute(
+                mesh, uv_attr_id, "_indexed_uv", lagrange.AttributeElement.Indexed
+            )
+        distortion_id = lagrange.compute_uv_distortion(
+            mesh, mesh.get_attribute_name(uv_attr_id), metric=lagrange.DistortionMetric.AreaRatio
+        )
+        distortion = mesh.attribute(distortion_id).data
+        num_flipped_uv = np.sum(distortion < 0)
+        print_property("num flipped UV facets", num_flipped_uv, 0)
+
 
 def usage_to_str(usage):
     return str(usage).split(".")[-1]
@@ -124,6 +138,25 @@ def usage_to_str(usage):
 
 def element_to_str(element):
     return str(element).split(".")[-1]
+
+
+def dtype_to_str(dtype: np.dtype):
+    match dtype:
+        case np.float32:
+            dtype_str = "float32"
+        case np.float64:
+            dtype_str = "float64"
+        case np.int32:
+            dtype_str = "int32"
+        case np.int64:
+            dtype_str = "int64"
+        case np.uint32:
+            dtype_str = "uint32"
+        case np.uint64:
+            dtype_str = "uint64"
+        case _:
+            dtype_str = str(dtype)
+    return dtype_str
 
 
 def print_attributes(mesh):
@@ -139,8 +172,12 @@ def print_attributes(mesh):
         usage = usage_to_str(attr.usage)
         element_type = element_to_str(attr.element_type)
         num_channels = attr.num_channels
+        if not is_indexed:
+            dtype = dtype_to_str(attr.dtype)
+        else:
+            dtype = dtype_to_str(attr.values.dtype)
 
-        print(f"Attribute {colorama.Fore.GREEN}{name}{colorama.Style.RESET_ALL}")
+        print(f"Attribute {colorama.Fore.GREEN}{name}{colorama.Style.RESET_ALL} ({dtype})")
         print(f"  id:{id:<5}usage: {usage:<10}elem: {element_type:<10}channels: {num_channels}")
 
 

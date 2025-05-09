@@ -79,6 +79,7 @@ else()
         -Wno-missing-braces
         -Wno-unknown-pragmas
         -Wshadow
+        -Wshadow-all
         -Qunused-arguments
         -msse3
     )
