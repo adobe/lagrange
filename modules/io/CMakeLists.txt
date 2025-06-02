@@ -11,7 +11,7 @@
 #
 
 # 1. define module
-lagrange_add_module()
+lagrange_add_module(NO_INSTALL)
 set_target_properties(lagrange_io PROPERTIES POSITION_INDEPENDENT_CODE ON)
 if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_io PROPERTIES COMPILE_WARNING_AS_ERROR ON)

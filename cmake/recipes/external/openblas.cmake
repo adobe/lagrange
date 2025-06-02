@@ -22,12 +22,14 @@ block()
     set(BUILD_BENCHMARKS OFF)
     set(USE_OPENMP OFF)
     set(NOFORTRAN ON)
+    set(ONLY_CBLAS ON)
 
     include(CPM)
     CPMAddPackage(
         NAME OpenBLAS
         GITHUB_REPOSITORY OpenMathLib/OpenBLAS
         GIT_TAG v0.3.29
+        EXCLUDE_FROM_ALL ON
     )
 
     set(OpenBLAS_LIBNAME openblas${SUFFIX64_UNDERSCORE})

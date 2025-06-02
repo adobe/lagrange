@@ -91,10 +91,10 @@ public:
     template <typename Derived>
     Derived* static_write()
     {
-        ensure_unique_owner<Derived>();
 #if LAGRANGE_TARGET_FEATURE(RTTI)
         la_debug_assert(dynamic_cast<Derived*>(m_data.get()));
 #endif
+        ensure_unique_owner<Derived>();
         return static_cast<Derived*>(m_data.get());
     }
 
