@@ -14,4 +14,14 @@ if(TARGET Python::Module)
 endif()
 
 set(Python_FIND_VIRTUALENV FIRST)
+
+# Python ABI to search for, according to https://peps.python.org/pep-3149/
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.30)
+    # pydebug (d), pymalloc (m), unicode (u) and gil_disabled (t)
+    set(Python_FIND_ABI "ANY" "ANY" "ANY" "OFF")
+else()
+    # pydebug (d), pymalloc (m), unicode (u)
+    set(Python_FIND_ABI "ANY" "ANY" "ANY")
+endif()
+
 find_package(Python 3.9 COMPONENTS Interpreter Development.Module REQUIRED)
