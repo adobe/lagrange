@@ -24,7 +24,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14]
+        os: [ubuntu-24.04, macos-13, macos-15]
         config: [RelwithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
@@ -35,9 +35,9 @@ jobs:
             sanitizer: Thread
           - os: macos-13
             config: Debug
-          - os: macos-14
+          - os: macos-15
             compiler: gcc
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: apple
     steps:
       - name: Free Disk Space
@@ -140,8 +140,8 @@ jobs:
   ####################
 
   Windows:
-    name: windows-2022 (${{ matrix.config }})
-    runs-on: windows-2022
+    name: windows-2025 (${{ matrix.config }})
+    runs-on: windows-2025
     strategy:
       fail-fast: false
       matrix:
