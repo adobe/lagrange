@@ -326,16 +326,20 @@ void triangulate_polygonal_facets_centroid_fan(SurfaceMesh<Scalar, Index>& mesh)
             facets_to_remove.push_back(fid);
 
             c.setZero();
-            for (Index i = 0; i < facet_size; i++) {
-                c.head(dim) += vertices.row(f[i]).head(dim);
-            }
-            c /= static_cast<Scalar>(facet_size);
 
             if (dim == 3) {
+                for (Index i = 0; i < facet_size; i++) {
+                    c += vertices.row(f[i]);
+                }
+                c /= static_cast<Scalar>(facet_size);
                 centroids.push_back(c[0]);
                 centroids.push_back(c[1]);
                 centroids.push_back(c[2]);
             } else {
+                for (Index i = 0; i < facet_size; i++) {
+                    c.template head<2>() += vertices.row(f[i]).template head<2>();
+                }
+                c /= static_cast<Scalar>(facet_size);
                 centroids.push_back(c[0]);
                 centroids.push_back(c[1]);
             }
