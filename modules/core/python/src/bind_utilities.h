@@ -49,6 +49,7 @@
 #include <lagrange/select_facets_in_frustum.h>
 #include <lagrange/separate_by_components.h>
 #include <lagrange/separate_by_facet_groups.h>
+#include <lagrange/split_facets_by_material.h>
 #include <lagrange/thicken_and_close_mesh.h>
 #include <lagrange/topology.h>
 #include <lagrange/transform_mesh.h>
@@ -587,11 +588,23 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 
     m.def(
         "triangulate_polygonal_facets",
-        &lagrange::triangulate_polygonal_facets<Scalar, Index>,
+        [](MeshType& mesh, std::string_view scheme) {
+            lagrange::TriangulationOptions opt;
+            if (scheme == "earcut") {
+                opt.scheme = lagrange::TriangulationOptions::Scheme::Earcut;
+            } else if (scheme == "centroid_fan") {
+                opt.scheme = lagrange::TriangulationOptions::Scheme::CentroidFan;
+            } else {
+                throw Error(fmt::format("Unsupported triangulation scheme {}", scheme));
+            }
+            lagrange::triangulate_polygonal_facets(mesh, opt);
+        },
         "mesh"_a,
+        "scheme"_a = "earcut",
         R"(Triangulate polygonal facets of the mesh.
 
-:param mesh: The input mesh.)");
+:param mesh: The input mesh to be triangulated in place.
+:param scheme: The triangulation scheme (options are 'earcut' and 'centroid_fan'))");
 
     nb::enum_<ComponentOptions::ConnectivityType>(m, "ConnectivityType", "Mesh connectivity type")
         .value(
@@ -1962,6 +1975,22 @@ The input mesh must be a triangle mesh.
 :param uv_attribute_name: Name of the (indexed or vertex) UV attribute.
 
 :return: A new mesh representing the UV mesh.)");
+
+    m.def(
+        "split_facets_by_material",
+        &split_facets_by_material<Scalar, Index>,
+        "mesh"_a,
+        "material_attribute_name"_a,
+        R"(Split mesh facets based on a material attribute.
+
+@param mesh: Input mesh on which material segmentation will be applied in place.
+@param material_attribute_name: Name of the material attribute to use for inserting boundaries.
+
+@note The material attribute should be n by k vertex attribute, where n is the number of vertices,
+and k is the number of materials. The value at row i and column j indicates the probability of vertex
+i belonging to material j. The function will insert boundaries between different materials based on
+the material attribute.
+)");
 }
 
 } // namespace lagrange::python

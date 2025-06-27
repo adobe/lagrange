@@ -73,7 +73,9 @@ struct AttributeSmoothingOptions
  * @param mesh           The surface mesh containing the attribute to smooth.
  * @param attribute_name The name of the scalar vertex attribute to smooth. If empty, all attributes
  *                       with scalar usage and vertex element type will be smoothed. The attribute 
- *                       will be modified in place.
+ *                       will be modified in place. If an attribute with `Vector` usage is
+ *                       specified, it is treated as a multi-channel scalar attribute, where each
+ *                       channel will be smoothed independently.
  * @param options        Configuration options for the smoothing operation.
  */
 template <typename Scalar, typename Index>

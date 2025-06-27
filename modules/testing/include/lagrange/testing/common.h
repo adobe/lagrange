@@ -100,6 +100,16 @@ LA_TESTING_API fs::path get_data_dir();
 LA_TESTING_API fs::path get_data_path(const fs::path& relative_path);
 
 ///
+/// Gets the absolute path to a folder in the test data directory. This function asserts that the folder
+/// exists.
+///
+/// @param[in]  relative_path  Relative path to the folder.
+///
+/// @return     Absolute path to the folder.
+///
+LA_TESTING_API fs::path get_data_folder(const fs::path& relative_path);
+
+///
 /// Loads a mesh from the test data directory.
 ///
 /// @param[in]  relative_path  Relative path of the file to load.

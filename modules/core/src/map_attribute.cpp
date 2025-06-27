@@ -65,7 +65,9 @@ void average_values(
     }
     for (size_t i = 0, j = 0; i < dst.size(); i += num_channels, ++j) {
         for (size_t k = 0; k < num_channels; ++k) {
-            dst[i + k] /= dst_valence[j];
+            if (dst_valence[j] > 0) {
+                dst[i + k] /= dst_valence[j];
+            }
         }
     }
 }

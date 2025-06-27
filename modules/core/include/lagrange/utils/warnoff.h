@@ -95,6 +95,7 @@
     #pragma warning(disable : 4005) // macro redefintion.
     #pragma warning(disable : 4018) // sign/unsign mismatch in comparison.
     #pragma warning(disable : 4101) // unreferenced local variable.
+    #pragma warning(disable : 4146) // Unary minus operator applied to unsigned type, result still unsigned
     #pragma warning(disable : 4244) // int conversion, possible loss of data.
     #pragma warning(disable : 4251) // 'type' : class 'type1' needs to have dll-interface to be used
                                     // by clients of class 'type2'

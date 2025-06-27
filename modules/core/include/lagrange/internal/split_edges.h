@@ -15,7 +15,7 @@
 #include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/span.h>
 
-namespace lagrange {
+namespace lagrange::internal {
 
 /**
  * Split edges based on the input split points.
@@ -37,4 +37,4 @@ std::vector<Index> split_edges(
     function_ref<span<Index>(Index)> get_edge_split_pts,
     function_ref<bool(Index)> active_facet);
 
-} // namespace lagrange
+} // namespace lagrange::internal

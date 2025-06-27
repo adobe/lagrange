@@ -31,11 +31,10 @@ if(NOT EMSCRIPTEN)
             add_library(BLAS::BLAS INTERFACE IMPORTED GLOBAL)
         endif()
     else()
-        include(blas) # Accelerate on arm64 macOS, MKL on other platforms
+        include(blas) # Accelerate on macOS, MKL on other platforms
 
-        # TODO: Ideally we'd always use Accelerate on macOS and pick backend solver based on platform in the C++ code.
-        # But because of legacy Nasoq stuff we only use Accelerate on x64 macOS. So for now let's propagate that info.
-        if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR "arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
+        # TODO: Move the solver selection logic to a dedicated module to avoid repeating this in individual modules.
+        if(APPLE)
             target_compile_definitions(lagrange_filtering PRIVATE LA_SOLVER_ACCELERATE)
         else()
             target_compile_definitions(lagrange_filtering PRIVATE LA_SOLVER_MKL)

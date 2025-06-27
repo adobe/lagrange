@@ -23,7 +23,7 @@ TEST_CASE("save_scene", "[io]")
 
     SECTION("Avocado")
     {
-        fs::path avocado_path = testing::get_data_path("open/io/avocado");
+        fs::path avocado_path = testing::get_data_path("open/io/avocado/Avocado.gltf");
         auto scene = io::load_scene<SceneType>(avocado_path);
 
         std::stringstream ss;

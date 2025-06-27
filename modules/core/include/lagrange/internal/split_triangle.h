@@ -15,7 +15,7 @@
 
 #include <vector>
 
-namespace lagrange {
+namespace lagrange::internal {
 
 ///
 /// Split a triangle into smaller triangles based on the chain of splitting
@@ -46,4 +46,4 @@ void split_triangle(
     const Index v2,
     span<Index> triangulation);
 
-} // namespace lagrange
+} // namespace lagrange::internal
