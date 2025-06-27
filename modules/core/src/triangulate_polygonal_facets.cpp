@@ -161,7 +161,7 @@ void append_triangles_from_polygon(
 }
 
 template <typename Scalar, typename Index>
-void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
+void triangulate_polygonal_facets_earcut(SurfaceMesh<Scalar, Index>& mesh)
 {
     LAGRANGE_ZONE_SCOPED;
 
@@ -298,9 +298,238 @@ void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh)
     mesh.compress_if_regular();
 }
 
+template <typename Scalar, typename Index>
+void triangulate_polygonal_facets_centroid_fan(SurfaceMesh<Scalar, Index>& mesh)
+{
+    if (mesh.is_triangle_mesh()) {
+        return;
+    }
+
+    const Index dim = mesh.get_dimension();
+    la_runtime_assert(dim == 2 || dim == 3, "Mesh dimension must be 2 or 3");
+
+    const Index old_num_vertices = mesh.get_num_vertices();
+    const Index old_num_facets = mesh.get_num_facets();
+    std::vector<Scalar> centroids;
+    std::vector<Index> facets_to_remove;
+    std::vector<Index> new_triangles;
+
+    auto vertices = vertex_view(mesh);
+    Eigen::Matrix<Scalar, 1, 3> c;
+    Index new_vertex_count = 0;
+    Index new_triangle_count = 0;
+
+    for (Index fid = 0; fid < old_num_facets; ++fid) {
+        const auto facet_size = mesh.get_facet_size(fid);
+        if (facet_size != 3) {
+            auto f = mesh.get_facet_vertices(fid);
+            facets_to_remove.push_back(fid);
+
+            c.setZero();
+            for (Index i = 0; i < facet_size; i++) {
+                c.head(dim) += vertices.row(f[i]).head(dim);
+            }
+            c /= static_cast<Scalar>(facet_size);
+
+            if (dim == 3) {
+                centroids.push_back(c[0]);
+                centroids.push_back(c[1]);
+                centroids.push_back(c[2]);
+            } else {
+                centroids.push_back(c[0]);
+                centroids.push_back(c[1]);
+            }
+
+            Index cid = old_num_vertices + new_vertex_count;
+            new_vertex_count++;
+            for (Index i = 0; i < facet_size; i++) {
+                Index v0 = f[i];
+                Index v1 = f[(i + 1) % facet_size];
+                new_triangles.push_back(cid);
+                new_triangles.push_back(v0);
+                new_triangles.push_back(v1);
+            }
+            new_triangle_count += facet_size;
+        }
+    }
+
+    mesh.add_vertices(new_vertex_count, {centroids.data(), centroids.size()});
+    mesh.add_triangles(new_triangle_count, {new_triangles.data(), new_triangles.size()});
+
+    auto remap_vertex_attribute = [&](auto&& attr) {
+        auto data = matrix_ref(attr);
+
+        for (Index i = 0; i < new_vertex_count; ++i) {
+            Index ci = old_num_vertices + i;
+            Index fi = facets_to_remove[i];
+            auto f = mesh.get_facet_vertices(fi);
+            la_debug_assert(!f.empty());
+
+            size_t facet_size = f.size();
+            data.row(ci).setZero();
+            for (size_t j = 0; j < facet_size; ++j) {
+                data.row(ci) += data.row(f[j]);
+            }
+            data.row(ci) /= static_cast<Scalar>(facet_size);
+        }
+    };
+
+    auto remap_facet_attribute = [&](auto&& attr) {
+        auto data = matrix_ref(attr);
+
+        Index facet_count = old_num_facets;
+        for (Index i = 0; i < new_vertex_count; ++i) {
+            // Each new vertex corresponds to a facet centroid, fi is that facet.
+            Index fi = facets_to_remove[i];
+            Index facet_size = mesh.get_facet_size(fi);
+
+            for (Index j = 0; j < facet_size; ++j) {
+                Index fj = facet_count + j;
+                data.row(fj) = data.row(fi);
+            }
+            facet_count += facet_size;
+        }
+    };
+
+    auto remap_corner_attribute = [&](auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+        using ValueType = typename AttributeType::ValueType;
+
+        auto data = matrix_ref(attr);
+        std::vector<ValueType> buffer(data.cols());
+        Eigen::Map<Eigen::RowVectorX<ValueType>> centroid_data(buffer.data(), buffer.size());
+
+        Index facet_count = old_num_facets;
+        for (Index i = 0; i < new_vertex_count; ++i) {
+            Index fi = facets_to_remove[i];
+            auto f = mesh.get_facet_vertices(fi);
+            la_debug_assert(!f.empty());
+            size_t facet_size = f.size();
+
+            // Compute centroid data
+            centroid_data.setZero();
+            const Index c_begin = mesh.get_facet_corner_begin(fi);
+            const Index c_end = mesh.get_facet_corner_end(fi);
+            for (Index ci = c_begin; ci < c_end; ++ci) {
+                centroid_data += data.row(ci);
+            }
+            centroid_data /= static_cast<ValueType>(facet_size);
+
+            // Update data for newly added corners
+            for (size_t j = 0; j < facet_size; ++j) {
+                Index old_c1 = c_begin + static_cast<Index>(j);
+                Index old_c2 = c_begin + static_cast<Index>(j + 1) % facet_size;
+
+                Index fj = facet_count + static_cast<Index>(j);
+                Index c0 = mesh.get_facet_corner_begin(fj);
+                Index c1 = c0 + 1;
+                Index c2 = c0 + 2;
+
+                data.row(c0) = centroid_data;
+                data.row(c1) = data.row(old_c1);
+                data.row(c2) = data.row(old_c2);
+            }
+            facet_count += static_cast<Index>(facet_size);
+        }
+    };
+
+    auto remap_indexed_attribute = [&](auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+        using ValueType = typename AttributeType::ValueType;
+
+        auto& value_attr = attr.values();
+        auto& index_attr = attr.indices();
+
+        size_t old_num_elements = value_attr.get_num_elements();
+        value_attr.resize_elements(old_num_elements + static_cast<size_t>(new_vertex_count));
+        std::vector<ValueType> buffer(value_attr.get_num_channels());
+        Eigen::Map<Eigen::RowVectorX<ValueType>> centroid_data(buffer.data(), buffer.size());
+
+        auto values = matrix_ref(value_attr);
+        auto indices = vector_ref(index_attr);
+
+        Index facet_count = old_num_facets;
+        for (Index i = 0; i < new_vertex_count; ++i) {
+            Index fi = facets_to_remove[i];
+            Index facet_size = mesh.get_facet_size(fi);
+            Index ci_begin = mesh.get_facet_corner_begin(fi);
+
+            centroid_data.setZero();
+            for (Index j = 0; j < facet_size; j++) {
+                Index ci = ci_begin + j;
+                centroid_data += values.row(indices(ci));
+            }
+            centroid_data /= static_cast<ValueType>(facet_size);
+
+            values.row(old_num_elements + i) = centroid_data;
+
+            for (Index j = 0; j < facet_size; j++) {
+                Index fj = facet_count + j;
+                Index cj_begin = mesh.get_facet_corner_begin(fj);
+                indices(cj_begin) = static_cast<Index>(old_num_elements) + i;
+                indices(cj_begin + 1) = indices(ci_begin + j);
+                indices(cj_begin + 2) = indices(ci_begin + (j + 1) % facet_size);
+            }
+            facet_count += facet_size;
+        }
+    };
+
+    // Map attributes
+    par_foreach_named_attribute_write<
+        AttributeElement::Vertex | AttributeElement::Facet | AttributeElement::Corner |
+        AttributeElement::Indexed>(mesh, [&](std::string_view name, auto&& attr) {
+        if (mesh.attr_name_is_reserved(name)) return;
+
+        using AttributeType = std::decay_t<decltype(attr)>;
+        if constexpr (AttributeType::IsIndexed) {
+            remap_indexed_attribute(attr);
+        } else {
+            switch (attr.get_element_type()) {
+            case AttributeElement::Vertex: remap_vertex_attribute(attr); break;
+            case AttributeElement::Facet: remap_facet_attribute(attr); break;
+            case AttributeElement::Corner: remap_corner_attribute(attr); break;
+            default: break;
+            }
+        }
+    });
+
+    // We do not automatically remap edge attributes, as we don't have a way to interpret how to
+    // remap those attributes
+    {
+        LAGRANGE_ZONE_SCOPED;
+        bool has_edge_attr = false;
+        seq_foreach_attribute_read<AttributeElement::Edge>(mesh, [&](auto&&) {
+            has_edge_attr = true;
+        });
+        if (has_edge_attr) {
+            logger().warn(
+                "Mesh has edge attributes. Those will not be remapped to the new triangular "
+                "facets. Please remap them manually.");
+        }
+    }
+
+    mesh.remove_facets({facets_to_remove.data(), facets_to_remove.size()});
+    mesh.compress_if_regular();
+}
+
+template <typename Scalar, typename Index>
+void triangulate_polygonal_facets(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const TriangulationOptions& options)
+{
+    switch (options.scheme) {
+    case TriangulationOptions::Scheme::Earcut: triangulate_polygonal_facets_earcut(mesh); break;
+    case TriangulationOptions::Scheme::CentroidFan:
+        triangulate_polygonal_facets_centroid_fan(mesh);
+        break;
+    }
+}
+
 // Iterate over mesh (scalar, index) types
 #define LA_X_triangulate_polygonal_facets(_, Scalar, Index) \
-    template LA_CORE_API void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh);
+    template LA_CORE_API void triangulate_polygonal_facets( \
+        SurfaceMesh<Scalar, Index>& mesh,                   \
+        const TriangulationOptions& options);
 LA_SURFACE_MESH_X(triangulate_polygonal_facets, 0)
 
 } // namespace lagrange

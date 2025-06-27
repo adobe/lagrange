@@ -152,11 +152,9 @@ if(SKBUILD AND LINUX)
     #
     # https://gitlab.kitware.com/cmake/cmake/-/issues/20491
     #
-    # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
-    # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
+    # Note: We should probably enable this on macOS as well
     #
     set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-    option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
 
     # Set RPATH to $ORIGIN on Linux
     set(CMAKE_INSTALL_RPATH $ORIGIN)
@@ -224,11 +222,6 @@ if(LAGRANGE_JENKINS)
     option(TBB_ENABLE_IPO "Enable Interprocedural Optimization (IPO) during the compilation" OFF)
 endif()
 
-# When building Arpack from source, we need to enable Fortran support in the top-level directory
-if(ARPACK_BUILD_FROM_SOURCE)
-    enable_language(Fortran)
-endif()
-
 # Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
 # option, targeted at users who wish to have explicit knowledge of which module is implicitly
 # compiled by Lagrange. By default, an empty list means all modules are allowed.
@@ -293,11 +286,9 @@ if(NOT EMSCRIPTEN AND (
     option(TBB_BUILD_TBBMALLOC "Build TBB malloc library"  ON) # TBB 2020 option
     option(TBBMALLOC_BUILD "Enable tbbmalloc build" ON) # OneTBB 2021 option
 
-    # When using pre-built Arpack, we still need to compile MKL/TBB as a shared library
-    if(NOT ARPACK_BUILD_FROM_SOURCE)
-        set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-        option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
-    endif()
+    # We need to compile MKL/TBB as a shared library
+    set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
 endif()
 
 if(LAGRANGE_TOPLEVEL_PROJECT)

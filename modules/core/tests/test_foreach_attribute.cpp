@@ -509,14 +509,14 @@ TEST_CASE("SurfaceMesh: Attribute Traversal", "[next]")
     // });
 
     std::vector<std::string> expected = {
-        "$corner_to_vertex",
         "$vertex_to_position",
-        "@normal",
+        "$corner_to_vertex",
+        "texcoord",
+        "normal",
         "color",
         "material_id",
-        "normal",
         "object_id",
-        "texcoord",
+        "@normal",
     };
     auto current = expected.begin();
     seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&&) {

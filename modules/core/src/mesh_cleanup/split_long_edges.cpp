@@ -18,9 +18,8 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
+#include <lagrange/internal/split_edges.h>
 #include <lagrange/views.h>
-
-#include "split_edges.h"
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -168,7 +167,7 @@ void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions op
     std::vector<Index> edge_split_pts(num_additional_vertices);
     std::iota(edge_split_pts.begin(), edge_split_pts.end(), num_input_vertices);
 
-    auto facets_to_remove = split_edges(
+    auto facets_to_remove = internal::split_edges(
         mesh,
         function_ref<span<Index>(Index)>([&](Index eid) -> span<Index> {
             Index n = edge_split_indices[eid + 1] - edge_split_indices[eid];

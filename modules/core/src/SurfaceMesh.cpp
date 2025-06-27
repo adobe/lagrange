@@ -119,15 +119,19 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
 
     void seq_foreach_attribute_id(function_ref<void(AttributeId)> func) const
     {
-        for (auto& kv : m_name_to_id) {
-            func(kv.second);
+        for (size_t i = 0; i < m_attributes.size(); ++i) {
+            if (m_attributes[i].second.read()) {
+                func(static_cast<AttributeId>(i));
+            }
         }
     }
 
     void seq_foreach_attribute_id(function_ref<void(std::string_view, AttributeId)> func) const
     {
-        for (auto& kv : m_name_to_id) {
-            func(kv.first, kv.second);
+        for (size_t i = 0; i < m_attributes.size(); ++i) {
+            if (m_attributes[i].second.read()) {
+                func(m_attributes[i].first, static_cast<AttributeId>(i));
+            }
         }
     }
 

@@ -10,18 +10,17 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/internal/split_triangle.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
-
-#include "split_triangle.h"
 
 #include <Eigen/Core>
 
 #include <algorithm>
 #include <vector>
 
-namespace lagrange {
+namespace lagrange::internal {
 
 template <typename Scalar, typename Index>
 void split_triangle(
@@ -117,7 +116,7 @@ void split_triangle(
         la_runtime_assert(visited(base_v, idx) >= 1);
 
         // A special case.
-        if (is_corner(base_v) && is_corner(right_v) && is_corner(left_v)) {
+        if (is_corner(right_v) && is_corner(left_v)) {
             if (chain_size != 3) {
                 candidate_lengths(idx, selection) = NOT_USED;
                 Q.push_back(idx);
@@ -201,4 +200,4 @@ void split_triangle(
         span<Index>);
 LA_SURFACE_MESH_X(split_triangle, 0)
 
-} // namespace lagrange
+} // namespace lagrange::internal

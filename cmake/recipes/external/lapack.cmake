@@ -15,8 +15,8 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'LAPACK::LAPACK'")
 
-if(CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" OR "arm64" IN_LIST CMAKE_OSX_ARCHITECTURES)
-    # Use Accelerate on macOS M1
+if(APPLE)
+    # Use Accelerate on macOS
     set(BLA_VENDOR Apple)
     find_package(LAPACK REQUIRED)
 else()

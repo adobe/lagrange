@@ -112,7 +112,7 @@ void populate_filtering_module(nb::module_& m)
         "normal_smoothing_weight"_a = AttributeOptions().normal_smoothing_weight,
         "gradient_weight"_a = AttributeOptions().gradient_weight,
         "gradient_modulation_scale"_a = AttributeOptions().gradient_modulation_scale,
-        R"(Smooths a scalar attribute on a surface mesh.
+        R"(Smooths a (multi-channel) scalar attribute on a surface mesh.
 
 :param mesh: Input mesh.
 :param attribute_name: The name of the scalar vertex attribute to smooth. If empty, all attributes with scalar usage and vertex element type will be smoothed.

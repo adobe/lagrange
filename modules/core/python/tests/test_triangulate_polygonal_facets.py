@@ -10,6 +10,7 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
+import pytest
 
 from .assets import cube
 
@@ -47,3 +48,19 @@ class TestTriangulatePolygonalFacets:
         normal_attr = mesh.indexed_attribute(attr_id)
         normal_indices = normal_attr.indices
         assert normal_indices.num_elements == mesh.num_corners
+
+    def test_cube_with_attribute_centroid_fan(self, cube):
+        mesh = cube
+        attr_id = lagrange.compute_normal(mesh)
+        area = lagrange.compute_mesh_area(mesh)
+
+        lagrange.triangulate_polygonal_facets(mesh, "centroid_fan")
+        assert mesh.num_vertices == 8 + 6
+        assert mesh.num_facets == 24
+        assert mesh.is_attribute_indexed(attr_id)
+
+        normal_attr = mesh.indexed_attribute(attr_id)
+        normal_indices = normal_attr.indices
+        assert normal_indices.num_elements == mesh.num_corners
+
+        assert lagrange.compute_mesh_area(mesh) == pytest.approx(area, rel=1e-5)

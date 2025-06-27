@@ -9,12 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include "split_edges.h"
-#include "split_triangle.h"
 
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/split_edges.h>
+#include <lagrange/internal/split_triangle.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -33,7 +33,7 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-namespace lagrange {
+namespace lagrange::internal {
 
 namespace {
 
@@ -304,4 +304,4 @@ std::vector<Index> split_edges(
         function_ref<span<Index>(Index)>,                               \
         function_ref<bool(Index)>);
 LA_SURFACE_MESH_X(split_edges, 0)
-} // namespace lagrange
+} // namespace lagrange::internal
