@@ -547,8 +547,6 @@ void display_ufbx_scene_warnings(const ufbx_scene* scene)
     }
     if (metadata.may_contain_no_index)
         logger().warn("fbx warning: index arrays may contain invalid indices");
-    if (metadata.may_contain_null_materials)
-        logger().warn("fbx warning: file may contain null materials");
     if (metadata.may_contain_missing_vertex_position)
         logger().warn("fbx warning: vertex positions may be missing");
     if (metadata.may_contain_broken_elements)
