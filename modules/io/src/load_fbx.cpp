@@ -45,12 +45,12 @@ template <typename AffineTransform>
 AffineTransform convert_transform_ufbx_to_lagrange(const ufbx_matrix& m)
 {
     AffineTransform transform;
+    transform.setIdentity();
     // clang-format off
-    transform.matrix() <<
+    transform.affine() <<
         m.m00, m.m01, m.m02, m.m03,
         m.m10, m.m11, m.m12, m.m13,
-        m.m20, m.m21, m.m22, m.m23,
-        0, 0, 0, 1;
+        m.m20, m.m21, m.m22, m.m23;
     // clang-format on
     return transform;
 }
