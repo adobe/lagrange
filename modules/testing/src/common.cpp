@@ -11,18 +11,18 @@
  */
 
 #ifdef LA_TESTING_USE_CONFIG
-#include <lagrange/testing/private_config.h>
+    #include <lagrange/testing/private_config.h>
 #endif
 
 #include <lagrange/testing/common.h>
 
-#include <lagrange/io/legacy/load_mesh.impl.h>
 #include <lagrange/Mesh.h>
+#include <lagrange/io/legacy/load_mesh.impl.h>
 
 #include <lagrange/Logger.h>
 
 #ifdef EIGEN_USE_MKL_ALL
-#include <mkl.h>
+    #include <mkl.h>
 #endif
 
 namespace lagrange {
@@ -33,9 +33,9 @@ fs::path get_data_dir()
     return fs::path(TEST_DATA_DIR);
 }
 
-// A nice thing about this function is that we don't have to rebuild "everything"
-// when we change it.
-fs::path get_data_path(const fs::path& relative_path)
+namespace {
+
+fs::path get_data_path_impl(const fs::path& relative_path)
 {
     if (relative_path.is_absolute()) {
         logger().error("Expected relative path, got absolute path: {}", relative_path.string());
@@ -49,6 +49,22 @@ fs::path get_data_path(const fs::path& relative_path)
     }
     REQUIRE(fs::exists(absolute_path));
     return absolute_path;
+}
+
+} // namespace
+
+fs::path get_data_path(const fs::path& relative_path)
+{
+    auto result = get_data_path_impl(relative_path);
+    REQUIRE(fs::is_regular_file(result));
+    return result;
+}
+
+fs::path get_data_folder(const fs::path& relative_path)
+{
+    auto result = get_data_path_impl(relative_path);
+    REQUIRE(fs::is_directory(result));
+    return result;
 }
 
 template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
@@ -83,11 +99,11 @@ void setup_mkl_reproducibility()
             // - MKL_CBWR_AVX
             // - MKL_CBWR_AVX2
 
-#if __APPLE__
+    #if __APPLE__
             auto res = mkl_cbwr_set(MKL_CBWR_AVX | MKL_CBWR_STRICT);
-#else
+    #else
             auto res = mkl_cbwr_set(MKL_CBWR_COMPATIBLE | MKL_CBWR_STRICT);
-#endif
+    #endif
             lagrange::logger().debug("MKL auto cbwr branch: {}", cbwr_branch);
             lagrange::logger().info("Setting MKL reproducibility flag: {}", res);
             la_runtime_assert(res == MKL_CBWR_SUCCESS);

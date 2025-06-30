@@ -86,34 +86,40 @@ void scalar_attribute_smoothing(
             using ValueType = typename AttributeType::ValueType;
 
             if (attribute_name == "" || attr_name != attribute_name) return;
-            if (attr.get_usage() != AttributeUsage::Scalar) return;
-            if (attr.get_num_channels() != 1) return;
+            if (attribute_name == "" && attr.get_usage() != AttributeUsage::Scalar) return;
+            if (attribute_name == "" && attr.get_num_channels() != 1) return;
 
             // Only smooth float or double attributes.
             if constexpr (std::is_same_v<ValueType, float> || std::is_same_v<ValueType, double>) {
-                auto scalar_field = vector_ref(attr);
+                auto num_channels = attr.get_num_channels();
+                auto scalar_field = matrix_ref(attr);
 
-                // Low frequencies described in terms of values at vertices
-                auto LowFrequencyVertexValues = [&](unsigned int v) { return scalar_field[v]; };
+                for (Index ci = 0; ci < num_channels; ci++) {
+                    // Low frequencies described in terms of values at vertices
+                    auto LowFrequencyVertexValues = [&](unsigned int v) {
+                        la_debug_assert(v < vertices.size(), "Vertex index out of bounds");
+                        return scalar_field(v, ci);
+                    };
 
-                // High frequencies described in terms of scaled values at vertices
-                auto HighFrequencyVertexValues = [&](unsigned int v) {
-                    la_debug_assert(v < vertices.size(), "Vertex index out of bounds");
-                    return scalar_field[v] *
-                           static_cast<ValueType>(options.gradient_modulation_scale);
-                };
+                    // High frequencies described in terms of scaled values at vertices
+                    auto HighFrequencyVertexValues = [&](unsigned int v) {
+                        la_debug_assert(v < vertices.size(), "Vertex index out of bounds");
+                        return scalar_field(v, ci) *
+                               static_cast<ValueType>(options.gradient_modulation_scale);
+                    };
 
-                auto smoothed_scalar_field =
-                    GradientDomain::ProcessVertexVertex<Solver, ValueType, Real>(
-                        solver,
-                        *r_mesh,
-                        Real(1.f),
-                        static_cast<Real>(options.gradient_weight),
-                        LowFrequencyVertexValues,
-                        HighFrequencyVertexValues);
+                    auto smoothed_scalar_field =
+                        GradientDomain::ProcessVertexVertex<Solver, ValueType, Real>(
+                            solver,
+                            *r_mesh,
+                            Real(1.f),
+                            static_cast<Real>(options.gradient_weight),
+                            LowFrequencyVertexValues,
+                            HighFrequencyVertexValues);
 
-                for (size_t i = 0; i < static_cast<size_t>(scalar_field.size()); i++) {
-                    scalar_field[i] = smoothed_scalar_field[i];
+                    for (size_t i = 0; i < static_cast<size_t>(scalar_field.rows()); i++) {
+                        scalar_field(i, ci) = smoothed_scalar_field[i];
+                    }
                 }
             } else {
                 if (attr_name == attribute_name) {

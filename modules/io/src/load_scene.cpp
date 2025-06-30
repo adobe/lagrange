@@ -20,6 +20,7 @@
 #include <lagrange/io/load_scene_obj.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/utils/strings.h>
+#include <lagrange/utils/Error.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
     #include <lagrange/io/load_scene_assimp.h>
@@ -43,8 +44,7 @@ SceneType load_scene(const fs::path& filename, const LoadOptions& options)
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_scene_assimp<SceneType>(filename, options);
 #else
-        logger().error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON.");
-        return SceneType();
+        throw Error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
 #endif
     }
 }
@@ -55,10 +55,9 @@ SceneType load_scene(std::istream& input_stream, const LoadOptions& options)
     switch (internal::detect_file_format(input_stream)) {
     case FileFormat::Gltf: return load_scene_gltf<SceneType>(input_stream, options);
     case FileFormat::Fbx: return load_scene_fbx<SceneType>(input_stream, options);
-    default: throw std::runtime_error("Unsupported format.");
+    default: throw Error("Unsupported format.");
     }
 }
-
 
 #define LA_X_load_scene(_, S, I)                      \
     template LA_IO_API scene::Scene<S, I> load_scene( \

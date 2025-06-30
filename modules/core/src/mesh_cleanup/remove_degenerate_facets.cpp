@@ -18,10 +18,10 @@
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/internal/split_edges.h>
+#include <lagrange/internal/split_triangle.h>
 #include <lagrange/views.h>
 
-#include "split_edges.h"
-#include "split_triangle.h"
 
 #include <algorithm>
 #include <vector>
@@ -178,7 +178,7 @@ void remove_degenerate_facets(SurfaceMesh<Scalar, Index>& mesh)
         }
     }
 
-    auto facets_to_remove = split_edges(
+    auto facets_to_remove = internal::split_edges(
         mesh,
         function_ref<span<Index>(Index)>([&](Index eid) {
             const auto& offset = edge_split_offsets[eid];

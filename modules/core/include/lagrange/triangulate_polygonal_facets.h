@@ -25,16 +25,29 @@ namespace lagrange {
 ///
 /// @{
 
+struct TriangulationOptions
+{
+    enum class Scheme {
+        Earcut, ///< Use earcut algorithm to triangulate polygons
+        CentroidFan ///< Connect facet centroid to polygon edges to form a fan of triangles
+    };
+
+    Scheme scheme = Scheme::Earcut; ///< Triangulation scheme to use
+};
+
 ///
 /// Triangulate polygonal facets of a mesh using a prescribed set of rules.
 ///
 /// @param[in, out] mesh     Polygonal mesh to triangulate in place.
+/// @param[in]      options  Options for triangulation.
 ///
 /// @tparam         Scalar   Mesh scalar type.
 /// @tparam         Index    Mesh index type.
 ///
 template <typename Scalar, typename Index>
-void triangulate_polygonal_facets(SurfaceMesh<Scalar, Index>& mesh);
+void triangulate_polygonal_facets(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const TriangulationOptions& options = {});
 
 /// @}
 

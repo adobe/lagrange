@@ -106,7 +106,7 @@ TEST_CASE("load_scene_avocado", "[io]")
 
     SceneType scene;
     std::string uv_attr_name = std::string(AttributeName::texcoord) + "_0";
-    fs::path avocado_path = testing::get_data_path("open/io/avocado");
+    fs::path avocado_path = testing::get_data_folder("open/io/avocado");
     opt.search_path = avocado_path;
     bool from_obj = false;
     SECTION("gltf")
@@ -260,7 +260,7 @@ TEST_CASE("load_save_scene_fbx", "[io]")
     io::LoadOptions load_opt;
     io::SaveOptions save_opt;
     auto avocado_path = testing::get_data_path("open/io/avocado/avocado.fbx");
-    load_opt.search_path = testing::get_data_path("open/io/avocado/");
+    load_opt.search_path = testing::get_data_folder("open/io/avocado/");
     auto scene32f = io::load_scene_fbx<scene::Scene32f>(avocado_path, load_opt);
     io::save_scene_gltf("avocado32f.gltf", scene32f, save_opt);
 
@@ -271,7 +271,7 @@ TEST_CASE("load_save_scene_fbx", "[io]")
 TEST_CASE("load_save_scene_obj", "[io]")
 {
     io::LoadOptions load_opt;
-    load_opt.search_path = testing::get_data_path("open/io/avocado/");
+    load_opt.search_path = testing::get_data_folder("open/io/avocado/");
     auto avocado_path = testing::get_data_path("open/io/avocado/avocado.obj");
     auto scene32f = io::load_scene_obj<scene::Scene32f>(avocado_path, load_opt);
 

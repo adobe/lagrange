@@ -17,6 +17,7 @@
 #include <lagrange/io/load_simple_scene_gltf.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/strings.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
@@ -37,11 +38,12 @@ SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_simple_scene_assimp<SceneType>(filename, options);
 #else
-        logger().error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON.");
+        throw Error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
 #endif
     }
     return SceneType();
 }
+
 #define LA_X_load_simple_scene(_, S, I, D)                            \
     template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene( \
         const fs::path& filename,                                     \
