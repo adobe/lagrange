@@ -76,7 +76,7 @@ if (LAGRANGE_FMT_EIGEN_FIX)
 endif()
 
 # 2. dependencies
-lagrange_find_package(Eigen3 REQUIRED)
+lagrange_find_package(Eigen3 REQUIRED GLOBAL)
 lagrange_find_package(span-lite REQUIRED)
 lagrange_find_package(spdlog REQUIRED)
 lagrange_find_package(TBB CONFIG REQUIRED)
