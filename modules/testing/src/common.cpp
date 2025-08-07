@@ -30,7 +30,20 @@ namespace testing {
 
 fs::path get_data_dir()
 {
+#ifdef TEST_DATA_DIR
     return fs::path(TEST_DATA_DIR);
+#else
+    static_assert(false, "TEST_DATA_DIR must be defined");
+#endif
+}
+
+fs::path get_test_output_dir()
+{
+#ifdef TEST_OUTPUT_DIR
+    return fs::path(TEST_OUTPUT_DIR);
+#else
+    static_assert(false, "TEST_OUTPUT_DIR must be defined");
+#endif
 }
 
 namespace {
@@ -65,6 +78,33 @@ fs::path get_data_folder(const fs::path& relative_path)
     auto result = get_data_path_impl(relative_path);
     REQUIRE(fs::is_directory(result));
     return result;
+}
+
+///
+/// Gets a path for writing test output files. Creates the directory if it doesn't exist.
+/// The path will be relative to the test output directory (typically build/tmp).
+///
+/// @param[in]  relative_path  Relative path within the test output directory.
+///
+/// @return     Absolute path for test output.
+///
+fs::path get_test_output_path(const fs::path& relative_path)
+{
+    if (relative_path.is_absolute()) {
+        logger().error("Expected relative path, got absolute path: {}", relative_path.string());
+    }
+    REQUIRE(relative_path.is_relative());
+
+    fs::path base_dir = get_test_output_dir();
+    fs::path absolute_path = base_dir / relative_path;
+
+    // Ensure the directory exists (create parent directories if needed)
+    fs::path parent_dir = absolute_path.parent_path();
+    if (!parent_dir.empty() && !fs::exists(parent_dir)) {
+        fs::create_directories(parent_dir);
+    }
+
+    return absolute_path;
 }
 
 template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);

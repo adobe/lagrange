@@ -17,7 +17,7 @@ endif()
 lagrange_find_package(happly REQUIRED)
 lagrange_find_package(nanoflann REQUIRED)
 lagrange_find_package(nanort REQUIRED)
-lagrange_find_package(Eigen3 REQUIRED)
+lagrange_find_package(Eigen3 REQUIRED GLOBAL)
 
 message(STATUS "Third-party (external): creating target 'geometry-central::geometry-central'")
 

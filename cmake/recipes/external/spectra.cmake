@@ -23,3 +23,7 @@ CPMAddPackage(
 )
 
 add_library(Spectra::Spectra ALIAS Spectra)
+
+if(TARGET format)
+    set_target_properties(format PROPERTIES FOLDER third_party)
+endif()

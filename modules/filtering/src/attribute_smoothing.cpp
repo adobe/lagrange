@@ -138,10 +138,10 @@ void scalar_attribute_smoothing(
     timer.tock();
 }
 
-#define LA_X_scalar_attribute_smoothing(_, Scalar, Index)    \
-    template void scalar_attribute_smoothing<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index> & mesh,                   \
-        std::string_view,                                    \
+#define LA_X_scalar_attribute_smoothing(_, Scalar, Index)                     \
+    template LA_FILTERING_API void scalar_attribute_smoothing<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index> & mesh,                                    \
+        std::string_view,                                                     \
         const AttributeSmoothingOptions& options);
 LA_SURFACE_MESH_X(scalar_attribute_smoothing, 0)
 

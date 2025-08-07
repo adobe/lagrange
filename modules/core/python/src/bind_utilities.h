@@ -122,7 +122,12 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "keep_weighted_corner_normals",
             &VertexNormalOptions::keep_weighted_corner_normals,
-            "Whether to keep the weighted corner normal attribute. Default is false.");
+            "Whether to keep the weighted corner normal attribute. Default is false.")
+        .def_rw(
+            "distance_tolerance",
+            &VertexNormalOptions::distance_tolerance,
+            "Distance tolerance for degenerate edge check. "
+            "(Only used to bypass degenerate edge in polygon facets.)");
 
     m.def(
         "compute_vertex_normal",
@@ -143,7 +148,8 @@ void bind_utilities(nanobind::module_& m)
            std::optional<NormalWeightingType> weight_type,
            std::optional<std::string_view> weighted_corner_normal_attribute_name,
            std::optional<bool> recompute_weighted_corner_normals,
-           std::optional<bool> keep_weighted_corner_normals) {
+           std::optional<bool> keep_weighted_corner_normals,
+           std::optional<float> distance_tolerance) {
             VertexNormalOptions options;
             if (output_attribute_name) options.output_attribute_name = *output_attribute_name;
             if (weight_type) options.weight_type = *weight_type;
@@ -154,6 +160,7 @@ void bind_utilities(nanobind::module_& m)
                 options.recompute_weighted_corner_normals = *recompute_weighted_corner_normals;
             if (keep_weighted_corner_normals)
                 options.keep_weighted_corner_normals = *keep_weighted_corner_normals;
+            if (distance_tolerance) options.distance_tolerance = *distance_tolerance;
 
             return compute_vertex_normal<Scalar, Index>(mesh, options);
         },
@@ -163,6 +170,7 @@ void bind_utilities(nanobind::module_& m)
         "weighted_corner_normal_attribute_name"_a = nb::none(),
         "recompute_weighted_corner_normals"_a = nb::none(),
         "keep_weighted_corner_normals"_a = nb::none(),
+        "distance_tolerance"_a = nb::none(),
         R"(Computer vertex normal (Pythonic API).
 
 :param mesh: Input mesh.
@@ -171,6 +179,8 @@ void bind_utilities(nanobind::module_& m)
 :param weighted_corner_normal_attribute_name: Precomputed weighted corner normals attribute name.
 :param recompute_weighted_corner_normals: Whether to recompute weighted corner normals.
 :param keep_weighted_corner_normals: Whether to keep the weighted corner normal attribute.
+:param distance_tolerance: Distance tolerance for degenerate edge check.
+                           (Only used to bypass degenerate edge in polygon facets.)
 
 :returns: Vertex normal attribute id.)");
 
@@ -230,7 +240,12 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "keep_facet_normals",
             &NormalOptions::keep_facet_normals,
-            "Whether to keep the computed facet normal attribute. Default is false.");
+            "Whether to keep the computed facet normal attribute. Default is false.")
+        .def_rw(
+            "distance_tolerance",
+            &NormalOptions::distance_tolerance,
+            "Distance tolerance for degenerate edge check. (Only used to bypass degenerate edge in "
+            "polygon facets.)");
 
     m.def(
         "compute_normal",
@@ -284,7 +299,8 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
            std::optional<NormalWeightingType> weight_type,
            std::optional<std::string_view> facet_normal_attribute_name,
            std::optional<bool> recompute_facet_normals,
-           std::optional<bool> keep_facet_normals) {
+           std::optional<bool> keep_facet_normals,
+           std::optional<float> distance_tolerance) {
             NormalOptions options;
             if (output_attribute_name) options.output_attribute_name = *output_attribute_name;
             if (weight_type) options.weight_type = *weight_type;
@@ -292,6 +308,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
                 options.facet_normal_attribute_name = *facet_normal_attribute_name;
             if (recompute_facet_normals) options.recompute_facet_normals = *recompute_facet_normals;
             if (keep_facet_normals) options.keep_facet_normals = *keep_facet_normals;
+            if (distance_tolerance) options.distance_tolerance = *distance_tolerance;
 
             if (cone_vertices.is_none()) {
                 return compute_normal<Scalar, Index>(mesh, feature_angle_threshold, {}, options);
@@ -316,6 +333,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         "facet_normal_attribute_name"_a = nb::none(),
         "recompute_facet_normals"_a = nb::none(),
         "keep_facet_normals"_a = nb::none(),
+        "distance_tolerance"_a = nb::none(),
         R"(Compute indexed normal attribute (Pythonic API).
 
 :param mesh: input mesh
@@ -326,6 +344,8 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 :param facet_normal_attribute_name: facet normal attribute name
 :param recompute_facet_normals: whether to recompute facet normals
 :param keep_facet_normals: whether to keep the computed facet normal attribute
+:param distance_tolerance: distance tolerance for degenerate edge check
+                           (only used to bypass degenerate edges in polygon facets)
 
 :returns: the id of the indexed normal attribute.)");
 
@@ -1387,22 +1407,35 @@ well-defined and will be set to the special value 2 * M_PI.
         [](MeshType& mesh,
            AttributeId attribute_id,
            std::optional<double> epsilon_rel,
-           std::optional<double> epsilon_abs) {
+           std::optional<double> epsilon_abs,
+           std::optional<double> angle_abs,
+           std::optional<std::vector<size_t>> exclude_vertices) {
             WeldOptions options;
             options.epsilon_rel = epsilon_rel;
             options.epsilon_abs = epsilon_abs;
+            options.angle_abs = angle_abs;
+            if (exclude_vertices.has_value()) {
+                const auto& exclude_vertices_vec = exclude_vertices.value();
+                options.exclude_vertices = {
+                    exclude_vertices_vec.data(),
+                    exclude_vertices_vec.size()};
+            }
             return weld_indexed_attribute(mesh, attribute_id, options);
         },
         "mesh"_a,
         "attribute_id"_a,
         "epsilon_rel"_a = nb::none(),
         "epsilon_abs"_a = nb::none(),
+        "angle_abs"_a = nb::none(),
+        "exclude_vertices"_a = nb::none(),
         R"(Weld indexed attribute.
 
-:param mesh:         The source mesh.
+:param mesh:         The source mesh to be updated in place.
 :param attribute_id: The indexed attribute id to weld.
 :param epsilon_rel:  The relative tolerance for welding.
-:param epsilon_abs:  The absolute tolerance for welding.)");
+:param epsilon_abs:  The absolute tolerance for welding.
+:param angle_abs:    The absolute angle tolerance for welding.
+:param exclude_vertices: Optional list of vertex indices to exclude from welding.)");
 
     m.def(
         "compute_euler",
@@ -1413,6 +1446,18 @@ well-defined and will be set to the special value 2 * M_PI.
 :param mesh: The source mesh.
 
 :return: The Euler characteristic.)");
+
+    m.def(
+        "is_closed",
+        &is_closed<Scalar, Index>,
+        "mesh"_a,
+        R"(Check if the mesh is closed.
+
+A mesh is considered closed if it has no boundary edges.
+
+:param mesh: The source mesh.
+
+:return: Whether the mesh is closed.)");
 
     m.def(
         "is_vertex_manifold",

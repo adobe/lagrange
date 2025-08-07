@@ -25,10 +25,5 @@ function(lagrange_include_modules)
             get_property(lagrange_binary_dir GLOBAL PROPERTY __lagrange_binary_dir)
             add_subdirectory(${lagrange_source_dir}/modules/${name} ${lagrange_binary_dir}/modules/lagrange_${name})
         endif()
-
-        # deformers or lantern modules can be skipped on certain platforms due to lack of support
-        if(NOT name MATCHES "(deformers|lantern)" AND NOT TARGET lagrange::${name})
-            message(FATAL_ERROR "Failed to create lagrange module: ${name}")
-        endif()
     endforeach()
 endfunction()

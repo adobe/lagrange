@@ -57,40 +57,41 @@ void populate_io_module(nb::module_& m)
     using SimpleSceneType = scene::SimpleScene<Scalar, Index, 3>;
     using SceneType = lagrange::scene::Scene<Scalar, Index>;
 
-    nb::class_<io::LoadOptions>(m, "LoadOptions", "Load options")
+    nb::class_<io::LoadOptions>(m, "LoadOptions", "Options used when loading a mesh or a scene. Note that not all options are supported for all backends or filetypes")
         .def(nb::init<>())
-        .def_rw("triangulate", &io::LoadOptions::triangulate)
-        .def_rw("load_normals", &io::LoadOptions::load_normals)
-        .def_rw("load_tangents", &io::LoadOptions::load_tangents)
-        .def_rw("load_uvs", &io::LoadOptions::load_uvs)
-        .def_rw("load_weights", &io::LoadOptions::load_weights)
-        .def_rw("load_materials", &io::LoadOptions::load_materials)
-        .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
-        .def_rw("load_object_ids", &io::LoadOptions::load_object_ids)
-        .def_rw("search_path", &io::LoadOptions::search_path);
+        .def_rw("triangulate", &io::LoadOptions::triangulate, "Triangulate any polygonal facet with > 3 vertices")
+        .def_rw("load_normals", &io::LoadOptions::load_normals, "Load vertex normals")
+        .def_rw("load_tangents", &io::LoadOptions::load_tangents, "Load tangents and bitangents")
+        .def_rw("load_uvs", &io::LoadOptions::load_uvs, "Load texture coordinates")
+        .def_rw("load_weights", &io::LoadOptions::load_weights, "Load skinning weights attributes (joints id and weight)")
+        .def_rw("load_materials", &io::LoadOptions::load_materials, "Load material ids as facet attribute")
+        .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors, "Load vertex colors as vertex attribute")
+        .def_rw("load_object_ids", &io::LoadOptions::load_object_ids, "Load object ids as facet attribute")
+        .def_rw("search_path", &io::LoadOptions::search_path, "Search path for related files, such as .mtl, .bin, or image textures. By default, searches the same folder as the provided filename");
 
     nb::enum_<io::FileEncoding>(m, "FileEncoding", "File encoding type")
-        .value("Binary", io::FileEncoding::Binary)
-        .value("Ascii", io::FileEncoding::Ascii);
-    nb::class_<io::SaveOptions> save_options(m, "SaveOptions", "Save options");
+        .value("Binary", io::FileEncoding::Binary, "Binary encoding")
+        .value("Ascii", io::FileEncoding::Ascii, "ASCII text encoding");
+    nb::class_<io::SaveOptions> save_options(m, "SaveOptions", "Options used when saving a mesh or a scene. Note that not all options are supported for all backends or filetypes");
     save_options.def(nb::init<>())
-        .def_rw("encoding", &io::SaveOptions::encoding)
-        .def_rw("output_attributes", &io::SaveOptions::output_attributes)
-        .def_rw("selected_attributes", &io::SaveOptions::selected_attributes)
-        .def_rw("attribute_conversion_policy", &io::SaveOptions::attribute_conversion_policy)
-        .def_rw("embed_images", &io::SaveOptions::embed_images);
+        .def_rw("encoding", &io::SaveOptions::encoding, "Whether to encode the file as plain text or binary. Some filetypes only support Ascii and will ignore this parameter")
+        .def_rw("output_attributes", &io::SaveOptions::output_attributes, "Which attributes to save with the mesh")
+        .def_rw("selected_attributes", &io::SaveOptions::selected_attributes, "Attributes to output, usage depends on output_attributes setting")
+        .def_rw("attribute_conversion_policy", &io::SaveOptions::attribute_conversion_policy, "The attribute conversion policy to use. While Lagrange SurfaceMesh supports vertex, facet, corner, edge and indexed attributes, many filetypes only support a subset of these attribute types")
+        .def_rw("embed_images", &io::SaveOptions::embed_images, "Whether to embed images in the file (if supported by the filetype)")
+        .def_rw("export_materials", &io::SaveOptions::export_materials, "Whether to export materials and textures.");
     nb::enum_<io::SaveOptions::OutputAttributes>(
         save_options,
         "OutputAttributes",
-        "Output attribute mode")
-        .value("All", io::SaveOptions::OutputAttributes::All)
-        .value("SelectedOnly", io::SaveOptions::OutputAttributes::SelectedOnly);
+        "Which attributes to save with the mesh")
+        .value("All", io::SaveOptions::OutputAttributes::All, "All attributes (default)")
+        .value("SelectedOnly", io::SaveOptions::OutputAttributes::SelectedOnly, "Only attributes listed in selected_attributes");
     nb::enum_<io::SaveOptions::AttributeConversionPolicy>(
         save_options,
         "AttributeConversionPolicy",
-        "Attribute conversion policy")
-        .value("ExactMatchOnly", io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly)
-        .value("ConvertAsNeeded", io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded);
+        "Attribute conversion policy. Provides options to handle non-supported attributes when saving them")
+        .value("ExactMatchOnly", io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly, "Ignore mismatched attributes and print a warning")
+        .value("ConvertAsNeeded", io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded, "Convert attribute to supported attribute type when possible");
 
 
     m.def(
@@ -217,7 +218,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "filename"_a,
         "scene"_a,
         "binary"_a = true,
-        R"(Save a simple scene to file.
+        R"(Save a simple scene to file. Supports gltf, glb, obj.
 
 :param filename: The output file name.
 :param scene:    The input scene.
@@ -341,7 +342,7 @@ The binary string should use one of the supported formats (i.e. `gltf`, `glb` an
         "filename"_a,
         "scene"_a,
         "options"_a = io::SaveOptions(),
-        R"(Save a scene.
+        R"(Save a scene. Supports gltf, glb, obj.
 
 :param filename:    The output file name.
 :param scene:       The scene to save.

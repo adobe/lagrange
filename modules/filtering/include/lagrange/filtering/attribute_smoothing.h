@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/filtering/api.h>
 
 #include <string_view>
 
@@ -79,7 +80,7 @@ struct AttributeSmoothingOptions
  * @param options        Configuration options for the smoothing operation.
  */
 template <typename Scalar, typename Index>
-void scalar_attribute_smoothing(
+LA_FILTERING_API void scalar_attribute_smoothing(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view attribute_name = "",
     const AttributeSmoothingOptions& options = {});

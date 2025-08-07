@@ -428,9 +428,18 @@ void save_mesh_msh(
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options)
 {
+    fs::path parent_dir = filename.parent_path();
+    if (!parent_dir.empty() && !fs::exists(parent_dir)) fs::create_directories(parent_dir);
+
     fs::ofstream fout(
         filename,
         (options.encoding == io::FileEncoding::Binary ? std::ios::binary : std::ios::out));
+    
+    if (!fout) {
+        throw std::runtime_error(
+            fmt::format("Failed to open MSH file for writing: {}", filename.string()));
+    }
+
     save_mesh_msh(fout, mesh, options);
 }
 

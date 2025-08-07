@@ -53,8 +53,11 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
         tbb::parallel_for(Index(0), num_vertices, [&](Index vi) {
             mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
                 LA_IGNORE_ARRAY_BOUNDS_BEGIN
-                normals.row(vi) +=
-                    internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
+                normals.row(vi) += internal::compute_weighted_corner_normal(
+                    mesh,
+                    ci,
+                    options.weight_type,
+                    static_cast<Scalar>(options.distance_tolerance));
                 LA_IGNORE_ARRAY_BOUNDS_END
             });
             normals.row(vi).stableNormalize();
@@ -66,6 +69,7 @@ AttributeId compute_vertex_normal(SurfaceMesh<Scalar, Index>& mesh, VertexNormal
             CornerNormalOptions corner_options;
             corner_options.output_attribute_name = options.weighted_corner_normal_attribute_name;
             corner_options.weight_type = options.weight_type;
+            corner_options.distance_tolerance = options.distance_tolerance;
             corner_normal_id = compute_weighted_corner_normal(mesh, corner_options);
         } else {
             corner_normal_id = internal::find_attribute<Scalar>(

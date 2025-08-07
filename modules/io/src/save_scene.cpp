@@ -14,6 +14,7 @@
 
 #include <lagrange/io/api.h>
 #include <lagrange/io/save_scene_gltf.h>
+#include <lagrange/io/save_scene_obj.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/utils/strings.h>
 
@@ -31,9 +32,13 @@ void save_scene(
 
     if (ext == ".gltf" || ext == ".glb") {
         save_scene_gltf(filename, scene, options);
+    } else if (ext == ".obj") {
+        save_scene_obj(filename, scene, options);
     } else {
-        // todo
-        throw std::runtime_error("Unsupported format or not implemented yet!");
+        // todo add support for other formats
+        throw std::runtime_error(
+            "Unsupported format or not implemented yet: '" + filename.string() +
+            "' (extension: '" + ext + "')");
     }
 }
 
@@ -46,6 +51,7 @@ void save_scene(
 {
     switch (format) {
     case FileFormat::Gltf: save_scene_gltf(output_stream, scene, options); break;
+    case FileFormat::Obj: save_scene_obj(output_stream, scene, options); break;
     default: throw std::runtime_error("Unrecognized file format!");
     }
 }

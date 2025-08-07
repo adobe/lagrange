@@ -32,6 +32,7 @@ target_compile_definitions(lagrange_testing
         CATCH_CONFIG_ENABLE_BENCHMARKING
     PRIVATE
         TEST_DATA_DIR="${LAGRANGE_DATA_FOLDER}"
+        TEST_OUTPUT_DIR="${CMAKE_BINARY_DIR}/tmp"
 )
 
 if(LAGRANGE_ENABLE_GPU_TESTS)
@@ -82,15 +83,13 @@ set_target_properties(lagrange_testing_main PROPERTIES FOLDER "${LAGRANGE_IDE_PR
 
 set_target_properties(lagrange_testing_main PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
-# Enable StackWalker on Windows
-if(WIN32)
-    option(LAGRANGE_STACKWALKER "Enable StackWalker on Windows" ON)
+# Get stack trace information
+if(EMSCRIPTEN)
+    option(LAGRANGE_WITH_CPPTRACE "Enable cpptrace" OFF)
+else()
+    option(LAGRANGE_WITH_CPPTRACE "Enable cpptrace" ON)
 endif()
-if(WIN32 AND LAGRANGE_STACKWALKER)
-    include(stackwalker)
-    target_compile_definitions(lagrange_testing_main PRIVATE -DLAGRANGE_WITH_STACKWALKER)
-    target_link_libraries(lagrange_testing_main PRIVATE StackWalker::StackWalker)
-elseif()
+if(LAGRANGE_WITH_CPPTRACE)
     include(cpptrace)
     target_compile_definitions(lagrange_testing_main PRIVATE -DLAGRANGE_WITH_CPPTRACE)
     target_link_libraries(lagrange_testing_main PRIVATE cpptrace::cpptrace)

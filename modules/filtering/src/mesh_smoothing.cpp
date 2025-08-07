@@ -147,9 +147,9 @@ void mesh_smoothing(SurfaceMesh<Scalar, Index>& mesh, const SmoothingOptions& op
     timer.tock();
 }
 
-#define LA_X_mesh_reconstruction(_, Scalar, Index) \
-    template void mesh_smoothing<Scalar, Index>(   \
-        SurfaceMesh<Scalar, Index> & mesh,         \
+#define LA_X_mesh_reconstruction(_, Scalar, Index)                \
+    template LA_FILTERING_API void mesh_smoothing<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index> & mesh,                        \
         const SmoothingOptions& options);
 LA_SURFACE_MESH_X(mesh_reconstruction, 0)
 

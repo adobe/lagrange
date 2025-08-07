@@ -90,6 +90,15 @@ namespace testing {
 LA_TESTING_API fs::path get_data_dir();
 
 ///
+/// Gets the test output directory for writing temporary test files. This is typically a 'tmp' 
+/// subdirectory in the build folder, allowing tests to write files relative to the build 
+/// directory regardless of where the test was executed from.
+///
+/// @return     Path to the test output directory.
+///
+LA_TESTING_API fs::path get_test_output_dir();
+
+///
 /// Gets the absolute path to a file in the test data directory. This function asserts that the file
 /// exists.
 ///
@@ -100,14 +109,24 @@ LA_TESTING_API fs::path get_data_dir();
 LA_TESTING_API fs::path get_data_path(const fs::path& relative_path);
 
 ///
-/// Gets the absolute path to a folder in the test data directory. This function asserts that the folder
-/// exists.
+/// Gets the absolute path to a folder in the test data directory. This function asserts that the
+/// folder exists.
 ///
 /// @param[in]  relative_path  Relative path to the folder.
 ///
 /// @return     Absolute path to the folder.
 ///
 LA_TESTING_API fs::path get_data_folder(const fs::path& relative_path);
+
+///
+/// Gets a path for writing test output files. Creates parent directories if they don't exist.
+/// The path will be relative to the test output directory (typically build/tmp).
+///
+/// @param[in]  relative_path  Relative path within the test output directory.
+///
+/// @return     Absolute path for test output.
+///
+LA_TESTING_API fs::path get_test_output_path(const fs::path& relative_path);
 
 ///
 /// Loads a mesh from the test data directory.

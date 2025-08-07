@@ -54,6 +54,9 @@ struct VertexNormalOptions
     /// already present in the input mesh, it will not be removed, even if this argument is set to
     /// false.
     bool keep_weighted_corner_normals = false;
+
+    /// Tolerance for degenerate edge check. (only used to bypass degenerate edges in polygon facets)
+    float distance_tolerance = 0.0f;
 };
 
 /**

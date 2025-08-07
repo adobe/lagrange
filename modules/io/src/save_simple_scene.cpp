@@ -17,11 +17,11 @@
 #include <lagrange/scene/SimpleSceneTypes.h>
 
 #include <lagrange/io/api.h>
-#include <lagrange/io/save_mesh_msh.h>
-#include <lagrange/io/save_mesh_obj.h>
-#include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/io/save_simple_scene_gltf.h>
+#include <lagrange/io/save_simple_scene_obj.h>
 #include <lagrange/utils/strings.h>
+
+#include <ostream>
 
 namespace lagrange::io {
 
@@ -33,8 +33,7 @@ void save_simple_scene(
 {
     std::string ext = to_lower(filename.extension().string());
     if (ext == ".obj") {
-        // todo
-        throw std::runtime_error("Not implemented yet!");
+        save_simple_scene_obj(filename, scene, options);
     } else if (ext == ".ply") {
         // todo
         throw std::runtime_error("Not implemented yet!");
@@ -46,10 +45,40 @@ void save_simple_scene(
     }
 }
 
+template <typename Scalar, typename Index, size_t Dimension>
+void save_simple_scene(
+    std::ostream& output_stream,
+    const scene::SimpleScene<Scalar, Index, Dimension>& scene,
+    FileFormat format,
+    const SaveOptions& options)
+{
+    switch (format) {
+    case FileFormat::Obj:
+        save_simple_scene_obj(output_stream, scene, options);
+        break;
+    case FileFormat::Gltf:
+        save_simple_scene_gltf(output_stream, scene, options);
+        break;
+    case FileFormat::Ply:
+    case FileFormat::Msh:
+    case FileFormat::Fbx:
+    case FileFormat::Stl:
+        throw std::runtime_error("Stream output not supported for this format yet!");
+        break;
+    default:
+        throw std::runtime_error("Unknown file format!");
+    }
+}
+
 #define LA_X_save_simple_scene(_, S, I, D)        \
     template LA_IO_API void save_simple_scene(              \
         const fs::path& filename,                 \
         const scene::SimpleScene<S, I, D>& scene, \
+        const SaveOptions& options);             \
+    template LA_IO_API void save_simple_scene(              \
+        std::ostream& output_stream,              \
+        const scene::SimpleScene<S, I, D>& scene, \
+        FileFormat format,                        \
         const SaveOptions& options);
 LA_SIMPLE_SCENE_X(save_simple_scene, 0);
 #undef LA_X_save_simple_scene

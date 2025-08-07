@@ -351,7 +351,9 @@ TEST_CASE("compute_tangent_bitangent_keep_existing_corner", "[core][tangent]")
     lagrange::AttributeId bitangent_id = mesh.get_attribute_id(opt.bitangent_attribute_name);
     auto bitangent_values = lagrange::attribute_matrix_view<Scalar>(mesh, bitangent_id);
     for (Index i = 0; i < static_cast<Index>(bitangent_values.rows()); ++i) {
-        REQUIRE_THAT(bitangent_values.row(i).dot(tangent_ref.row(i)), Catch::Matchers::WithinAbs(0.0, 1e-6));
+        REQUIRE_THAT(
+            bitangent_values.row(i).dot(tangent_ref.row(i)),
+            Catch::Matchers::WithinAbs(0.0, 1e-6));
     }
 }
 
@@ -532,10 +534,37 @@ auto weld_mesh(lagrange::SurfaceMesh<Scalar, Index> mesh)
     // as pre-processing.
     la_runtime_assert(mesh.has_attribute(lagrange::AttributeName::texcoord));
     la_runtime_assert(mesh.has_attribute(lagrange::AttributeName::normal));
-    lagrange::weld_indexed_attribute(
-        mesh,
-        mesh.get_attribute_id(lagrange::AttributeName::texcoord));
-    lagrange::weld_indexed_attribute(mesh, mesh.get_attribute_id(lagrange::AttributeName::normal));
+    lagrange::WeldOptions options;
+
+    const auto texcoord_id = mesh.get_attribute_id(lagrange::AttributeName::texcoord);
+    {
+        const auto& attr = mesh.template get_indexed_attribute<Scalar>(texcoord_id);
+        lagrange::logger().info(
+            "Number of values before welding texcoords: {}",
+            attr.values().get_num_elements());
+    }
+    lagrange::weld_indexed_attribute(mesh, texcoord_id, options);
+    {
+        const auto& attr = mesh.template get_indexed_attribute<Scalar>(texcoord_id);
+        lagrange::logger().info(
+            "Number of values after welding texcoords: {}",
+            attr.values().get_num_elements());
+    }
+
+    const auto normal_id = mesh.get_attribute_id(lagrange::AttributeName::normal);
+    {
+        const auto& attr = mesh.template get_indexed_attribute<Scalar>(normal_id);
+        lagrange::logger().info(
+            "Number of values before welding normals: {}",
+            attr.values().get_num_elements());
+    }
+    lagrange::weld_indexed_attribute(mesh, normal_id, options);
+    {
+        const auto& attr = mesh.template get_indexed_attribute<Scalar>(normal_id);
+        lagrange::logger().info(
+            "Number of values after welding normals: {}",
+            attr.values().get_num_elements());
+    }
     return mesh;
 };
 
@@ -778,8 +807,9 @@ TEST_CASE("compute_tangent_bitangent benchmark", "[core][tangent][!benchmark]" L
     using Scalar = float;
     using Index = uint32_t;
 
-    auto mesh = weld_mesh(lagrange::testing::load_surface_mesh<Scalar, Index>(
-        "corp/displacement/MeetMat2/MeetMat2_Rogelio.obj"));
+    auto mesh = weld_mesh(
+        lagrange::testing::load_surface_mesh<Scalar, Index>(
+            "corp/displacement/MeetMat2/MeetMat2_Rogelio.obj"));
 
 #ifdef LAGRANGE_WITH_MIKKTSPACE
     BENCHMARK_ADVANCED("compute_tangent_bitangent_mikkt")
