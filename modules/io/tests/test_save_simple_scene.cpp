@@ -10,8 +10,11 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/io/save_simple_scene.h>
+#include <lagrange/io/load_simple_scene.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/testing/create_test_mesh.h>
+
+#include <sstream>
 
 using namespace lagrange;
 
@@ -41,7 +44,77 @@ scene::SimpleScene32d3 create_simple_scene()
 TEST_CASE("save_simple_scene", "[io]")
 {
     auto scene = create_simple_scene();
-    io::SaveOptions opt;
-    opt.encoding = io::FileEncoding::Ascii;
-    REQUIRE_NOTHROW(io::save_simple_scene("scene.gltf", scene, opt));
+    
+    SECTION("Export with materials (default)")
+    {
+        std::stringstream ss;
+        io::SaveOptions opt;
+        opt.encoding = io::FileEncoding::Ascii;
+        
+        REQUIRE_NOTHROW(io::save_simple_scene(ss, scene, io::FileFormat::Gltf, opt));
+        
+        // Load the scene back and verify round-trip
+        auto loaded_scene = io::load_simple_scene<scene::SimpleScene32d3>(ss);
+        
+        // Verify scene structure is preserved
+        REQUIRE(loaded_scene.get_num_meshes() == scene.get_num_meshes());
+        
+        // Verify each mesh data integrity
+        for (uint32_t i = 0; i < scene.get_num_meshes(); ++i) {
+            const auto& original_mesh = scene.get_mesh(i);
+            const auto& loaded_mesh = loaded_scene.get_mesh(i);
+            
+            REQUIRE(loaded_mesh.get_num_vertices() == original_mesh.get_num_vertices());
+            REQUIRE(loaded_mesh.get_num_facets() == original_mesh.get_num_facets());
+            
+            // Verify we have the same number of instances for this mesh
+            REQUIRE(loaded_scene.get_num_instances(i) == scene.get_num_instances(i));
+        }
+        
+        // Verify total number of instances across all meshes
+        size_t total_original_instances = 0;
+        size_t total_loaded_instances = 0;
+        for (uint32_t i = 0; i < scene.get_num_meshes(); ++i) {
+            total_original_instances += scene.get_num_instances(i);
+            total_loaded_instances += loaded_scene.get_num_instances(i);
+        }
+        REQUIRE(total_loaded_instances == total_original_instances);
+    }
+    
+    SECTION("Export without materials")
+    {
+        std::stringstream ss;
+        io::SaveOptions opt_no_materials;
+        opt_no_materials.encoding = io::FileEncoding::Ascii;
+        opt_no_materials.export_materials = false;
+        
+        REQUIRE_NOTHROW(io::save_simple_scene(ss, scene, io::FileFormat::Gltf, opt_no_materials));
+        
+        // Load the scene back and verify round-trip
+        auto loaded_scene = io::load_simple_scene<scene::SimpleScene32d3>(ss);
+        
+        // Verify scene structure is preserved (should be identical to default case)
+        REQUIRE(loaded_scene.get_num_meshes() == scene.get_num_meshes());
+        
+        // Verify each mesh data integrity
+        for (uint32_t i = 0; i < scene.get_num_meshes(); ++i) {
+            const auto& original_mesh = scene.get_mesh(i);
+            const auto& loaded_mesh = loaded_scene.get_mesh(i);
+            
+            REQUIRE(loaded_mesh.get_num_vertices() == original_mesh.get_num_vertices());
+            REQUIRE(loaded_mesh.get_num_facets() == original_mesh.get_num_facets());
+            
+            // Verify we have the same number of instances for this mesh
+            REQUIRE(loaded_scene.get_num_instances(i) == scene.get_num_instances(i));
+        }
+        
+        // Verify total number of instances across all meshes
+        size_t total_original_instances = 0;
+        size_t total_loaded_instances = 0;
+        for (uint32_t i = 0; i < scene.get_num_meshes(); ++i) {
+            total_original_instances += scene.get_num_instances(i);
+            total_loaded_instances += loaded_scene.get_num_instances(i);
+        }
+        REQUIRE(total_loaded_instances == total_original_instances);
+    }
 }

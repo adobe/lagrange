@@ -24,6 +24,8 @@ namespace lagrange::internal {
  * @param[in] mesh       The input mesh.
  * @param[in] ci         The target corner index.
  * @param[in] weighting  The weighting type.
+ * @param[in] tol        The length tolerance for degenerate edge check.
+ *                       Default is 0 (i.e. exact match).
  *
  * @returns the weighted normal vector corresponding to the target corner.
  */
@@ -31,6 +33,7 @@ template <typename Scalar, typename Index>
 Eigen::Matrix<Scalar, 3, 1> compute_weighted_corner_normal(
     SurfaceMesh<Scalar, Index>& mesh,
     Index ci,
-    NormalWeightingType weighting = NormalWeightingType::CornerTriangleArea);
+    NormalWeightingType weighting = NormalWeightingType::CornerTriangleArea,
+    Scalar tol = 0);
 
 } // namespace lagrange::internal

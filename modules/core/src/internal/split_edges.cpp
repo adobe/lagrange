@@ -73,6 +73,7 @@ std::vector<Index> split_edges(
     function_ref<span<Index>(Index)> get_edge_split_pts,
     function_ref<bool(Index)> active_facet)
 {
+    const Index dim = mesh.get_dimension();
     mesh.initialize_edges();
     const Index num_output_vertices = mesh.get_num_vertices();
     const Index num_input_facets = mesh.get_num_facets();
@@ -199,7 +200,7 @@ std::vector<Index> split_edges(
     auto edge_barycentric = [&](Index v0, Index v1, Index v) {
         Scalar diff = 0;
         Scalar t = 0;
-        for (Index i = 0; i < 3; i++) {
+        for (Index i = 0; i < dim; i++) {
             if (vertices(v0, i) == vertices(v1, i)) continue;
             Scalar d = vertices(v0, i) - vertices(v1, i);
             if (std::abs(d) > diff) {

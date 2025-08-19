@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/filtering/api.h>
 
 #include <string_view>
 
@@ -140,7 +141,9 @@ struct SmoothingOptions
 /// @tparam        Index    Mesh index type.
 ///
 template <typename Scalar, typename Index>
-void mesh_smoothing(SurfaceMesh<Scalar, Index>& mesh, const SmoothingOptions& options = {});
+LA_FILTERING_API void mesh_smoothing(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const SmoothingOptions& options = {});
 
 /// @}
 

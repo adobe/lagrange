@@ -64,7 +64,7 @@ block()
     set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
     # Import our own targets
-    lagrange_find_package(Eigen3 REQUIRED)
+    lagrange_find_package(Eigen3 REQUIRED GLOBAL)
     ignore_package(Eigen3 3.4)
 
     # Ready to include openvdb CMake
@@ -72,13 +72,7 @@ block()
     CPMAddPackage(
         NAME piqp
         GITHUB_REPOSITORY PREDICT-EPFL/piqp
-        GIT_TAG 0a6e7a534ed8d80b5cab5a2f17d846ddd3e4f9f4
-
-        PATCHES
-            # Do not add EIGEN_MAX_ALIGN_BYTES to the piqp target. Instead,
-            # rely on the definitions attached to the Eigen3::Eigen target.
-            # https://github.com/PREDICT-EPFL/piqp/issues/26
-            piqp.patch
+        GIT_TAG v0.6.0
     )
 
     unignore_package(Eigen3)

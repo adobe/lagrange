@@ -44,7 +44,7 @@ struct LA_SCENE_API SceneMeshInstance
     // Mesh index. Has to be a valid index in the scene.meshes vector.
     ElementId mesh = invalid_element;
 
-    // Material indices in the scene.materials vector.
+    // Material indices in the scene.materials vector. This is typically a single material index.
     // When a single mesh uses multiple materials,
     // the AttributeName::material_id facet attribute should be defined.
     std::vector<ElementId> materials;

@@ -55,7 +55,8 @@ void test_load_save()
         for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
             mesh.ref_position(v)[2] = dist(gen);
         }
-        io::save_mesh(filename, mesh);
+        fs::path output_path = lagrange::testing::get_test_output_path("test_io" / filename);
+        io::save_mesh(output_path, mesh);
     }
 
     std::array<std::pair<std::string, int>, 3> test_cases = {
@@ -72,7 +73,8 @@ void test_load_save()
         for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
             mesh.ref_position(v)[2] = dist(gen);
         }
-        io::save_mesh(filename, mesh);
+        fs::path output_path = lagrange::testing::get_test_output_path("test_io" / filename);
+        io::save_mesh(output_path, mesh);
     }
 }
 
@@ -92,7 +94,8 @@ void test_benchmark_tiles()
             auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_hybrid());
-            io::save_mesh(filename, mesh);
+            fs::path output_path = lagrange::testing::get_test_output_path("test_io" / filename);
+            io::save_mesh(output_path, mesh);
         }
 
         std::array<std::pair<std::string, int>, 3> test_cases = {
@@ -103,7 +106,8 @@ void test_benchmark_tiles()
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_regular());
             REQUIRE(mesh.get_vertex_per_facet() == safe_cast<Index>(kv.second));
-            io::save_mesh(filename, mesh);
+            fs::path output_path = lagrange::testing::get_test_output_path("test_io" / filename);
+            io::save_mesh(output_path, mesh);
         }
 
         return n;
@@ -118,7 +122,8 @@ void test_io_blub()
     using Scalar = typename MeshType::Scalar;
 
     auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/blub/blub.obj");
-    io::save_mesh("blub.obj", mesh);
+    fs::path output_path = lagrange::testing::get_test_output_path("test_io/blub.obj");
+    io::save_mesh(output_path, mesh);
 
     logger().info("Mesh #v {}, #f {}", mesh.get_num_vertices(), mesh.get_num_facets());
     auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(AttributeName::texcoord);
@@ -140,7 +145,8 @@ void test_benchmark_large()
         logger().info("Mesh #v {}, #f {}", mesh.get_num_vertices(), mesh.get_num_facets());
         return mesh.get_num_vertices();
         // Uncomment to time obj save as well
-        // fs::ofstream output_stream("out.obj");
+        // fs::path output_path = lagrange::testing::get_test_output_path("test_io/large_out.obj");
+        // fs::ofstream output_stream(output_path);
         // io::save_mesh_obj(output_stream, mesh);
     };
 }

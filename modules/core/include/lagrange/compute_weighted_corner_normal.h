@@ -35,6 +35,9 @@ struct CornerNormalOptions
 
     /// Per-vertex normal averaging weighting type.
     NormalWeightingType weight_type = NormalWeightingType::Uniform;
+
+    /// Tolerance for degenerate edge check. (only used to bypass degenerate edges in polygon facets)
+    float distance_tolerance = 0.0f;
 };
 
 /**

@@ -24,26 +24,62 @@ template <typename Scalar, typename Index>
 Eigen::Matrix<Scalar, 3, 1> compute_weighted_corner_normal(
     SurfaceMesh<Scalar, Index>& mesh,
     Index ci,
-    NormalWeightingType weighting)
+    NormalWeightingType weighting,
+    Scalar tol)
 {
     la_debug_assert(mesh.get_dimension() == 3, "Only 3D meshes are supported.");
+    const Scalar sq_tol = tol * tol;
 
     using VectorType = Eigen::Matrix<Scalar, 3, 1>;
+    VectorType p_curr, p_next, p_prev;
+
+    auto vertices = vertex_view(mesh);
+
+    Index v_curr = mesh.get_corner_vertex(ci);
+    p_curr = vertices.row(v_curr).transpose();
+
     Index fi = mesh.get_corner_facet(ci);
     Index fc_begin = mesh.get_facet_corner_begin(fi);
     Index fc_end = mesh.get_facet_corner_end(fi);
     la_debug_assert(ci >= fc_begin && ci < fc_end);
+    bool is_triangle = (fc_end - fc_begin) == 3;
+
     Index c_next = (ci == (fc_end - 1)) ? fc_begin : ci + 1;
-    Index c_prev = (ci == fc_begin) ? fc_end - 1 : ci - 1;
-
-    Index v_curr = mesh.get_corner_vertex(ci);
     Index v_next = mesh.get_corner_vertex(c_next);
-    Index v_prev = mesh.get_corner_vertex(c_prev);
+    p_next = vertices.row(v_next).transpose();
+    if (!is_triangle) {
+        while (c_next != ci && (p_next - p_curr).squaredNorm() <= sq_tol) {
+            // If the edge (curr, next) is degenerate, check the next-next corner.
+            c_next = (c_next == (fc_end - 1)) ? fc_begin : c_next + 1;
+            v_next = mesh.get_corner_vertex(c_next);
+            p_next = vertices.row(v_next).transpose();
+        }
+    }
 
-    auto vertices = vertex_view(mesh);
-    VectorType p_curr = vertices.row(v_curr).transpose();
-    VectorType p_next = vertices.row(v_next).transpose();
-    VectorType p_prev = vertices.row(v_prev).transpose();
+    Index c_prev = (ci == fc_begin) ? fc_end - 1 : ci - 1;
+    Index v_prev = mesh.get_corner_vertex(c_prev);
+    p_prev = vertices.row(v_prev).transpose();
+    if (!is_triangle) {
+        while (c_prev != ci && (p_prev - p_curr).squaredNorm() <= sq_tol) {
+            // If the edge (curr, prev) is degenerate, check the previous-previous corner.
+            c_prev = (c_prev == fc_begin) ? fc_end - 1 : c_prev - 1;
+            v_prev = mesh.get_corner_vertex(c_prev);
+            p_prev = vertices.row(v_prev).transpose();
+        }
+    }
+
+    if (c_next == ci || c_prev == ci) {
+        // The entire facet is degenerate.
+        // As a fallback, reset to the immediate next and previous corners to attempt
+        // to compute a valid normal.
+        c_next = (ci == (fc_end - 1)) ? fc_begin : ci + 1;
+        v_next = mesh.get_corner_vertex(c_next);
+        p_next = vertices.row(v_next).transpose();
+
+        c_prev = (ci == fc_begin) ? fc_end - 1 : ci - 1;
+        v_prev = mesh.get_corner_vertex(c_prev);
+        p_prev = vertices.row(v_prev).transpose();
+    }
 
     VectorType n = (p_next - p_curr).cross(p_prev - p_curr);
 
@@ -66,7 +102,8 @@ Eigen::Matrix<Scalar, 3, 1> compute_weighted_corner_normal(
     template Eigen::Matrix<Scalar, 3, 1> compute_weighted_corner_normal<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                                                    \
         Index,                                                                          \
-        NormalWeightingType);
+        NormalWeightingType,                                                            \
+        Scalar);
 LA_SURFACE_MESH_X(compute_weighted_corner_normal, 0)
 
 } // namespace lagrange::internal

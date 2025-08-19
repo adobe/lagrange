@@ -15,6 +15,8 @@
 #include <lagrange/io/types.h>
 #include <lagrange/scene/SimpleScene.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
 
 /**
@@ -28,6 +30,21 @@ template <typename Scalar, typename Index, size_t Dimension = 3>
 void save_simple_scene(
     const fs::path& filename,
     const scene::SimpleScene<Scalar, Index, Dimension>& scene,
+    const SaveOptions& options = {});
+
+/**
+ * Save a simple scene to a stream.
+ *
+ * @param[in] output_stream  output stream
+ * @param[in] scene          scene to save
+ * @param[in] format         file format to use
+ * @param[in] options        SaveOptions, check the struct for more details.
+ */
+template <typename Scalar, typename Index, size_t Dimension = 3>
+void save_simple_scene(
+    std::ostream& output_stream,
+    const scene::SimpleScene<Scalar, Index, Dimension>& scene,
+    FileFormat format,
     const SaveOptions& options = {});
 
 } // namespace lagrange::io

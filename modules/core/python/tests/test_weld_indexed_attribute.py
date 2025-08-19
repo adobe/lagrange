@@ -52,3 +52,21 @@ class TestWeldIndexedAttribute:
 
         attr = mesh.indexed_attribute(id)
         assert len(attr.values.data) == mesh.num_vertices
+
+    def test_angle_threshold_small(self, cube):
+        mesh = cube
+        id = lagrange.compute_facet_normal(mesh)
+        id = lagrange.map_attribute_in_place(mesh, id, lagrange.AttributeElement.Indexed)
+
+        lagrange.weld_indexed_attribute(mesh, id, epsilon_abs=2, angle_abs=0)
+        attr = mesh.indexed_attribute(id)
+        assert len(attr.values.data) == mesh.num_facets
+
+    def test_angle_threshold_large(self, cube):
+        mesh = cube
+        id = lagrange.compute_facet_normal(mesh)
+        id = lagrange.map_attribute_in_place(mesh, id, lagrange.AttributeElement.Indexed)
+
+        lagrange.weld_indexed_attribute(mesh, id, epsilon_abs=2, angle_abs=np.pi)
+        attr = mesh.indexed_attribute(id)
+        assert len(attr.values.data) == mesh.num_vertices

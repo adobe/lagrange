@@ -66,6 +66,9 @@ struct SaveOptions
     /// Whether to embed images in the file (if supported by the filetype)
     bool embed_images = false;
 
+    /// Whether to export materials and textures
+    bool export_materials = true;
+
     std::vector<scene::UserDataConverter*> extension_converters;
 };
 

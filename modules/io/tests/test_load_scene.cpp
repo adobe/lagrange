@@ -113,7 +113,7 @@ TEST_CASE("load_scene_avocado", "[io]")
     {
         scene = io::load_scene_gltf<SceneType>(avocado_path / "Avocado.gltf", opt);
         // for manual debugging:
-        // io::save_scene_gltf("avocado.gltf", scene);
+        // io::save_scene_gltf(testing::get_test_output_path("test_load_scene/debug_avocado_gltf.gltf"), scene);
         // print_mesh_details(scene.meshes.front(), "gltf");
     }
 #ifdef LAGRANGE_WITH_ASSIMP
@@ -121,7 +121,7 @@ TEST_CASE("load_scene_avocado", "[io]")
     {
         scene = io::load_scene_assimp<SceneType>(avocado_path / "Avocado.gltf", opt);
         // for manual debugging:
-        // io::save_scene_gltf("avocado.gltf", scene);
+        // io::save_scene_gltf(testing::get_test_output_path("test_load_scene/debug_avocado_assimp.gltf"), scene);
         // print_mesh_details(scene.meshes.front(), "assimp");
     }
 #endif
@@ -135,7 +135,7 @@ TEST_CASE("load_scene_avocado", "[io]")
         // auto mesh1 = scene.meshes.front();
         // auto mesh2 = unify_index_buffer(mesh1);
         // scene.meshes[0] = mesh2;
-        // io::save_scene_gltf("avocado.gltf", scene);
+        // io::save_scene_gltf(testing::get_test_output_path("test_load_scene/debug_avocado_fbx.gltf"), scene);
         // scene.meshes[0] = mesh1;
         // print_mesh_details(scene.meshes.front(), "fbx");
     }
@@ -144,7 +144,7 @@ TEST_CASE("load_scene_avocado", "[io]")
         scene = io::load_scene_obj<SceneType>(avocado_path / "avocado.obj", opt);
         from_obj = true;
         scene.meshes.front().rename_attribute("texcoord", uv_attr_name);
-        // io::save_scene_gltf("avocado.gltf", scene);
+        // io::save_scene_gltf(testing::get_test_output_path("test_load_scene/debug_avocado_obj.gltf"), scene);
         // print_mesh_details(scene.meshes.front(), "obj");
     }
     REQUIRE(!scene.nodes.empty());
@@ -252,7 +252,7 @@ TEST_CASE("load_save_scene_animatedCube", "[io]")
         load_opt);
 
     io::SaveOptions save_opt;
-    io::save_scene_gltf("animatedCube.gltf", scene, save_opt);
+    io::save_scene_gltf(testing::get_test_output_path("test_load_scene/animatedCube.gltf"), scene, save_opt);
 }
 
 TEST_CASE("load_save_scene_fbx", "[io]")
@@ -262,10 +262,10 @@ TEST_CASE("load_save_scene_fbx", "[io]")
     auto avocado_path = testing::get_data_path("open/io/avocado/avocado.fbx");
     load_opt.search_path = testing::get_data_folder("open/io/avocado/");
     auto scene32f = io::load_scene_fbx<scene::Scene32f>(avocado_path, load_opt);
-    io::save_scene_gltf("avocado32f.gltf", scene32f, save_opt);
+    io::save_scene_gltf(testing::get_test_output_path("test_load_scene/avocado32f.gltf"), scene32f, save_opt);
 
     auto scene64d = io::load_scene_fbx<scene::Scene64d>(avocado_path, load_opt);
-    io::save_scene_gltf("avocado64d.gltf", scene64d, save_opt);
+    io::save_scene_gltf(testing::get_test_output_path("test_load_scene/avocado64d.gltf"), scene64d, save_opt);
 }
 
 TEST_CASE("load_save_scene_obj", "[io]")
@@ -275,9 +275,9 @@ TEST_CASE("load_save_scene_obj", "[io]")
     auto avocado_path = testing::get_data_path("open/io/avocado/avocado.obj");
     auto scene32f = io::load_scene_obj<scene::Scene32f>(avocado_path, load_opt);
 
-    io::save_scene_gltf("avocado_from_obj.gltf", scene32f);
+    io::save_scene_gltf(testing::get_test_output_path("test_load_scene/avocado_from_obj.gltf"), scene32f);
     auto mesh = scene32f.meshes.front();
-    io::save_mesh_obj("avocado_from_obj.obj", mesh);
+    io::save_mesh_obj(testing::get_test_output_path("test_load_scene/avocado_from_obj.obj"), mesh);
 }
 
 TEST_CASE("load_gltf_gsplat", "[io]" LA_CORP_FLAG)

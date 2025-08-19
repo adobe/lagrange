@@ -47,6 +47,20 @@ int compute_euler(const SurfaceMesh<Scalar, Index>& mesh)
     }
 }
 
+template <typename Scalar, typename Index>
+bool is_closed(const SurfaceMesh<Scalar, Index>& const_mesh)
+{
+    auto mesh = const_mesh; // Local mutable copy.
+    mesh.initialize_edges();
+    const auto num_edges = mesh.get_num_edges();
+    for (Index ei = 0; ei < num_edges; ei++) {
+        if (mesh.is_boundary_edge(ei)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 namespace {
 
 template <typename Scalar, typename Index>
@@ -152,6 +166,7 @@ AttributeId compute_vertex_is_manifold(
 
 #define LA_X_topology(_, Scalar, Index)                                                            \
     template LA_CORE_API int compute_euler<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh); \
+    template LA_CORE_API bool is_closed<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh);    \
     template LA_CORE_API bool is_vertex_manifold<Scalar, Index>(                                   \
         const SurfaceMesh<Scalar, Index>& mesh);                                                   \
     template LA_CORE_API bool is_edge_manifold<Scalar, Index>(                                     \

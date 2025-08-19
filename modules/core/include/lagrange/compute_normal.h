@@ -53,6 +53,9 @@ struct NormalOptions
     /// Whether to keep any newly added facet normal attribute. If such an attribute is already
     /// present in the input mesh, it will not be removed, even if this argument is set to false.
     bool keep_facet_normals = false;
+
+    /// Tolerance for degenerate edge check. (only used to bypass degenerate edges in polygon facets)
+    float distance_tolerance = 0.0f;
 };
 
 /**
