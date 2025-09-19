@@ -10,16 +10,9 @@
  * governing permissions and limitations under the License.
  */
 
-
 #include <lagrange/image/ImageStorage.h>
 #include <lagrange/image/ImageType.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 
 namespace lagrange::python {

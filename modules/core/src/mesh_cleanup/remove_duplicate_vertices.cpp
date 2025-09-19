@@ -171,27 +171,42 @@ void remove_duplicate_vertices(
     });
 
     // Step 2: Extract unique vertices.
-    std::vector<Index> old_to_new(num_vertices, invalid<Index>());
+    std::vector<Index> old_to_new(num_vertices);
+    std::iota(old_to_new.begin(), old_to_new.end(), 0);
 
     // Iterate over sorted vertices to find duplicates
-    Index new_num_vertices = 0;
+    std::vector<bool> is_duplicate(num_vertices, false);
     for (auto it_begin = order.begin(); it_begin != order.end();) {
         // First the first vertex after it_begin that compares differently
         auto it_end = std::find_if(it_begin, order.end(), [&](auto vj) {
             return compare_vertices(*it_begin, vj) != 0;
         });
-        // Assign all vertices in this range the same new vertex id
+        // Assign all vertices in this range the min vertex id in the range
+        const Index min_v_index = *std::min_element(it_begin, it_end);
         for (auto it = it_begin; it != it_end; ++it) {
-            old_to_new[*it] = new_num_vertices;
+            old_to_new[*it] = min_v_index;
+            is_duplicate[*it] = (*it != min_v_index);
         }
-        ++new_num_vertices;
+
         it_begin = it_end;
     }
-    // Iterate over remaining vertices and assign new vertex ids
-    for (auto& v : old_to_new) {
-        if (v == invalid<Index>()) {
-            v = new_num_vertices++;
+    // Compress range
+    Index num_new_vertices = 0;
+    bool is_identity = true;
+    for (size_t i = 0; i < old_to_new.size(); ++i) {
+        if (!is_duplicate[i]) {
+            old_to_new[i] = num_new_vertices++;
+        } else {
+            old_to_new[i] = old_to_new[old_to_new[i]];
         }
+        if (old_to_new[i] != Index(i)) {
+            is_identity = false;
+        }
+    }
+
+    if (is_identity) {
+        logger().debug("No duplicate vertices detected. Returning early.");
+        return;
     }
 
     // Step 3: Use remap_vertices to combine duplicate vertices.

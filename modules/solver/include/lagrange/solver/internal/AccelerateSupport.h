@@ -13,10 +13,10 @@
 
 #if LAGRANGE_TARGET_OS(APPLE)
 
-#include <Accelerate/Accelerate.h>
-#include <Eigen/Sparse>
+    #include <Accelerate/Accelerate.h>
+    #include <Eigen/Sparse>
 
-namespace lagrange::filtering {
+namespace lagrange::solver::internal {
 
 template <typename MatrixType_, int UpLo_, SparseFactorization_t Solver_, bool EnforceSquare_>
 class AccelerateImpl;
@@ -483,6 +483,6 @@ void AccelerateImpl<MatrixType_, UpLo_, Solver_, EnforceSquare_>::_solve_impl(
     updateInfoStatus(status);
 }
 
-} // namespace lagrange::filtering
+} // namespace lagrange::solver::internal
 
 #endif

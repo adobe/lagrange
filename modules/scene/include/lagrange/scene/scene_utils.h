@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/scene/Scene.h>
+#include <lagrange/scene/api.h>
 
 namespace lagrange::scene::utils {
 
@@ -55,6 +56,28 @@ Eigen::Affine3f compute_global_node_transform(const Scene<Scalar, Index>& scene,
     const Node& n = scene.nodes[node_idx];
     return compute_global_node_transform<Scalar, Index>(scene, n.parent) * n.transform;
 }
+
+///
+/// Computes the (extrinsic) view matrix transform (world space -> camera space)
+///
+/// @param[in]  camera            Camera object.
+/// @param[in]  world_from_local  Local -> world transform of the node containing the camera
+///                               instance.
+///
+/// @return     The view transform mapping world space -> camera space.
+///
+LA_SCENE_API Eigen::Affine3f camera_view_transform(
+    const Camera& camera,
+    const Eigen::Affine3f& world_from_local = Eigen::Affine3f::Identity());
+
+///
+/// Computes the (intrinsic) projection matrix projection (camera space -> clip space)
+///
+/// @param[in]  camera  Camera object.
+///
+/// @return     The projection transform mapping camera space -> clip space.
+///
+LA_SCENE_API Eigen::Projective3f camera_projection_transform(const Camera& camera);
 
 /**
  * Lagrange scene and most 3d software use UV texture coordinates.

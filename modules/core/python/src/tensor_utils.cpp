@@ -9,20 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/python/tensor_utils.h>
+
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
-#include <lagrange/python/tensor_utils.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <type_traits>
 

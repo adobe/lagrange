@@ -13,31 +13,15 @@
 
 #include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/internal/scene_string_utils.h>
+#include <lagrange/scene/scene_convert.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/utils/assert.h>
 
 #include "bind_value.h"
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <Eigen/Core>
-#include <nanobind/eigen/dense.h>
-#include <nanobind/eval.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/array.h>
-#include <nanobind/stl/bind_map.h>
-#include <nanobind/stl/bind_vector.h>
-#include <nanobind/stl/filesystem.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/variant.h>
-#include <nanobind/trampoline.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 
 namespace lagrange::python {
 
@@ -50,32 +34,42 @@ void bind_scene(nb::module_& m)
     using Index = uint32_t;
     using SceneType = Scene<Scalar, Index>;
 
-    nb::bind_vector<std::vector<Node>>(m, "NodeList");
-    nb::bind_vector<std::vector<ElementId>>(m, "ElementIdList");
-    nb::bind_vector<std::vector<SceneMeshInstance>>(m, "SceneMeshInstanceList");
-    nb::bind_vector<std::vector<SurfaceMesh<Scalar, Index>>>(m, "SurfaceMeshList");
-    nb::bind_vector<std::vector<ImageExperimental>>(m, "ImageList");
-    nb::bind_vector<std::vector<Texture>>(m, "TextureList");
-    nb::bind_vector<std::vector<MaterialExperimental>>(m, "MaterialList");
-    nb::bind_vector<std::vector<Light>>(m, "LightList");
-    nb::bind_vector<std::vector<Camera>>(m, "CameraList");
-    nb::bind_vector<std::vector<Skeleton>>(m, "SkeletonList");
-    nb::bind_vector<std::vector<Animation>>(m, "AnimationList");
+    nb::bind_vector<SafeVector<ElementId>>(m, "ElementIdList");
+    nb::bind_safe_vector<SafeVector<Node>>(m, "NodeList");
+    nb::bind_safe_vector<SafeVector<SceneMeshInstance>>(m, "SceneMeshInstanceList");
+    nb::bind_safe_vector<SafeVector<SurfaceMesh<Scalar, Index>>>(m, "SurfaceMeshList");
+    nb::bind_safe_vector<SafeVector<ImageExperimental>>(m, "ImageList");
+    nb::bind_safe_vector<SafeVector<Texture>>(m, "TextureList");
+    nb::bind_safe_vector<SafeVector<MaterialExperimental>>(m, "MaterialList");
+    nb::bind_safe_vector<SafeVector<Light>>(m, "LightList");
+    nb::bind_safe_vector<SafeVector<Camera>>(m, "CameraList");
+    nb::bind_safe_vector<SafeVector<Skeleton>>(m, "SkeletonList");
+    nb::bind_safe_vector<SafeVector<Animation>>(m, "AnimationList");
 
+    // Using nanobind's type caster for `shared_ptr<>` around `Value` requires registering a
+    // nb::class_<> for `Value`, rather than using a type caster...
+    // See this commit and related PR for details:
+    // https://github.com/wjakob/nanobind/blob/53dce4e297c7ead9190a6b637b9fe6406c82aa53/include/nanobind/stl/shared_ptr.h#L67-L71
 
+    // nb::bind_safe_vector<SafeVector<lagrange::scene::Value>>(m, "ValueList"); // TODO: Switch to this?
     nb::bind_vector<std::vector<lagrange::scene::Value>>(m, "ValueList");
-    nb::bind_vector<std::vector<unsigned char>>(m, "BufferList");
     nb::bind_map<std::unordered_map<std::string, lagrange::scene::Value>>(m, "ValueUnorderedMap");
     nb::bind_map<std::map<std::string, lagrange::scene::Value>>(m, "ValueMap");
 
-
     nb::class_<lagrange::scene::Extensions>(m, "Extensions")
-        .def("__repr__", [](const lagrange::scene::Extensions& self) { return scene::internal::to_string(self); })
+        .def(
+            "__repr__",
+            [](const lagrange::scene::Extensions& self) {
+                return scene::internal::to_string(self);
+            })
         .def_prop_ro("size", &Extensions::size)
         .def_prop_ro("empty", &Extensions::empty)
-        .def_rw("data", &Extensions::data);
+        .def_rw("data", &Extensions::data, nb::rv_policy::reference_internal);
 
-    nb::class_<SceneMeshInstance>(m, "SceneMeshInstance", "Pairs a mesh with its materials (zero, one, or more)")
+    nb::class_<SceneMeshInstance>(
+        m,
+        "SceneMeshInstance",
+        "Pairs a mesh with its materials (zero, one, or more)")
         .def(nb::init<>())
         .def(
             "__repr__",
@@ -90,7 +84,12 @@ void bind_scene(nb::module_& m)
             },
             [](SceneMeshInstance& self, ElementId mesh) { self.mesh = mesh; },
             "Mesh index. Has to be a valid index in the scene.meshes vector (None if invalid)")
-        .def_rw("materials", &SceneMeshInstance::materials, "Material indices in the scene.materials vector. This is typically a single material index. When a single mesh uses multiple materials, the AttributeName::material_id facet attribute should be defined.");
+        .def_rw(
+            "materials",
+            &SceneMeshInstance::materials,
+            "Material indices in the scene.materials vector. This is typically a single material "
+            "index. When a single mesh uses multiple materials, the AttributeName::material_id "
+            "facet attribute should be defined.");
 
     nb::class_<Node>(m, "Node", "Represents a node in the scene hierarchy")
         .def(nb::init<>())
@@ -131,7 +130,10 @@ void bind_scene(nb::module_& m)
         .def_rw("lights", &Node::lights, "List of lights contained in this node")
         .def_rw("extensions", &Node::extensions);
 
-    nb::class_<ImageBufferExperimental> image_buffer(m, "ImageBuffer", "Minimalistic image data structure that stores the raw image data");
+    nb::class_<ImageBufferExperimental> image_buffer(
+        m,
+        "ImageBuffer",
+        "Minimalistic image data structure that stores the raw image data");
     image_buffer.def(nb::init<>())
         .def(
             "__repr__",
@@ -266,7 +268,8 @@ void bind_scene(nb::module_& m)
                     reinterpret_cast<uint8_t*>(tensor.data()) + tensor.nbytes(),
                     self.data.data());
             },
-            "Raw buffer of size (width * height * num_channels * num_bits_per_element / 8) bytes containing image data")
+            "Raw buffer of size (width * height * num_channels * num_bits_per_element / 8) bytes "
+            "containing image data")
         .def_prop_ro(
             "dtype",
             [](ImageBufferExperimental& self) -> std::optional<nb::type_object> {
@@ -287,12 +290,18 @@ void bind_scene(nb::module_& m)
             },
             "The scalar type of the elements in the buffer");
 
-    nb::class_<ImageExperimental> image(m, "Image", "Image structure that can store either image data or reference to an image file");
+    nb::class_<ImageExperimental> image(
+        m,
+        "Image",
+        "Image structure that can store either image data or reference to an image file");
     image.def(nb::init<>())
         .def(
             "__repr__",
             [](const ImageExperimental& self) { return scene::internal::to_string(self); })
-        .def_rw("name", &ImageExperimental::name, "Image name. Not guaranteed to be unique and can be empty")
+        .def_rw(
+            "name",
+            &ImageExperimental::name,
+            "Image name. Not guaranteed to be unique and can be empty")
         .def_rw("image", &ImageExperimental::image, "Image data")
         .def_prop_rw(
             "uri",
@@ -308,13 +317,15 @@ void bind_scene(nb::module_& m)
                 else
                     self.uri = fs::path();
             },
-            "Image file path. This path is relative to the file that contains the scene. It is only valid if image data should be mapped to an external file")
-        .def_rw(
-            "extensions",
-            &ImageExperimental::extensions,
-            "Image extensions");
+            "Image file path. This path is relative to the file that contains the scene. It is "
+            "only valid if image data should be mapped to an external file")
+        .def_rw("extensions", &ImageExperimental::extensions, "Image extensions");
 
-    nb::class_<TextureInfo>(m, "TextureInfo", "Pair of texture index (which texture to use) and texture coordinate index (which set of UVs to use)")
+    nb::class_<TextureInfo>(
+        m,
+        "TextureInfo",
+        "Pair of texture index (which texture to use) and texture coordinate index (which set of "
+        "UVs to use)")
         .def(nb::init<>())
         .def("__repr__", [](const TextureInfo& self) { return scene::internal::to_string(self); })
         .def_prop_rw(
@@ -332,34 +343,75 @@ void bind_scene(nb::module_& m)
                     self.index = invalid_element;
             },
             "Texture index. Index in scene.textures vector. `None` if not set")
-        .def_rw("texcoord", &TextureInfo::texcoord, "Index of UV coordinates. Usually stored in the mesh as `texcoord_x` attribute where x is this variable. This is typically 0");
+        .def_rw(
+            "texcoord",
+            &TextureInfo::texcoord,
+            "Index of UV coordinates. Usually stored in the mesh as `texcoord_x` attribute where x "
+            "is this variable. This is typically 0");
 
-    nb::class_<MaterialExperimental> material(m, "Material", "PBR material, based on the gltf specification. This is subject to change, to support more material models");
+    nb::class_<MaterialExperimental> material(
+        m,
+        "Material",
+        "PBR material, based on the gltf specification. This is subject to change, to support more "
+        "material models");
     material.def(nb::init<>())
         .def(
             "__repr__",
             [](const MaterialExperimental& self) { return scene::internal::to_string(self); })
-        .def_rw("name", &MaterialExperimental::name, "Material name. May not be unique, and can be empty")
+        .def_rw(
+            "name",
+            &MaterialExperimental::name,
+            "Material name. May not be unique, and can be empty")
         .def_rw("base_color_value", &MaterialExperimental::base_color_value, "Base color value")
-        .def_rw("base_color_texture", &MaterialExperimental::base_color_texture, "Base color texture")
-        .def_rw("alpha_mode", &MaterialExperimental::alpha_mode, "The alpha mode specifies how to interpret the alpha value of the base color")
+        .def_rw(
+            "base_color_texture",
+            &MaterialExperimental::base_color_texture,
+            "Base color texture")
+        .def_rw(
+            "alpha_mode",
+            &MaterialExperimental::alpha_mode,
+            "The alpha mode specifies how to interpret the alpha value of the base color")
         .def_rw("alpha_cutoff", &MaterialExperimental::alpha_cutoff, "Alpha cutoff value")
         .def_rw("emissive_value", &MaterialExperimental::emissive_value, "Emissive color value")
         .def_rw("emissive_texture", &MaterialExperimental::emissive_texture, "Emissive texture")
         .def_rw("metallic_value", &MaterialExperimental::metallic_value, "Metallic value")
         .def_rw("roughness_value", &MaterialExperimental::roughness_value, "Roughness value")
-        .def_rw("metallic_roughness_texture", &MaterialExperimental::metallic_roughness_texture, "Metalness and roughness are packed together in a single texture. Green channel has roughness, blue channel has metalness")
+        .def_rw(
+            "metallic_roughness_texture",
+            &MaterialExperimental::metallic_roughness_texture,
+            "Metalness and roughness are packed together in a single texture. Green channel has "
+            "roughness, blue channel has metalness")
         .def_rw("normal_texture", &MaterialExperimental::normal_texture, "Normal texture")
-        .def_rw("normal_scale", &MaterialExperimental::normal_scale, "Normal scaling factor. normal = normalize(<sampled tex value> * 2 - 1) * vec3(scale, scale, 1)")
+        .def_rw(
+            "normal_scale",
+            &MaterialExperimental::normal_scale,
+            "Normal scaling factor. normal = normalize(<sampled tex value> * 2 - 1) * vec3(scale, "
+            "scale, 1)")
         .def_rw("occlusion_texture", &MaterialExperimental::occlusion_texture, "Occlusion texture")
-        .def_rw("occlusion_strength", &MaterialExperimental::occlusion_strength, "Occlusion strength. color = lerp(color, color * <sampled tex value>, strength)")
-        .def_rw("double_sided", &MaterialExperimental::double_sided, "Whether the material is double-sided")
+        .def_rw(
+            "occlusion_strength",
+            &MaterialExperimental::occlusion_strength,
+            "Occlusion strength. color = lerp(color, color * <sampled tex value>, strength)")
+        .def_rw(
+            "double_sided",
+            &MaterialExperimental::double_sided,
+            "Whether the material is double-sided")
         .def_rw("extensions", &MaterialExperimental::extensions, "Material extensions");
 
     nb::enum_<MaterialExperimental::AlphaMode>(material, "AlphaMode", "Alpha mode")
-        .value("Opaque", MaterialExperimental::AlphaMode::Opaque, "Alpha is ignored, and rendered output is opaque")
-        .value("Mask", MaterialExperimental::AlphaMode::Mask, "Output is either opaque or transparent depending on the alpha value and the alpha_cutoff value")
-        .value("Blend", MaterialExperimental::AlphaMode::Blend, "Alpha value is used to composite source and destination");
+        .value(
+            "Opaque",
+            MaterialExperimental::AlphaMode::Opaque,
+            "Alpha is ignored, and rendered output is opaque")
+        .value(
+            "Mask",
+            MaterialExperimental::AlphaMode::Mask,
+            "Output is either opaque or transparent depending on the alpha value and the "
+            "alpha_cutoff value")
+        .value(
+            "Blend",
+            MaterialExperimental::AlphaMode::Blend,
+            "Alpha value is used to composite source and destination");
 
 
     nb::class_<Texture> texture(m, "Texture", "Texture");
@@ -376,8 +428,16 @@ void bind_scene(nb::module_& m)
             },
             [](Texture& self, ElementId img) { self.image = img; },
             "Index of image in scene.images vector (None if invalid)")
-        .def_rw("mag_filter", &Texture::mag_filter, "Texture magnification filter, used when texture appears larger on screen than the source image")
-        .def_rw("min_filter", &Texture::min_filter, "Texture minification filter, used when the texture appears smaller on screen than the source image")
+        .def_rw(
+            "mag_filter",
+            &Texture::mag_filter,
+            "Texture magnification filter, used when texture appears larger on screen than the "
+            "source image")
+        .def_rw(
+            "min_filter",
+            &Texture::min_filter,
+            "Texture minification filter, used when the texture appears smaller on screen than the "
+            "source image")
         .def_rw("wrap_u", &Texture::wrap_u, "Texture wrap mode for U coordinate")
         .def_rw("wrap_v", &Texture::wrap_v, "Texture wrap mode for V coordinate")
         .def_rw("scale", &Texture::scale, "Texture scale")
@@ -387,37 +447,81 @@ void bind_scene(nb::module_& m)
 
     nb::enum_<Texture::WrapMode>(texture, "WrapMode", "Texture wrap mode")
         .value("Wrap", Texture::WrapMode::Wrap, "u|v becomes u%1|v%1")
-        .value("Clamp", Texture::WrapMode::Clamp, "Coordinates outside [0, 1] are clamped to the nearest value")
-        .value("Decal", Texture::WrapMode::Decal, "If the texture coordinates for a pixel are outside [0, 1], the texture is not applied")
+        .value(
+            "Clamp",
+            Texture::WrapMode::Clamp,
+            "Coordinates outside [0, 1] are clamped to the nearest value")
+        .value(
+            "Decal",
+            Texture::WrapMode::Decal,
+            "If the texture coordinates for a pixel are outside [0, 1], the texture is not applied")
         .value("Mirror", Texture::WrapMode::Mirror, "Mirror wrap mode");
     nb::enum_<Texture::TextureFilter>(texture, "TextureFilter", "Texture filter mode")
         .value("Undefined", Texture::TextureFilter::Undefined, "Undefined filter")
         .value("Nearest", Texture::TextureFilter::Nearest, "Nearest neighbor filtering")
         .value("Linear", Texture::TextureFilter::Linear, "Linear filtering")
-        .value("NearestMipmapNearest", Texture::TextureFilter::NearestMipmapNearest, "Nearest mipmap nearest filtering")
-        .value("LinearMipmapNearest", Texture::TextureFilter::LinearMipmapNearest, "Linear mipmap nearest filtering")
-        .value("NearestMipmapLinear", Texture::TextureFilter::NearestMipmapLinear, "Nearest mipmap linear filtering")
-        .value("LinearMipmapLinear", Texture::TextureFilter::LinearMipmapLinear, "Linear mipmap linear filtering");
+        .value(
+            "NearestMipmapNearest",
+            Texture::TextureFilter::NearestMipmapNearest,
+            "Nearest mipmap nearest filtering")
+        .value(
+            "LinearMipmapNearest",
+            Texture::TextureFilter::LinearMipmapNearest,
+            "Linear mipmap nearest filtering")
+        .value(
+            "NearestMipmapLinear",
+            Texture::TextureFilter::NearestMipmapLinear,
+            "Nearest mipmap linear filtering")
+        .value(
+            "LinearMipmapLinear",
+            Texture::TextureFilter::LinearMipmapLinear,
+            "Linear mipmap linear filtering");
 
     nb::class_<Light> light(m, "Light", "Light");
     light.def(nb::init<>())
         .def("__repr__", [](const Light& self) { return scene::internal::to_string(self); })
         .def_rw("name", &Light::name, "Light name")
         .def_rw("type", &Light::type, "Light type")
-        .def_rw("position", &Light::position, "Light position. Note that the light is part of the scene graph, and has an associated transform in its node. This value is relative to the coordinate system defined by the node")
+        .def_rw(
+            "position",
+            &Light::position,
+            "Light position. Note that the light is part of the scene graph, and has an associated "
+            "transform in its node. This value is relative to the coordinate system defined by the "
+            "node")
         .def_rw("direction", &Light::direction, "Light direction")
         .def_rw("up", &Light::up, "Light up vector")
         .def_rw("intensity", &Light::intensity, "Light intensity")
-        .def_rw("attenuation_constant", &Light::attenuation_constant, "Attenuation constant. Intensity of light at a given distance 'd' is: intensity / (attenuation_constant + attenuation_linear * d + attenuation_quadratic * d * d + attenuation_cubic * d * d * d)")
+        .def_rw(
+            "attenuation_constant",
+            &Light::attenuation_constant,
+            "Attenuation constant. Intensity of light at a given distance 'd' is: intensity / "
+            "(attenuation_constant + attenuation_linear * d + attenuation_quadratic * d * d + "
+            "attenuation_cubic * d * d * d)")
         .def_rw("attenuation_linear", &Light::attenuation_linear, "Linear attenuation factor")
-        .def_rw("attenuation_quadratic", &Light::attenuation_quadratic, "Quadratic attenuation factor")
+        .def_rw(
+            "attenuation_quadratic",
+            &Light::attenuation_quadratic,
+            "Quadratic attenuation factor")
         .def_rw("attenuation_cubic", &Light::attenuation_cubic, "Cubic attenuation factor")
-        .def_rw("range", &Light::range, "Range is defined for point and spot lights. It defines a distance cutoff at which the light intensity is to be considered zero. When the value is 0, range is assumed to be infinite")
+        .def_rw(
+            "range",
+            &Light::range,
+            "Range is defined for point and spot lights. It defines a distance cutoff at which the "
+            "light intensity is to be considered zero. When the value is 0, range is assumed to be "
+            "infinite")
         .def_rw("color_diffuse", &Light::color_diffuse, "Diffuse color")
         .def_rw("color_specular", &Light::color_specular, "Specular color")
         .def_rw("color_ambient", &Light::color_ambient, "Ambient color")
-        .def_rw("angle_inner_cone", &Light::angle_inner_cone, "Inner angle of a spot light's light cone. 2PI for point lights, undefined for directional lights")
-        .def_rw("angle_outer_cone", &Light::angle_outer_cone, "Outer angle of a spot light's light cone. 2PI for point lights, undefined for directional lights")
+        .def_rw(
+            "angle_inner_cone",
+            &Light::angle_inner_cone,
+            "Inner angle of a spot light's light cone. 2PI for point lights, undefined for "
+            "directional lights")
+        .def_rw(
+            "angle_outer_cone",
+            &Light::angle_outer_cone,
+            "Outer angle of a spot light's light cone. 2PI for point lights, undefined for "
+            "directional lights")
         .def_rw("size", &Light::size, "Size of area light source")
         .def_rw("extensions", &Light::extensions, "Light extensions");
 
@@ -433,21 +537,46 @@ void bind_scene(nb::module_& m)
     camera.def(nb::init<>())
         .def("__repr__", [](const Camera& self) { return scene::internal::to_string(self); })
         .def_rw("name", &Camera::name, "Camera name")
-        .def_rw("position", &Camera::position, "Camera position. Note that the camera is part of the scene graph, and has an associated transform in its node. This value is relative to the coordinate system defined by the node")
+        .def_rw(
+            "position",
+            &Camera::position,
+            "Camera position. Note that the camera is part of the scene graph, and has an "
+            "associated transform in its node. This value is relative to the coordinate system "
+            "defined by the node")
         .def_rw("up", &Camera::up, "Camera up vector")
         .def_rw("look_at", &Camera::look_at, "Camera look-at point")
-        .def_rw("near_plane", &Camera::near_plane, "Distance of the near clipping plane. This value cannot be 0")
+        .def_rw(
+            "near_plane",
+            &Camera::near_plane,
+            "Distance of the near clipping plane. This value cannot be 0")
         .def_rw("far_plane", &Camera::far_plane, "Distance of the far clipping plane")
         .def_rw("type", &Camera::type, "Camera type")
-        .def_rw("aspect_ratio", &Camera::aspect_ratio, "Screen aspect ratio. This is the value of width / height of the screen. aspect_ratio = tan(horizontal_fov / 2) / tan(vertical_fov / 2)")
-        .def_rw("horizontal_fov", &Camera::horizontal_fov, "Horizontal field of view angle, in radians. This is the angle between the left and right borders of the viewport. It should not be greater than Pi. fov is only defined when the camera type is perspective, otherwise it should be 0")
-        .def_rw("orthographic_width", &Camera::orthographic_width, "Half width of the orthographic view box. Or horizontal magnification. This is only defined when the camera type is orthographic, otherwise it should be 0")
-        .def_prop_ro("get_vertical_fov", &Camera::get_vertical_fov, "Get the vertical field of view. Make sure aspect_ratio is set before calling this")
+        .def_rw(
+            "aspect_ratio",
+            &Camera::aspect_ratio,
+            "Screen aspect ratio. This is the value of width / height of the screen. aspect_ratio "
+            "= tan(horizontal_fov / 2) / tan(vertical_fov / 2)")
+        .def_rw(
+            "horizontal_fov",
+            &Camera::horizontal_fov,
+            "Horizontal field of view angle, in radians. This is the angle between the left and "
+            "right borders of the viewport. It should not be greater than Pi. fov is only defined "
+            "when the camera type is perspective, otherwise it should be 0")
+        .def_rw(
+            "orthographic_width",
+            &Camera::orthographic_width,
+            "Half width of the orthographic view box. Or horizontal magnification. This is only "
+            "defined when the camera type is orthographic, otherwise it should be 0")
+        .def_prop_ro(
+            "get_vertical_fov",
+            &Camera::get_vertical_fov,
+            "Get the vertical field of view. Make sure aspect_ratio is set before calling this")
         .def_prop_ro(
             "set_horizontal_fov_from_vertical_fov",
             &Camera::set_horizontal_fov_from_vertical_fov,
             "vfov"_a,
-            "Set horizontal fov from vertical fov. Make sure aspect_ratio is set before calling this")
+            "Set horizontal fov from vertical fov. Make sure aspect_ratio is set before calling "
+            "this")
         .def_rw("extensions", &Camera::extensions, "Camera extensions");
 
     nb::enum_<Camera::Type>(camera, "Type", "Camera type")
@@ -464,24 +593,36 @@ void bind_scene(nb::module_& m)
     nb::class_<Skeleton>(m, "Skeleton", "Skeleton")
         .def(nb::init<>())
         .def("__repr__", [](const Skeleton& self) { return scene::internal::to_string(self); })
-        .def_rw("meshes", &Skeleton::meshes, "This skeleton is used to deform those meshes. This will typically contain one value, but can have zero or multiple meshes. The value is the index in the scene meshes")
+        .def_rw(
+            "meshes",
+            &Skeleton::meshes,
+            "This skeleton is used to deform those meshes. This will typically contain one value, "
+            "but can have zero or multiple meshes. The value is the index in the scene meshes")
         .def_rw("extensions", &Skeleton::extensions, "Skeleton extensions");
 
 
     nb::class_<SceneType>(m, "Scene", "A 3D scene")
         .def(nb::init<>())
-        .def(
-            "__repr__",
-            [](const SceneType& self) { return scene::internal::to_string(self); })
+        .def("__repr__", [](const SceneType& self) { return scene::internal::to_string(self); })
         .def_rw("name", &SceneType::name, "Name of the scene")
-        .def_rw("nodes", &SceneType::nodes, "Scene nodes. This is a list of nodes, the hierarchy information is contained by each node having a list of children as indices to this vector")
-        .def_rw("root_nodes", &SceneType::root_nodes, "Root nodes. This is typically one. Must be at least one")
+        .def_rw(
+            "nodes",
+            &SceneType::nodes,
+            "Scene nodes. This is a list of nodes, the hierarchy information is contained by each "
+            "node having a list of children as indices to this vector")
+        .def_rw(
+            "root_nodes",
+            &SceneType::root_nodes,
+            "Root nodes. This is typically one. Must be at least one")
         .def_rw("meshes", &SceneType::meshes, "Scene meshes")
         .def_rw("images", &SceneType::images, "Images")
         .def_rw("textures", &SceneType::textures, "Textures. They can reference images")
         .def_rw("materials", &SceneType::materials, "Materials. They can reference textures")
         .def_rw("lights", &SceneType::lights, "Lights in the scene")
-        .def_rw("cameras", &SceneType::cameras, "Cameras. The first camera (if any) is the default camera view")
+        .def_rw(
+            "cameras",
+            &SceneType::cameras,
+            "Cameras. The first camera (if any) is the default camera view")
         .def_rw("skeletons", &SceneType::skeletons, "Scene skeletons")
         .def_rw("animations", &SceneType::animations, "Animations (unused for now)")
         .def_rw("extensions", &SceneType::extensions, "Scene extensions")
@@ -543,6 +684,52 @@ void bind_scene(nb::module_& m)
 
 :returns: The global transform of the target node, which is the combination of transforms from this node all the way to the root.
     )");
+
+    m.def(
+        "scene_to_mesh",
+        [](const SceneType& scene,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents,
+           bool preserve_attributes) {
+            TransformOptions transform_options;
+            transform_options.normalize_normals = normalize_normals;
+            transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            return scene::scene_to_mesh(scene, transform_options, preserve_attributes);
+        },
+        "scene"_a,
+        "normalize_normals"_a = TransformOptions{}.normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        "preserve_attributes"_a = true,
+        R"(Converts a scene into a concatenated mesh with all the transforms applied.
+
+:param scene: Scene to convert.
+:param normalize_normals: If enabled, normals are normalized after transformation.
+:param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+:param preserve_attributes: Preserve shared attributes and map them to the output mesh.
+
+:return: Concatenated mesh.)");
+
+    m.def(
+        "mesh_to_scene",
+        [](const SceneType::MeshType& mesh) { return scene::mesh_to_scene(mesh); },
+        "mesh"_a,
+        R"(Converts a single mesh into a scene with a single identity instance of the input mesh.
+
+:param mesh: Input mesh to convert.
+
+:return: Scene containing the input mesh.)");
+
+    m.def(
+        "meshes_to_scene",
+        [](std::vector<SceneType::MeshType> meshes) {
+            return scene::meshes_to_scene(std::move(meshes));
+        },
+        "meshes"_a,
+        R"(Converts a list of meshes into a scene with a single identity instance of each input mesh.
+
+:param meshes: Input meshes to convert.
+
+:return: Scene containing the input meshes.)");
 }
 
 } // namespace lagrange::python

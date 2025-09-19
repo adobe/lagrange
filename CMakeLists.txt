@@ -216,6 +216,11 @@ if(BUILD_SHARED_LIBS)
     )
 endif()
 
+# Force LAGRANGE_MODULE_PYTHON when LAGRANGE_ALL is set
+if(LAGRANGE_ALL)
+    set(LAGRANGE_MODULE_PYTHON ON)
+endif()
+
 # Specific override for building on Jenkins
 if(LAGRANGE_JENKINS)
     # IPO is very slow and not needed for CI purposes

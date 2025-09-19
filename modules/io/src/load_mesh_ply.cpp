@@ -24,6 +24,8 @@
 #include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
 
+#include "stitch_mesh.h"
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <happly.h>
@@ -342,6 +344,11 @@ MeshType load_mesh_ply(std::istream& input_stream, const LoadOptions& options)
     if (ply.hasElement("face")) {
         extract_facet_properties(ply.getElement("face"), mesh, options);
     }
+
+    if (options.stitch_vertices) {
+        stitch_mesh(mesh);
+    }
+
     return mesh;
 }
 

@@ -17,17 +17,11 @@
 #include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/internal/string_from_scalar.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/optional.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 namespace lagrange::python {
 
@@ -142,10 +136,11 @@ void bind_attribute(nanobind::module_& m)
                 std::vector<ValueType> buffer;
                 if (nb::try_cast(value, tensor)) {
                     if (tensor.dtype() != nb::dtype<ValueType>()) {
-                        throw nb::type_error(fmt::format(
-                                                 "Tensor has a unexpected dtype.  Expecting {}.",
-                                                 internal::string_from_scalar<ValueType>())
-                                                 .c_str());
+                        throw nb::type_error(
+                            fmt::format(
+                                "Tensor has a unexpected dtype.  Expecting {}.",
+                                internal::string_from_scalar<ValueType>())
+                                .c_str());
                     }
                     Tensor<ValueType> local_tensor(tensor.handle());
                     auto [data, shape, stride] = tensor_to_span(local_tensor);
@@ -200,10 +195,11 @@ void bind_attribute(nanobind::module_& m)
                 std::vector<ValueType> buffer;
                 if (nb::try_cast(value, tensor)) {
                     if (tensor.dtype() != nb::dtype<ValueType>()) {
-                        throw nb::type_error(fmt::format(
-                                                 "Tensor has a unexpected dtype.  Expecting {}.",
-                                                 internal::string_from_scalar<ValueType>())
-                                                 .c_str());
+                        throw nb::type_error(
+                            fmt::format(
+                                "Tensor has a unexpected dtype.  Expecting {}.",
+                                internal::string_from_scalar<ValueType>())
+                                .c_str());
                     }
                     Tensor<ValueType> local_tensor(tensor.handle());
                     auto [data, shape, stride] = tensor_to_span(local_tensor);

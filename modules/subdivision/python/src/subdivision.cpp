@@ -12,14 +12,7 @@
 
 #include <lagrange/subdivision/mesh_subdivision.h>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/vector.h>
-#include <nanobind/stl/string_view.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/python/binding.h>
 
 namespace lagrange::python {
 

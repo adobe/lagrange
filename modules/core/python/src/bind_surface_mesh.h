@@ -11,17 +11,6 @@
  */
 #pragma once
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/array.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/string_view.h>
-#include <nanobind/stl/variant.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include "PyAttribute.h"
 
 #include <lagrange/Attribute.h>
@@ -32,6 +21,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>

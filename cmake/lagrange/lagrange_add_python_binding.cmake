@@ -27,8 +27,8 @@ function(lagrange_add_python_binding)
     # Add scripts if any
     if(SKBUILD)
         if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/scripts)
-            MESSAGE(STATUS "Adding scripts for module ${module_name}")
-            MESSAGE(STATUS ${SKBUILD_SCRIPTS_DIR})
+            message(STATUS "Adding scripts for module ${module_name}")
+            message(STATUS ${SKBUILD_SCRIPTS_DIR})
             file(GLOB_RECURSE SCRIPTS ${CMAKE_CURRENT_LIST_DIR}/scripts/*)
             install(PROGRAMS ${SCRIPTS}
                 DESTINATION ${SKBUILD_SCRIPTS_DIR}

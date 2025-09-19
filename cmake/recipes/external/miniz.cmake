@@ -18,8 +18,8 @@ message(STATUS "Third-party (external): creating target 'miniz::miniz'")
 include(CPM)
 CPMAddPackage(
     NAME miniz
-    URL https://github.com/richgel999/miniz/releases/download/2.2.0/miniz-2.2.0.zip
-    URL_MD5 bc866f2def5214188cd6481e2694bd3c
+    URL https://github.com/richgel999/miniz/releases/download/3.0.2/miniz-3.0.2.zip
+    URL_MD5 0604f14151944ff984444b04c5c760e5
 )
 
 add_library(miniz STATIC ${miniz_SOURCE_DIR}/miniz.c)

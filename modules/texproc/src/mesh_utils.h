@@ -1,0 +1,278 @@
+/*
+ * Copyright 2025 Adobe. All rights reserved.
+ * This file is licensed to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License. You may obtain a copy
+ * of the License at http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under
+ * the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+ * OF ANY KIND, either express or implied. See the License for the specific language
+ * governing permissions and limitations under the License.
+ */
+
+#include <lagrange/Attribute.h>
+#include <lagrange/AttributeTypes.h>
+#include <lagrange/IndexedAttribute.h>
+#include <lagrange/Logger.h>
+#include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/cast_attribute.h>
+#include <lagrange/find_matching_attributes.h>
+#include <lagrange/map_attribute.h>
+#include <lagrange/solver/DirectSolver.h>
+#include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/weld_indexed_attribute.h>
+
+// Include before any TextureSignalProcessing header to override their threadpool implementation.
+#include "ThreadPool.h"
+#define MULTI_THREADING_INCLUDED
+using namespace lagrange::texproc::threadpool;
+
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <Misha/RegularGrid.h>
+#include <Src/Padding.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
+#include <Eigen/Sparse>
+
+#include <random>
+
+namespace lagrange::texproc {
+
+namespace {
+
+using namespace MishaK;
+using namespace MishaK::TSP;
+
+// Using `Point` directly leads to ambiguity with Apple Accelerate types.
+template <typename T, unsigned N>
+using Vector = MishaK::Point<T, N>;
+
+// The dimension of the embedding space
+static const unsigned int Dim = 3;
+
+// The dimension of the manifold
+static const unsigned int K = 2;
+
+// The linear solver
+using Solver = lagrange::solver::SolverLDLT<Eigen::SparseMatrix<double>>;
+
+} // namespace
+
+namespace mesh_utils {
+
+template <unsigned int NumChannels, typename ValueType>
+void set_grid(
+    image::experimental::View3D<ValueType> texture,
+    RegularGrid<K, Vector<double, NumChannels>>& grid)
+{
+    unsigned int num_channels = static_cast<unsigned int>(texture.extent(2));
+    if (num_channels != NumChannels) la_debug_assert("Number of channels don't match");
+
+    // Copy the texture data into the texture grid
+    grid.resize(texture.extent(0), texture.extent(1));
+    for (unsigned int j = 0; j < grid.res(1); j++) {
+        for (unsigned int i = 0; i < grid.res(0); i++) {
+            for (unsigned int c = 0; c < NumChannels; c++) {
+                grid(i, j)[c] = texture(i, j, c);
+            }
+        }
+    }
+}
+
+template <unsigned int NumChannels, typename ValueType>
+void set_raw_view(
+    const RegularGrid<K, Vector<double, NumChannels>>& grid,
+    image::experimental::View3D<ValueType> texture)
+{
+    // Copy the texture grid data back into the texture
+    for (unsigned int j = 0; j < grid.res(1); j++) {
+        for (unsigned int i = 0; i < grid.res(0); i++) {
+            for (unsigned int c = 0; c < NumChannels; c++) {
+                texture(i, j, c) = grid(i, j)[c];
+            }
+        }
+    }
+}
+
+template <typename ValueType>
+void set_raw_view(
+    const RegularGrid<K, double>& grid,
+    image::experimental::View3D<ValueType> texture)
+{
+    // Copy the texture grid data back into the texture
+    for (unsigned int j = 0; j < grid.res(1); j++) {
+        for (unsigned int i = 0; i < grid.res(0); i++) {
+            texture(i, j, 0) = grid(i, j);
+        }
+    }
+}
+
+//
+// Jitters texel coordinates to avoid creating rank-deficient systems when a texture vertex falls
+// exactly on a texel center.
+//
+// Consider the case when a (boundary) texture vertex falls at integer location (i,j). The code
+// "activates" all texels supported on that vertex . Depending on how you handle open/closed
+// intervals (and taking into account issues of rounding), in principle you could activate any of
+// the 9 texels in [i-1,i+1]x[j-1,j+1]. But of these 9 only the center one is actually supported on
+// the vertex. If it is also the case that all the adjacent texture vertices are on one side, this
+// could lead to problems.
+//
+// For example, if the vertices are all to the right of i, then the texels {i-1}x[j-1,j+1] will not
+// be supported anywhere on the chart and the associated entries in its mass-matrix row will all be
+// zero. And, unless that DoF is removed, this causes the linear system to be rank deficient,
+// resulting in issues for the numerical factorization.
+//
+// This problem is removed by slightly jittering texture coordinates to move them off the texture
+// lattice edges, so that a given texture vertex can be assumed to always have four well-defined
+// texels supporting it.
+//
+// @note       Another alternative is to use a small cutoff distance to avoid activating texels that
+//             have almost no support when visiting a seam texture vertex.
+//
+template <typename Scalar>
+void jitter_texture(
+    span<Scalar> texcoords_buffer,
+    unsigned int width,
+    unsigned int height,
+    double epsilon = 1e-4)
+{
+    if (std::abs(epsilon) < std::numeric_limits<double>().denorm_min()) {
+        return;
+    }
+
+    Scalar jitter_scale = static_cast<Scalar>(epsilon / std::max<unsigned int>(width, height));
+    std::mt19937 gen;
+    std::uniform_real_distribution<Scalar> dist(-jitter_scale, jitter_scale);
+    for (auto& x : texcoords_buffer) {
+        x += dist(gen);
+    }
+}
+
+template <typename Scalar, typename Index>
+struct MeshWrapper
+{
+    MeshWrapper(const SurfaceMesh<Scalar, Index>& mesh_)
+        : mesh(mesh_)
+    {}
+
+    size_t num_simplices() const { return static_cast<size_t>(mesh.get_num_facets()); }
+    size_t num_vertices() const { return static_cast<size_t>(mesh.get_num_vertices()); }
+    size_t num_texcoords() const { return texcoords.size() / K; }
+
+    Vector<double, Dim> vertex(size_t i) const
+    {
+        Vector<double, Dim> p;
+        for (unsigned int d = 0; d < Dim; d++) {
+            p[d] = static_cast<double>(vertices[i * Dim + d]);
+        }
+        return p;
+    }
+
+    Vector<double, K> texcoord(size_t i) const
+    {
+        Vector<double, K> q;
+        for (unsigned int k = 0; k < K; k++) {
+            q[k] = static_cast<double>(texcoords[i * K + k]);
+        }
+        return q;
+    }
+
+    void set_texcoord(size_t i, const Vector<double, K>& q)
+    {
+        for (unsigned int k = 0; k < K; k++) {
+            texcoords[i * K + k] = static_cast<Scalar>(q[k]);
+        }
+    }
+
+    int vertex_index(size_t f, unsigned int k) const
+    {
+        return static_cast<int>(vertex_indices[f * (K + 1) + k]);
+    }
+
+    int texture_index(size_t f, unsigned int k) const
+    {
+        return static_cast<int>(texture_indices[f * (K + 1) + k]);
+    }
+
+    SurfaceMesh<Scalar, Index> mesh;
+    span<const Scalar> vertices;
+    span<Scalar> texcoords;
+    span<const Index> vertex_indices;
+    span<const Index> texture_indices;
+};
+
+template <typename Scalar, typename Index>
+MeshWrapper<Scalar, Index> create_mesh_wrapper(const SurfaceMesh<Scalar, Index>& mesh_in)
+{
+    MeshWrapper wrapper(mesh_in);
+    SurfaceMesh<Scalar, Index>& _mesh = wrapper.mesh;
+
+    triangulate_polygonal_facets(_mesh);
+
+    // Get the texcoord id (and set the texcoords if they weren't already)
+    AttributeId texcoord_id;
+
+    // If the mesh comes with UVs
+    if (auto res = find_matching_attribute(_mesh, AttributeUsage::UV)) {
+        texcoord_id = res.value();
+    } else {
+        la_runtime_assert(false, "Requires uv coordinates.");
+    }
+    // Make sure the UV coordinate type is the same as that of the vertices
+    if (!_mesh.template is_attribute_type<Scalar>(texcoord_id)) {
+        logger().warn(
+            "Input uv coordinates do not have the same scalar type as the input points. Casting "
+            "attribute.");
+        texcoord_id = cast_attribute_in_place<Scalar>(_mesh, texcoord_id);
+    }
+
+    // Make sure the UV coordinates are indexed
+    if (_mesh.get_attribute_base(texcoord_id).get_element_type() != AttributeElement::Indexed) {
+        logger().warn("UV coordinates are not indexed. Welding.");
+        texcoord_id = map_attribute(_mesh, texcoord_id, "new_texture", AttributeElement::Indexed);
+        weld_indexed_attribute(_mesh, texcoord_id);
+    }
+
+    // Make sure that the number of corners is equal to (K+1) time sthe number of simplices
+    la_runtime_assert(
+        _mesh.get_num_corners() == _mesh.get_num_facets() * (K + 1),
+        "Numer of corners doesn't match the number of simplices");
+
+    auto& uv_attr = _mesh.template ref_indexed_attribute<Scalar>(texcoord_id);
+    wrapper.vertices = _mesh.get_vertex_to_position().get_all();
+    wrapper.vertex_indices = _mesh.get_corner_to_vertex().get_all();
+    wrapper.texcoords = uv_attr.values().ref_all();
+    wrapper.texture_indices = uv_attr.indices().get_all();
+
+    return wrapper;
+}
+
+// Pad input texture to ensure that texture coordinates fall within the rectangle defined by the
+// _centers_ of the corner texels.
+template <typename Scalar, typename Index>
+Padding
+create_padding(MeshWrapper<Scalar, Index>& wrapper, unsigned int width, unsigned int height)
+{
+    Padding padding;
+
+    // TODO: We probably want to reimplement this to be a bit more efficient and avoid extra copies.
+    std::vector<Vector<double, 2>> texcoords;
+    texcoords.reserve(wrapper.num_texcoords());
+    for (size_t i = 0; i < wrapper.num_texcoords(); ++i) {
+        texcoords.push_back(wrapper.texcoord(i));
+    }
+    padding = Padding::Init(width, height, texcoords);
+    padding.pad(width, height, texcoords);
+    for (size_t i = 0; i < wrapper.num_texcoords(); ++i) {
+        wrapper.set_texcoord(i, texcoords[i]);
+    }
+
+    return padding;
+}
+
+} // namespace mesh_utils
+
+} // namespace lagrange::texproc

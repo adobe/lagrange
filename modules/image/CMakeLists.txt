@@ -15,9 +15,11 @@ lagrange_add_module()
 target_compile_features(lagrange_image PUBLIC cxx_std_17)
 
 # 2. dependencies
+include(mdspan)
 lagrange_include_modules(core)
 target_link_libraries(lagrange_image PUBLIC
     lagrange::core
+    std::mdspan
 )
 
 # 3. unit tests and examples

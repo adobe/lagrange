@@ -22,3 +22,7 @@ CPMAddPackage(
     GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
     GIT_TAG        v1.0.3
 )
+
+if(TARGET cpptrace-lib)
+    set_target_properties(cpptrace-lib PROPERTIES FOLDER third_party)
+endif()

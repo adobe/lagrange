@@ -442,7 +442,7 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options)
     };
     auto try_load_texture =
         [&](const aiMaterial* material, aiTextureType type, scene::TextureInfo& tex_info) -> bool {
-        if (tex_info.index != invalid<scene::ElementId>())
+        if (tex_info.index != scene::invalid_element)
             return false; // there was a texture here already
 
         aiString path;
