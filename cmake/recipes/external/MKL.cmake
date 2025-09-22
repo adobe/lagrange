@@ -138,7 +138,10 @@ function(mkl_remove_needed_tbb name mkl_path_var)
         message(STATUS "Running patchelf on ${${mkl_path_var}} -> ${mkl_lib_output}")
         include(patchelf)
         execute_process(
-            COMMAND ${patchelf_EXECUTABLE} --remove-needed libtbb.so.12 ${${mkl_path_var}} --output ${mkl_lib_output}
+            COMMAND ${patchelf_EXECUTABLE}
+                --remove-needed libtbb.so.12
+                --remove-needed libmkl_core.so.2
+                ${${mkl_path_var}} --output ${mkl_lib_output}
             COMMAND_ERROR_IS_FATAL ANY
         )
     endif()
