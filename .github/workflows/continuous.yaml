@@ -140,7 +140,7 @@ jobs:
         if: ${{ !cancelled() }} # run this step even if previous step failed
         with:
           name: Unit Tests
-          path: build/*/reports/*.xml
+          path: build/reports/*.xml
           reporter: java-junit
 
   ####################
@@ -216,5 +216,5 @@ jobs:
         if: ${{ !cancelled() }} # run this step even if previous step failed
         with:
           name: Unit Tests
-          path: build/*/reports/*.xml
+          path: C:/build/reports/*.xml
           reporter: java-junit
