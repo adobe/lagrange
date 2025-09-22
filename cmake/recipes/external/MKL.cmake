@@ -134,7 +134,7 @@ function(mkl_remove_needed_tbb name mkl_path_var)
     endif()
     cmake_path(GET "${mkl_path_var}" PARENT_PATH mkl_lib_dir)
     cmake_path(APPEND mkl_lib_output "${mkl_lib_dir}" "libmkl_tbb_thread_patched.so")
-    if(NOT EXISTS ${mkl_lib_output})
+    # if(NOT EXISTS ${mkl_lib_output})
         message(STATUS "Running patchelf on ${${mkl_path_var}} -> ${mkl_lib_output}")
         include(patchelf)
         execute_process(
@@ -144,7 +144,7 @@ function(mkl_remove_needed_tbb name mkl_path_var)
                 ${${mkl_path_var}} --output ${mkl_lib_output}
             COMMAND_ERROR_IS_FATAL ANY
         )
-    endif()
+    # endif()
     set(${mkl_path_var} ${mkl_lib_output} PARENT_SCOPE)
 endfunction()
 
