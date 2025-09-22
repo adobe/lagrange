@@ -139,7 +139,7 @@ jobs:
         uses: dorny/test-reporter@v2
         if: ${{ !cancelled() }} # run this step even if previous step failed
         with:
-          name: Unit Tests
+          name: Test Results
           path: build/reports/*.xml
           reporter: java-junit
 
@@ -215,6 +215,6 @@ jobs:
         uses: dorny/test-reporter@v2
         if: ${{ !cancelled() }} # run this step even if previous step failed
         with:
-          name: Unit Tests
+          name: Test Results
           path: C:/build/reports/*.xml
           reporter: java-junit

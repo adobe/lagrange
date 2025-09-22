@@ -126,14 +126,16 @@ endforeach()
 
 ################################################################################
 
-# Patch libmkl_tbb_thread.so to remove libtbb.so from its needed libs (since we
+# Patch a MKL lib to remove hardcoded .so from its needed libs (since we
 # link against the built-from-source target at the CMake level...)
-function(mkl_remove_needed_tbb name mkl_path_var)
-    if(NOT (LINUX AND ${name} STREQUAL tbb_thread))
+function(mkl_remove_needed_libs name mkl_path_var)
+    if(NOT LINUX)
         return()
     endif()
     cmake_path(GET "${mkl_path_var}" PARENT_PATH mkl_lib_dir)
-    cmake_path(APPEND mkl_lib_output "${mkl_lib_dir}" "libmkl_tbb_thread_patched.so")
+    cmake_path(GET "${mkl_path_var}" STEM mkl_lib_stem)
+    cmake_path(GET "${mkl_path_var}" EXTENSION mkl_lib_ext)
+    cmake_path(APPEND mkl_lib_output "${mkl_lib_dir}" "${mkl_lib_stem}_patched${mkl_lib_ext}")
     # if(NOT EXISTS ${mkl_lib_output})
         message(STATUS "Running patchelf on ${${mkl_path_var}} -> ${mkl_lib_output}")
         include(patchelf)
@@ -252,7 +254,7 @@ function(mkl_add_imported_library name)
         # Otherwise, we ignore the dll location, and simply set main library location
         if(UNIX)
             file(REAL_PATH "${${LIBVAR}}" mkl_lib_path)
-            mkl_remove_needed_tbb(${name} mkl_lib_path)
+            mkl_remove_needed_libs(${name} mkl_lib_path)
             cmake_path(GET mkl_lib_path FILENAME mkl_lib_filename)
             # On Linux, we need to resolve symlinks to the actual library file, and set the SONAME
             # to the unversioned file name. If we don't, CMake's install() step will not the
