@@ -267,7 +267,7 @@ std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
         mesh,
         rasterizer_options);
     lagrange::logger().info("Computing confidence maps for {} cameras", cameras.size());
-    tbb::parallel_for(size_t(0), cameras.size(), [&, cameras = cameras](size_t i) {
+    tbb::parallel_for(size_t(0), cameras.size(), [&](size_t i) {
         textures_and_weights[offset + i] =
             rasterizer.weighted_texture_from_render(renders[i], cameras[i]);
     });
