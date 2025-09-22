@@ -129,7 +129,7 @@ endforeach()
 # Patch libmkl_tbb_thread.so to remove libtbb.so from its needed libs (since we
 # link against the built-from-source target at the CMake level...)
 function(mkl_remove_needed_tbb name mkl_path_var)
-    if(NOT (LINUX AND ${name} STREQUAL tbb_thread))
+    if(NOT (LINUX AND ${name} STREQUAL tbb_thread AND NOT (MKL_LINKING STREQUAL static)))
         return()
     endif()
     cmake_path(GET "${mkl_path_var}" PARENT_PATH mkl_lib_dir)
