@@ -136,18 +136,18 @@ jobs:
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Setup tmate session
-        if: ${{ failure() }}
+        # if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
 
-      - name: Test Report
-        uses: dorny/test-reporter@v2
-        if: ${{ !cancelled() }} # run this step even if previous step failed
-        with:
-          name: Test Results
-          path: build/reports/*.xml
-          reporter: java-junit
+      # - name: Test Report
+      #   uses: dorny/test-reporter@v2
+      #   if: ${{ !cancelled() }} # run this step even if previous step failed
+      #   with:
+      #     name: Test Results
+      #     path: build/reports/*.xml
+      #     reporter: java-junit
 
   ####################
   # Windows
@@ -223,10 +223,10 @@ jobs:
         with:
           limit-access-to-actor: true
 
-      - name: Test Report
-        uses: dorny/test-reporter@v2
-        if: ${{ !cancelled() }} # run this step even if previous step failed
-        with:
-          name: Test Results
-          path: C:/build/reports/*.xml
-          reporter: java-junit
+      # - name: Test Report
+      #   uses: dorny/test-reporter@v2
+      #   if: ${{ !cancelled() }} # run this step even if previous step failed
+      #   with:
+      #     name: Test Results
+      #     path: C:/build/reports/*.xml
+      #     reporter: java-junit
