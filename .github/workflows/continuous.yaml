@@ -136,7 +136,7 @@ jobs:
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Setup tmate session
-        # if: ${{ failure() }}
+        if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
@@ -218,7 +218,7 @@ jobs:
         run: cd "C:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Setup tmate session
-        # if: ${{ failure() }}
+        if: ${{ failure() }}
         uses: mxschmitt/action-tmate@v3
         with:
           limit-access-to-actor: true
