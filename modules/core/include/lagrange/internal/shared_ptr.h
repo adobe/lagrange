@@ -9,6 +9,7 @@
 
 #include <lagrange/internal/smart_ptr/control_block.h>
 #include <lagrange/internal/weak_ptr.h>
+#include <lagrange/utils/assert.h>
 
 #include <cstddef> /// nullptr_t, size_t, ptrdiff_t
 #include <iostream> /// basic_ostream
@@ -38,14 +39,14 @@ public:
     /// Dereferences pointer to the managed object
     element_type& operator*() const noexcept
     {
-        assert(_get() != nullptr);
+        la_debug_assert(_get() != nullptr);
         return *_get();
     }
 
     /// Dereferences pointer to the managed object
     element_type* operator->() const noexcept
     {
-        assert(_get() != nullptr);
+        la_debug_assert(_get() != nullptr);
         return _get();
     }
 
@@ -65,7 +66,7 @@ public:
     /// Index operator, dereferencing operators are not provided
     element_type* operator[](std::ptrdiff_t i) const noexcept
     {
-        assert(_get() != nullptr);
+        la_debug_assert(_get() != nullptr);
         static_assert(!std::extent<T>::value || i < std::extent<T>::value);
         return _get()[i];
     }
@@ -86,7 +87,7 @@ public:
     /// Dereferences pointer to the managed object, operator* is not provided
     element_type* operator->() const noexcept
     {
-        assert(_get() != nullptr);
+        la_debug_assert(_get() != nullptr);
         return _get();
     }
 

@@ -11,11 +11,7 @@
  */
 #pragma once
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/python/binding.h>
 
 namespace lagrange::python {
 void bind_enum(nanobind::module_& m);

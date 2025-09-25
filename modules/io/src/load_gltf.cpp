@@ -817,7 +817,9 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             lcam.aspect_ratio = camera.perspective.aspectRatio;
             lcam.set_horizontal_fov_from_vertical_fov(camera.perspective.yfov);
             lcam.near_plane = camera.perspective.znear;
-            lcam.far_plane = camera.perspective.zfar;
+            if (camera.perspective.zfar > 0) {
+                lcam.far_plane = camera.perspective.zfar;
+            }
         } else {
             lcam.type = scene::Camera::Type::Orthographic;
             lcam.near_plane = camera.orthographic.znear;

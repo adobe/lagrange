@@ -48,9 +48,8 @@ int main(int argc, char** argv)
         "--vertex-depth",
         args.output_vertex_depth,
         "Enable outputting of vertex depth.");
-    auto trim_opt =
-        app.add_option("--trim-depth", args.trim_depth, "Trim surface at specified depth.")
-            ->needs(depth_opt);
+    app.add_option("--trim-depth", args.trim_depth, "Trim surface at specified depth.")
+        ->needs(depth_opt);
     CLI11_PARSE(app, argc, argv)
 
     if (recon_options.verbose) {

@@ -97,7 +97,7 @@ TEST_CASE("io/obj simple_scene", "[io][obj]")
     io::SaveOptions save_options;
     save_options.encoding = io::FileEncoding::Ascii;
     REQUIRE_NOTHROW(io::save_simple_scene_obj(data, scene, save_options));
-    
+
     // Check that the output contains some expected content
     std::string output = data.str();
     REQUIRE(!output.empty());
@@ -114,7 +114,7 @@ TEST_CASE("io/obj scene", "[io][obj]")
     // Create a scene with nodes and mesh instances
     scene::Scene<Scalar, Index> scene;
     scene.name = "Test Scene";
-    
+
     // Add a test mesh
     auto cube = testing::create_test_cube<Scalar, Index>();
     scene.meshes.push_back(std::move(cube));
@@ -132,11 +132,11 @@ TEST_CASE("io/obj scene", "[io][obj]")
     child_node.transform = Eigen::Affine3f::Identity();
     child_node.transform.translate(Eigen::Vector3f(2, 0, 0));
     child_node.parent = 0;
-    
+
     scene::SceneMeshInstance mesh_instance;
     mesh_instance.mesh = 0;
     child_node.meshes.push_back(mesh_instance);
-    
+
     scene.nodes.push_back(child_node);
     scene.nodes[0].children.push_back(1);
 
@@ -145,7 +145,7 @@ TEST_CASE("io/obj scene", "[io][obj]")
     io::SaveOptions save_options;
     save_options.encoding = io::FileEncoding::Ascii;
     REQUIRE_NOTHROW(io::save_scene_obj(data, scene, save_options));
-    
+
     // Check that the output contains some expected content
     std::string output = data.str();
     REQUIRE(!output.empty());
@@ -162,7 +162,7 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
     // Create a scene with nodes and mesh instances
     scene::Scene<Scalar, Index> scene;
     scene.name = "Test Scene with Materials";
-    
+
     // Add a test mesh
     auto cube = testing::create_test_cube<Scalar, Index>();
     scene.meshes.push_back(std::move(cube));
@@ -186,12 +186,12 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
     child_node.transform = Eigen::Affine3f::Identity();
     child_node.transform.translate(Eigen::Vector3f(2, 0, 0));
     child_node.parent = 0;
-    
+
     scene::SceneMeshInstance mesh_instance;
     mesh_instance.mesh = 0;
     mesh_instance.materials.push_back(0); // Use the material we created
     child_node.meshes.push_back(mesh_instance);
-    
+
     scene.nodes.push_back(child_node);
     scene.nodes[0].children.push_back(1);
 
@@ -214,7 +214,7 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
         save_options.encoding = io::FileEncoding::Ascii;
         save_options.export_materials = false;
         REQUIRE_NOTHROW(io::save_scene_obj(data, scene, save_options));
-        
+
         std::string output = data.str();
         REQUIRE(!output.empty());
         REQUIRE(output.find("v ") != std::string::npos); // Should have vertices
@@ -228,18 +228,18 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
     {
         fs::path obj_file = testing::get_test_output_path("test_obj/test_with_materials.obj");
         fs::path mtl_file = testing::get_test_output_path("test_obj/test_with_materials.mtl");
-        
+
         io::SaveOptions save_options;
         save_options.encoding = io::FileEncoding::Ascii;
         save_options.export_materials = true;
         REQUIRE_NOTHROW(io::save_scene_obj(obj_file, scene, save_options));
-        
+
         // Check that OBJ file was created
         REQUIRE(fs::exists(obj_file));
-        
+
         // Check that MTL file was created
         REQUIRE(fs::exists(mtl_file));
-        
+
         // Check OBJ file content
         std::ifstream obj_stream(obj_file);
         std::string obj_content((std::istreambuf_iterator<char>(obj_stream)),
@@ -247,7 +247,7 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
         obj_stream.close();
         REQUIRE(obj_content.find("mtllib test_with_materials.mtl") != std::string::npos);
         REQUIRE(obj_content.find("usemtl test_material") != std::string::npos);
-        
+
         // Check MTL file content
         std::ifstream mtl_stream(mtl_file);
         std::string mtl_content((std::istreambuf_iterator<char>(mtl_stream)),
@@ -289,30 +289,30 @@ TEST_CASE("io/obj 2d mesh", "[io][obj]")
     save_options.encoding = io::FileEncoding::Ascii;
 
     REQUIRE_NOTHROW(io::save_mesh_obj(data, mesh, save_options));
-    
+
     std::string output = data.str();
     REQUIRE(!output.empty());
-    
+
     // Check that we have 2D vertices (only x and y coordinates)
     REQUIRE(output.find("v 0 0") != std::string::npos);
     REQUIRE(output.find("v 1 0") != std::string::npos);
     REQUIRE(output.find("v 0.5 1") != std::string::npos);
-    
+
     // Check that we have UV coordinates
     REQUIRE(output.find("vt ") != std::string::npos);
-    
+
     // Check that we have faces
     REQUIRE(output.find("f ") != std::string::npos);
 
     // Test loading the saved mesh back
     auto mesh2 = io::load_mesh_obj<SurfaceMesh<Scalar, Index>>(data);
     testing::check_mesh(mesh2);
-    
+
     // The loaded mesh should be 3D (OBJ format enforces 3D), but should have the same connectivity
     REQUIRE(mesh2.get_dimension() == 3);
     REQUIRE(mesh2.get_num_vertices() == 3);
     REQUIRE(mesh2.get_num_facets() == 1);
-    
+
     // Check that the 2D coordinates were preserved in x,y and z=0
     auto vertices = lagrange::vertex_view(mesh2);
     REQUIRE(vertices(0, 0) == Catch::Approx(0.0));

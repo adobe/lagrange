@@ -12,8 +12,13 @@
 #include <lagrange/testing/common.h>
 
 #include <lagrange/scene/Scene.h>
+#include <lagrange/scene/scene_convert.h>
+#include <lagrange/views.h>
 
-TEST_CASE("scene_extension_value", "[scene]") {
+#include <random>
+
+TEST_CASE("scene_extension_value", "[scene]")
+{
     using Value = lagrange::scene::Value;
     STATIC_CHECK(Value::variant_index<bool>() == 0);
     STATIC_CHECK(Value::variant_index<int>() == 1);
@@ -89,4 +94,23 @@ TEST_CASE("scene_extension_value", "[scene]") {
     REQUIRE(object_value["array"].is_array());
     REQUIRE(object_value["number"].get_real() == 123.4);
     REQUIRE(object_value["string"].get_string() == "hello");
+}
+
+TEST_CASE("Scene: convert", "[scene]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // Create dummy mesh
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertices(10);
+    vertex_ref(mesh).setRandom();
+    mesh.add_triangles(10);
+    std::mt19937 rng;
+    std::uniform_int_distribution<Index> dist(0, 9);
+    facet_ref(mesh).unaryExpr([&](auto) { return dist(rng); });
+
+    auto mesh2 = lagrange::scene::scene_to_mesh(lagrange::scene::mesh_to_scene(mesh));
+    REQUIRE(vertex_view(mesh) == vertex_view(mesh2));
+    REQUIRE(facet_view(mesh) == facet_view(mesh2));
 }

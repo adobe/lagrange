@@ -27,6 +27,19 @@
 
 namespace lagrange {
 
+namespace {
+// Per-thread buffers to store intermediate results.
+template <typename Scalar>
+struct LocalBuffersT
+{
+    using Vector3 = typename Eigen::Vector3<Scalar>;
+    Vector3 v0, v1, v2; // Triangle vertices.
+    Vector3 q0, q1, q2, q3; // Intermediate tet vertices.
+    std::array<double, 2> r0, r1, r2; // Triangle projections.
+};
+
+} // namespace
+
 template <typename Scalar, typename Index>
 bool select_facets_in_frustum(
     SurfaceMesh<Scalar, Index>& mesh,
@@ -45,13 +58,7 @@ bool select_facets_in_frustum(
 
     const Index num_facets = mesh.get_num_facets();
 
-    // Per-thread buffers to store intermediate results.
-    struct LocalBuffers
-    {
-        Vector3 v0, v1, v2; // Triangle vertices.
-        Vector3 q0, q1, q2, q3; // Intermediate tet vertices.
-        std::array<double, 2> r0, r1, r2; // Triangle projections.
-    };
+    using LocalBuffers = LocalBuffersT<Scalar>;
     tbb::enumerable_thread_specific<LocalBuffers> temp_vars;
 
     auto edge_overlap_with_negative_octant = [](const Vector3& q0, const Vector3& q1) -> bool {

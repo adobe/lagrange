@@ -219,14 +219,14 @@ std::vector<std::vector<Index>> chain_undirected_edges(
         if (itr != adj_list.end()) {
             itr->second.push_back(ei);
         } else {
-            adj_list.insert({v.first, {ei}});
+            adj_list.emplace(v.first, std::vector<Index>{ei});
         }
 
         itr = adj_list.find(v.second);
         if (itr != adj_list.end()) {
             itr->second.push_back(ei);
         } else {
-            adj_list.insert({v.second, {ei}});
+            adj_list.emplace(v.second, std::vector<Index>{ei});
         }
     };
 

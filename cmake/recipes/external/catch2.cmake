@@ -23,7 +23,7 @@ include(CPM)
 CPMAddPackage(
     NAME catch2
     GITHUB_REPOSITORY catchorg/Catch2
-    GIT_TAG v3.8.1
+    GIT_TAG v3.10.0
 )
 
 target_compile_features(Catch2 PUBLIC cxx_std_17)
@@ -35,3 +35,8 @@ endif()
 
 set_target_properties(Catch2 PROPERTIES FOLDER third_party)
 set_target_properties(Catch2WithMain PROPERTIES FOLDER third_party)
+
+if(USE_SANITIZER MATCHES "([Tt]hread)")
+    # https://github.com/catchorg/Catch2/issues/1833
+    target_compile_definitions(Catch2 PUBLIC CATCH_CONFIG_NO_POSIX_SIGNALS)
+endif()

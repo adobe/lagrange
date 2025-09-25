@@ -31,7 +31,7 @@ class TestSimpleScene:
         assert scene.num_meshes == 0
         assert scene.total_num_instances == 0
 
-    def create_scene(self):
+    def create_simple_scene(self):
         mesh = lagrange.SurfaceMesh()
         mesh.vertices = np.identity(3)
         mesh.add_triangle(0, 1, 2)
@@ -49,7 +49,7 @@ class TestSimpleScene:
         return scene, mesh_id, instance_id
 
     def test_create_scene(self):
-        scene, mesh_id, instance_id = self.create_scene()
+        scene, mesh_id, instance_id = self.create_simple_scene()
         assert scene.num_meshes == 1
         assert scene.num_instances(mesh_id) == 1
         assert scene.total_num_instances == 1
@@ -57,7 +57,7 @@ class TestSimpleScene:
         assert scene.get_instance(mesh_id, instance_id).mesh_index == mesh_id
 
     def test_multiple_instances(self):
-        scene, mesh_id, instance_id = self.create_scene()
+        scene, mesh_id, instance_id = self.create_simple_scene()
 
         instance2 = lagrange.scene.MeshInstance3D()
         instance2.mesh_index = mesh_id

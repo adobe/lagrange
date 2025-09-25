@@ -11,14 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/python/binding.h>
 #include <lagrange/utils/StackVector.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/detail/nb_list.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 NAMESPACE_BEGIN(NB_NAMESPACE)
 NAMESPACE_BEGIN(detail)
@@ -28,8 +22,10 @@ NAMESPACE_BEGIN(detail)
 ///
 /// @note Data are __copied__ between the two data structures.
 ///
-template <typename T, size_t N> struct type_caster<lagrange::StackVector<T, N>>
- : list_caster<lagrange::StackVector<T, N>, T> { };
+template <typename T, size_t N>
+struct type_caster<lagrange::StackVector<T, N>> : list_caster<lagrange::StackVector<T, N>, T>
+{
+};
 
 NAMESPACE_END(detail)
 NAMESPACE_END(NB_NAMESPACE)

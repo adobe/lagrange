@@ -117,6 +117,34 @@ TEST_CASE("remove_duplicate_vertices", "[mesh_cleanup][surface][duplicate]")
     }
 }
 
+TEST_CASE("remove_duplicate_vertices stability", "[mesh_cleanup][surface][duplicate]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 1});
+    mesh.add_vertex({0, 0});
+
+    remove_duplicate_vertices(mesh);
+    REQUIRE(mesh.get_num_vertices() == 3);
+    REQUIRE(mesh.get_num_facets() == 0);
+
+    auto vertices = vertex_view(mesh);
+    Eigen::MatrixXd expected(3, 2);
+    // clang-format off
+    expected <<
+        1, 0,
+        0, 0,
+        1, 1;
+    // clang-format on
+
+    REQUIRE(vertices == expected);
+}
+
 TEST_CASE("remove_duplicate_vertices benchmark", "[surface][mesh_cleanup][duplicate][!benchmark]")
 {
     using namespace lagrange;

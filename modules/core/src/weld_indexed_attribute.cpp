@@ -76,6 +76,13 @@ struct IndexWithFlagT
     static_assert(Mask != 0 && (Mask << 1 == 0));
 };
 
+template <typename Index>
+struct IndexAndCornerT
+{
+    Index index;
+    Index corner;
+};
+
 template <typename ValueType, typename Scalar, typename Index, typename Func>
 void weld_indexed_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
@@ -122,17 +129,12 @@ void weld_indexed_attribute(
     };
 
     // Sort and find duplicate values shared by corners around the same vertex.
+    using IndexAndCorner = IndexAndCornerT<Index>;
     tbb::parallel_for(
         tbb::blocked_range<Index>(0, num_vertices),
         [&](const tbb::blocked_range<Index>& range) {
             for (Index vi = range.begin(); vi < range.end(); vi++) {
                 if (exclude_vertices_mask[vi]) return;
-
-                struct IndexAndCorner
-                {
-                    Index index;
-                    Index corner;
-                };
 
                 SmallVector<IndexAndCorner, 16> involved_indices_and_corners;
                 mesh.foreach_corner_around_vertex(vi, [&](Index ci) {

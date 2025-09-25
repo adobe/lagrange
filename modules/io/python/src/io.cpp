@@ -26,20 +26,10 @@
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/io/save_scene.h>
 #include <lagrange/io/save_simple_scene.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/Error.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/filesystem.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/string_view.h>
-#include <nanobind/stl/vector.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <sstream>
 #include <string_view>
@@ -92,7 +82,6 @@ void populate_io_module(nb::module_& m)
         "Attribute conversion policy. Provides options to handle non-supported attributes when saving them")
         .value("ExactMatchOnly", io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly, "Ignore mismatched attributes and print a warning")
         .value("ConvertAsNeeded", io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded, "Convert attribute to supported attribute type when possible");
-
 
     m.def(
         "save_mesh",
@@ -182,7 +171,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
 :param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
 :param load_images:        Whether to load external images if available. Defaults to True.
-:param stitch_vertices:    Whether to stitch vertices based on position. Defaults to False.
+:param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
 :param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
 
 :return SurfaceMesh: The mesh object extracted from the input string.)");
@@ -313,6 +302,52 @@ The binary string should use one of the supported formats. Supported formats inc
 :param options:     Load scene options. Check the class for more details.
 
 :return Scene: The loaded scene object.)");
+    m.def(
+        "load_scene",
+        [](const fs::path& filename,
+           bool triangulate,
+           bool load_normals,
+           bool load_tangents,
+           bool load_uvs,
+           bool load_weights,
+           bool load_materials,
+           bool load_vertex_colors,
+           bool load_object_ids,
+           bool load_images,
+           bool stitch_vertices,
+           const fs::path& search_path) {
+            io::LoadOptions opts;
+            opts.triangulate = triangulate;
+            opts.load_normals = load_normals;
+            opts.load_tangents = load_tangents;
+            opts.load_uvs = load_uvs;
+            opts.load_weights = load_weights;
+            opts.load_materials = load_materials;
+            opts.load_vertex_colors = load_vertex_colors;
+            opts.load_object_ids = load_object_ids;
+            opts.load_images = load_images;
+            opts.stitch_vertices = stitch_vertices;
+            opts.search_path = search_path;
+            return io::load_scene<SceneType>(filename, opts);
+        },
+        "filename"_a,
+        "triangulate"_a = io::LoadOptions().triangulate,
+        "load_normals"_a = io::LoadOptions().load_normals,
+        "load_tangents"_a = io::LoadOptions().load_tangents,
+        "load_uvs"_a = io::LoadOptions().load_uvs,
+        "load_weights"_a = io::LoadOptions().load_weights,
+        "load_materials"_a = io::LoadOptions().load_materials,
+        "load_vertex_colors"_a = io::LoadOptions().load_vertex_colors,
+        "load_object_ids"_a = io::LoadOptions().load_object_ids,
+        "load_images"_a = io::LoadOptions().load_images,
+        "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
+        "search_path"_a = io::LoadOptions().search_path,
+        R"(Load a scene.
+
+:param filename:    The input file name.
+:param options:     Load scene options. Check the class for more details.
+
+:return Scene: The loaded scene object.)");
 
     m.def(
         "string_to_scene",
@@ -347,6 +382,46 @@ The binary string should use one of the supported formats (i.e. `gltf`, `glb` an
 :param filename:    The output file name.
 :param scene:       The scene to save.
 :param options:     Save options. Check the class for more details.)");
+    m.def(
+        "save_scene",
+        [](const fs::path& filename,
+           const scene::Scene<Scalar, Index>& scene,
+           bool binary,
+           bool exact_match,
+           bool embed_images,
+           std::optional<std::vector<AttributeId>> selected_attributes) {
+            std::stringstream ss;
+
+            io::SaveOptions opts;
+            opts.encoding = binary ? io::FileEncoding::Binary : io::FileEncoding::Ascii;
+            opts.attribute_conversion_policy =
+                exact_match ? io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly
+                            : io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+            opts.embed_images = embed_images;
+            if (selected_attributes.has_value()) {
+                opts.selected_attributes = std::move(selected_attributes.value());
+                opts.output_attributes = io::SaveOptions::OutputAttributes::SelectedOnly;
+            } else {
+                opts.output_attributes = io::SaveOptions::OutputAttributes::All;
+            }
+
+            io::save_scene(filename, scene, opts);
+        },
+        "filename"_a,
+        "scene"_a,
+        "binary"_a = true,
+        "exact_match"_a = true,
+        "embed_images"_a = false,
+        "selected_attributes"_a = nb::none(),
+        R"(Save a scene. Supports gltf, glb, obj.
+
+:param filename:    The output file name.
+:param scene:       The scene to save.
+:param binary:      Whether to save the scene in binary format if supported. Defaults to True. Only `glb` supports binary format.
+:param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
+:param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.
+
+:return str: The string representing the input scene.)");
 
     m.def(
         "scene_to_string",

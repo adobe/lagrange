@@ -15,8 +15,9 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
-#include <lagrange/utils/Error.h>
+#include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/weak_ptr.h>
+#include <lagrange/utils/Error.h>
 
 #include <memory>
 

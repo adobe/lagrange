@@ -13,10 +13,10 @@
 #include "logging.h"
 
 #include <lagrange/Logger.h>
+#include <lagrange/python/binding.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
 #include <spdlog/sinks/base_sink.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on

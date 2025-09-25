@@ -44,6 +44,7 @@ int main(int argc, char** argv)
     } args;
 
     CLI::App app{argv[0]};
+    app.option_defaults()->always_capture_default();
     app.add_option("input", args.input, "Input mesh.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
     app.add_option("-s,--max-holes", args.max_holes, "Max hole size to close.");

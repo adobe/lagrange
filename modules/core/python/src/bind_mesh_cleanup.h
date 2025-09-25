@@ -24,14 +24,7 @@
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/vector.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/python/binding.h>
 
 #include <vector>
 
@@ -251,7 +244,7 @@ is not.
                          If empty, the first UV attribute found will be used.
 :param chart_id_attribute_name: The name used for storing the patch ID attribute.
                                 If empty, patches will be computed based on UV chart connectivity.
-:param uv_area_threshold: The threshold for UV area. 
+:param uv_area_threshold: The threshold for UV area.
                          UV triangles with area smaller than this threshold will not contribute to scale factor computation.
 )");
 }

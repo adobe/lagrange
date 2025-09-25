@@ -16,6 +16,9 @@
 #include <lagrange/scene/internal/scene_string_utils.h>
 
 #include <spdlog/fmt/ranges.h>
+// Support for std::optional<> added in fmt 10.0.0
+// Uncomment after updating fmt version in our vcpkg registry...
+// #include <spdlog/fmt/std.h>
 
 #include <vector>
 
@@ -372,7 +375,11 @@ std::string to_string(const Camera& camera, size_t indent)
             camera.look_at[1],
             camera.look_at[2]) +
         fmt::format("{:{}s}near_plane: {}\n", "", indent, camera.near_plane) +
-        fmt::format("{:{}s}far_plane: {}\n", "", indent, camera.far_plane) +
+        fmt::format(
+            "{:{}s}far_plane: {}\n",
+            "",
+            indent,
+            camera.far_plane.value_or(std::numeric_limits<float>::infinity())) +
         fmt::format("{:{}s}type: {}\n", "", indent, to_string(camera.type)) +
         fmt::format("{:{}s}orthographic_width: {}\n", "", indent, camera.orthographic_width) +
         fmt::format("{:{}s}aspect_ratio: {}\n", "", indent, camera.aspect_ratio) +

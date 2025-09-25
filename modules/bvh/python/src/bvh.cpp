@@ -11,14 +11,8 @@
  */
 
 #include <lagrange/bvh/weld_vertices.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/bvh.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/eigen/dense.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 namespace nb = nanobind;
 using namespace nb::literals;

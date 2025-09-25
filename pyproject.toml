@@ -32,8 +32,8 @@ dependencies = [
     "colorama>=0.4.6 ; platform_system == 'Windows'",
     "numpy>=1.25",
 ]
-urls.doc = "https://opensource.adobe.com/lagrange-docs"
-urls.repo = "https://github.com/adobe/lagrange"
+urls.documentation = "https://opensource.adobe.com/lagrange-docs"
+urls.repository = "https://github.com/adobe/lagrange"
 
 [dependency-groups]
 dev = [
