@@ -10,26 +10,17 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/filtering/mesh_smoothing.h>
 #include <lagrange/filtering/attribute_smoothing.h>
+#include <lagrange/filtering/mesh_smoothing.h>
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 
 #include <lagrange/python/setup_mkl.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/eigen/dense.h>
-#include <nanobind/stl/array.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string_view.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 namespace lagrange::python {
 

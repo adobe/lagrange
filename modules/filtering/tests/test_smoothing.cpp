@@ -82,6 +82,7 @@ TEST_CASE("Mesh Smoothing", "[filtering]")
             REQUIRE((v1 - v2).lpNorm<Eigen::Infinity>() < 1e-8);
         }
         REQUIRE(facet_view(mesh1) == facet_view(mesh2));
+        // TODO: fuzzy comparison
         // REQUIRE(vertex_view(mesh1) == vertex_view(mesh2));
     }
 

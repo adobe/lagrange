@@ -47,12 +47,10 @@ namespace lagrange::filtering {
 namespace {
 
 using namespace MishaK;
-using namespace MishaK::Geometry;
-using namespace MishaK::Array;
 
 // Using `Point` directly leads to ambiguity with Apple Accelerate types.
 template <typename T, unsigned N>
-using Vector = MishaK::Geometry::Point<T, N>;
+using Vector = MishaK::Point<T, N>;
 
 // The dimension of the manifold.
 static const unsigned int K = 2;

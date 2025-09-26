@@ -9,23 +9,27 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET shape_gradient_domain::shape_gradient_domain)
+if(TARGET misha::misha)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating target 'shape_gradient_domain::shape_gradient_domain'")
+message(STATUS "Third-party (external): creating target 'misha::misha'")
 
 include(CPM)
 CPMAddPackage(
-    NAME shape_gradient_domain
-    GITHUB_REPOSITORY mkazhdan/ShapeGradientDomain
-    GIT_TAG 6e748544d9096b4dbb0f8c1362ac626c26279c57
+    NAME Misha
+    GITHUB_REPOSITORY mkazhdan/Misha
+    GIT_TAG 53f43d2a8290ddebcc438a97da9d4f994d35fc6a
 )
 
-add_library(shape_gradient_domain::shape_gradient_domain INTERFACE IMPORTED GLOBAL)
-target_include_directories(shape_gradient_domain::shape_gradient_domain
-    SYSTEM INTERFACE "${shape_gradient_domain_SOURCE_DIR}"
+add_library(misha::misha INTERFACE IMPORTED GLOBAL)
+
+include(GNUInstallDirs)
+target_include_directories(misha::misha INTERFACE
+    $<BUILD_INTERFACE:${Misha_SOURCE_DIR}>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-include(misha)
-target_link_libraries(shape_gradient_domain::shape_gradient_domain INTERFACE misha::misha)
+target_compile_features(misha::misha INTERFACE cxx_std_17)
+
+set_target_properties(misha::misha PROPERTIES FOLDER third_party)
