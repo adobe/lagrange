@@ -13,16 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 
-#ifdef LA_SOLVER_ACCELERATE
-    #include "AccelerateSupport.h"
-#else
-    #include <lagrange/utils/build.h>
-    #if LAGRANGE_TARGET_OS(WASM) || defined(LA_SANITIZE_THREAD) || !defined(LA_SOLVER_MKL)
-        #include <Eigen/SparseCholesky>
-    #else
-        #include <Eigen/PardisoSupport>
-    #endif
-#endif
+#include <lagrange/solver/DirectSolver.h>
 
 // Include before any ShapeGradientDomain header to override their threadpool implementation.
 #include "ThreadPool.h"
@@ -60,15 +51,7 @@ static const unsigned int Dim = 3;
 
 using Real = double;
 
-#ifdef LA_SOLVER_ACCELERATE
-using Solver = AccelerateLDLT<Eigen::SparseMatrix<Real>>;
-#else
-    #if LAGRANGE_TARGET_OS(WASM) || defined(LA_SANITIZE_THREAD) || !defined(LA_SOLVER_MKL)
-using Solver = Eigen::SimplicialLDLT<Eigen::SparseMatrix<Real>>;
-    #else
-using Solver = Eigen::PardisoLDLT<Eigen::SparseMatrix<Real>>;
-    #endif
-#endif
+using Solver = lagrange::solver::SolverLDLT<Eigen::SparseMatrix<Real>>;
 
 } // namespace
 
