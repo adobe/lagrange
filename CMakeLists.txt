@@ -160,6 +160,10 @@ if(SKBUILD AND LINUX)
     set(CMAKE_INSTALL_RPATH $ORIGIN)
 endif()
 
+if(USE_SANITIZER MATCHES "([Tt]hread)")
+    set(MKL_THREADING "sequential" CACHE STRING "Threading layer to use with MKL")
+endif()
+
 # Meta target: ALL includes all optional modules and UI.
 option(LAGRANGE_ALL                "Build all lagrange modules" OFF)
 
