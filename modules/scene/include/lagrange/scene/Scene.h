@@ -17,11 +17,13 @@
 #include <lagrange/scene/SceneExtension.h>
 #include <lagrange/scene/api.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/internal/SafeVector.h>
 
 #include <Eigen/Geometry>
 
 #include <string>
 #include <vector>
+#include <optional>
 
 namespace lagrange {
 
@@ -47,7 +49,7 @@ struct LA_SCENE_API SceneMeshInstance
     // Material indices in the scene.materials vector. This is typically a single material index.
     // When a single mesh uses multiple materials,
     // the AttributeName::material_id facet attribute should be defined.
-    std::vector<ElementId> materials;
+    SafeVector<ElementId> materials;
 };
 
 // Represents a node in the scene hierarchy.
@@ -56,26 +58,26 @@ struct LA_SCENE_API Node
     // Note that the node name may not be unique, and can be empty.
     std::string name;
 
-    // Transform of the node, relative to its parent.
+    // Transform of the node, relative to its parent (maps node coords -> parent coords).
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
 
     // parent index. May be invalid if the node has no parent (e.g. the root).
     ElementId parent = invalid_element;
 
     // children indices. May be empty.
-    std::vector<ElementId> children;
+    SafeVector<ElementId> children;
 
     // List of meshes contained in this node.
     // Node that some file formats only allow 1 mesh per node (gltf). In this case we treat
     // multiple meshes as one mesh with multiple primitives, and only one material per mesh is
     // allowed.
-    std::vector<SceneMeshInstance> meshes;
+    SafeVector<SceneMeshInstance> meshes;
 
     // List of cameras contained in this node.
-    std::vector<ElementId> cameras;
+    SafeVector<ElementId> cameras;
 
     // List of lights contained in this node.
-    std::vector<ElementId> lights;
+    SafeVector<ElementId> lights;
 
     Extensions extensions;
 };
@@ -275,13 +277,13 @@ struct LA_SCENE_API Camera
     std::string name;
     Eigen::Vector3f position = Eigen::Vector3f::Zero();
     Eigen::Vector3f up = Eigen::Vector3f(0, 1, 0);
-    Eigen::Vector3f look_at = Eigen::Vector3f(0, 0, 1);
+    Eigen::Vector3f look_at = Eigen::Vector3f(0, 0, -1);
 
     // Distance of the near clipping plane. This value cannot be 0.
     float near_plane = 0.1f;
 
-    // Distance of the far clipping plane.
-    float far_plane = 1000.f;
+    // Distance of the far clipping plane. Required for orthographic cameras, optional for perspective ones.
+    std::optional<float> far_plane = 1000.f;
 
     enum class Type { Perspective, Orthographic };
     Type type = Type::Perspective;
@@ -338,7 +340,7 @@ struct LA_SCENE_API Skeleton
     // This skeleton is used to deform those meshes.
     // This will typically contain one value, but can have zero or multiple meshes.
     // The value is the index in the scene meshes.
-    std::vector<ElementId> meshes;
+    SafeVector<ElementId> meshes;
     // TODO
 
     Extensions extensions;
@@ -354,34 +356,34 @@ struct Scene
 
     // Scene nodes. This is a list of nodes, the hierarchy information is contained by each
     // node having a list of children as indices to this vector.
-    std::vector<Node> nodes;
+    SafeVector<Node> nodes;
 
     // Root nodes. This is typically one. Must be at least one.
-    std::vector<ElementId> root_nodes;
+    SafeVector<ElementId> root_nodes;
 
     // Scene meshes.
-    std::vector<MeshType> meshes;
+    SafeVector<MeshType> meshes;
 
     // Images.
-    std::vector<ImageExperimental> images;
+    SafeVector<ImageExperimental> images;
 
     // Textures. They can reference images;
-    std::vector<Texture> textures;
+    SafeVector<Texture> textures;
 
     // Materials. They can reference textures.
-    std::vector<MaterialExperimental> materials;
+    SafeVector<MaterialExperimental> materials;
 
     // Lights in the scene.
-    std::vector<Light> lights;
+    SafeVector<Light> lights;
 
     // Cameras. The first camera (if any) is the default camera view.
-    std::vector<Camera> cameras;
+    SafeVector<Camera> cameras;
 
     // Scene skeletons.
-    std::vector<Skeleton> skeletons;
+    SafeVector<Skeleton> skeletons;
 
     // Unused for now.
-    std::vector<Animation> animations;
+    SafeVector<Animation> animations;
 
     // Extensions.
     Extensions extensions;

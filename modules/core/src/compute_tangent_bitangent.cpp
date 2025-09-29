@@ -63,7 +63,7 @@ auto triangle_tangent_bitangent(
     // Tangent/bitangent vectors are computed using the first-order derivatives of the UV parameterization.
     // See Section 3.1 in the reference paper:
     //    Mikkelsen, Morten. "Simulation of wrinkled surfaces revisited." (2008).
-    //    http://image.diku.dk/projects/media/morten.mikkelsen.08.pdf
+    //    https://page.mi.fu-berlin.de/block/htw-lehre/wise2012_2013/bel_und_rend/skripte/mikkelsen2008.pdf
     Eigen::RowVector3<Scalar> t =
         ((edge0 * edge_uv1.y() - edge1 * edge_uv0.y()) * r).stableNormalized();
     Eigen::RowVector3<Scalar> bt =

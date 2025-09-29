@@ -12,15 +12,8 @@
 #pragma once
 
 #include <lagrange/Logger.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/scene/SceneExtension.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/variant.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 NAMESPACE_BEGIN(NB_NAMESPACE)
 NAMESPACE_BEGIN(detail)
@@ -155,4 +148,3 @@ struct type_caster<lagrange::scene::Value>
 
 NAMESPACE_END(detail)
 NAMESPACE_END(NB_NAMESPACE)
-

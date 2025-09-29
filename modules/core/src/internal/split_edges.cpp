@@ -64,8 +64,15 @@ void interpolate_row(
     }
 }
 
-} // namespace
+template <typename Index>
+struct LocalBuffersT
+{
+    std::vector<Index> chain_buffer;
+    std::vector<Index> queue_buffer;
+    std::vector<Index> visited_buffer;
+};
 
+} // namespace
 
 template <typename Scalar, typename Index>
 std::vector<Index> split_edges(
@@ -118,13 +125,7 @@ std::vector<Index> split_edges(
         }
     }
 
-    struct LocalBuffers
-    {
-        std::vector<Index> chain_buffer;
-        std::vector<Index> queue_buffer;
-        std::vector<Index> visited_buffer;
-    };
-
+    using LocalBuffers = LocalBuffersT<Index>;
     tbb::enumerable_thread_specific<LocalBuffers> local_buffers;
     tbb::parallel_for(size_t(0), original_triangle_index.size(), [&](size_t idx) {
         auto fid = original_triangle_index[idx];

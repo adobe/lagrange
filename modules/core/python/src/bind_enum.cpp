@@ -10,13 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/python/binding.h>
 
 namespace lagrange::python {
 
@@ -196,7 +191,8 @@ void bind_enum(nb::module_& m)
         .value(
             "RemapInvalidAlways",
             AttributeCastPolicy::RemapInvalidAlways,
-            "Always remap invalid values from source type to target type, regardless of AttributeUsage")
+            "Always remap invalid values from source type to target type, regardless of "
+            "AttributeUsage")
         .value(
             "DoNotRemapInvalid",
             AttributeCastPolicy::DoNotRemapInvalid,

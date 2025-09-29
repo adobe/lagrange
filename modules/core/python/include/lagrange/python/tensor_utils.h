@@ -16,14 +16,8 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/utils/SmallVector.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/ndarray.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <type_traits>
 #include <vector>
@@ -114,9 +108,7 @@ Tensor<std::decay_t<ValueType>> attribute_to_tensor(
     nb::handle base);
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>> attribute_to_tensor(
-    const Attribute<ValueType>& attr,
-    span<const size_t> shape,
-    nb::handle base);
+Tensor<std::decay_t<ValueType>>
+attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, nb::handle base);
 
 } // namespace lagrange::python

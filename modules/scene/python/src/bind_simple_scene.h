@@ -16,13 +16,7 @@
 #include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/utils/assert.h>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
 #include <Eigen/Core>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/optional.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <type_traits>
 

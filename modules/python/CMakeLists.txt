@@ -29,6 +29,12 @@ set_target_properties(lagrange_python PROPERTIES
     FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules"
     CXX_VISIBILITY_PRESET default)
 
+include(GNUInstallDirs)
+target_include_directories(lagrange_python PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
 if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_python PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
@@ -100,9 +106,7 @@ function(lagrange_generate_binding_file)
     message(STATUS "Generating ${binding_file}")
 
     file(WRITE ${binding_file_in} [[
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
+#include <lagrange/python/binding.h>
 ]])
 
     foreach(line IN ITEMS ${include_lines})

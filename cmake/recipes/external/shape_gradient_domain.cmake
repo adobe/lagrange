@@ -19,10 +19,13 @@ include(CPM)
 CPMAddPackage(
     NAME shape_gradient_domain
     GITHUB_REPOSITORY mkazhdan/ShapeGradientDomain
-    GIT_TAG 76aebd4c3a12528fb8fefda72291dc5a026fe2a0
+    GIT_TAG 6e748544d9096b4dbb0f8c1362ac626c26279c57
 )
 
 add_library(shape_gradient_domain::shape_gradient_domain INTERFACE IMPORTED GLOBAL)
 target_include_directories(shape_gradient_domain::shape_gradient_domain
     SYSTEM INTERFACE "${shape_gradient_domain_SOURCE_DIR}"
 )
+
+include(misha)
+target_link_libraries(shape_gradient_domain::shape_gradient_domain INTERFACE misha::misha)

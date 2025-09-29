@@ -58,21 +58,7 @@
 #include <lagrange/utils/invalid.h>
 #include <lagrange/uv_mesh.h>
 #include <lagrange/weld_indexed_attribute.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/eigen/dense.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string_view.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/variant.h>
-#include <nanobind/stl/tuple.h>
-#include <nanobind/stl/vector.h>
-#include <nanobind/stl/unordered_set.h>
-#include <nanobind/stl/array.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/python/binding.h>
 
 #include <optional>
 #include <string_view>

@@ -32,6 +32,6 @@ if(LAGRANGE_EXAMPLES)
 endif()
 
 # 4. python binding
-if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
+if(LAGRANGE_MODULE_PYTHON)
     add_subdirectory(python)
 endif()

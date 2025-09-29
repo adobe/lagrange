@@ -48,6 +48,7 @@
     #pragma clang diagnostic ignored "-Wconversion"
     #pragma clang diagnostic ignored "-Wunused-function"
     #pragma clang diagnostic ignored "-Wbitwise-instead-of-logical"
+    #pragma clang diagnostic ignored "-Wvariadic-macro-arguments-omitted"
 #elif defined(__GNUC__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wpragmas"

@@ -52,6 +52,12 @@ uv.lock
 *.vtk
 *.glb
 
+# Image files
+*.exr
+*.png
+*.jpg
+*.jpeg
+
 # Openvdb files
 tensor_*.json
 tensor_*.vdb

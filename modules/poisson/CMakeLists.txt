@@ -17,7 +17,7 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 # 2. dependencies
-include(poissonrecon) # create a my_lib.cmake in `recipes/external/` (mshio.cmake is a good example)
+include(poissonrecon)
 target_link_libraries(lagrange_poisson
     PUBLIC
         lagrange::core

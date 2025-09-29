@@ -10,17 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
-#include "bind_simple_scene.h"
 #include "bind_scene.h"
+#include "bind_simple_scene.h"
 
+#include <lagrange/python/binding.h>
 #include <lagrange/scene/RemeshingOptions.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 
 namespace lagrange::python {
 

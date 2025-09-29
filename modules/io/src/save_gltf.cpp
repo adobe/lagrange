@@ -725,14 +725,16 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             camera.perspective.aspectRatio = lcam.aspect_ratio;
             camera.perspective.yfov = lcam.get_vertical_fov();
             camera.perspective.znear = lcam.near_plane;
-            camera.perspective.zfar = lcam.far_plane;
+            if (lcam.far_plane.has_value()) {
+                camera.perspective.zfar = lcam.far_plane.value();
+            }
             break;
         case scene::Camera::Type::Orthographic:
             camera.type = "orthographic";
             camera.orthographic.xmag = lcam.orthographic_width;
             camera.orthographic.ymag = lcam.orthographic_width / lcam.aspect_ratio;
             camera.orthographic.znear = lcam.near_plane;
-            camera.orthographic.zfar = lcam.far_plane;
+            camera.orthographic.zfar = lcam.far_plane.value();
             break;
         }
         // TODO: camera may have a position/up/lookAt. This is not allowed in gltf and will be lost.
@@ -791,7 +793,7 @@ tinygltf::Model lagrange_scene_to_gltf_model(
     }
 
     auto element_id_to_int = [](scene::ElementId id) -> int {
-        if (id == lagrange::invalid<scene::ElementId>()) {
+        if (id == scene::invalid_element) {
             return -1;
         } else {
             return static_cast<int>(id);
@@ -845,7 +847,7 @@ tinygltf::Model lagrange_scene_to_gltf_model(
         }
 
         for (const auto& ltex : lscene.textures) {
-            la_debug_assert(ltex.image != invalid<scene::ElementId>());
+            la_debug_assert(ltex.image != scene::invalid_element);
             tinygltf::Texture texture;
             texture.name = ltex.name;
             texture.source = static_cast<int>(ltex.image);
