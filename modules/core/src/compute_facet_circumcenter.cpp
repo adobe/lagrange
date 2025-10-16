@@ -17,6 +17,7 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/geometry2d.h>
 #include <lagrange/utils/geometry3d.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -57,6 +58,7 @@ AttributeId compute_facet_circumcenter(
             centers.row(fid) << r[0], r[1];
         });
     } else if (dim == 3) {
+        LA_IGNORE_ARRAY_BOUNDS_BEGIN
         tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
             const auto facet_vertices = mesh.get_facet_vertices(fid);
             Eigen::Vector3<Scalar> v0 = vertices.row(facet_vertices[0]);
@@ -64,6 +66,7 @@ AttributeId compute_facet_circumcenter(
             Eigen::Vector3<Scalar> v2 = vertices.row(facet_vertices[2]);
             centers.row(fid) = triangle_circumcenter_3d(v0, v1, v2);
         });
+        LA_IGNORE_ARRAY_BOUNDS_END
     }
 
     return id;
