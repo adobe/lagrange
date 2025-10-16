@@ -14,6 +14,7 @@
 
 #include <lagrange/ExactPredicates.h>
 #include <lagrange/common.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/timing.h>
 
 void test_orient2D(lagrange::ExactPredicates& predicates)
@@ -25,8 +26,8 @@ void test_orient2D(lagrange::ExactPredicates& predicates)
     lagrange::timestamp_type start, finish;
     lagrange::get_timestamp(&start);
     for (size_t i = 0; i < N + 1; i++) {
-        p3[0] = cos(M_PI * 2 * double(i) / double(N));
-        p3[1] = sin(M_PI * 2 * double(i) / double(N));
+        p3[0] = cos(lagrange::internal::pi * 2 * double(i) / double(N));
+        p3[1] = sin(lagrange::internal::pi * 2 * double(i) / double(N));
         predicates.orient2D(p1, p2, p3);
     }
     lagrange::get_timestamp(&finish);
@@ -46,8 +47,8 @@ void test_orient3D(lagrange::ExactPredicates& predicates)
     lagrange::timestamp_type start, finish;
     lagrange::get_timestamp(&start);
     for (size_t i = 0; i < N + 1; i++) {
-        p4[0] = cos(M_PI * 2 * double(i) / double(N));
-        p4[1] = sin(M_PI * 2 * double(i) / double(N));
+        p4[0] = cos(lagrange::internal::pi * 2 * double(i) / double(N));
+        p4[1] = sin(lagrange::internal::pi * 2 * double(i) / double(N));
         p4[2] = 1e-16;
         predicates.orient3D(p1, p2, p3, p4);
     }
@@ -68,8 +69,8 @@ void test_incircle(lagrange::ExactPredicates& predicates)
     lagrange::timestamp_type start, finish;
     lagrange::get_timestamp(&start);
     for (size_t i = 0; i < N + 1; i++) {
-        p3[0] = cos(M_PI * 2 * double(i) / double(N));
-        p3[1] = sin(M_PI * 2 * double(i) / double(N));
+        p3[0] = cos(lagrange::internal::pi * 2 * double(i) / double(N));
+        p3[1] = sin(lagrange::internal::pi * 2 * double(i) / double(N));
         predicates.incircle(p1, p2, p3, p4);
     }
     lagrange::get_timestamp(&finish);
@@ -90,8 +91,8 @@ void test_insphere(lagrange::ExactPredicates& predicates)
     lagrange::timestamp_type start, finish;
     lagrange::get_timestamp(&start);
     for (size_t i = 0; i < N + 1; i++) {
-        p4[0] = cos(M_PI * 2 * double(i) / double(N)) * 1e-6;
-        p4[1] = sin(M_PI * 2 * double(i) / double(N)) * 1e-6;
+        p4[0] = cos(lagrange::internal::pi * 2 * double(i) / double(N)) * 1e-6;
+        p4[1] = sin(lagrange::internal::pi * 2 * double(i) / double(N)) * 1e-6;
         p4[2] = 1e-16;
         predicates.insphere(p1, p2, p3, p4, p5);
     }

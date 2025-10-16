@@ -203,8 +203,8 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
         save_options.export_materials = true;
         REQUIRE_THROWS_WITH(
             io::save_scene_obj(data, scene, save_options),
-            "Cannot export materials when saving to stream. Use file-based save_scene_obj() instead or set export_materials=false."
-        );
+            "Cannot export materials when saving to stream. Use file-based save_scene_obj() "
+            "instead or set export_materials=false.");
     }
 
     // Test 1b: Save to stream without materials flag should work
@@ -242,16 +242,18 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
 
         // Check OBJ file content
         std::ifstream obj_stream(obj_file);
-        std::string obj_content((std::istreambuf_iterator<char>(obj_stream)),
-                                std::istreambuf_iterator<char>());
+        std::string obj_content(
+            (std::istreambuf_iterator<char>(obj_stream)),
+            std::istreambuf_iterator<char>());
         obj_stream.close();
         REQUIRE(obj_content.find("mtllib test_with_materials.mtl") != std::string::npos);
         REQUIRE(obj_content.find("usemtl test_material") != std::string::npos);
 
         // Check MTL file content
         std::ifstream mtl_stream(mtl_file);
-        std::string mtl_content((std::istreambuf_iterator<char>(mtl_stream)),
-                                std::istreambuf_iterator<char>());
+        std::string mtl_content(
+            (std::istreambuf_iterator<char>(mtl_stream)),
+            std::istreambuf_iterator<char>());
         mtl_stream.close();
         REQUIRE(mtl_content.find("newmtl test_material") != std::string::npos);
         REQUIRE(mtl_content.find("Kd 1 0 0") != std::string::npos); // Red diffuse color

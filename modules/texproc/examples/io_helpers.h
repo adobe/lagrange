@@ -12,8 +12,8 @@
 #pragma once
 
 #include <lagrange/Logger.h>
-#include <lagrange/image/View3D.h>
 #include <lagrange/image/Array3D.h>
+#include <lagrange/image/View3D.h>
 #include <lagrange/image_io/exr.h>
 #include <lagrange/image_io/load_image.h>
 #include <lagrange/scene/Scene.h>
@@ -29,7 +29,8 @@ Array3Df convert_from(const lagrange::image_io::LoadImageResult& img)
 {
     size_t width = img.width;
     size_t height = img.height;
-    Array3Df result = lagrange::image::experimental::create_image<float>(width, height, NumChannels);
+    Array3Df result =
+        lagrange::image::experimental::create_image<float>(width, height, NumChannels);
 
     using SourcePixel =
         std::conditional_t<NumChannels == 1, Precision, Eigen::Vector<Precision, NumChannels>>;

@@ -99,9 +99,10 @@ void permute_facets(SurfaceMesh<Scalar, Index>& mesh, span<const Index> new_to_o
     par_foreach_attribute_write<AttributeElement::Corner>(mesh, permute_corner);
 }
 
-#define LA_X_permute_facets(_, Scalar, Index) \
-    template LA_CORE_API void permute_facets<Scalar, Index>(SurfaceMesh<Scalar, Index>&, span<const Index>);
+#define LA_X_permute_facets(_, Scalar, Index)                \
+    template LA_CORE_API void permute_facets<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index>&,                         \
+        span<const Index>);
 LA_SURFACE_MESH_X(permute_facets, 0)
 
 } // namespace lagrange
-

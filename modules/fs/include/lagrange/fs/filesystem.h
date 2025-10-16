@@ -15,8 +15,8 @@
 
 #if defined(LAGRANGE_USE_STD_FS)
 
-#include <filesystem>
-#include <fstream>
+    #include <filesystem>
+    #include <fstream>
 namespace lagrange {
 namespace fs {
 using namespace std::filesystem;
@@ -45,8 +45,8 @@ using fstream = ghc::filesystem::fstream;
 
 #elif defined(LAGRANGE_USE_BOOST_FS)
 
-#include <boost/filesystem.hpp>
-#include <boost/filesystem/fstream.hpp>
+    #include <boost/filesystem.hpp>
+    #include <boost/filesystem/fstream.hpp>
 
 namespace lagrange {
 namespace fs {
@@ -59,6 +59,6 @@ using boost::filesystem::ofstream;
 
 #else
 
-#error Impossible situation occurred. Either LAGRANGE_USE_STD_FS, LAGRANGE_USE_GHC_FS, or LAGRANGE_USE_BOOST_FS should be defined at this point
+    #error Impossible situation occurred. Either LAGRANGE_USE_STD_FS, LAGRANGE_USE_GHC_FS, or LAGRANGE_USE_BOOST_FS should be defined at this point
 
 #endif

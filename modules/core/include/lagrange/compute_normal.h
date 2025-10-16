@@ -71,7 +71,7 @@ struct NormalOptions
  *
  * @return     The indexed attribute id of normal attribute.
  *
- * @see        `NormalOptions`.
+ * @see        @ref NormalOptions
  */
 template <typename Scalar, typename Index>
 AttributeId compute_normal(
@@ -94,7 +94,7 @@ AttributeId compute_normal(
  *
  * @return     The indexed attribute id of normal attribute.
  *
- * @see        `NormalOptions`.
+ * @see        @ref NormalOptions
  */
 template <typename Scalar, typename Index>
 AttributeId compute_normal(
@@ -118,7 +118,7 @@ AttributeId compute_normal(
  *
  * @return     The indexed attribute id of normal attribute.
  *
- * @see        `NormalOptions`.
+ * @see        @ref NormalOptions
  */
 template <typename Scalar, typename Index>
 AttributeId compute_normal(

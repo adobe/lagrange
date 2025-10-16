@@ -290,9 +290,10 @@ SurfaceMesh<Scalar, Index> subdivide_uniform(
     const SubdivisionOptions& options)
 {
     if (options.preserve_shared_indices) {
-        logger().warn("Preserving shared indices is not supported with uniform subdivision. "
-                      "Ignoring the option. To silence this warning, set 'preserve_shared_indices' "
-                      "to false.");
+        logger().warn(
+            "Preserving shared indices is not supported with uniform subdivision. "
+            "Ignoring the option. To silence this warning, set 'preserve_shared_indices' "
+            "to false.");
     }
 
     // Uniformly refine the topology up to 'num_levels'

@@ -12,8 +12,8 @@
 #pragma once
 
 #include <lagrange/fs/filesystem.h>
-#include <lagrange/scene/Scene.h>
 #include <lagrange/io/types.h>
+#include <lagrange/scene/Scene.h>
 
 #include <iosfwd>
 

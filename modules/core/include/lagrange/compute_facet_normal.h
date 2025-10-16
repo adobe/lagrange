@@ -52,7 +52,7 @@ struct FacetNormalOptions
  * @note           Non-planar polygonal facet's normal is not well defined.  This method can only
  *                 compute an approximated normal using a triangle fan.
  *
- * @see            `FacetNormalOptions`.
+ * @see            @ref FacetNormalOptions
  */
 template <typename Scalar, typename Index>
 AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOptions options = {});

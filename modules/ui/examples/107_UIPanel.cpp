@@ -26,10 +26,9 @@ int main(int argc, char** argv)
             show_imgui_demo = true;
         }
 
-        if(show_imgui_demo){
+        if (show_imgui_demo) {
             ImGui::ShowDemoWindow(&show_imgui_demo);
         }
-
     });
 
     viewer.run();

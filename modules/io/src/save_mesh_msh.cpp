@@ -434,7 +434,7 @@ void save_mesh_msh(
     fs::ofstream fout(
         filename,
         (options.encoding == io::FileEncoding::Binary ? std::ios::binary : std::ios::out));
-    
+
     if (!fout) {
         throw std::runtime_error(
             fmt::format("Failed to open MSH file for writing: {}", filename.string()));

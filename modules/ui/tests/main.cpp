@@ -13,7 +13,7 @@
 #include <catch2/catch_session.hpp>
 
 #ifdef LAGRANGE_UI_OPENGL_TESTS
-#include <lagrange/ui/types/GLContext.h>
+    #include <lagrange/ui/types/GLContext.h>
 
 struct MiniGLContext
 {

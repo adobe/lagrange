@@ -37,23 +37,11 @@ public:
     using KDTree = nanoflann::KDTreeEigenMatrixAdaptor<VertexArray>;
 
 public:
-    BVHType get_bvh_type() const override
-    {
-        return BVHType::NANOFLANN;
-    }
+    BVHType get_bvh_type() const override { return BVHType::NANOFLANN; }
 
-    bool does_support_pointcloud() const override
-    {
-        return true;
-    }
-    bool does_support_triangles() const override
-    {
-        return false;
-    }
-    bool does_support_lines() const override
-    {
-        return false;
-    }
+    bool does_support_pointcloud() const override { return true; }
+    bool does_support_triangles() const override { return false; }
+    bool does_support_lines() const override { return false; }
 
     void build(const VertexArray&, const ElementArray&) override
     {
@@ -71,10 +59,7 @@ public:
         m_tree->index_->buildIndex();
     }
 
-    bool does_support_query_closest_point() const override
-    {
-        return true;
-    }
+    bool does_support_query_closest_point() const override { return true; }
     ClosestPoint query_closest_point(const PointType& p) const override
     {
         la_runtime_assert(m_tree);
@@ -95,10 +80,7 @@ public:
         return r;
     }
 
-    bool does_support_query_k_nearest_neighbours() const override
-    {
-        return true;
-    }
+    bool does_support_query_k_nearest_neighbours() const override { return true; }
     std::vector<ClosestPoint> query_k_nearest_neighbours(const PointType& p, int k) const override
     {
         la_runtime_assert(m_tree);
@@ -119,10 +101,7 @@ public:
         return rs;
     }
 
-    bool does_support_query_in_sphere_neighbours() const override
-    {
-        return true;
-    }
+    bool does_support_query_in_sphere_neighbours() const override { return true; }
     std::vector<ClosestPoint> query_in_sphere_neighbours(const PointType& p, const Scalar radius)
         const override
     {

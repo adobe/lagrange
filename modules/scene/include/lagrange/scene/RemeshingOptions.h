@@ -61,7 +61,8 @@ struct RemeshingOptions
     size_t min_facets = lagrange::invalid<size_t>();
 
     /// Behavior for meshes without instances in the scene.
-    UninstantiatedMeshesStrategy uninstantiated_meshes_strategy = UninstantiatedMeshesStrategy::None;
+    UninstantiatedMeshesStrategy uninstantiated_meshes_strategy =
+        UninstantiatedMeshesStrategy::None;
 
     /// Optional per-instance weights/importance. Must be > 0.
     std::vector<float> per_instance_importance;

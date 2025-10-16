@@ -184,10 +184,11 @@ void check_mesh(const MeshType& mesh)
         REQUIRE(is_surjective<Index>(c2e, 0, ne));
         REQUIRE(is_injective<Index>(e2c, 0, nc));
         REQUIRE(is_in_range_or_invalid<Index>(v2c, 0, nc));
-        REQUIRE(is_restriction_injective<Index>(
-            v2c,
-            0,
-            nc)); // may have isolated vertices that map to invalid<>()
+        REQUIRE(
+            is_restriction_injective<Index>(
+                v2c,
+                0,
+                nc)); // may have isolated vertices that map to invalid<>()
 
         // Make sure that e2c contains the name number of edges as the mesh
         std::set<std::pair<Index, Index>> edges;

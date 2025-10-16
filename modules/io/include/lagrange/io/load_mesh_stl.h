@@ -38,7 +38,7 @@ MeshType load_mesh_stl(std::istream& input_stream, const LoadOptions& options = 
  * @param[in]  filename  Input filename.
  * @param[in]  options   Load options.
  *
- * @see        load_mesh_stl(std::istream&, const LoadOptions&) for more info.
+ * @see        @ref load_mesh_stl
  *
  * @return     Loaded mesh.
  */

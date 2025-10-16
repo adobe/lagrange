@@ -19,6 +19,7 @@
 
 #include <lagrange/common.h>
 #include <lagrange/compute_pointcloud_pca.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/safe_cast.h>
 
 TEST_CASE("compute_pointcloud_pca", "[compute_pointcloud_pca][symmetry]")
@@ -31,7 +32,7 @@ TEST_CASE("compute_pointcloud_pca", "[compute_pointcloud_pca][symmetry]")
 
     // An arbitrary rotation
     const Eigen::Matrix3d rotation =
-        Eigen::AngleAxisd(M_PI * 0.2657, Eigen::Vector3d(-1, 4, -7).normalized())
+        Eigen::AngleAxisd(lagrange::internal::pi * 0.2657, Eigen::Vector3d(-1, 4, -7).normalized())
             .toRotationMatrix();
 
     // An arbitrary translation
@@ -128,7 +129,13 @@ TEST_CASE("compute_pointcloud_pca", "[compute_pointcloud_pca][symmetry]")
         options.shift_centroid = true;
         options.normalize = false;
         auto out = compute_pointcloud_pca(points_span, options);
-        verify_pca(1 /* mass */, points_tr, out.eigenvalues, out.eigenvectors, rotation, translation);
+        verify_pca(
+            1 /* mass */,
+            points_tr,
+            out.eigenvalues,
+            out.eigenvectors,
+            rotation,
+            translation);
         Eigen::Vector3d center(out.center.data());
         REQUIRE((center - translation).norm() == Catch::Approx(0.).margin(eps));
     }
@@ -161,7 +168,7 @@ TEST_CASE("legacy::compute_pointcloud_pca", "[compute_pointcloud_pca][symmetry]"
 
     // An arbitrary rotation
     const Eigen::Matrix3d rotation =
-        Eigen::AngleAxisd(M_PI * 0.2657, Eigen::Vector3d(-1, 4, -7).normalized())
+        Eigen::AngleAxisd(lagrange::internal::pi * 0.2657, Eigen::Vector3d(-1, 4, -7).normalized())
             .toRotationMatrix();
 
     // An arbitrary translation

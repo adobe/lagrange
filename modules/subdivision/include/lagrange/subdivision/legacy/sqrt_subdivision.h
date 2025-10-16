@@ -14,6 +14,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/legacy/inline.h>
 
 // clang-format off
@@ -66,7 +67,8 @@ void sqrt_subdivision(
     igl::adjacency_list(FI, VV);
     for (Index i = 0; i < (Index)VI.rows(); ++i) {
         Scalar n = static_cast<Scalar>(VV[i].size());
-        Scalar an = static_cast<Scalar>((4.0 - 2.0 * std::cos(2.0 * M_PI / n)) / 9.0);
+        Scalar an =
+            static_cast<Scalar>((4.0 - 2.0 * std::cos(2.0 * lagrange::internal::pi / n)) / 9.0);
         RowVector3s sum_vi = RowVector3s::Zero();
         for (auto j : VV[i]) {
             sum_vi += VI.row(j);

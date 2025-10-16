@@ -34,9 +34,7 @@ public:
         return names;
     }
 
-    size_t get_size() const {
-        return m_data.size();
-    }
+    size_t get_size() const { return m_data.size(); }
 
     bool has(const std::string& name) const { return m_data.find(name) != m_data.end(); }
 
@@ -207,9 +205,7 @@ public:
     {
         LA_IGNORE_SHADOW_WARNING_BEGIN
         enum { DATA = 0 };
-        ar.object([&](auto& ar) {
-            ar("data", DATA) & m_data;
-        });
+        ar.object([&](auto& ar) { ar("data", DATA) & m_data; });
         LA_IGNORE_SHADOW_WARNING_END
     }
 
@@ -231,9 +227,7 @@ void serialize(std::pair<std::string, IndexedAttribute>& entry, Archive& ar)
 }
 
 template <typename Archive>
-void serialize(
-    std::map<std::string, std::unique_ptr<IndexedAttribute>>& attrs,
-    Archive& ar)
+void serialize(std::map<std::string, std::unique_ptr<IndexedAttribute>>& attrs, Archive& ar)
 {
     std::vector<std::pair<std::string, ::lagrange::experimental::IndexedAttribute>> data;
     if (!ar.is_input()) {

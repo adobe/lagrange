@@ -15,8 +15,8 @@
 #include <lagrange/compute_uv_tile_list.h>
 #include <lagrange/foreach_attribute.h>
 
-#include <unordered_set>
 #include <array>
+#include <unordered_set>
 
 namespace lagrange {
 
@@ -75,9 +75,9 @@ std::vector<std::pair<int32_t, int32_t>> compute_uv_tile_list(
     return result;
 }
 
-#define LA_X_compute_uv_tile_list(_, Scalar, Index)                                        \
-    template LA_CORE_API std::vector<std::pair<int32_t, int32_t>> compute_uv_tile_list<Scalar, Index>( \
-        const SurfaceMesh<Scalar, Index>&);
+#define LA_X_compute_uv_tile_list(_, Scalar, Index)               \
+    template LA_CORE_API std::vector<std::pair<int32_t, int32_t>> \
+    compute_uv_tile_list<Scalar, Index>(const SurfaceMesh<Scalar, Index>&);
 LA_SURFACE_MESH_X(compute_uv_tile_list, 0)
 
 } // namespace lagrange

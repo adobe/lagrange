@@ -12,6 +12,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/testing/api.h>
 #include <lagrange/testing/create_test_mesh.h>
 
@@ -61,7 +62,7 @@ SurfaceMesh<Scalar, Index> create_test_cube(CreateOptions options)
     }
 
     if (options.with_indexed_normal) {
-        compute_normal<Scalar, Index>(cube, static_cast<Scalar>(M_PI / 4));
+        compute_normal<Scalar, Index>(cube, static_cast<Scalar>(lagrange::internal::pi / 4));
     }
 
     return cube;

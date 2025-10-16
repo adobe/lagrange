@@ -78,7 +78,7 @@ struct FrustumSelectionOptions
  * @post            If `options.greedy` is false, the computed selection is stored in `mesh` as a
  *                  facet attribute named `options.output_attribute_name`.
  *
- * @see             Frustum and FrustumSelectionOptions.
+ * @see             @ref Frustum and @ref FrustumSelectionOptions.
  */
 template <typename Scalar, typename Index>
 bool select_facets_in_frustum(

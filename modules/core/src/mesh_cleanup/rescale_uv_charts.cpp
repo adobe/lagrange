@@ -11,14 +11,14 @@
  */
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
-#include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/Logger.h>
+#include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/compute_uv_charts.h>
+#include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/mesh_cleanup/rescale_uv_charts.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/views.h>
-#include <lagrange/compute_uv_charts.h>
 
 
 #include <Eigen/Core>
@@ -152,9 +152,9 @@ void rescale_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const RescaleUVOptions&
     la_runtime_assert(uv_values.array().isFinite().all(), "UV values contain NaN or Inf.");
 }
 
-#define LA_X_rescale_uv_charts(_, Scalar, Index)    \
+#define LA_X_rescale_uv_charts(_, Scalar, Index)                \
     template LA_CORE_API void rescale_uv_charts<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                \
+        SurfaceMesh<Scalar, Index>&,                            \
         const RescaleUVOptions&);
 LA_SURFACE_MESH_X(rescale_uv_charts, 0)
 

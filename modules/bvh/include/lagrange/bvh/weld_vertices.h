@@ -16,6 +16,9 @@
 
 namespace lagrange::bvh {
 
+/// @addtogroup module-bvh
+/// @{
+
 struct WeldOptions
 {
     /// Maximum Euclidean distance between two vertices to be considered "nearby".
@@ -42,5 +45,7 @@ struct WeldOptions
 ///
 template <typename Scalar, typename Index>
 void weld_vertices(SurfaceMesh<Scalar, Index>& mesh, WeldOptions options = {});
+
+/// @}
 
 } // namespace lagrange::bvh

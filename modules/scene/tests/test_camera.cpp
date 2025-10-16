@@ -35,7 +35,8 @@ TEST_CASE("camera matrices", "[scene]")
     camera.set_horizontal_fov_from_vertical_fov(0.8726646304130554);
     camera.near_plane = 0.1f;
 
-    SECTION("finite perspective") {
+    SECTION("finite perspective")
+    {
         camera.far_plane = 1000.f;
 
         namespace utils = lagrange::scene::utils;
@@ -61,7 +62,8 @@ TEST_CASE("camera matrices", "[scene]")
         REQUIRE(proj_transform.matrix() == expected_proj);
     }
 
-    SECTION("infinite perspective") {
+    SECTION("infinite perspective")
+    {
         camera.far_plane = std::nullopt;
 
         namespace utils = lagrange::scene::utils;
@@ -87,7 +89,8 @@ TEST_CASE("camera matrices", "[scene]")
         REQUIRE(proj_transform.matrix() == expected_proj);
     }
 
-    SECTION("orthographic") {
+    SECTION("orthographic")
+    {
         camera.type = lagrange::scene::Camera::Type::Orthographic;
         camera.orthographic_width = 1.f;
 

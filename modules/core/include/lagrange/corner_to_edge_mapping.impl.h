@@ -63,8 +63,8 @@ Eigen::Index corner_to_edge_mapping(
     // Sort unoriented edges
     std::vector<UnorientedEdge> edges;
     edges.reserve(F.rows() * F.cols());
-    for (Index f = 0; f < (Index) F.rows(); ++f) {
-        for (Index lv = 0; lv < (Index) F.cols(); ++lv) {
+    for (Index f = 0; f < (Index)F.rows(); ++f) {
+        for (Index lv = 0; lv < (Index)F.cols(); ++lv) {
             auto v1 = F(f, lv);
             auto v2 = F(f, (lv + 1) % vert_per_facet);
             edges.emplace_back(v1, v2, f * vert_per_facet + lv);

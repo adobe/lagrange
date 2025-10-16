@@ -132,13 +132,13 @@ size_t compute_components(
     }
 }
 
-#define LA_X_compute_components(_, Scalar, Index)      \
+#define LA_X_compute_components(_, Scalar, Index)                  \
     template LA_CORE_API size_t compute_components<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                   \
-        ComponentOptions);                             \
+        SurfaceMesh<Scalar, Index>&,                               \
+        ComponentOptions);                                         \
     template LA_CORE_API size_t compute_components<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                   \
-        span<const Index>,                             \
+        SurfaceMesh<Scalar, Index>&,                               \
+        span<const Index>,                                         \
         ComponentOptions);
 LA_SURFACE_MESH_X(compute_components, 0)
 

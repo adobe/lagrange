@@ -19,9 +19,9 @@ namespace lagrange {
 /// element.
 ///
 enum class MappingPolicy {
-    Average,   ///< Take the average of all involved elements.
+    Average, ///< Take the average of all involved elements.
     KeepFirst, ///< Keep the value of the first elements.
-    Error,     ///< Throw an error if collision is detected.
+    Error, ///< Throw an error if collision is detected.
 };
 
 } // namespace lagrange

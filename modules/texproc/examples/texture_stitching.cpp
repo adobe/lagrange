@@ -45,7 +45,7 @@ int main(int argc, char** argv)
     app.add_option(
         "--quadrature",
         stitching_options.quadrature_samples,
-        "Number of quadrature samples (in {1, 3, 6, 12, 24, 32}.");
+        "Number of quadrature samples (in {1, 3, 6, 12, 24, 32}).");
     app.add_option(
         "--jitter-epsilon",
         stitching_options.jitter_epsilon,

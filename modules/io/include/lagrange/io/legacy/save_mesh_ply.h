@@ -16,8 +16,8 @@
 
 #include <lagrange/MeshTrait.h>
 #include <lagrange/create_mesh.h>
-#include <lagrange/utils/safe_cast.h>
 #include <lagrange/legacy/inline.h>
+#include <lagrange/utils/safe_cast.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -70,8 +70,9 @@ void save_mesh_ply(
         VDheader = {"red", "green", "blue"};
         auto C = mesh.get_vertex_attribute("color");
         if (C.maxCoeff() <= 1.0 && C.maxCoeff() > 0.0) {
-            logger().warn("Max color value is > 0.0 but <= 1.0, but colors are saved as char. "
-                          "Please convert your colors to the range [0, 255].");
+            logger().warn(
+                "Max color value is > 0.0 but <= 1.0, but colors are saved as char. "
+                "Please convert your colors to the range [0, 255].");
         }
         VD = C.template cast<unsigned char>();
         if (VD.cols() > 3) {

@@ -32,9 +32,9 @@ void remove_null_area_facets(
     }
 }
 
-#define LA_X_remove_null_area_facets(_, Scalar, Index)    \
+#define LA_X_remove_null_area_facets(_, Scalar, Index)                \
     template LA_CORE_API void remove_null_area_facets<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                      \
+        SurfaceMesh<Scalar, Index>&,                                  \
         const RemoveNullAreaFacetsOptions&);
 LA_SURFACE_MESH_X(remove_null_area_facets, 0)
 

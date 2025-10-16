@@ -104,7 +104,9 @@ int main(int argc, char** argv)
             if (mesh.has_facet_attribute("normal")) mesh.remove_facet_attribute("normal");
             if (mesh.has_vertex_attribute("normal")) mesh.remove_vertex_attribute("normal");
             if (mesh.has_corner_attribute("normal")) mesh.remove_corner_attribute("normal");
-            lagrange::compute_vertex_normal(mesh, lagrange::PER_VERTEX_NORMALS_WEIGHTING_TYPE_UNIFORM);
+            lagrange::compute_vertex_normal(
+                mesh,
+                lagrange::PER_VERTEX_NORMALS_WEIGHTING_TYPE_UNIFORM);
 
             // Recompute area attribute
             if (mesh.has_facet_attribute("area")) mesh.remove_facet_attribute("area");

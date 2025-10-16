@@ -53,16 +53,16 @@ template <
     typename DerivedVector = Eigen::Matrix<ScalarOf<SourceMeshType>, 3, 1>,
     typename DefaultScalar = typename SourceMeshType::Scalar>
 void project_attributes(
-    const SourceMeshType &source,
-    TargetMeshType &target,
-    const std::vector<std::string> &names,
+    const SourceMeshType& source,
+    TargetMeshType& target,
+    const std::vector<std::string>& names,
     ProjectMode project_mode,
-    const Eigen::MatrixBase<DerivedVector> &direction = DerivedVector(0, 0, 1),
+    const Eigen::MatrixBase<DerivedVector>& direction = DerivedVector(0, 0, 1),
     CastMode cast_mode = CastMode::BOTH_WAYS,
     WrapMode wrap_mode = WrapMode::CONSTANT,
     DefaultScalar default_value = DefaultScalar(0),
     std::function<void(typename TargetMeshType::Index, bool)> user_callback = nullptr,
-    EmbreeRayCaster<ScalarOf<SourceMeshType>> *ray_caster = nullptr,
+    EmbreeRayCaster<ScalarOf<SourceMeshType>>* ray_caster = nullptr,
     std::function<bool(IndexOf<TargetMeshType>)> skip_vertex = nullptr)
 {
     static_assert(MeshTrait<SourceMeshType>::is_mesh(), "Input type is not Mesh");

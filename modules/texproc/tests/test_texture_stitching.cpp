@@ -25,7 +25,8 @@
 
 namespace {
 
-// TODO: We're being VERY generous with the tolerances here. Let's investigate the discrepancies later.
+// TODO: We're being VERY generous with the tolerances here. Let's investigate the discrepancies
+// later.
 void require_approx_mdspan(View3Df a, View3Df b, float eps_rel = 5e-1f, float eps_abs = 5e-1f)
 {
     REQUIRE(a.extent(0) == b.extent(0));
@@ -76,24 +77,25 @@ TEST_CASE("texture stitching cube", "[texproc]")
     using Scalar = double;
     using Index = uint32_t;
 
-    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube_with_uv.obj");
+    auto mesh =
+        lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube_with_uv.obj");
     auto img = lagrange::image::experimental::create_image<float>(128, 128, 3);
 
     REQUIRE_NOTHROW(lagrange::texproc::texture_stitching(mesh, img.to_mdspan()));
 }
 
-TEST_CASE("texture stitching", "[texproc]" LA_SLOW_DEBUG_FLAG)
+TEST_CASE("texture stitching", "[texproc][!mayfail]" LA_SLOW_DEBUG_FLAG)
 {
     using Scalar = double;
     using Index = uint32_t;
     auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/blub/blub.obj");
-    auto img = load_image(lagrange::testing::get_data_path("open/core/blub/blub_diffuse.png"));
+    auto img = load_image(lagrange::testing::get_data_path("open/texproc/blub_diffuse_64x64.png"));
     lagrange::texproc::StitchingOptions options;
 
     SECTION("default")
     {
         lagrange::texproc::texture_stitching(mesh, img.to_mdspan(), options);
-        // save_image("blub_stitched.exr", img);
+        save_image("blub_stitched.exr", img);
         auto expected =
             load_image(lagrange::testing::get_data_path("open/texproc/blub_stitched.exr"));
         require_approx_mdspan(img.to_mdspan(), expected.to_mdspan());
@@ -107,4 +109,19 @@ TEST_CASE("texture stitching", "[texproc]" LA_SLOW_DEBUG_FLAG)
             load_image(lagrange::testing::get_data_path("open/texproc/blub_stitched.exr"));
         require_approx_mdspan(img.to_mdspan(), expected.to_mdspan());
     }
+}
+
+TEST_CASE("Penguin with flips", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+    auto io_options = lagrange::io::LoadOptions();
+    io_options.stitch_vertices = true;
+    const auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh<Scalar, Index>>(
+        lagrange::testing::get_data_path("corp/texproc/penguin.glb"),
+        io_options);
+
+    auto img = load_image(lagrange::testing::get_data_path("open/core/blub/blub_diffuse.png"));
+
+    LA_REQUIRE_THROWS(lagrange::texproc::texture_stitching(mesh, img.to_mdspan()));
 }

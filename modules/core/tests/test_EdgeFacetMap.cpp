@@ -17,6 +17,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 
 namespace {
 
@@ -127,7 +128,7 @@ TEST_CASE("EdgeFacetMap", "[EdgeFacetMap]")
         vertices.row(0).setZero();
         for (Index i = 1; i < N + 1; i++) {
             const double ratio = double(i - 1) / double(N);
-            const double angle = M_PI * 2 * ratio;
+            const double angle = lagrange::internal::pi * 2 * ratio;
             vertices.row(i) << cos(angle), sin(angle), 0.0;
         }
 

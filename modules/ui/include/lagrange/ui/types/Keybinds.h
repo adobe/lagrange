@@ -101,8 +101,7 @@ public:
     bool has(
         const std::string& action,
         ImGuiKey button,
-        const std::vector<ImGuiKey>& modifiers = {})
-        const;
+        const std::vector<ImGuiKey>& modifiers = {}) const;
 
 
     /// @brief Adds a key binding for given action

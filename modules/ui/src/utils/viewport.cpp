@@ -139,7 +139,8 @@ bool camera_focus_and_fit(
     return true;
 }
 
-void camera_focus_and_fit(Registry& registry) {
+void camera_focus_and_fit(Registry& registry)
+{
     camera_focus_and_fit(registry, ui::get_focused_camera_entity(registry));
 }
 

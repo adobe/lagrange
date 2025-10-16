@@ -16,8 +16,8 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 
-#include <lagrange/utils/assert.h>
 #include <lagrange/legacy/inline.h>
+#include <lagrange/utils/assert.h>
 
 namespace lagrange {
 LAGRANGE_LEGACY_INLINE

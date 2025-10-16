@@ -12,8 +12,8 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
-#include <lagrange/image/View3D.h>
 #include <lagrange/image/Array3D.h>
+#include <lagrange/image/View3D.h>
 
 #include <string_view>
 
@@ -23,17 +23,17 @@ namespace lagrange::texproc {
 /// @{
 
 ///
-/// Options for texture stitching.
+/// Options for texture compositing.
 ///
 struct CompositingOptions
 {
-    /// The weight for fitting the values of the signal
+    /// The weight for fitting the values of the signal.
     double value_weight = 1e3;
 
-    /// The number of quadrature samples to use for integration
+    /// The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
     unsigned int quadrature_samples = 6;
 
-    /// Jitter amount per texel (0 to deactivate)
+    /// Jitter amount per texel (0 to deactivate).
     double jitter_epsilon = 1e-4;
 
     /// Whether to smooth pixels with a low total weight (< 1). When enabled, this will not dampen
@@ -41,16 +41,16 @@ struct CompositingOptions
     /// low-confidence areas.
     bool smooth_low_weight_areas = false;
 
-    /// Multigrid solver options
+    /// Multigrid solver options.
     struct SolverOptions
     {
-        /// Number of multigrid levels
+        /// Number of multigrid levels.
         unsigned int num_multigrid_levels = 4;
 
-        /// Number of Gauss-Seidel iterations per multigrid level
+        /// Number of Gauss-Seidel iterations per multigrid level.
         unsigned int num_gauss_seidel_iterations = 3;
 
-        /// Number of V-cycles to perform
+        /// Number of V-cycles to perform.
         unsigned int num_v_cycles = 5;
     } solver;
 };

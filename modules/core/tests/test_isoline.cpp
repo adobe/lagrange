@@ -15,6 +15,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/compute_components.h>
 #include <lagrange/find_matching_attributes.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/isoline.h>
 #include <lagrange/orientation.h>
@@ -22,8 +23,8 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/utils/range.h>
-#include <lagrange/views.h>
 #include <lagrange/utils/warning.h>
+#include <lagrange/views.h>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
@@ -51,10 +52,10 @@ create_grid(const Index n, const Index m, const Index num_dims, const Scalar del
         for (auto j : lagrange::range(m)) {
             const Scalar iscaled = Scalar(i) / (n - 1);
             const Scalar jscaled = Scalar(j) / (m - 1);
-LA_IGNORE_ARRAY_BOUNDS_BEGIN
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
             Eigen::RowVector3<Scalar> pt(iscaled, jscaled, 0);
             vertices.row(j * n + i) = pt.head(num_dims);
-LA_IGNORE_ARRAY_BOUNDS_END
+            LA_IGNORE_ARRAY_BOUNDS_END
         }
     }
     for (auto i : lagrange::range(n - 1)) {
@@ -186,8 +187,8 @@ TEST_CASE("trim_by_isoline ellipse", "[isoline]")
         const Scalar eb = sqrt(options.isovalue / b);
         // https://www.mathsisfun.com/geometry/ellipse-perimeter.html
         const Scalar h = (ea - eb) * (ea - eb) / ((ea + eb) * (ea + eb));
-        const Scalar perimeter_analytical =
-            lagrange::safe_cast<Scalar>(M_PI * (ea + eb) * (1 + 3 * h / (10 + sqrt(4 - 3 * h))));
+        const Scalar perimeter_analytical = lagrange::safe_cast<Scalar>(
+            lagrange::internal::pi * (ea + eb) * (1 + 3 * h / (10 + sqrt(4 - 3 * h))));
 
         lagrange::logger().debug(
             "analytical: {}, computed: {}",

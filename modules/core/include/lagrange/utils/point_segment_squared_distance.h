@@ -69,11 +69,11 @@ namespace lagrange {
 ///
 /// @return     the squared distance between the point and the segment [\p V0, @p V1]
 ///
-template <typename PointType>
+template <typename PointType, typename PointType2>
 auto point_segment_squared_distance(
     const Eigen::MatrixBase<PointType>& point,
-    const Eigen::MatrixBase<PointType>& V0,
-    const Eigen::MatrixBase<PointType>& V1,
+    const Eigen::MatrixBase<PointType2>& V0,
+    const Eigen::MatrixBase<PointType2>& V1,
     Eigen::PlainObjectBase<PointType>& closest_point,
     ScalarOf<PointType>& lambda0,
     ScalarOf<PointType>& lambda1) -> ScalarOf<PointType>

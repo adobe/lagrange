@@ -9,8 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <Eigen/Core>
 #include <lagrange/testing/common.h>
+#include <Eigen/Core>
 #include <iostream>
 
 #include <lagrange/Connectivity.h>

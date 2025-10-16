@@ -14,6 +14,7 @@
 #include <lagrange/attributes/unify_index_buffer.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/utils/timing.h>
@@ -30,7 +31,7 @@ std::unique_ptr<lagrange::TriangleMesh3D> import_mesh(const std::string& filenam
         lagrange::logger().info("     # UV coords: {}", mesh->get_uv().rows());
     }
     {
-        lagrange::compute_normal(*mesh, M_PI * 0.5);
+        lagrange::compute_normal(*mesh, lagrange::internal::pi * 0.5);
         la_runtime_assert(mesh->has_indexed_attribute("normal"));
         lagrange::logger().info(
             "# normals values: {}",

@@ -19,10 +19,10 @@
  * mesh type, you can #include <lagrange/io/load_mesh.impl.h> instead.
  */
 
+#include <lagrange/MeshTrait.h>
 #include <lagrange/common.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/legacy/inline.h>
-#include <lagrange/MeshTrait.h>
 
 #include <memory>
 #include <vector>

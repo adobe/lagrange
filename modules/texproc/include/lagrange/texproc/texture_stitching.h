@@ -29,13 +29,13 @@ struct StitchingOptions
     /// If true, interior texels are fixed degrees of freedom.
     bool exterior_only = false;
 
-    /// The number of quadrature samples to use for integration
+    /// The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
     unsigned int quadrature_samples = 6;
 
-    /// Jitter amount per texel (0 to deactivate)
+    /// Jitter amount per texel (0 to deactivate).
     double jitter_epsilon = 1e-4;
 
-    /// Initially the boundary texels to random values (for debugging purposes)
+    /// Initially the boundary texels to random values (for debugging purposes).
     bool __randomize = false;
 };
 

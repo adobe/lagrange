@@ -82,7 +82,6 @@ lagrange_find_package(spdlog REQUIRED)
 lagrange_find_package(TBB CONFIG REQUIRED)
 target_link_libraries(lagrange_core PUBLIC
     Eigen3::Eigen
-    lagrange::warnings
     nonstd::span-lite
     spdlog::spdlog
     TBB::tbb

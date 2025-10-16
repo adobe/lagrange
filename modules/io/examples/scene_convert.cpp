@@ -33,12 +33,22 @@ int main(int argc, char** argv)
 
     lagrange::logger().set_level(spdlog::level::info);
 
-    CLI::App app{"Scene format conversion tool - loads any supported scene format and saves to any supported format", argv[0]};
+    CLI::App app{
+        "Scene format conversion tool - loads any supported scene format and saves to any "
+        "supported format",
+        argv[0]};
     app.option_defaults()->always_capture_default();
-    app.add_option("input", args.input, "Input scene file. Supported formats: .gltf, .glb, .fbx, .obj (and others if Assimp is enabled).")
+    app.add_option(
+           "input",
+           args.input,
+           "Input scene file. Supported formats: .gltf, .glb, .fbx, .obj (and others if Assimp is "
+           "enabled).")
         ->required()
         ->check(CLI::ExistingFile);
-    app.add_option("output", args.output, "Output scene file. Supported formats: .gltf, .glb, .obj.")
+    app.add_option(
+           "output",
+           args.output,
+           "Output scene file. Supported formats: .gltf, .glb, .obj.")
         ->required();
     app.add_flag("-v,--verbose", args.verbose, "Verbose output.");
     CLI11_PARSE(app, argc, argv)

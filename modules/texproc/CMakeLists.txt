@@ -38,5 +38,5 @@ if(LAGRANGE_EXAMPLES)
 endif()
 
 if(LAGRANGE_MODULE_PYTHON)
-   add_subdirectory(python)
+    add_subdirectory(python)
 endif()

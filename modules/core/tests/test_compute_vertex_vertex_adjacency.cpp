@@ -27,7 +27,7 @@ TEST_CASE("compute_vertex_vertex_adjacency", "[surface][adjacency][utilities]")
     using Index = uint32_t;
 
     auto check_adjacency = [](SurfaceMesh<Scalar, Index>& mesh,
-            const AdjacencyList<Index>& adjacency_list) {
+                              const AdjacencyList<Index>& adjacency_list) {
         mesh.initialize_edges();
         for (Index ei = 0; ei < mesh.get_num_edges(); ei++) {
             const auto e_vertices = mesh.get_edge_vertices(ei);
@@ -108,7 +108,10 @@ TEST_CASE(
     using Index = uint32_t;
 
     auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
-    BENCHMARK("compute_vertex_vertex_adjacency") { return compute_vertex_vertex_adjacency(mesh); };
+    BENCHMARK("compute_vertex_vertex_adjacency")
+    {
+        return compute_vertex_vertex_adjacency(mesh);
+    };
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     using MeshType = TriangleMesh3D;

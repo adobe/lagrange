@@ -68,8 +68,6 @@ LA_UI_API Entity get_hovered_viewport_panel_entity(Registry& registry);
 LA_UI_API Entity get_hovered_viewport_entity(Registry& registry);
 
 
-
-
 /// @brief Adjusts camera to fit the scene bounding box over the next several frames.
 /// If filter is specified, it will focus only on entities passing the filter test.
 /// @param registry

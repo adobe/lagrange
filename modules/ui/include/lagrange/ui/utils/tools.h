@@ -39,16 +39,15 @@ LA_UI_API void update_previous_tool(ui::Registry& r);
 /// Was tool type activated this frame
 LA_UI_API bool is_tool_activated(const ui::Registry& r, entt::id_type tool_type);
 /// Was tool type and element type activated this frame
-LA_UI_API bool is_tool_activated(const ui::Registry& r, entt::id_type tool_type, entt::id_type element_type);
+LA_UI_API bool
+is_tool_activated(const ui::Registry& r, entt::id_type tool_type, entt::id_type element_type);
 
 
 /// Was tool type deactivated this frame
 LA_UI_API bool is_tool_deactivated(const ui::Registry& r, entt::id_type tool_type);
 /// Was tool type and element type deactivated this frame
-LA_UI_API bool is_tool_deactivated(
-    const ui::Registry& r,
-    entt::id_type tool_type,
-    entt::id_type element_type);
+LA_UI_API bool
+is_tool_deactivated(const ui::Registry& r, entt::id_type tool_type, entt::id_type element_type);
 
 
 template <typename ToolTag>

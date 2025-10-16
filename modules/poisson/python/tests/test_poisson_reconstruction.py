@@ -18,7 +18,6 @@ import logging
 
 
 def fibonacci_sphere(num_points=1000):
-
     points = []
     phi = math.pi * (math.sqrt(5.0) - 1.0)
 

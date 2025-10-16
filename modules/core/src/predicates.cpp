@@ -125,8 +125,8 @@
 #include <stdlib.h>
 
 #if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 namespace lagrange {
@@ -3986,7 +3986,13 @@ REAL insphereslow(REAL* pa, REAL* pb, REAL* pc, REAL* pd, REAL* pe)
     return deter[deterlen - 1];
 }
 
-REAL insphereadapt(const REAL* pa, const REAL* pb, const REAL* pc, const REAL* pd, const REAL* pe, REAL permanent)
+REAL insphereadapt(
+    const REAL* pa,
+    const REAL* pb,
+    const REAL* pc,
+    const REAL* pd,
+    const REAL* pe,
+    REAL permanent)
 {
     INEXACT REAL aex, bex, cex, dex, aey, bey, cey, dey, aez, bez, cez, dez;
     REAL det, errbound;
@@ -4283,5 +4289,5 @@ REAL insphere(const REAL* pa, const REAL* pb, const REAL* pc, const REAL* pd, co
 
 } // namespace lagrange
 #if defined(__GNUC__) && !defined(__clang__)
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #endif

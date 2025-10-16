@@ -40,7 +40,6 @@ class TestTextureProcessing:
 
         assert quad_tex_.shape == quad_tex.shape
 
-
     def test_stitching_cube(self, cube_with_uv, quad_tex):
         assert cube_with_uv.has_attribute("uv")
         assert cube_with_uv.num_vertices == 8
@@ -50,7 +49,6 @@ class TestTextureProcessing:
         quad_tex_ = lagrange.texproc.texture_stitching(cube_with_uv, quad_tex)
 
         assert quad_tex_.shape == quad_tex.shape
-
 
     def test_geodesic_dilation(self, quad_mesh, quad_tex):
         assert quad_mesh.has_attribute("uv")

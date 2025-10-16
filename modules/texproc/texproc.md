@@ -1,7 +1,7 @@
-Filtering Module
+Texproc Module
 ============
 
-@namespace lagrange::filtering
+@namespace lagrange::texproc
 
-@defgroup module-filtering Filtering Module
-@brief Mesh filtering utilities.
+@defgroup module-texproc Texproc Module
+@brief Texture-space processing utilities.

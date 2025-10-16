@@ -34,7 +34,7 @@ int main(int argc, char** argv)
         if (ImGui::Button("Load multiple files")) {
             const auto paths = ui::open_files("Load multiple files");
             lagrange::logger().info("Paths:");
-            for (const auto & path : paths) {
+            for (const auto& path : paths) {
                 lagrange::logger().info("{}", path.string());
             }
         }

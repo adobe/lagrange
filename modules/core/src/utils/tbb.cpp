@@ -20,7 +20,7 @@
 // clang-format on
 
 #ifndef TBB_INTERFACE_VERSION_MAJOR
-#error "TBB_INTERFACE_VERSION_MAJOR macro is not defined"
+    #error "TBB_INTERFACE_VERSION_MAJOR macro is not defined"
 #endif
 
 namespace lagrange {

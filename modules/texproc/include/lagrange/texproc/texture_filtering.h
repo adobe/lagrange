@@ -26,10 +26,10 @@ namespace lagrange::texproc {
 ///
 struct FilteringOptions
 {
-    /// The weight for fitting the values of the signal
+    /// The weight for fitting the values of the signal.
     double value_weight = 1e3;
 
-    /// The weight for fitting the modulated gradients of the signal
+    /// The weight for fitting the modulated gradients of the signal.
     ///
     /// @note       There is no reason to have modify both the value-weight and the gradient-weight.
     ///             Results obtained by scaling the value-weight by a factor should be equivalent to
@@ -40,10 +40,10 @@ struct FilteringOptions
     /// between [2, 10] for sharpening.
     double gradient_scale = 1.;
 
-    /// The number of quadrature samples to use for integration
+    /// The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
     unsigned int quadrature_samples = 6;
 
-    /// Jitter amount per texel (0 to deactivate)
+    /// Jitter amount per texel (0 to deactivate).
     double jitter_epsilon = 1e-4;
 };
 

@@ -21,7 +21,7 @@ def parse_args():
     parser.add_argument("input_mesh", help="input mesh file")
     parser.add_argument("output_mesh", help="output mesh file")
     parser.add_argument("--triangulate", "-t", action="store_true", help="triangulate the mesh")
-    parser.add_argument("--stitch-vertices", '-s', action="store_true", help="stitch vertices")
+    parser.add_argument("--stitch-vertices", "-s", action="store_true", help="stitch vertices")
     parser.add_argument(
         "--logging-level",
         "-l",

@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/internal/constants.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/views.h>
 #include <lagrange/winding/FastWindingNumber.h>
@@ -60,7 +61,7 @@ public:
         q[0] = pos.x();
         q[1] = pos.y();
         q[2] = pos.z();
-        return m_engine.computeSolidAngle(q) / (4.f * M_PI) > 0.5f;
+        return m_engine.computeSolidAngle(q) / (4.f * lagrange::internal::pi) > 0.5f;
     }
 
 protected:

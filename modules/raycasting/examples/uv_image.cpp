@@ -12,11 +12,12 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/create_mesh.h>
 #include <lagrange/image_io/save_image.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/raycasting/create_ray_caster.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/create_mesh.h>
 
 #include <CLI/CLI.hpp>
 #include <cassert>
@@ -69,7 +70,7 @@ std::vector<float> generate_uv_image_with_normal_as_color(MeshType& mesh, size_t
         normal_indices.resize(mesh.get_num_facets(), mesh.get_vertex_per_facet());
         std::iota(normal_indices.data(), normal_indices.data() + normal_indices.size(), 0);
     } else {
-        compute_normal(mesh, M_PI / 6);
+        compute_normal(mesh, lagrange::internal::pi / 6);
         auto normals = mesh.get_indexed_attribute("normal");
         normal_values = std::get<0>(normals);
         normal_indices = std::get<1>(normals);

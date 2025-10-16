@@ -10,9 +10,9 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/testing/common.h>
-#include <lagrange/mesh_cleanup/rescale_uv_charts.h>
 #include <lagrange/compute_uv_distortion.h>
+#include <lagrange/mesh_cleanup/rescale_uv_charts.h>
+#include <lagrange/testing/common.h>
 #include <lagrange/views.h>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -45,11 +45,15 @@ TEST_CASE("rescale_uv_charts", "[surface][mesh_cleanup]")
         REQUIRE_THAT(distortion.maxCoeff(), Catch::Matchers::WithinAbs(expected_distortion, 1e-6));
     };
 
-    SECTION("No scaling") {
+    SECTION("No scaling")
+    {
         std::vector<Scalar> uv_values = {0, 0, 1, 0, 1, 1, 0, 1};
         std::vector<Index> uv_indices = {0, 1, 2, 0, 2, 3};
         mesh.template create_attribute<Scalar>(
-            "uv", AttributeElement::Indexed, AttributeUsage::UV, 2, 
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
             {uv_values.data(), uv_values.size()},
             {uv_indices.data(), uv_indices.size()});
 
@@ -58,11 +62,15 @@ TEST_CASE("rescale_uv_charts", "[surface][mesh_cleanup]")
         check_uv_distortion(1.0, "uv");
     }
 
-    SECTION("Stretch in U") {
+    SECTION("Stretch in U")
+    {
         std::vector<Scalar> uv_values = {0, 0, 10, 0, 10, 1, 0, 1};
         std::vector<Index> uv_indices = {0, 1, 2, 0, 2, 3};
         mesh.template create_attribute<Scalar>(
-            "uv", AttributeElement::Indexed, AttributeUsage::UV, 2, 
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
             {uv_values.data(), uv_values.size()},
             {uv_indices.data(), uv_indices.size()});
 
@@ -71,11 +79,15 @@ TEST_CASE("rescale_uv_charts", "[surface][mesh_cleanup]")
         check_uv_distortion(1.0, "uv");
     }
 
-    SECTION("Stretch in U and V") {
+    SECTION("Stretch in U and V")
+    {
         std::vector<Scalar> uv_values = {0, 0, 10, 0, 10, 10, 0, 10};
         std::vector<Index> uv_indices = {0, 1, 2, 0, 2, 3};
         mesh.template create_attribute<Scalar>(
-            "uv", AttributeElement::Indexed, AttributeUsage::UV, 2, 
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
             {uv_values.data(), uv_values.size()},
             {uv_indices.data(), uv_indices.size()});
 

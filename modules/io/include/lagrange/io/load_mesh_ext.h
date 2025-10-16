@@ -14,5 +14,5 @@
 // remove this file when we drop support for legacy mesh
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-#include <lagrange/io/legacy/load_mesh_ext.h>
+    #include <lagrange/io/legacy/load_mesh_ext.h>
 #endif

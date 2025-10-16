@@ -102,8 +102,9 @@ public:
 #ifndef NDEBUG
         void* ptr2 = m_values->data();
         if (ptr != ptr2) {
-            logger().warn("Attribute values are copied when they should have been moved.  "
-                          "Likely caused by inexact match of `Derived` type.");
+            logger().warn(
+                "Attribute values are copied when they should have been moved.  "
+                "Likely caused by inexact match of `Derived` type.");
         }
 #endif
     }

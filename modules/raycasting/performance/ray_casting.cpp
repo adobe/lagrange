@@ -19,11 +19,12 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <lagrange/common.h>
 #include <lagrange/Mesh.h>
+#include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
-#include <lagrange/utils/timing.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/raycasting/create_ray_caster.h>
+#include <lagrange/utils/timing.h>
 
 template <typename RayCasterPtr, typename Mesh>
 void ray_cast(RayCasterPtr& caster, Mesh& /*mesh*/, size_t N)
@@ -34,7 +35,7 @@ void ray_cast(RayCasterPtr& caster, Mesh& /*mesh*/, size_t N)
     for (size_t i = 0; i <= N; i++) {
         Eigen::Matrix4d trans;
         trans.setIdentity();
-        double angle = double(i) / double(N) * 2 * M_PI;
+        double angle = double(i) / double(N) * 2 * lagrange::internal::pi;
         trans.block(0, 0, 3, 3) = Eigen::AngleAxis<double>(angle, axis).toRotationMatrix();
 
         caster->update_transformation(0, 0, trans);
@@ -42,9 +43,10 @@ void ray_cast(RayCasterPtr& caster, Mesh& /*mesh*/, size_t N)
         Eigen::Vector3d origin;
         origin.setZero();
         for (size_t j = 0; j <= N; j++) {
-            double theta = double(j) / double(N) * 2 * M_PI;
+            double theta = double(j) / double(N) * 2 * lagrange::internal::pi;
             for (size_t k = 0; k <= N; k++) {
-                double phi = double(k) / double(N) * M_PI - 0.5 * M_PI;
+                double phi =
+                    double(k) / double(N) * lagrange::internal::pi - 0.5 * lagrange::internal::pi;
                 Eigen::Vector3d direction(cos(phi) * cos(theta), cos(phi) * sin(theta), sin(phi));
 
                 size_t mesh_index;
@@ -53,7 +55,15 @@ void ray_cast(RayCasterPtr& caster, Mesh& /*mesh*/, size_t N)
                 double ray_depth;
                 Eigen::Vector3d bc;
                 Eigen::Vector3d norm;
-                bool hit = caster->cast(origin, direction, mesh_index, instance_index, facet_index, ray_depth, bc, norm);
+                bool hit = caster->cast(
+                    origin,
+                    direction,
+                    mesh_index,
+                    instance_index,
+                    facet_index,
+                    ray_depth,
+                    bc,
+                    norm);
                 counter++;
                 if (hit) {
                     hit_counter++;
@@ -74,7 +84,7 @@ void occlusion_cast(RayCasterPtr& caster, Mesh& /*mesh*/, size_t N)
     for (size_t i = 0; i <= N; i++) {
         Eigen::Matrix4d trans;
         trans.setIdentity();
-        double angle = double(i) / double(N) * 2 * M_PI;
+        double angle = double(i) / double(N) * 2 * lagrange::internal::pi;
         trans.block(0, 0, 3, 3) = Eigen::AngleAxis<double>(angle, axis).toRotationMatrix();
 
         caster->update_transformation(0, 0, trans);
@@ -82,9 +92,10 @@ void occlusion_cast(RayCasterPtr& caster, Mesh& /*mesh*/, size_t N)
         Eigen::Vector3d origin;
         origin.setZero();
         for (size_t j = 0; j <= N; j++) {
-            double theta = double(j) / double(N) * 2 * M_PI;
+            double theta = double(j) / double(N) * 2 * lagrange::internal::pi;
             for (size_t k = 0; k <= N; k++) {
-                double phi = double(k) / double(N) * M_PI - 0.5 * M_PI;
+                double phi =
+                    double(k) / double(N) * lagrange::internal::pi - 0.5 * lagrange::internal::pi;
                 Eigen::Vector3d direction(cos(phi) * cos(theta), cos(phi) * sin(theta), sin(phi));
 
                 Eigen::Vector3d bc;

@@ -117,14 +117,14 @@ public:
     ///
     /// @warning This method is for internal usage purposes.
     ///
-    /// @see read() for preferred way of accessing data.
+    /// @see @ref read for preferred way of accessing data.
     ::lagrange::internal::weak_ptr<const T> _get_weak_ptr() const { return m_data; }
 
     /// Return a weak pointer to the data.
     ///
     /// @warning This method is for internal usage purposes.
     ///
-    /// @see read() for preferred way of accessing data.
+    /// @see @ref read for preferred way of accessing data.
     ::lagrange::internal::weak_ptr<T> _get_weak_ptr() { return m_data; }
 
 protected:
@@ -146,11 +146,11 @@ protected:
             // Test again in protected section to ensure we don't copy the data twice for the same
             // object.
             // if (m_data.use_count() != 1) {
-                auto ptr = static_cast<const Derived*>(m_data.get());
+            auto ptr = static_cast<const Derived*>(m_data.get());
 #if LAGRANGE_TARGET_FEATURE(RTTI)
-                la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
+            la_debug_assert(dynamic_cast<const Derived*>(m_data.get()));
 #endif
-                m_data = ::lagrange::internal::make_shared<Derived>(*ptr);
+            m_data = ::lagrange::internal::make_shared<Derived>(*ptr);
             // }
         }
     }

@@ -73,7 +73,6 @@ void Keybinds::update()
     // and collect currently active (pressed or down) keybinds
     for (auto& it : m_mapping) {
         for (auto& keybind : it.second) {
-
             bool is_down = ImGui::IsKeyDown(keybind.button);
             for (auto i = 0; i < keybind.modifier_count; i++) {
                 is_down &= ImGui::IsKeyDown(keybind.modifiers[i]);

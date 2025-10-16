@@ -81,10 +81,10 @@ void offset_vertices_fixed(
     auto offset_vertices = matrix_ref(vertices_);
     for (Index v = 0; v < num_input_vertices; ++v) {
         const Vector3s vertex = offset_vertices.row(v).template head<3>();
-LA_IGNORE_ARRAY_BOUNDS_BEGIN
+        LA_IGNORE_ARRAY_BOUNDS_BEGIN
         offset_vertices.row(num_input_vertices + v) =
             compute_vertex(vertex, offset_vector, mirror_vector, offset_direction, Scalar(1.0));
-LA_IGNORE_ARRAY_BOUNDS_END
+        LA_IGNORE_ARRAY_BOUNDS_END
     }
 
     if (num_segments > 1) {
@@ -97,7 +97,7 @@ LA_IGNORE_ARRAY_BOUNDS_END
             for (Index is = 1; is < num_segments; ++is) {
                 Scalar offset_ratio = static_cast<Scalar>(is) * segment_increment;
                 la_debug_assert(offset_ratio < 1.0);
-LA_IGNORE_ARRAY_BOUNDS_BEGIN
+                LA_IGNORE_ARRAY_BOUNDS_BEGIN
                 offset_vertices.row(
                     num_input_vertices * 2 + // original + offset vertices
                     vi * (num_segments - 1) + // segment row
@@ -109,7 +109,7 @@ LA_IGNORE_ARRAY_BOUNDS_BEGIN
                         mirror_vector,
                         offset_direction,
                         offset_ratio);
-LA_IGNORE_ARRAY_BOUNDS_END
+                LA_IGNORE_ARRAY_BOUNDS_END
             }
         }
     }
@@ -134,10 +134,10 @@ void offset_vertices_normals(
     for (Index v = 0; v < num_input_vertices; ++v) {
         const Vector3s vertex = offset_vertices.row(v).template head<3>();
         const Vector3s offset_vector = -normals.row(v).template head<3>() * offset_amount;
-LA_IGNORE_ARRAY_BOUNDS_BEGIN
+        LA_IGNORE_ARRAY_BOUNDS_BEGIN
         offset_vertices.row(num_input_vertices + v) =
             compute_vertex(vertex, offset_vector, Scalar(1.0));
-LA_IGNORE_ARRAY_BOUNDS_END
+        LA_IGNORE_ARRAY_BOUNDS_END
     }
 
     if (num_segments > 1) {
@@ -151,13 +151,13 @@ LA_IGNORE_ARRAY_BOUNDS_END
             for (Index is = 1; is < num_segments; ++is) {
                 Scalar offset_ratio = static_cast<Scalar>(is) * segment_increment;
                 la_debug_assert(offset_ratio < 1.0);
-LA_IGNORE_ARRAY_BOUNDS_BEGIN
+                LA_IGNORE_ARRAY_BOUNDS_BEGIN
                 offset_vertices.row(
                     num_input_vertices * 2 + // original + offset vertices
                     vi * (num_segments - 1) + // segment row
                     is - 1 // index in the boundary
                     ) = compute_vertex(vertex, offset_vector, offset_ratio);
-LA_IGNORE_ARRAY_BOUNDS_END
+                LA_IGNORE_ARRAY_BOUNDS_END
             }
         }
     }
@@ -314,8 +314,9 @@ SurfaceMesh<Scalar, Index> thicken_and_close_mesh(
         overloaded{
             [&](std::string_view name) {
                 if (options.mirror_ratio.has_value()) {
-                    throw Error("Cannot use 'mirror_ratio' with varying offset direction. Use a "
-                                "fixed offset direction instead.");
+                    throw Error(
+                        "Cannot use 'mirror_ratio' with varying offset direction. Use a "
+                        "fixed offset direction instead.");
                 }
 
                 if (name.empty()) {

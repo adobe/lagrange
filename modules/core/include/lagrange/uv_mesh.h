@@ -41,7 +41,7 @@ struct UVMeshOptions
  *
  * @return     The extracted UV mesh reference.
  *
- * @see        `UVMeshOptions`
+ * @see        @ref UVMeshOptions
  */
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> uv_mesh_ref(
@@ -63,7 +63,7 @@ SurfaceMesh<Scalar, Index> uv_mesh_ref(
  *
  * @return     The extracted UV mesh reference.
  *
- * @see        `UVMeshOptions`
+ * @see        @ref UVMeshOptions
  */
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> uv_mesh_view(

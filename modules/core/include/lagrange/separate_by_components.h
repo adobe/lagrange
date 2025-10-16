@@ -12,8 +12,8 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
-#include <lagrange/utils/span.h>
 #include <lagrange/types/ConnectivityType.h>
+#include <lagrange/utils/span.h>
 
 #include <string_view>
 
@@ -60,7 +60,7 @@ struct SeparateByComponentsOptions
 ///
 /// @return A list of meshes representing the set of connected components.
 ///
-/// @see `SubmeshOptions`
+/// @see @ref SeparateByComponentsOptions
 ///
 template <typename Scalar, typename Index>
 std::vector<SurfaceMesh<Scalar, Index>> separate_by_components(

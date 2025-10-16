@@ -771,20 +771,22 @@ void interpolate_attributes(
                         if (!sfc.vertex.has_value()) {
                             sfc.vertex.emplace();
                         }
-                        attributes_and_surfaces.push_back(AttributeSurface{
-                            info,
-                            &sfc.vertex.value(),
-                            &all_shared_verts[0],
-                            &all_shared_edges[0]});
+                        attributes_and_surfaces.push_back(
+                            AttributeSurface{
+                                info,
+                                &sfc.vertex.value(),
+                                &all_shared_verts[0],
+                                &all_shared_edges[0]});
                     } else {
                         if (!sfc.varying.has_value()) {
                             sfc.varying.emplace();
                         }
-                        attributes_and_surfaces.push_back(AttributeSurface{
-                            info,
-                            &sfc.varying.value(),
-                            &all_shared_verts[0],
-                            &all_shared_edges[0]});
+                        attributes_and_surfaces.push_back(
+                            AttributeSurface{
+                                info,
+                                &sfc.varying.value(),
+                                &all_shared_verts[0],
+                                &all_shared_edges[0]});
                     }
                 }
             }
@@ -833,11 +835,12 @@ void interpolate_attributes(
                 logger().trace("FVar ID for attribute {}: {}", id, sfc.fvar_ids.back());
                 all_shared_verts[fvar_index].resize(attr.values().get_num_elements());
                 all_shared_edges[fvar_index].set_num_vertices(attr.values().get_num_elements());
-                attributes_and_surfaces.push_back(AttributeSurface{
-                    info,
-                    &sfc.face_varying[idx],
-                    &all_shared_verts[fvar_index],
-                    &all_shared_edges[fvar_index]});
+                attributes_and_surfaces.push_back(
+                    AttributeSurface{
+                        info,
+                        &sfc.face_varying[idx],
+                        &all_shared_verts[fvar_index],
+                        &all_shared_edges[fvar_index]});
             }
         });
     }

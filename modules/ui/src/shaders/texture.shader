@@ -62,7 +62,7 @@ void main(){
 
 
     vec2 coord = vertex_uv.xy;
-    
+
     vec4 t;
     if(useTextureLod){
         t = textureLod(tex,coord,textureLevel);

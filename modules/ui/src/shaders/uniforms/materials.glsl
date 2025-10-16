@@ -45,7 +45,7 @@ void read_material(
 
     baseColor = baseColor_.xyz;
 
-    
+
     if(material_metallic_texture_bound)
         metallic = texture(material_metallic, vs_out_uv).x;
     else

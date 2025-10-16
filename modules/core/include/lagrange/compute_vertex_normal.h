@@ -70,7 +70,7 @@ struct VertexNormalOptions
  *
  * @return     The attribute id of vertex normal attribute.
  *
- * @see        `VertexNormalOptions`.
+ * @see        @ref VertexNormalOptions
  */
 template <typename Scalar, typename Index>
 AttributeId compute_vertex_normal(

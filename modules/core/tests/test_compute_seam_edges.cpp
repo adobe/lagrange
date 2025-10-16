@@ -16,6 +16,7 @@
 #include <lagrange/attribute_names.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_seam_edges.h>
+#include <lagrange/internal/constants.h>
 
 using Scalar = double;
 using Index = uint32_t;
@@ -57,7 +58,8 @@ TEST_CASE("compute_seam_edges", "[core][seam]")
         options.with_indexed_uv = true;
         options.with_indexed_normal = false;
         auto mesh = lagrange::testing::create_test_sphere<Scalar, Index>(options);
-        auto normal_id = lagrange::compute_normal(mesh, static_cast<Scalar>(M_PI / 4));
+        auto normal_id =
+            lagrange::compute_normal(mesh, static_cast<Scalar>(lagrange::internal::pi / 4));
 
         auto uv_seam_id = lagrange::compute_seam_edges(
             mesh,

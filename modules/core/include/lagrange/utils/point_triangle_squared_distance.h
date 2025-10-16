@@ -73,22 +73,24 @@ namespace lagrange {
 ///
 /// @return     the squared distance between the point and the triangle (\p V0, @p V1, @p V2)
 ///
-template <typename PointType>
+template <typename PointType, typename PointType2>
 auto point_triangle_squared_distance(
     const Eigen::MatrixBase<PointType>& point,
-    const Eigen::MatrixBase<PointType>& V0,
-    const Eigen::MatrixBase<PointType>& V1,
-    const Eigen::MatrixBase<PointType>& V2,
+    const Eigen::MatrixBase<PointType2>& V0,
+    const Eigen::MatrixBase<PointType2>& V1,
+    const Eigen::MatrixBase<PointType2>& V2,
     Eigen::PlainObjectBase<PointType>& closest_point,
     ScalarOf<PointType>& lambda0,
     ScalarOf<PointType>& lambda1,
     ScalarOf<PointType>& lambda2) -> ScalarOf<PointType>
 {
     using Scalar = ScalarOf<PointType>;
+    using DoublePointType =
+        Eigen::Matrix<double, PointType::RowsAtCompileTime, PointType::ColsAtCompileTime>;
 
-    Eigen::Vector3d diff = V0.template cast<double>() - point.template cast<double>();
-    Eigen::Vector3d edge0 = V1.template cast<double>() - V0.template cast<double>();
-    Eigen::Vector3d edge1 = V2.template cast<double>() - V0.template cast<double>();
+    DoublePointType diff = V0.template cast<double>() - point.template cast<double>();
+    DoublePointType edge0 = V1.template cast<double>() - V0.template cast<double>();
+    DoublePointType edge1 = V2.template cast<double>() - V0.template cast<double>();
     double a00 = edge0.squaredNorm();
     double a01 = edge0.dot(edge1);
     double a11 = edge1.squaredNorm();

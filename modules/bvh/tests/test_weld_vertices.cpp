@@ -159,8 +159,7 @@ TEST_CASE("weld_vertices all", "[bvh][surface]")
     using Scalar = float;
     using Index = uint32_t;
 
-    auto input_mesh =
-        lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
+    auto input_mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
 
     bvh::WeldOptions options;
     options.radius = [&] {
@@ -209,7 +208,8 @@ TEST_CASE("weld_vertices benchmark", "[weld_vertices][!benchmark]")
     options.boundary_only = true;
     BENCHMARK_ADVANCED("weld boundary")(Catch::Benchmark::Chronometer meter)
     {
-        // TODO: Split mesh into disconnected components with open boundaries. Right now this is a no-op.
+        // TODO: Split mesh into disconnected components with open boundaries. Right now this is a
+        // no-op.
         auto mesh = input_mesh;
         meter.measure([&]() {
             bvh::weld_vertices(mesh, options);

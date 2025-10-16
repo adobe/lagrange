@@ -12,19 +12,19 @@
 #pragma once
 
 #include <lagrange/create_mesh.h>
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/types/Texture.h>
 #include <lagrange/ui/utils/mesh.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
-#include <assimp/material.h>
-#include <assimp/mesh.h>
-#include <assimp/postprocess.h>
-#include <assimp/scene.h>
-#include <assimp/Importer.hpp>
+    #include <assimp/material.h>
+    #include <assimp/mesh.h>
+    #include <assimp/postprocess.h>
+    #include <assimp/scene.h>
+    #include <assimp/Importer.hpp>
 
 
 namespace lagrange {

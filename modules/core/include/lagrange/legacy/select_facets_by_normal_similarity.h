@@ -264,6 +264,5 @@ std::vector<bool> select_facets_by_normal_similarity(
 } // select_faces_by_normal_similarity
 
 
-
 } // namespace legacy
 } // namespace lagrange

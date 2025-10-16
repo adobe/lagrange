@@ -25,7 +25,7 @@ struct AttributeSmoothingOptions
 {
     /**
      * Weight factor for curvature-based smoothing.
-     * 
+     *
      * Controls the strength of the smoothing operation. Higher values result in
      * stretching in the surface metric, slowing down diffusion process.
      * The default value of 0.02 provides a moderate smoothing effect.
@@ -35,7 +35,7 @@ struct AttributeSmoothingOptions
 
     /**
      * Weight factor for normal-based smoothing.
-     * 
+     *
      * Controls the influence of normal-based smoothing on the attribute values.
      * Higher values result in stronger smoothing along the surface normal direction.
      * The default value of 1e-4 provides a subtle normal-based smoothing effect.
@@ -44,7 +44,7 @@ struct AttributeSmoothingOptions
 
     /**
      * Weight factor for gradient-based smoothing.
-     * 
+     *
      * Controls the strength of gradient-based smoothing operations.
      * Higher values result in stronger smoothing of attribute gradients.
      * The default value of 1e-4 provides a moderate gradient smoothing effect.
@@ -53,7 +53,7 @@ struct AttributeSmoothingOptions
 
     /**
      * Scale factor for gradient modulation.
-     * 
+     *
      * Controls how much the attribute gradients are modulated during smoothing.
      * A value of 0.0 (default) means no gradient modulation is applied.
      * Positive values increase gradient modulation, while negative values decrease it.
@@ -63,17 +63,17 @@ struct AttributeSmoothingOptions
 
 /**
  * Smooths a scalar attribute on a surface mesh.
- * 
+ *
  * This function applies a smoothing operation to a specified scalar attribute
  * on the mesh. The smoothing algorithm uses a curvature-weighted approach to
  * preserve important features while reducing noise.
- * 
+ *
  * @tparam Scalar The scalar type used for mesh coordinates and attributes.
  * @tparam Index The index type used for mesh connectivity.
- * 
+ *
  * @param mesh           The surface mesh containing the attribute to smooth.
  * @param attribute_name The name of the scalar vertex attribute to smooth. If empty, all attributes
- *                       with scalar usage and vertex element type will be smoothed. The attribute 
+ *                       with scalar usage and vertex element type will be smoothed. The attribute
  *                       will be modified in place. If an attribute with `Vector` usage is
  *                       specified, it is treated as a multi-channel scalar attribute, where each
  *                       channel will be smoothed independently.

@@ -9,12 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include "io_helpers.h"
 #include "../shared/shared_utils.h"
+#include "io_helpers.h"
 
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/texproc/texture_compositing.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/timing.h>
 
 #include <CLI/CLI.hpp>
 
@@ -63,7 +64,7 @@ int main(int argc, char** argv)
     app.add_option(
         "--quadrature",
         compositing_options.quadrature_samples,
-        "Number of quadrature samples (in {1, 3, 6, 12, 24, 32}.");
+        "Number of quadrature samples (in {1, 3, 6, 12, 24, 32}).");
     app.add_option(
         "--jitter-epsilon",
         compositing_options.jitter_epsilon,
@@ -101,8 +102,11 @@ int main(int argc, char** argv)
             extract_channel(weights.back().to_mdspan(), 0),
         });
     }
+    lagrange::VerboseTimer timer("Texture compositing", nullptr, spdlog::level::level_enum::info);
+    timer.tick();
     auto image =
         lagrange::texproc::texture_compositing(mesh, weighted_textures, compositing_options);
+    timer.tock();
 
     lagrange::logger().info("Saving result: {}", args.output_texture.string());
     save_image(args.output_texture, image.to_mdspan());

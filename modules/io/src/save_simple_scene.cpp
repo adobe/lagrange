@@ -53,29 +53,24 @@ void save_simple_scene(
     const SaveOptions& options)
 {
     switch (format) {
-    case FileFormat::Obj:
-        save_simple_scene_obj(output_stream, scene, options);
-        break;
-    case FileFormat::Gltf:
-        save_simple_scene_gltf(output_stream, scene, options);
-        break;
+    case FileFormat::Obj: save_simple_scene_obj(output_stream, scene, options); break;
+    case FileFormat::Gltf: save_simple_scene_gltf(output_stream, scene, options); break;
     case FileFormat::Ply:
     case FileFormat::Msh:
     case FileFormat::Fbx:
     case FileFormat::Stl:
         throw std::runtime_error("Stream output not supported for this format yet!");
         break;
-    default:
-        throw std::runtime_error("Unknown file format!");
+    default: throw std::runtime_error("Unknown file format!");
     }
 }
 
 #define LA_X_save_simple_scene(_, S, I, D)        \
-    template LA_IO_API void save_simple_scene(              \
+    template LA_IO_API void save_simple_scene(    \
         const fs::path& filename,                 \
         const scene::SimpleScene<S, I, D>& scene, \
-        const SaveOptions& options);             \
-    template LA_IO_API void save_simple_scene(              \
+        const SaveOptions& options);              \
+    template LA_IO_API void save_simple_scene(    \
         std::ostream& output_stream,              \
         const scene::SimpleScene<S, I, D>& scene, \
         FileFormat format,                        \

@@ -9,17 +9,25 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#pragma once
+
+#include "Padding.h"
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
+#include <lagrange/ExactPredicatesShewchuk.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/cast_attribute.h>
 #include <lagrange/find_matching_attributes.h>
+#include <lagrange/internal/get_uv_attribute.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/solver/DirectSolver.h>
 #include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/utils/Error.h>
+#include <lagrange/utils/fmt_eigen.h>
+#include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
 
 // Include before any TextureSignalProcessing header to override their threadpool implementation.
@@ -30,7 +38,6 @@ using namespace lagrange::texproc::threadpool;
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Misha/RegularGrid.h>
-#include <Src/Padding.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -43,7 +50,6 @@ namespace lagrange::texproc {
 namespace {
 
 using namespace MishaK;
-using namespace MishaK::TSP;
 
 // Using `Point` directly leads to ambiguity with Apple Accelerate types.
 template <typename T, unsigned N>
@@ -105,6 +111,58 @@ void set_raw_view(
     for (unsigned int j = 0; j < grid.res(1); j++) {
         for (unsigned int i = 0; i < grid.res(0); i++) {
             texture(i, j, 0) = grid(i, j);
+        }
+    }
+}
+
+template <typename Scalar, typename Index>
+void check_for_flipped_uv(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
+{
+    auto uv_mesh =
+        [&]() -> std::pair<ConstRowMatrixView<Scalar>, std::optional<ConstRowMatrixView<Index>>> {
+        if (mesh.is_attribute_indexed(id)) {
+            const auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(id);
+            auto uv_values = matrix_view(uv_attr.values());
+            auto uv_indices = reshaped_view(uv_attr.indices(), 3);
+            return {uv_values, uv_indices};
+        } else {
+            const auto& uv_attr = mesh.template get_attribute<Scalar>(id);
+            la_runtime_assert(
+                uv_attr.get_element_type() == AttributeElement::Vertex ||
+                    uv_attr.get_element_type() == AttributeElement::Corner,
+                "UV attribute must be per-vertex or per-corner.");
+            auto uv_values = matrix_view(uv_attr);
+            return {
+                uv_values,
+                uv_attr.get_element_type() == AttributeElement::Vertex
+                    ? std::nullopt
+                    : std::optional<ConstRowMatrixView<Index>>(facet_view(mesh))};
+        }
+    }();
+
+    auto uv_index = [&](Index f, unsigned int k) {
+        if (uv_mesh.second.has_value()) {
+            return (*uv_mesh.second)(f, k);
+        } else {
+            return f * 3 + k;
+        }
+    };
+
+    ExactPredicatesShewchuk predicates;
+    for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+        Eigen::RowVector2d p0 = uv_mesh.first.row(uv_index(f, 0)).template cast<double>();
+        Eigen::RowVector2d p1 = uv_mesh.first.row(uv_index(f, 1)).template cast<double>();
+        Eigen::RowVector2d p2 = uv_mesh.first.row(uv_index(f, 2)).template cast<double>();
+        auto r = predicates.orient2D(p0.data(), p1.data(), p2.data());
+        if (r <= 0) {
+            throw Error(
+                fmt::format(
+                    "The input mesh has flipped UVs:\n  p0=({:.3g})\n  p1=({:.3g})\n  p2=("
+                    "{:.3g})\n"
+                    "Please fix the input mesh before proceeding.",
+                    fmt::join(p0, ", "),
+                    fmt::join(p1, ", "),
+                    fmt::join(p2, ", ")));
         }
     }
 }
@@ -180,13 +238,6 @@ struct MeshWrapper
         return q;
     }
 
-    void set_texcoord(size_t i, const Vector<double, K>& q)
-    {
-        for (unsigned int k = 0; k < K; k++) {
-            texcoords[i * K + k] = static_cast<Scalar>(q[k]);
-        }
-    }
-
     int vertex_index(size_t f, unsigned int k) const
     {
         return static_cast<int>(vertex_indices[f * (K + 1) + k]);
@@ -194,7 +245,39 @@ struct MeshWrapper
 
     int texture_index(size_t f, unsigned int k) const
     {
-        return static_cast<int>(texture_indices[f * (K + 1) + k]);
+        switch (texture_element) {
+        case AttributeElement::Indexed: return static_cast<int>(texture_indices[f * (K + 1) + k]);
+        case AttributeElement::Vertex: return static_cast<int>(vertex_indices[f * (K + 1) + k]);
+        case AttributeElement::Corner: return static_cast<int>(f * (K + 1) + k);
+        default: la_debug_assert("Unsupported texture element type"); return 0;
+        }
+    }
+
+    Simplex<double, K, K> simplex_texcoords(size_t f) const
+    {
+        Simplex<double, K, K> s;
+        for (unsigned int k = 0; k <= K; k++) {
+            s[k] = texcoord(texture_index(f, k));
+        }
+        return s;
+    }
+
+    Simplex<double, Dim, K> simplex_vertices(size_t f) const
+    {
+        Simplex<double, Dim, K> s;
+        for (unsigned int k = 0; k <= K; k++) {
+            s[k] = vertex(vertex_index(f, k));
+        }
+        return s;
+    }
+
+    SimplexIndex<K> facet_indices(size_t f) const
+    {
+        SimplexIndex<K> simplex;
+        for (unsigned int k = 0; k <= K; ++k) {
+            simplex[k] = static_cast<int>(vertex_indices[f * (K + 1) + k]);
+        }
+        return simplex;
     }
 
     SurfaceMesh<Scalar, Index> mesh;
@@ -202,10 +285,14 @@ struct MeshWrapper
     span<Scalar> texcoords;
     span<const Index> vertex_indices;
     span<const Index> texture_indices;
+    AttributeElement texture_element = AttributeElement::Value;
 };
 
 template <typename Scalar, typename Index>
-MeshWrapper<Scalar, Index> create_mesh_wrapper(const SurfaceMesh<Scalar, Index>& mesh_in)
+MeshWrapper<Scalar, Index> create_mesh_wrapper(
+    const SurfaceMesh<Scalar, Index>& mesh_in,
+    bool needs_indexed_texcoords = true,
+    bool check_flipped_uv = true)
 {
     MeshWrapper wrapper(mesh_in);
     SurfaceMesh<Scalar, Index>& _mesh = wrapper.mesh;
@@ -230,9 +317,10 @@ MeshWrapper<Scalar, Index> create_mesh_wrapper(const SurfaceMesh<Scalar, Index>&
     }
 
     // Make sure the UV coordinates are indexed
-    if (_mesh.get_attribute_base(texcoord_id).get_element_type() != AttributeElement::Indexed) {
+    if (needs_indexed_texcoords &&
+        _mesh.get_attribute_base(texcoord_id).get_element_type() != AttributeElement::Indexed) {
         logger().warn("UV coordinates are not indexed. Welding.");
-        texcoord_id = map_attribute(_mesh, texcoord_id, "new_texture", AttributeElement::Indexed);
+        texcoord_id = map_attribute_in_place(_mesh, texcoord_id, AttributeElement::Indexed);
         weld_indexed_attribute(_mesh, texcoord_id);
     }
 
@@ -241,11 +329,23 @@ MeshWrapper<Scalar, Index> create_mesh_wrapper(const SurfaceMesh<Scalar, Index>&
         _mesh.get_num_corners() == _mesh.get_num_facets() * (K + 1),
         "Numer of corners doesn't match the number of simplices");
 
-    auto& uv_attr = _mesh.template ref_indexed_attribute<Scalar>(texcoord_id);
+    if (check_flipped_uv) {
+        check_for_flipped_uv(_mesh, texcoord_id);
+    }
+
     wrapper.vertices = _mesh.get_vertex_to_position().get_all();
     wrapper.vertex_indices = _mesh.get_corner_to_vertex().get_all();
-    wrapper.texcoords = uv_attr.values().ref_all();
-    wrapper.texture_indices = uv_attr.indices().get_all();
+    if (_mesh.is_attribute_indexed(texcoord_id)) {
+        auto& uv_attr = _mesh.template ref_indexed_attribute<Scalar>(texcoord_id);
+        wrapper.texcoords = uv_attr.values().ref_all();
+        wrapper.texture_indices = uv_attr.indices().get_all();
+        wrapper.texture_element = AttributeElement::Indexed;
+    } else {
+        auto& uv_attr = _mesh.template ref_attribute<Scalar>(texcoord_id);
+        wrapper.texcoords = uv_attr.ref_all();
+        wrapper.texture_indices = {};
+        wrapper.texture_element = uv_attr.get_element_type();
+    }
 
     return wrapper;
 }
@@ -253,23 +353,15 @@ MeshWrapper<Scalar, Index> create_mesh_wrapper(const SurfaceMesh<Scalar, Index>&
 // Pad input texture to ensure that texture coordinates fall within the rectangle defined by the
 // _centers_ of the corner texels.
 template <typename Scalar, typename Index>
-Padding
-create_padding(MeshWrapper<Scalar, Index>& wrapper, unsigned int width, unsigned int height)
+Padding create_padding(MeshWrapper<Scalar, Index>& wrapper, unsigned int width, unsigned int height)
 {
+    static_assert(sizeof(std::array<Scalar, 2>) == 2 * sizeof(Scalar));
+    span<std::array<Scalar, 2>> texcoords(
+        reinterpret_cast<std::array<Scalar, 2>*>(wrapper.texcoords.data()),
+        wrapper.num_texcoords());
     Padding padding;
-
-    // TODO: We probably want to reimplement this to be a bit more efficient and avoid extra copies.
-    std::vector<Vector<double, 2>> texcoords;
-    texcoords.reserve(wrapper.num_texcoords());
-    for (size_t i = 0; i < wrapper.num_texcoords(); ++i) {
-        texcoords.push_back(wrapper.texcoord(i));
-    }
-    padding = Padding::Init(width, height, texcoords);
+    padding = Padding::init<Scalar>(width, height, texcoords);
     padding.pad(width, height, texcoords);
-    for (size_t i = 0; i < wrapper.num_texcoords(); ++i) {
-        wrapper.set_texcoord(i, texcoords[i]);
-    }
-
     return padding;
 }
 

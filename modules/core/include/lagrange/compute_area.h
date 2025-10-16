@@ -47,12 +47,10 @@ struct FacetAreaOptions
 /// @tparam        Index    Mesh index type.
 ///
 /// @return        The attribute id of the facet area attribute.
-/// @see           `FacetAreaOptions`
+/// @see           @ref FacetAreaOptions
 ///
 template <typename Scalar, typename Index>
-AttributeId compute_facet_area(
-    SurfaceMesh<Scalar, Index>& mesh,
-    FacetAreaOptions options = {});
+AttributeId compute_facet_area(SurfaceMesh<Scalar, Index>& mesh, FacetAreaOptions options = {});
 
 ///
 /// Compute per-facet area.
@@ -66,13 +64,50 @@ AttributeId compute_facet_area(
 /// @tparam        Dimension       Mesh dimension.
 ///
 /// @return        The attribute id of the facet area attribute.
-/// @see           `FacetAreaOptions`
+/// @see           @ref FacetAreaOptions
 ///
 template <typename Scalar, typename Index, int Dimension>
 AttributeId compute_facet_area(
     SurfaceMesh<Scalar, Index>& mesh,
     const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transformation,
     FacetAreaOptions options = {});
+
+struct FacetVectorAreaOptions
+{
+    /// Output attribute name for facet vector area.
+    std::string_view output_attribute_name = "@facet_vector_area";
+};
+
+///
+/// Compute per-facet vector area.
+///
+/// The vector area of a facet is defined as the facet's area multiplied by its normal vector. For
+/// triangular facets, it is equivalent to the cross product of two edges divided by 2. For
+/// non-planar polygonal facets, the vector area offers a more robust measure of both the facet's
+/// orientation and area. The magnitude of the vector area corresponds to the largest area of any
+/// orthogonal planar projection of the facet, and its direction aligns with the normal of the
+/// projection plane [1, 2].
+///
+/// References:
+///
+/// [1] Sullivan, John M. "Curvatures of smooth and discrete surfaces." Discrete differential
+/// geometry. Basel: Birkhäuser Basel, 2008. 175-188.
+///
+/// [2] Alexa, Marc, and Max Wardetzky. "Discrete Laplacians on general polygonal meshes." ACM
+/// SIGGRAPH 2011 papers. 2011. 1-10.
+///
+/// @tparam        Scalar   Mesh scalar type.
+/// @tparam        Index    Mesh index type.
+///
+/// @param[in,out] mesh     The input mesh.
+/// @param[in]     options  The options controlling the computation.
+///
+/// @return        The attribute id of the facet vector area attribute.
+///
+template <typename Scalar, typename Index>
+AttributeId compute_facet_vector_area(
+    SurfaceMesh<Scalar, Index>& mesh,
+    FacetVectorAreaOptions options = {});
 
 ///
 /// Option struct for computing mesh area.
@@ -97,12 +132,10 @@ struct MeshAreaOptions
 /// @tparam     Index    Mesh index type.
 ///
 /// @return     The computed mesh area.
-/// @see        `MeshAreaOptions`
+/// @see        @ref MeshAreaOptions
 ///
 template <typename Scalar, typename Index>
-Scalar compute_mesh_area(
-    const SurfaceMesh<Scalar, Index>& mesh,
-    MeshAreaOptions options = {});
+Scalar compute_mesh_area(const SurfaceMesh<Scalar, Index>& mesh, MeshAreaOptions options = {});
 
 ///
 /// Compute mesh area.
@@ -116,7 +149,7 @@ Scalar compute_mesh_area(
 /// @tparam     Dimension       Mesh dimension.
 ///
 /// @return     The computed mesh area.
-/// @see        `MeshAreaOptions`
+/// @see        @ref MeshAreaOptions
 ///
 template <typename Scalar, typename Index, int Dimension>
 Scalar compute_mesh_area(

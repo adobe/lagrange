@@ -119,7 +119,8 @@ AttributeId compute_greedy_coloring(
         if (available_colors.empty()) {
             available_colors.push_back(static_cast<Index>(num_colors_used++));
         }
-        const auto upper_bound = static_cast<std::mt19937::result_type>(available_colors.size() - 1);
+        const auto upper_bound =
+            static_cast<std::mt19937::result_type>(available_colors.size() - 1);
         return available_colors[bounded_rand(gen, upper_bound)];
     };
 

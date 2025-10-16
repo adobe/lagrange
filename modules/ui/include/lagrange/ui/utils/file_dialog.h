@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/ui/api.h>
 
 #include <vector>
 
@@ -39,7 +39,7 @@ public:
     ~FileDialogPath();
 
     /// Implicit fs::path conversion
-    operator const fs::path &() const { return path(); }
+    operator const fs::path&() const { return path(); }
     /// Implicit string conversion.
     operator std::string() const { return string(); }
 

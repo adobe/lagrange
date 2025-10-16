@@ -14,6 +14,7 @@
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/utils/build.h>
 
 #include "mesh_utils.h"
 
@@ -27,6 +28,8 @@
 namespace lagrange::texproc {
 
 namespace {
+
+using namespace MishaK::TSP;
 
 template <unsigned int NumChannels, typename Scalar, typename Index, typename ValueType>
 void texture_gradient_modulation(
@@ -50,6 +53,12 @@ void texture_gradient_modulation(
 
     // Construct the gradient-domain object
     // TODO: Switch to multi-grid solver
+    const bool normalize = true;
+#if LAGRANGE_TARGET_BUILD_TYPE(DEBUG)
+    const bool sanity_check = true;
+#else
+    const bool sanity_check = false;
+#endif
     GradientDomain<double> gd(
         quadrature_samples,
         wrapper.num_simplices(),
@@ -60,7 +69,9 @@ void texture_gradient_modulation(
         [&](size_t t, unsigned int k) { return wrapper.texture_index(t, k); },
         [&](size_t v) { return wrapper.texcoord(v); },
         grid.res(0),
-        grid.res(1));
+        grid.res(1),
+        normalize,
+        sanity_check);
 
     std::vector<Vector<double, NumChannels>> x(gd.numNodes()), b(gd.numNodes());
 
@@ -186,7 +197,7 @@ void texture_filtering(
 #define LA_X_texture_filtering(ValueType, Scalar, Index) \
     template void texture_filtering(                     \
         const SurfaceMesh<Scalar, Index>& mesh,          \
-        image::experimental::View3D<ValueType> texture,               \
+        image::experimental::View3D<ValueType> texture,  \
         const FilteringOptions& options);
 #define LA_X_texture_filtering_aux(_, ValueType) LA_SURFACE_MESH_X(texture_filtering, ValueType)
 LA_ATTRIBUTE_X(texture_filtering_aux, 0)

@@ -53,7 +53,7 @@ struct VertexValenceOptions
  *
  * @return         The vertex attribute id containing valence information.
  *
- * @see `VertexValenceOptions`
+ * @see @ref VertexValenceOptions
  */
 template <typename Scalar, typename Index>
 AttributeId compute_vertex_valence(
