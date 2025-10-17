@@ -90,8 +90,8 @@ namespace testing {
 LA_TESTING_API fs::path get_data_dir();
 
 ///
-/// Gets the test output directory for writing temporary test files. This is typically a 'tmp' 
-/// subdirectory in the build folder, allowing tests to write files relative to the build 
+/// Gets the test output directory for writing temporary test files. This is typically a 'tmp'
+/// subdirectory in the build folder, allowing tests to write files relative to the build
 /// directory regardless of where the test was executed from.
 ///
 /// @return     Path to the test output directory.

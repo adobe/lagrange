@@ -392,7 +392,7 @@ void save_mesh_ply(
         throw std::runtime_error(
             fmt::format("Failed to open PLY file for writing: {}", filename.string()));
     }
-    
+
     save_mesh_ply(fout, mesh, options);
 }
 

@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/raycasting/api.h>
 #include <embree3/rtcore.h>
+#include <lagrange/raycasting/api.h>
 
 namespace lagrange {
 namespace raycasting {

@@ -37,13 +37,14 @@ namespace lagrange::internal {
 
 /**
  * Performs linear blend skinning deformation on a mesh..
- * 
+ *
  * @param[in,out] mesh              vertices of this mesh will be modified
  * @param[in] original_vertices     original positions of vertices
  * @param[in] transforms            vector of eigen affine transforms, describe the global movement of each handle/joint
  * @param[in] weights               |V| x |handle| weight matrix
- * @param[in] weight_complement     optional, acts as weights for an extra handle that does not move.
- * 
+ * @param[in] weight_complement     optional, acts as weights for an extra handle that does not
+ * move.
+ *
  */
 template <typename Scalar, typename Index>
 void skinning_deform(
@@ -87,11 +88,11 @@ void skinning_deform(
 
 /**
  * Performs linear blend skinning on a mesh, using weights information from the mesh attributes..
- * 
+ *
  * @param[in,out] mesh              vertices of this mesh will be modified
  * @param[in] original_vertices     original positions of vertices
  * @param[in] transforms            vector of eigen affine transforms, describe the global movement of each handle/joint
- * 
+ *
  */
 template <typename Scalar, typename Index>
 void skinning_deform(
@@ -128,12 +129,13 @@ struct SkinningExtractNResult
 /**
  * From a weight matrix |V| x |H|, constructs a weight matrix |V| x n,
  * where n is an arbitrary contraint (typically 4 or 8).
- * 
+ *
  * @param[in] weights               |V| x |handle| weight matrix
  * @param[in] n                     max number of weights for each vertex
- * @param[in] weight_complement     optional, acts as weights for an extra handle that does not move.
- * 
- * @return                          |V| x n weights and |V| x n indices (see struct above). 
+ * @param[in] weight_complement     optional, acts as weights for an extra handle that does not
+ * move.
+ *
+ * @return                          |V| x n weights and |V| x n indices (see struct above).
  */
 template <typename Scalar, typename Index>
 SkinningExtractNResult<Scalar, Index> skinning_extract_n(
@@ -221,10 +223,10 @@ SkinningExtractNResult<Scalar, Index> skinning_extract_n(
 
 /**
  * Imports the weights matrix as weight attributes of the mesh.
- * 
+ *
  * @param[in,out] mesh      Mesh to modify
  * @param[in] weights       weights matrix
- * 
+ *
  * @return                  new weights attribute id
  */
 template <typename Scalar, typename Index, typename WeightScalar = Scalar>
@@ -242,15 +244,15 @@ lagrange::AttributeId weights_to_mesh_attribute(
 
 /**
  * Imports the weights matrix as indexed weight attributes of the mesh.
- * 
+ *
  * @param[in,out] mesh  Mesh to modify
  * @param[in] weights   Weights matrix
  * @param[in] n         max weights per vertex
- * 
+ *
  * @return              pair of new attribute ids: index and weight
  */
 template <
-    typename Scalar, 
+    typename Scalar,
     typename Index,
     typename WeightScalar = Scalar,
     typename WeightIndex = Index>

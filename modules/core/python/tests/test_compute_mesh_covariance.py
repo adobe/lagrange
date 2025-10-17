@@ -17,7 +17,6 @@ from .assets import cube, single_triangle
 
 
 class TestComputeMeshCovariance:
-
     def test_triangle(self, single_triangle):
         mesh = single_triangle
         active_facets = np.array([0], dtype=np.uint8)

@@ -264,4 +264,3 @@ This codebase contains a modified portion of code from valuable which can be obt
 
   * LICENSE:
     * https://github.com/LoopPerfect/valuable/blob/master/LICENSE
-

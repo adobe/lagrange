@@ -35,7 +35,7 @@ namespace lagrange {
  *                             This array can often be obtained via index-based sorting of the
  *                             vertices with customized comparison.
  *
- * @see `remap_vertices` if two or more vertices may be combined.
+ * @see @ref remap_vertices if two or more vertices may be combined.
  */
 template <typename Scalar, typename Index>
 void permute_vertices(SurfaceMesh<Scalar, Index>& mesh, span<const Index> new_to_old);

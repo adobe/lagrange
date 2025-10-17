@@ -85,8 +85,9 @@ std::vector<double> compute_mesh_weights(
         break;
     }
     case FacetAllocationStrategy::Synchronized:
-        throw std::runtime_error("Simplification code using a synchronized facet allocation "
-                                 "strategy should not call `compute_mesh_weights()`.");
+        throw std::runtime_error(
+            "Simplification code using a synchronized facet allocation "
+            "strategy should not call `compute_mesh_weights()`.");
     }
 
     la_debug_assert(weights.size() == scene.get_num_meshes());
@@ -94,9 +95,9 @@ std::vector<double> compute_mesh_weights(
     return weights;
 }
 
-#define LA_X_compute_mesh_weights(_, Scalar, Index, Dim) \
-    template LA_SCENE_API std::vector<double> compute_mesh_weights(   \
-        const SimpleScene<Scalar, Index, Dim>& scene,    \
+#define LA_X_compute_mesh_weights(_, Scalar, Index, Dim)            \
+    template LA_SCENE_API std::vector<double> compute_mesh_weights( \
+        const SimpleScene<Scalar, Index, Dim>& scene,               \
         const FacetAllocationStrategy facet_allocation_strategy);
 LA_SIMPLE_SCENE_X(compute_mesh_weights, 0)
 

@@ -18,6 +18,7 @@
 #include <lagrange/cast_attribute.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/image/Array3D.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/texproc/geodesic_dilation.h>
@@ -69,7 +70,9 @@ void fill_torus(
 
     auto VIndex = [&](unsigned int i, unsigned int j) { return (j % res) * res + (i % res); };
     auto ThetaPhi = [&](unsigned int i, unsigned int j) {
-        return std::pair<double, double>((2. * M_PI * i) / res, (2. * M_PI * j) / res);
+        return std::pair<double, double>(
+            (2. * lagrange::internal::pi * i) / res,
+            (2. * lagrange::internal::pi * j) / res);
     };
     auto TextureCoordinate = [&](unsigned int i, unsigned int j) {
         return std::pair<double, double>((i + 0.) / res, (j + 0.) / res);
@@ -158,7 +161,6 @@ void parse_mesh(
         for (unsigned int k = 0; k < K; k++) {
             textureCoordinates[i][k] = static_cast<Real>(_input_texture_coordinates[i * K + k]);
         }
-        textureCoordinates[i][1] = 1. - textureCoordinates[i][1];
     }
 }
 

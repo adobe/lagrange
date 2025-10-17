@@ -16,15 +16,21 @@ import pytest
 a = 0.1
 b = 0.4
 c = 1.2
+
+
 def make_points():
-    return np.array([
-        [a, 0, 0],
-        [-a, 0, 0],
-        [0, -b, 0],
-        [0, b, 0],
-        [0, 0, c],
-        [0, 0, -c],
-    ], dtype=np.float64)
+    return np.array(
+        [
+            [a, 0, 0],
+            [-a, 0, 0],
+            [0, -b, 0],
+            [0, b, 0],
+            [0, 0, c],
+            [0, 0, -c],
+        ],
+        dtype=np.float64,
+    )
+
 
 class TestComputePointcloudPCA:
     def test_simple(self):

@@ -24,24 +24,24 @@ vec3 phong(
     float diffuseMagnitude = max(dot(normal,lightDir),0.0);
     float ambientMagnitude = 1;
 
-    vec3 mat_ambient; 
-    if(material.ambient.has_texture) 
-        mat_ambient = texture(material.ambient.texture, fs_in.uv).xyz; 
-    else 
+    vec3 mat_ambient;
+    if(material.ambient.has_texture)
+        mat_ambient = texture(material.ambient.texture, fs_in.uv).xyz;
+    else
         mat_ambient = material.ambient.value.xyz;
-        
-    vec3 mat_diffuse; 
-    if(material.diffuse.has_texture) 
-        mat_diffuse = texture(material.diffuse.texture, fs_in.uv).xyz; 
-    else 
+
+    vec3 mat_diffuse;
+    if(material.diffuse.has_texture)
+        mat_diffuse = texture(material.diffuse.texture, fs_in.uv).xyz;
+    else
         mat_diffuse = material.diffuse.value.xyz;
-        
-    vec3 mat_specular; 
-    if(material.specular.has_texture) 
-        mat_specular = texture(material.specular.texture, fs_in.uv).xyz; 
-    else 
+
+    vec3 mat_specular;
+    if(material.specular.has_texture)
+        mat_specular = texture(material.specular.texture, fs_in.uv).xyz;
+    else
         mat_specular = material.specular.value.xyz;
-        
+
 
     mat_ambient = vec3(0.15);
     //Ambient
@@ -81,4 +81,3 @@ float lightSpotAttenuation(vec3 pos, vec3 lightDir, vec3 spotDir, float angle,  
         return (1.0 - d*d*d) * intensity;
     }
 }
-

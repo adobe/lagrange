@@ -46,16 +46,6 @@ void bind_scene(nb::module_& m)
     nb::bind_safe_vector<SafeVector<Skeleton>>(m, "SkeletonList");
     nb::bind_safe_vector<SafeVector<Animation>>(m, "AnimationList");
 
-    // Using nanobind's type caster for `shared_ptr<>` around `Value` requires registering a
-    // nb::class_<> for `Value`, rather than using a type caster...
-    // See this commit and related PR for details:
-    // https://github.com/wjakob/nanobind/blob/53dce4e297c7ead9190a6b637b9fe6406c82aa53/include/nanobind/stl/shared_ptr.h#L67-L71
-
-    // nb::bind_safe_vector<SafeVector<lagrange::scene::Value>>(m, "ValueList"); // TODO: Switch to this?
-    nb::bind_vector<std::vector<lagrange::scene::Value>>(m, "ValueList");
-    nb::bind_map<std::unordered_map<std::string, lagrange::scene::Value>>(m, "ValueUnorderedMap");
-    nb::bind_map<std::map<std::string, lagrange::scene::Value>>(m, "ValueMap");
-
     nb::class_<lagrange::scene::Extensions>(m, "Extensions")
         .def(
             "__repr__",
@@ -64,7 +54,11 @@ void bind_scene(nb::module_& m)
             })
         .def_prop_ro("size", &Extensions::size)
         .def_prop_ro("empty", &Extensions::empty)
-        .def_rw("data", &Extensions::data, nb::rv_policy::reference_internal);
+        .def_rw(
+            "data",
+            &Extensions::data,
+            nb::rv_policy::reference_internal,
+            "Raw data stored in this extension as a dict");
 
     nb::class_<SceneMeshInstance>(
         m,
@@ -571,7 +565,7 @@ void bind_scene(nb::module_& m)
             "get_vertical_fov",
             &Camera::get_vertical_fov,
             "Get the vertical field of view. Make sure aspect_ratio is set before calling this")
-        .def_prop_ro(
+        .def(
             "set_horizontal_fov_from_vertical_fov",
             &Camera::set_horizontal_fov_from_vertical_fov,
             "vfov"_a,

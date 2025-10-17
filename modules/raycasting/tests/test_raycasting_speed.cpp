@@ -22,8 +22,8 @@
 // clang-format on
 
 #include <lagrange/testing/common.h>
-#include <catch2/benchmark/catch_benchmark.hpp>
 #include <Eigen/Core>
+#include <catch2/benchmark/catch_benchmark.hpp>
 
 #include <cmath>
 
@@ -184,14 +184,14 @@ TEST_CASE("Raycasting Speed", "[raycasting][!benchmark]")
         {"high", BUILD_QUALITY_HIGH},
     };
 
-    // Libigl raycaster
-    #if 0
+// Libigl raycaster
+#if 0
     {
         igl::embree::EmbreeIntersector engine;
         engine.init(mesh->get_vertices().cast<float>(), mesh->get_facets().cast<int>());
         BENCHMARK("libigl") { return igl_ambient_occlusion(engine, *mesh, directions); };
     }
-    #endif
+#endif
 
     // Lagrange 4-packed raycaster
     for (auto type : all_types) {

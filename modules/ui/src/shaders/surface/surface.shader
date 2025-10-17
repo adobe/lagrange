@@ -29,4 +29,3 @@
 #ifdef SHADING_PBR
 #include "surface/pbr.frag"
 #endif
-

@@ -40,9 +40,9 @@ namespace lagrange {
 template <typename DerivedF, typename DerivedE, typename DerivedN>
 void chain_corners_around_vertices(
     typename DerivedF::Scalar num_vertices,
-    const Eigen::MatrixBase<DerivedF> &facets,
-    Eigen::PlainObjectBase<DerivedE> &vertex_to_corner,
-    Eigen::PlainObjectBase<DerivedN> &next_corner_around_vertex)
+    const Eigen::MatrixBase<DerivedF>& facets,
+    Eigen::PlainObjectBase<DerivedE>& vertex_to_corner,
+    Eigen::PlainObjectBase<DerivedN>& next_corner_around_vertex)
 {
     using Index = typename DerivedF::Scalar;
 

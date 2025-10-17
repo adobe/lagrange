@@ -31,9 +31,9 @@ namespace lagrange {
 ///
 template <typename DerivedV, typename DerivedE>
 void save_graph_off(
-    const fs::path &filename,
-    const Eigen::MatrixBase<DerivedV> &V,
-    const Eigen::MatrixBase<DerivedE> &E)
+    const fs::path& filename,
+    const Eigen::MatrixBase<DerivedV>& V,
+    const Eigen::MatrixBase<DerivedE>& E)
 {
     using namespace Eigen;
     fs::ofstream out(filename);
@@ -62,9 +62,9 @@ void save_graph_off(
 ///
 template <typename DerivedV, typename DerivedE>
 void save_graph(
-    const fs::path &filename,
-    const Eigen::MatrixBase<DerivedV> &V,
-    const Eigen::MatrixBase<DerivedE> &E)
+    const fs::path& filename,
+    const Eigen::MatrixBase<DerivedV>& V,
+    const Eigen::MatrixBase<DerivedE>& E)
 {
     if (filename.extension() == ".off") {
         save_graph_off(filename, V, E);

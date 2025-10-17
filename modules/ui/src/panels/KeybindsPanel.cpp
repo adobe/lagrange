@@ -37,7 +37,8 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
         ImGui::Text("Keybinds");
 
         if (ImGui::Button("Load", ImVec2(w / 3, 0))) {
-            const FileDialogPath fdpath = open_file("Load keybinding config", ".", {{"Json files", "*.json"}});
+            const FileDialogPath fdpath =
+                open_file("Load keybinding config", ".", {{"Json files", "*.json"}});
             if (fs::exists(fdpath.path())) {
                 fs::ifstream f(fdpath.path());
                 if (f.good()) {
@@ -49,7 +50,8 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
         ImGui::SameLine();
 
         if (ImGui::Button("Save", ImVec2(w / 3, 0))) {
-            const FileDialogPath fdpath = save_file("Save keybinding config", ".", {{"Json files", "*.json"}});
+            const FileDialogPath fdpath =
+                save_file("Save keybinding config", ".", {{"Json files", "*.json"}});
             if (!fdpath.empty()) {
                 fs::ofstream f(fdpath.path());
                 if (f.good()) {
@@ -193,7 +195,7 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
                     if (safe_cast<size_t>(tmp_keybind.modifier_count) ==
                         tmp_keybind.modifiers.max_size())
                         break;
-                    
+
                     if (i == ImGuiKey_Escape || i == ImGuiKey_Enter) continue;
 
                     if (ImGui::IsKeyDown((ImGuiKey)i)) {

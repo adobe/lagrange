@@ -21,6 +21,9 @@ namespace lagrange::texproc {
 /// @addtogroup module-texproc
 /// @{
 
+///
+/// Options for geodesic texture dilation and position map computation.
+///
 struct DilationOptions
 {
     /// The radius by which the texture should be dilated into the gutter.

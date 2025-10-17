@@ -178,11 +178,9 @@ function(lagrange_generate_python_binding_module)
 
     # Lastly, add stubgen installation command.
     if(SKBUILD)
-        # Create the lagrange directory containing stubs.
-        file(MAKE_DIRECTORY ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange)
-
         # Write __init__.pyi to import all stubs.
-        set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange/__init__.pyi)
+        set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/__init__.pyi)
+        file(APPEND ${init_pyi_file} "from .core import *\n")
 
         # Generate stubs for python binding within the install location.
         get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
@@ -193,7 +191,7 @@ function(lagrange_generate_python_binding_module)
                 lagrange_python_stubgen_${module_name}
                 INSTALL_TIME
                 MODULE lagrange.${module_name}
-                OUTPUT ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange/${module_name}.pyi
+                OUTPUT ${SKBUILD_PLATLIB_DIR}/lagrange/${module_name}.pyi
                 DEPENDS lagrange_python
                 COMPONENT Lagrange_Python_Runtime
                 PYTHON_PATH ${SKBUILD_PLATLIB_DIR}/lagrange/

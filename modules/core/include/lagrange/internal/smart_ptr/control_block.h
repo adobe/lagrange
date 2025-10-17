@@ -23,7 +23,7 @@ namespace lagrange::internal {
 class control_block_base
 {
 public:
-    virtual ~control_block_base(){};
+    virtual ~control_block_base() {};
 
     virtual void inc_ref() noexcept = 0;
     virtual void inc_wref() noexcept = 0;

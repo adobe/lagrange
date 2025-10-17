@@ -56,7 +56,7 @@ function(lagrange_add_test)
     # Register tests
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/reports")
 
-    if(LAGRANGE_TOPLEVEL_PROJECT AND NOT EMSCRIPTEN AND NOT USE_SANITIZER MATCHES "([Tt]hread)")
+    if(LAGRANGE_TOPLEVEL_PROJECT AND NOT USE_SANITIZER MATCHES "([Tt]hread)")
         catch_discover_tests(${test_target}
             REPORTER junit
             OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"

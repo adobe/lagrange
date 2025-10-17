@@ -136,7 +136,8 @@ public:
     }
 
     template <typename U, class UnaryOperation>
-    auto transformed(UnaryOperation op) {
+    auto transformed(UnaryOperation op)
+    {
         StackVector<U, N> result;
         result.resize(size());
         for (size_t i = 0; i < size(); ++i) {
@@ -146,7 +147,8 @@ public:
     }
 
     template <size_t D>
-    auto to_tuple() {
+    auto to_tuple()
+    {
         la_debug_assert(D == m_size);
         static_assert(D <= N, "Invalid size");
         return to_tuple_helper(std::make_index_sequence<D>());
@@ -154,7 +156,8 @@ public:
 
 private:
     template <size_t... Indices>
-    auto to_tuple_helper(std::index_sequence<Indices...>) {
+    auto to_tuple_helper(std::index_sequence<Indices...>)
+    {
         return std::make_tuple(m_array[Indices]...);
     }
 

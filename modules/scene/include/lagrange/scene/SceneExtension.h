@@ -11,12 +11,12 @@
  */
 #pragma once
 
+#include <lagrange/internal/SafeVector.h>
 #include <lagrange/scene/api.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
 #include <lagrange/utils/value_ptr.h>
-#include <lagrange/internal/SafeVector.h>
 
 #include <any>
 #include <cstring>

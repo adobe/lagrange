@@ -45,20 +45,20 @@ Scalar sqr(Scalar x)
 /// @param[in]  B       The box.
 ///
 /// @tparam     Scalar  Scalar type.
-/// @tparam     DIM     Dimension of domain.
+/// @tparam     Dim     Dimension of domain.
 ///
 /// @return     The squared distance between @p p and @p B.
 /// @pre        p is inside B.
 ///
-template <typename Scalar, int DIM>
+template <typename Scalar, int Dim>
 Scalar inner_point_box_squared_distance(
-    const Eigen::Matrix<Scalar, DIM, 1>& p,
-    const Eigen::AlignedBox<Scalar, DIM>& B)
+    const Eigen::Matrix<Scalar, Dim, 1>& p,
+    const Eigen::AlignedBox<Scalar, Dim>& B)
 {
     assert(B.contains(p));
     Scalar result = sqr(p[0] - B.min()[0]);
     result = std::min(result, sqr(p[0] - B.max()[0]));
-    for (int c = 1; c < DIM; ++c) {
+    for (int c = 1; c < Dim; ++c) {
         result = std::min(result, sqr(p[c] - B.min()[c]));
         result = std::min(result, sqr(p[c] - B.max()[c]));
     }
@@ -76,14 +76,14 @@ Scalar inner_point_box_squared_distance(
 ///
 /// @return     The signed squared distance between @p p and @p B.
 ///
-template <typename Scalar, int DIM>
+template <typename Scalar, int Dim>
 Scalar point_box_signed_squared_distance(
-    const Eigen::Matrix<Scalar, DIM, 1>& p,
-    const Eigen::AlignedBox<Scalar, DIM>& B)
+    const Eigen::Matrix<Scalar, Dim, 1>& p,
+    const Eigen::AlignedBox<Scalar, Dim>& B)
 {
     bool inside = true;
     Scalar result = 0;
-    for (int c = 0; c < DIM; c++) {
+    for (int c = 0; c < Dim; c++) {
         if (p[c] < B.min()[c]) {
             inside = false;
             result += sqr(p[c] - B.min()[c]);
@@ -106,12 +106,12 @@ Scalar point_box_signed_squared_distance(
 ///
 /// @return     The bounding box.
 ///
-template <typename Scalar, int DIM>
-Eigen::AlignedBox<Scalar, DIM> bbox_edge(
-    const Eigen::Matrix<Scalar, 1, DIM>& a,
-    const Eigen::Matrix<Scalar, 1, DIM>& b)
+template <typename Scalar, int Dim>
+Eigen::AlignedBox<Scalar, Dim> bbox_edge(
+    const Eigen::Matrix<Scalar, 1, Dim>& a,
+    const Eigen::Matrix<Scalar, 1, Dim>& b)
 {
-    Eigen::AlignedBox<Scalar, DIM> bbox;
+    Eigen::AlignedBox<Scalar, Dim> bbox;
     bbox.extend(a.transpose());
     bbox.extend(b.transpose());
     return bbox;
@@ -121,81 +121,34 @@ Eigen::AlignedBox<Scalar, DIM> bbox_edge(
 
 ////////////////////////////////////////////////////////////////////////////////
 
-template <typename VertexArray, typename EdgeArray, int DIM>
-EdgeAABBTree<VertexArray, EdgeArray, DIM>::EdgeAABBTree(const VertexArray& V, const EdgeArray& E)
+template <typename VertexArray, typename EdgeArray, int Dim>
+EdgeAABBTree<VertexArray, EdgeArray, Dim>::EdgeAABBTree(const VertexArray& V, const EdgeArray& E)
 {
-    la_runtime_assert(DIM == V.cols(), "Dimension mismatch in EdgeAABBTree!");
-    // Compute the centroids of all the edges in the input mesh
-    Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor> centroids;
-    igl::barycenter(V, E, centroids);
+    la_runtime_assert(Dim == V.cols(), "Dimension mismatch in EdgeAABBTree!");
 
-    // Top-down approach: split each set of primitives into 2 sets of roughly equal size,
-    // based on sorting the centroids along one direction or another.
-    std::vector<Index> edges(E.rows());
-    std::iota(edges.begin(), edges.end(), 0);
-
-    std::function<Index(Index, Index, Index)> top_down = [&](Index i, Index j, Index parent) {
-        // Scene is empty, so is the aabb tree
-        if (j - i == 0) {
-            return invalid<Index>();
-        }
-
-        // If there is only 1 edges left, then we are at a leaf
-        if (j - i == 1) {
-            Node node;
-            Index e = edges[i];
-            RowVectorType a = V.row(E(e, 0));
-            RowVectorType b = V.row(E(e, 1));
-            node.bbox = internal::bbox_edge<Scalar, DIM>(a, b);
-            node.parent = parent;
-            node.left = node.right = invalid<Index>();
-            node.index = e;
-            m_nodes.push_back(node);
-            return (Index)(m_nodes.size() - 1);
-        }
-
-        // Otherwise, we need to sort centroids along the longest dimension, and split recursively
-        Eigen::AlignedBox<Scalar, DIM> centroid_box;
-        for (Index k = i; k < j; ++k) {
-            Eigen::Matrix<Scalar, DIM, 1> c = centroids.row(edges[k]).transpose();
-            centroid_box.extend(c);
-        }
-        auto extent = centroid_box.diagonal();
-        int longest_dim = 0;
-        for (int dim = 1; dim < DIM; ++dim) {
-            if (extent(dim) > extent(longest_dim)) {
-                longest_dim = dim;
-            }
-        }
-        std::sort(edges.begin() + i, edges.begin() + j, [&](Index f1, Index f2) {
-            return centroids(f1, longest_dim) < centroids(f2, longest_dim);
-        });
-
-        // Then we can create a new internal node
-        Index current = (Index)m_nodes.size();
-        m_nodes.resize(current + 1);
-        Index midpoint = (i + j) / 2;
-        Index left = top_down(i, midpoint, current);
-        Index right = top_down(midpoint, j, current);
-        Node& node = m_nodes[current];
-        node.left = left;
-        node.right = right;
-        node.parent = parent;
-        node.index = invalid<Index>();
-        node.bbox = m_nodes[node.left].bbox.extend(m_nodes[node.right].bbox);
-
-        return current;
-    };
-
-    m_root = top_down(0, (Index)edges.size(), invalid<Index>());
     m_vertices = &V;
     m_edges = &E;
+
+    // Compute bounding boxes for all edges
+    std::vector<typename AABB<Scalar, Dim>::Box> aabb_boxes(E.rows());
+
+    for (Index i = 0; i < static_cast<Index>(E.rows()); ++i) {
+        RowVectorType a = V.row(E(i, 0));
+        RowVectorType b = V.row(E(i, 1));
+        auto& bbox = aabb_boxes[i];
+        bbox.setEmpty();
+        bbox.extend(a.transpose());
+        bbox.extend(b.transpose());
+    }
+
+    // Build the AABB tree
+    m_aabb.build(span<typename AABB<Scalar, Dim>::Box>(aabb_boxes.data(), aabb_boxes.size()));
 }
 
 // -----------------------------------------------------------------------------
 
-template <typename VertexArray, typename EdgeArray, int DIM>
-void EdgeAABBTree<VertexArray, EdgeArray, DIM>::get_element_closest_point(
+template <typename VertexArray, typename EdgeArray, int Dim>
+void EdgeAABBTree<VertexArray, EdgeArray, Dim>::get_element_closest_point(
     const RowVectorType& p,
     Index element_id,
     RowVectorType& closest_point,
@@ -213,141 +166,73 @@ void EdgeAABBTree<VertexArray, EdgeArray, DIM>::get_element_closest_point(
 
 // -----------------------------------------------------------------------------
 
-template <typename VertexArray, typename EdgeArray, int DIM>
-void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_in_radius(
+template <typename VertexArray, typename EdgeArray, int Dim>
+void EdgeAABBTree<VertexArray, EdgeArray, Dim>::foreach_element_in_radius(
     const RowVectorType& p,
     Scalar sq_dist,
-    std::function<void(Scalar, Index, const RowVectorType&)> func) const
+    function_ref<void(Scalar, Index, const RowVectorType&)> func) const
 {
-    foreach_element_in_radius_recursive(p, sq_dist, (Index)m_root, func);
-}
-
-template <typename VertexArray, typename EdgeArray, int DIM>
-void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_in_radius_recursive(
-    const RowVectorType& p,
-    Scalar sq_dist,
-    Index node_id,
-    ActionCallback func) const
-{
-    const auto& node = m_nodes[node_id];
-    if (node.is_leaf()) {
+    m_aabb.foreach_element_within_radius(p, sq_dist, [&](Index edge_idx) {
         RowVectorType closest_point;
         Scalar closest_sq_dist;
-        get_element_closest_point(p, node.index, closest_point, closest_sq_dist);
+        get_element_closest_point(p, edge_idx, closest_point, closest_sq_dist);
         if (closest_sq_dist <= sq_dist) {
-            func(closest_sq_dist, node.index, closest_point);
+            func(closest_sq_dist, edge_idx, closest_point);
         }
-        return;
-    }
-
-    const Scalar dl =
-        internal::point_box_signed_squared_distance<Scalar, DIM>(p, m_nodes[node.left].bbox);
-    const Scalar dr =
-        internal::point_box_signed_squared_distance<Scalar, DIM>(p, m_nodes[node.right].bbox);
-
-    if (dl <= sq_dist) {
-        foreach_element_in_radius_recursive(p, sq_dist, node.left, func);
-    }
-    if (dr <= sq_dist) {
-        foreach_element_in_radius_recursive(p, sq_dist, node.right, func);
-    }
+    });
 }
 
 // -----------------------------------------------------------------------------
 
-template <typename VertexArray, typename EdgeArray, int DIM>
-void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_containing(
+template <typename VertexArray, typename EdgeArray, int Dim>
+void EdgeAABBTree<VertexArray, EdgeArray, Dim>::foreach_element_containing(
     const RowVectorType& p,
-    std::function<void(Scalar, Index, const RowVectorType&)> func) const
+    function_ref<void(Scalar, Index, const RowVectorType&)> func) const
 {
-    foreach_element_containing_recursive(p, (Index)m_root, func);
-}
+    // Create a point query box
+    typename AABB<Scalar, Dim>::Box query_box;
+    typename AABB<Scalar, Dim>::Box::VectorType point_vec = p.transpose();
+    query_box.min() = point_vec;
+    query_box.max() = point_vec;
 
-template <typename VertexArray, typename EdgeArray, int DIM>
-void EdgeAABBTree<VertexArray, EdgeArray, DIM>::foreach_element_containing_recursive(
-    const RowVectorType& p,
-    Index node_id,
-    ActionCallback func) const
-{
-    const auto& node = m_nodes[node_id];
-    if (node.is_leaf()) {
-        RowVectorType p0 = m_vertices->row((*m_edges)(node.index, 0));
-        RowVectorType p1 = m_vertices->row((*m_edges)(node.index, 1));
+    // Check each intersecting edge for exact containment
+    m_aabb.intersect(query_box, [&](Index aabb_idx) {
+        Index edge_idx = static_cast<Index>(aabb_idx);
+        RowVectorType p0 = m_vertices->row((*m_edges)(edge_idx, 0));
+        RowVectorType p1 = m_vertices->row((*m_edges)(edge_idx, 1));
         if (point_on_segment(p, p0, p1)) {
-            func(0, node.index, p);
+            func(0, edge_idx, p);
         }
-        return;
-    }
-
-    const Scalar dl =
-        internal::point_box_signed_squared_distance<Scalar, DIM>(p, m_nodes[node.left].bbox);
-    const Scalar dr =
-        internal::point_box_signed_squared_distance<Scalar, DIM>(p, m_nodes[node.right].bbox);
-
-    if (dl <= 0) {
-        foreach_element_containing_recursive(p, node.left, func);
-    }
-    if (dr <= 0) {
-        foreach_element_containing_recursive(p, node.right, func);
-    }
+        return true;
+    });
 }
 
 // -----------------------------------------------------------------------------
 
-template <typename VertexArray, typename EdgeArray, int DIM>
-void EdgeAABBTree<VertexArray, EdgeArray, DIM>::get_closest_point(
+template <typename VertexArray, typename EdgeArray, int Dim>
+void EdgeAABBTree<VertexArray, EdgeArray, Dim>::get_closest_point(
     const RowVectorType& query_pt,
     Index& element_id,
     RowVectorType& closest_point,
     Scalar& closest_sq_dist,
-    std::function<bool(Index)> filter_func) const
+    function_ref<bool(Index)> filter_func) const
 {
     la_runtime_assert(!empty());
     element_id = invalid<Index>();
     closest_sq_dist = std::numeric_limits<Scalar>::max();
     closest_point.setConstant(invalid<Scalar>());
 
-    std::function<void(Index)> traverse_aabb_tree;
-    traverse_aabb_tree = [&](Index node_id) {
-        const auto& node = m_nodes[node_id];
-        if (node.is_leaf()) {
-            if (!filter_func || filter_func(node.index)) {
-                RowVectorType _closest_point;
-                Scalar _closest_sq_dist;
-                get_element_closest_point(query_pt, node.index, _closest_point, _closest_sq_dist);
-                if (_closest_sq_dist <= closest_sq_dist) {
-                    closest_sq_dist = _closest_sq_dist;
-                    element_id = node.index;
-                    closest_point = _closest_point;
-                }
-            }
+    auto get_closest_point = [&](Index edge_id) {
+        la_debug_assert(edge_id != invalid<Index>());
+        if (!filter_func || filter_func(edge_id)) {
+            get_element_closest_point(query_pt, edge_id, closest_point, closest_sq_dist);
+            return closest_sq_dist;
         } else {
-            using namespace internal;
-            const Scalar dl =
-                point_box_signed_squared_distance<Scalar, DIM>(query_pt, m_nodes[node.left].bbox);
-            const Scalar dr =
-                point_box_signed_squared_distance<Scalar, DIM>(query_pt, m_nodes[node.right].bbox);
-
-            // Explore the nearest subtree first.
-            if (dl < dr) {
-                if (dl <= closest_sq_dist) {
-                    traverse_aabb_tree(node.left);
-                }
-                if (dr <= closest_sq_dist) {
-                    traverse_aabb_tree(node.right);
-                }
-            } else {
-                if (dr <= closest_sq_dist) {
-                    traverse_aabb_tree(node.right);
-                }
-                if (dl <= closest_sq_dist) {
-                    traverse_aabb_tree(node.left);
-                }
-            }
+            return std::numeric_limits<Scalar>::max();
         }
     };
-
-    traverse_aabb_tree((Index)m_root);
+    element_id = m_aabb.get_closest_element(query_pt.transpose(), get_closest_point);
+    get_closest_point(element_id);
 }
 
 } // namespace bvh

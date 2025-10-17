@@ -77,7 +77,7 @@ struct SubmeshOptions
 ///
 /// @return The mesh containing the selected facets.
 ///
-/// @see `SubmeshOptions`
+/// @see @ref SubmeshOptions
 ///
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> extract_submesh(

@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/UIPanel.h>
 #include <lagrange/ui/types/Systems.h>
 
@@ -36,7 +36,8 @@ LA_UI_API void end_panel(UIPanel& panel);
 /// @param title
 /// @param imgui_code
 /// @return window entity
-LA_UI_API Entity add_panel(Registry& r, const std::string& title, const std::function<void(void)>& body_fn);
+LA_UI_API Entity
+add_panel(Registry& r, const std::string& title, const std::function<void(void)>& body_fn);
 
 LA_UI_API Entity add_panel(
     Registry& r,

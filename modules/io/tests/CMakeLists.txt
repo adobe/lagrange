@@ -17,7 +17,7 @@ endif()
 
 # link to stb to make sure the tinygltf dependency does not cause a conflict
 include(stb)
-target_link_libraries(test_lagrange_io PRIVATE 
+target_link_libraries(test_lagrange_io PRIVATE
     stb::image
     stb::image_write
 )

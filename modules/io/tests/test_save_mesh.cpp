@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/internal/constants.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/testing/create_test_mesh.h>
 #include <lagrange/testing/equivalence_check.h>
@@ -239,7 +240,8 @@ TEST_CASE("save_mesh_indexed_attributes", "[io]")
     auto cube = testing::create_test_cube<double, uint32_t>();
     using Scalar = decltype(cube)::Scalar;
     lagrange::compute_facet_area(cube);
-    auto normal_id = lagrange::compute_normal(cube, static_cast<Scalar>(M_PI / 4));
+    auto normal_id =
+        lagrange::compute_normal(cube, static_cast<Scalar>(lagrange::internal::pi / 4));
 
     io::SaveOptions opt;
     opt.output_attributes = io::SaveOptions::OutputAttributes::SelectedOnly;

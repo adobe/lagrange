@@ -119,8 +119,10 @@ std::unique_ptr<output_meshType> subdivide_mesh(
     const auto num_vertices = input_mesh.get_num_vertices();
     const auto num_facets = input_mesh.get_num_facets();
     const auto input_vertex_per_facet = input_mesh.get_vertex_per_facet();
-    const auto output_vertex_per_facet = output_meshType::FacetArray::ColsAtCompileTime==Eigen::Dynamic?
-        input_vertex_per_facet:output_meshType::FacetArray::ColsAtCompileTime;
+    const auto output_vertex_per_facet =
+        output_meshType::FacetArray::ColsAtCompileTime == Eigen::Dynamic
+            ? input_vertex_per_facet
+            : output_meshType::FacetArray::ColsAtCompileTime;
 
     if (input_vertex_per_facet == 3 && output_vertex_per_facet == 4) {
         la_runtime_assert(
@@ -172,8 +174,10 @@ std::unique_ptr<output_meshType> subdivide_mesh(
     }
 
     // Instantiate a Far::TopologyRefiner from the descriptor
-    std::unique_ptr<Far::TopologyRefiner> refiner(Far::TopologyRefinerFactory<Descriptor>::Create(
-        desc, Far::TopologyRefinerFactory<Descriptor>::Options(scheme_type, options)));
+    std::unique_ptr<Far::TopologyRefiner> refiner(
+        Far::TopologyRefinerFactory<Descriptor>::Create(
+            desc,
+            Far::TopologyRefinerFactory<Descriptor>::Options(scheme_type, options)));
 
     // Uniformly refine the topology up to 'maxlevel'
     {

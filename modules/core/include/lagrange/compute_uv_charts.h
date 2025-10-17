@@ -45,7 +45,7 @@ struct UVChartOptions
  *
  * @return     The total number of UV charts.
  *
- * @see        `UVChartOptions`
+ * @see        @ref UVChartOptions
  */
 template <typename Scalar, typename Index>
 size_t compute_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const UVChartOptions& options = {});

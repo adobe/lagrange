@@ -38,4 +38,3 @@ TEST_CASE("reorder_mesh", "[core][reorder_mesh]")
     REQUIRE(vertex_view(mesh3) == vertex_view(mesh4));
     REQUIRE(facet_view(mesh3) == facet_view(mesh4));
 }
-

@@ -63,7 +63,10 @@ int main(int argc, char** argv)
     auto image = [&]() -> Array3Df {
         if (dilation_options.output_position_map) {
             lagrange::logger().info("Creating new geodesic position texture");
-            return lagrange::image::experimental::create_image<float>(args.posmap_width, args.posmap_height, 3);
+            return lagrange::image::experimental::create_image<float>(
+                args.posmap_width,
+                args.posmap_height,
+                3);
         } else {
             lagrange::logger().info("Loading input texture: {}", args.input_texture.string());
             return load_image(args.input_texture);

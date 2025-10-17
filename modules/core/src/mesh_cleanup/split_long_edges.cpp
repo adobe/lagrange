@@ -15,10 +15,10 @@
 #include <lagrange/cast_attribute.h>
 #include <lagrange/compute_edge_lengths.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/split_edges.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
-#include <lagrange/internal/split_edges.h>
 #include <lagrange/views.h>
 
 // clang-format off

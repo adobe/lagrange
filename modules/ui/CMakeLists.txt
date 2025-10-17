@@ -124,5 +124,3 @@ endif()
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()
-
-

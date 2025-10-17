@@ -257,4 +257,3 @@ TEST_CASE("chain_edges benchmark", "[core][utils][!benchmark]")
     };
     LA_IGNORE_DEPRECATION_WARNING_END
 }
-

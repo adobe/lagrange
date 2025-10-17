@@ -171,4 +171,3 @@ TEST_CASE("dijkstra benchmark", "[surface][utility][internal][!benchmark]")
     };
 #endif
 }
-

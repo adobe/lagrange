@@ -13,7 +13,7 @@
 #include <lagrange/testing/detect_fp_behavior.h>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
-#include <cmath>
+
 
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
@@ -23,6 +23,7 @@
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/unify_index_buffer.h>
@@ -226,7 +227,7 @@ TEST_CASE("compute_normal", "[surface][attribute][normal][utilities]")
 
         SECTION("No cone vertices")
         {
-            AttributeId id = compute_normal(mesh, M_PI / 2 - 0.1);
+            AttributeId id = compute_normal(mesh, lagrange::internal::pi / 2 - 0.1);
             REQUIRE(mesh.is_attribute_type<Scalar>(id));
             REQUIRE(mesh.is_attribute_indexed(id));
             auto& attr = mesh.get_indexed_attribute<Scalar>(id);
@@ -250,7 +251,8 @@ TEST_CASE("compute_normal", "[surface][attribute][normal][utilities]")
         {
             std::vector<Index> cones;
             cones.push_back(4);
-            AttributeId id = compute_normal<Scalar, Index>(mesh, M_PI / 2 - 0.1, cones);
+            AttributeId id =
+                compute_normal<Scalar, Index>(mesh, lagrange::internal::pi / 2 - 0.1, cones);
             REQUIRE(mesh.is_attribute_type<Scalar>(id));
             REQUIRE(mesh.is_attribute_indexed(id));
             auto& attr = mesh.get_indexed_attribute<Scalar>(id);
@@ -294,18 +296,18 @@ TEST_CASE("compute_normal: facet normal attr", "[surface][attribute][normal][uti
     auto facet_normal_name = options.facet_normal_attribute_name;
 
     REQUIRE(!mesh.has_attribute(facet_normal_name));
-    compute_normal(mesh, M_PI / 4, {}, options);
+    compute_normal(mesh, lagrange::internal::pi / 4, {}, options);
     REQUIRE(!mesh.has_attribute(facet_normal_name));
 
     options.keep_facet_normals = true;
-    compute_normal(mesh, M_PI / 4, {}, options);
+    compute_normal(mesh, lagrange::internal::pi / 4, {}, options);
     REQUIRE(mesh.has_attribute(facet_normal_name));
     mesh.delete_attribute(facet_normal_name);
 
     // Whether to keep the facet attribute or not does *not* depend on the presence of edge
     // information, contrary to the compute_vertex_normal method.
     mesh.initialize_edges();
-    compute_normal(mesh, M_PI / 4, {}, options);
+    compute_normal(mesh, lagrange::internal::pi / 4, {}, options);
     REQUIRE(mesh.has_attribute(facet_normal_name));
 }
 
@@ -343,7 +345,9 @@ TEST_CASE("compute_normal nmtest", "[core][normal]" LA_CORP_FLAG)
         const Scalar EPS = static_cast<Scalar>(1e-3);
         auto nrm_id = lagrange::compute_normal(
             mesh,
-            std::max(Scalar(0), Scalar(angle_threshold_deg) * Scalar(M_PI / 180.0) - EPS));
+            std::max(
+                Scalar(0),
+                Scalar(angle_threshold_deg) * Scalar(lagrange::internal::pi / 180.0) - EPS));
 
         std::string nrm_name(mesh.get_attribute_name(nrm_id));
         mesh = lagrange::unify_index_buffer(mesh, {nrm_id});
@@ -394,7 +398,7 @@ TEST_CASE("compute_normal benchmark", "[surface][attribute][normal][utilities][!
     {
         if (mesh.has_attribute("@normal"))
             mesh.delete_attribute("@normal", AttributeDeletePolicy::Force);
-        meter.measure([&]() { return compute_normal(mesh, M_PI / 4); });
+        meter.measure([&]() { return compute_normal(mesh, lagrange::internal::pi / 4); });
         mesh.clear_edges();
     };
 
@@ -407,7 +411,7 @@ TEST_CASE("compute_normal benchmark", "[surface][attribute][normal][utilities][!
     {
         if (legacy_mesh->has_indexed_attribute("normal"))
             legacy_mesh->remove_indexed_attribute("normal");
-        meter.measure([&]() { return compute_normal(*legacy_mesh, M_PI / 4); });
+        meter.measure([&]() { return compute_normal(*legacy_mesh, lagrange::internal::pi / 4); });
     };
 #endif
 }
@@ -424,7 +428,7 @@ TEST_CASE("legacy::compute_normal vs compute_normal", "[mesh][attribute][normal]
     auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/blub/blub.obj");
     compute_facet_normal(mesh);
 
-    auto normal_id = compute_normal(mesh, M_PI / 4);
+    auto normal_id = compute_normal(mesh, lagrange::internal::pi / 4);
     const auto& normal_attr = mesh.get_indexed_attribute<Scalar>(normal_id);
     auto normal_values = matrix_view(normal_attr.values());
     auto normal_indices = normal_attr.indices().get_all();
@@ -435,7 +439,7 @@ TEST_CASE("legacy::compute_normal vs compute_normal", "[mesh][attribute][normal]
 
     CHECK(legacy_mesh->has_indexed_attribute("@normal"));
     legacy_mesh->remove_indexed_attribute("@normal");
-    compute_normal(*legacy_mesh, M_PI / 4);
+    compute_normal(*legacy_mesh, lagrange::internal::pi / 4);
     legacy_mesh->remove_facet_attribute("normal");
     CHECK(legacy_mesh->has_indexed_attribute("normal"));
 
@@ -470,7 +474,7 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
 
         SECTION("Keep edge sharp")
         {
-            compute_normal(*mesh, M_PI * 0.25);
+            compute_normal(*mesh, lagrange::internal::pi * 0.25);
             REQUIRE(mesh->has_indexed_attribute("normal"));
 
             MeshType::AttributeArray normal_values;
@@ -489,7 +493,7 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
 
         SECTION("Smooth edge")
         {
-            compute_normal(*mesh, M_PI);
+            compute_normal(*mesh, lagrange::internal::pi);
             REQUIRE(mesh->has_indexed_attribute("normal"));
 
             MeshType::AttributeArray normal_values;
@@ -519,7 +523,7 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
 
         SECTION("No cone vertices")
         {
-            compute_normal(*mesh, M_PI * 0.5 - 0.1);
+            compute_normal(*mesh, lagrange::internal::pi * 0.5 - 0.1);
             REQUIRE(mesh->has_indexed_attribute("normal"));
 
             MeshType::AttributeArray normal_values;
@@ -539,7 +543,7 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
 
         SECTION("With cone vertices")
         {
-            compute_normal(*mesh, M_PI * 0.5 - 0.1, {4});
+            compute_normal(*mesh, lagrange::internal::pi * 0.5 - 0.1, {4});
             REQUIRE(mesh->has_indexed_attribute("normal"));
 
             MeshType::AttributeArray normal_values;
@@ -561,7 +565,7 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
         REQUIRE(mesh->get_num_vertices() == 7106);
         REQUIRE(mesh->get_num_facets() == 14208);
 
-        compute_normal(*mesh, M_PI * 0.25);
+        compute_normal(*mesh, lagrange::internal::pi * 0.25);
         REQUIRE(mesh->has_indexed_attribute("normal"));
 
         compute_triangle_normal(*mesh);
@@ -581,7 +585,7 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
                 Eigen::Vector3d c_normal = normal_values.row(normal_indices(i, j));
                 Eigen::Vector3d v_normal = triangle_normals.row(i);
                 auto theta = angle_between(c_normal, v_normal);
-                REQUIRE(theta < M_PI * 0.5);
+                REQUIRE(theta < lagrange::internal::pi * 0.5);
             }
         }
     }
@@ -596,7 +600,7 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
         auto mesh = wrap_with_mesh(vertices, facets);
         using MeshType = typename decltype(mesh)::element_type;
 
-        compute_normal(*mesh, M_PI * 0.25);
+        compute_normal(*mesh, lagrange::internal::pi * 0.25);
         REQUIRE(mesh->has_indexed_attribute("normal"));
 
         compute_triangle_normal(*mesh);

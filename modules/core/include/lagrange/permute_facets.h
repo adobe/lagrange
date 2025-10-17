@@ -35,7 +35,7 @@ namespace lagrange {
  *                             This array can often be obtained via index-based sorting of the
  *                             facets with customized comparison.
  *
- * @see `extract_submesh` to extract a subset of the facets.
+ * @see @ref extract_submesh to extract a subset of the facets.
  */
 template <typename Scalar, typename Index>
 void permute_facets(SurfaceMesh<Scalar, Index>& mesh, span<const Index> new_to_old);

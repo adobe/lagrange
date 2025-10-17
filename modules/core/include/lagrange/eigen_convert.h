@@ -57,4 +57,3 @@ SurfaceMesh<Scalar, Index> eigen_to_surface_mesh(
 
 /// @}
 } // namespace lagrange
-

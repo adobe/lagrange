@@ -11,6 +11,7 @@
  */
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/compute_facet_normal.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/weld_indexed_attribute.h>
@@ -170,7 +171,7 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
             WeldOptions options;
             options.epsilon_rel = 1;
             options.epsilon_abs = 1;
-            options.angle_abs = M_PI / 18; // 10 degrees
+            options.angle_abs = lagrange::internal::pi / 18; // 10 degrees
             weld_indexed_attribute(mesh, id, options);
 
             auto& attr = mesh.get_indexed_attribute<Scalar>(id);
@@ -185,7 +186,7 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
             WeldOptions options;
             options.epsilon_rel = 1;
             options.epsilon_abs = 1;
-            options.angle_abs = M_PI / 18; // 10 degrees
+            options.angle_abs = lagrange::internal::pi / 18; // 10 degrees
             options.exclude_vertices = {exclude_vertices.data(), exclude_vertices.size()};
 
             weld_indexed_attribute(mesh, id, options);
@@ -242,7 +243,7 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
             options.epsilon_rel = 0;
             options.epsilon_abs = std::numeric_limits<Scalar>::infinity();
             options.angle_abs = 0;
-            options.merge_accross_vertices = true;
+            options.merge_across_vertices = true;
             weld_indexed_attribute(cube, attr_id, options);
             const auto& attr = cube.get_indexed_attribute<Scalar>(attr_id);
             REQUIRE(attr.values().get_num_elements() == cube.get_num_facets());
@@ -253,7 +254,8 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
             WeldOptions options;
             options.epsilon_rel = 0;
             options.epsilon_abs = std::numeric_limits<Scalar>::infinity();
-            options.angle_abs = M_PI; // Basically weld all normals together at each vertex.
+            options.angle_abs =
+                lagrange::internal::pi; // Basically weld all normals together at each vertex.
             weld_indexed_attribute(cube, attr_id, options);
             const auto& attr = cube.get_indexed_attribute<Scalar>(attr_id);
             REQUIRE(attr.values().get_num_elements() == cube.get_num_vertices());
@@ -264,8 +266,9 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
             WeldOptions options;
             options.epsilon_rel = 0;
             options.epsilon_abs = std::numeric_limits<Scalar>::infinity();
-            options.angle_abs = M_PI; // Basically weld all normals together at each vertex.
-            options.merge_accross_vertices = true;
+            options.angle_abs =
+                lagrange::internal::pi; // Basically weld all normals together at each vertex.
+            options.merge_across_vertices = true;
             weld_indexed_attribute(cube, attr_id, options);
             const auto& attr = cube.get_indexed_attribute<Scalar>(attr_id);
             REQUIRE(attr.values().get_num_elements() == 1);

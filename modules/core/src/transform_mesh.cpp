@@ -180,10 +180,11 @@ void transform_mesh_internal(
             } else {
                 type_name = internal::value_type_name(attr_read);
             }
-            throw Error(fmt::format(
-                "Invalid attribute value type ({}) for attribute usage: {}",
-                type_name,
-                internal::to_string(attr_read.get_usage())));
+            throw Error(
+                fmt::format(
+                    "Invalid attribute value type ({}) for attribute usage: {}",
+                    type_name,
+                    internal::to_string(attr_read.get_usage())));
         }
     });
 

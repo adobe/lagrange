@@ -17,6 +17,7 @@
 #include <catch2/catch_approx.hpp>
 
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/marching_triangles.h>
 #include <lagrange/utils/range.h>
@@ -127,10 +128,10 @@ create_square(const int n, const int m, const Index num_dims, const Scalar delta
         for (auto j : range(m)) {
             const Scalar iscaled = Scalar(i) / (n - 1);
             const Scalar jscaled = Scalar(j) / (m - 1);
-LA_IGNORE_ARRAY_BOUNDS_BEGIN
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
             Eigen::Matrix<Scalar, 1, 3> pt(iscaled, jscaled, 0);
             vertices.row(j * n + i) = pt.head(num_dims);
-LA_IGNORE_ARRAY_BOUNDS_END
+            LA_IGNORE_ARRAY_BOUNDS_END
         }
     }
     for (auto i : range(n - 1)) {
@@ -172,8 +173,14 @@ TEST_CASE("MarchingTriangles_Stress", "[marching_triangles]")
     Index m = 35;
     Scalar delta = 0.2f;
 
-    SECTION("2D") { num_dims = 2; }
-    SECTION("3D") { num_dims = 3; }
+    SECTION("2D")
+    {
+        num_dims = 2;
+    }
+    SECTION("3D")
+    {
+        num_dims = 3;
+    }
 
     auto mesh = create_square(n, m, num_dims, delta);
     AttributeArray r2 = AttributeArray::Random(mesh->get_num_vertices(), 1) * 1e-10;
@@ -205,8 +212,14 @@ TEST_CASE("MarchingTriangles_PerimeterOfEllipse", "[marching_triangles]")
     Index attrib_col = 0;
     std::vector<Scalar> isovalues = {0.025f, 0.035f, 0.05f, 0.075f, 0.1f, 0.2f};
 
-    SECTION("2D") { num_dims = 2; }
-    SECTION("3D") { num_dims = 3; }
+    SECTION("2D")
+    {
+        num_dims = 2;
+    }
+    SECTION("3D")
+    {
+        num_dims = 3;
+    }
 
     // Create the mesh, and perturb it a bit.
     auto mesh = create_square(n, m, num_dims, delta);
@@ -248,8 +261,8 @@ TEST_CASE("MarchingTriangles_PerimeterOfEllipse", "[marching_triangles]")
         const Scalar eb = sqrt(isovalue / b);
         // https://www.mathsisfun.com/geometry/ellipse-perimeter.html
         const Scalar h = (ea - eb) * (ea - eb) / ((ea + eb) * (ea + eb));
-        const Scalar perimeter_analytical =
-            safe_cast<Scalar>(M_PI * (ea + eb) * (1 + 3 * h / (10 + sqrt(4 - 3 * h))));
+        const Scalar perimeter_analytical = safe_cast<Scalar>(
+            lagrange::internal::pi * (ea + eb) * (1 + 3 * h / (10 + sqrt(4 - 3 * h))));
 
         if (should_dump_meshes) {
             std::cout << perimeter_analytical << " ; " << perimeter_computed << "\n";

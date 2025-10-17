@@ -45,7 +45,6 @@
 #include <lagrange/python/utils/bind_safe_vector.h>
 
 #include <lagrange/scene/Scene.h>
-#include <lagrange/scene/SceneExtension.h>
 
 NB_MAKE_OPAQUE(lagrange::SafeVector<size_t>);
 NB_MAKE_OPAQUE(lagrange::SafeVector<lagrange::scene::Node>);
@@ -58,7 +57,3 @@ NB_MAKE_OPAQUE(lagrange::SafeVector<lagrange::scene::Light>);
 NB_MAKE_OPAQUE(lagrange::SafeVector<lagrange::scene::Camera>);
 NB_MAKE_OPAQUE(lagrange::SafeVector<lagrange::scene::Skeleton>);
 NB_MAKE_OPAQUE(lagrange::SafeVector<lagrange::scene::Animation>);
-NB_MAKE_OPAQUE(std::vector<lagrange::scene::Value>);
-// NB_MAKE_OPAQUE(lagrange::SafeVector<lagrange::scene::Value>); // TODO: Switch to this?
-NB_MAKE_OPAQUE(std::unordered_map<std::string, lagrange::scene::Value>);
-NB_MAKE_OPAQUE(std::map<std::string, lagrange::scene::Value>);

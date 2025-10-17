@@ -29,16 +29,16 @@ namespace lagrange::io::internal {
  */
 std::unique_ptr<aiScene> load_assimp(
     const fs::path& filename,
-    unsigned int flags = aiProcess_CalcTangentSpace |
-                         aiProcess_GenUVCoords | aiProcess_PopulateArmatureData);
+    unsigned int flags = aiProcess_CalcTangentSpace | aiProcess_GenUVCoords |
+                         aiProcess_PopulateArmatureData);
 
 /**
  * Load an assimp scene from stream.
  */
 std::unique_ptr<aiScene> load_assimp(
     std::istream& input_stream,
-    unsigned int flags = aiProcess_CalcTangentSpace |
-                         aiProcess_GenUVCoords | aiProcess_PopulateArmatureData);
+    unsigned int flags = aiProcess_CalcTangentSpace | aiProcess_GenUVCoords |
+                         aiProcess_PopulateArmatureData);
 
 /**
  * Convert an assimp mesh to a lagrange SurfaceMesh

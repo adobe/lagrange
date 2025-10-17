@@ -427,15 +427,13 @@ void populate_attributes(
             }
         }
 
-        const auto& values = [&]() -> const auto&
-        {
+        const auto& values = [&]() -> const auto& {
             if constexpr (AttributeType::IsIndexed) {
                 return attr.values();
             } else {
                 return attr;
             }
-        }
-        ();
+        }();
 
         // we are committed to writing the buffer here. Do not return early after this line.
 
@@ -591,7 +589,6 @@ tinygltf::Model lagrange_simple_scene_to_gltf_model(
     model.scenes.push_back(tinygltf::Scene());
     model.defaultScene = 0;
     tinygltf::Scene& scene = model.scenes.front();
-
 
 
     for (Index i = 0; i < lscene.get_num_meshes(); ++i) {
@@ -759,17 +756,27 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             case AttributeValueType::e_uint8_t:
                 image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
                 break;
-            case AttributeValueType::e_int8_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE; break;
+            case AttributeValueType::e_int8_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE;
+                break;
             case AttributeValueType::e_uint16_t:
                 image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
                 break;
-            case AttributeValueType::e_int16_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_SHORT; break;
+            case AttributeValueType::e_int16_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_SHORT;
+                break;
             case AttributeValueType::e_uint32_t:
                 image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
                 break;
-            case AttributeValueType::e_int32_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_INT; break;
-            case AttributeValueType::e_float: image.pixel_type = TINYGLTF_COMPONENT_TYPE_FLOAT; break;
-            case AttributeValueType::e_double: image.pixel_type = TINYGLTF_COMPONENT_TYPE_DOUBLE; break;
+            case AttributeValueType::e_int32_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_INT;
+                break;
+            case AttributeValueType::e_float:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_FLOAT;
+                break;
+            case AttributeValueType::e_double:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_DOUBLE;
+                break;
             default:
                 logger().error("Saving image with unsupported pixel precision!");
                 // TODO: should we simply fail?
@@ -808,7 +815,8 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             material.pbrMetallicRoughness.baseColorFactor = to_vec4(lmat.base_color_value);
             material.pbrMetallicRoughness.baseColorTexture.index =
                 element_id_to_int(lmat.base_color_texture.index);
-            material.pbrMetallicRoughness.baseColorTexture.texCoord = lmat.base_color_texture.texcoord;
+            material.pbrMetallicRoughness.baseColorTexture.texCoord =
+                lmat.base_color_texture.texcoord;
 
             material.emissiveFactor = to_vec3(lmat.emissive_value);
             material.emissiveTexture.index = element_id_to_int(lmat.emissive_texture.index);
@@ -922,7 +930,7 @@ tinygltf::Model lagrange_scene_to_gltf_model(
 
         return node_idx;
     };
-    for (size_t i=0; i<num_nodes; i++) {
+    for (size_t i = 0; i < num_nodes; i++) {
         if (node_indices[i] != invalid<int>()) continue;
 
         const scene::Node& lnode = lscene.nodes[i];

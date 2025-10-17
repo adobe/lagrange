@@ -49,10 +49,8 @@ template <typename SceneType>
 SceneType load_simple_scene(std::istream& input_stream, const LoadOptions& options)
 {
     switch (internal::detect_file_format(input_stream)) {
-    case FileFormat::Gltf:
-        return load_simple_scene_gltf<SceneType>(input_stream, options);
-    case FileFormat::Fbx:
-        return load_simple_scene_fbx<SceneType>(input_stream, options);
+    case FileFormat::Gltf: return load_simple_scene_gltf<SceneType>(input_stream, options);
+    case FileFormat::Fbx: return load_simple_scene_fbx<SceneType>(input_stream, options);
     default:
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_simple_scene_assimp<SceneType>(input_stream, options);

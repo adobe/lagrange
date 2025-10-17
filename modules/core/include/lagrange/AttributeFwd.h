@@ -11,9 +11,9 @@
  */
 #pragma once
 
+#include <array>
 #include <cstdint>
 #include <limits>
-#include <array>
 
 namespace lagrange {
 

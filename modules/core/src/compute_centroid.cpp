@@ -128,13 +128,13 @@ void compute_mesh_centroid(
     }
 }
 
-#define LA_X_compute_centroid(_, Scalar, Index)                 \
+#define LA_X_compute_centroid(_, Scalar, Index)                             \
     template LA_CORE_API AttributeId compute_facet_centroid<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                            \
-        FacetCentroidOptions);                                  \
+        SurfaceMesh<Scalar, Index>&,                                        \
+        FacetCentroidOptions);                                              \
     template LA_CORE_API void compute_mesh_centroid<Scalar, Index>(         \
-        const SurfaceMesh<Scalar, Index>&,                      \
-        span<Scalar>,                                           \
+        const SurfaceMesh<Scalar, Index>&,                                  \
+        span<Scalar>,                                                       \
         MeshCentroidOptions);
 LA_SURFACE_MESH_X(compute_centroid, 0)
 

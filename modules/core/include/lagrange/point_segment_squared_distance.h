@@ -11,6 +11,7 @@
  */
 #pragma once
 
-#pragma message("<lagrange/point_segment_squared_distance.h> has been moved to " \
-                "<lagrange/utils/point_segment_squared_distance.h>")
+#pragma message(                                                     \
+    "<lagrange/point_segment_squared_distance.h> has been moved to " \
+    "<lagrange/utils/point_segment_squared_distance.h>")
 #include <lagrange/utils/point_segment_squared_distance.h>

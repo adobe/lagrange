@@ -173,9 +173,10 @@ void map_attributes(
                 map_attribute_injective(name, std::forward<const AttributeType>(attr));
                 break;
             default:
-                throw Error(fmt::format(
-                    "Unsupported collision policy {}",
-                    int(options.collision_policy_integral)));
+                throw Error(
+                    fmt::format(
+                        "Unsupported collision policy {}",
+                        int(options.collision_policy_integral)));
             }
         }
     };

@@ -17,19 +17,19 @@ classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: Apache Software License",
     "Programming Language :: C++",
-    "Topic :: Multimedia :: Graphics :: 3D Modeling",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
 ]
 dynamic = [ "version" ]
 
 dependencies = [
-    "colorama>=0.4.4 ; platform_system != 'Windows'",
-    "colorama>=0.4.6 ; platform_system == 'Windows'",
+    "colorama>=0.4.4; platform_system!='Windows'",
+    "colorama>=0.4.6; platform_system=='Windows'",
     "numpy>=1.25",
 ]
 urls.documentation = "https://opensource.adobe.com/lagrange-docs"
@@ -47,12 +47,6 @@ lint = [
     "mypy==1.1.1",
     "ruff==0.4.3",
 ]
-
-[tool.pytest.ini_options]
-addopts = [
-    "--import-mode=importlib",
-]
-pythonpath = "."
 
 [tool.scikit-build]
 ninja.version = ">=1.11.1"
@@ -108,6 +102,12 @@ line-length = 100
 [tool.pyproject-fmt]
 indent = 4
 keep_full_version = true
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]
+pythonpath = "."
 
 [tool.uv]
 python-preference = "only-managed"

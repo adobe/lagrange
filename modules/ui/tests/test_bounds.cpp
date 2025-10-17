@@ -18,16 +18,13 @@ namespace ui = lagrange::ui;
 
 TEST_CASE("get_nearest_bounds_distance", "[ui][bounds]")
 {
-    auto check_nearest_bounds_distance = [](
-        const ui::Registry& r,
-        const Eigen::Vector3f& from,
-        float expected_distance)
-    {
-        ui::Layer visible_layers(true);
-        ui::Layer hidden_layers(false);
-        float nearest = ui::get_nearest_bounds_distance(r, from, visible_layers, hidden_layers);
-        REQUIRE(nearest == Catch::Approx(expected_distance));
-    };
+    auto check_nearest_bounds_distance =
+        [](const ui::Registry& r, const Eigen::Vector3f& from, float expected_distance) {
+            ui::Layer visible_layers(true);
+            ui::Layer hidden_layers(false);
+            float nearest = ui::get_nearest_bounds_distance(r, from, visible_layers, hidden_layers);
+            REQUIRE(nearest == Catch::Approx(expected_distance));
+        };
 
     SECTION("no bounds")
     {
@@ -82,11 +79,9 @@ TEST_CASE("get_nearest_bounds_distance", "[ui][bounds]")
 
 TEST_CASE("get_furthest_bounds_distance", "[ui][bounds]")
 {
-    auto check_furthest_bounds_distance = [](
-        const ui::Registry& r,
-        const Eigen::Vector3f& from,
-        float expected_distance)
-    {
+    auto check_furthest_bounds_distance = [](const ui::Registry& r,
+                                             const Eigen::Vector3f& from,
+                                             float expected_distance) {
         ui::Layer visible_layers(true);
         ui::Layer hidden_layers(false);
         float furthest = ui::get_furthest_bounds_distance(r, from, visible_layers, hidden_layers);

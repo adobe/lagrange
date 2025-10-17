@@ -137,7 +137,7 @@ void populate_texproc_module(nb::module_& m)
 :param value_weight: The weight for fitting the values of the signal.
 :param gradient_weight: The weight for fitting the modulated gradients of the signal.
 :param gradient_scale: The gradient modulation weight. Use a value of 0 for smoothing, and use a value between [2, 10] for sharpening.
-:param quadrature_samples: The number of quadrature samples to use for integration.
+:param quadrature_samples: The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
 
 :return: The filtered texture image.)");
@@ -174,7 +174,7 @@ void populate_texproc_module(nb::module_& m)
 :param mesh: Input mesh with UV attributes.
 :param image: Texture image to stitch.
 :param exterior_only: If true, interior texels are fixed degrees of freedom.
-:param quadrature_samples: The number of quadrature samples to use for integration.
+:param quadrature_samples: The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
 
 :return: The stitched texture image.)");
@@ -298,7 +298,7 @@ void populate_texproc_module(nb::module_& m)
 :param colors: List of texture images to composite. Input textures must have the same dimensions.
 :param weights: List of confidence weights for each texel. 0 means the texel should be ignored, 1 means the texel should be fully trusted. Input weights must have the same dimensions as colors.
 :param value_weight: The weight for fitting the values of the signal.
-:param quadrature_samples: The number of quadrature samples to use for integration.
+:param quadrature_samples: The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
 :param smooth_low_weight_areas: Whether to smooth pixels with a low total weight (< 1). When enabled, this will not dampen the gradient terms for pixels with a low total weight, resulting in a smoother texture in low-confidence areas.
 :param num_multigrid_levels: Number of multigrid levels.

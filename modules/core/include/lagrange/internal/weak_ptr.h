@@ -7,8 +7,8 @@
 
 #pragma once
 
-#include <lagrange/internal/smart_ptr/control_block.h>
 #include <lagrange/internal/shared_ptr.h>
+#include <lagrange/internal/smart_ptr/control_block.h>
 
 #include <type_traits> // remove_extent
 

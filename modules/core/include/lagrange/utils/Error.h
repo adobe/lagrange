@@ -34,7 +34,9 @@ struct LA_CORE_API Error : public std::runtime_error
 ///
 struct LA_CORE_API BadCastError : public Error
 {
-    BadCastError() : Error("bad cast") {}
+    BadCastError()
+        : Error("bad cast")
+    {}
     ~BadCastError() override;
 };
 

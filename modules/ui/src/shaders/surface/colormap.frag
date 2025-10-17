@@ -82,4 +82,3 @@ vec4 colormapped_fragment_color(vec4 value){
 
 
 }
-

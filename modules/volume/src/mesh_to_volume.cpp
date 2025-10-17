@@ -66,7 +66,8 @@ public:
     ///
     void getIndexSpacePoint(size_t f, size_t lv, openvdb::Vec3d& pos) const
     {
-        auto p = m_mesh.get_position(m_mesh.get_facet_vertex(static_cast<Index>(f), static_cast<Index>(lv)));
+        auto p = m_mesh.get_position(
+            m_mesh.get_facet_vertex(static_cast<Index>(f), static_cast<Index>(lv)));
         pos = openvdb::Vec3d(p[0], p[1], p[2]);
         pos = m_transform.worldToIndex(pos);
     }

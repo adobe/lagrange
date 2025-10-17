@@ -14,6 +14,8 @@
 
 #include "mesh_utils.h"
 
+#include <lagrange/utils/build.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Src/PreProcessing.h>
@@ -27,6 +29,8 @@
 namespace lagrange::texproc {
 
 namespace {
+
+using namespace MishaK::TSP;
 
 template <unsigned int NumChannels, typename Scalar, typename Index, typename ValueType>
 void texture_stitching(
@@ -48,6 +52,12 @@ void texture_stitching(
     padding.pad(grid);
 
     // Construct the gradient-domain object
+    const bool normalize = true;
+#if LAGRANGE_TARGET_BUILD_TYPE(DEBUG)
+    const bool sanity_check = true;
+#else
+    const bool sanity_check = false;
+#endif
     GradientDomain<double> gd(
         quadrature_samples,
         wrapper.num_simplices(),
@@ -58,7 +68,9 @@ void texture_stitching(
         [&](size_t t, unsigned int k) { return wrapper.texture_index(t, k); },
         [&](size_t v) { return wrapper.texcoord(v); },
         grid.res(0),
-        grid.res(1));
+        grid.res(1),
+        normalize,
+        sanity_check);
 
     // Compute the prolongation matrix from the degrees of freedom to texels
     std::unordered_set<size_t> dof_set;
@@ -241,7 +253,7 @@ void texture_stitching(
 #define LA_X_texture_stitching(ValueType, Scalar, Index) \
     template void texture_stitching(                     \
         const SurfaceMesh<Scalar, Index>& mesh,          \
-        image::experimental::View3D<ValueType> texture,               \
+        image::experimental::View3D<ValueType> texture,  \
         const StitchingOptions& options);
 #define LA_X_texture_stitching_aux(_, ValueType) LA_SURFACE_MESH_X(texture_stitching, ValueType)
 LA_ATTRIBUTE_X(texture_stitching_aux, 0)

@@ -9,15 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/experimental/Array.h>
 #include <lagrange/Mesh.h>
+#include <lagrange/experimental/Array.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/timing.h>
 #include <iostream>
 
 #ifndef EIGEN_VECTORIZE
-#warning "Vectorization is disabled"
+    #warning "Vectorization is disabled"
 #endif
 
 template <typename DerivedV, typename DerivedF>

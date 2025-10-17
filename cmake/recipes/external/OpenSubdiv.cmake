@@ -61,6 +61,8 @@ block()
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
+    target_compile_definitions(${OPENSUBDIV_TARGET} PUBLIC _USE_MATH_DEFINES)
+
     # Set folders for MSVC
     foreach(name IN ITEMS bfr_obj far_obj osd_cpu_obj osd_static_cpu sdc_obj vtr_obj)
         if(TARGET ${name})

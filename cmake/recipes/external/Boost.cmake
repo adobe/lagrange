@@ -45,6 +45,7 @@ set(BOOST_INCLUDE_LIBRARIES
     lockfree
     log
     math
+    multiprecision
     numeric/conversion
     numeric/interval
     numeric/ublas

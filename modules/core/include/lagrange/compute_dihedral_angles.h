@@ -63,7 +63,7 @@ struct DihedralAngleOptions
 ///
 /// @return             The id of the dihedral angle attribute.
 ///
-/// @see DihedralAngleOptions
+/// @see @ref DihedralAngleOptions
 ///
 template <typename Scalar, typename Index>
 AttributeId compute_dihedral_angles(

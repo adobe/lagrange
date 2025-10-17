@@ -22,8 +22,8 @@ int main(int argc, char** argv)
     ui::Viewer viewer(argc, argv);
 
     // Load mesh via lagrange::io module
-    auto mesh = lagrange::io::load_mesh<lagrange::TriangleMesh3D>(
-        LAGRANGE_DATA_FOLDER "/open/core/rounded_cube.obj");
+    auto mesh = lagrange::io::load_mesh<lagrange::TriangleMesh3D>(LAGRANGE_DATA_FOLDER
+                                                                  "/open/core/rounded_cube.obj");
 
     // Create a lagrange mesh and register it with the UI
     auto mesh_entity = ui::register_mesh(viewer, std::move(mesh));

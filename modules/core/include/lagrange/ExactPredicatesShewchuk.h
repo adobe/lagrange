@@ -39,7 +39,8 @@ public:
     ///
     /// @copydoc ExactPredicates::orient2D
     ///
-    virtual short insphere(double p1[3], double p2[3], double p3[3], double p4[3], double p5[3]) const;
+    virtual short insphere(double p1[3], double p2[3], double p3[3], double p4[3], double p5[3])
+        const;
 };
 
 } // namespace lagrange

@@ -59,8 +59,10 @@ std::vector<std::unique_ptr<MeshType>> load_obj_meshes(const fs::path& filename)
 
     return load_mesh_ext<MeshType>(filename).meshes;
 }
-extern template std::vector<std::unique_ptr<lagrange::TriangleMesh3D>> load_obj_meshes(const fs::path&);
-extern template std::vector<std::unique_ptr<lagrange::TriangleMesh3Df>> load_obj_meshes(const fs::path&);
+extern template std::vector<std::unique_ptr<lagrange::TriangleMesh3D>> load_obj_meshes(
+    const fs::path&);
+extern template std::vector<std::unique_ptr<lagrange::TriangleMesh3Df>> load_obj_meshes(
+    const fs::path&);
 
 template <typename MeshType>
 std::unique_ptr<MeshType> load_obj_mesh(const fs::path& filename)

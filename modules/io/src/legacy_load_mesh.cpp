@@ -9,8 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/io/legacy/load_mesh.impl.h>
 #include <lagrange/io/api.h>
+#include <lagrange/io/legacy/load_mesh.impl.h>
 
 namespace lagrange::io {
 LAGRANGE_LEGACY_INLINE
@@ -28,7 +28,8 @@ template std::unique_ptr<TriangleMesh3Df> load_obj_mesh(const fs::path&);
 template LA_IO_API std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
 template LA_IO_API std::unique_ptr<TriangleMesh3Df> load_mesh(const fs::path&);
 template LA_IO_API std::unique_ptr<TriangleMesh2D> load_mesh(const fs::path&);
-template LA_IO_API std::unique_ptr<Mesh<Eigen::MatrixXf, Eigen::MatrixXi>> load_mesh(const fs::path&);
+template LA_IO_API std::unique_ptr<Mesh<Eigen::MatrixXf, Eigen::MatrixXi>> load_mesh(
+    const fs::path&);
 
 } // namespace legacy
 } // namespace lagrange::io

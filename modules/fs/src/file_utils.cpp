@@ -9,20 +9,20 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/utils/strings.h>
 #include <lagrange/fs/file_utils.h>
+#include <lagrange/utils/strings.h>
 
 #include <lagrange/utils/assert.h>
 
 #ifdef _WIN32
-#include <Windows.h>
+    #include <Windows.h>
 #elif __APPLE__
-#include <mach-o/dyld.h>
-#include <unistd.h>
+    #include <mach-o/dyld.h>
+    #include <unistd.h>
 #elif __linux__ || __EMSCRIPTEN__
-#include <unistd.h>
+    #include <unistd.h>
 #else
-#error Platform not supported
+    #error Platform not supported
 #endif
 
 #include <fstream>
@@ -94,7 +94,8 @@ std::string read_file_with_includes(const fs::path& search_dir, const fs::path& 
 }
 
 std::string read_file_with_includes(
-    const fs::path& filepath, const std::unordered_map<std::string, std::string>& virtual_fs)
+    const fs::path& filepath,
+    const std::unordered_map<std::string, std::string>& virtual_fs)
 {
     auto it = virtual_fs.find(filepath.generic_string());
     if (it == virtual_fs.end())
@@ -115,7 +116,8 @@ std::string read_file_with_includes(
             auto it_include = virtual_fs.find(include_file_name);
             if (it_include == virtual_fs.end())
                 la_runtime_assert(
-                    false, "#include of " + include_file_name + " is not in virtual file system");
+                    false,
+                    "#include of " + include_file_name + " is not in virtual file system");
 
             const auto& new_src = (*it_include).second;
             str.replace(i->position(), i->length(), new_src);
@@ -137,7 +139,7 @@ path get_executable_path()
     constexpr short BUF_SIZE = 2048;
     path result;
 
-#ifdef _WIN32
+    #ifdef _WIN32
     // Use the A postfix. It would return 8bit ANSI string.
     // Using W postfix will return 16 bit windows UTF (Yuk!) strings
     // Using no postfil apparently depends on whether `UNICODE` is defined.
@@ -150,7 +152,7 @@ path get_executable_path()
     char path[BUF_SIZE] = {0};
     GetModuleFileNameA(NULL, path, BUF_SIZE);
     result = path;
-#elif __APPLE__
+    #elif __APPLE__
     char path[BUF_SIZE];
     uint32_t size = sizeof(path);
     if (_NSGetExecutablePath(path, &size) == 0) {
@@ -158,13 +160,13 @@ path get_executable_path()
     } else {
         result = ".";
     }
-#elif __linux__
+    #elif __linux__
     char dest[BUF_SIZE];
     memset(dest, 0, sizeof(dest));
     auto count = readlink("/proc/self/exe", dest, BUF_SIZE);
     la_runtime_assert(count >= 0);
     result = dest;
-#endif
+    #endif
 
     return result.lexically_normal();
 }

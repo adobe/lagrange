@@ -9,8 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/subdivision/midpoint_subdivision.h>
 #include <lagrange/subdivision/api.h>
+#include <lagrange/subdivision/midpoint_subdivision.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/eigen_convert.h>
@@ -58,7 +58,7 @@ SurfaceMesh<Scalar, Index> midpoint_subdivision(const SurfaceMesh<Scalar, Index>
     return subdivided_mesh;
 }
 
-#define LA_X_midpoint_subdivision(_, Scalar, Index)           \
+#define LA_X_midpoint_subdivision(_, Scalar, Index)                              \
     template LA_SUBDIVISION_API SurfaceMesh<Scalar, Index> midpoint_subdivision( \
         const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(midpoint_subdivision, 0)

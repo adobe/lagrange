@@ -24,8 +24,8 @@
 // clang-format on
 
 #include <lagrange/extract_boundary_loops.h>
-#include <lagrange/legacy/inline.h>
 #include <lagrange/legacy/chain_edges.h>
+#include <lagrange/legacy/inline.h>
 #include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {

@@ -85,13 +85,13 @@ void dijkstra(
     }
 }
 
-#define LA_X_dijkstra(_, Scalar, Index)            \
-    template LA_CORE_API void dijkstra<Scalar, Index>(         \
-        SurfaceMesh<Scalar, Index>&,               \
-        span<const Index>,                         \
-        span<const Scalar>,                        \
-        Scalar,                                    \
-        const function_ref<Scalar(Index, Index)>&, \
+#define LA_X_dijkstra(_, Scalar, Index)                \
+    template LA_CORE_API void dijkstra<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index>&,                   \
+        span<const Index>,                             \
+        span<const Scalar>,                            \
+        Scalar,                                        \
+        const function_ref<Scalar(Index, Index)>&,     \
         const function_ref<bool(Index, Scalar)>&);
 
 LA_SURFACE_MESH_X(dijkstra, 0)

@@ -13,6 +13,7 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <lagrange/compute_dihedral_angles.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/views.h>
 
 TEST_CASE("compute_dihedral_angles", "[core][surface][utilities]")
@@ -65,7 +66,9 @@ TEST_CASE("compute_dihedral_angles", "[core][surface][utilities]")
         auto id = compute_dihedral_angles(mesh);
         auto dihedral_angles = attribute_matrix_view<Scalar>(mesh, id);
         REQUIRE_THAT(dihedral_angles.minCoeff(), Catch::Matchers::WithinAbs(0, eps));
-        REQUIRE_THAT(dihedral_angles.maxCoeff(), Catch::Matchers::WithinAbs(M_PI / 2, eps));
+        REQUIRE_THAT(
+            dihedral_angles.maxCoeff(),
+            Catch::Matchers::WithinAbs(lagrange::internal::pi / 2, eps));
     }
 
     SECTION("Two triangles: 180 degrees")
@@ -80,7 +83,9 @@ TEST_CASE("compute_dihedral_angles", "[core][surface][utilities]")
         auto id = compute_dihedral_angles(mesh);
         auto dihedral_angles = attribute_matrix_view<Scalar>(mesh, id);
         REQUIRE_THAT(dihedral_angles.minCoeff(), Catch::Matchers::WithinAbs(0, eps));
-        REQUIRE_THAT(dihedral_angles.maxCoeff(), Catch::Matchers::WithinAbs(M_PI, eps));
+        REQUIRE_THAT(
+            dihedral_angles.maxCoeff(),
+            Catch::Matchers::WithinAbs(lagrange::internal::pi, eps));
     }
 
     SECTION("Non-manifold")
@@ -97,7 +102,9 @@ TEST_CASE("compute_dihedral_angles", "[core][surface][utilities]")
         auto id = compute_dihedral_angles(mesh);
         auto dihedral_angles = attribute_matrix_view<Scalar>(mesh, id);
         REQUIRE_THAT(dihedral_angles.minCoeff(), Catch::Matchers::WithinAbs(0, eps));
-        REQUIRE_THAT(dihedral_angles.maxCoeff(), Catch::Matchers::WithinAbs(2 * M_PI, eps));
-        REQUIRE((dihedral_angles.array() > M_PI).count() == 1);
+        REQUIRE_THAT(
+            dihedral_angles.maxCoeff(),
+            Catch::Matchers::WithinAbs(2 * lagrange::internal::pi, eps));
+        REQUIRE((dihedral_angles.array() > lagrange::internal::pi).count() == 1);
     }
 }

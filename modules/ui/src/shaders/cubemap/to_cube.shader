@@ -31,4 +31,3 @@ void main(){
     fragColor.xyz = texture(texRectangular, UV).rgb;
 
 }
-

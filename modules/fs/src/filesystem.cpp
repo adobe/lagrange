@@ -12,5 +12,5 @@
 #include <lagrange/fs/detail/guess_backend.h>
 
 #if defined(LAGRANGE_USE_GHC_FS)
-#include <ghc/fs_impl.hpp>
+    #include <ghc/fs_impl.hpp>
 #endif

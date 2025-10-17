@@ -63,16 +63,16 @@ std::string_view to_string(AttributeUsage usage)
     }
 }
 
-#define LA_X_type_name(_, ValueType)                                        \
-    template <>                                                             \
+#define LA_X_type_name(_, ValueType)                                                    \
+    template <>                                                                         \
     LA_CORE_API std::string_view value_type_name(const lagrange::Attribute<ValueType>&) \
-    {                                                                       \
-        return #ValueType;                                                  \
-    }                                                                       \
-    template <>                                                             \
-    LA_CORE_API std::string_view value_type_name<ValueType>()                                      \
-    {                                                                       \
-        return #ValueType;                                                  \
+    {                                                                                   \
+        return #ValueType;                                                              \
+    }                                                                                   \
+    template <>                                                                         \
+    LA_CORE_API std::string_view value_type_name<ValueType>()                           \
+    {                                                                                   \
+        return #ValueType;                                                              \
     }
 
 LA_ATTRIBUTE_X(type_name, 0)

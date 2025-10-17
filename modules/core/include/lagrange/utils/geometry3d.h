@@ -11,8 +11,10 @@
  */
 #pragma once
 
-#include <Eigen/Dense>
 #include <lagrange/MeshTrait.h>
+#include <Eigen/Dense>
+
+#include <limits>
 
 namespace lagrange {
 
@@ -140,5 +142,42 @@ void orthogonal_frame(
     z = x.cross(u).stableNormalized();
     y = z.cross(x).stableNormalized();
 }
+
+/// Returns the circumcenter of a 3D triangle.
+///
+/// @tparam Scalar  Scalar type.
+///
+/// @param[in] p1   First vertex of the triangle.
+/// @param[in] p2   Second vertex of the triangle.
+/// @param[in] p3   Third vertex of the triangle.
+///
+/// @return The circumcenter point.
+///
+template <typename Scalar>
+Eigen::Vector3<Scalar> triangle_circumcenter_3d(
+    const Eigen::Vector3<Scalar>& p1,
+    const Eigen::Vector3<Scalar>& p2,
+    const Eigen::Vector3<Scalar>& p3)
+{
+    // Edge vectors
+    Eigen::Matrix<Scalar, 3, 1> a = p2 - p1;
+    Eigen::Matrix<Scalar, 3, 1> b = p3 - p1;
+
+    // Normal of the triangle plane
+    Eigen::Matrix<Scalar, 3, 1> n = a.cross(b);
+    Scalar n_norm2 = n.squaredNorm();
+
+    // Degenerate case: points are collinear or nearly so
+    if (n_norm2 < std::numeric_limits<Scalar>::epsilon()) return (p1 + p2 + p3) / Scalar(3);
+
+    // Compute circumcenter in 3D
+    // Formula: p1 + [ (|a|^2 * (b × n) + |b|^2 * (n × a)) ] / (2 * |n|^2)
+    Eigen::Matrix<Scalar, 3, 1> term1 = a.squaredNorm() * (b.cross(n));
+    Eigen::Matrix<Scalar, 3, 1> term2 = b.squaredNorm() * (n.cross(a));
+    Eigen::Matrix<Scalar, 3, 1> circumcenter = p1 + (term1 + term2) / (Scalar(2) * n_norm2);
+
+    return circumcenter;
+}
+
 
 } // namespace lagrange

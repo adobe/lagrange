@@ -37,8 +37,7 @@ LA_IMAGE_API void sample_from_density_map(
 /**
  * Type of sampling to use
  */
-enum class SampleType
-{
+enum class SampleType {
     Density, ///< sample according to density map
     Regular ///< sample regularly (ignores density)
 };
@@ -118,7 +117,8 @@ LA_IMAGE_API float bilinear_interpolation(const image::ImageView<float>& image, 
  *
  * @return The interpolated pixel value at the provided coordinates.
  */
-LA_IMAGE_API float nearest_neighbor_interpolation(const image::ImageView<float>& image, float x, float y);
+LA_IMAGE_API float
+nearest_neighbor_interpolation(const image::ImageView<float>& image, float x, float y);
 
 
 /**
@@ -141,7 +141,8 @@ LA_IMAGE_API float nearest_neighbor_interpolation(const image::ImageView<float>&
  * @return An approximation of the x-th percentile of the pixel intensities in the image.
  *         The return value is a floating point number representing a pixel intensity.
  */
-LA_IMAGE_API float percentile(const image::ImageView<float>& image, const float x, const int num_bins = 1000);
+LA_IMAGE_API float
+percentile(const image::ImageView<float>& image, const float x, const int num_bins = 1000);
 
 } // namespace image
 } // namespace lagrange

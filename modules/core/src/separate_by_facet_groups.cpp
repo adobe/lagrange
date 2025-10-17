@@ -91,20 +91,20 @@ std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups(
         options);
 }
 
-#define LA_X_separate_by_facet_groups(_, Scalar, Index)                        \
+#define LA_X_separate_by_facet_groups(_, Scalar, Index)                                    \
     template LA_CORE_API std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups( \
-        const SurfaceMesh<Scalar, Index>&,                                     \
-        size_t,                                                                \
-        span<const Index>,                                                     \
-        const SeparateByFacetGroupsOptions&);                                  \
+        const SurfaceMesh<Scalar, Index>&,                                                 \
+        size_t,                                                                            \
+        span<const Index>,                                                                 \
+        const SeparateByFacetGroupsOptions&);                                              \
     template LA_CORE_API std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups( \
-        const SurfaceMesh<Scalar, Index>&,                                     \
-        span<const Index>,                                                     \
-        const SeparateByFacetGroupsOptions&);                                  \
+        const SurfaceMesh<Scalar, Index>&,                                                 \
+        span<const Index>,                                                                 \
+        const SeparateByFacetGroupsOptions&);                                              \
     template LA_CORE_API std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups( \
-        const SurfaceMesh<Scalar, Index>&,                                     \
-        size_t,                                                                \
-        function_ref<Index(Index)>,                                            \
+        const SurfaceMesh<Scalar, Index>&,                                                 \
+        size_t,                                                                            \
+        function_ref<Index(Index)>,                                                        \
         const SeparateByFacetGroupsOptions&);
 
 LA_SURFACE_MESH_X(separate_by_facet_groups, 0)

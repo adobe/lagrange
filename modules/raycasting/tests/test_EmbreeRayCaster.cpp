@@ -12,13 +12,14 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/raycasting/create_ray_caster.h>
 #include <lagrange/utils/range.h>
 
 #include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <catch2/catch_approx.hpp>
 
 TEST_CASE("EmbreeDynamicRayCasterTest", "[ray_caster][dynamic][embree][triangle_mesh]")
 {
@@ -50,7 +51,7 @@ TEST_CASE("EmbreeDynamicRayCasterTest", "[ray_caster][dynamic][embree][triangle_
     Index num_rays = 0;
     const Vector3 axis(1, 1, 1);
     for (Index k = 0; k <= order; k++) {
-        const Scalar angle = Scalar(k) / Scalar(order) * 2 * M_PI;
+        const Scalar angle = Scalar(k) / Scalar(order) * 2 * lagrange::internal::pi;
 
         Eigen::Affine3d t(Eigen::AngleAxisd(angle, axis));
 
@@ -60,9 +61,10 @@ TEST_CASE("EmbreeDynamicRayCasterTest", "[ray_caster][dynamic][embree][triangle_
             Eigen::AngleAxis<Scalar>(angle, axis).toRotationMatrix();*/
         ray_caster->update_transformation(mesh_id, 0, t.matrix().template cast<Scalar>());
         for (Index i = 0; i <= order; i++) {
-            const Scalar theta = Scalar(i) / Scalar(order) * 2 * M_PI;
+            const Scalar theta = Scalar(i) / Scalar(order) * 2 * lagrange::internal::pi;
             for (Index j = 0; j <= order; j++) {
-                const Scalar phi = Scalar(j) / Scalar(order) * M_PI - M_PI * 0.5;
+                const Scalar phi = Scalar(j) / Scalar(order) * lagrange::internal::pi -
+                                   lagrange::internal::pi * 0.5;
                 const Vector3 from(0.0, 0.0, 0.0);
                 const Vector3 dir({cos(phi) * cos(theta), cos(phi) * sin(theta), sin(phi)});
 
@@ -151,13 +153,13 @@ TEST_CASE("EmbreeDynamicRayCaster4PackedTest", "[ray_caster][dynamic][embree][tr
     };
 
     for (int k = 0; k <= order; k++) {
-        const Scalar angle = Scalar(k) / Scalar(order) * 2 * M_PI;
+        const Scalar angle = Scalar(k) / Scalar(order) * 2 * lagrange::internal::pi;
 
         Eigen::Affine3d t(Eigen::AngleAxisd(angle, axis));
 
         ray_caster->update_transformation(mesh_id, 0, t.matrix().template cast<Scalar>());
         for (int i = 0; i <= order; i++) {
-            const Scalar theta = Scalar(i) / Scalar(order) * 2 * M_PI;
+            const Scalar theta = Scalar(i) / Scalar(order) * 2 * lagrange::internal::pi;
             Mask4 mask = Mask4(-1, -1, -1, -1);
 
             for (int j = 0; j <= order; j += 4) {
@@ -165,7 +167,8 @@ TEST_CASE("EmbreeDynamicRayCaster4PackedTest", "[ray_caster][dynamic][embree][tr
                 Direction4 dir;
 
                 for (int b = 0; b < batchsize; ++b) {
-                    const Scalar phi = Scalar(j + b) / Scalar(order) * M_PI - M_PI * 0.5;
+                    const Scalar phi = Scalar(j + b) / Scalar(order) * lagrange::internal::pi -
+                                       lagrange::internal::pi * 0.5;
                     dir(b, 0) = cos(phi) * cos(theta);
                     dir(b, 1) = cos(phi) * sin(theta);
                     dir(b, 2) = sin(phi);
@@ -263,7 +266,7 @@ TEST_CASE(
         from.setZero();
 
         for (int i = 0; i <= order; i++) {
-            const Scalar theta = Scalar(i) / Scalar(order) * 2 * M_PI;
+            const Scalar theta = Scalar(i) / Scalar(order) * 2 * lagrange::internal::pi;
             Mask4 mask = Mask4(-1, -1, -1, -1);
 
             for (int j = 0; j <= order; j += 4) {
@@ -271,7 +274,8 @@ TEST_CASE(
                 Direction4 dir;
 
                 for (int b = 0; b < batchsize; ++b) {
-                    const Scalar phi = Scalar(j + b) / Scalar(order) * M_PI - M_PI * 0.5;
+                    const Scalar phi = Scalar(j + b) / Scalar(order) * lagrange::internal::pi -
+                                       lagrange::internal::pi * 0.5;
                     dir(b, 0) = cos(phi) * cos(theta);
                     dir(b, 1) = cos(phi) * sin(theta);
                     dir(b, 2) = sin(phi);
@@ -329,9 +333,10 @@ TEST_CASE(
                        size_t& num_rays,
                        size_t& success_count) {
         for (size_t i = 0; i <= order; i++) {
-            const Scalar theta = Scalar(i) / Scalar(order) * 2 * M_PI;
+            const Scalar theta = Scalar(i) / Scalar(order) * 2 * lagrange::internal::pi;
             for (size_t j = 0; j <= order; j++) {
-                const Scalar phi = Scalar(j) / Scalar(order) * M_PI - M_PI * 0.5;
+                const Scalar phi = Scalar(j) / Scalar(order) * lagrange::internal::pi -
+                                   lagrange::internal::pi * 0.5;
                 const Vector3 from(0.0, 0.0, 0.0);
                 const Vector3 dir({cos(phi) * cos(theta), cos(phi) * sin(theta), sin(phi)});
 
@@ -377,10 +382,11 @@ TEST_CASE(
     for (size_t i = 0; i <= order; i++) {
         std::vector<Eigen::Affine3d> trans(K);
         for (auto k : lagrange::range(K)) {
-            trans[k] = Eigen::Affine3d(Eigen::Translation3d(
-                (k - K * 0.5) * 2 * (i + 1),
-                k * 0.5 * (i + 1),
-                (k - K * 0.5) * 5 * (i + 1)));
+            trans[k] = Eigen::Affine3d(
+                Eigen::Translation3d(
+                    (k - K * 0.5) * 2 * (i + 1),
+                    k * 0.5 * (i + 1),
+                    (k - K * 0.5) * 5 * (i + 1)));
             dynamic_ray_caster->update_transformation(k, 0, trans[k].matrix());
         }
         explode(order, trans, dynamic_num_rays, dynamic_success_count);
@@ -430,9 +436,10 @@ TEST_CASE(
                        size_t& num_rays,
                        size_t& success_count) {
         for (size_t i = 0; i <= order; i++) {
-            const Scalar theta = Scalar(i) / Scalar(order) * 2 * M_PI;
+            const Scalar theta = Scalar(i) / Scalar(order) * 2 * lagrange::internal::pi;
             for (size_t j = 0; j <= order; j++) {
-                const Scalar phi = Scalar(j) / Scalar(order) * M_PI - M_PI * 0.5;
+                const Scalar phi = Scalar(j) / Scalar(order) * lagrange::internal::pi -
+                                   lagrange::internal::pi * 0.5;
                 const Vector3 from(0.0, 0.0, 0.0);
                 const Vector3 dir({cos(phi) * cos(theta), cos(phi) * sin(theta), sin(phi)});
 
@@ -476,10 +483,11 @@ TEST_CASE(
     for (size_t i = 0; i <= order; i++) {
         std::vector<Eigen::Affine3d> trans(K);
         for (auto k : lagrange::range(K)) {
-            trans[k] = Eigen::Affine3d(Eigen::Translation3d(
-                (k - K * 0.5) * 2 * (i + 1),
-                k * 0.5 * (i + 1),
-                (k - K * 0.5) * 5 * (i + 1)));
+            trans[k] = Eigen::Affine3d(
+                Eigen::Translation3d(
+                    (k - K * 0.5) * 2 * (i + 1),
+                    k * 0.5 * (i + 1),
+                    (k - K * 0.5) * 5 * (i + 1)));
             dynamic_ray_caster->update_transformation(k, 0, trans[k].matrix());
         }
         explode(order, trans, dynamic_num_rays, dynamic_success_count);
@@ -519,9 +527,10 @@ TEST_CASE(
                        size_t& num_rays,
                        size_t& success_count) {
         for (size_t i = 0; i <= order; i++) {
-            const Scalar theta = Scalar(i) / Scalar(order) * 2 * M_PI;
+            const Scalar theta = Scalar(i) / Scalar(order) * 2 * lagrange::internal::pi;
             for (size_t j = 0; j <= order; j++) {
-                const Scalar phi = Scalar(j) / Scalar(order) * M_PI - M_PI * 0.5;
+                const Scalar phi = Scalar(j) / Scalar(order) * lagrange::internal::pi -
+                                   lagrange::internal::pi * 0.5;
                 const Vector3 from(0.0, 0.0, 0.0);
                 const Vector3 dir({cos(phi) * cos(theta), cos(phi) * sin(theta), sin(phi)});
 
@@ -565,10 +574,11 @@ TEST_CASE(
     for (size_t i = 0; i <= order; i++) {
         std::vector<Eigen::Affine3d> trans(K);
         for (auto k : lagrange::range(K)) {
-            trans[k] = Eigen::Affine3d(Eigen::Translation3d(
-                (k - K * 0.5) * 2 * (i + 1),
-                k * 0.5 * (i + 1),
-                (k - K * 0.5) * 5 * (i + 1)));
+            trans[k] = Eigen::Affine3d(
+                Eigen::Translation3d(
+                    (k - K * 0.5) * 2 * (i + 1),
+                    k * 0.5 * (i + 1),
+                    (k - K * 0.5) * 5 * (i + 1)));
             dynamic_ray_caster->update_transformation(0, k, trans[k].matrix());
         }
         explode(order, trans, dynamic_num_rays, dynamic_success_count);
@@ -692,7 +702,7 @@ TEST_CASE("EmbreeDynamicRayCaster_updates", "[embree][ray_caster][dynamic][updat
     // Get the success rate after rotating the cube by 90% around the Y-axis (should be ~25%)
     {
         const Eigen::Matrix<Scalar, 3, 3> rot =
-            Eigen::AngleAxisd(0.5 * M_PI, Eigen::Vector3d(0, 1, 0).normalized())
+            Eigen::AngleAxisd(0.5 * lagrange::internal::pi, Eigen::Vector3d(0, 1, 0).normalized())
                 .toRotationMatrix()
                 .cast<Scalar>();
         const auto& old_verts = cube->get_vertices();
@@ -715,7 +725,7 @@ TEST_CASE("EmbreeDynamicRayCaster_updates", "[embree][ray_caster][dynamic][updat
     // ~sqrt(2) * 25%)
     {
         const Eigen::Matrix<Scalar, 3, 3> rot =
-            Eigen::AngleAxisd(0.25 * M_PI, Eigen::Vector3d(0, 1, 0).normalized())
+            Eigen::AngleAxisd(0.25 * lagrange::internal::pi, Eigen::Vector3d(0, 1, 0).normalized())
                 .toRotationMatrix()
                 .cast<Scalar>();
         const auto& old_verts = cube->get_vertices();

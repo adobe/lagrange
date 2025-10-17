@@ -39,7 +39,7 @@ struct UnflipUVOptions
 /// result in a strip of flipped UV triangles. It is not intended for handling generic flipped UV
 /// triangles. This function should be called after `rescale_uv_charts`.
 ///
-/// @see rescale_uv_charts
+/// @see @ref rescale_uv_charts
 ///
 template <typename Scalar, typename Index>
 void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions& options = {});

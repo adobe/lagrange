@@ -88,7 +88,7 @@ void weld_indexed_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
     IndexedAttribute<ValueType, Index>& attr,
     span<const size_t> exclude_vertices,
-    bool merge_accross_vertices,
+    bool merge_across_vertices,
     Func equal)
 {
     std::vector<bool> exclude_vertices_mask(mesh.get_num_vertices(), false);
@@ -191,7 +191,7 @@ void weld_indexed_attribute(
             }
         });
 
-    if (merge_accross_vertices) {
+    if (merge_across_vertices) {
         // Merge corner groups that share indices
         auto index_to_corner = internal::invert_mapping(
             {corner_to_value.data(), static_cast<size_t>(num_corners)},
@@ -335,7 +335,7 @@ void weld_indexed_attribute(
                 mesh,
                 attr,
                 options.exclude_vertices,
-                options.merge_accross_vertices,
+                options.merge_across_vertices,
                 [&, eps_rel, eps_abs, cos_angle_abs](Index i, Index j) -> bool {
                     return allclose(
                         values.row(i).template cast<RealType>(),

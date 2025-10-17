@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/image/image_utils.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
@@ -47,7 +48,8 @@ void depth_to_disparity(
 {
     // Assume the image width is the same as the sensor width
     const auto size = image.get_view_size();
-    const float focal_length = size[1] / (2.0f * std::tan(vfov_degrees * M_PI / 180.0f));
+    const float focal_length =
+        size[1] / (2.0f * std::tan(vfov_degrees * lagrange::internal::pi / 180.0f));
 
     // Check if the result image has the same size as the input image
     la_runtime_assert(
@@ -66,11 +68,12 @@ void depth_to_disparity(
     }
 }
 
-void normalize_max_image(const image::ImageView<float>& image, image::ImageView<float>& result) {
+void normalize_max_image(const image::ImageView<float>& image, image::ImageView<float>& result)
+{
     // asset the result image has the same size as the input image
     la_runtime_assert(
         result.get_view_size()[0] == image.get_view_size()[0] &&
-        result.get_view_size()[1] == image.get_view_size()[1],
+            result.get_view_size()[1] == image.get_view_size()[1],
         "Result image size does not match input image size.");
 
     float max_value = image(0, 0);

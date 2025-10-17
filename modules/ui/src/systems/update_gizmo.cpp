@@ -23,7 +23,7 @@
 #include <imgui.h>
 ////
 #ifndef NULL
-#define NULL nullptr
+    #define NULL nullptr
 #endif
 #include <ImGuizmo.h>
 ////

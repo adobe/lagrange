@@ -187,8 +187,10 @@ typename RawInputImage::PixelTraits<Scalar, NumChannels>::Pixel RawInputImage::s
             ReturnTraits::coeff(rtn, i) = static_cast<Scalar>(InternalTraits::coeff(pix, i));
         }
     } else if (filtering == texture_filtering::bilinear) {
-        auto sample_coord = [=](const TexcoordScalar coord, const size_t size, const wrap_mode wrap_)
-            -> std::tuple<size_t, size_t, TexcoordScalar> {
+        auto sample_coord =
+            [=](const TexcoordScalar coord,
+                const size_t size,
+                const wrap_mode wrap_) -> std::tuple<size_t, size_t, TexcoordScalar> {
             assert(_0 <= coord && coord <= static_cast<TexcoordScalar>(size));
             size_t coord0, coord1;
             TexcoordScalar t;

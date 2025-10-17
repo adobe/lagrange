@@ -24,7 +24,7 @@ bool LA_CORE_API point_on_segment_2d(Eigen::Vector2d p, Eigen::Vector2d a, Eigen
 /// @internal
 bool LA_CORE_API point_on_segment_3d(Eigen::Vector3d p, Eigen::Vector3d a, Eigen::Vector3d b);
 
-}
+} // namespace internal
 
 ///
 /// Test if a point lies exactly on a segment [a,b] using exact predicates. If the points are

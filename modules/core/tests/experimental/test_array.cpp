@@ -9,8 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <Eigen/Core>
 #include <lagrange/testing/common.h>
+#include <Eigen/Core>
 
 #include <iostream>
 #include <vector>
@@ -207,7 +207,10 @@ TEST_CASE("experimental/Array.h", "[array]")
         check_view<Eigen::Matrix3d>(A_array);
         check_ref<Eigen::MatrixXd>(A_array);
 
-        SECTION("What happens if I resize?") { check_resize<Eigen::Matrix4d>(A_array, 4, 4); }
+        SECTION("What happens if I resize?")
+        {
+            check_resize<Eigen::Matrix4d>(A_array, 4, 4);
+        }
     }
 
     SECTION("Wrap const EigenType")

@@ -129,13 +129,13 @@ LA_CORE_API void trigger_breakpoint();
 // -----------------------------------------------------------------------------
 
 #if defined(__GNUC__) || defined(__clang__)
-#define LA_ASSERT_FUNCTION __PRETTY_FUNCTION__
+    #define LA_ASSERT_FUNCTION __PRETTY_FUNCTION__
 #elif defined(_MSC_VER)
-#define LA_ASSERT_FUNCTION __FUNCSIG__
+    #define LA_ASSERT_FUNCTION __FUNCSIG__
 #elif defined(__SUNPRO_CC)
-#define LA_ASSERT_FUNCTION __func__
+    #define LA_ASSERT_FUNCTION __func__
 #else
-#define LA_ASSERT_FUNCTION __FUNCTION__
+    #define LA_ASSERT_FUNCTION __FUNCTION__
 #endif
 
 // -----------------------------------------------------------------------------
@@ -143,8 +143,13 @@ LA_CORE_API void trigger_breakpoint();
 // Note: In order for the `la_xxx_assert()` macro to behave as a function, it needs to expand to an
 // expression. This means we cannot use `if` or `do ... while` statements. The only options are
 // ternary operators ?: or logical boolean using &&.
-#define LA_INTERNAL_ASSERT_ARGS_2(condition, message) \
-    ((void)(!static_cast<bool>((condition)) && ::lagrange::assertion_failed(LA_ASSERT_FUNCTION, __FILE__, __LINE__, #condition, message)))
+#define LA_INTERNAL_ASSERT_ARGS_2(condition, message)                        \
+    ((void)(!static_cast<bool>((condition)) && ::lagrange::assertion_failed( \
+                                                   LA_ASSERT_FUNCTION,       \
+                                                   __FILE__,                 \
+                                                   __LINE__,                 \
+                                                   #condition,               \
+                                                   message)))
 #define LA_INTERNAL_ASSERT_ARGS_1(condition) LA_INTERNAL_ASSERT_ARGS_2(condition, "")
 
 #define LA_INTERNAL_IGNORE_ARGS_2(condition, message) ((void)(0))
@@ -166,8 +171,8 @@ LA_CORE_API void trigger_breakpoint();
 /// @return     Void expression.
 ///
 #ifndef la_runtime_assert
-#define la_runtime_assert(...) \
-    LA_INTERNAL_EXPAND(LA_INTERNAL_GET_MACRO(LA_INTERNAL_ASSERT_ARGS_, __VA_ARGS__))
+    #define la_runtime_assert(...) \
+        LA_INTERNAL_EXPAND(LA_INTERNAL_GET_MACRO(LA_INTERNAL_ASSERT_ARGS_, __VA_ARGS__))
 #endif
 
 ///
@@ -182,13 +187,13 @@ LA_CORE_API void trigger_breakpoint();
 /// @return     Void expression.
 ///
 #ifndef la_debug_assert
-#ifdef NDEBUG
-#define la_debug_assert(...) \
-    LA_INTERNAL_EXPAND(LA_INTERNAL_GET_MACRO(LA_INTERNAL_IGNORE_ARGS_, __VA_ARGS__))
-#else
-#define la_debug_assert(...) \
-    LA_INTERNAL_EXPAND(LA_INTERNAL_GET_MACRO(LA_INTERNAL_ASSERT_ARGS_, __VA_ARGS__))
-#endif // NDEBUG
+    #ifdef NDEBUG
+        #define la_debug_assert(...) \
+            LA_INTERNAL_EXPAND(LA_INTERNAL_GET_MACRO(LA_INTERNAL_IGNORE_ARGS_, __VA_ARGS__))
+    #else
+        #define la_debug_assert(...) \
+            LA_INTERNAL_EXPAND(LA_INTERNAL_GET_MACRO(LA_INTERNAL_ASSERT_ARGS_, __VA_ARGS__))
+    #endif // NDEBUG
 #endif // la_debug_assert
 
 /// @}

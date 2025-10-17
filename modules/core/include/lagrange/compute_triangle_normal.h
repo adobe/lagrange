@@ -16,4 +16,3 @@
 #endif
 
 // For SurfaceMesh class, please refer to compute_facet_normal.h
-

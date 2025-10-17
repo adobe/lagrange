@@ -12,6 +12,7 @@
 #include <lagrange/testing/common.h>
 
 #include <lagrange/Logger.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/safe_cast.h>
 
 #include <catch2/catch_approx.hpp>
@@ -93,9 +94,9 @@ TEST_CASE("SafeCastStressTest", "[safe_cast]" LA_SLOW_FLAG)
         }
     };
 
-    stress_test(sqrt(float(M_PI)));
-    stress_test(sqrt(double(M_PI)));
-    stress_test(sqrt((long double)(M_PI)));
+    stress_test(sqrt(float(lagrange::internal::pi)));
+    stress_test(sqrt(double(lagrange::internal::pi)));
+    stress_test(sqrt((long double)(lagrange::internal::pi)));
 }
 
 

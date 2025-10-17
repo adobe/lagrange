@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/default_components.h>
 #include <lagrange/ui/default_shaders.h>
 #include <lagrange/ui/utils/io.h>
@@ -82,7 +82,8 @@ LA_UI_API Entity show_indexed_attribute(
     Glyph glyph);
 
 
-LA_UI_API void set_colormap(Registry& r, Entity meshrender_entity, std::shared_ptr<Texture> texture);
+LA_UI_API void
+set_colormap(Registry& r, Entity meshrender_entity, std::shared_ptr<Texture> texture);
 
 LA_UI_API void set_colormap_range(
     Registry& r,
@@ -208,8 +209,8 @@ LA_UI_API MeshData& get_meshdata(Registry& r, Entity scene_or_mesh_entity);
 /*
     Material
 */
-std::shared_ptr<Material>
-LA_UI_API create_material(Registry& r, entt::id_type shader_id, const ShaderDefines& shader_defines = {});
+std::shared_ptr<Material> LA_UI_API
+create_material(Registry& r, entt::id_type shader_id, const ShaderDefines& shader_defines = {});
 
 
 LA_UI_API Entity add_camera(Registry& r, const Camera& camera = Camera::default_camera(1, 1));

@@ -91,7 +91,7 @@ public:
     /// @param[out] p     Output coordinate buffer to write to. The output array will contain K
     ///                   elements to write to, where K is the dimension of the mesh (3 by default).
     ///
-    /// @see        add_vertices
+    /// @see        @ref add_vertices
     ///
     using SetVertexCoordinatesFunction = function_ref<void(Index v, span<Scalar> p)>;
 
@@ -101,7 +101,7 @@ public:
     ///
     /// @param[out] t     Output index buffer to write to.
     ///
-    /// @see        add_polygon
+    /// @see        @ref add_polygon
     ///
     using SetSingleFacetIndicesFunction = function_ref<void(span<Index> t)>;
 
@@ -113,7 +113,7 @@ public:
     /// @param[out] t     Output index buffer to write to. You can query the size of the current
     ///                   output facet by calling t.size().
     ///
-    /// @see        add_triangles, add_quads, add_polygons, add_hybrid
+    /// @see        @ref add_triangles, @ref add_quads, @ref add_polygons, @ref add_hybrid
     ///
     using SetMultiFacetsIndicesFunction = function_ref<void(Index f, span<Index> t)>;
 
@@ -123,7 +123,7 @@ public:
     /// @param[in]  f     Index of the facet whose size to compute (relative to the newly inserted
     ///                   facets, starting with 0).
     ///
-    /// @see        add_hybrid
+    /// @see        @ref add_hybrid
     ///
     using GetFacetsSizeFunction = function_ref<Index(Index f)>;
 
@@ -201,8 +201,8 @@ public:
     ///
     /// @return     The result of the copy.
     ///
-    /// @see cast
-    /// @see filter_attributes
+    /// @see @ref cast
+    /// @see @ref filter_attributes
     ///
     template <typename OtherScalar, typename OtherIndex>
     static SurfaceMesh stripped_copy(const SurfaceMesh<OtherScalar, OtherIndex>& other);
@@ -222,8 +222,8 @@ public:
     ///
     /// @return     The result of the move.
     ///
-    /// @see cast
-    /// @see filter_attributes
+    /// @see @ref cast
+    /// @see @ref filter_attributes
     ///
     template <typename OtherScalar, typename OtherIndex>
     static SurfaceMesh stripped_move(SurfaceMesh<OtherScalar, OtherIndex>&& other);
@@ -854,7 +854,7 @@ public:
     ///
     /// @return     The attribute identifier.
     ///
-    /// @see        AttributeUsage
+    /// @see        @ref AttributeUsage
     ///
     template <typename ValueType>
     AttributeId create_attribute(
@@ -899,7 +899,7 @@ public:
     ///
     /// @return     The attribute identifier.
     ///
-    /// @see        AttributeUsage
+    /// @see        @ref AttributeUsage
     ///
     template <typename ValueType>
     AttributeId create_attribute(
@@ -1675,7 +1675,8 @@ public:
     /// operator. For convenience functions to visit mesh attributes. See foreach_attribute.h for
     /// more information.
     ///
-    /// @see        foreach_attribute.h
+    /// @see        @ref seq_foreach_attribute_read
+    /// @see        @ref seq_foreach_attribute_write
     ///
     /// @param[in]  func  Function to iterate over attributes ids.
     ///
@@ -1686,7 +1687,8 @@ public:
     /// be a low-level operator. For convenience functions to visit mesh attributes. See
     /// foreach_attribute.h for more information.
     ///
-    /// @see        foreach_attribute.h
+    /// @see        @ref seq_foreach_named_attribute_read
+    /// @see        @ref seq_foreach_named_attribute_write
     ///
     /// @param[in]  func  Function to iterate over attributes names x ids.
     ///
@@ -1697,7 +1699,8 @@ public:
     /// convenience functions to visit mesh attributes. See foreach_attribute.h for more
     /// information.
     ///
-    /// @see        foreach_attribute.h
+    /// @see        @ref par_foreach_attribute_read
+    /// @see        @ref par_foreach_attribute_write
     ///
     /// @param[in]  func  Function to iterate over attributes ids.
     ///
@@ -1708,7 +1711,8 @@ public:
     /// be a low-level operator. For convenience functions to visit mesh attributes. See
     /// foreach_attribute.h for more information.
     ///
-    /// @see        foreach_attribute.h
+    /// @see        @ref par_foreach_named_attribute_read
+    /// @see        @ref par_foreach_named_attribute_write
     ///
     /// @param[in]  func  Function to iterate over attributes names x ids.
     ///
@@ -2633,7 +2637,7 @@ protected:
     /// the newly added edges (i.e. all edges that were not already present in the mesh must appear
     /// exactly once in the user-provided array).
     ///
-    /// @see        initialize_edges
+    /// @see        @ref initialize_edges
     ///
     /// @param[in]  facet_begin        First facet in the range.
     /// @param[in]  facet_end          Index beyond the last facet in the range.

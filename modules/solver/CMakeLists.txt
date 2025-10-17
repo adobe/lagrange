@@ -17,8 +17,8 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 # 2. dependencies
-if(NOT EMSCRIPTEN AND NOT SKBUILD)
-    # Note: For now we avoid using MKL in our public Python bindings, to avoid bloating up the size of
+if(NOT EMSCRIPTEN AND (NOT LAGRANGE_NO_INTERNAL OR NOT SKBUILD))
+    # Note: For now we avoid using MKL in our open-source Python bindings, to avoid bloating up the size of
     # the uploaded wheels. The long-term solution is to depend on the PyPI package for MKL at build-time.
 
     include(blas) # Accelerate on macOS, MKL on other platforms

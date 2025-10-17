@@ -66,17 +66,17 @@ static_assert(false, "LAGRANGE_IMAGE_TRAITS was defined somewhere else")
 static_assert(false, "LAGRANGE_IMAGE_COMMA was defined somewhere else")
 #else
 
-#define LAGRANGE_IMAGE_TRAITS(TYPE, VALUE, SIZE_OF_VALUE, PRECISION, CHANNEL)  \
-    template <>                                                                \
-    struct ImageTraits<TYPE>                                                   \
-    {                                                                          \
-        typedef VALUE TValue;                                                  \
-        static constexpr size_t value_size = SIZE_OF_VALUE;                    \
-        static constexpr ImagePrecision precision = ImagePrecision::PRECISION; \
-        static constexpr ImageChannel channel = ImageChannel::CHANNEL;         \
-    };
+    #define LAGRANGE_IMAGE_TRAITS(TYPE, VALUE, SIZE_OF_VALUE, PRECISION, CHANNEL)  \
+        template <>                                                                \
+        struct ImageTraits<TYPE>                                                   \
+        {                                                                          \
+            typedef VALUE TValue;                                                  \
+            static constexpr size_t value_size = SIZE_OF_VALUE;                    \
+            static constexpr ImagePrecision precision = ImagePrecision::PRECISION; \
+            static constexpr ImageChannel channel = ImageChannel::CHANNEL;         \
+        };
 
-#define LAGRANGE_IMAGE_COMMA ,
+    #define LAGRANGE_IMAGE_COMMA ,
 LAGRANGE_IMAGE_TRAITS(unsigned char, unsigned char, 1, uint8, one)
 LAGRANGE_IMAGE_TRAITS(
     Eigen::Matrix<unsigned char LAGRANGE_IMAGE_COMMA 3 LAGRANGE_IMAGE_COMMA 1>,
@@ -139,8 +139,8 @@ LAGRANGE_IMAGE_TRAITS(
     float16,
     four)
 
-#undef LAGRANGE_IMAGE_TRAITS
-#undef LAGRANGE_IMAGE_COMMA
+    #undef LAGRANGE_IMAGE_TRAITS
+    #undef LAGRANGE_IMAGE_COMMA
 #endif
 
     template <typename VALUE_SRC, typename VALUE_DST>

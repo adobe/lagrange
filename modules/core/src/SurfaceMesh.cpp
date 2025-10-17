@@ -392,9 +392,10 @@ void SurfaceMesh<Scalar, Index>::set_attribute_default_internal(std::string_view
                 name == s_reserved_names.next_corner_around_vertex()) {
                 attr.set_default_value(invalid<ValueType>());
             } else {
-                throw Error(fmt::format(
-                    "Attribute name '{}' is not a valid reserved attribute name",
-                    name));
+                throw Error(
+                    fmt::format(
+                        "Attribute name '{}' is not a valid reserved attribute name",
+                        name));
             }
         }
     }
@@ -1087,9 +1088,10 @@ void check_export_policy(Attribute<ValueType>& attr, AttributeExportPolicy polic
             }
             return;
         case AttributeExportPolicy::KeepExternalPtr:
-            logger().warn("Exporting an Attribute pointing to an external buffer. It is the user's "
-                          "responsibility to guarantee the lifetime of the pointed data in that "
-                          "situation.");
+            logger().warn(
+                "Exporting an Attribute pointing to an external buffer. It is the user's "
+                "responsibility to guarantee the lifetime of the pointed data in that "
+                "situation.");
             return;
         case AttributeExportPolicy::ErrorIfExternal:
             throw Error("Cannot export an Attribute pointing to an external buffer");

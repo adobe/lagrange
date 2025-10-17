@@ -30,7 +30,7 @@ namespace lagrange {
 /// @note Only exactly degenerate facets are detected.
 ///       For polygonal facets, degeneracy is defined as all vertices are colinear.
 ///
-/// @see remove_degenerate_facets
+/// @see @ref remove_degenerate_facets
 ///
 template <typename Scalar, typename Index>
 std::vector<Index> detect_degenerate_facets(const SurfaceMesh<Scalar, Index>& mesh);

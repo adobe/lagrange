@@ -11,6 +11,7 @@
  */
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/utils/range.h>
 #include <Eigen/Core>
@@ -38,7 +39,7 @@ TEST_CASE("MoveData", "[common][eigen]")
     MatrixType V1(3, 3);
     MatrixType V2(3, 3);
     V1.setConstant(1);
-    V2.setConstant(M_PI);
+    V2.setConstant(lagrange::internal::pi);
 
     void* V1_ptr = V1.data();
     void* V2_ptr = V2.data();

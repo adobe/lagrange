@@ -35,7 +35,7 @@ public:
     /// @param[in]  num_iterations  Number of iterations for this section.
     ///
     ProgressCallback(
-        std::function<void(const std::string &, float)> func = nullptr,
+        std::function<void(const std::string&, float)> func = nullptr,
         std::string name = "",
         size_t num_iterations = 1);
 
@@ -45,7 +45,7 @@ public:
     /// @param[in]  func  Notification callback. This callback function will be called in a
     ///                   thread-safe manner by the update() method.
     ///
-    void set_callback(std::function<void(const std::string &, float)> func);
+    void set_callback(std::function<void(const std::string&, float)> func);
 
     ///
     /// Starts a new section, reset current iteration counter to 0, and notify. This method is not
@@ -61,7 +61,7 @@ public:
     ///
     /// @return     Name of the current section.
     ///
-    const std::string & get_section() const { return m_section_name; }
+    const std::string& get_section() const { return m_section_name; }
 
     ///
     /// Sets the number iterations for this section. No notification is sent. This method is not
@@ -100,7 +100,7 @@ public:
 
 private:
     /// Callback function to be called by the update method.
-    std::function<void(const std::string &, float)> m_callback;
+    std::function<void(const std::string&, float)> m_callback;
 
     /// Name of the current section.
     std::string m_section_name;

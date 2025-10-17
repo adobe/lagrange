@@ -13,16 +13,16 @@
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
-#include <lagrange/SurfaceMesh.h>
-#include <lagrange/fs/filesystem.h>
-#include <lagrange/MeshTrait.h>
-#include <lagrange/io/types.h>
+    #include <lagrange/MeshTrait.h>
+    #include <lagrange/SurfaceMesh.h>
+    #include <lagrange/fs/filesystem.h>
+    #include <lagrange/io/types.h>
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-    #include <lagrange/io/legacy/load_mesh_assimp.h>
-#endif
+    #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+        #include <lagrange/io/legacy/load_mesh_assimp.h>
+    #endif
 
-#include <iosfwd>
+    #include <iosfwd>
 
 namespace lagrange::io {
 
@@ -34,7 +34,8 @@ namespace lagrange::io {
  *
  * @return loaded mesh
  */
-template <typename MeshType, 
+template <
+    typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options = {});
 
@@ -46,7 +47,8 @@ MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options =
  *
  * @return loaded mesh
  */
-template <typename MeshType, 
+template <
+    typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 MeshType load_mesh_assimp(std::istream& input_stream, const LoadOptions& options = {});
 

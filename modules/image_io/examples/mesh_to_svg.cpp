@@ -31,7 +31,10 @@ int main(int argc, char const* argv[])
     app.add_flag("--uv", args.settings.use_uv_mesh, "Use UV coordinate of the mesh.");
     app.add_flag("--with-stroke,!--no-stroke", args.settings.with_stroke, "Stroke triangles.");
     app.add_flag("--with-fill,!--no-fill", args.settings.with_fill, "Fill triangles.");
-    app.add_option("--scaling,-s", args.settings.scaling_factor, "Scale the output by this amount.");
+    app.add_option(
+        "--scaling,-s",
+        args.settings.scaling_factor,
+        "Scale the output by this amount.");
     app.add_option("--stroke-color", args.settings.stroke_color, "Stroke color.");
     app.add_option("--fill-color", args.settings.fill_color, "Fill color.");
     app.add_option("--stroke-width", args.settings.stroke_width, "Stroke width");

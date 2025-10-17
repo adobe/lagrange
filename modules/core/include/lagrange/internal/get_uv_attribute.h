@@ -53,7 +53,7 @@ AttributeId get_uv_id(
 /// @return A tuple containing the UV values and indices.
 ///
 template <typename Scalar, typename Index>
-std::tuple<ConstRowMatrixView<Scalar>, ConstRowMatrixView<Index>> get_uv_attribute(
+std::tuple<ConstRowMatrixView<Scalar>, ConstVectorView<Index>> get_uv_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name = "");
 
@@ -66,7 +66,7 @@ std::tuple<ConstRowMatrixView<Scalar>, ConstRowMatrixView<Index>> get_uv_attribu
 /// @return A tuple containing the UV values and indices.
 ///
 template <typename Scalar, typename Index>
-std::tuple<RowMatrixView<Scalar>, RowMatrixView<Index>> ref_uv_attribute(
+std::tuple<RowMatrixView<Scalar>, VectorView<Index>> ref_uv_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name = "");
 

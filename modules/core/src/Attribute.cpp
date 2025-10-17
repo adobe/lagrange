@@ -392,8 +392,9 @@ void Attribute<ValueType>::shrink_to_fit()
             throw Error("Attribute policy prevents shrinking external buffer");
         case AttributeShrinkPolicy::IgnoreIfExternal: break;
         case AttributeShrinkPolicy::WarnAndCopy:
-            logger().warn("Requested growth of an attribute pointing to external data. An internal "
-                          "copy will be created.");
+            logger().warn(
+                "Requested growth of an attribute pointing to external data. An internal "
+                "copy will be created.");
             [[fallthrough]];
         case AttributeShrinkPolicy::SilentCopy:
             // Avoid reserving extra elements in the newly allocated internal buffer
@@ -590,15 +591,18 @@ void Attribute<ValueType>::growth_check(size_t new_cap)
             throw Error("Attribute policy prevents growing external buffer");
         case AttributeGrowthPolicy::AllowWithinCapacity:
             if (new_cap > m_const_view.size()) {
-                throw Error(fmt::format(
-                    "Attribute policy prevents growing external buffer beyond capacity ({} / {})",
-                    new_cap,
-                    m_const_view.size()));
+                throw Error(
+                    fmt::format(
+                        "Attribute policy prevents growing external buffer beyond capacity ({} / "
+                        "{})",
+                        new_cap,
+                        m_const_view.size()));
             }
             break;
         case AttributeGrowthPolicy::WarnAndCopy:
-            logger().warn("Requested growth of an attribute pointing to external data. An internal "
-                          "copy will be created.");
+            logger().warn(
+                "Requested growth of an attribute pointing to external data. An internal "
+                "copy will be created.");
             [[fallthrough]];
         case AttributeGrowthPolicy::SilentCopy: create_internal_copy(); break;
         default: throw Error("Unsupported case");
@@ -614,8 +618,9 @@ void Attribute<ValueType>::write_check()
         case AttributeWritePolicy::ErrorIfReadOnly:
             throw Error("Attribute policy prevents writing to a read-only buffer");
         case AttributeWritePolicy::WarnAndCopy:
-            logger().warn("Requested write access to an attribute pointing to read-only data. An "
-                          "internal copy will be created.");
+            logger().warn(
+                "Requested write access to an attribute pointing to read-only data. An "
+                "internal copy will be created.");
             [[fallthrough]];
         case AttributeWritePolicy::SilentCopy: create_internal_copy(); break;
         default: throw Error("Unsupported case");

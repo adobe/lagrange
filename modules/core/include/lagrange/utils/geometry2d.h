@@ -32,32 +32,56 @@ Scalar sqr_minimum_distance(
     return (p - projection).squaredNorm();
 }
 
+template <typename Scalar>
+std::array<Scalar, 2> triangle_circumcenter_2d(
+    span<const Scalar, 2> p1,
+    span<const Scalar, 2> p2,
+    span<const Scalar, 2> p3)
+{
+    Scalar a = p2[0] - p1[0];
+    Scalar b = p2[1] - p1[1];
+    Scalar c = p3[0] - p1[0];
+    Scalar d = p3[1] - p1[1];
+    Scalar e = a * (p1[0] + p2[0]) + b * (p1[1] + p2[1]);
+    Scalar f = c * (p1[0] + p3[0]) + d * (p1[1] + p3[1]);
+    Scalar g = 2 * (a * (p3[1] - p2[1]) - b * (p3[0] - p2[0]));
+
+    if (std::abs(g) < std::numeric_limits<Scalar>::epsilon()) {
+        Scalar minx = std::min({p1[0], p2[0], p3[0]});
+        Scalar miny = std::min({p1[1], p2[1], p3[1]});
+        Scalar dx = (std::max({p1[0], p2[0], p3[0]}) - minx) * 0.5f;
+        Scalar dy = (std::max({p1[1], p2[1], p3[1]}) - miny) * 0.5f;
+
+        return {minx + dx, miny + dy};
+    } else {
+        return {(d * e - b * f) / g, (a * f - c * e) / g};
+    }
+}
+
 // Returns the circumcenter of a 2D triangle.
 template <typename Scalar>
+Eigen::Vector2<Scalar> triangle_circumcenter_2d(
+    const Eigen::Vector2<Scalar>& p1,
+    const Eigen::Vector2<Scalar>& p2,
+    const Eigen::Vector2<Scalar>& p3)
+{
+    auto r = triangle_circumcenter_2d<Scalar>(
+        span<const Scalar, 2>({p1.x(), p1.y()}),
+        span<const Scalar, 2>({p2.x(), p2.y()}),
+        span<const Scalar, 2>({p3.x(), p3.y()}));
+    return Eigen::Vector2<Scalar>(r[0], r[1]);
+}
+
+
+template <typename Scalar>
+[[deprecated]]
 Eigen::Vector2<Scalar> triangle_circumcenter(
     const Eigen::Vector2<Scalar>& p1,
     const Eigen::Vector2<Scalar>& p2,
     const Eigen::Vector2<Scalar>& p3)
 {
-    Scalar a = p2.x() - p1.x();
-    Scalar b = p2.y() - p1.y();
-    Scalar c = p3.x() - p1.x();
-    Scalar d = p3.y() - p1.y();
-    Scalar e = a * (p1.x() + p2.x()) + b * (p1.y() + p2.y());
-    Scalar f = c * (p1.x() + p3.x()) + d * (p1.y() + p3.y());
-    Scalar g = 2 * (a * (p3.y() - p2.y()) - b * (p3.x() - p2.x()));
-
-    if (std::abs(g) < std::numeric_limits<Scalar>::epsilon()) {
-        Scalar minx = std::min({p1.x(), p2.x(), p3.x()});
-        Scalar miny = std::min({p1.y(), p2.y(), p3.y()});
-        Scalar dx = (std::max({p1.x(), p2.x(), p3.x()}) - minx) * 0.5f;
-        Scalar dy = (std::max({p1.y(), p2.y(), p3.y()}) - miny) * 0.5f;
-
-        return Eigen::Vector2<Scalar>(minx + dx, miny + dy);
-    } else {
-        Eigen::Vector2<Scalar> center((d * e - b * f) / g, (a * f - c * e) / g);
-        return center;
-    }
+    auto r = triangle_circumcenter_2d<Scalar>({p1.x(), p1.y()}, {p2.x(), p2.y()}, {p3.x(), p3.y()});
+    return Eigen::Vector2<Scalar>(r[0], r[1]);
 }
 
 } // namespace lagrange

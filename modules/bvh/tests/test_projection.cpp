@@ -11,13 +11,13 @@
  */
 #include <lagrange/bvh/project_attributes_closest_vertex.h>
 #include <lagrange/compute_edge_lengths.h>
+#include <lagrange/create_mesh.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/testing/common.h>
-#include <lagrange/create_mesh.h>
 
 #include <random>
 
-std::unique_ptr<lagrange::TriangleMesh3D> create_perturbed_mesh(lagrange::TriangleMesh3D &mesh)
+std::unique_ptr<lagrange::TriangleMesh3D> create_perturbed_mesh(lagrange::TriangleMesh3D& mesh)
 {
     compute_edge_lengths(mesh);
 
@@ -36,7 +36,8 @@ std::unique_ptr<lagrange::TriangleMesh3D> create_perturbed_mesh(lagrange::Triang
 
 TEST_CASE("project_attributes_closest_vertex", "[bvh]")
 {
-    auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/bunny_simple.obj");
+    auto mesh =
+        lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/bunny_simple.obj");
     auto mesh2 = create_perturbed_mesh(*mesh);
 
     {
