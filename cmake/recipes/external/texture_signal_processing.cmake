@@ -26,9 +26,6 @@ add_library(texture_signal_processing::texture_signal_processing INTERFACE IMPOR
 target_include_directories(texture_signal_processing::texture_signal_processing
     INTERFACE "${texture_signal_processing_SOURCE_DIR}/include"
 )
-target_compile_definitions(texture_signal_processing::texture_signal_processing INTERFACE
-    $<$<CONFIG:Debug,RelWithDebInfo>:SANITY_CHECK>
-)
 
 include(misha)
 target_link_libraries(texture_signal_processing::texture_signal_processing INTERFACE misha::misha)
