@@ -11,6 +11,6 @@
  */
 #include <Eigen/Core>
 
-#if !EIGEN_VERSION_AT_LEAST(3,4,0)
+#if !EIGEN_VERSION_AT_LEAST(3, 4, 0)
     #error "Lagrange requires Eigen version to be >= 3.4.0"
 #endif

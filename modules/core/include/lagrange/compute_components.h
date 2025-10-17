@@ -52,7 +52,7 @@ struct ComponentOptions
  *
  * @return     The total number of connected components.
  *
- * @see        `ComponentOptions`
+ * @see        @ref ComponentOptions
  */
 template <typename Scalar, typename Index>
 size_t compute_components(SurfaceMesh<Scalar, Index>& mesh, ComponentOptions options = {});
@@ -79,7 +79,7 @@ size_t compute_components(SurfaceMesh<Scalar, Index>& mesh, ComponentOptions opt
  *
  * @return     The total number of connected components.
  *
- * @see        `ComponentOptions`
+ * @see        @ref ComponentOptions
  */
 template <typename Scalar, typename Index>
 size_t compute_components(

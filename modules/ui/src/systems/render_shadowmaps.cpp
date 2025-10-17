@@ -108,12 +108,12 @@ void render_shadowmaps(Registry& r)
             shadowmap.PV = Eigen::Matrix4f::Identity();
             shadowmap.pos = pos;
             // clang-format off
-                    
-                    shadowmap.PVCube[0] = P * look_at(pos, pos + Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0,-1, 0)); 
+
+                    shadowmap.PVCube[0] = P * look_at(pos, pos + Eigen::Vector3f(1, 0, 0), Eigen::Vector3f(0,-1, 0));
                     shadowmap.PVCube[1] = P * look_at(pos, pos + Eigen::Vector3f(-1, 0, 0), Eigen::Vector3f(0, -1, 0));
-                    shadowmap.PVCube[2] = P * look_at(pos, pos + Eigen::Vector3f(0, 1, 0), Eigen::Vector3f(0, 0, 1)); 
+                    shadowmap.PVCube[2] = P * look_at(pos, pos + Eigen::Vector3f(0, 1, 0), Eigen::Vector3f(0, 0, 1));
                     shadowmap.PVCube[3] = P * look_at(pos, pos + Eigen::Vector3f(0, -1, 0), Eigen::Vector3f(0, 0, -1));
-                    shadowmap.PVCube[4] = P * look_at(pos, pos + Eigen::Vector3f(0, 0, 1), Eigen::Vector3f(0, -1, 0)); 
+                    shadowmap.PVCube[4] = P * look_at(pos, pos + Eigen::Vector3f(0, 0, 1), Eigen::Vector3f(0, -1, 0));
                     shadowmap.PVCube[5] = P * look_at(pos, pos + Eigen::Vector3f(0, 0, -1), Eigen::Vector3f(0, -1, 0));
             // clang-format on
         } else if (light.type == LightComponent::Type::DIRECTIONAL) {

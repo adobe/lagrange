@@ -30,19 +30,22 @@ void bind_attribute(nanobind::module_& m)
     namespace nb = nanobind;
     using namespace nb::literals;
 
-    auto attr_class = nb::class_<PyAttribute>(m, "Attribute", "Mesh attribute");
+    auto attr_class = nb::class_<PyAttribute>(
+        m,
+        "Attribute",
+        "Attribute data associated with mesh elements (vertices, facets, corners, edges).");
     attr_class.def_prop_ro(
         "element_type",
         [](PyAttribute& self) { return self->get_element_type(); },
-        "Element type of the attribute.");
+        "Element type (Vertex, Facet, Corner, Edge, Value).");
     attr_class.def_prop_ro(
         "usage",
         [](PyAttribute& self) { return self->get_usage(); },
-        "Usage of the attribute.");
+        "Usage type (Position, Normal, UV, Color, etc.).");
     attr_class.def_prop_ro(
         "num_channels",
         [](PyAttribute& self) { return self->get_num_channels(); },
-        "Number of channels in the attribute.");
+        "Number of channels per element.");
 
     attr_class.def_prop_rw(
         "default_value",
@@ -55,7 +58,7 @@ void bind_attribute(nanobind::module_& m)
                 attr.set_default_value(static_cast<ValueType>(val));
             });
         },
-        "Default value of the attribute.");
+        "Default value for new elements.");
     attr_class.def_prop_rw(
         "growth_policy",
         [](PyAttribute& self) {
@@ -64,7 +67,7 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self, AttributeGrowthPolicy policy) {
             self.process([&](auto& attr) { attr.set_growth_policy(policy); });
         },
-        "Growth policy of the attribute.");
+        "Policy for growing the attribute when elements are added.");
     attr_class.def_prop_rw(
         "shrink_policy",
         [](PyAttribute& self) {
@@ -73,7 +76,7 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self, AttributeShrinkPolicy policy) {
             self.process([&](auto& attr) { attr.set_shrink_policy(policy); });
         },
-        "Shrink policy of the attribute.");
+        "Policy for shrinking the attribute when elements are removed.");
     attr_class.def_prop_rw(
         "write_policy",
         [](PyAttribute& self) {
@@ -82,7 +85,7 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self, AttributeWritePolicy policy) {
             self.process([&](auto& attr) { attr.set_write_policy(policy); });
         },
-        "Write policy of the attribute.");
+        "Policy for write operations on the attribute.");
     attr_class.def_prop_rw(
         "copy_policy",
         [](PyAttribute& self) {
@@ -91,7 +94,7 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self, AttributeCopyPolicy policy) {
             self.process([&](auto& attr) { attr.set_copy_policy(policy); });
         },
-        "Copy policy of the attribute.");
+        "Policy for copying the attribute.");
     attr_class.def_prop_rw(
         "cast_policy",
         [](PyAttribute& self) {
@@ -100,15 +103,15 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self, AttributeCastPolicy policy) {
             self.process([&](auto& attr) { attr.set_cast_policy(policy); });
         },
-        "Copy policy of the attribute.");
+        "Policy for casting the attribute to different types.");
     attr_class.def(
         "create_internal_copy",
         [](PyAttribute& self) { self.process([](auto& attr) { attr.create_internal_copy(); }); },
-        "Create an internal copy of the attribute.");
+        "Create an internal copy if the attribute wraps external data.");
     attr_class.def(
         "clear",
         [](PyAttribute& self) { self.process([](auto& attr) { attr.clear(); }); },
-        "Clear the attribute so it has no elements.");
+        "Remove all elements from the attribute.");
     attr_class.def(
         "reserve_entries",
         [](PyAttribute& self, size_t s) {
@@ -161,7 +164,7 @@ void bind_attribute(nanobind::module_& m)
     attr_class.def(
         "empty",
         [](PyAttribute& self) { return self.process([](auto& attr) { return attr.empty(); }); },
-        "Return true if the attribute is empty.");
+        "Check if the attribute has no elements.");
     attr_class.def_prop_ro(
         "num_elements",
         [](PyAttribute& self) {
@@ -173,13 +176,13 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self) {
             return self.process([](auto& attr) { return attr.is_external(); });
         },
-        "Return true if the attribute wraps external buffer.");
+        "Check if the attribute wraps external data.");
     attr_class.def_prop_ro(
         "readonly",
         [](PyAttribute& self) {
             return self.process([](auto& attr) { return attr.is_read_only(); });
         },
-        "Return true if the attribute is read-only.");
+        "Check if the attribute is read-only.");
     attr_class.def_prop_rw(
         "data",
         [](PyAttribute& self) {
@@ -221,7 +224,7 @@ void bind_attribute(nanobind::module_& m)
             self.process(wrap_tensor);
         },
         nb::for_getter(nb::sig("def data(self, /) -> numpy.typing.NDArray")),
-        "Raw data buffer of the attribute.");
+        "Raw data as a numpy array.");
     attr_class.def_prop_ro(
         "dtype",
         [](PyAttribute& self) -> std::optional<nb::type_object> {
@@ -240,7 +243,7 @@ void bind_attribute(nanobind::module_& m)
             default: logger().warn("Attribute has an unknown dtype."); return std::nullopt;
             }
         },
-        "Value type of the attribute.");
+        "NumPy dtype of the attribute values.");
 }
 
 } // namespace lagrange::python

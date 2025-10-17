@@ -19,6 +19,7 @@
 #include <lagrange/filter_attributes.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
@@ -275,7 +276,7 @@ TEST_CASE("mesh_subdivision_limit_uniform", "[mesh][subdivision]" LA_SLOW_DEBUG_
     using Scalar = double;
     using Index = uint32_t;
     auto mesh = lagrange::testing::load_surface_mesh<double, uint32_t>("open/subdivision/cube.obj");
-    auto nrm_id = lagrange::compute_normal(mesh, M_PI * 0.5);
+    auto nrm_id = lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5);
     auto nrm_name = mesh.get_attribute_name(nrm_id);
 
     auto N_coarse = lagrange::matrix_view(mesh.get_indexed_attribute<Scalar>(nrm_id).values());
@@ -349,7 +350,7 @@ TEST_CASE("mesh_subdivision_limit_adaptive", "[mesh][subdivision]" LA_SLOW_DEBUG
     using Scalar = double;
     using Index = uint32_t;
     auto mesh = lagrange::testing::load_surface_mesh<double, uint32_t>("open/subdivision/cube.obj");
-    auto nrm_id = lagrange::compute_normal(mesh, M_PI * 0.5);
+    auto nrm_id = lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5);
     auto nrm_name = mesh.get_attribute_name(nrm_id);
 
     auto N_coarse = lagrange::matrix_view(mesh.get_indexed_attribute<Scalar>(nrm_id).values());

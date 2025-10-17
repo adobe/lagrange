@@ -32,10 +32,8 @@ TEST_CASE("Systems", "[ui][systems]")
     SECTION("add with id")
     {
         ui::Systems S;
-        auto id = S.add(
-            ui::Systems::Stage::Init,
-            [](ui::Registry& /*r*/) {},
-            ui::string_id("my id"));
+        auto id =
+            S.add(ui::Systems::Stage::Init, [](ui::Registry& /*r*/) {}, ui::string_id("my id"));
 
         REQUIRE(id == ui::string_id("my id"));
     }
@@ -44,15 +42,11 @@ TEST_CASE("Systems", "[ui][systems]")
     SECTION("add with existing id")
     {
         ui::Systems S;
-        auto id0 = S.add(
-            ui::Systems::Stage::Init,
-            [](ui::Registry& /*r*/) {},
-            ui::string_id("my id"));
+        auto id0 =
+            S.add(ui::Systems::Stage::Init, [](ui::Registry& /*r*/) {}, ui::string_id("my id"));
 
-        auto id1 = S.add(
-            ui::Systems::Stage::Init,
-            [](ui::Registry& /*r*/) {},
-            ui::string_id("my id"));
+        auto id1 =
+            S.add(ui::Systems::Stage::Init, [](ui::Registry& /*r*/) {}, ui::string_id("my id"));
         REQUIRE(id0 == ui::string_id("my id"));
         REQUIRE(id1 == 0);
     }

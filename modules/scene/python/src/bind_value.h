@@ -21,7 +21,7 @@ NAMESPACE_BEGIN(detail)
 template <>
 struct type_caster<lagrange::scene::Value>
 {
-    NB_TYPE_CASTER(lagrange::scene::Value, const_name("Value"))
+    NB_TYPE_CASTER(lagrange::scene::Value, const_name("int | float | str | list | dict | bool"));
 
     template <typename T>
     bool try_cast(const handle& src, uint8_t flags, cleanup_list* cleanup)

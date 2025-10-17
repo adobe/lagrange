@@ -365,22 +365,30 @@ void test_centroid_fan()
 
 } // namespace
 
-TEST_CASE("triangulate_polygonal_facets: basic", "[core]"){
+TEST_CASE("triangulate_polygonal_facets: basic", "[core]")
+{
 #define LA_X_basic(_, Scalar, Index) test_basic<Scalar, Index>();
-    LA_SURFACE_MESH_X(basic, 0)}
+    LA_SURFACE_MESH_X(basic, 0)
+}
 
-TEST_CASE("triangulate_polygonal_facets: 2d", "[core]"){
+TEST_CASE("triangulate_polygonal_facets: 2d", "[core]")
+{
 #define LA_X_2d(_, Scalar, Index) test_2d<Scalar, Index>();
-    LA_SURFACE_MESH_X(2d, 0)}
+    LA_SURFACE_MESH_X(2d, 0)
+}
 
-TEST_CASE("triangulate_polygonal_facets: triangle", "[core]"){
+TEST_CASE("triangulate_polygonal_facets: triangle", "[core]")
+{
 #define LA_X_triangle(_, Scalar, Index) test_triangle<Scalar, Index>();
-    LA_SURFACE_MESH_X(triangle, 0)}
+    LA_SURFACE_MESH_X(triangle, 0)
+}
 
-TEST_CASE("triangulate_polygonal_facets: attributes", "[core]"){
+TEST_CASE("triangulate_polygonal_facets: attributes", "[core]")
+{
 #define LA_X_attributes(ValueType, Scalar, Index) test_attributes<Scalar, Index, ValueType>();
 #define LA_X_attributes_aux(_, ValueType) LA_SURFACE_MESH_X(attributes, ValueType)
-    LA_ATTRIBUTE_X(attributes_aux, 0)}
+    LA_ATTRIBUTE_X(attributes_aux, 0)
+}
 
 TEST_CASE("triangulate_polygonal_facets: centroid fan", "[core]")
 {

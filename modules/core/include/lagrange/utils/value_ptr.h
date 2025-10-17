@@ -35,11 +35,11 @@
 /// @{
 
 #ifndef LA_DECLSPEC_EMPTY_BASES
-#ifdef _MSC_VER
-#define LA_DECLSPEC_EMPTY_BASES __declspec(empty_bases)
-#else
-#define LA_DECLSPEC_EMPTY_BASES
-#endif
+    #ifdef _MSC_VER
+        #define LA_DECLSPEC_EMPTY_BASES __declspec(empty_bases)
+    #else
+        #define LA_DECLSPEC_EMPTY_BASES
+    #endif
 #endif
 
 namespace lagrange {

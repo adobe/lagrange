@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/Selection.h>
 #include <lagrange/ui/components/SelectionContext.h>
 
@@ -54,12 +54,11 @@ LA_UI_API std::vector<Entity> collect_selected(const Registry& registry);
 LA_UI_API std::vector<Entity> collect_hovered(const Registry& registry);
 
 
-LA_UI_API bool set_selected(
-    Registry& registry,
-    Entity e,
-    SelectionBehavior behavior = SelectionBehavior::SET);
+LA_UI_API bool
+set_selected(Registry& registry, Entity e, SelectionBehavior behavior = SelectionBehavior::SET);
 
-LA_UI_API bool set_hovered(Registry& registry, Entity e, SelectionBehavior behavior = SelectionBehavior::SET);
+LA_UI_API bool
+set_hovered(Registry& registry, Entity e, SelectionBehavior behavior = SelectionBehavior::SET);
 
 LA_UI_API bool select(Registry& registry, Entity e);
 

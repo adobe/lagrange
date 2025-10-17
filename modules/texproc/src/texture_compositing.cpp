@@ -14,6 +14,8 @@
 
 #include "mesh_utils.h"
 
+#include <lagrange/utils/build.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Src/PreProcessing.h>
@@ -26,6 +28,8 @@
 namespace lagrange::texproc {
 
 namespace {
+
+using namespace MishaK::TSP;
 
 template <typename Scalar>
 bool is_exactly_zero(Scalar x)
@@ -71,6 +75,12 @@ image::experimental::Array3D<ValueType> texture_compositing(
 
     // Construct the hierarchical gradient domain object
     // TODO: Compute number of levels based on texture size
+    const bool normalize = true;
+#if LAGRANGE_TARGET_BUILD_TYPE(DEBUG)
+    const bool sanity_check = true;
+#else
+    const bool sanity_check = false;
+#endif
     HierarchicalGradientDomain<double, Solver, Vector<double, NumChannels>> hgd(
         options.quadrature_samples,
         wrapper.num_simplices(),
@@ -82,7 +92,9 @@ image::experimental::Array3D<ValueType> texture_compositing(
         [&](size_t v) { return wrapper.texcoord(v); },
         width,
         height,
-        options.solver.num_multigrid_levels);
+        options.solver.num_multigrid_levels,
+        normalize,
+        sanity_check);
 
     // Get the pointers to the solver constraints and solution
     span<Vector<double, NumChannels>> x{hgd.x(), hgd.numNodes()};

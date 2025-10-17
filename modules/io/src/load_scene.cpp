@@ -19,8 +19,8 @@
 #include <lagrange/io/load_scene_gltf.h>
 #include <lagrange/io/load_scene_obj.h>
 #include <lagrange/scene/SceneTypes.h>
-#include <lagrange/utils/strings.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/strings.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
     #include <lagrange/io/load_scene_assimp.h>

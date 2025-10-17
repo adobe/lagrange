@@ -15,6 +15,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_tangent_bitangent.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/transform_mesh.h>
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/views.h>
@@ -163,7 +164,7 @@ void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
         },
         std::array<Index, 3>{0, 1, 2});
 
-    auto id_nrm = lagrange::compute_normal(mesh, M_PI / 4);
+    auto id_nrm = lagrange::compute_normal(mesh, lagrange::internal::pi / 4);
 
     lagrange::TangentBitangentOptions opt;
     opt.pad_with_sign = pad_with_sign;
@@ -255,9 +256,7 @@ void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
         break;
 
     case TestCase::NegativeScaling:
-        lagrange::transform_mesh(
-            mesh,
-            Eigen::Affine3d(Eigen::Scaling(Scalar(-1))));
+        lagrange::transform_mesh(mesh, Eigen::Affine3d(Eigen::Scaling(Scalar(-1))));
         REQUIRE(vertices.row(1) == Eigen::RowVector3d(-1, 0, 0));
         REQUIRE(vertices.row(2) == Eigen::RowVector3d(0, -1, 0));
         REQUIRE(nrm.row(0).head<3>() == Eigen::RowVector3d(0, 0, 1));
@@ -268,10 +267,7 @@ void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
     case TestCase::NegativeScalingReorient: {
         lagrange::TransformOptions topt;
         topt.reorient = true;
-        lagrange::transform_mesh(
-            mesh,
-            Eigen::Affine3d(Eigen::Scaling(Scalar(-1))),
-            topt);
+        lagrange::transform_mesh(mesh, Eigen::Affine3d(Eigen::Scaling(Scalar(-1))), topt);
         REQUIRE(vertices.row(1) == Eigen::RowVector3d(-1, 0, 0));
         REQUIRE(vertices.row(2) == Eigen::RowVector3d(0, -1, 0));
         REQUIRE(nrm.row(0).head<3>() == Eigen::RowVector3d(0, 0, -1));

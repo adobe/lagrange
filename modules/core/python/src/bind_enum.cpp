@@ -187,7 +187,7 @@ void bind_enum(nb::module_& m)
         .value(
             "RemapInvalidIndices",
             AttributeCastPolicy::RemapInvalidIndices,
-            "Map invalue values only if the AttributeUsage represents indices")
+            "Map invalid values only if the AttributeUsage represents indices")
         .value(
             "RemapInvalidAlways",
             AttributeCastPolicy::RemapInvalidAlways,

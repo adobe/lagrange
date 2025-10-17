@@ -308,9 +308,9 @@ std::vector<std::string> open_file_js(const std::vector<FileFilter>& filters, bo
                             //If opening multiple files, make sure they're unique by prepending
                             // an index, so that extension remains unchanged
                             if(event.target.files.length > 1){
-                               name = index.toString() + "_" + name; 
+                               name = index.toString() + "_" + name;
                             }
-                            
+
                             FS.writeFile(name, bytes);
                             const is_last = (index == (event.target.files.length - 1)) ? 1 : 0;
                             ccall(

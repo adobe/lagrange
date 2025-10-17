@@ -53,4 +53,3 @@ void main(){
     fragColor.xyz = color / totalWeight;
     fragColor.a = 1.0;
 }
-

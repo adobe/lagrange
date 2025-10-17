@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/TreeNode.h>
 
 #include <functional>
@@ -67,10 +67,8 @@ LA_UI_API void orphan(Registry& registry, Entity child);
 /// @param registry
 /// @param parent parent entity with Tree component
 /// @param fn function to call, takes Entity parameter
-LA_UI_API void foreach_child(
-    const Registry& registry,
-    const Entity parent,
-    const std::function<void(Entity)>& fn);
+LA_UI_API void
+foreach_child(const Registry& registry, const Entity parent, const std::function<void(Entity)>& fn);
 
 /// @brief Calls fn(Entity) on each child of parent entity recursively
 /// @param registry
@@ -92,7 +90,8 @@ LA_UI_API Entity group(
     const std::vector<Entity>& entities,
     const std::string& name = "NewGroup");
 
-LA_UI_API Entity group_under(Registry& registry, const std::vector<Entity>& entities, Entity parent);
+LA_UI_API Entity
+group_under(Registry& registry, const std::vector<Entity>& entities, Entity parent);
 
 
 /// Returns new parent

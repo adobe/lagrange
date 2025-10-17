@@ -10,13 +10,13 @@
  * governing permissions and limitations under the License.
  */
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-#include <lagrange/testing/common.h>
-#include <cmath>
+    #include <lagrange/testing/common.h>
+    #include <cmath>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/select_facets_in_frustum.h>
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/select_facets_in_frustum.h>
 
 template <typename Scalar>
 void run_legacy()

@@ -34,7 +34,8 @@ namespace lagrange {
 
 void enable_fpe()
 {
-    unsigned int enable_bits = _EM_INVALID | _EM_DENORMAL | _EM_ZERODIVIDE | _EM_OVERFLOW | _EM_UNDERFLOW;
+    unsigned int enable_bits =
+        _EM_INVALID | _EM_DENORMAL | _EM_ZERODIVIDE | _EM_OVERFLOW | _EM_UNDERFLOW;
 
     // Clear any pending FP exceptions. This must be done
     // prior to enabling FP exceptions since otherwise there

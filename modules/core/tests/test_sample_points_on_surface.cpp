@@ -296,15 +296,42 @@ TEST_CASE("SamplePointsOnSurface", "[sample_points_on_surface][triangle_mesh]" L
 
         // Make sure they are the same
         const double eps = 0.5;
-        SECTION("Ix") { REQUIRE(Ix_expected == Catch::Approx(Ix_computed).margin(eps)); }
-        SECTION("Iy") { REQUIRE(Iy_expected == Catch::Approx(Iy_computed).margin(eps)); }
-        SECTION("Iz") { REQUIRE(Iz_expected == Catch::Approx(Iz_computed).margin(eps)); }
-        SECTION("Ixx") { REQUIRE(Ixx_expected == Catch::Approx(Ixx_computed).margin(eps)); }
-        SECTION("Iyy") { REQUIRE(Iyy_expected == Catch::Approx(Iyy_computed).margin(eps)); }
-        SECTION("Izz") { REQUIRE(Izz_expected == Catch::Approx(Izz_computed).margin(eps)); }
-        SECTION("Ixy") { REQUIRE(Ixy_expected == Catch::Approx(Ixy_computed).margin(eps)); }
-        SECTION("Ixz") { REQUIRE(Ixz_expected == Catch::Approx(Ixz_computed).margin(eps)); }
-        SECTION("Iyz") { REQUIRE(Iyz_expected == Catch::Approx(Iyz_computed).margin(eps)); }
+        SECTION("Ix")
+        {
+            REQUIRE(Ix_expected == Catch::Approx(Ix_computed).margin(eps));
+        }
+        SECTION("Iy")
+        {
+            REQUIRE(Iy_expected == Catch::Approx(Iy_computed).margin(eps));
+        }
+        SECTION("Iz")
+        {
+            REQUIRE(Iz_expected == Catch::Approx(Iz_computed).margin(eps));
+        }
+        SECTION("Ixx")
+        {
+            REQUIRE(Ixx_expected == Catch::Approx(Ixx_computed).margin(eps));
+        }
+        SECTION("Iyy")
+        {
+            REQUIRE(Iyy_expected == Catch::Approx(Iyy_computed).margin(eps));
+        }
+        SECTION("Izz")
+        {
+            REQUIRE(Izz_expected == Catch::Approx(Izz_computed).margin(eps));
+        }
+        SECTION("Ixy")
+        {
+            REQUIRE(Ixy_expected == Catch::Approx(Ixy_computed).margin(eps));
+        }
+        SECTION("Ixz")
+        {
+            REQUIRE(Ixz_expected == Catch::Approx(Ixz_computed).margin(eps));
+        }
+        SECTION("Iyz")
+        {
+            REQUIRE(Iyz_expected == Catch::Approx(Iyz_computed).margin(eps));
+        }
 
         // Save the mesh if rquired
         if (should_dump_meshes) {

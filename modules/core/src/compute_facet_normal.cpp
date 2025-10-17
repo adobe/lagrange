@@ -69,8 +69,10 @@ AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOp
     return id;
 }
 
-#define LA_X_compute_facet_normal(_, Scalar, Index) \
-    template LA_CORE_API AttributeId compute_facet_normal(SurfaceMesh<Scalar, Index>& mesh, FacetNormalOptions);
+#define LA_X_compute_facet_normal(_, Scalar, Index)        \
+    template LA_CORE_API AttributeId compute_facet_normal( \
+        SurfaceMesh<Scalar, Index>& mesh,                  \
+        FacetNormalOptions);
 LA_SURFACE_MESH_X(compute_facet_normal, 0)
 
 } // namespace lagrange

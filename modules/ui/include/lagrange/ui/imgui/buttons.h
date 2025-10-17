@@ -14,8 +14,8 @@
 /*
 Custom buttons used throughout the UI
 */
-#include <lagrange/ui/types/Keybinds.h>
 #include <lagrange/ui/api.h>
+#include <lagrange/ui/types/Keybinds.h>
 
 #include <imgui.h>
 

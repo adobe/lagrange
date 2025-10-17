@@ -10,18 +10,18 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
+#include <Eigen/Core>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_approx.hpp>
-#include <Eigen/Core>
 
 #include <lagrange/attributes/attribute_utils.h>
 #include <lagrange/bvh/zip_boundary.h>
-#include <lagrange/io/load_mesh.impl.h>
 #include <lagrange/combine_mesh_list.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_euler.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/io/load_mesh.impl.h>
 
 TEST_CASE("zip_boundary", "[bvh][zip][boundary]")
 {
@@ -205,6 +205,12 @@ TEST_CASE("zip_boundary_benchmark", "[zip_boundary][!benchmark]")
     auto closed_mesh = testing::load_mesh<MeshType>("open/core/blub_open_filled.obj");
     auto open_mesh = testing::load_mesh<MeshType>("open/core/blub_open.obj");
 
-    BENCHMARK("closed mesh") { return bvh::zip_boundary(*closed_mesh, 1e-6f); };
-    BENCHMARK("open mesh") { return bvh::zip_boundary(*open_mesh, 1e-6f); };
+    BENCHMARK("closed mesh")
+    {
+        return bvh::zip_boundary(*closed_mesh, 1e-6f);
+    };
+    BENCHMARK("open mesh")
+    {
+        return bvh::zip_boundary(*open_mesh, 1e-6f);
+    };
 }

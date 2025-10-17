@@ -24,6 +24,8 @@
 #include <atomic>
 #include <functional>
 
+/// @cond LA_INTERNAL_DOCS
+
 namespace lagrange::texproc {
 
 namespace {
@@ -589,8 +591,10 @@ weighted_texture_from_render_impl(
     confidence = flip_vertical(confidence);
 
     // Convert from internal to external
-    auto texture_img = image::experimental::create_image<float>(texture.res(0), texture.res(1), NumChannels);
-    auto confidence_img = image::experimental::create_image<float>(confidence.res(0), confidence.res(1), 1);
+    auto texture_img =
+        image::experimental::create_image<float>(texture.res(0), texture.res(1), NumChannels);
+    auto confidence_img =
+        image::experimental::create_image<float>(confidence.res(0), confidence.res(1), 1);
 
     mesh_utils::set_raw_view<NumChannels, float>(texture, texture_img);
     mesh_utils::set_raw_view<float>(confidence, confidence_img);
@@ -704,3 +708,5 @@ void filter_low_confidences(
 LA_SURFACE_MESH_X(rasterizer_class, 0)
 
 } // namespace lagrange::texproc
+
+/// @endcond

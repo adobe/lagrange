@@ -1,1 +1,1 @@
-anorigami;baking;cad_io;contouring;decal;deformers;filtering;meshproc;quadrangulation
+anorigami;baking;cad_io;contouring;decal;deformers;filtering;meshproc;quadrangulation;solver;texproc

@@ -17,15 +17,15 @@
 // ==== 1st Attempt, see if you can use c++17 filesystem.
 #if !defined(LAGRANGE_USE_STD_FS) && !defined(LAGRANGE_USE_GHC_FS) && \
     !defined(LAGRANGE_USE_BOOST_FS)
-#if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
-#if __has_include(<filesystem>)
-#define LAGRANGE_USE_STD_FS
-#endif // has include
-#endif // cpp 17
+    #if defined(__cplusplus) && __cplusplus >= 201703L && defined(__has_include)
+        #if __has_include(<filesystem>)
+            #define LAGRANGE_USE_STD_FS
+        #endif // has include
+    #endif // cpp 17
 #endif // 1st attempt
 
 // ==== 2nd Attempt; okay previous one failed, use gulrak.
 #if !defined(LAGRANGE_USE_STD_FS) && !defined(LAGRANGE_USE_GHC_FS) && \
     !defined(LAGRANGE_USE_BOOST_FS)
-#define LAGRANGE_USE_GHC_FS
+    #define LAGRANGE_USE_GHC_FS
 #endif // 2nd attempt

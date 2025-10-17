@@ -13,6 +13,11 @@
 #
 """
 Rasterize and composite textures from multiview renders.
+
+To try it out on sample data, run the following commands:
+
+    uv run scripts/artifactory.py pull
+    uv run --extra scripts texture_from_multiview.py --mesh data/corp/texproc/original/pumpkin.glb --cameras data/corp/texproc/original/demo-16-views.json --multiview data/corp/texproc/original/multiview.png out.png
 """
 
 from pathlib import Path

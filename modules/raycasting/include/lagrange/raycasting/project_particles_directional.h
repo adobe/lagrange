@@ -154,7 +154,7 @@ void project_particles_directional(
                 ray_origins.row(b) =
                     (parent_transforms * origins[i].homogeneous()).hnormalized().transpose();
             } else {
-                ray_origins.row(b) = origins[i].transpose();            
+                ray_origins.row(b) = origins[i].transpose();
             }
         }
 

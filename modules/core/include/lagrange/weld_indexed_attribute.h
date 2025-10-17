@@ -53,7 +53,7 @@ struct WeldOptions
     /// If indices are shared between corners around different vertices, merge them together.
     /// Otherwise, separate indices will be created for each group of welded corners around each
     /// vertex.
-    bool merge_accross_vertices = false;
+    bool merge_across_vertices = false;
 
     /// Vertices to exclude from welding.
     ///

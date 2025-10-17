@@ -11,6 +11,7 @@
  */
 #include <lagrange/testing/common.h>
 
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/utils.h>
 
 TEST_CASE("utils-utils")
@@ -18,10 +19,10 @@ TEST_CASE("utils-utils")
     using namespace lagrange;
 
     REQUIRE(to_degrees(0.0) == 0.0);
-    REQUIRE(to_degrees(M_PI) == 180.0);
+    REQUIRE(to_degrees(lagrange::internal::pi) == 180.0);
 
     REQUIRE(to_radians(0.0) == 0.0);
-    REQUIRE(to_radians(180.0) == M_PI);
+    REQUIRE(to_radians(180.0) == lagrange::internal::pi);
 
     REQUIRE(sign(20) == 1);
     REQUIRE(sign(-3) == -1);

@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/internal/constants.h>
 #include <cmath> // for std::exp
 
 ///
@@ -26,7 +27,7 @@ namespace lagrange {
 template <typename Scalar>
 Scalar to_degrees(Scalar rad = 1)
 {
-    return Scalar(180) * rad / Scalar(M_PI);
+    return Scalar(180) * rad / Scalar(lagrange::internal::pi);
 }
 
 /// Convert degrees to radians.
@@ -34,7 +35,7 @@ Scalar to_degrees(Scalar rad = 1)
 template <typename Scalar>
 Scalar to_radians(Scalar deg = 1)
 {
-    return Scalar(M_PI) * deg / Scalar(180);
+    return Scalar(lagrange::internal::pi) * deg / Scalar(180);
 }
 
 /// Get the sign of the value

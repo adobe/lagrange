@@ -64,12 +64,18 @@ TEST_CASE("compute_weighted_corner_normal", "[surface][attribute][utilities][nor
         mesh.add_triangle(0, 1, 2);
 
         CornerNormalOptions options;
-        SECTION("Uniform") { options.weight_type = NormalWeightingType::Uniform; }
+        SECTION("Uniform")
+        {
+            options.weight_type = NormalWeightingType::Uniform;
+        }
         SECTION("CoernerTriangleArea")
         {
             options.weight_type = NormalWeightingType::CornerTriangleArea;
         }
-        SECTION("Angle") { options.weight_type = NormalWeightingType::Angle; }
+        SECTION("Angle")
+        {
+            options.weight_type = NormalWeightingType::Angle;
+        }
 
         auto id = compute_weighted_corner_normal(mesh, options);
         REQUIRE(mesh.is_attribute_type<Scalar>(id));

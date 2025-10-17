@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     app.add_option(
         "--quadrature",
         filtering_options.quadrature_samples,
-        "Number of quadrature samples (in {1, 3, 6, 12, 24, 32}.");
+        "Number of quadrature samples (in {1, 3, 6, 12, 24, 32}).");
     app.add_option(
         "--jitter-epsilon",
         filtering_options.jitter_epsilon,

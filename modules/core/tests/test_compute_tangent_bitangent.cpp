@@ -19,6 +19,7 @@
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.impl.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
@@ -144,7 +145,7 @@ TEST_CASE("compute_tangent_bitangent", "[core][tangent]" LA_SLOW_DEBUG_FLAG)
 
     const Scalar EPS = 1e-3;
     lagrange::logger().info("Computing indexed normals");
-    lagrange::compute_normal(mesh, M_PI * 0.5 - EPS);
+    lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5 - EPS);
 
     lagrange::logger().info("Computing tangent frame");
 
@@ -188,7 +189,8 @@ TEST_CASE("compute_tangent_bitangent_orthogonal", "[core][tangent]" LA_SLOW_DEBU
 
     const Scalar EPS = 1e-3;
     lagrange::logger().info("Computing indexed normals");
-    lagrange::AttributeId normal_id = lagrange::compute_normal(mesh, M_PI * 0.5 - EPS);
+    lagrange::AttributeId normal_id =
+        lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5 - EPS);
 
     lagrange::AttributeId corner_normal_id =
         map_attribute(mesh, normal_id, "corner_normal", lagrange::AttributeElement::Corner);
@@ -375,7 +377,7 @@ TEST_CASE("compute_tangent_bitangent: degenerate", "[core][tangent]")
     uv_attr.values().insert_elements({0.0, 0.0});
     std::fill(uv_attr.indices().ref_all().begin(), uv_attr.indices().ref_all().end(), 0);
 
-    lagrange::compute_normal(mesh, M_PI * 0.25);
+    lagrange::compute_normal(mesh, lagrange::internal::pi * 0.25);
 
     SECTION("corner tangent/bitangent")
     {
@@ -412,7 +414,7 @@ TEST_CASE("compute_tangent_bitangent_bug01", "[core][tangent]" LA_CORP_FLAG LA_S
 
     const Scalar EPS = 1e-3;
     lagrange::logger().debug("compute_normal()");
-    lagrange::compute_normal(mesh, M_PI * 0.5 - EPS);
+    lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5 - EPS);
     lagrange::logger().debug("compute_indexed_tangent_bitangent()");
     lagrange::TangentBitangentOptions opt;
     opt.pad_with_sign = false;
@@ -454,7 +456,7 @@ TEST_CASE("compute_tangent_bitangent_nonmanifold", "[core][tangent]")
 
         const Scalar eps = 1e-3;
         lagrange::logger().debug("compute_normal()");
-        lagrange::compute_normal(mesh, M_PI * 0.5 - eps);
+        lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5 - eps);
         lagrange::logger().debug("compute_indexed_tangent_bitangent()");
         lagrange::compute_tangent_bitangent(mesh);
     }
@@ -498,7 +500,7 @@ TEST_CASE("compute_tangent_bitangent cube", "[core][tangent]")
 
     // Cube normals.
     constexpr Scalar EPS = 1e-3;
-    auto normal_id = lagrange::compute_normal(mesh, M_PI * 0.5 - EPS);
+    auto normal_id = lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5 - EPS);
 
     lagrange::TangentBitangentOptions opt;
     opt.output_element_type = lagrange::AttributeElement::Corner;
@@ -587,7 +589,9 @@ TEST_CASE("compute_tangent_bitangent nmtest", "[core][tangent]" LA_CORP_FLAG)
             const Scalar EPS = static_cast<Scalar>(1e-3);
             auto nrm_id = lagrange::compute_normal(
                 mesh,
-                std::max(Scalar(0), Scalar(angle_threshold_deg) * Scalar(M_PI / 180.0) - EPS));
+                std::max(
+                    Scalar(0),
+                    Scalar(angle_threshold_deg) * Scalar(lagrange::internal::pi / 180.0) - EPS));
 
             lagrange::TangentBitangentOptions opt;
             opt.output_element_type = output_element_type;
@@ -660,7 +664,9 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
             const Scalar EPS = static_cast<Scalar>(1e-3);
             lagrange::compute_normal(
                 mesh,
-                std::max(Scalar(0), Scalar(angle_threshold_deg) * Scalar(M_PI / 180.0) - EPS));
+                std::max(
+                    Scalar(0),
+                    Scalar(angle_threshold_deg) * Scalar(lagrange::internal::pi / 180.0) - EPS));
             mesh.rename_attribute("@normal", "normal");
             mesh = weld_mesh(std::move(mesh));
         }
@@ -756,7 +762,7 @@ TEST_CASE("compute_tangent_bitangent old vs new", "[core][tangent]" LA_SLOW_DEBU
 
     const double EPS = 1e-3;
     lagrange::logger().info("Computing indexed normals");
-    lagrange::compute_normal(*legacy_mesh, M_PI * 0.5 - EPS);
+    lagrange::compute_normal(*legacy_mesh, lagrange::internal::pi * 0.5 - EPS);
 
     auto surface_mesh = lagrange::to_surface_mesh_copy<Scalar, Index>(*legacy_mesh);
 

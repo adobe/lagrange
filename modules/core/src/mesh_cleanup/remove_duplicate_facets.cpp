@@ -243,9 +243,9 @@ void remove_duplicate_facets(
     }
 }
 
-#define LA_X_remove_duplicate_facets(_, Scalar, Index)    \
+#define LA_X_remove_duplicate_facets(_, Scalar, Index)                \
     template LA_CORE_API void remove_duplicate_facets<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                      \
+        SurfaceMesh<Scalar, Index>&,                                  \
         const RemoveDuplicateFacetOptions&);
 LA_SURFACE_MESH_X(remove_duplicate_facets, 0)
 

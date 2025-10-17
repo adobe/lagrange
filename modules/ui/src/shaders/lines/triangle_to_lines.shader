@@ -41,7 +41,7 @@ void main()
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
-//in VARYING 
+//in VARYING
 in vec3 vs_out_pos[3];
 in vec3 vs_out_normal[3];
 in vec2 vs_out_uv[3];

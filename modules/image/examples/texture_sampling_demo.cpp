@@ -117,10 +117,10 @@ void texture_sampling_impl(const std::string output_dir)
                     raw.set_storage_format(storage);
                     if (lagrange::image::RawInputImage::image_storage_format::
                             first_pixel_row_at_top == storage) {
-                        raw.set_pixel_data(reinterpret_cast<const void *>(&(img(0, 0))), false);
+                        raw.set_pixel_data(reinterpret_cast<const void*>(&(img(0, 0))), false);
                     } else {
                         raw.set_pixel_data(
-                            reinterpret_cast<const void *>(&(img(0, height - 1))),
+                            reinterpret_cast<const void*>(&(img(0, height - 1))),
                             false);
                     }
                     for (auto filtering :
@@ -160,7 +160,7 @@ void texture_sampling_impl(const std::string output_dir)
     }
 }
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
     struct
     {

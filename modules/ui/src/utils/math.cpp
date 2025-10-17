@@ -11,9 +11,7 @@
  */
 #include <lagrange/ui/utils/math.h>
 
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include <lagrange/internal/constants.h>
 
 namespace lagrange {
 namespace ui {
@@ -118,7 +116,7 @@ Eigen::Vector3f unproject_point(
 
 float pi()
 {
-    return float(M_PI);
+    return float(lagrange::internal::pi);
 }
 
 float two_pi()

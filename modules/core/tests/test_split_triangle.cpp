@@ -20,7 +20,8 @@ TEST_CASE("split_triangle", "[core]")
     using Scalar = double;
     using Index = uint32_t;
 
-    SECTION("Case 1") {
+    SECTION("Case 1")
+    {
         // clang-format off
         std::vector<Scalar> points = {
             0.3032455156246821,  -0.24217016299565633, -0.58855189681053166,

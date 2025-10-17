@@ -151,7 +151,10 @@ LoadImageResult load_image_bin(const fs::path& path)
         ss << buf;
         ss >> header >> width >> height >> components;
         if (!ss.good() || ss.eof()) {
-            logger().error("load_image error, cannot parse the header of *.bin: {}, {}", buf, path.string());
+            logger().error(
+                "load_image error, cannot parse the header of *.bin: {}, {}",
+                buf,
+                path.string());
             return rtn;
         }
     }
@@ -184,7 +187,9 @@ LoadImageResult load_image_bin(const fs::path& path)
         reinterpret_cast<char*>(rtn.storage->data()),
         _width * _height * _components * size_of_precision(rtn.precision));
     if (ifs.eof() || !ifs.good()) {
-        logger().error("load_image error, failed in reading data block for *.bin: {}", path.string());
+        logger().error(
+            "load_image error, failed in reading data block for *.bin: {}",
+            path.string());
         return rtn;
     }
 

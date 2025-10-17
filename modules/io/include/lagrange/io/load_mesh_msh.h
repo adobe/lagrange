@@ -40,7 +40,7 @@ MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& options = 
  * @param[in]  filename  Input filename.
  * @param[in]  options   Load options.
  *
- * @see        load_mesh_msh(std::istream&) for more info.
+ * @see        @ref load_mesh_msh
  *
  * @tparam     MeshType  Mesh type to load.
  *

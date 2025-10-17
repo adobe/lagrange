@@ -30,7 +30,7 @@ TEST_CASE("file_utils", "[io]")
     REQUIRE(exec_path.parent_path() == exec_dir);
 
     #ifndef TEST_APP_NOPATH
-        REQUIRE(exec_path == fs::path(TEST_APP_PATH));
+    REQUIRE(exec_path == fs::path(TEST_APP_PATH));
     #endif
 #endif
 
@@ -48,7 +48,8 @@ TEST_CASE("file_utils", "[io]")
     fs::path b("path/to");
     REQUIRE(fs::get_base_dir(a.string()) == b.string());
 
-    const std::string data = fs::read_file_to_string(lagrange::testing::get_data_path("open/core/a_simple_text_file.txt"));
+    const std::string data = fs::read_file_to_string(
+        lagrange::testing::get_data_path("open/core/a_simple_text_file.txt"));
     REQUIRE(data.size() == 12);
     REQUIRE(data == "Hello World!");
 }

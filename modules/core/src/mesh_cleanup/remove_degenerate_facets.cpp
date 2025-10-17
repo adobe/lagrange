@@ -11,6 +11,8 @@
  */
 
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/internal/split_edges.h>
+#include <lagrange/internal/split_triangle.h>
 #include <lagrange/mesh_cleanup/detect_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/remove_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
@@ -18,8 +20,6 @@
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
-#include <lagrange/internal/split_edges.h>
-#include <lagrange/internal/split_triangle.h>
 #include <lagrange/views.h>
 
 
@@ -190,8 +190,9 @@ void remove_degenerate_facets(SurfaceMesh<Scalar, Index>& mesh)
     for (auto fid : facets_to_remove) {
         is_degenerate[fid] = true;
     }
-    mesh.remove_facets(function_ref<bool(Index)>(
-        [&](Index fid) { return fid < is_degenerate.size() && is_degenerate[fid]; }));
+    mesh.remove_facets(function_ref<bool(Index)>([&](Index fid) {
+        return fid < is_degenerate.size() && is_degenerate[fid];
+    }));
 }
 
 #define LA_X_remove_degenerate_facets(_, Scalar, Index) \

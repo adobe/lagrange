@@ -37,8 +37,8 @@ void save_scene(
     } else {
         // todo add support for other formats
         throw std::runtime_error(
-            "Unsupported format or not implemented yet: '" + filename.string() +
-            "' (extension: '" + ext + "')");
+            "Unsupported format or not implemented yet: '" + filename.string() + "' (extension: '" +
+            ext + "')");
     }
 }
 

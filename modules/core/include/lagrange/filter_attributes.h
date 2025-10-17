@@ -93,7 +93,7 @@ std::vector<AttributeId> filtered_attribute_ids(
 ///
 /// @return     Output mesh.
 ///
-/// @see        cast
+/// @see        @ref cast
 ///
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> filter_attributes(

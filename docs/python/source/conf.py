@@ -28,7 +28,7 @@ extensions = [
 
 # Where the Lagrange python package is installed
 package_dir = next(x for x in lagrange.__path__ if "site-packages" in x)
-autoapi_dirs = [f"{package_dir}/lagrange"]
+autoapi_dirs = [f"{package_dir}"]
 
 # https://github.com/readthedocs/sphinx-autoapi/issues/405
 autoapi_ignore = ["*__init__.py*"]

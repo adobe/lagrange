@@ -192,6 +192,7 @@ option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt 
 option(LAGRANGE_INSTALL                 "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_LIMIT_PARALLELISM       "Limit parallelism according to available cpu/memory"  OFF)
 option(LAGRANGE_MORE_WARNINGS           "Increase the level of warnings when compiling"        OFF)
+option(LAGRANGE_PROPAGATE_WARNINGS      "Propagate warning flags to dependent targets"         ON)
 option(LAGRANGE_PERFORMANCE_TESTS       "Build all performance tests"                          OFF)
 option(LAGRANGE_UNIT_TESTS              "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_USE_PCH                 "Enable precompiled headers"                           OFF)

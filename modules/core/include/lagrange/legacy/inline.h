@@ -12,7 +12,7 @@
 #pragma once
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-#define LAGRANGE_LEGACY_INLINE inline
+    #define LAGRANGE_LEGACY_INLINE inline
 #else
-#define LAGRANGE_LEGACY_INLINE
+    #define LAGRANGE_LEGACY_INLINE
 #endif

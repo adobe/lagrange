@@ -12,12 +12,12 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/utils/safe_cast.h>
-#include <lagrange/attribute_names.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -160,14 +160,12 @@ void test_obj_indexing()
 
     auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/index-test.obj");
 
-    for (Index f = 0; f < mesh.get_num_facets(); ++f)
-    {
+    for (Index f = 0; f < mesh.get_num_facets(); ++f) {
         const Index first_corner = mesh.get_facet_corner_begin(f);
         const Index last_corner = mesh.get_facet_corner_end(f);
 
         bool all_zero = true;
-        for (Index c = first_corner; c < last_corner; ++c)
-        {
+        for (Index c = first_corner; c < last_corner; ++c) {
             Index vertexIndex = mesh.get_corner_vertex(c);
             all_zero = all_zero && (vertexIndex == 0);
         }

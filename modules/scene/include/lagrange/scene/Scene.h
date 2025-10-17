@@ -14,16 +14,17 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/common.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/internal/SafeVector.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/scene/SceneExtension.h>
 #include <lagrange/scene/api.h>
 #include <lagrange/utils/invalid.h>
-#include <lagrange/internal/SafeVector.h>
 
 #include <Eigen/Geometry>
 
+#include <optional>
 #include <string>
 #include <vector>
-#include <optional>
 
 namespace lagrange {
 
@@ -282,7 +283,8 @@ struct LA_SCENE_API Camera
     // Distance of the near clipping plane. This value cannot be 0.
     float near_plane = 0.1f;
 
-    // Distance of the far clipping plane. Required for orthographic cameras, optional for perspective ones.
+    // Distance of the far clipping plane. Required for orthographic cameras, optional for
+    // perspective ones.
     std::optional<float> far_plane = 1000.f;
 
     enum class Type { Perspective, Orthographic };
@@ -307,7 +309,7 @@ struct LA_SCENE_API Camera
     // It should not be greater than Pi.
     //
     // fov is only defined when the camera type is perspective, otherwise it should be 0.
-    float horizontal_fov = (float)M_PI_2;
+    float horizontal_fov = (float)lagrange::internal::pi_2;
 
     // convenience methods to get or set the vertical fov instead.
     // make sure aspect_ratio is set before calling those!

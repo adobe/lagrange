@@ -491,12 +491,13 @@ void corner_tangent_bitangent_raw(
                     //   Alexa, Marc, and Max Wardetzky. "Discrete Laplacians on general
                     //   polygonal meshes." ACM SIGGRAPH 2011 papers. 2011. 1-10.
                     //   https://ddg.math.uni-goettingen.de/pub/Polygonal_Laplace.pdf
-                    throw Error(fmt::format(
-                        "Facet {} has {} vertices. Only facets with 3 and 4 vertices are "
-                        "supported "
-                        "at the moment.",
-                        f,
-                        facet.size()));
+                    throw Error(
+                        fmt::format(
+                            "Facet {} has {} vertices. Only facets with 3 and 4 vertices are "
+                            "supported "
+                            "at the moment.",
+                            f,
+                            facet.size()));
                 }
             }();
 

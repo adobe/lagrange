@@ -25,6 +25,9 @@ namespace lagrange::io::internal {
  *
  * @return true if successful.
  */
-bool try_load_image(const std::string& name, const LoadOptions& options, scene::ImageExperimental& image);
+bool try_load_image(
+    const std::string& name,
+    const LoadOptions& options,
+    scene::ImageExperimental& image);
 
 } // namespace lagrange::io::internal

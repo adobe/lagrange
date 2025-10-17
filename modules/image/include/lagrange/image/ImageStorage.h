@@ -34,7 +34,7 @@ public:
     inline ImageStorage(const ImageStorage& other) { *this = other; };
     ImageStorage(ImageStorage&& other) noexcept { *this = other; };
 
-    virtual ~ImageStorage(){};
+    virtual ~ImageStorage() {};
 
 public:
     inline ImageStorage& operator=(const ImageStorage& other);

@@ -11,8 +11,8 @@
  */
 #include <lagrange/mesh_cleanup/remove_isolated_vertices.h>
 
-#include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/Attribute.h>
+#include <lagrange/SurfaceMeshTypes.h>
 
 namespace lagrange {
 

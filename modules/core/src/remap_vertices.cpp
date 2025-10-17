@@ -13,8 +13,8 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/fast_edge_sort.h>
-#include <lagrange/internal/visit_attribute.h>
 #include <lagrange/internal/invert_mapping.h>
+#include <lagrange/internal/visit_attribute.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
@@ -113,9 +113,10 @@ void remap_attribute(
         case MappingPolicy::KeepFirst: remap_keep_first(attr, new_to_old, num_out_elements); break;
         case MappingPolicy::Error: remap_injective(attr, new_to_old, num_out_elements); break;
         default:
-            throw Error(fmt::format(
-                "Unsupported integer collision policy {}",
-                static_cast<int>(options.collision_policy_integral)));
+            throw Error(
+                fmt::format(
+                    "Unsupported integer collision policy {}",
+                    static_cast<int>(options.collision_policy_integral)));
         }
     } else {
         switch (options.collision_policy_float) {
@@ -123,9 +124,10 @@ void remap_attribute(
         case MappingPolicy::KeepFirst: remap_keep_first(attr, new_to_old, num_out_elements); break;
         case MappingPolicy::Error: remap_injective(attr, new_to_old, num_out_elements); break;
         default:
-            throw Error(fmt::format(
-                "Unsupported float collision policy {}",
-                static_cast<int>(options.collision_policy_float)));
+            throw Error(
+                fmt::format(
+                    "Unsupported float collision policy {}",
+                    static_cast<int>(options.collision_policy_float)));
         }
     }
 }

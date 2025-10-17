@@ -18,8 +18,8 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <random>
 #include <array>
+#include <random>
 
 namespace {
 

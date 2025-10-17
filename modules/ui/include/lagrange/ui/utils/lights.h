@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/Light.h>
 #include <lagrange/ui/types/Color.h>
 

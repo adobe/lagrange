@@ -15,7 +15,7 @@
 
 LA_IGNORE_SHADOW_WARNING_BEGIN
 #if !defined(__clang__) && defined(__gnuc__)
-#pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
+    #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
 namespace lagrange {
@@ -31,11 +31,11 @@ struct ArraySerialization
         if (arr->is_row_major()) {
             using EigenType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
             auto M = arr->template view<EigenType>();
-            ar& M;
+            ar & M;
         } else {
             using EigenType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::ColMajor>;
             auto M = arr->template view<EigenType>();
-            ar& M;
+            ar & M;
         }
     }
 
@@ -44,7 +44,7 @@ struct ArraySerialization
     {
         using EigenType = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, StorageOrder>;
         EigenType matrix;
-        ar& matrix;
+        ar & matrix;
         return std::make_unique<EigenArray<EigenType>>(std::move(matrix));
     }
 };
@@ -64,10 +64,8 @@ void serialize_array(ArrayBase* arr, Archive& ar)
         auto data_ar = ar("data", DATA);
 
         switch (stype) {
-#define LAGRANGE_SERIALIZATION_ADD_CASE(type)                              \
-    case type:                                                             \
-        ArraySerialization<EnumToScalar_t<type>>::serialize(arr, data_ar); \
-        break;
+#define LAGRANGE_SERIALIZATION_ADD_CASE(type) \
+    case type: ArraySerialization<EnumToScalar_t<type>>::serialize(arr, data_ar); break;
             LAGRANGE_SERIALIZATION_ADD_CASE(ScalarEnum::INT8)
             LAGRANGE_SERIALIZATION_ADD_CASE(ScalarEnum::INT16)
             LAGRANGE_SERIALIZATION_ADD_CASE(ScalarEnum::INT32)
@@ -160,7 +158,7 @@ void serialize(std::unique_ptr<ArrayBase>& arr, Archive& ar)
     }
 }
 
-} // experimental
+} // namespace experimental
 } // namespace lagrange
 
 LA_IGNORE_SHADOW_WARNING_END

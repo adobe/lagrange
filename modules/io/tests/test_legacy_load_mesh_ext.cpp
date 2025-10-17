@@ -42,7 +42,8 @@ TEST_CASE("MeshLoad Params", "[Mesh][Load]" LA_CORP_FLAG)
                 params.load_materials = load_materials;
                 params.load_normals = load_normals;
                 params.load_uvs = load_uvs;
-                tinyobj::MaterialFileReader mtl_reader(lagrange::testing::get_data_folder("corp/core/").string());
+                tinyobj::MaterialFileReader mtl_reader(
+                    lagrange::testing::get_data_folder("corp/core/").string());
                 auto result = lagrange::io::legacy::load_mesh_ext<lagrange::TriangleMesh3D>(
                     lagrange::testing::get_data_path(name),
                     params,
@@ -72,7 +73,8 @@ TEST_CASE("MeshLoad Params (open)", "[Mesh][Load]")
                 params.load_materials = load_materials;
                 params.load_normals = load_normals;
                 params.load_uvs = load_uvs;
-                tinyobj::MaterialFileReader mtl_reader(lagrange::testing::get_data_folder("open/core/").string());
+                tinyobj::MaterialFileReader mtl_reader(
+                    lagrange::testing::get_data_folder("open/core/").string());
                 auto result = lagrange::io::legacy::load_mesh_ext<lagrange::TriangleMesh3D>(
                     lagrange::testing::get_data_path(name),
                     params,

@@ -41,6 +41,8 @@ function(lagrange_add_module)
 
     target_compile_features(lagrange_${module_name} ${module_scope} cxx_std_17)
 
+    lagrange_add_warnings(lagrange_${module_name})
+
     # Target sources
     file(GLOB_RECURSE INC_FILES "include/*.h")
     file(GLOB_RECURSE SRC_FILES "src/*.cpp" "src/*.h")

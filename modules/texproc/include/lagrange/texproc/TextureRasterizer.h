@@ -12,12 +12,15 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
-#include <lagrange/image/View3D.h>
 #include <lagrange/image/Array3D.h>
+#include <lagrange/image/View3D.h>
 
 #include <Eigen/Geometry>
 
 namespace lagrange::texproc {
+
+/// @addtogroup module-texproc
+/// @{
 
 ///
 /// Parameters for computing the rendering of a mesh.
@@ -99,10 +102,13 @@ public:
         const CameraOptions& options) const;
 
 private:
+    /// @cond LA_INTERNAL_DOCS
+
     struct Impl;
     value_ptr<Impl> m_impl;
-};
 
+    /// @endcond
+};
 
 ///
 /// Discard low-confidence values. Texels whose weight is < threshold * max_weight are set to zero.
@@ -114,5 +120,7 @@ void filter_low_confidences(
     span<std::pair<image::experimental::Array3D<float>, image::experimental::Array3D<float>>>
         textures_and_weights,
     float low_ratio_threshold);
+
+/// @}
 
 } // namespace lagrange::texproc

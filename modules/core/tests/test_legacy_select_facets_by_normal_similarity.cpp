@@ -10,11 +10,12 @@
  * governing permissions and limitations under the License.
  */
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
 
-#include <lagrange/io/save_mesh.h>
-#include <lagrange/legacy/select_facets_by_normal_similarity.h>
+    #include <lagrange/internal/constants.h>
+    #include <lagrange/io/save_mesh.h>
+    #include <lagrange/legacy/select_facets_by_normal_similarity.h>
 
 //
 // Compare the selection with some predefined expectations on a cylinder.
@@ -85,7 +86,7 @@ TEST_CASE("legacy::select_facets_by_normal_similarity", "[select_facets_by_norma
 
         for (const auto h : range(n_vertical_segments + 1)) {
             for (const auto r : range(n_radial_segments)) {
-                const double angle = 2 * M_PI * r / n_radial_segments;
+                const double angle = 2 * lagrange::internal::pi * r / n_radial_segments;
                 vertices.row(h * n_radial_segments + r) << radius * cos(angle), radius * sin(angle),
                     height * h / n_vertical_segments;
             }
@@ -216,7 +217,7 @@ TEST_CASE("legacy::select_facets_by_normal_similarity", "[select_facets_by_norma
             // and the adjacent rows are selected
             for (const auto facet_id : range(mesh->get_num_facets())) {
                 const auto facet_midpoint = get_facet_midpoint(mesh, facet_id);
-                const double dtheta = 2 * M_PI / n_radial_segments;
+                const double dtheta = 2 * lagrange::internal::pi / n_radial_segments;
                 const Scalar y_min_lim = -sin(dtheta) * radius;
                 const Scalar y_max_lim = sin(2 * dtheta) * radius;
                 const Scalar x_min_lim = 0;

@@ -14,4 +14,3 @@
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     #include <lagrange/mesh_cleanup/legacy/split_triangle.h>
 #endif
-

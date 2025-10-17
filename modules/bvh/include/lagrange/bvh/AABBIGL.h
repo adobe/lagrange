@@ -21,11 +21,11 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <lagrange/bvh/BVH.h>
 #include <lagrange/Logger.h>
+#include <lagrange/bvh/BVH.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {
 namespace bvh {
@@ -93,13 +93,11 @@ public:
         return r;
     }
 
-    bool does_support_query_k_nearest_neighbours() const override
-    {
-        return false;
-    }
+    bool does_support_query_k_nearest_neighbours() const override { return false; }
     std::vector<ClosestPoint> query_k_nearest_neighbours(const PointType& p, int k) const override
     {
-        (void)p; (void)k;
+        (void)p;
+        (void)k;
         throw std::runtime_error("LibIGL AABB does not support KNN queries");
     }
 

@@ -33,7 +33,7 @@ TEST_CASE("Format Matrix", "[fmt]")
     // This will format without error
     spdlog::info("{:.2f}\n", test);
 #elif (FMT_VERSION >= 100000) || (FMT_VERSION >= 90000 && !defined(FMT_DEPRECATED_OSTREAM)) || \
-        (defined(LAGRANGE_FMT_EIGEN_FIX) && defined(_MSC_VER))
+    (defined(LAGRANGE_FMT_EIGEN_FIX) && defined(_MSC_VER))
     // This should also format without error
     spdlog::info("{:.2f}\n", test);
 #else

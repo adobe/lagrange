@@ -19,8 +19,8 @@ namespace lagrange {
 
 template <typename Scalar, size_t N, typename Derived>
 void vector_to_eigen(
-    const std::vector<std::array<Scalar, N>> &from,
-    Eigen::PlainObjectBase<Derived> &to)
+    const std::vector<std::array<Scalar, N>>& from,
+    Eigen::PlainObjectBase<Derived>& to)
 {
     if (from.size() == 0) {
         to.resize(0, N);
@@ -36,8 +36,8 @@ void vector_to_eigen(
 
 template <typename Scalar, typename Derived>
 void vector_to_eigen(
-    const std::vector<std::pair<Scalar, Scalar>> &from,
-    Eigen::PlainObjectBase<Derived> &to)
+    const std::vector<std::pair<Scalar, Scalar>>& from,
+    Eigen::PlainObjectBase<Derived>& to)
 {
     if (from.size() == 0) {
         to.resize(0, 2);
@@ -51,8 +51,8 @@ void vector_to_eigen(
 
 template <typename Scalar, int N, typename Derived>
 void vector_to_eigen(
-    const std::vector<Eigen::Matrix<Scalar, N, 1>> &from,
-    Eigen::PlainObjectBase<Derived> &to)
+    const std::vector<Eigen::Matrix<Scalar, N, 1>>& from,
+    Eigen::PlainObjectBase<Derived>& to)
 {
     if (from.size() == 0) {
         to.resize(0, N);
@@ -68,8 +68,8 @@ void vector_to_eigen(
 
 template <typename Scalar, int N, typename Derived>
 void vector_to_eigen(
-    const std::vector<Eigen::Matrix<Scalar, 1, N>> &from,
-    Eigen::PlainObjectBase<Derived> &to)
+    const std::vector<Eigen::Matrix<Scalar, 1, N>>& from,
+    Eigen::PlainObjectBase<Derived>& to)
 {
     if (from.size() == 0) {
         to.resize(0, N);
@@ -84,7 +84,7 @@ void vector_to_eigen(
 }
 
 template <typename Scalar>
-void vector_to_eigen(const std::vector<Scalar> &from, Eigen::Matrix<Scalar, Eigen::Dynamic, 1> &to)
+void vector_to_eigen(const std::vector<Scalar>& from, Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& to)
 {
     if (from.size() == 0) {
         to.resize(0);
@@ -98,8 +98,8 @@ void vector_to_eigen(const std::vector<Scalar> &from, Eigen::Matrix<Scalar, Eige
 
 template <typename Scalar, typename Derived>
 void flat_vector_to_eigen(
-    const std::vector<Scalar> &from,
-    Eigen::PlainObjectBase<Derived> &to,
+    const std::vector<Scalar>& from,
+    Eigen::PlainObjectBase<Derived>& to,
     size_t rows,
     size_t cols,
     int row_major_flag = Eigen::RowMajor)
@@ -115,7 +115,7 @@ void flat_vector_to_eigen(
 }
 
 template <typename Derived, typename Scalar, size_t N>
-void eigen_to_vector(const Eigen::MatrixBase<Derived> &from, std::vector<std::array<Scalar, N>> &to)
+void eigen_to_vector(const Eigen::MatrixBase<Derived>& from, std::vector<std::array<Scalar, N>>& to)
 {
     if (from.cols() != N) {
         throw std::invalid_argument("Wrong number of columns");
@@ -130,8 +130,8 @@ void eigen_to_vector(const Eigen::MatrixBase<Derived> &from, std::vector<std::ar
 
 template <typename Derived, typename Scalar>
 void eigen_to_vector(
-    const Eigen::MatrixBase<Derived> &from,
-    std::vector<std::pair<Scalar, Scalar>> &to)
+    const Eigen::MatrixBase<Derived>& from,
+    std::vector<std::pair<Scalar, Scalar>>& to)
 {
     if (from.cols() != 2) {
         throw std::invalid_argument("Wrong number of columns");
@@ -144,8 +144,8 @@ void eigen_to_vector(
 
 template <typename Derived, typename Scalar>
 void eigen_to_flat_vector(
-    const Eigen::MatrixBase<Derived> &from,
-    std::vector<Scalar> &to,
+    const Eigen::MatrixBase<Derived>& from,
+    std::vector<Scalar>& to,
     int row_major_flag = Eigen::RowMajor)
 {
     to.resize(from.size());

@@ -21,6 +21,7 @@
 #include <lagrange/compute_dihedral_angles.h>
 #include <lagrange/compute_dijkstra_distance.h>
 #include <lagrange/compute_edge_lengths.h>
+#include <lagrange/compute_facet_circumcenter.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_greedy_coloring.h>
 #include <lagrange/compute_mesh_covariance.h>
@@ -34,6 +35,7 @@
 #include <lagrange/compute_vertex_valence.h>
 #include <lagrange/extract_submesh.h>
 #include <lagrange/filter_attributes.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/isoline.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/normalize_meshes.h>
@@ -41,6 +43,7 @@
 #include <lagrange/orientation.h>
 #include <lagrange/permute_facets.h>
 #include <lagrange/permute_vertices.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/python/utils/StackVector.h>
 #include <lagrange/remap_vertices.h>
@@ -58,7 +61,6 @@
 #include <lagrange/utils/invalid.h>
 #include <lagrange/uv_mesh.h>
 #include <lagrange/weld_indexed_attribute.h>
-#include <lagrange/python/binding.h>
 
 #include <optional>
 #include <string_view>
@@ -97,30 +99,28 @@ void bind_utilities(nanobind::module_& m)
         .def_rw(
             "weighted_corner_normal_attribute_name",
             &VertexNormalOptions::weighted_corner_normal_attribute_name,
-            "Precomputed weighted corner normals attribute name."
-            "Default is `@weighted_corner_normal`. "
-            "If attribute exists, the weighted corner normals will be "
-            "used instead of recomputing them.")
+            R"(Precomputed weighted corner normals attribute name (default: @weighted_corner_normal).
+
+If attribute exists, the precomputed weighted corner normal will be used.)")
         .def_rw(
             "recompute_weighted_corner_normals",
             &VertexNormalOptions::recompute_weighted_corner_normals,
-            "Whether to recompute weighted corner normals. Default is false")
+            "Whether to recompute weighted corner normals (default: false).")
         .def_rw(
             "keep_weighted_corner_normals",
             &VertexNormalOptions::keep_weighted_corner_normals,
-            "Whether to keep the weighted corner normal attribute. Default is false.")
+            "Whether to keep the weighted corner normal attribute (default: false).")
         .def_rw(
             "distance_tolerance",
             &VertexNormalOptions::distance_tolerance,
-            "Distance tolerance for degenerate edge check. "
-            "(Only used to bypass degenerate edge in polygon facets.)");
+            "Distance tolerance for degenerate edge check in polygon facets.");
 
     m.def(
         "compute_vertex_normal",
         &compute_vertex_normal<Scalar, Index>,
         "mesh"_a,
         "options"_a = VertexNormalOptions(),
-        R"(Computer vertex normal.
+        R"(Compute vertex normal.
 
 :param mesh: Input mesh.
 :param options: Options for computing vertex normals.
@@ -157,7 +157,7 @@ void bind_utilities(nanobind::module_& m)
         "recompute_weighted_corner_normals"_a = nb::none(),
         "keep_weighted_corner_normals"_a = nb::none(),
         "distance_tolerance"_a = nb::none(),
-        R"(Computer vertex normal (Pythonic API).
+        R"(Compute vertex normal (Pythonic API).
 
 :param mesh: Input mesh.
 :param output_attribute_name: Output attribute name.
@@ -260,7 +260,7 @@ void bind_utilities(nanobind::module_& m)
             }
         },
         "mesh"_a,
-        "feature_angle_threshold"_a = M_PI / 4,
+        "feature_angle_threshold"_a = lagrange::internal::pi / 4,
         "cone_vertices"_a = nb::none(),
         "options"_a = nb::none(),
         R"(Compute indexed normal attribute.
@@ -312,7 +312,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
             }
         },
         "mesh"_a,
-        "feature_angle_threshold"_a = M_PI / 4,
+        "feature_angle_threshold"_a = lagrange::internal::pi / 4,
         "cone_vertices"_a = nb::none(),
         "output_attribute_name"_a = nb::none(),
         "weight_type"_a = nb::none(),
@@ -536,7 +536,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         "mesh"_a,
         "indexed_attribute_id"_a,
         "output_attribute_name"_a = nb::none(),
-        R"(Computer seam edges for a given indexed attribute.
+        R"(Compute seam edges for a given indexed attribute.
 
 :param mesh: Input mesh.
 :param indexed_attribute_id: Input indexed attribute id.
@@ -553,44 +553,44 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         },
         "mesh"_a,
         "positive"_a = OrientOptions().positive,
-        R"(Orient the facets of a mesh so that the signed volume of each connected component is positive or negative.
+        R"(Orient mesh facets to ensure positive or negative signed volume.
 
 :param mesh: Input mesh.
-:param positive: Whether to orient each volume positively or negatively.)");
+:param positive: Whether to orient volumes positively or negatively.)");
 
     m.def(
         "unify_index_buffer",
         [](MeshType& mesh) { return unify_index_buffer(mesh); },
         "mesh"_a,
-        R"(Unify the index buffer of the mesh.  All indexed attributes will be unified.
+        R"(Unify the index buffer for all indexed attributes.
 
-:param mesh: The mesh to unify.
+:param mesh: Input mesh.
 
-:returns: The unified mesh.)");
+:returns: Unified mesh.)");
 
     m.def(
         "unify_index_buffer",
         &lagrange::unify_index_buffer<Scalar, Index>,
         "mesh"_a,
         "attribute_ids"_a,
-        R"(Unify the index buffer of the mesh for selected attributes.
+        R"(Unify the index buffer for selected attributes.
 
-:param mesh: The mesh to unify.
-:param attribute_ids: The selected attribute ids to unify.
+:param mesh: Input mesh.
+:param attribute_ids: Attribute IDs to unify.
 
-:returns: The unified mesh.)");
+:returns: Unified mesh.)");
 
     m.def(
         "unify_index_buffer",
         &lagrange::unify_named_index_buffer<Scalar, Index>,
         "mesh"_a,
         "attribute_names"_a,
-        R"(Unify the index buffer of the mesh for selected attributes.
+        R"(Unify the index buffer for selected attributes.
 
-:param mesh: The mesh to unify.
-:param attribute_names: The selected attribute names to unify.
+:param mesh: Input mesh.
+:param attribute_names: Attribute names to unify.
 
-:returns: The unified mesh.)");
+:returns: Unified mesh.)");
 
     m.def(
         "triangulate_polygonal_facets",
@@ -933,6 +933,36 @@ argument. Each component id is in [0, num_components-1] range.
 
 :returns: The id of the new attribute.)");
 
+    m.def(
+        "compute_facet_vector_area",
+        [](MeshType& mesh, std::optional<std::string_view> name) {
+            FacetVectorAreaOptions opt;
+            if (name.has_value()) {
+                opt.output_attribute_name = name.value();
+            }
+            return lagrange::compute_facet_vector_area<Scalar, Index>(mesh, opt);
+        },
+        "mesh"_a,
+        "output_attribute_name"_a = nb::none(),
+        R"(Compute facet vector area (Pythonic API).
+
+Vector area is defined as the area multiplied by the facet normal.
+For triangular facets, it is equivalent to half of the cross product of two edges.
+For non-planar polygonal facets, the vector area offers a robust way to compute the area and normal.
+The magnitude of the vector area is the largest area of any orthogonal projection of the facet.
+The direction of the vector area is the normal direction that maximizes the projected area [1, 2].
+
+[1] Sullivan, John M. "Curvatures of smooth and discrete surfaces." Discrete differential geometry.
+Basel: Birkhäuser Basel, 2008. 175-188.
+
+[2] Alexa, Marc, and Max Wardetzky. "Discrete Laplacians on general polygonal meshes." ACM SIGGRAPH
+2011 papers. 2011. 1-10.
+
+:param mesh: The input mesh.
+:param output_attribute_name: The name of the output attribute.
+
+:returns: The id of the new attribute.)");
+
     nb::class_<MeshAreaOptions>(m, "MeshAreaOptions", "Options for computing mesh area.")
         .def(nb::init<>())
         .def_rw(
@@ -1012,6 +1042,24 @@ argument. Each component id is in [0, num_components-1] range.
         "output_attribute_name"_a = nb::none(),
         R"(Compute facet centroid (Pythonic API).
 
+:param mesh: Input mesh.
+:param output_attribute_name: Output attribute name.
+
+:returns: Attribute ID.)");
+
+    m.def(
+        "compute_facet_circumcenter",
+        [](MeshType& mesh, std::optional<std::string_view> output_attribute_name) {
+            FacetCircumcenterOptions opt;
+            if (output_attribute_name.has_value()) {
+                opt.output_attribute_name = output_attribute_name.value();
+            }
+            return lagrange::compute_facet_circumcenter<Scalar, Index>(mesh, opt);
+        },
+        "mesh"_a,
+        "output_attribute_name"_a = nb::none(),
+        R"(Compute facet circumcenter (Pythonic API).
+
 :param mesh: The input mesh.
 :param output_attribute_name: The name of the output attribute.
 
@@ -1048,10 +1096,10 @@ argument. Each component id is in [0, num_components-1] range.
         "options"_a = MeshCentroidOptions(),
         R"(Compute mesh centroid.
 
-:param mesh: The input mesh.
-:param options: The options for computing mesh centroid.
+:param mesh: Input mesh.
+:param options: Centroid computation options.
 
-:returns: The mesh centroid.)");
+:returns: Mesh centroid coordinates.)");
 
     m.def(
         "compute_mesh_centroid",
@@ -1080,12 +1128,12 @@ argument. Each component id is in [0, num_components-1] range.
         "facet_area_attribute_name"_a = nb::none(),
         R"(Compute mesh centroid (Pythonic API).
 
-:param mesh: The input mesh.
-:param weighting_type: The weighting type. Default is `Area`.
-:param facet_centroid_attribute_name: The name of the pre-computed facet centroid attribute if available. Default is `@facet_centroid`.
-:param facet_area_attribute_name: The name of the pre-computed facet area attribute if available. Default is `@facet_area`.
+:param mesh: Input mesh.
+:param weighting_type: Weighting type (default: Area).
+:param facet_centroid_attribute_name: Pre-computed facet centroid attribute name.
+:param facet_area_attribute_name: Pre-computed facet area attribute name.
 
-:returns: The mesh centroid.)");
+:returns: Mesh centroid coordinates.)");
 
     m.def(
         "permute_vertices",
@@ -1199,8 +1247,9 @@ argument. Each component id is in [0, num_components-1] range.
 
 :param mesh: input mesh
 :param method: reordering method, options are 'Lexicographic', 'Morton', 'Hilbert', 'None' (default is 'Morton').)",
-        nb::sig("def reorder_mesh(mesh: SurfaceMesh, "
-                "method: typing.Literal['Lexicographic', 'Morton', 'Hilbert', 'None']) -> None"));
+        nb::sig(
+            "def reorder_mesh(mesh: SurfaceMesh, "
+            "method: typing.Literal['Lexicographic', 'Morton', 'Hilbert', 'None']) -> None"));
 
     m.def(
         "separate_by_facet_groups",
@@ -1325,7 +1374,7 @@ argument. Each component id is in [0, num_components-1] range.
 The dihedral angle of an edge is defined as the angle between the __normals__ of two facets adjacent
 to the edge. The dihedral angle is always in the range [0, pi] for manifold edges. For boundary
 edges, the dihedral angle defaults to 0.  For non-manifold edges, the dihedral angle is not
-well-defined and will be set to the special value 2 * M_PI.
+well-defined and will be set to the special value 2 * π.
 
 :param mesh:                        The source mesh.
 :param output_attribute_name:       The optional edge attribute name to store the dihedral angles.
@@ -1510,13 +1559,13 @@ A mesh considered as manifold if it is both vertex and edge manifold.
         "in_place"_a = true,
         R"(Apply affine transformation to a mesh.
 
-:param mesh:                          The source mesh.
-:param affine_transform:              The affine transformation matrix.
-:param normalize_normals:             Whether to normalize normals.
+:param mesh: Input mesh.
+:param affine_transform: Affine transformation matrix.
+:param normalize_normals: Whether to normalize normals.
 :param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
-:param in_place:                      Whether to apply the transformation in place.
+:param in_place: Whether to apply transformation in place.
 
-:return: The transformed mesh if in_place is False.)");
+:returns: Transformed mesh if in_place is False.)");
 
     nb::enum_<DistortionMetric>(m, "DistortionMetric", "Distortion metric.")
         .value("Dirichlet", DistortionMetric::Dirichlet, "Dirichlet energy")
@@ -1546,12 +1595,12 @@ A mesh considered as manifold if it is both vertex and edge manifold.
         "metric"_a = lagrange::DistortionMetric::MIPS,
         R"(Compute UV distortion.
 
-:param mesh:                  The source mesh.
-:param uv_attribute_name:     The input UV attribute name. Default is "@uv".
-:param output_attribute_name: The output attribute name to store the distortion. Default is "@uv_measure".
-:param metric:                The distortion metric. Default is MIPS.
+:param mesh: Input mesh.
+:param uv_attribute_name: UV attribute name (default: "@uv").
+:param output_attribute_name: Output attribute name (default: "@uv_measure").
+:param metric: Distortion metric (default: MIPS).
 
-:return: The facet attribute id for distortion.)");
+:returns: Facet attribute ID for distortion.)");
 
     m.def(
         "trim_by_isoline",
@@ -1573,16 +1622,14 @@ A mesh considered as manifold if it is both vertex and edge manifold.
         "attribute"_a,
         "isovalue"_a = IsolineOptions().isovalue,
         "keep_below"_a = IsolineOptions().keep_below,
-        R"(Trim a mesh by the isoline of an implicit function defined on the mesh vertices/corners.
+        R"(Trim a triangle mesh by an isoline.
 
-The input mesh must be a triangle mesh.
-
-:param mesh:       Input triangle mesh to trim.
-:param attribute:  Attribute id or name of the scalar field to use. Can be a vertex or indexed attribute.
-:param isovalue:   Isovalue to trim with.
+:param mesh: Input triangle mesh.
+:param attribute: Attribute ID or name of scalar field (vertex or indexed).
+:param isovalue: Isovalue to trim with.
 :param keep_below: Whether to keep the part below the isoline.
 
-:return: The trimmed mesh.)");
+:returns: Trimmed mesh.)");
 
     m.def(
         "extract_isoline",
@@ -1829,15 +1876,16 @@ The input mesh must be a triangle mesh.
 :param num_smooth_iterations: Number of iterations to smooth the boundary of the selected region.
 
 :returns: Id of the attribute on whether a facet is selected.)",
-        nb::sig("def select_facets_by_normal_similarity(mesh: SurfaceMesh, "
-                "seed_facet_id: int, "
-                "flood_error_limit: float | None = None, "
-                "flood_second_to_first_order_limit_ratio: float | None = None, "
-                "facet_normal_attribute_name: str | None = None, "
-                "is_facet_selectable_attribute_name: str | None = None, "
-                "output_attribute_name: str | None = None, "
-                "search_type: typing.Literal['BFS', 'DFS'] | None = None,"
-                "num_smooth_iterations: int | None = None) -> int"));
+        nb::sig(
+            "def select_facets_by_normal_similarity(mesh: SurfaceMesh, "
+            "seed_facet_id: int, "
+            "flood_error_limit: float | None = None, "
+            "flood_second_to_first_order_limit_ratio: float | None = None, "
+            "facet_normal_attribute_name: str | None = None, "
+            "is_facet_selectable_attribute_name: str | None = None, "
+            "output_attribute_name: str | None = None, "
+            "search_type: typing.Literal['BFS', 'DFS'] | None = None,"
+            "num_smooth_iterations: int | None = None) -> int"));
 
     m.def(
         "select_facets_in_frustum",

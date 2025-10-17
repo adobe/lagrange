@@ -287,12 +287,12 @@ SurfaceMesh<Scalar, Index> unify_named_index_buffer(
 }
 
 
-#define LA_X_unify_index_buffer(_, Scalar, Index)                 \
+#define LA_X_unify_index_buffer(_, Scalar, Index)                             \
     template LA_CORE_API SurfaceMesh<Scalar, Index> unify_index_buffer(       \
-        const SurfaceMesh<Scalar, Index>& mesh,                   \
-        const std::vector<AttributeId>& attribute_ids);           \
+        const SurfaceMesh<Scalar, Index>& mesh,                               \
+        const std::vector<AttributeId>& attribute_ids);                       \
     template LA_CORE_API SurfaceMesh<Scalar, Index> unify_named_index_buffer( \
-        const SurfaceMesh<Scalar, Index>& mesh,                   \
+        const SurfaceMesh<Scalar, Index>& mesh,                               \
         const std::vector<std::string_view>& attribute_names);
 LA_SURFACE_MESH_X(unify_index_buffer, 0)
 

@@ -40,4 +40,3 @@ struct MaterialAdobe {
     //float heightScale;
     Map normal;
 };
-

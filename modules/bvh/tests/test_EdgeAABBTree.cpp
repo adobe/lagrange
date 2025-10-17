@@ -23,7 +23,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
 {
     using namespace lagrange;
 
-    SECTION("Simple 3D") {
+    SECTION("Simple 3D")
+    {
         using Scalar = float;
         using Index = int;
         using Point = Eigen::Matrix<Scalar, 1, 3>;
@@ -31,9 +32,7 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
         using EdgeArray = Eigen::Matrix<Index, Eigen::Dynamic, 2>;
 
         VertexArray vertices(3, 3);
-        vertices << 0, 0, 0,
-                    1, 0, 0,
-                    0, 1, 0;
+        vertices << 0, 0, 0, 1, 0, 0, 0, 1, 0;
         EdgeArray edges(3, 2);
         edges << 0, 1, 1, 2, 2, 0;
 
@@ -44,7 +43,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
         Point closest_pt(invalid<Scalar>(), invalid<Scalar>(), invalid<Scalar>());
         Scalar sq_dist = invalid<Scalar>();
 
-        SECTION("Boundary query") {
+        SECTION("Boundary query")
+        {
             Point q(0.1f, 0.0f, 0.0f);
             aabb.get_closest_point(q, element_id, closest_pt, sq_dist);
             REQUIRE(element_id == 0);
@@ -53,7 +53,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
             REQUIRE(sq_dist == Catch::Approx(0.0f));
         }
 
-        SECTION("Internal query") {
+        SECTION("Internal query")
+        {
             Point q(0.1f, 0.5f, 0.0f);
             aabb.get_closest_point(q, element_id, closest_pt, sq_dist);
             REQUIRE(element_id == 2);
@@ -62,7 +63,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
             REQUIRE(sq_dist == Catch::Approx(0.01f));
         }
 
-        SECTION("External query") {
+        SECTION("External query")
+        {
             Point q(-0.1f, 0.5f, 0.0f);
             aabb.get_closest_point(q, element_id, closest_pt, sq_dist);
             REQUIRE(element_id == 2);
@@ -72,7 +74,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
         }
     }
 
-    SECTION("Simple 2D") {
+    SECTION("Simple 2D")
+    {
         using Scalar = float;
         using Index = int;
         using Point = Eigen::Matrix<Scalar, 1, 2>;
@@ -80,9 +83,7 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
         using EdgeArray = Eigen::Matrix<Index, Eigen::Dynamic, 2>;
 
         VertexArray vertices(3, 2);
-        vertices << 0, 0,
-                    1, 0,
-                    0, 1;
+        vertices << 0, 0, 1, 0, 0, 1;
         EdgeArray edges(3, 2);
         edges << 0, 1, 1, 2, 2, 0;
 
@@ -93,7 +94,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
         Point closest_pt(invalid<Scalar>(), invalid<Scalar>());
         Scalar sq_dist = invalid<Scalar>();
 
-        SECTION("Boundary query") {
+        SECTION("Boundary query")
+        {
             Point q(0.1f, 0.0f);
             aabb.get_closest_point(q, element_id, closest_pt, sq_dist);
             REQUIRE(element_id == 0);
@@ -102,7 +104,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
             REQUIRE(sq_dist == Catch::Approx(0.0f));
         }
 
-        SECTION("Internal query") {
+        SECTION("Internal query")
+        {
             Point q(0.1f, 0.5f);
             aabb.get_closest_point(q, element_id, closest_pt, sq_dist);
             REQUIRE(element_id == 2);
@@ -111,7 +114,8 @@ TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")
             REQUIRE(sq_dist == Catch::Approx(0.01f));
         }
 
-        SECTION("External query") {
+        SECTION("External query")
+        {
             Point q(-0.1f, 0.5f);
             aabb.get_closest_point(q, element_id, closest_pt, sq_dist);
             REQUIRE(element_id == 2);

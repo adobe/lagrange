@@ -168,10 +168,10 @@ SurfaceMesh<Scalar, Index> extract_submesh(
 }
 
 
-#define LA_X_extract_submesh(_, Scalar, Index)                           \
-    template LA_CORE_API SurfaceMesh<Scalar, Index> extract_submesh(                 \
-        const SurfaceMesh<Scalar, Index>&,                               \
-        span<const Index>,                                               \
+#define LA_X_extract_submesh(_, Scalar, Index)                       \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> extract_submesh( \
+        const SurfaceMesh<Scalar, Index>&,                           \
+        span<const Index>,                                           \
         const SubmeshOptions&);
 
 LA_SURFACE_MESH_X(extract_submesh, 0)

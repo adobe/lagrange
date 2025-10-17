@@ -11,7 +11,9 @@
  */
 #pragma once
 
+#include <lagrange/bvh/AABB.h>
 #include <lagrange/common.h>
+#include <lagrange/utils/function_ref.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -19,53 +21,45 @@
 namespace lagrange {
 namespace bvh {
 
+/// @addtogroup module-bvh
+/// @{
+
 // AABB tree for an edge graph
-template <typename VertexArray, typename EdgeArray, int DIM = 3>
+template <typename VertexArray, typename EdgeArray, int Dim = 3>
 struct EdgeAABBTree
 {
     using Scalar = typename VertexArray::Scalar;
     using Index = typename EdgeArray::Scalar;
-    using AlignedBoxType = Eigen::AlignedBox<Scalar, DIM>;
-    using RowVectorType = Eigen::Matrix<Scalar, 1, DIM>;
-
-    struct Node
-    {
-        AlignedBoxType bbox; //<< Node bounding box.
-        Index parent = invalid<Index>(); ///< Index of the parent node (INVALID for root).
-        Index left = invalid<Index>(); ///< Index of the left child (INVALID for a leaf).
-        Index right = invalid<Index>(); ///< Index of the right child (INVALID for a leaf).
-        Index index = invalid<Index>(); ///< Edge id for the leaf (INVALID for internal nodes).
-
-        bool is_leaf() const { return left == invalid<Index>(); }
-    };
+    using AlignedBoxType = typename AABB<Scalar, Dim>::Box;
+    using RowVectorType = Eigen::Matrix<Scalar, 1, Dim>;
 
 private:
-    const VertexArray *m_vertices = nullptr;
-    const EdgeArray *m_edges = nullptr;
+    const VertexArray* m_vertices = nullptr;
+    const EdgeArray* m_edges = nullptr;
 
-    std::vector<Node> m_nodes;
-    size_t m_root;
+    // Use AABB for spatial indexing
+    AABB<Scalar, Dim> m_aabb;
 
 public:
     /// closest_sq_dist x element_id x closest_point
-    using ActionCallback = std::function<void(Scalar, Index, const RowVectorType &)>;
+    using ActionCallback = function_ref<void(Scalar, Index, const RowVectorType&)>;
 
     EdgeAABBTree() = default; // Default empty constructor
 
     ///
     /// Construct an AABB over the given edge graph.
     ///
-    /// @param[in]  V     #V x DIM input vertex positions.
+    /// @param[in]  V     #V x Dim input vertex positions.
     /// @param[in]  E     #E x 2 input edge vertices.
     ///
-    EdgeAABBTree(const VertexArray &V, const EdgeArray &E);
+    EdgeAABBTree(const VertexArray& V, const EdgeArray& E);
 
     ///
     /// Test whether the tree is empty
     ///
     /// @return     True iff empty, False otherwise.
     ///
-    bool empty() const { return m_nodes.empty(); }
+    bool empty() const { return m_aabb.empty(); }
 
     ///
     /// Gets the closest point to a given element.
@@ -76,19 +70,19 @@ public:
     /// @param[out] closest_sq_dist  Squared distance between closest point and query point.
     ///
     void get_element_closest_point(
-        const RowVectorType &p,
+        const RowVectorType& p,
         Index element_id,
-        RowVectorType &closest_point,
-        Scalar &closest_sq_dist) const;
+        RowVectorType& closest_point,
+        Scalar& closest_sq_dist) const;
 
     ///
     /// Iterate over edges within a prescribed distance from a query point.
     ///
-    /// @param[in]  p        1 x DIM query point.
+    /// @param[in]  p        1 x Dim query point.
     /// @param[in]  sq_dist  Squared query radius.
     /// @param[in]  func     Function to apply to every edge within query distance.
     ///
-    void foreach_element_in_radius(const RowVectorType &p, Scalar sq_dist, ActionCallback func)
+    void foreach_element_in_radius(const RowVectorType& p, Scalar sq_dist, ActionCallback func)
         const;
 
     ///
@@ -98,10 +92,10 @@ public:
     /// foreach_element_in_radius does not use exact predicates, it might return false positives
     /// (i.e. points which are at distance 0, but not exactly collinear).
     ///
-    /// @param[in]  p     1 x DIM query point.
+    /// @param[in]  p     1 x Dim query point.
     /// @param[in]  func  Function to apply to every edge within query distance.
     ///
-    void foreach_element_containing(const RowVectorType &p, ActionCallback func) const;
+    void foreach_element_containing(const RowVectorType& p, ActionCallback func) const;
 
     ///
     /// Gets the closest point to an element of the tree. Whereas get_element_closest_point returns
@@ -117,24 +111,14 @@ public:
     ///                              considered for closest point.
     ///
     void get_closest_point(
-        const RowVectorType &p,
-        Index &element_id,
-        RowVectorType &closest_point,
-        Scalar &closest_sq_dist,
-        std::function<bool(Index)> filter_func = nullptr) const;
-
-protected:
-    void foreach_element_in_radius_recursive(
-        const RowVectorType &p,
-        Scalar sq_dist,
-        Index node_id,
-        ActionCallback func) const;
-
-    void foreach_element_containing_recursive(
-        const RowVectorType &p,
-        Index node_id,
-        ActionCallback func) const;
+        const RowVectorType& p,
+        Index& element_id,
+        RowVectorType& closest_point,
+        Scalar& closest_sq_dist,
+        function_ref<bool(Index)> filter_func = [](Index) { return true; }) const;
 };
+
+/// @
 
 } // namespace bvh
 } // namespace lagrange

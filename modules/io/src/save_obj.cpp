@@ -560,8 +560,7 @@ void save_mesh_obj(
     } else if (dim == 3) {
         write_mesh_vertices<Scalar, Index, 3>(output_stream, mesh);
     } else {
-        throw std::runtime_error(
-            fmt::format("Unsupported mesh dimension: {}", dim));
+        throw std::runtime_error(fmt::format("Unsupported mesh dimension: {}", dim));
     }
 
     // Write normals and texcoords
@@ -691,7 +690,7 @@ void save_simple_scene_obj(
     const SaveOptions& options)
 {
     fs::path parent_dir = filename.parent_path();
-    if (!fs::exists(parent_dir)) fs::create_directories(parent_dir);
+    if (!parent_dir.empty() && !fs::exists(parent_dir)) fs::create_directories(parent_dir);
 
     fs::ofstream output_stream(filename);
     if (!output_stream) {
@@ -732,7 +731,7 @@ void save_scene_obj(
     const SaveOptions& options)
 {
     fs::path parent_dir = filename.parent_path();
-    if (!fs::exists(parent_dir)) fs::create_directories(parent_dir);
+    if (!parent_dir.empty() && !fs::exists(parent_dir)) fs::create_directories(parent_dir);
 
     fs::ofstream output_stream(filename);
     if (!output_stream) {

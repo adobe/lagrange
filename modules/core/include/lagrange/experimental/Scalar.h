@@ -31,7 +31,8 @@ enum class ScalarEnum : uint8_t {
 
 template <typename T, typename T2 = void>
 struct ScalarToEnum
-{};
+{
+};
 
 template <>
 struct ScalarToEnum<int8_t, void>
@@ -182,29 +183,18 @@ using EnumToScalar_t = typename EnumToScalar<T>::type;
  */
 inline std::string enum_to_name(ScalarEnum t)
 {
-    switch(t) {
-        case ScalarEnum::INT8:
-            return ScalarToEnum<int8_t>::name;
-        case ScalarEnum::INT16:
-            return ScalarToEnum<int16_t>::name;
-        case ScalarEnum::INT32:
-            return ScalarToEnum<int32_t>::name;
-        case ScalarEnum::INT64:
-            return ScalarToEnum<int64_t>::name;
-        case ScalarEnum::UINT8:
-            return ScalarToEnum<uint8_t>::name;
-        case ScalarEnum::UINT16:
-            return ScalarToEnum<uint16_t>::name;
-        case ScalarEnum::UINT32:
-            return ScalarToEnum<uint32_t>::name;
-        case ScalarEnum::UINT64:
-            return ScalarToEnum<uint64_t>::name;
-        case ScalarEnum::FLOAT:
-            return ScalarToEnum<float>::name;
-        case ScalarEnum::DOUBLE:
-            return ScalarToEnum<double>::name;
-        default:
-            return "unknown";
+    switch (t) {
+    case ScalarEnum::INT8: return ScalarToEnum<int8_t>::name;
+    case ScalarEnum::INT16: return ScalarToEnum<int16_t>::name;
+    case ScalarEnum::INT32: return ScalarToEnum<int32_t>::name;
+    case ScalarEnum::INT64: return ScalarToEnum<int64_t>::name;
+    case ScalarEnum::UINT8: return ScalarToEnum<uint8_t>::name;
+    case ScalarEnum::UINT16: return ScalarToEnum<uint16_t>::name;
+    case ScalarEnum::UINT32: return ScalarToEnum<uint32_t>::name;
+    case ScalarEnum::UINT64: return ScalarToEnum<uint64_t>::name;
+    case ScalarEnum::FLOAT: return ScalarToEnum<float>::name;
+    case ScalarEnum::DOUBLE: return ScalarToEnum<double>::name;
+    default: return "unknown";
     }
 }
 

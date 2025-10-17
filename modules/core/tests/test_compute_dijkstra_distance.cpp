@@ -13,6 +13,7 @@
 #include <catch2/catch_approx.hpp>
 
 #include <lagrange/compute_dijkstra_distance.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/views.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
@@ -46,7 +47,7 @@ TEST_CASE("DijkstraDistance Legacy", "[dijkstra][triangle]")
         REQUIRE(sphere->has_vertex_attribute("dijkstra_distance"));
         const auto& dist = sphere->get_vertex_attribute("dijkstra_distance");
         REQUIRE(dist.minCoeff() == Catch::Approx(0.0));
-        REQUIRE(dist.maxCoeff() == Catch::Approx(M_PI).epsilon(0.1));
+        REQUIRE(dist.maxCoeff() == Catch::Approx(lagrange::internal::pi).epsilon(0.1));
     }
 }
 #endif

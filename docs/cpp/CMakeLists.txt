@@ -21,7 +21,7 @@ ExternalProject_Add(
     doxygen-awesome
     PREFIX "${FETCHCONTENT_BASE_DIR}/doxygen-awesome"
     GIT_REPOSITORY https://github.com/jothepro/doxygen-awesome-css.git
-    GIT_TAG v2.1.0
+    GIT_TAG v2.4.0
     CONFIGURE_COMMAND ""
     BUILD_COMMAND ""
     INSTALL_COMMAND ""

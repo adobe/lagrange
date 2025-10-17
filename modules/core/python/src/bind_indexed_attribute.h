@@ -23,21 +23,43 @@ void bind_indexed_attribute(nanobind::module_& m)
     namespace nb = nanobind;
     using namespace nb::literals;
 
-    auto indexed_attr_class =
-        nb::class_<PyIndexedAttribute>(m, "IndexedAttribute", "Index attribute");
+    auto indexed_attr_class = nb::class_<PyIndexedAttribute>(
+        m,
+        "IndexedAttribute",
+        R"(Indexed attribute data structure.
 
-    indexed_attr_class.def_prop_ro("element_type", [](PyIndexedAttribute& self) {
-        return self->get_element_type();
-    });
-    indexed_attr_class.def_prop_ro("usage", [](PyIndexedAttribute& self) {
-        return self->get_usage();
-    });
-    indexed_attr_class.def_prop_ro("num_channels", [](PyIndexedAttribute& self) {
-        return self->get_num_channels();
-    });
+An indexed attribute stores values and indices separately, allowing for efficient
+storage when multiple elements share the same values. This is commonly used for
+UV coordinates, normals, or colors where the same value may be referenced by
+multiple vertices, corners, or facets.)");
 
-    indexed_attr_class.def_prop_ro("values", &PyIndexedAttribute::values);
-    indexed_attr_class.def_prop_ro("indices", &PyIndexedAttribute::indices);
+    indexed_attr_class.def_prop_ro(
+        "element_type",
+        [](PyIndexedAttribute& self) { return self->get_element_type(); },
+        R"(Element type (i.e. Indexed).)");
+
+    indexed_attr_class.def_prop_ro(
+        "usage",
+        [](PyIndexedAttribute& self) { return self->get_usage(); },
+        "Usage type (Position, Normal, UV, Color, etc.).");
+
+    indexed_attr_class.def_prop_ro(
+        "num_channels",
+        [](PyIndexedAttribute& self) { return self->get_num_channels(); },
+        "Number of channels per element.");
+
+    indexed_attr_class.def_prop_ro(
+        "values",
+        &PyIndexedAttribute::values,
+        R"(The values array of the indexed attribute.
+
+:returns: Attribute containing the unique values referenced by the indices)");
+    indexed_attr_class.def_prop_ro(
+        "indices",
+        &PyIndexedAttribute::indices,
+        R"(The indices array of the indexed attribute.
+
+:returns: Attribute containing the indices that reference into the values array)");
 }
 
 } // namespace lagrange::python

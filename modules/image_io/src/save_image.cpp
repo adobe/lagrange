@@ -125,7 +125,9 @@ bool save_image_exr(
     image::ImageChannel channel)
 {
     if (image::ImagePrecision::uint32 != precision && image::ImagePrecision::float32 != precision) {
-        logger().error("save_image error: *.exr only supports uint32 and float32. {}", path.string());
+        logger().error(
+            "save_image error: *.exr only supports uint32 and float32. {}",
+            path.string());
         return false;
     }
     if (image::ImagePrecision::uint32 == precision) {

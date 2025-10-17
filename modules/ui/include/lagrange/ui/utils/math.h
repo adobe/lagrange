@@ -79,7 +79,9 @@ LA_UI_API float pi();
 LA_UI_API float two_pi();
 
 /// Projects vector onto 'onto' vector
-LA_UI_API Eigen::Vector3f vector_projection(const Eigen::Vector3f& vector, const Eigen::Vector3f& onto);
+LA_UI_API Eigen::Vector3f vector_projection(
+    const Eigen::Vector3f& vector,
+    const Eigen::Vector3f& onto);
 
 /// Returns angle in radians between a and b
 LA_UI_API float vector_angle(const Eigen::Vector3f& a, const Eigen::Vector3f& b);

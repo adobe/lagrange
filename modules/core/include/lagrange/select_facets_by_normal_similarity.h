@@ -91,7 +91,7 @@ struct SelectFacetsByNormalSimilarityOptions
  *                 found, will call compute_facet_normal(meshm,
  *                 options.facet_normal_attribute_name).
  *
- * @see            SelectFacetByNormalSimilarityOptions
+ * @see            @ref SelectFacetByNormalSimilarityOptions
  */
 
 template <typename Scalar, typename Index>

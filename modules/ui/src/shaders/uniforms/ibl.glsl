@@ -17,5 +17,3 @@ uniform sampler2D ibl_brdf_lut;
 
 uniform bool has_ibl; // System property
 #pragma property ibl_specular_levels "IBLSpecularLevels" int(1,1,16)
-
-

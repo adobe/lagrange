@@ -12,12 +12,13 @@
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
-#include <lagrange/testing/common.h>
-#include <lagrange/Logger.h>
-#include <lagrange/io/load_mesh_assimp.h>
-#include <lagrange/utils/safe_cast.h>
+    #include <lagrange/Logger.h>
+    #include <lagrange/io/load_mesh_assimp.h>
+    #include <lagrange/testing/common.h>
+    #include <lagrange/utils/safe_cast.h>
 
-TEST_CASE("legacy_load_mesh_assimp", "[mesh][io]") {
+TEST_CASE("legacy_load_mesh_assimp", "[mesh][io]")
+{
     using namespace lagrange;
     auto meshes = lagrange::io::load_mesh_assimp<TriangleMesh3D>(
         lagrange::testing::get_data_path("open/core/drop_tri.obj"));
@@ -26,15 +27,17 @@ TEST_CASE("legacy_load_mesh_assimp", "[mesh][io]") {
     REQUIRE(meshes.front()->get_num_facets() > 0);
 }
 
-TEST_CASE("legacy_load_scene_assimp", "[io]") {
-    auto scene = lagrange::io::load_scene_assimp(
-        lagrange::testing::get_data_path("open/core/drop_tri.obj"));
+TEST_CASE("legacy_load_scene_assimp", "[io]")
+{
+    auto scene =
+        lagrange::io::load_scene_assimp(lagrange::testing::get_data_path("open/core/drop_tri.obj"));
     REQUIRE(scene != nullptr);
     REQUIRE(scene->mNumMeshes == 1);
     REQUIRE(scene->mMeshes[0]->mNumFaces > 0);
 }
 
-TEST_CASE("legacy load fbx", "[io]" LA_CORP_FLAG) {
+TEST_CASE("legacy load fbx", "[io]" LA_CORP_FLAG)
+{
     auto scene = lagrange::io::load_scene_assimp(
         lagrange::testing::get_data_path("corp/io/rp_adanna_rigged_001_zup_t.fbx"));
     REQUIRE(scene != nullptr);
@@ -47,7 +50,8 @@ TEST_CASE("legacy load fbx", "[io]" LA_CORP_FLAG) {
     REQUIRE(scene->mMaterials[mesh->mMaterialIndex]->mNumProperties > 0);
 }
 
-TEST_CASE("legacy load glb", "[io]") {
+TEST_CASE("legacy load glb", "[io]")
+{
     auto scene = lagrange::io::load_scene_assimp(
         lagrange::testing::get_data_path("open/core/blub/blub.glb"));
     REQUIRE(scene != nullptr);

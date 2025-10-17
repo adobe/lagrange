@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME texture_signal_processing
     GITHUB_REPOSITORY mkazhdan/TextureSignalProcessing
-    GIT_TAG 77baec2e8b1f40e1c669f048d6805e426869eed6
+    GIT_TAG dd7ab66cc0e75bec1e6eb6b704d240e8780f46e7
 )
 
 add_library(texture_signal_processing::texture_signal_processing INTERFACE IMPORTED GLOBAL)

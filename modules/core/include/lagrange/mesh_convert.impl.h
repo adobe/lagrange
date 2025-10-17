@@ -16,14 +16,14 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/fast_edge_sort.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
-#include <lagrange/attribute_names.h>
-#include <lagrange/internal/fast_edge_sort.h>
 
 #include <type_traits>
 
@@ -80,8 +80,9 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_internal(InputMeshType&& mesh)
     if constexpr (policy == Policy::Copy) {
         // Copy vertex/facet buffer
         new_mesh.add_vertices(static_cast<Index>(mesh.get_num_vertices()));
-        new_mesh.add_polygons(static_cast<Index>(mesh.get_num_facets()),
-                              static_cast<Index>(mesh.get_vertex_per_facet()));
+        new_mesh.add_polygons(
+            static_cast<Index>(mesh.get_num_facets()),
+            static_cast<Index>(mesh.get_vertex_per_facet()));
         if (mesh.get_num_vertices() > 0) {
             vertex_ref(new_mesh) = mesh.get_vertices().template cast<Scalar>();
         }

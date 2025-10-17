@@ -53,7 +53,7 @@ std::vector<std::vector<Index>> extract_boundary_loops(const SurfaceMesh<Scalar,
     return std::move(result.loops);
 }
 
-#define LA_X_extract_boundary_loops(_, Scalar, Index)                               \
+#define LA_X_extract_boundary_loops(_, Scalar, Index)                                           \
     template LA_CORE_API std::vector<std::vector<Index>> extract_boundary_loops<Scalar, Index>( \
         const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(extract_boundary_loops, 0)
