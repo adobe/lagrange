@@ -90,6 +90,9 @@ public:
                 tex_max_corner[c] = std::max<Scalar>(tex_max_corner[c], texcoords[i][c]);
             }
         }
+        std::swap(tex_min_corner[1], tex_max_corner[1]);
+        tex_min_corner[1] = 1.0 - tex_min_corner[1];
+        tex_max_corner[1] = 1.0 - tex_max_corner[1];
         logger().debug(
             "Texture coordinate bounding box : Min ({}, {}). Max ({}, {}). SafeMin ({}, {}). "
             "SafeMax ({}, {})",
@@ -192,21 +195,8 @@ public:
 
         for (size_t i = 0; i < texcoords.size(); i++) {
             texcoords[i][0] = (texcoords[i][0] * width + (Scalar)(left)) / new_width;
-            texcoords[i][1] = (texcoords[i][1] * height + (Scalar)(bottom)) / new_height;
-        }
-    }
-
-    template <typename Scalar>
-    void unpad(int width, int height, span<std::array<Scalar, 2>> texcoords) const
-    {
-        if (!(left || right || bottom || top)) return;
-
-        int new_width = width + left + right;
-        int new_height = height + bottom + top;
-
-        for (size_t i = 0; i < texcoords.size(); i++) {
-            texcoords[i][0] = (texcoords[i][0] * new_width - (Scalar)(left)) / width;
-            texcoords[i][1] = (texcoords[i][1] * new_height - (Scalar)(bottom)) / height;
+            texcoords[i][1] =
+                1.0 - ((1.0 - texcoords[i][1]) * height + (Scalar)(bottom)) / new_height;
         }
     }
 };

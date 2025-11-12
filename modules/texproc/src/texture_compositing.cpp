@@ -49,7 +49,8 @@ image::experimental::Array3D<ValueType> texture_compositing(
         RegularGrid<K, Vector<double, 1>> weights;
     };
 
-    auto wrapper = mesh_utils::create_mesh_wrapper(mesh);
+    auto wrapper =
+        mesh_utils::create_mesh_wrapper(mesh, RequiresIndexedTexcoords::Yes, CheckFlippedUV::Yes);
     std::vector<InputData> in(textures.size());
     RegularGrid<K, Vector<double, NumChannels>> out;
 
@@ -89,7 +90,7 @@ image::experimental::Array3D<ValueType> texture_compositing(
         [&](size_t t, unsigned int k) { return wrapper.vertex_index(t, k); },
         [&](size_t v) { return wrapper.vertex(v); },
         [&](size_t t, unsigned int k) { return wrapper.texture_index(t, k); },
-        [&](size_t v) { return wrapper.texcoord(v); },
+        [&](size_t v) { return wrapper.texcoord(v); }, // solver internally flips the v coordinate
         width,
         height,
         options.solver.num_multigrid_levels,

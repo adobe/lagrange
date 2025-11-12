@@ -771,16 +771,11 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             case AttributeValueType::e_int32_t:
                 image.pixel_type = TINYGLTF_COMPONENT_TYPE_INT;
                 break;
-            case AttributeValueType::e_float:
-                image.pixel_type = TINYGLTF_COMPONENT_TYPE_FLOAT;
-                break;
+            case AttributeValueType::e_float: [[fallthrough]];
             case AttributeValueType::e_double:
-                image.pixel_type = TINYGLTF_COMPONENT_TYPE_DOUBLE;
-                break;
-            default:
-                logger().error("Saving image with unsupported pixel precision!");
-                // TODO: should we simply fail?
-                image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE;
+                throw Error(
+                    "Saving image with float/double precision is not supported in glTF format");
+            default: throw Error("Saving image with unknown pixel precision.");
             }
             image.bits = static_cast<int>(lbuffer.get_bits_per_element());
             std::copy(lbuffer.data.begin(), lbuffer.data.end(), std::back_inserter(image.image));

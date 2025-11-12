@@ -110,7 +110,7 @@ struct VertexManifoldOptions
 };
 
 ///
-/// Compute a mesh attribute indicating vertex and edge manifoldness.
+/// Compute a mesh attribute of value type `uint8_t` indicating vertex manifoldness.
 ///
 /// @param[in,out] mesh     Input mesh.
 /// @param[in]     options  Output attribute options.
@@ -118,7 +118,7 @@ struct VertexManifoldOptions
 /// @tparam        Scalar   Mesh scalar type.
 /// @tparam        Index    Mesh index type.
 ///
-/// @return     Id of the newly added per-vertex attribute, of type uint8_t.
+/// @return     Id of the newly added per-vertex attribute.
 ///
 template <typename Scalar, typename Index>
 AttributeId compute_vertex_is_manifold(

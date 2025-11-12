@@ -312,13 +312,14 @@ endif()
 
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
 # we need to use the MSVC runtime library flag globally for the whole project.
-file(READ "cmake/lagrange/lagrangeMklModules.txt" LAGRANGE_MKL_MODULES)
 if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED VCPKG_INSTALLED_DIR)
     if(LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL)
         # Set MSVC runtime library globally for all targets
         message(STATUS "Forcing /MD globally due to LAGRANGE_ALL requiring MKL")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL" CACHE STRING "Select the MSVC runtime library")
     else()
+        file(READ "cmake/lagrange/lagrangeMklModules.txt" LAGRANGE_MKL_MODULES)
+        string(STRIP "${LAGRANGE_MKL_MODULES}" LAGRANGE_MKL_MODULES)
         foreach(mkl_module_lc IN ITEMS ${LAGRANGE_MKL_MODULES})
             string(TOUPPER ${mkl_module_lc} mkl_module_uc)
             if(LAGRANGE_MODULE_${mkl_module_uc})
@@ -352,7 +353,6 @@ include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
 include(lagrange_set_sanitizers)
-include(lagrange_tbb_sanitizers)
 include(lagrange_warnings)
 include(lagrange_xcode_check)
 

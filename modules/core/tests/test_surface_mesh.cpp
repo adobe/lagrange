@@ -1164,6 +1164,7 @@ void test_mesh_attribute()
     // Delete attr
     LA_REQUIRE_THROWS(mesh.delete_attribute(mesh.attr_name_vertex_to_position()));
     LA_REQUIRE_THROWS(mesh.delete_attribute("bogus_name"));
+    LA_REQUIRE_THROWS(mesh.delete_attribute(invalid_attribute_id()));
     mesh.delete_attribute("colors_v1");
     REQUIRE(!mesh.has_attribute("colors_v1"));
     REQUIRE(id_v0 == mesh.get_attribute_id("colors_v0"));
@@ -1185,6 +1186,10 @@ void test_mesh_attribute()
     REQUIRE(id_v1 < id_f);
     REQUIRE(id_f < id_c);
     REQUIRE(id_c < id_e);
+
+    // Delete attr by id
+    auto id_to_delete = mesh.duplicate_attribute("colors_v1", "colors_v1_dup");
+    mesh.delete_attribute(id_to_delete);
 
     // Rename attr
     LA_REQUIRE_THROWS(mesh.rename_attribute("bogus_name", "new_name"));

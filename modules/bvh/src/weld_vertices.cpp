@@ -18,7 +18,12 @@
 #include <lagrange/views.h>
 
 #include <Eigen/Core>
+
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <nanoflann.hpp>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <algorithm>
 #include <vector>

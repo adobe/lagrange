@@ -48,7 +48,7 @@ void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh)
             Index vertex_id = invalid<Index>();
             if (neighborhood_count > 0) {
                 auto itr = vertex_map.grow_by(1, vi);
-                vertex_id = itr - vertex_map.begin();
+                vertex_id = static_cast<Index>(itr - vertex_map.begin());
             } else {
                 vertex_id = vi;
             }

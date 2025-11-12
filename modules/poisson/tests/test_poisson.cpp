@@ -14,6 +14,7 @@
 #include <lagrange/cast_attribute.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/find_matching_attributes.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/poisson/AttributeEvaluator.h>
 #include <lagrange/poisson/mesh_from_oriented_points.h>
@@ -175,4 +176,61 @@ TEST_CASE("PoissonRecon: Attribute Evaluator", "[poisson]")
         test_samples<float, Scalar>(evaluator);
         test_samples<double, Scalar>(evaluator);
     });
+}
+
+namespace {
+
+lagrange::SurfaceMesh32d fibonacci_sphere(size_t num_points = 1000)
+{
+    lagrange::SurfaceMesh32d mesh;
+    mesh.add_vertices(num_points);
+    mesh.create_attribute<double>(
+        "normals",
+        lagrange::AttributeElement::Vertex,
+        3,
+        lagrange::AttributeUsage::Normal);
+
+    auto V = vertex_ref(mesh);
+
+    double phi = lagrange::internal::pi * (std::sqrt(5.) - 1.);
+
+    for (size_t i = 0; i < num_points; ++i) {
+        double y = 1.0 - (i / double(num_points - 1)) * 2.0;
+        double radius = std::sqrt(1.0 - y * y);
+
+        double theta = phi * i;
+
+        double x = std::cos(theta) * radius;
+        double z = std::sin(theta) * radius;
+
+        V.row(i) << x, y, z;
+    }
+
+    lagrange::attribute_matrix_ref<double>(mesh, "normals") = V;
+
+    return mesh;
+}
+
+} // namespace
+
+TEST_CASE("PoissonRecon: Fibonacci Sphere", "[poisson]")
+{
+    auto max_concurrency = tbb::this_task_arena::max_concurrency();
+    auto hwd_concurrency = std::thread::hardware_concurrency();
+    lagrange::logger().warn("Max TBB concurrency: {}", max_concurrency);
+    lagrange::logger().warn("Hardware concurrency: {}", hwd_concurrency);
+
+    auto points = fibonacci_sphere();
+
+    points.create_attribute<double>(
+        "colors",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Color,
+        3);
+    lagrange::poisson::ReconstructionOptions options;
+    options.interpolated_attribute_name = "colors";
+
+    auto mesh = lagrange::poisson::mesh_from_oriented_points(points, options);
+    REQUIRE(mesh.get_num_vertices() > 4000);
+    REQUIRE(mesh.get_num_facets() > 8000);
 }

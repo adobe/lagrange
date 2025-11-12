@@ -88,7 +88,9 @@ def append_cameras(scene: lagrange.scene.Scene, cameras: dict) -> lagrange.scene
     return scene
 
 
-def split_multiview(multiview: Image, grid_shape: Tuple[int, int]) -> List[ArrayNxNxK[np.float32]]:
+def split_multiview(
+    multiview: Image.Image, grid_shape: Tuple[int, int]
+) -> List[ArrayNxNxK[np.float32]]:
     """
     Split the multiview image into individual render images based on camera data.
     """
@@ -115,11 +117,17 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--cameras", type=Path, required=True, help="Input multiview camera json")
     parser.add_argument("--mesh", type=Path, required=True, help="Input mesh file")
-    parser.add_argument("--multiview", type=Path, required=True, help="Input renders in a 4x4 grid")
+    parser.add_argument(
+        "--multiview",
+        type=Path,
+        required=True,
+        nargs="+",
+        help="Input renders as either a single 4x4 grid image or multiple individual render images",
+    )
     parser.add_argument("--width", "-W", type=int, default=1024, help="Target texture width")
     parser.add_argument("--height", "-H", type=int, default=1024, help="Target texture height")
     parser.add_argument(
-        "output",
+        "--output",
         nargs="?",
         type=Path,
         default="output.exr",
@@ -130,7 +138,10 @@ def parse_args():
 
 def main():
     args = parse_args()
-    views = split_multiview(Image.open(args.multiview), grid_shape=(4, 4))
+    if len(args.multiview) == 1:
+        views = split_multiview(Image.open(args.multiview[0]), grid_shape=(4, 4))
+    else:
+        views = [np.asarray(Image.open(p)).astype(np.float32) / 255.0 for p in args.multiview]
     scene = lagrange.io.load_scene(args.mesh, stitch_vertices=True)
     append_cameras(scene, json.loads(args.cameras.read_text()))
     colors, weights = lagrange.texproc.rasterize_textures_from_renders(
@@ -145,8 +156,8 @@ def main():
         colors,
         weights,
     )
-    lagrange.logger.info(f"Saving result to: '{args.output}'")
-    pyexr.write(args.output, image)
+    lagrange.logger.info(f"Saving result to: '{args.output.with_suffix('.exr')}'")
+    pyexr.write(args.output.with_suffix(".exr"), image)
 
 
 if __name__ == "__main__":

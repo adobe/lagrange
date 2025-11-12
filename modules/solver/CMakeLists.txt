@@ -11,7 +11,7 @@
 #
 
 # 1. define module
-lagrange_add_module(INTERFACE)
+lagrange_add_module()
 if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_solver PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
@@ -36,7 +36,8 @@ endif()
 
 lagrange_find_package(Eigen3 REQUIRED GLOBAL)
 lagrange_find_package(TBB CONFIG REQUIRED)
-target_link_libraries(lagrange_solver INTERFACE Eigen3::Eigen TBB::tbb)
+include(spectra)
+target_link_libraries(lagrange_solver PUBLIC lagrange::core Eigen3::Eigen TBB::tbb PRIVATE Spectra::Spectra)
 
 # 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)

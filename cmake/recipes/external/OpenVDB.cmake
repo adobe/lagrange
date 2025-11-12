@@ -33,9 +33,8 @@ option(OPENVDB_ENABLE_RPATH "" OFF)
 include(CMakeDependentOption)
 cmake_dependent_option(OPENVDB_INSTALL_CMAKE_MODULES "" OFF "OPENVDB_BUILD_CORE" OFF)
 
-# TODO: Enable Blosc/Zlib
-option(USE_BLOSC "" OFF)
-option(USE_ZLIB "" OFF)
+option(USE_BLOSC "" ON)
+option(USE_ZLIB "" ON)
 option(USE_LOG4CPLUS "" OFF) # maybe later
 option(USE_EXR "" OFF)
 option(USE_CCACHE "" OFF)

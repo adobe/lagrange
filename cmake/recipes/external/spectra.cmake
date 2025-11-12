@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME Spectra
     GITHUB_REPOSITORY yixuan/spectra
-    GIT_TAG 3af56416547197e28e5a9049fd3a56d8bd49fb5d
+    GIT_TAG v1.2.0
 )
 
 add_library(Spectra::Spectra ALIAS Spectra)

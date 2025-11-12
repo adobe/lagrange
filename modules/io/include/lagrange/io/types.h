@@ -16,6 +16,7 @@
 #include <lagrange/scene/SceneExtension.h>
 #include <lagrange/utils/warning.h>
 
+#include <optional>
 #include <vector>
 
 namespace lagrange {
@@ -118,8 +119,14 @@ struct LoadOptions
     /// Load external images
     bool load_images = true;
 
-    /// Stitch duplicate boundary vertices together when loading file formats such as glTF
+    /// Stitch duplicate boundary vertices together when loading file. When loading a glTF mesh with
+    /// attributes, or when loading STL files, the loader will warn the users about unwelded
+    /// vertices in the loaded mesh, unless silenced by setting `quiet` to true.
     bool stitch_vertices = false;
+
+    /// Set to true to silence warnings during loading, such as missing materials, or potential
+    /// issues related to vertex stitching.
+    bool quiet = false;
 
     /**
      * Search path for related files, such as .mtl, .bin, or image textures.

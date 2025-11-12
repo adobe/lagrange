@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 ////////////////////////////////////////////////////////////////////////////////
+#include "../examples/io_helpers.h"
+
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
@@ -32,9 +34,10 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <random>
-
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <random>
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace {
@@ -59,14 +62,14 @@ using Index = uint32_t;
 void fill_torus(
     std::vector<MishaK::SimplexIndex<K>>& simplices,
     std::vector<Vector<Real, Dim>>& vertices,
-    std::vector<Vector<Real, K>>& textureCoordinates,
+    std::vector<Vector<Real, K>>& texcoords,
     double radius1,
     double radius2,
     unsigned int res)
 {
     vertices.resize(res * res);
     simplices.reserve(res * res * 2);
-    textureCoordinates.reserve(simplices.size() * 3);
+    texcoords.reserve(simplices.size() * 3);
 
     auto VIndex = [&](unsigned int i, unsigned int j) { return (j % res) * res + (i % res); };
     auto ThetaPhi = [&](unsigned int i, unsigned int j) {
@@ -102,15 +105,15 @@ void fill_torus(
         for (unsigned int i = 0; i < res; i++) {
             simplices.emplace_back(
                 MishaK::SimplexIndex<K>(VIndex(i, j), VIndex(i + 1, j + 1), VIndex(i + 1, j)));
-            textureCoordinates.emplace_back(_TextureCoordinate(i, j));
-            textureCoordinates.emplace_back(_TextureCoordinate(i + 1, j + 1));
-            textureCoordinates.emplace_back(_TextureCoordinate(i + 1, j));
+            texcoords.emplace_back(_TextureCoordinate(i, j));
+            texcoords.emplace_back(_TextureCoordinate(i + 1, j + 1));
+            texcoords.emplace_back(_TextureCoordinate(i + 1, j));
 
             simplices.emplace_back(
                 MishaK::SimplexIndex<K>(VIndex(i, j), VIndex(i, j + 1), VIndex(i + 1, j + 1)));
-            textureCoordinates.emplace_back(_TextureCoordinate(i, j));
-            textureCoordinates.emplace_back(_TextureCoordinate(i, j + 1));
-            textureCoordinates.emplace_back(_TextureCoordinate(i + 1, j + 1));
+            texcoords.emplace_back(_TextureCoordinate(i, j));
+            texcoords.emplace_back(_TextureCoordinate(i, j + 1));
+            texcoords.emplace_back(_TextureCoordinate(i + 1, j + 1));
         }
     }
 }
@@ -120,12 +123,12 @@ void parse_mesh(
     const lagrange::SurfaceMesh<Scalar, Index>& t_mesh,
     std::vector<MishaK::SimplexIndex<K>>& simplices,
     std::vector<Vector<Real, Dim>>& vertices,
-    std::vector<Vector<Real, K>>& textureCoordinates,
+    std::vector<Vector<Real, K>>& texcoords,
     lagrange::AttributeId texcoord_id)
 {
     simplices.resize(t_mesh.get_num_facets());
     vertices.resize(t_mesh.get_num_vertices());
-    textureCoordinates.resize(t_mesh.get_num_corners());
+    texcoords.resize(t_mesh.get_num_corners());
 
     auto vertex_indices = t_mesh.get_corner_to_vertex().get_all();
     for (unsigned int i = 0; i < t_mesh.get_num_facets(); i++) {
@@ -159,8 +162,11 @@ void parse_mesh(
     }
     for (unsigned int i = 0; i < t_mesh.get_num_corners(); i++) {
         for (unsigned int k = 0; k < K; k++) {
-            textureCoordinates[i][k] = static_cast<Real>(_input_texture_coordinates[i * K + k]);
+            texcoords[i][k] = static_cast<Real>(_input_texture_coordinates[i * K + k]);
         }
+        // Flip V coordinate. Our images have their origin (0,0) at the top-left corner, but
+        // Lagrange meshes UVs expect (0,0) at the bottom-left corner.
+        texcoords[i][1] = 1.0 - texcoords[i][1];
     }
 }
 
@@ -201,8 +207,9 @@ lagrange::SurfaceMesh<Scalar, Index> convert_to_mesh(
 
     for (unsigned int i = 0; i < texture_coordinates_.size(); i++) {
         auto row = texture_coordinates.ref_row(i);
-        for (unsigned int k = 0; k < K; k++)
+        for (unsigned int k = 0; k < K; k++) {
             row[k] = static_cast<Scalar>(texture_coordinates_[i][k]);
+        }
     }
 
     return mesh;
@@ -295,8 +302,8 @@ void test_texture_dilation(
     // Copy the mesh data into MishaK structs
     std::vector<MishaK::SimplexIndex<K>> simplices;
     std::vector<Vector<Real, Dim>> vertices;
-    std::vector<Vector<Real, K>> textureCoordinates;
-    parse_mesh(mesh, simplices, vertices, textureCoordinates, texcoord_id);
+    std::vector<Vector<Real, K>> texcoords;
+    parse_mesh(mesh, simplices, vertices, texcoords, texcoord_id);
 
     // Get the scale of the mesh
     double mesh_scale = 0;
@@ -339,9 +346,9 @@ void test_texture_dilation(
     // Gets the point on the texture mesh
     auto texture_simplex = [&](unsigned int s) {
         return MishaK::Simplex<double, K, K>(
-            textureCoordinates[3 * s + 0],
-            textureCoordinates[3 * s + 1],
-            textureCoordinates[3 * s + 2]);
+            texcoords[3 * s + 0],
+            texcoords[3 * s + 1],
+            texcoords[3 * s + 2]);
     };
 
     // Gets the interpolated embedded position
@@ -482,5 +489,34 @@ TEST_CASE("geodesic dilation quad", "[texproc]")
     {
         options.output_position_map = false;
         REQUIRE_NOTHROW(lagrange::texproc::geodesic_dilation(quad_mesh, img.to_mdspan(), options));
+    }
+}
+
+TEST_CASE("texture dilation regression", "[texproc]")
+{
+    using lagrange::testing::load_surface_mesh;
+
+    auto mesh = load_surface_mesh<Scalar, Index>("open/core/blub/blub.obj");
+    auto image = load_image(lagrange::testing::get_data_path("open/texproc/uv_identity.exr"));
+
+    lagrange::texproc::DilationOptions dilation_options;
+    dilation_options.dilation_radius = 50;
+    lagrange::texproc::geodesic_dilation(mesh, image.to_mdspan(), dilation_options);
+
+    auto expected =
+        load_image(lagrange::testing::get_data_path("open/texproc/blub_expanded_50.exr"));
+
+    const float eps_abs = 1e-5f;
+    const float eps_rel = 1e-5f;
+    for (size_t i = 0; i < image.extent(0); ++i) {
+        for (size_t j = 0; j < image.extent(1); ++j) {
+            for (size_t c = 0; c < image.extent(2); ++c) {
+                REQUIRE_THAT(
+                    image(i, j, c),
+                    Catch::Matchers::WithinRel(expected(i, j, c), eps_rel) ||
+                        (Catch::Matchers::WithinAbs(0, eps_abs) &&
+                         Catch::Matchers::WithinAbs(expected(i, j, c), eps_abs)));
+            }
+        }
     }
 }

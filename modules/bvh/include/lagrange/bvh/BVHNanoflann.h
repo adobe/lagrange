@@ -13,7 +13,11 @@
 
 #include <memory>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <nanoflann.hpp>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <lagrange/Logger.h>
 #include <lagrange/bvh/BVH.h>

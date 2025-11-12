@@ -41,7 +41,8 @@ void texture_gradient_modulation(
     unsigned int quadrature_samples,
     double jitter_epsilon)
 {
-    auto wrapper = mesh_utils::create_mesh_wrapper(mesh);
+    auto wrapper =
+        mesh_utils::create_mesh_wrapper(mesh, RequiresIndexedTexcoords::Yes, CheckFlippedUV::Yes);
     RegularGrid<K, Vector<double, NumChannels>> grid;
 
     mesh_utils::set_grid(texture, grid);
@@ -67,7 +68,7 @@ void texture_gradient_modulation(
         [&](size_t t, unsigned int k) { return wrapper.vertex_index(t, k); },
         [&](size_t v) { return wrapper.vertex(v); },
         [&](size_t t, unsigned int k) { return wrapper.texture_index(t, k); },
-        [&](size_t v) { return wrapper.texcoord(v); },
+        [&](size_t v) { return wrapper.texcoord(v); }, // solver internally flips the v coordinate
         grid.res(0),
         grid.res(1),
         normalize,

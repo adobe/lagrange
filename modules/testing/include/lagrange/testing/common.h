@@ -83,7 +83,7 @@ namespace lagrange {
 namespace testing {
 
 ///
-/// Gets the the test data directory.
+/// Gets the test data directory.
 ///
 /// @return     Path to the test data directory.
 ///

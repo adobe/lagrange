@@ -66,6 +66,9 @@ using Solver = lagrange::solver::SolverLDLT<Eigen::SparseMatrix<double>>;
 
 } // namespace
 
+enum class RequiresIndexedTexcoords { Yes, No };
+enum class CheckFlippedUV { Yes, No };
+
 namespace mesh_utils {
 
 template <unsigned int NumChannels, typename ValueType>
@@ -238,6 +241,16 @@ struct MeshWrapper
         return q;
     }
 
+    Vector<double, K> vflipped_texcoord(size_t i) const
+    {
+        Vector<double, K> q;
+        for (unsigned int k = 0; k < K; k++) {
+            q[k] = static_cast<double>(texcoords[i * K + k]);
+        }
+        q[1] = 1.0 - q[1];
+        return q;
+    }
+
     int vertex_index(size_t f, unsigned int k) const
     {
         return static_cast<int>(vertex_indices[f * (K + 1) + k]);
@@ -258,6 +271,15 @@ struct MeshWrapper
         Simplex<double, K, K> s;
         for (unsigned int k = 0; k <= K; k++) {
             s[k] = texcoord(texture_index(f, k));
+        }
+        return s;
+    }
+
+    Simplex<double, K, K> vflipped_simplex_texcoords(size_t f) const
+    {
+        Simplex<double, K, K> s;
+        for (unsigned int k = 0; k <= K; k++) {
+            s[k] = vflipped_texcoord(texture_index(f, k));
         }
         return s;
     }
@@ -291,8 +313,8 @@ struct MeshWrapper
 template <typename Scalar, typename Index>
 MeshWrapper<Scalar, Index> create_mesh_wrapper(
     const SurfaceMesh<Scalar, Index>& mesh_in,
-    bool needs_indexed_texcoords = true,
-    bool check_flipped_uv = true)
+    RequiresIndexedTexcoords requires_indexed_texcoords,
+    CheckFlippedUV check_flipped_uv)
 {
     MeshWrapper wrapper(mesh_in);
     SurfaceMesh<Scalar, Index>& _mesh = wrapper.mesh;
@@ -317,7 +339,7 @@ MeshWrapper<Scalar, Index> create_mesh_wrapper(
     }
 
     // Make sure the UV coordinates are indexed
-    if (needs_indexed_texcoords &&
+    if (requires_indexed_texcoords == RequiresIndexedTexcoords::Yes &&
         _mesh.get_attribute_base(texcoord_id).get_element_type() != AttributeElement::Indexed) {
         logger().warn("UV coordinates are not indexed. Welding.");
         texcoord_id = map_attribute_in_place(_mesh, texcoord_id, AttributeElement::Indexed);
@@ -329,7 +351,7 @@ MeshWrapper<Scalar, Index> create_mesh_wrapper(
         _mesh.get_num_corners() == _mesh.get_num_facets() * (K + 1),
         "Numer of corners doesn't match the number of simplices");
 
-    if (check_flipped_uv) {
+    if (check_flipped_uv == CheckFlippedUV::Yes) {
         check_for_flipped_uv(_mesh, texcoord_id);
     }
 
