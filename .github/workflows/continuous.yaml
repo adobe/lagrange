@@ -191,6 +191,11 @@ jobs:
           # Scoop modifies the PATH so we make it available for the next steps of the job
           echo "${env:PATH}" >> ${env:GITHUB_PATH}
 
+      - name: Print disk usage
+        run: |
+          echo "disk usage:"
+          df -h
+
         # We run configure + build in the same step, since they both need to call VsDevCmd
         # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
       - name: Configure and build
@@ -205,6 +210,12 @@ jobs:
             -B "C:/build" ^
             -S .
           cmake --build "C:/build" -j ${{ steps.cpu-cores.outputs.count }}
+
+      - name: Print disk usage
+        if: always()
+        run: |
+          echo "disk usage:"
+          df -h
 
       - name: Run ncdu
         shell: msys2 {0}
