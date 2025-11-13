@@ -43,12 +43,14 @@ include(CPM)
 CPMAddPackage(
     NAME assimp
     GITHUB_REPOSITORY assimp/assimp
-    GIT_TAG 2f3e72413f25897c1903e883a94fa5cf4293e26b
+    GIT_TAG v6.0.2
 
     PATCHES
         # Prevent Assimp from meddling with compiler flags in debug mode.
         # See internal lagrange-lib/#1303 for more details.
         # Remember to update this patch when updating Assimp.
+        # This patch also fixes the compilation issue related to contrib/zlib.
+        # See https://github.com/assimp/assimp/issues/6118
         assimp.patch
 )
 
