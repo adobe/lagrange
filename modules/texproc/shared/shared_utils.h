@@ -192,13 +192,18 @@ std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
     }
 
     // Load rendered images to unproject
+    la_runtime_assert(!renders.empty(), "No rendered images to unproject");
     for (const auto& render : renders) {
         size_t img_width = render.extent(0);
         size_t img_height = render.extent(1);
+        size_t img_channels = render.extent(2);
         la_runtime_assert(img_width == renders.front().extent(0), "Render width must all be equal");
         la_runtime_assert(
             img_height == renders.front().extent(1),
             "Render height must all be equal");
+        la_runtime_assert(
+            img_channels == renders.front().extent(2),
+            "Render num channels must all be equal");
     }
     la_runtime_assert(
         renders.size() == cameras.size(),
@@ -254,6 +259,12 @@ std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
         la_runtime_assert(!tex_height.has_value() || base_image.extent(1) == tex_height.value());
         rasterizer_options.width = base_image.extent(0);
         rasterizer_options.height = base_image.extent(1);
+        la_runtime_assert(
+            renders.front().extent(2) == base_image.extent(2),
+            fmt::format(
+                "Input render image num channels (={}) must match base texture num channels (={})",
+                renders.front().extent(2),
+                base_image.extent(2)));
         lagrange::logger().info(
             "Using base texture size for rasterization: {}x{}",
             rasterizer_options.width,

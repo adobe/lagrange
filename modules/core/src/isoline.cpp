@@ -156,7 +156,7 @@ SurfaceMesh<Scalar, Index> isoline_internal(
             if (c == repr_corner.find(c)) {
                 auto it = new_vertex_to_provoking_corner.push_back(c);
                 repr_to_new_vertex[c] =
-                    num_vertices + (it - new_vertex_to_provoking_corner.begin());
+                    num_vertices + static_cast<Index>(it - new_vertex_to_provoking_corner.begin());
             }
         }
     });

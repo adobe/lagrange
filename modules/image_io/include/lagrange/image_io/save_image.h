@@ -58,7 +58,7 @@ LA_IMAGE_IO_API bool save_image_bin(
 template <typename T>
 bool save_image(const fs::path& path, const image::ImageView<T>& img)
 {
-    auto buf = std::move(img.pack());
+    auto buf = img.pack();
     return save_image(
         path,
         buf.data(),

@@ -118,7 +118,9 @@ struct SquareDistanceToTextureBoundary
 {
     SquareDistanceToTextureBoundary(const unsigned int res[K])
     {
-        for (unsigned int k = 0; k < K; k++) _res[k] = res[k];
+        for (unsigned int k = 0; k < K; k++) {
+            m_res[k] = res[k];
+        }
     }
 
     template< typename ActiveTexelFunctor /* = std::function< bool ( typename RegularGrid< Dim >::Index ) > */ >
@@ -134,16 +136,17 @@ struct SquareDistanceToTextureBoundary
         using Range = typename RegularGrid<K>::Range;
 
         Miscellany::PerformanceMeter pMeter;
-        RegularGrid<K, unsigned int> d2(_res);
-        RegularGrid<K, unsigned char> raster(_res), boundary(_res);
+        RegularGrid<K, unsigned int> d2(m_res);
+        RegularGrid<K, unsigned char> raster(m_res);
+        RegularGrid<K, unsigned char> boundary(m_res);
 
         Range range;
-        for (unsigned int k = 0; k < K; k++) range.second[k] = _res[k];
+        for (unsigned int k = 0; k < K; k++) {
+            range.second[k] = m_res[k];
+        }
 
         // Identify all active texels
-        {
-            range.processParallel([&](unsigned int, Index I) { raster(I) = F(I) ? 1 : 0; });
-        }
+        range.processParallel([&](unsigned int, Index I) { raster(I) = F(I) ? 1 : 0; });
 
         // Identify the boundary texels
         {
@@ -171,7 +174,7 @@ struct SquareDistanceToTextureBoundary
     }
 
 protected:
-    unsigned int _res[K];
+    unsigned int m_res[K];
 };
 
 // A class wrapping a depth image supporting the evaluation at non-integer positions
@@ -206,22 +209,10 @@ struct DepthMapWrapper
     const RegularGrid<2, double>& depth_map;
 };
 
-// Functionality to flip an image about the y-axis
-// It seems our images have the origin on the top-left corner, so we vflip them before export.
-template <typename T>
-RegularGrid<K, T> flip_vertical(const RegularGrid<2, T>& g)
-{
-    RegularGrid<K, T> _g(g.res());
-    for (unsigned int j = 0; j < g.res(1); j++)
-        for (unsigned int i = 0; i < g.res(0); i++) _g(i, j) = g(i, g.res(1) - 1 - j);
-    return _g;
-}
-
 // Internal class representing the geometry
 struct Mesh
 {
     std::vector<Vector<double, 3>> vertices;
-    std::vector<Vector<double, 2>> texcoords;
     std::vector<SimplexIndex<2>> triangles;
 };
 
@@ -232,8 +223,9 @@ struct TextureAndConfidenceFromRender
     using MyTexels = Texels<true>;
     using MyTexelInfo = typename MyTexels::TexelInfo<2>;
 
-    Mesh mesh;
-    RegularGrid<2, MyTexelInfo> info_map;
+    Mesh m_mesh;
+    Padding m_padding;
+    RegularGrid<2, MyTexelInfo> m_info_map;
 
     template <typename Scalar, typename Index>
     TextureAndConfidenceFromRender(
@@ -242,19 +234,22 @@ struct TextureAndConfidenceFromRender
         unsigned int height)
     {
         // Transform the mesh
-        auto wrapper = mesh_utils::create_mesh_wrapper(surface_mesh);
-        mesh.vertices.resize(wrapper.num_vertices());
+        auto wrapper = mesh_utils::create_mesh_wrapper(
+            surface_mesh,
+            RequiresIndexedTexcoords::Yes,
+            CheckFlippedUV::Yes);
+        m_padding = mesh_utils::create_padding(wrapper, width, height);
+        width += m_padding.width();
+        height += m_padding.height();
+
+        m_mesh.vertices.resize(wrapper.num_vertices());
         for (size_t v = 0; v < wrapper.num_vertices(); v++) {
-            mesh.vertices[v] = wrapper.vertex(v);
+            m_mesh.vertices[v] = wrapper.vertex(v);
         }
-        mesh.texcoords.resize(wrapper.num_texcoords());
-        for (size_t v = 0; v < wrapper.num_texcoords(); v++) {
-            mesh.texcoords[v] = wrapper.texcoord(v);
-        }
-        mesh.triangles.resize(wrapper.num_simplices());
+        m_mesh.triangles.resize(wrapper.num_simplices());
         for (size_t t = 0; t < wrapper.num_simplices(); t++) {
             for (unsigned int k = 0; k < 3; k++) {
-                mesh.triangles[t][k] = wrapper.vertex_index(t, k);
+                m_mesh.triangles[t][k] = wrapper.vertex_index(t, k);
             }
         }
 
@@ -262,17 +257,18 @@ struct TextureAndConfidenceFromRender
         auto get_texture_triangle = [&](size_t t) {
             Simplex<double, 2, 2> tri;
             for (unsigned int k = 0; k < 3; k++) {
-                tri[k] = wrapper.texcoord(static_cast<size_t>(wrapper.texture_index(t, k)));
+                tri[k] =
+                    wrapper.vflipped_texcoord(static_cast<size_t>(wrapper.texture_index(t, k)));
             }
             return tri;
         };
 
-        // compute the rasterization info [ONCE]
+        // Compute the rasterization info [ONCE]
         unsigned int res[] = {width, height};
-        info_map = MyTexels::template GetSupportedTexelInfo<3, false>(
-            mesh.triangles.size(),
-            [&](size_t v) { return mesh.vertices[v]; },
-            [&](size_t t) { return mesh.triangles[t]; },
+        m_info_map = MyTexels::template GetSupportedTexelInfo<3, false>(
+            m_mesh.triangles.size(),
+            [&](size_t v) { return m_mesh.vertices[v]; },
+            [&](size_t t) { return m_mesh.triangles[t]; },
             get_texture_triangle,
             res,
             0,
@@ -281,7 +277,7 @@ struct TextureAndConfidenceFromRender
 
     // Computes the depth map associated to a rendering of the geometry using the prescribed
     // camera parameters and target resolution
-    RegularGrid<2, double> depth(const CameraParameters& camera_parameters) const
+    RegularGrid<2, double> compute_depth(const CameraParameters& camera_parameters) const
     {
         // Since we're sampling this as an unshifted RegularGrid, values are at the corners.
 
@@ -298,15 +294,26 @@ struct TextureAndConfidenceFromRender
         Eigen::Projective3d view_from_ndc = camera_parameters.ndc_from_view.inverse();
         Eigen::Affine2d ndc_from_screen = camera_parameters.screen_from_ndc.inverse();
 
-        for (unsigned int t = 0; t < mesh.triangles.size(); t++) {
+        for (unsigned int t = 0; t < m_mesh.triangles.size(); t++) {
             Simplex<double, 2, 2> t_tri;
             Simplex<double, 3, 2> c_tri;
             for (unsigned int k = 0; k < 3; k++) {
-                t_tri[k] = camera_parameters(mesh.vertices[mesh.triangles[t][k]]);
-                c_tri[k] = camera_parameters.world_to_view(mesh.vertices[mesh.triangles[t][k]]);
+                t_tri[k] = camera_parameters(m_mesh.vertices[m_mesh.triangles[t][k]]);
+                c_tri[k] = camera_parameters.world_to_view(m_mesh.vertices[m_mesh.triangles[t][k]]);
             }
 
             auto kernel = [&](typename RegularGrid<2>::Index I) {
+                // TODO: Fix upstream rasterization code and make this if() an assert:
+                // la_debug_assert(range.contains(I));
+                if (!range.contains(I)) {
+                    logger().debug(
+                        "Index out of range in depth computation: ({}, {}) / ({}, {})",
+                        I[0],
+                        I[1],
+                        range.second[0],
+                        range.second[1]);
+                    return;
+                }
                 constexpr bool NodeAtCellCenter = false;
                 auto npos_screen = Texels<NodeAtCellCenter>::NodePosition(I);
                 Eigen::Vector2d npos_ndc =
@@ -334,7 +341,7 @@ struct TextureAndConfidenceFromRender
     }
 
     // Computes the depth map discontinuity
-    static RegularGrid<2, double> DepthDiscontinuity(const RegularGrid<2, double>& depth)
+    static RegularGrid<2, double> compute_depth_discontinuity(const RegularGrid<2, double>& depth)
     {
         RegularGrid<K, double> depth_discontinuity(depth.res());
 
@@ -385,6 +392,7 @@ struct TextureAndConfidenceFromRender
                 depth_discontinuity[i] /= dev;
             });
         }
+
         return depth_discontinuity;
     }
 
@@ -398,7 +406,7 @@ struct TextureAndConfidenceFromRender
         double depth_discontinuity_threshold) const
     {
         // Compute the depth discontinuity
-        RegularGrid<K, double> depth_discontinuity = DepthDiscontinuity(depth);
+        RegularGrid<K, double> depth_discontinuity = compute_depth_discontinuity(depth);
 
         // Compute the confidence form the depth
         RegularGrid<K, double> depth_confidence(depth.res());
@@ -426,19 +434,20 @@ struct TextureAndConfidenceFromRender
     std::optional<Vector<double, 3>> texel_world_position(size_t i) const
     {
         // If the texel is assigned a mesh triangle
-        if (info_map[i].sIdx != static_cast<size_t>(-1)) {
+        if (m_info_map[i].sIdx != static_cast<size_t>(-1)) {
             // Compute the 3D triangle
-            SimplexIndex<2> si = mesh.triangles[info_map[i].sIdx];
+            SimplexIndex<2> si = m_mesh.triangles[m_info_map[i].sIdx];
             Simplex<double, Dim, 2> s(
-                mesh.vertices[si[0]],
-                mesh.vertices[si[1]],
-                mesh.vertices[si[2]]);
+                m_mesh.vertices[si[0]],
+                m_mesh.vertices[si[1]],
+                m_mesh.vertices[si[2]]);
             // Return the barycentric interpolation of the corners
             // (Note that the barycentric weights may extrapolate if the texel is active but not
             // covered)
-            return s(info_map[i].bc);
-        } else
+            return s(m_info_map[i].bc);
+        } else {
             return {};
+        }
     }
 
     // Returns the world position and normal of a texel, if it is active
@@ -446,35 +455,37 @@ struct TextureAndConfidenceFromRender
         size_t i) const
     {
         // If the texel is assigned a mesh triangle
-        if (info_map[i].sIdx != static_cast<size_t>(-1)) {
+        if (m_info_map[i].sIdx != static_cast<size_t>(-1)) {
             // Compute the 3D triangle
-            SimplexIndex<2> si = mesh.triangles[info_map[i].sIdx];
+            SimplexIndex<2> si = m_mesh.triangles[m_info_map[i].sIdx];
             Simplex<double, Dim, 2> s(
-                mesh.vertices[si[0]],
-                mesh.vertices[si[1]],
-                mesh.vertices[si[2]]);
+                m_mesh.vertices[si[0]],
+                m_mesh.vertices[si[1]],
+                m_mesh.vertices[si[2]]);
             // Return the barycentric interpolation of the corners
             // (Note that the barycentric weights may extrapolate if the texel is active but not
             // covered)
-            return std::make_pair(s(info_map[i].bc), s.normal());
-        } else
+            return std::make_pair(s(m_info_map[i].bc), s.normal());
+        } else {
             return {};
+        }
     }
 
     // Computes the texture image by back-projecting the rendering into the texture image
     template <typename T>
     RegularGrid<2, T> texture_image(const Rendering<T>& rendering) const
     {
-        RegularGrid<2, T> texture(info_map.res());
+        RegularGrid<2, T> texture(m_info_map.res());
 
         // Iterate through the pixels of the texture (in parallel)
-        ThreadPool::ParallelFor(0, info_map.size(), [&](size_t i) {
+        ThreadPool::ParallelFor(0, m_info_map.size(), [&](size_t i) {
             if (auto world_texel = texel_world_position(i)) {
                 Vector<double, 2> q = rendering.camera_parameters(*world_texel);
                 texture[i] = rendering.render_map(q);
             }
         });
 
+        m_padding.unpad(texture);
         return texture;
     }
 
@@ -489,7 +500,7 @@ struct TextureAndConfidenceFromRender
         double depth_precision) const
     {
         // Resize
-        RegularGrid<K, double> confidence(info_map.res());
+        RegularGrid<K, double> confidence(m_info_map.res());
 
         // Initialize the confidence to zero
         for (size_t i = 0; i < confidence.size(); i++) {
@@ -500,7 +511,7 @@ struct TextureAndConfidenceFromRender
         for (unsigned int k = 0; k < 2; k++) range.second[k] = camera_params.res[k];
 
         // Compute the depth
-        RegularGrid<K, double> depth = this->depth(camera_params);
+        RegularGrid<K, double> depth = this->compute_depth(camera_params);
 
         // Compute the depth-confidence
         RegularGrid<K, double> depth_confidence = this->depth_confidence(
@@ -510,12 +521,12 @@ struct TextureAndConfidenceFromRender
 
         // Set the cumulative confidence based on the depth and normal confidence information
         {
-            Vector<double, 3> cameraPosition = camera_params.camera_position_world();
+            Vector<double, 3> camera_position = camera_params.camera_position_world();
 
             DepthMapWrapper depth_map(depth);
 
             // Iterate through the pixels of the texture (in parallel)
-            ThreadPool::ParallelFor(0, info_map.size(), [&](size_t i) {
+            ThreadPool::ParallelFor(0, m_info_map.size(), [&](size_t i) {
                 if (auto world_texel = texel_world_position_and_normal(i)) {
                     // The position of the texel in world coordinates
                     Vector<double, Dim> p_w = world_texel->first;
@@ -525,7 +536,7 @@ struct TextureAndConfidenceFromRender
                     n /= Vector<double, Dim>::Length(n);
 
                     // The direction from the camera to the world position of the texel
-                    Vector<double, Dim> dir = p_w - cameraPosition;
+                    Vector<double, Dim> dir = p_w - camera_position;
                     dir /= Vector<double, Dim>::Length(dir);
 
                     // The projection of the texl in the rendering
@@ -553,6 +564,7 @@ struct TextureAndConfidenceFromRender
             });
         }
 
+        m_padding.unpad(confidence);
         return confidence;
     }
 };
@@ -585,10 +597,6 @@ weighted_texture_from_render_impl(
             texture[i] *= 0.;
         }
     }
-
-    // Corrective flip
-    texture = flip_vertical(texture);
-    confidence = flip_vertical(confidence);
 
     // Convert from internal to external
     auto texture_img =
@@ -659,9 +667,10 @@ auto TextureRasterizer<Scalar, Index>::weighted_texture_from_render(
             options,
             m_impl->options);
     default:
-        la_debug_assert("Only 1, 2, 3, or 4 channels supported");
-        return std::
-            pair<image::experimental::Array3D<float>, image::experimental::Array3D<float>>();
+        throw Error(
+            fmt::format(
+                "Only 1, 2, 3, or 4 channels supported. Input render image has {} channels.",
+                num_channels));
     }
 }
 

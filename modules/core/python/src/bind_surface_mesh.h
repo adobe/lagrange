@@ -453,10 +453,10 @@ void bind_surface_mesh(nanobind::module_& m)
                         Index num_rows = invalid<Index>();
                         if (initial_values.index() == 1) {
                             const auto& values = std::get<GenericTensor>(initial_values);
-                            num_rows = values.shape(0);
+                            num_rows = static_cast<Index>(values.shape(0));
                         } else if (initial_values.index() == 2) {
                             const auto& values = std::get<nb::list>(initial_values);
-                            num_rows = nb::len(values);
+                            num_rows = static_cast<Index>(nb::len(values));
                         }
                         la_debug_assert(num_rows != invalid<Index>());
 
@@ -863,25 +863,29 @@ void bind_surface_mesh(nanobind::module_& m)
 
 :param old_name: current name of the attribute
 :param new_name: new name for the attribute)");
+
     surface_mesh_class.def(
         "delete_attribute",
-        &MeshType::delete_attribute,
+        [](MeshType& self, std::string_view name, AttributeDeletePolicy policy) {
+            self.delete_attribute(name, policy);
+        },
         "name"_a,
-        "policy"_a /*= AttributeDeletePolicy::ErrorIfReserved*/);
-    surface_mesh_class.def(
-        "delete_attribute",
-        [](MeshType& self, std::string_view name) { self.delete_attribute(name); },
-        "name"_a,
+        "policy"_a = AttributeDeletePolicy::ErrorIfReserved,
         R"(Delete an attribute by name.
 
-:param name: Name of the attribute.)");
+:param name: Name of the attribute.
+:param policy: Deletion policy for reserved attributes.)");
     surface_mesh_class.def(
         "delete_attribute",
-        [](MeshType& self, AttributeId id) { self.delete_attribute(self.get_attribute_name(id)); },
+        [](MeshType& self, AttributeId id, AttributeDeletePolicy policy) {
+            self.delete_attribute(id, policy);
+        },
         "id"_a,
+        "policy"_a = AttributeDeletePolicy::ErrorIfReserved,
         R"(Delete an attribute by id.
 
-:param id: Id of the attribute.)");
+:param id: Id of the attribute.
+:param policy: Deletion policy for reserved attributes.)");
     surface_mesh_class.def(
         "has_attribute",
         &MeshType::has_attribute,

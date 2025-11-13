@@ -190,6 +190,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
            bool load_object_ids,
            bool load_images,
            bool stitch_vertices,
+           bool quiet,
            const fs::path& search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
@@ -202,6 +203,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             opts.load_object_ids = load_object_ids;
             opts.load_images = load_images;
             opts.stitch_vertices = stitch_vertices;
+            opts.quiet = quiet;
             opts.search_path = search_path;
             return io::load_mesh<MeshType>(filename, opts);
         },
@@ -216,6 +218,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "load_object_ids"_a = io::LoadOptions().load_object_ids,
         "load_images"_a = io::LoadOptions().load_images,
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
+        "quiet"_a = io::LoadOptions().quiet,
         "search_path"_a = io::LoadOptions().search_path,
         R"(Load mesh from a file.
 
@@ -230,28 +233,69 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
 :param load_images:        Whether to load external images if available. Defaults to True.
 :param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
+:param quiet:              Whether to silence warnings during loading. Defaults to False.
 :param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
 
 :return SurfaceMesh: The mesh object extracted from the input string.)");
 
     m.def(
         "load_simple_scene",
-        [](const fs::path& filename, bool triangulate, std::optional<fs::path> search_path) {
+        [](const fs::path& filename,
+           bool triangulate,
+           bool load_normals,
+           bool load_tangents,
+           bool load_uvs,
+           bool load_weights,
+           bool load_materials,
+           bool load_vertex_colors,
+           bool load_object_ids,
+           bool load_images,
+           bool stitch_vertices,
+           bool quiet,
+           const fs::path& search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
-            if (search_path.has_value()) {
-                opts.search_path = std::move(search_path.value());
-            }
+            opts.load_normals = load_normals;
+            opts.load_tangents = load_tangents;
+            opts.load_uvs = load_uvs;
+            opts.load_weights = load_weights;
+            opts.load_materials = load_materials;
+            opts.load_vertex_colors = load_vertex_colors;
+            opts.load_object_ids = load_object_ids;
+            opts.load_images = load_images;
+            opts.stitch_vertices = stitch_vertices;
+            opts.quiet = quiet;
+            opts.search_path = search_path;
             return io::load_simple_scene<SimpleSceneType>(filename, opts);
         },
         "filename"_a,
-        "triangulate"_a = false,
-        "search_path"_a = nb::none(),
+        "triangulate"_a = io::LoadOptions().triangulate,
+        "load_normals"_a = io::LoadOptions().load_normals,
+        "load_tangents"_a = io::LoadOptions().load_tangents,
+        "load_uvs"_a = io::LoadOptions().load_uvs,
+        "load_weights"_a = io::LoadOptions().load_weights,
+        "load_materials"_a = io::LoadOptions().load_materials,
+        "load_vertex_colors"_a = io::LoadOptions().load_vertex_colors,
+        "load_object_ids"_a = io::LoadOptions().load_object_ids,
+        "load_images"_a = io::LoadOptions().load_images,
+        "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
+        "quiet"_a = io::LoadOptions().quiet,
+        "search_path"_a = io::LoadOptions().search_path,
         R"(Load a simple scene from file.
 
-:param filename:    The input file name.
-:param triangulate: Whether to triangulate the scene if it is not already triangulated. Defaults to False.
-:param search_path: Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
+:param filename:           The input file name.
+:param triangulate:        Whether to triangulate the mesh if it is not already triangulated. Defaults to False.
+:param load_normals:       Whether to load vertex normals from mesh if available. Defaults to True.
+:param load_tangents:      Whether to load tangents and bitangents from mesh if available. Defaults to True.
+:param load_uvs:           Whether to load texture coordinates from mesh if available. Defaults to True.
+:param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
+:param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
+:param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
+:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_images:        Whether to load external images if available. Defaults to True.
+:param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
+:param quiet:              Whether to silence warnings during loading. Defaults to False.
+:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
 
 :return SimpleScene: The scene object extracted from the input string.)");
 
@@ -373,6 +417,7 @@ The binary string should use one of the supported formats. Supported formats inc
            bool load_object_ids,
            bool load_images,
            bool stitch_vertices,
+           bool quiet,
            const fs::path& search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
@@ -385,6 +430,7 @@ The binary string should use one of the supported formats. Supported formats inc
             opts.load_object_ids = load_object_ids;
             opts.load_images = load_images;
             opts.stitch_vertices = stitch_vertices;
+            opts.quiet = quiet;
             opts.search_path = search_path;
             return io::load_scene<SceneType>(filename, opts);
         },
@@ -399,11 +445,23 @@ The binary string should use one of the supported formats. Supported formats inc
         "load_object_ids"_a = io::LoadOptions().load_object_ids,
         "load_images"_a = io::LoadOptions().load_images,
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
+        "quiet"_a = io::LoadOptions().quiet,
         "search_path"_a = io::LoadOptions().search_path,
         R"(Load a scene.
 
-:param filename:    The input file name.
-:param options:     Load scene options. Check the class for more details.
+:param filename:          The input file name.
+:param triangulate:        Whether to triangulate the mesh if it is not already triangulated. Defaults to False.
+:param load_normals:       Whether to load vertex normals from mesh if available. Defaults to True.
+:param load_tangents:      Whether to load tangents and bitangents from mesh if available. Defaults to True.
+:param load_uvs:           Whether to load texture coordinates from mesh if available. Defaults to True.
+:param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
+:param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
+:param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
+:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_images:        Whether to load external images if available. Defaults to True.
+:param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
+:param quiet:              Whether to silence warnings during loading. Defaults to False.
+:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
 
 :return Scene: The loaded scene object.)");
 

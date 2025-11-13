@@ -1074,6 +1074,12 @@ void SurfaceMesh<Scalar, Index>::delete_attribute(
     la_runtime_assert(num_deleted == 1, fmt::format("Attribute {} does not exist", name));
 }
 
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::delete_attribute(AttributeId id, AttributeDeletePolicy policy)
+{
+    delete_attribute(get_attribute_name(id), policy);
+}
+
 namespace {
 
 template <typename ValueType>

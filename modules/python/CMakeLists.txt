@@ -40,7 +40,7 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 if(SKBUILD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         find_program(HAS_DSYMUTIL dsymutil)
         if(HAS_DSYMUTIL)
             add_custom_command(TARGET lagrange_python POST_BUILD
@@ -49,7 +49,7 @@ if(SKBUILD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
         endif()
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         find_program(HAS_OBJCOPY objcopy)
-        if (HAS_OBJCOPY)
+        if(HAS_OBJCOPY)
             add_custom_command(TARGET lagrange_python POST_BUILD
                 COMMAND objcopy --only-keep-debug $<TARGET_FILE:lagrange_python> $<TARGET_FILE:lagrange_python>.debug
                 COMMAND objcopy --strip-debug $<TARGET_FILE:lagrange_python>
@@ -72,11 +72,11 @@ if(SKBUILD)
         COMPONENT Lagrange_Python_Runtime
     )
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        if (HAS_DSYMUTIL)
+        if(HAS_DSYMUTIL)
             install(DIRECTORY $<TARGET_FILE:lagrange_python>.dSYM
                 DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
                 COMPONENT Lagrange_Python_Runtime)
-        elseif (HAS_OBJCOPY)
+        elseif(HAS_OBJCOPY)
             install(FILES $<TARGET_FILE:lagrange_python>.debug
                 DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
                 COMPONENT Lagrange_Python_Runtime)
@@ -172,7 +172,7 @@ function(lagrange_generate_python_binding_module)
     lagrange_generate_binding_file()
 
     # Generate __init__.py to import all modules.
-    if (SKBUILD)
+    if(SKBUILD)
         lagrange_generate_init_file()
     endif()
 
@@ -180,6 +180,7 @@ function(lagrange_generate_python_binding_module)
     if(SKBUILD)
         # Write __init__.pyi to import all stubs.
         set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/__init__.pyi)
+        file(APPEND ${init_pyi_file} "from ._logging import logger\n")
         file(APPEND ${init_pyi_file} "from .core import *\n")
 
         # Generate stubs for python binding within the install location.

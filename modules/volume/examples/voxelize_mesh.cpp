@@ -16,6 +16,11 @@
 
 #include <CLI/CLI.hpp>
 
+namespace fs = lagrange::fs;
+
+using FloatGrid = lagrange::volume::Grid<float>;
+using FloatGridPtr = typename lagrange::volume::Grid<float>::Ptr;
+
 const std::map<std::string, lagrange::volume::MeshToVolumeOptions::Sign>& signing_types()
 {
     static std::map<std::string, lagrange::volume::MeshToVolumeOptions::Sign> _methods = {
@@ -25,13 +30,12 @@ const std::map<std::string, lagrange::volume::MeshToVolumeOptions::Sign>& signin
     return _methods;
 }
 
-
 int main(int argc, char** argv)
 {
     struct
     {
-        std::string input;
-        std::string output = "output.obj";
+        fs::path input;
+        fs::path output = "output.obj";
     } args;
 
     lagrange::volume::MeshToVolumeOptions m2v_opt;
@@ -53,17 +57,39 @@ int main(int argc, char** argv)
 
     spdlog::set_level(spdlog::level::debug);
 
-    lagrange::logger().info("Loading input mesh: {}", args.input);
-    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(args.input);
+    auto grid = [&]() -> FloatGridPtr {
+        if (args.input.extension() == ".vdb") {
+            openvdb::initialize();
+            openvdb::io::File file(args.input.string());
+            file.open();
+            auto grids_ptr = file.getGrids();
+            file.close();
+            la_runtime_assert(
+                grids_ptr && grids_ptr->size() == 1,
+                "Input vdb must contain exactly one grid.");
+            return openvdb::gridPtrCast<FloatGrid>((*grids_ptr)[0]);
+        } else {
+            lagrange::logger().info("Loading input mesh: {}", args.input.string());
+            auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(args.input);
 
-    lagrange::logger().info("Mesh to volume conversion");
-    auto grid = lagrange::volume::mesh_to_volume(mesh, m2v_opt);
+            lagrange::logger().info("Mesh to volume conversion");
+            return lagrange::volume::mesh_to_volume(mesh, m2v_opt);
+        }
+    }();
 
-    lagrange::logger().info("Volume to mesh conversion");
-    mesh = lagrange::volume::volume_to_mesh<lagrange::SurfaceMesh32f>(*grid, v2m_opt);
+    if (args.output.extension() == ".vdb") {
+        lagrange::logger().info("Saving volume to: {}", args.output.string());
+        openvdb::io::File file(args.output.string());
+        file.setCompression(openvdb::io::COMPRESS_BLOSC);
+        file.write({grid});
+        file.close();
+    } else {
+        lagrange::logger().info("Volume to mesh conversion");
+        auto mesh = lagrange::volume::volume_to_mesh<lagrange::SurfaceMesh32f>(*grid, v2m_opt);
 
-    lagrange::logger().info("Saving result: {}", args.output);
-    lagrange::io::save_mesh(args.output, mesh);
+        lagrange::logger().info("Saving result: {}", args.output.string());
+        lagrange::io::save_mesh(args.output, mesh);
+    }
 
     return 0;
 }

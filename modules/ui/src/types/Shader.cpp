@@ -98,7 +98,7 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
     if (matches.size() < 2 || !hasFragment || !hasVertex)
         return std::unordered_map<GLenum, std::string>(); // return empty
 
-    // Sort by order of occurence
+    // Sort by order of occurrence
     std::sort(
         matches.begin(),
         matches.end(),

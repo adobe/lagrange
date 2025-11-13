@@ -121,7 +121,7 @@ bool select_facets_in_frustum(
         return {n, c};
     };
 
-    // Compute the orientation of 2D traingle (v0, v1, O), where O = (0, 0).
+    // Compute the orientation of 2D triangle (v0, v1, O), where O = (0, 0).
     auto orient2D_inexact = [](const std::array<double, 2>& v0,
                                const std::array<double, 2>& v1) -> int {
         const auto r = v0[0] * v1[1] - v0[1] * v1[0];

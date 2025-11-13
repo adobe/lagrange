@@ -970,7 +970,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_values`.
     ///
     template <typename ValueType>
@@ -1016,7 +1016,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_values`.
     ///
     template <typename ValueType>
@@ -1066,7 +1066,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_values` and
     /// `shared_indices`.
     ///
@@ -1083,7 +1083,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_indices`.
     ///
     template <typename ValueType>
@@ -1099,7 +1099,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_values`.
     ///
     template <typename ValueType>
@@ -1151,7 +1151,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffers referred by `shared_values` and
     /// `shared_indices`.
     ///
@@ -1168,7 +1168,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_indices`.
     ///
     template <typename ValueType>
@@ -1184,7 +1184,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_values`.
     ///
     template <typename ValueType>
@@ -1216,7 +1216,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_vertices`.
     ///
     AttributeId wrap_as_vertices(SharedSpan<Scalar> shared_vertices, Index num_vertices);
@@ -1242,7 +1242,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_vertices`.
     ///
     AttributeId wrap_as_const_vertices(
@@ -1269,7 +1269,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_facets`.
     ///
     AttributeId
@@ -1297,7 +1297,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_facets`.
     ///
     AttributeId wrap_as_const_facets(
@@ -1333,7 +1333,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffers referred by `shared_offsets` and
     /// `shared_facets`.
     ///
@@ -1347,7 +1347,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_facets`.
     ///
     AttributeId wrap_as_facets(
@@ -1360,7 +1360,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_offsets`.
     ///
     AttributeId wrap_as_facets(
@@ -1398,7 +1398,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffers referred by `shared_offsets` and
     /// `shared_facets`.
     ///
@@ -1412,7 +1412,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_facets`.
     ///
     AttributeId wrap_as_const_facets(
@@ -1425,7 +1425,7 @@ public:
     /// @overload
     ///
     /// @note
-    /// This function differs from the prevous version by participating in
+    /// This function differs from the previous version by participating in
     /// shared ownership management of the buffer referred by `shared_offsets`.
     ///
     AttributeId wrap_as_const_facets(
@@ -1455,16 +1455,24 @@ public:
 
     ///
     /// Delete an attribute given by name. The attribute must exist. If the attribute is a reserved
-    /// name (starts with a "$"), then you must specify force=true to delete the attribute.
-    ///
-    /// @note       There is no performance benefit in deleting an attribute given by id only, as we
-    ///             would need to free its name from the list of existing attributes anyway.
+    /// name (starts with a "$"), then you must use AttributeDeletePolicy::Force to delete the attribute.
     ///
     /// @param[in]  name    %Attribute name.
     /// @param[in]  policy  Delete policy for reserved attribute names.
     ///
     void delete_attribute(
         std::string_view name,
+        AttributeDeletePolicy policy = AttributeDeletePolicy::ErrorIfReserved);
+
+    ///
+    /// Delete an attribute given by its id. The attribute must exist. If the attribute is a
+    /// reserved name (starts with a "$"), then you must use AttributeDeletePolicy::Force to delete the attribute.
+    ///
+    /// @param[in]  id      %Attribute id.
+    /// @param[in]  policy  Delete policy for reserved attribute names.
+    ///
+    void delete_attribute(
+        AttributeId id,
         AttributeDeletePolicy policy = AttributeDeletePolicy::ErrorIfReserved);
 
     ///

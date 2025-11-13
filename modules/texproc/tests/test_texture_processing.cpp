@@ -24,13 +24,13 @@
 
 #include <lagrange/testing/common.h>
 
+#include <tbb/parallel_for.h>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <numeric>
 
 namespace {
-
 
 std::vector<std::pair<Array3Df, Array3Df>> test_rasterization(
     const lagrange::SurfaceMesh32f& mesh,
@@ -44,13 +44,10 @@ std::vector<std::pair<Array3Df, Array3Df>> test_rasterization(
     rasterizer_options.height = height;
     const auto rasterizer = lagrange::texproc::TextureRasterizer(mesh, rasterizer_options);
 
-    std::vector<std::pair<Array3Df, Array3Df>> colors_and_weights;
-    for (const auto kk : lagrange::range(cameras.size())) {
-        const auto& camera = cameras[kk];
-        const auto& view = views[kk];
-        colors_and_weights.emplace_back(
-            rasterizer.weighted_texture_from_render(view.to_mdspan(), camera));
-    }
+    std::vector<std::pair<Array3Df, Array3Df>> colors_and_weights(cameras.size());
+    tbb::parallel_for(size_t(0), cameras.size(), [&](size_t i) {
+        colors_and_weights[i] = rasterizer.weighted_texture_from_render(views[i], cameras[i]);
+    });
 
     REQUIRE(cameras.size() == colors_and_weights.size());
     REQUIRE(colors_and_weights.front().first.extent(0) == width);
@@ -86,6 +83,39 @@ lagrange::image::experimental::Array3D<float> test_compositing(
 }
 
 } // namespace
+
+TEST_CASE("Grid bounds", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
+{
+    auto scene_options = lagrange::io::LoadOptions();
+    scene_options.stitch_vertices = true;
+    const auto scene = lagrange::io::load_scene<lagrange::scene::Scene32f>(
+        lagrange::testing::get_data_path("corp/texproc/segfault/scene_with_cameras.glb"),
+        scene_options);
+
+    const auto& [mesh, _] = lagrange::texproc::single_mesh_from_scene(scene);
+    const auto cameras = lagrange::texproc::cameras_from_scene(scene);
+    REQUIRE(cameras.size() == 16);
+
+    std::vector<Array3Df> views;
+    for (const auto kk : lagrange::range(cameras.size())) {
+        views.emplace_back(load_image(
+            lagrange::testing::get_data_path(
+                fmt::format("corp/texproc/segfault/render_{:d}.exr", kk))));
+    }
+    REQUIRE(cameras.size() == views.size());
+
+#if !LAGRANGE_TARGET_OS(WASM)
+    SECTION("512x512")
+    {
+        test_compositing(mesh, test_rasterization(mesh, cameras, views, 512, 512));
+    }
+#else
+    SECTION("128x128")
+    {
+        test_compositing(mesh, test_rasterization(mesh, cameras, views, 128, 128));
+    }
+#endif
+}
 
 TEST_CASE("Pumpkin pipeline", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
 {
@@ -123,7 +153,7 @@ TEST_CASE("Pumpkin pipeline", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
 #else
     SECTION("128x128")
     {
-        test_pipeline(mesh, cameras, views, 128, 128);
+        test_compositing(mesh, test_rasterization(mesh, cameras, views, 128, 128));
     }
 #endif
 }

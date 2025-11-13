@@ -2,7 +2,7 @@
 build-backend = "scikit_build_core.build"
 
 requires = [
-    "scikit-build-core==0.10.7",
+    "scikit-build-core==0.11.6",
     "typing-extensions~=4.1",
 ]
 
@@ -10,12 +10,14 @@ requires = [
 name = "lagrange-open"
 description = "A robust geometry processing engine"
 readme = "README.md"
+license = "Apache-2.0"
+license-files = [ "LICENSE", "NOTICE.txt" ]
+
 maintainers = [ { name = "Lagrange Core Team", email = "lagrange-core@adobe.com" } ]
-requires-python = ">=3.9"
+requires-python = ">=3.9,<3.14"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.9",
@@ -26,11 +28,11 @@ classifiers = [
     "Topic :: Multimedia :: Graphics :: 3D Modeling",
 ]
 dynamic = [ "version" ]
-
 dependencies = [
     "colorama>=0.4.4; platform_system!='Windows'",
     "colorama>=0.4.6; platform_system=='Windows'",
     "numpy>=1.25",
+    "scipy>=1.13.0",
 ]
 urls.documentation = "https://opensource.adobe.com/lagrange-docs"
 urls.repository = "https://github.com/adobe/lagrange"
@@ -76,9 +78,11 @@ LAGRANGE_EXAMPLES = false
 LAGRANGE_INSTALL = false
 LAGRANGE_MODULE_BVH = true
 LAGRANGE_MODULE_FILTERING = true
+LAGRANGE_MODULE_GEODESIC = true
 LAGRANGE_MODULE_IMAGE = true
 LAGRANGE_MODULE_IO = true
 LAGRANGE_MODULE_POISSON = true
+LAGRANGE_MODULE_POLYDDG = true
 LAGRANGE_MODULE_PYTHON = true
 LAGRANGE_MODULE_SCENE = true
 LAGRANGE_MODULE_SOLVER = true

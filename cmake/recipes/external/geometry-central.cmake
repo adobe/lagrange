@@ -35,8 +35,7 @@ CPMAddPackage(
 
 set_target_properties(geometry-central PROPERTIES FOLDER third_party)
 add_library(geometry-central::geometry-central ALIAS geometry-central)
-
-set_target_properties(geometry-central PROPERTIES FOLDER third_party)
+set_target_properties(geometry-central PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME geometry-central)

@@ -136,8 +136,15 @@ MeshType load_mesh_stl(std::istream& input_stream, [[maybe_unused]] const LoadOp
         });
     }
 
-    // Always stitch mesh for STL (i.e. triangle soup) format.
-    stitch_mesh(mesh);
+    // Default behavior for STL is to stitch mesh vertices
+    if (options.stitch_vertices) {
+        stitch_mesh(mesh);
+    } else if (!options.quiet) {
+        logger().warn(
+            "Loading a STL file without stitching vertices will produce disconnected triangles. "
+            "Consider setting 'stitch_vertices' to true, or silence this warning by setting "
+            "'quiet' to true.");
+    }
 
     return mesh;
 }

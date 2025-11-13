@@ -71,6 +71,25 @@ tp::View3Df tensor_to_mdspan(const TextureTensor<float>& tensor)
     return view;
 }
 
+void copy_to_mdspan(const TextureTensor<float>& tensor, tp::View3Df image)
+{
+    unsigned int width = static_cast<unsigned int>(tensor.shape(1));
+    unsigned int height = static_cast<unsigned int>(tensor.shape(0));
+    unsigned int num_channels = static_cast<unsigned int>(tensor.shape(2));
+
+    la_runtime_assert(
+        image.extent(0) == width && image.extent(1) == height && image.extent(2) == num_channels,
+        "Tensor and mdspan dimensions do not match");
+
+    for (unsigned int j = 0; j < height; j++) {
+        for (unsigned int i = 0; i < width; i++) {
+            for (unsigned int c = 0; c < num_channels; c++) {
+                image(i, j, c) = tensor(j, i, c);
+            }
+        }
+    }
+}
+
 nb::object mdarray_to_tensor(const tp::Array3Df& array_)
 {
     // Numpy indexes tensors as (row, col, channel), but our mdspan uses (x, y, channel)
@@ -110,7 +129,7 @@ void populate_texproc_module(nb::module_& m)
                 image_.shape(0),
                 image_.shape(1),
                 image_.shape(2));
-            std::copy(image_.data(), image_.data() + image_.size(), image.data());
+            copy_to_mdspan(image_, image.to_mdspan());
 
             tp::FilteringOptions options;
             options.value_weight = value_weight;
@@ -153,7 +172,7 @@ void populate_texproc_module(nb::module_& m)
                 image_.shape(0),
                 image_.shape(1),
                 image_.shape(2));
-            std::copy(image_.data(), image_.data() + image_.size(), image.data());
+            copy_to_mdspan(image_, image.to_mdspan());
 
             tp::StitchingOptions options;
             options.exterior_only = exterior_only;
@@ -191,7 +210,7 @@ void populate_texproc_module(nb::module_& m)
                 image_.shape(0),
                 image_.shape(1),
                 image_.shape(2));
-            std::copy(image_.data(), image_.data() + image_.size(), image.data());
+            copy_to_mdspan(image_, image.to_mdspan());
 
             tp::geodesic_dilation(mesh, image.to_mdspan(), options);
 

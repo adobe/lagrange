@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/io/load_scene.h>
 #include <lagrange/io/save_scene.h>
 #include <lagrange/io/save_scene_obj.h>
@@ -222,5 +223,37 @@ TEST_CASE("save_scene", "[io]")
             REQUIRE(loaded_mesh.get_num_vertices() == original_mesh.get_num_vertices());
             REQUIRE(loaded_mesh.get_num_facets() == original_mesh.get_num_facets());
         }
+    }
+}
+
+TEST_CASE("save_scene with float images", "[io]")
+{
+    scene::Scene32f scene;
+
+    scene::ImageBufferExperimental buffer;
+    buffer.width = 16;
+    buffer.height = 16;
+    buffer.num_channels = 3;
+    buffer.element_type = make_attribute_value_type<float>();
+    buffer.data.resize(16 * 16 * 3 * sizeof(float), 0);
+
+    scene::ImageExperimental image;
+    image.name = "TestImage";
+    image.image = buffer;
+
+    scene.add(SurfaceMesh32f());
+    scene.add(image);
+
+    std::stringstream output;
+    io::SaveOptions options;
+    SECTION("embedded")
+    {
+        options.embed_images = true;
+        LA_REQUIRE_THROWS(io::save_scene(output, scene, io::FileFormat::Gltf, options));
+    }
+    SECTION("not embedded")
+    {
+        options.embed_images = false;
+        LA_REQUIRE_THROWS(io::save_scene(output, scene, io::FileFormat::Gltf, options));
     }
 }

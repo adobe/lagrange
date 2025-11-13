@@ -327,7 +327,7 @@ void weld_indexed_attribute(
                                          ? safe_cast<RealType>(options.epsilon_abs.value())
                                          : Eigen::NumTraits<RealType>::epsilon();
 
-            constexpr RealType INVALID_COS_ANGLE_ABS = 2; // Out of the the valid range.
+            constexpr RealType INVALID_COS_ANGLE_ABS = 2; // Out of the valid range.
             const RealType cos_angle_abs = options.angle_abs.has_value()
                                                ? std::cos(options.angle_abs.value())
                                                : INVALID_COS_ANGLE_ABS;

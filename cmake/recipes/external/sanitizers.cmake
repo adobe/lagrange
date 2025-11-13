@@ -117,14 +117,11 @@ function(test_san_flags RETURN_VAR LINK_OPTIONS)
 
   # set compile options
   unset(CMAKE_REQUIRED_FLAGS)
-  unset(test_san_flags_OPTION_TEST CACHE)
   foreach(ARG ${ARGN})
-    if(WIN32)
-      unset(test_san_flags_OPTION_TEST CACHE)
-      check_cxx_compiler_flag(${ARG} test_san_flags_OPTION_TEST)
-      if(NOT test_san_flags_OPTION_TEST)
-        break()
-      endif()
+    unset(test_san_flags_OPTION_TEST CACHE)
+    check_cxx_compiler_flag(${ARG} test_san_flags_OPTION_TEST)
+    if(NOT test_san_flags_OPTION_TEST)
+      break()
     endif()
     set(CMAKE_REQUIRED_FLAGS "${CMAKE_REQUIRED_FLAGS} ${ARG}")
   endforeach()
@@ -213,8 +210,10 @@ function(set_sanitizer_options SANITIZER_NAME)
 
     # check if the compile option combination can compile
     unset(SANITIZER_${UPPER_SANITIZER_NAME}_AVAILABLE CACHE)
-    set(set_sanitizer_options_LINK_OPTIONS
-        -fsanitize=${SANITIZER_${UPPER_SANITIZER_NAME}_SANITIZER})
+    if(NOT MSVC)
+      set(set_sanitizer_options_LINK_OPTIONS
+          -fsanitize=${SANITIZER_${UPPER_SANITIZER_NAME}_SANITIZER})
+    endif()
     test_san_flags(
       SANITIZER_${UPPER_SANITIZER_NAME}_AVAILABLE
       set_sanitizer_options_LINK_OPTIONS
@@ -281,9 +280,11 @@ function(add_sanitizer_support)
           -fsanitize=${SANITIZER_${UPPER_SANITIZER_NAME}_SANITIZER}
           ${SANITIZER_${UPPER_SANITIZER_NAME}_OPTIONS})
 
-      set(SANITIZER_SELECTED_LINK_OPTIONS
-          ${SANITIZER_SELECTED_LINK_OPTIONS}
-          -fsanitize=${SANITIZER_${UPPER_SANITIZER_NAME}_SANITIZER})
+        if(NOT MSVC)
+          set(SANITIZER_SELECTED_LINK_OPTIONS
+              ${SANITIZER_SELECTED_LINK_OPTIONS}
+              -fsanitize=${SANITIZER_${UPPER_SANITIZER_NAME}_SANITIZER})
+        endif()
 
       # special for AFL
       if(AFL)

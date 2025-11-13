@@ -55,7 +55,8 @@ void position_dilation(
     unsigned int num_channels = static_cast<unsigned int>(texture.extent(2));
     la_runtime_assert(num_channels == 3, "Texture must have 3 channels");
 
-    auto wrapper = mesh_utils::create_mesh_wrapper(mesh, false, false);
+    auto wrapper =
+        mesh_utils::create_mesh_wrapper(mesh, RequiresIndexedTexcoords::No, CheckFlippedUV::No);
 
     unsigned int res[] = {
         static_cast<unsigned int>(texture.extent(0)),
@@ -71,7 +72,7 @@ void position_dilation(
             wrapper.num_simplices(),
             [&](size_t v) { return wrapper.vertex(v); },
             [&](size_t s) { return wrapper.facet_indices(s); },
-            [&](size_t s) { return wrapper.simplex_texcoords(s); },
+            [&](size_t s) { return wrapper.vflipped_simplex_texcoords(s); },
             res,
             options.dilation_radius,
             false);
@@ -111,7 +112,8 @@ void texture_dilation(
 
     unsigned int num_channels = static_cast<unsigned int>(texture.extent(2));
 
-    auto wrapper = mesh_utils::create_mesh_wrapper(mesh, false, false);
+    auto wrapper =
+        mesh_utils::create_mesh_wrapper(mesh, RequiresIndexedTexcoords::No, CheckFlippedUV::No);
 
     // Copy the texture data into the texture grid
     RegularGrid<K, TexelData> texture_grid;
@@ -135,7 +137,7 @@ void texture_dilation(
 
     // A functor returning the texture triangle in texture-space coordinates
     auto texture_space_simplex = [&](unsigned int si) {
-        Simplex<double, K, K> s = wrapper.simplex_texcoords(si);
+        Simplex<double, K, K> s = wrapper.vflipped_simplex_texcoords(si);
         for (unsigned int k = 0; k <= K; k++) {
             for (unsigned int d = 0; d < K; d++) {
                 s[k][d] *= texture_grid.res(d);
@@ -150,7 +152,7 @@ void texture_dilation(
             wrapper.num_simplices(),
             [&](size_t v) { return wrapper.vertex(v); },
             [&](size_t s) { return wrapper.facet_indices(s); },
-            [&](size_t s) { return wrapper.simplex_texcoords(s); },
+            [&](size_t s) { return wrapper.vflipped_simplex_texcoords(s); },
             texture_grid.res(),
             0,
             false);
@@ -161,7 +163,7 @@ void texture_dilation(
             wrapper.num_simplices(),
             [&](size_t v) { return wrapper.vertex(v); },
             [&](size_t s) { return wrapper.facet_indices(s); },
-            [&](size_t s) { return wrapper.simplex_texcoords(s); },
+            [&](size_t s) { return wrapper.vflipped_simplex_texcoords(s); },
             texture_grid.res(),
             options.dilation_radius,
             false);

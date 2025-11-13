@@ -30,8 +30,7 @@ enum class FacetAllocationStrategy {
     RelativeToNumFacets,
     /// Synchronize simplification between multiple meshes in a scene by computing a conservative
     /// threshold on the QEF error of all edges in the scene. This option gives the best result in
-    /// terms of facet budget allocation, but is a bit slower than other options. This strategy is
-    /// only supported by edge-collapse decimation, and is not available for quadrangulation.
+    /// terms of facet budget allocation, but is a bit slower than other options.
     Synchronized,
 };
 

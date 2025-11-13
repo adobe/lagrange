@@ -39,7 +39,6 @@ int main(int argc, char** argv)
     struct
     {
         fs::path input_scene;
-        fs::path input_cameras;
         fs::path input_texture;
         std::vector<fs::path> input_renders;
         fs::path output_textures = "output_textures.exr";
