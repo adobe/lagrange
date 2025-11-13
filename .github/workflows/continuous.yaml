@@ -206,5 +206,20 @@ jobs:
             -S .
           cmake --build "C:/build" -j ${{ steps.cpu-cores.outputs.count }}
 
+      - name: Run ncdu
+        shell: msys2 {0}
+        if: always()
+        run: |
+          ncdu -0 -o ${{ matrix.config }}-C.json /C
+          ncdu -0 -o ${{ matrix.config }}-D.json /D
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.config }}
+          path: |
+            ${{ matrix.config }}-C.json
+            ${{ matrix.config }}-D.json
+
       - name: Tests
         run: cd "C:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
