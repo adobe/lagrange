@@ -353,6 +353,7 @@ include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)
 include(lagrange_set_sanitizers)
+include(lagrange_tbb_sanitizers)
 include(lagrange_warnings)
 include(lagrange_xcode_check)
 
