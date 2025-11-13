@@ -64,7 +64,9 @@ set_property(CACHE LAGRANGE_CCACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CCACHE_PR
 # Enable sscache if available
 if((LAGRANGE_CCACHE_PROGRAM STREQUAL "sccache") AND SCCACHE_PROGRAM)
     message(STATUS "Using sccache: ${SCCACHE_PROGRAM}")
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+    if(NOT DEFINED CMAKE_MSVC_DEBUG_INFORMATION_FORMAT)
+        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
+    endif()
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER
             ${CMAKE_COMMAND} -E env ${ccacheEnv} ${SCCACHE_PROGRAM}
@@ -79,6 +81,8 @@ if((LAGRANGE_CCACHE_PROGRAM STREQUAL "ccache") AND CCACHE_PROGRAM)
         CCACHE_SLOPPINESS=clang_index_store,include_file_ctime,include_file_mtime,locale,pch_defines,time_macros
     )
     message(STATUS "Using ccache: ${CCACHE_PROGRAM}")
+    # ccache does not yet support /Zi on Windows:
+    # https://github.com/ccache/ccache/issues/1040
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER
