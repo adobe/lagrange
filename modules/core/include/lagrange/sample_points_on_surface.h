@@ -15,6 +15,7 @@
 
 #include <lagrange/common.h>
 #include <lagrange/compute_facet_area.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 
@@ -118,7 +119,8 @@ SamplePointsOnSurfaceOutput<MeshType> sample_points_on_surface(
     // If each point is a disk, what should be the radius of disks to cover  the surface
     // this radius would be the sampling length
     // 1.5 is probably a safety factor
-    const Scalar sampling_length = 1.5 * sqrt((total_mesh_area / (approx_num_points * M_PI)));
+    const Scalar sampling_length =
+        1.5 * sqrt((total_mesh_area / (approx_num_points * lagrange::internal::pi)));
 
     // Find the bounding box of the active facets on the mesh
     BoundingBox bounding_box(n_dims);

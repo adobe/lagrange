@@ -84,7 +84,7 @@ void visit_attribute_write(SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Fun
         if (is_indexed) {                                             \
             func(mesh.template ref_indexed_attribute<ValueType>(id)); \
         } else {                                                      \
-            func(mesh.template ref_attribute<ValueType>(id));       \
+            func(mesh.template ref_attribute<ValueType>(id));         \
         }                                                             \
         break;                                                        \
     }

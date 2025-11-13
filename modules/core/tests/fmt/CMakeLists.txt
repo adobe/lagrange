@@ -36,7 +36,7 @@ option(SPDLOG_INSTALL "Generate the install target" OFF)
 option(SPDLOG_FMT_EXTERNAL "Use external fmt library instead of bundled" ON)
 
 lagrange_find_package(spdlog REQUIRED)
-lagrange_find_package(Eigen3 REQUIRED)
+lagrange_find_package(Eigen3 REQUIRED GLOBAL)
 
 include(CTest)
 

@@ -452,8 +452,9 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points_internal(
 
     // Retrieve input normal attribute buffer
     if (!points.template is_attribute_type<Scalar>(normal_id)) {
-        logger().warn("Input normals do not have the same scalar type as the input points. Casting "
-                      "attribute.");
+        logger().warn(
+            "Input normals do not have the same scalar type as the input points. Casting "
+            "attribute.");
         // TODO: Avoid copying the whole buffer and cast on the fly in the input stream
         normal_id = cast_attribute_in_place<Scalar>(points, normal_id);
     }

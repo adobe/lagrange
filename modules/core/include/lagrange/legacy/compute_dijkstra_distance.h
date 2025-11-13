@@ -23,7 +23,7 @@
 
 namespace lagrange {
 LAGRANGE_LEGACY_INLINE
-namespace legacy {  
+namespace legacy {
 
 
 template <typename MeshType>

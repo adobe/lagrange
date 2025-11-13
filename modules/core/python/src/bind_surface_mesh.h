@@ -11,17 +11,6 @@
  */
 #pragma once
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/array.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/string_view.h>
-#include <nanobind/stl/variant.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 #include "PyAttribute.h"
 
 #include <lagrange/Attribute.h>
@@ -32,11 +21,18 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
+
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <tbb/parallel_for.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange::python {
 
@@ -66,51 +62,115 @@ void bind_surface_mesh(nanobind::module_& m)
 :param vertex: vertex coordinates)");
 
     // Handy overload to take python list as argument.
-    surface_mesh_class.def("add_vertex", [](MeshType& self, nb::list b) {
-        la_runtime_assert(static_cast<Index>(b.size()) == self.get_dimension());
-        if (self.get_dimension() == 3) {
-            self.add_vertex(
-                {nb::cast<Scalar>(b[0]), nb::cast<Scalar>(b[1]), nb::cast<Scalar>(b[2])});
-        } else if (self.get_dimension() == 2) {
-            self.add_vertex({nb::cast<Scalar>(b[0]), nb::cast<Scalar>(b[1])});
-        } else {
-            throw std::runtime_error("Dimension mismatch in vertex tensor");
-        }
-    });
+    surface_mesh_class.def(
+        "add_vertex",
+        [](MeshType& self, nb::list b) {
+            la_runtime_assert(static_cast<Index>(b.size()) == self.get_dimension());
+            if (self.get_dimension() == 3) {
+                self.add_vertex(
+                    {nb::cast<Scalar>(b[0]), nb::cast<Scalar>(b[1]), nb::cast<Scalar>(b[2])});
+            } else if (self.get_dimension() == 2) {
+                self.add_vertex({nb::cast<Scalar>(b[0]), nb::cast<Scalar>(b[1])});
+            } else {
+                throw std::runtime_error("Dimension mismatch in vertex tensor");
+            }
+        },
+        "vertex"_a,
+        R"(Add a vertex to the mesh.
 
-    surface_mesh_class.def("add_vertices", [](MeshType& self, Tensor<Scalar> b) {
-        auto [data, shape, stride] = tensor_to_span(b);
-        la_runtime_assert(is_dense(shape, stride));
-        la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
-        self.add_vertices(static_cast<Index>(shape[0]), data);
-    });
+:param vertex: vertex coordinates as a list)");
+
+    surface_mesh_class.def(
+        "add_vertices",
+        [](MeshType& self, Tensor<Scalar> b) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
+            self.add_vertices(static_cast<Index>(shape[0]), data);
+        },
+        "vertices"_a,
+        R"(Add multiple vertices to the mesh.
+
+:param vertices: N x D tensor of vertex coordinates, where N is the number of vertices and D is the dimension)");
 
     // TODO: combine all add facet functions into `add_facets`.
-    surface_mesh_class.def("add_triangle", &MeshType::add_triangle);
-    surface_mesh_class.def("add_triangles", [](MeshType& self, Tensor<Index> b) {
-        auto [data, shape, stride] = tensor_to_span(b);
-        la_runtime_assert(is_dense(shape, stride));
-        la_runtime_assert(check_shape(shape, invalid<size_t>(), 3));
-        self.add_triangles(static_cast<Index>(shape[0]), data);
-    });
-    surface_mesh_class.def("add_quad", &MeshType::add_quad);
-    surface_mesh_class.def("add_quads", [](MeshType& self, Tensor<Index> b) {
-        auto [data, shape, stride] = tensor_to_span(b);
-        la_runtime_assert(is_dense(shape, stride));
-        la_runtime_assert(check_shape(shape, invalid<size_t>(), 4));
-        self.add_quads(static_cast<Index>(shape[0]), data);
-    });
-    surface_mesh_class.def("add_polygon", [](MeshType& self, Tensor<Index> b) {
-        auto [data, shape, stride] = tensor_to_span(b);
-        la_runtime_assert(is_dense(shape, stride));
-        la_runtime_assert(is_vector(shape));
-        self.add_polygon(data);
-    });
-    surface_mesh_class.def("add_polygons", [](MeshType& self, Tensor<Index> b) {
-        auto [data, shape, stride] = tensor_to_span(b);
-        la_runtime_assert(is_dense(shape, stride));
-        self.add_polygons(static_cast<Index>(shape[0]), static_cast<Index>(shape[1]), data);
-    });
+    surface_mesh_class.def(
+        "add_triangle",
+        &MeshType::add_triangle,
+        "v0"_a,
+        "v1"_a,
+        "v2"_a,
+        R"(Add a triangle to the mesh.
+
+:param v0: first vertex index
+:param v1: second vertex index
+:param v2: third vertex index
+
+:returns: facet index of the added triangle)");
+    surface_mesh_class.def(
+        "add_triangles",
+        [](MeshType& self, Tensor<Index> b) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            la_runtime_assert(check_shape(shape, invalid<size_t>(), 3));
+            self.add_triangles(static_cast<Index>(shape[0]), data);
+        },
+        "triangles"_a,
+        R"(Add multiple triangles to the mesh.
+
+:param triangles: N x 3 tensor of vertex indices, where N is the number of triangles)");
+    surface_mesh_class.def(
+        "add_quad",
+        &MeshType::add_quad,
+        "v0"_a,
+        "v1"_a,
+        "v2"_a,
+        "v3"_a,
+        R"(Add a quad to the mesh.
+
+:param v0: first vertex index
+:param v1: second vertex index
+:param v2: third vertex index
+:param v3: fourth vertex index
+
+:returns: facet index of the added quad)");
+    surface_mesh_class.def(
+        "add_quads",
+        [](MeshType& self, Tensor<Index> b) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            la_runtime_assert(check_shape(shape, invalid<size_t>(), 4));
+            self.add_quads(static_cast<Index>(shape[0]), data);
+        },
+        "quads"_a,
+        R"(Add multiple quads to the mesh.
+
+:param quads: N x 4 tensor of vertex indices, where N is the number of quads)");
+    surface_mesh_class.def(
+        "add_polygon",
+        [](MeshType& self, Tensor<Index> b) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            la_runtime_assert(is_vector(shape));
+            self.add_polygon(data);
+        },
+        "vertices"_a,
+        R"(Add a polygon to the mesh.
+
+:param vertices: 1D tensor of vertex indices defining the polygon
+
+:returns: facet index of the added polygon)");
+    surface_mesh_class.def(
+        "add_polygons",
+        [](MeshType& self, Tensor<Index> b) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            self.add_polygons(static_cast<Index>(shape[0]), static_cast<Index>(shape[1]), data);
+        },
+        "polygons"_a,
+        R"(Add multiple regular polygons to the mesh.
+
+:param polygons: N x K tensor of vertex indices, where N is the number of polygons and K is the number of vertices per polygon)");
     surface_mesh_class.def(
         "add_hybrid",
         [](MeshType& self, Tensor<Index> sizes, Tensor<Index> indices) {
@@ -123,13 +183,25 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(is_vector(index_shape));
 
             self.add_hybrid(size_data, index_data);
-        });
-    surface_mesh_class.def("remove_vertices", [](MeshType& self, Tensor<Index> b) {
-        auto [data, shape, stride] = tensor_to_span(b);
-        la_runtime_assert(is_dense(shape, stride));
-        la_runtime_assert(is_vector(shape));
-        self.remove_vertices(data);
-    });
+        },
+        "sizes"_a,
+        "indices"_a,
+        R"(Add hybrid facets (polygons with varying number of vertices) to the mesh.
+
+:param sizes: 1D tensor specifying the number of vertices for each facet
+:param indices: 1D tensor of vertex indices for all facets concatenated together)");
+    surface_mesh_class.def(
+        "remove_vertices",
+        [](MeshType& self, Tensor<Index> b) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            la_runtime_assert(is_vector(shape));
+            self.remove_vertices(data);
+        },
+        "vertices"_a,
+        R"(Remove selected vertices from the mesh.
+
+:param vertices: 1D tensor of vertex indices to remove)");
     surface_mesh_class.def(
         "remove_vertices",
         [](MeshType& self, nb::list b) {
@@ -143,12 +215,18 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Remove selected vertices from the mesh.
 
 :param vertices: list of vertex indices to remove)");
-    surface_mesh_class.def("remove_facets", [](MeshType& self, Tensor<Index> b) {
-        auto [data, shape, stride] = tensor_to_span(b);
-        la_runtime_assert(is_dense(shape, stride));
-        la_runtime_assert(is_vector(shape));
-        self.remove_facets(data);
-    });
+    surface_mesh_class.def(
+        "remove_facets",
+        [](MeshType& self, Tensor<Index> b) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            la_runtime_assert(is_vector(shape));
+            self.remove_facets(data);
+        },
+        "facets"_a,
+        R"(Remove selected facets from the mesh.
+
+:param facets: 1D tensor of facet indices to remove)");
     surface_mesh_class.def(
         "remove_facets",
         [](MeshType& self, nb::list b) {
@@ -162,10 +240,24 @@ void bind_surface_mesh(nanobind::module_& m)
         R"(Remove selected facets from the mesh.
 
 :param facets: list of facet indices to remove)");
-    surface_mesh_class.def("clear_vertices", &MeshType::clear_vertices);
-    surface_mesh_class.def("clear_facets", &MeshType::clear_facets);
-    surface_mesh_class.def("shrink_to_fit", &MeshType::shrink_to_fit);
-    surface_mesh_class.def("compress_if_regular", &MeshType::compress_if_regular);
+    surface_mesh_class.def(
+        "clear_vertices",
+        &MeshType::clear_vertices,
+        R"(Remove all vertices from the mesh.)");
+    surface_mesh_class.def(
+        "clear_facets",
+        &MeshType::clear_facets,
+        R"(Remove all facets from the mesh.)");
+    surface_mesh_class.def(
+        "shrink_to_fit",
+        &MeshType::shrink_to_fit,
+        R"(Shrink the internal storage to fit the current mesh size.)");
+    surface_mesh_class.def(
+        "compress_if_regular",
+        &MeshType::compress_if_regular,
+        R"(Compress the mesh representation if it is regular (all facets have the same number of vertices).
+
+:returns: True if the mesh was compressed, False otherwise)");
     surface_mesh_class.def_prop_ro("is_triangle_mesh", &MeshType::is_triangle_mesh);
     surface_mesh_class.def_prop_ro("is_quad_mesh", &MeshType::is_quad_mesh);
     surface_mesh_class.def_prop_ro("is_regular", &MeshType::is_regular);
@@ -176,26 +268,124 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def_prop_ro("num_facets", &MeshType::get_num_facets);
     surface_mesh_class.def_prop_ro("num_corners", &MeshType::get_num_corners);
     surface_mesh_class.def_prop_ro("num_edges", &MeshType::get_num_edges);
-    surface_mesh_class.def("get_position", [](MeshType& self, Index i) {
-        return span_to_tensor(self.get_position(i), nb::find(&self));
-    });
-    surface_mesh_class.def("ref_position", [](MeshType& self, Index i) {
-        return span_to_tensor(self.ref_position(i), nb::find(&self));
-    });
-    surface_mesh_class.def("get_facet_size", &MeshType::get_facet_size);
-    surface_mesh_class.def("get_facet_vertex", &MeshType::get_facet_vertex);
-    surface_mesh_class.def("get_facet_corner_begin", &MeshType::get_facet_corner_begin);
-    surface_mesh_class.def("get_facet_corner_end", &MeshType::get_facet_corner_end);
-    surface_mesh_class.def("get_corner_vertex", &MeshType::get_corner_vertex);
-    surface_mesh_class.def("get_corner_facet", &MeshType::get_corner_facet);
-    surface_mesh_class.def("get_facet_vertices", [](MeshType& self, Index f) {
-        return span_to_tensor(self.get_facet_vertices(f), nb::find(&self));
-    });
-    surface_mesh_class.def("ref_facet_vertices", [](MeshType& self, Index f) {
-        return span_to_tensor(self.ref_facet_vertices(f), nb::find(&self));
-    });
-    surface_mesh_class.def("get_attribute_id", &MeshType::get_attribute_id);
-    surface_mesh_class.def("get_attribute_name", &MeshType::get_attribute_name);
+    surface_mesh_class.def(
+        "get_position",
+        [](MeshType& self, Index i) {
+            return span_to_tensor(self.get_position(i), nb::find(&self));
+        },
+        "vertex_id"_a,
+        R"(Get the position of a vertex.
+
+:param vertex_id: vertex index
+
+:returns: position coordinates as a tensor)");
+    surface_mesh_class.def(
+        "ref_position",
+        [](MeshType& self, Index i) {
+            return span_to_tensor(self.ref_position(i), nb::find(&self));
+        },
+        "vertex_id"_a,
+        R"(Get a mutable reference to the position of a vertex.
+
+:param vertex_id: vertex index
+
+:returns: mutable position coordinates as a tensor)");
+    surface_mesh_class.def(
+        "get_facet_size",
+        &MeshType::get_facet_size,
+        "facet_id"_a,
+        R"(Get the number of vertices in a facet.
+
+:param facet_id: facet index
+
+:returns: number of vertices in the facet)");
+    surface_mesh_class.def(
+        "get_facet_vertex",
+        &MeshType::get_facet_vertex,
+        "facet_id"_a,
+        "local_vertex_id"_a,
+        R"(Get a vertex index from a facet.
+
+:param facet_id: facet index
+:param local_vertex_id: local vertex index within the facet (0 to facet_size-1)
+
+:returns: global vertex index)");
+    surface_mesh_class.def(
+        "get_facet_corner_begin",
+        &MeshType::get_facet_corner_begin,
+        "facet_id"_a,
+        R"(Get the first corner index of a facet.
+
+:param facet_id: facet index
+
+:returns: first corner index of the facet)");
+    surface_mesh_class.def(
+        "get_facet_corner_end",
+        &MeshType::get_facet_corner_end,
+        "facet_id"_a,
+        R"(Get the end corner index of a facet (one past the last corner).
+
+:param facet_id: facet index
+
+:returns: end corner index of the facet)");
+    surface_mesh_class.def(
+        "get_corner_vertex",
+        &MeshType::get_corner_vertex,
+        "corner_id"_a,
+        R"(Get the vertex index associated with a corner.
+
+:param corner_id: corner index
+
+:returns: vertex index)");
+    surface_mesh_class.def(
+        "get_corner_facet",
+        &MeshType::get_corner_facet,
+        "corner_id"_a,
+        R"(Get the facet index associated with a corner.
+
+:param corner_id: corner index
+
+:returns: facet index)");
+    surface_mesh_class.def(
+        "get_facet_vertices",
+        [](MeshType& self, Index f) {
+            return span_to_tensor(self.get_facet_vertices(f), nb::find(&self));
+        },
+        "facet_id"_a,
+        R"(Get all vertex indices of a facet.
+
+:param facet_id: facet index
+
+:returns: vertex indices as a tensor)");
+    surface_mesh_class.def(
+        "ref_facet_vertices",
+        [](MeshType& self, Index f) {
+            return span_to_tensor(self.ref_facet_vertices(f), nb::find(&self));
+        },
+        "facet_id"_a,
+        R"(Get a mutable reference to all vertex indices of a facet.
+
+:param facet_id: facet index
+
+:returns: mutable vertex indices as a tensor)");
+    surface_mesh_class.def(
+        "get_attribute_id",
+        &MeshType::get_attribute_id,
+        "name"_a,
+        R"(Get the attribute ID by name.
+
+:param name: attribute name
+
+:returns: attribute ID)");
+    surface_mesh_class.def(
+        "get_attribute_name",
+        &MeshType::get_attribute_name,
+        "id"_a,
+        R"(Get the attribute name by ID.
+
+:param id: attribute ID
+
+:returns: attribute name)");
     surface_mesh_class.def(
         "create_attribute",
         [](MeshType& self,
@@ -263,10 +453,10 @@ void bind_surface_mesh(nanobind::module_& m)
                         Index num_rows = invalid<Index>();
                         if (initial_values.index() == 1) {
                             const auto& values = std::get<GenericTensor>(initial_values);
-                            num_rows = values.shape(0);
+                            num_rows = static_cast<Index>(values.shape(0));
                         } else if (initial_values.index() == 2) {
                             const auto& values = std::get<nb::list>(initial_values);
-                            num_rows = nb::len(values);
+                            num_rows = static_cast<Index>(nb::len(values));
                         }
                         la_debug_assert(num_rows != invalid<Index>());
 
@@ -498,7 +688,7 @@ void bind_surface_mesh(nanobind::module_& m)
             "initial_values: typing.Union[numpy.typing.NDArray, typing.List[float], None] = None, "
             "initial_indices: typing.Union[numpy.typing.NDArray, typing.List[int], None] = None, "
             "num_channels: typing.Optional[int] = None, "
-            "dtype: typing.Optional[numpy.typing.DTypeLike] = None) -> AttributeId"),
+            "dtype: typing.Optional[numpy.typing.DTypeLike] = None) -> int"),
         R"(Create an attribute.
 
 :param name: Name of the attribute.
@@ -653,34 +843,76 @@ void bind_surface_mesh(nanobind::module_& m)
 :param indices: Indices of the attribute.
 
 :returns: The id of the created attribute.)");
-    surface_mesh_class.def("duplicate_attribute", &MeshType::duplicate_attribute);
-    surface_mesh_class.def("rename_attribute", &MeshType::rename_attribute);
+    surface_mesh_class.def(
+        "duplicate_attribute",
+        &MeshType::duplicate_attribute,
+        "old_name"_a,
+        "new_name"_a,
+        R"(Duplicate an attribute with a new name.
+
+:param old_name: name of the attribute to duplicate
+:param new_name: name for the new attribute
+
+:returns: attribute ID of the duplicated attribute)");
+    surface_mesh_class.def(
+        "rename_attribute",
+        &MeshType::rename_attribute,
+        "old_name"_a,
+        "new_name"_a,
+        R"(Rename an attribute.
+
+:param old_name: current name of the attribute
+:param new_name: new name for the attribute)");
+
     surface_mesh_class.def(
         "delete_attribute",
-        &MeshType::delete_attribute,
+        [](MeshType& self, std::string_view name, AttributeDeletePolicy policy) {
+            self.delete_attribute(name, policy);
+        },
         "name"_a,
-        "policy"_a /*= AttributeDeletePolicy::ErrorIfReserved*/);
-    surface_mesh_class.def(
-        "delete_attribute",
-        [](MeshType& self, std::string_view name) { self.delete_attribute(name); },
-        "name"_a,
+        "policy"_a = AttributeDeletePolicy::ErrorIfReserved,
         R"(Delete an attribute by name.
 
-:param name: Name of the attribute.)");
+:param name: Name of the attribute.
+:param policy: Deletion policy for reserved attributes.)");
     surface_mesh_class.def(
         "delete_attribute",
-        [](MeshType& self, AttributeId id) { self.delete_attribute(self.get_attribute_name(id)); },
+        [](MeshType& self, AttributeId id, AttributeDeletePolicy policy) {
+            self.delete_attribute(id, policy);
+        },
         "id"_a,
+        "policy"_a = AttributeDeletePolicy::ErrorIfReserved,
         R"(Delete an attribute by id.
 
-:param id: Id of the attribute.)");
-    surface_mesh_class.def("has_attribute", &MeshType::has_attribute);
+:param id: Id of the attribute.
+:param policy: Deletion policy for reserved attributes.)");
+    surface_mesh_class.def(
+        "has_attribute",
+        &MeshType::has_attribute,
+        "name"_a,
+        R"(Check if an attribute exists.
+
+:param name: attribute name
+
+:returns: True if the attribute exists, False otherwise)");
     surface_mesh_class.def(
         "is_attribute_indexed",
-        static_cast<bool (MeshType::*)(AttributeId) const>(&MeshType::is_attribute_indexed));
+        static_cast<bool (MeshType::*)(AttributeId) const>(&MeshType::is_attribute_indexed),
+        "id"_a,
+        R"(Check if an attribute is indexed.
+
+:param id: attribute ID
+
+:returns: True if the attribute is indexed, False otherwise)");
     surface_mesh_class.def(
         "is_attribute_indexed",
-        static_cast<bool (MeshType::*)(std::string_view) const>(&MeshType::is_attribute_indexed));
+        static_cast<bool (MeshType::*)(std::string_view) const>(&MeshType::is_attribute_indexed),
+        "name"_a,
+        R"(Check if an attribute is indexed.
+
+:param name: attribute name
+
+:returns: True if the attribute is indexed, False otherwise)");
 
     // This is a helper method for trigger copy-on-write mechanism for a given attribute.
     auto ensure_attribute_is_not_shared = [](MeshType& mesh, AttributeId id) {
@@ -777,10 +1009,18 @@ void bind_surface_mesh(nanobind::module_& m)
 :param sharing: Whether to allow sharing the attribute with other meshes.
 
 :returns: The indexed attribute.)");
-    surface_mesh_class.def("__attribute_ref_count__", [](MeshType& self, AttributeId id) {
-        auto ptr = self._get_attribute_ptr(id);
-        return ptr.use_count();
-    });
+    surface_mesh_class.def(
+        "__attribute_ref_count__",
+        [](MeshType& self, AttributeId id) {
+            auto ptr = self._get_attribute_ptr(id);
+            return ptr.use_count();
+        },
+        "id"_a,
+        R"(Get the reference count of an attribute (for debugging purposes).
+
+:param id: attribute ID
+
+:returns: reference count of the attribute)");
     surface_mesh_class.def_prop_rw(
         "vertices",
         [](const MeshType& self) {
@@ -831,6 +1071,23 @@ void bind_surface_mesh(nanobind::module_& m)
             attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
         },
         "Facets of the mesh.");
+    surface_mesh_class.def_prop_ro(
+        "edges",
+        [](MeshType& self) {
+            self.initialize_edges();
+            auto num_edges = self.get_num_edges();
+            std::vector<Index> data(num_edges * 2);
+            tbb::parallel_for(Index{0}, num_edges, [&](Index i) {
+                auto [v0, v1] = self.get_edge_vertices(i);
+                data[i * 2] = v0;
+                data[i * 2 + 1] = v1;
+            });
+            nb::ndarray<Index, nb::shape<-1, 2>, nb::numpy, nb::c_contig, nb::device::cpu> edges(
+                data.data(),
+                {static_cast<size_t>(num_edges), 2});
+            return edges.cast();
+        },
+        "Edges of the mesh.");
     surface_mesh_class.def(
         "wrap_as_vertices",
         [](MeshType& self, Tensor<Scalar> tensor, Index num_vertices) {
@@ -915,7 +1172,15 @@ void bind_surface_mesh(nanobind::module_& m)
 :param num_corners: Number of corners.
 
 :return: The id of the wrapped facet attribute.)");
-    surface_mesh_class.def_static("attr_name_is_reserved", &MeshType::attr_name_is_reserved);
+    surface_mesh_class.def_static(
+        "attr_name_is_reserved",
+        &MeshType::attr_name_is_reserved,
+        "name"_a,
+        R"(Check if an attribute name is reserved.
+
+:param name: attribute name to check
+
+:returns: True if the name is reserved, False otherwise)");
     surface_mesh_class.def_prop_ro_static(
         "attr_name_vertex_to_position",
         [](nb::handle) { return MeshType::attr_name_vertex_to_position(); },
@@ -994,26 +1259,105 @@ The `edges` tensor provides a predefined ordering of the edges.
 If not provided, the edges are initialized in an arbitrary order.
 
 :param edges: M x 2 tensor of predefined edge vertex indices, where M is the number of edges.)");
-    surface_mesh_class.def("clear_edges", &MeshType::clear_edges);
+    surface_mesh_class.def(
+        "clear_edges",
+        &MeshType::clear_edges,
+        R"(Clear all edge connectivity information.)");
     surface_mesh_class.def_prop_ro("has_edges", &MeshType::has_edges);
-    surface_mesh_class.def("get_edge", &MeshType::get_edge);
-    surface_mesh_class.def("get_corner_edge", &MeshType::get_corner_edge);
-    surface_mesh_class.def("get_edge_vertices", &MeshType::get_edge_vertices);
-    surface_mesh_class.def("find_edge_from_vertices", &MeshType::find_edge_from_vertices);
-    surface_mesh_class.def("get_first_corner_around_edge", &MeshType::get_first_corner_around_edge);
-    surface_mesh_class.def("get_next_corner_around_edge", &MeshType::get_next_corner_around_edge);
+    surface_mesh_class.def(
+        "get_edge",
+        &MeshType::get_edge,
+        "facet_id"_a,
+        "lv"_a,
+        R"(Get the edge index associated with a local vertex of a facet.
+
+:param facet_id: facet index
+:param lv: local vertex index of the facet
+
+:returns: edge index)");
+    surface_mesh_class.def(
+        "get_corner_edge",
+        &MeshType::get_corner_edge,
+        "corner_id"_a,
+        R"(Get the edge index associated with a corner.
+
+:param corner_id: corner index
+
+:returns: edge index)");
+    surface_mesh_class.def(
+        "get_edge_vertices",
+        &MeshType::get_edge_vertices,
+        "edge_id"_a,
+        R"(Get the two vertex indices of an edge.
+
+:param edge_id: edge index
+
+:returns: tuple of (vertex1_id, vertex2_id))");
+    surface_mesh_class.def(
+        "find_edge_from_vertices",
+        &MeshType::find_edge_from_vertices,
+        "vertex1_id"_a,
+        "vertex2_id"_a,
+        R"(Find the edge connecting two vertices.
+
+:param vertex1_id: first vertex index
+:param vertex2_id: second vertex index
+
+:returns: edge index, or invalid_index if no such edge exists)");
+    surface_mesh_class.def(
+        "get_first_corner_around_edge",
+        &MeshType::get_first_corner_around_edge,
+        "edge_id"_a,
+        R"(Get the first corner around an edge.
+
+:param edge_id: edge index
+
+:returns: first corner index around the edge)");
+    surface_mesh_class.def(
+        "get_next_corner_around_edge",
+        &MeshType::get_next_corner_around_edge,
+        "corner_id"_a,
+        R"(Get the next corner around the same edge.
+
+:param corner_id: current corner index
+
+:returns: next corner index around the same edge)");
     surface_mesh_class.def(
         "get_first_corner_around_vertex",
-        &MeshType::get_first_corner_around_vertex);
+        &MeshType::get_first_corner_around_vertex,
+        "vertex_id"_a,
+        R"(Get the first corner around a vertex.
+
+:param vertex_id: vertex index
+
+:returns: first corner index around the vertex)");
     surface_mesh_class.def(
         "get_next_corner_around_vertex",
-        &MeshType::get_next_corner_around_vertex);
+        &MeshType::get_next_corner_around_vertex,
+        "corner_id"_a,
+        R"(Get the next corner around the same vertex.
+
+:param corner_id: current corner index
+
+:returns: next corner index around the same vertex)");
     surface_mesh_class.def(
         "count_num_corners_around_edge",
-        &MeshType::count_num_corners_around_edge);
+        &MeshType::count_num_corners_around_edge,
+        "edge_id"_a,
+        R"(Count the number of corners around an edge.
+
+:param edge_id: edge index
+
+:returns: number of corners around the edge)");
     surface_mesh_class.def(
         "count_num_corners_around_vertex",
-        &MeshType::count_num_corners_around_vertex);
+        &MeshType::count_num_corners_around_vertex,
+        "vertex_id"_a,
+        R"(Count the number of corners around a vertex.
+
+:param vertex_id: vertex index
+
+:returns: number of corners around the vertex)");
     surface_mesh_class.def(
         "get_counterclockwise_corner_around_vertex",
         &MeshType::get_counterclockwise_corner_around_vertex,
@@ -1046,10 +1390,42 @@ If not provided, the edges are initialized in an arbitrary order.
 :param corner: The input corner index.
 
 :returns: The clockwise corner index or `invalid_index` if none exists.)");
-    surface_mesh_class.def("get_one_facet_around_edge", &MeshType::get_one_facet_around_edge);
-    surface_mesh_class.def("get_one_corner_around_edge", &MeshType::get_one_corner_around_edge);
-    surface_mesh_class.def("get_one_corner_around_vertex", &MeshType::get_one_corner_around_vertex);
-    surface_mesh_class.def("is_boundary_edge", &MeshType::is_boundary_edge);
+    surface_mesh_class.def(
+        "get_one_facet_around_edge",
+        &MeshType::get_one_facet_around_edge,
+        "edge_id"_a,
+        R"(Get one facet adjacent to an edge.
+
+:param edge_id: edge index
+
+:returns: facet index adjacent to the edge)");
+    surface_mesh_class.def(
+        "get_one_corner_around_edge",
+        &MeshType::get_one_corner_around_edge,
+        "edge_id"_a,
+        R"(Get one corner around an edge.
+
+:param edge_id: edge index
+
+:returns: corner index around the edge)");
+    surface_mesh_class.def(
+        "get_one_corner_around_vertex",
+        &MeshType::get_one_corner_around_vertex,
+        "vertex_id"_a,
+        R"(Get one corner around a vertex.
+
+:param vertex_id: vertex index
+
+:returns: corner index around the vertex)");
+    surface_mesh_class.def(
+        "is_boundary_edge",
+        &MeshType::is_boundary_edge,
+        "edge_id"_a,
+        R"(Check if an edge is on the boundary.
+
+:param edge_id: edge index
+
+:returns: True if the edge is on the boundary, False otherwise)");
 
     struct MetaData
     {

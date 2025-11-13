@@ -27,7 +27,7 @@
 
 namespace {
 
-template<typename Derived>
+template <typename Derived>
 auto center_and_radius(const Eigen::MatrixBase<Derived>& v)
 {
     using Scalar = typename Derived::Scalar;
@@ -38,7 +38,7 @@ auto center_and_radius(const Eigen::MatrixBase<Derived>& v)
     return std::make_pair(center, radius);
 }
 
-template<typename Derived>
+template <typename Derived>
 double spherical_deviation(const Eigen::MatrixBase<Derived>& v)
 {
     auto [center, radius] = center_and_radius(v);
@@ -50,7 +50,7 @@ double spherical_deviation(const Eigen::MatrixBase<Derived>& v)
     return std::sqrt(s / v.rows());
 }
 
-template<typename Derived>
+template <typename Derived>
 void normalize(Eigen::MatrixBase<Derived>& v)
 {
     auto [center, radius] = center_and_radius(v);
@@ -69,7 +69,8 @@ TEST_CASE("Mesh Smoothing", "[filtering]")
 
     // Check that multiple runs give similar results
     {
-        auto mesh1 = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/bunny_simple.obj");
+        auto mesh1 =
+            lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/bunny_simple.obj");
         auto mesh2 = mesh1;
 
         lagrange::filtering::mesh_smoothing(mesh1, smoothing_options);
@@ -82,6 +83,7 @@ TEST_CASE("Mesh Smoothing", "[filtering]")
             REQUIRE((v1 - v2).lpNorm<Eigen::Infinity>() < 1e-8);
         }
         REQUIRE(facet_view(mesh1) == facet_view(mesh2));
+        // TODO: fuzzy comparison
         // REQUIRE(vertex_view(mesh1) == vertex_view(mesh2));
     }
 

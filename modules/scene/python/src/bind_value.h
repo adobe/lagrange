@@ -12,15 +12,8 @@
 #pragma once
 
 #include <lagrange/Logger.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/scene/SceneExtension.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/variant.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 NAMESPACE_BEGIN(NB_NAMESPACE)
 NAMESPACE_BEGIN(detail)
@@ -28,7 +21,7 @@ NAMESPACE_BEGIN(detail)
 template <>
 struct type_caster<lagrange::scene::Value>
 {
-    NB_TYPE_CASTER(lagrange::scene::Value, const_name("Value"))
+    NB_TYPE_CASTER(lagrange::scene::Value, const_name("int | float | str | list | dict | bool"));
 
     template <typename T>
     bool try_cast(const handle& src, uint8_t flags, cleanup_list* cleanup)
@@ -155,4 +148,3 @@ struct type_caster<lagrange::scene::Value>
 
 NAMESPACE_END(detail)
 NAMESPACE_END(NB_NAMESPACE)
-

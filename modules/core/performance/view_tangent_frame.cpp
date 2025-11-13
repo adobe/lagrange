@@ -14,6 +14,7 @@
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_tangent_bitangent.h>
 #include <lagrange/compute_vertex_normal.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/ui/UI.h>
 #include <lagrange/utils/timing.h>
@@ -53,7 +54,7 @@ int main(int argc, char* argv[])
     const double EPS = 1e-3;
     timer.tick();
     lagrange::logger().info("Computing indexed normals");
-    lagrange::compute_normal(*mesh, M_PI * 0.5 - EPS);
+    lagrange::compute_normal(*mesh, lagrange::internal::pi * 0.5 - EPS);
     lagrange::logger().info("Computing tangent frame");
     timer.tock("compute indexed normals");
 

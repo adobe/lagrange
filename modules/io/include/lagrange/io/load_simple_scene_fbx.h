@@ -11,9 +11,9 @@
  */
 #pragma once
 
-#include <lagrange/scene/SimpleScene.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
+#include <lagrange/scene/SimpleScene.h>
 
 #include <iosfwd>
 
@@ -21,10 +21,10 @@ namespace lagrange::io {
 
 /**
  * Load a simple scene from fbx.
- * 
+ *
  * @param[in] filename input file
  * @param[in] options
- * 
+ *
  * @return  scene
  */
 template <typename SceneType>
@@ -32,10 +32,10 @@ SceneType load_simple_scene_fbx(std::istream& input_stream, const LoadOptions& o
 
 /**
  * Load a simple scene from fbx.
- * 
+ *
  * @param[in] filename input file
  * @param[in] options
- * 
+ *
  * @return  scene
  */
 template <typename SceneType>

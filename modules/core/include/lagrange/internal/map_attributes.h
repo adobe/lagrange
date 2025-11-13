@@ -52,7 +52,7 @@ struct MapAttributesOptions
 ///                             target element `i`.
 /// @param options              Option settings.
 ///
-/// @see `MapAttributesOptions`.
+/// @see @ref MapAttributesOptions
 ///
 template <AttributeElement element, typename Scalar, typename Index>
 void map_attributes(

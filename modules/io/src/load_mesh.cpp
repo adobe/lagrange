@@ -21,6 +21,7 @@
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_mesh_ply.h>
 #include <lagrange/io/load_mesh_stl.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/strings.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
@@ -47,11 +48,10 @@ MeshType load_mesh(std::istream& input_stream, const LoadOptions& options)
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_mesh_assimp<MeshType>(input_stream, options);
 #else
-        throw std::runtime_error("Unsupported format.");
+        throw Error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
 #endif
     }
 }
-
 
 template <
     typename MeshType,
@@ -75,8 +75,7 @@ MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_mesh_assimp<MeshType>(filename, options);
 #else
-        throw std::runtime_error(
-            "Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
+        throw Error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
 #endif
     }
 }

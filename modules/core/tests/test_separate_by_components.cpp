@@ -83,4 +83,3 @@ TEST_CASE("separate_by_components benchmark", "[core][utilities][component][!ben
     };
 #endif
 }
-

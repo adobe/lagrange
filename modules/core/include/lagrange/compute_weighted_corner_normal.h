@@ -35,6 +35,9 @@ struct CornerNormalOptions
 
     /// Per-vertex normal averaging weighting type.
     NormalWeightingType weight_type = NormalWeightingType::Uniform;
+
+    /// Tolerance for degenerate edge check. (only used to bypass degenerate edges in polygon facets)
+    float distance_tolerance = 0.0f;
 };
 
 /**
@@ -54,7 +57,7 @@ struct CornerNormalOptions
  * @note       Corner normals around a given vertex could be different even when the vertex is at a
  *             smooth region.  For computing smooth normal, use @ref compute_normal instead.
  *
- * @see        `CornerNormalOptions`, `compute_normal`.
+ * @see        @ref CornerNormalOptions, @ref compute_normal
  */
 template <typename Scalar, typename Index>
 AttributeId compute_weighted_corner_normal(

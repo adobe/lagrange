@@ -51,4 +51,3 @@ void main(){
     fragColor.a = 1.0;
 
 }
-

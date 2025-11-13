@@ -371,9 +371,10 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options)
     SceneType lscene;
     lscene.name = scene.mName.C_Str();
     for (unsigned int i = 0; i < scene.mNumMeshes; ++i) {
-        lscene.add(convert_mesh_assimp_to_lagrange<typename SceneType::MeshType>(
-            *scene.mMeshes[i],
-            options));
+        lscene.add(
+            convert_mesh_assimp_to_lagrange<typename SceneType::MeshType>(
+                *scene.mMeshes[i],
+                options));
     }
 
     // note that assimp's textures are really images.
@@ -442,7 +443,7 @@ SceneType load_scene_assimp(const aiScene& scene, const LoadOptions& options)
     };
     auto try_load_texture =
         [&](const aiMaterial* material, aiTextureType type, scene::TextureInfo& tex_info) -> bool {
-        if (tex_info.index != invalid<scene::ElementId>())
+        if (tex_info.index != scene::invalid_element)
             return false; // there was a texture here already
 
         aiString path;

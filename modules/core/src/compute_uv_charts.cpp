@@ -14,8 +14,8 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_components.h>
 #include <lagrange/compute_uv_charts.h>
-#include <lagrange/uv_mesh.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/uv_mesh.h>
 
 namespace lagrange {
 

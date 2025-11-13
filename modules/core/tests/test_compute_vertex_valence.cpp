@@ -96,7 +96,10 @@ TEST_CASE("compute_vertex_valence benchmark", "[surface][attribute][utilities][!
     using Index = uint32_t;
 
     auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
-    BENCHMARK("compute_vertex_valence") { return compute_vertex_valence(mesh); };
+    BENCHMARK("compute_vertex_valence")
+    {
+        return compute_vertex_valence(mesh);
+    };
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     using MeshType = TriangleMesh3D;

@@ -37,7 +37,7 @@ void remove_topologically_degenerate_facets(SurfaceMesh<Scalar, Index>& mesh)
     mesh.remove_facets(is_topologically_degenerate);
 }
 
-#define LA_X_remove_topologically_degenerate_facets(_, Scalar, Index)    \
+#define LA_X_remove_topologically_degenerate_facets(_, Scalar, Index)                \
     template LA_CORE_API void remove_topologically_degenerate_facets<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&);
 LA_SURFACE_MESH_X(remove_topologically_degenerate_facets, 0)

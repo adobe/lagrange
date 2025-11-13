@@ -56,8 +56,8 @@ struct RemapVerticesOptions
  *   * If two vertices are mapped to the same index, they will be merged based on the collision
  *     policy specified in `options`.
  *
- * @see `permute_vertices` for simply permuting the vertex order.
- * @see `RemapVerticesOptions`.
+ * @see @ref permute_vertices for simply permuting the vertex order.
+ * @see @ref RemapVerticesOptions
  */
 template <typename Scalar, typename Index>
 void remap_vertices(

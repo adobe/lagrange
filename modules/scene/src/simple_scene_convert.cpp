@@ -50,22 +50,23 @@ SurfaceMesh<Scalar, Index> simple_scene_to_mesh(
     meshes.reserve(scene.compute_num_instances());
 
     scene.foreach_instances([&](const auto& instance) {
-        meshes.emplace_back(transformed_mesh<Scalar, Index>(
-            scene.get_mesh(instance.mesh_index),
-            instance.transform,
-            transform_options));
+        meshes.emplace_back(
+            transformed_mesh<Scalar, Index>(
+                scene.get_mesh(instance.mesh_index),
+                instance.transform,
+                transform_options));
     });
     return combine_meshes<Scalar, Index>(meshes, preserve_attributes);
 }
 
-#define LA_X_simple_scene_convert(_, Scalar, Index, Dimension)             \
+#define LA_X_simple_scene_convert(_, Scalar, Index, Dimension)                          \
     template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> mesh_to_simple_scene(   \
-        SurfaceMesh<Scalar, Index> mesh);                                  \
+        SurfaceMesh<Scalar, Index> mesh);                                               \
     template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene( \
-        std::vector<SurfaceMesh<Scalar, Index>> meshes);                   \
+        std::vector<SurfaceMesh<Scalar, Index>> meshes);                                \
     template LA_SCENE_API SurfaceMesh<Scalar, Index> simple_scene_to_mesh(              \
-        const SimpleScene<Scalar, Index, Dimension>& scene,                \
-        const TransformOptions& transform_options,                         \
+        const SimpleScene<Scalar, Index, Dimension>& scene,                             \
+        const TransformOptions& transform_options,                                      \
         bool preserve_attributes);
 LA_SIMPLE_SCENE_X(simple_scene_convert, 0)
 

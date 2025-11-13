@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/internal/constants.h>
+
 #include <Eigen/Core>
 
 #include <algorithm>
@@ -148,10 +150,10 @@ public:
     {
         // static float tau = 0.5f;
         //tau += (1.25f + (float)rand() / RAND_MAX);
-        std::uniform_real_distribution<float> dist(0.f, 2.f * M_PI);
+        std::uniform_real_distribution<float> dist(0.f, 2.f * lagrange::internal::pi);
         float tau = dist(urbg);
 
-        const float value = static_cast<float>(M_PI) / 3.0f;
+        const float value = static_cast<float>(lagrange::internal::pi) / 3.0f;
 
         float center = 0.3f; // magic numbers!
         float width = 0.3f;
@@ -166,7 +168,7 @@ public:
     static const Color random(int i)
     {
         float tau = (float)i;
-        float value = (float)M_PI / 3;
+        float value = (float)lagrange::internal::pi / 3;
         float center = 0.3f;
         float width = 0.3f;
         return Color(

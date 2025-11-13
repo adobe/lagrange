@@ -9,12 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/raycasting/project_particles_directional.h>
 
 #include <lagrange/testing/common.h>
-#include <catch2/benchmark/catch_benchmark.hpp>
 #include <atomic>
+#include <catch2/benchmark/catch_benchmark.hpp>
 #include <random>
 
 TEST_CASE("project_particle_directional", "[raycasting]")
@@ -116,7 +117,8 @@ TEST_CASE("project_particle_directional", "[raycasting]")
         Matrix4 trans =
             Affine3(
                 Translation3(box_center_x, 0.0, 0.0) *
-                Rotation3(static_cast<Scalar>(M_PI_4), Vector3::UnitY()) * Scaling(box_size))
+                Rotation3(static_cast<Scalar>(lagrange::internal::pi_4), Vector3::UnitY()) *
+                Scaling(box_size))
                 .matrix();
 
         dynamic_ray_caster->add_mesh(cube, trans);
@@ -135,7 +137,8 @@ TEST_CASE("project_particle_directional", "[raycasting]")
         REQUIRE(test_normals_output.size() == 4);
 
         auto rot_posi_45 =
-            Rotation3(static_cast<Scalar>(M_PI_4), -Vector3::UnitY()).toRotationMatrix();
+            Rotation3(static_cast<Scalar>(lagrange::internal::pi_4), -Vector3::UnitY())
+                .toRotationMatrix();
         auto rot_neg_45 = rot_posi_45.transpose();
 
         ParticleDataType expected_normals = {

@@ -118,12 +118,11 @@ function(lagrange_populate_runtime_dependencies target)
         # Instruction to copy target file if it exists
         string(APPEND COPY_SCRIPT_CONTENT
             "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
-            "    message(\"Copying dll file: $<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
-            "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different "
-                "\"$<TARGET_FILE:${DEPENDENCY}>\" "
-                "\"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
+            "    message(\"Copying dll file: $<TARGET_FILE_NAME:${DEPENDENCY}> for target ${target}\")\n"
+            "    file(MAKE_DIRECTORY \"$<TARGET_FILE_DIR:${target}>\")\n"
+            "    file(COPY_FILE \"$<TARGET_FILE:${DEPENDENCY}>\" \"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\" ONLY_IF_DIFFERENT INPUT_MAY_BE_RECENT)\n"
             "    if(NOT EXISTS \"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
-            "        message(FATAL_ERROR \"Failed to copy dll file: $<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
+            "        message(FATAL_ERROR \"Failed to copy dll file: $<TARGET_FILE_NAME:${DEPENDENCY}> for target ${target}. Target folder: $<TARGET_FILE_DIR:${target}>\")\n"
             "    endif()\n"
             "endif()\n"
         )
@@ -136,24 +135,18 @@ function(lagrange_populate_runtime_dependencies target)
                 list(GET resourceFile 0 resourceSrc)
                 list(GET resourceFile 1 resourceDst)
                 string(REPLACE "lib/" "" resourceDst "${resourceDst}")
-                get_filename_component(resourceDir resourceDst DIRECTORY)
+                cmake_path(GET resourceDst PARENT_PATH resourceDir)
                 string(APPEND COPY_SCRIPT_CONTENT
                     "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
-                    "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E make_directory "
-                        "\"$<TARGET_FILE_DIR:${target}>/${resourceDir}\")\n"
-                    "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different "
-                        "\"${resourceSrc}\" "
-                        "\"$<TARGET_FILE_DIR:${target}>/${resourceDst}\")\n"
+                    "    file(MAKE_DIRECTORY \"$<TARGET_FILE_DIR:${target}>/${resourceDir}\")\n"
+                    "    file(COPY_FILE \"${resourceSrc}\" \"$<TARGET_FILE_DIR:${target}>/${resourceDst}\" ONLY_IF_DIFFERENT INPUT_MAY_BE_RECENT)\n"
                     "endif()\n"
                 )
             endforeach()
             string(APPEND COPY_SCRIPT_CONTENT
                 "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
-                "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E make_directory "
-                    "\"$<TARGET_FILE_DIR:${target}>/usd\")\n"
-                "    execute_process(COMMAND \"${CMAKE_COMMAND}\" -E copy_if_different "
-                    "\"${usd_BINARY_DIR}/usd_plugInfo.json\" "
-                    "\"$<TARGET_FILE_DIR:${target}>/usd/plugInfo.json\")\n"
+                "    file(MAKE_DIRECTORY \"$<TARGET_FILE_DIR:${target}>/usd\")\n"
+                "    file(COPY_FILE \"${usd_BINARY_DIR}/usd_plugInfo.json\" \"$<TARGET_FILE_DIR:${target}>/usd/plugInfo.json\" ONLY_IF_DIFFERENT INPUT_MAY_BE_RECENT)\n"
                 "endif()\n"
             )
         endif()

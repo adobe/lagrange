@@ -16,11 +16,7 @@
 
 namespace lagrange {
 
-enum class Orientation : short {
-    Positive = 1,
-    Zero = 0,
-    Negative = -1
-};
+enum class Orientation : short { Positive = 1, Zero = 0, Negative = -1 };
 
 /**
  * Compute orientation of a 2D triangle.
@@ -33,10 +29,8 @@ enum class Orientation : short {
  *          `Orientation::Zero` if the triangle is degenerate.
  */
 template <typename Scalar>
-Orientation triangle_orientation(
-    span<const Scalar, 2> a,
-    span<const Scalar, 2> b,
-    span<const Scalar, 2> c)
+Orientation
+triangle_orientation(span<const Scalar, 2> a, span<const Scalar, 2> b, span<const Scalar, 2> c)
 {
     const ExactPredicatesShewchuk predicates;
     if constexpr (std::is_same_v<Scalar, double>) {

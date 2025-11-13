@@ -10,26 +10,15 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/filtering/mesh_smoothing.h>
 #include <lagrange/filtering/attribute_smoothing.h>
+#include <lagrange/filtering/mesh_smoothing.h>
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
-
-#include <lagrange/python/setup_mkl.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/eigen/dense.h>
-#include <nanobind/stl/array.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string_view.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 namespace lagrange::python {
 
@@ -38,8 +27,6 @@ using namespace nb::literals;
 
 void populate_filtering_module(nb::module_& m)
 {
-    setup_mkl();
-
     using Scalar = double;
     using Index = uint32_t;
 
@@ -112,7 +99,7 @@ void populate_filtering_module(nb::module_& m)
         "normal_smoothing_weight"_a = AttributeOptions().normal_smoothing_weight,
         "gradient_weight"_a = AttributeOptions().gradient_weight,
         "gradient_modulation_scale"_a = AttributeOptions().gradient_modulation_scale,
-        R"(Smooths a scalar attribute on a surface mesh.
+        R"(Smooths a (multi-channel) scalar attribute on a surface mesh.
 
 :param mesh: Input mesh.
 :param attribute_name: The name of the scalar vertex attribute to smooth. If empty, all attributes with scalar usage and vertex element type will be smoothed.

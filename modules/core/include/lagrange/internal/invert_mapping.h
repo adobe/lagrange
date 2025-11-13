@@ -28,6 +28,8 @@ namespace lagrange::internal {
 ///
 /// @tparam     Index  Mapping index type.
 ///
+/// @todo       Write iterator helpers to facilitate iterating over mapped data.
+///
 template <typename Index>
 struct InverseMapping
 {
@@ -36,6 +38,26 @@ struct InverseMapping
 
     /// An array of `data` offset indices. It is of size `num_target_elements + 1`.
     std::vector<Index> offsets;
+
+    /// Iterate over all source elements mapped to target element `i`.
+    template <typename Func>
+    void foreach_mapped_to(Index i, Func&& func) const
+    {
+        la_debug_assert(i >= 0 && i < static_cast<Index>(offsets.size() - 1));
+        for (Index j = offsets[i]; j < offsets[i + 1]; ++j) {
+            func(data[j]);
+        }
+    }
+
+    /// Iterate over all source elements mapped to target element `i`.
+    template <typename Func>
+    void foreach_mapped_to(Index i, Func&& func)
+    {
+        la_debug_assert(i >= 0 && i < static_cast<Index>(offsets.size() - 1));
+        for (Index j = offsets[i]; j < offsets[i + 1]; ++j) {
+            func(data[j]);
+        }
+    }
 };
 
 ///

@@ -22,7 +22,7 @@ index bed04116..9b30385d 100644
 -      return cout << "Line" << M << "i {" << line.v0 << ", " << line.geomID() << ", " << line.primID() << "}";
 +      // return cout << "Line" << M << "i {" << line.v0 << ", " << line.geomID() << ", " << line.primID() << "}";
      }
- 
+
     public:
 diff --git i/kernels/subdiv/bezier_curve.h w/kernels/subdiv/bezier_curve.h
 index a5adad5c..892f1410 100644
@@ -30,10 +30,10 @@ index a5adad5c..892f1410 100644
 +++ w/kernels/subdiv/bezier_curve.h
 @@ -135,7 +135,7 @@ namespace embree
        }
-       
+
        friend embree_ostream operator<<(embree_ostream cout, const QuadraticBezierCurve& a) {
 -        return cout << "QuadraticBezierCurve ( (" << a.u.lower << ", " << a.u.upper << "), " << a.v0 << ", " << a.v1 << ", " << a.v2 << ")";
 +        // return cout << "QuadraticBezierCurve ( (" << a.u.lower << ", " << a.u.upper << "), " << a.v0 << ", " << a.v1 << ", " << a.v2 << ")";
        }
      };
-   
+

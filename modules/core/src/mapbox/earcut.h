@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
 #include <limits>
 #include <memory>
 #include <utility>
@@ -47,16 +48,16 @@ private:
     struct Node
     {
         Node(N index, double x_, double y_)
-            : i(index)
-            , x(x_)
+            : x(x_)
             , y(y_)
+            , i(index)
+            , steiner(0)
         {}
         Node(const Node&) = delete;
         Node& operator=(const Node&) = delete;
         Node(Node&&) = delete;
         Node& operator=(Node&&) = delete;
 
-        const N i;
         const double x;
         const double y;
 
@@ -67,12 +68,41 @@ private:
         // z-order curve value
         int32_t z = 0;
 
+        // original index in polygon
+        const N i : (sizeof(N) * 8 - 1);
+
+        // indicates whether this is a steiner point
+        N steiner : 1;
+
         // previous and next nodes in z-order
         Node* prevZ = nullptr;
         Node* nextZ = nullptr;
+    };
 
-        // indicates whether this is a steiner point
-        bool steiner = false;
+    // Cache-optimized Triangle structure for repeated geometric tests
+    struct Triangle
+    {
+        const double ax, ay;
+        const double bx, by;
+        const double cx, cy;
+
+        Triangle(const Node* a, const Node* b, const Node* c)
+            : ax(a->x)
+            , ay(a->y)
+            , bx(b->x)
+            , by(b->y)
+            , cx(c->x)
+            , cy(c->y)
+        {}
+
+        inline double area() const { return (by - ay) * (cx - bx) - (bx - ax) * (cy - by); }
+
+        inline bool containsPoint(double px, double py) const
+        {
+            return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
+                   (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
+                   (bx - px) * (cy - py) >= (cx - px) * (by - py);
+        }
     };
 
     template <typename Ring>
@@ -124,42 +154,90 @@ private:
     class ObjectPool
     {
     public:
-        ObjectPool() {}
-        ObjectPool(std::size_t blockSize_) { reset(blockSize_); }
+        ObjectPool() { allocateNewBlock(256); }
+        ObjectPool(std::size_t blockSize_)
+            : baseBlockSize(blockSize_)
+        {
+            allocateNewBlock(std::max<std::size_t>(blockSize_, 256));
+        }
         ~ObjectPool() { clear(); }
         template <typename... Args>
         T* construct(Args&&... args)
         {
-            if (currentIndex >= blockSize) {
-                currentBlock = alloc_traits::allocate(alloc, blockSize);
-                allocations.emplace_back(currentBlock);
-                currentIndex = 0;
+            // If current block is full, move to next block or allocate new one
+            if (currentIndex >= baseBlockSize) {
+                currentBlockIndex++;
+                if (currentBlockIndex < memoryBlocks.size()) {
+                    // Reuse existing block
+                    currentIndex = 0;
+                } else {
+                    // Allocate a new one
+                    allocateNewBlock(baseBlockSize);
+                }
             }
-            T* object = &currentBlock[currentIndex++];
+
+            T* object = memoryBlocks[currentBlockIndex].get() + currentIndex;
             alloc_traits::construct(alloc, object, std::forward<Args>(args)...);
+            totalObjects++;
+            currentIndex++;
             return object;
         }
-        void reset(std::size_t newBlockSize)
+        void reset() { clear(); }
+        void clear()
         {
-            for (auto allocation : allocations) {
-                alloc_traits::deallocate(alloc, allocation, blockSize);
+            // Destroy all objects, but keep blocks allocated for reuse
+            std::size_t objectsDestroyed = 0;
+            for (std::size_t blockIdx = 0;
+                 blockIdx < memoryBlocks.size() && objectsDestroyed < totalObjects;
+                 ++blockIdx) {
+                // check if we are in the last block
+                std::size_t objectsInThisBlock =
+                    std::min(baseBlockSize, totalObjects - objectsDestroyed);
+                for (std::size_t i = 0; i < objectsInThisBlock; ++i) {
+                    T* object = memoryBlocks[blockIdx].get() + i;
+                    alloc_traits::destroy(alloc, object);
+                }
+                objectsDestroyed += objectsInThisBlock;
             }
-            allocations.clear();
-            blockSize = std::max<std::size_t>(1, newBlockSize);
-            currentBlock = nullptr;
-            currentIndex = blockSize;
+            // Reset to start from first block again
+            currentBlockIndex = 0;
+            currentIndex = 0;
+            totalObjects = 0;
         }
-        void clear() { reset(blockSize); }
 
     private:
-        T* currentBlock = nullptr;
-        std::size_t currentIndex = 1;
-        std::size_t blockSize = 1;
-        std::vector<T*> allocations;
         Alloc alloc;
         typedef typename std::allocator_traits<Alloc> alloc_traits;
+
+        // Custom deleter that uses the allocator
+        struct AllocDeleter
+        {
+            Alloc alloc;
+            std::size_t capacity;
+            void operator()(T* ptr) { alloc_traits::deallocate(alloc, ptr, capacity); }
+        };
+
+        std::vector<std::unique_ptr<T[], AllocDeleter>> memoryBlocks;
+        std::vector<std::size_t> blockCapacities;
+        std::size_t currentBlockIndex = 0;
+        std::size_t currentIndex = 0;
+        std::size_t totalObjects = 0;
+        std::size_t baseBlockSize = 256;
+
+        void allocateNewBlock(std::size_t capacity)
+        {
+            T* rawMemory = alloc_traits::allocate(alloc, capacity);
+            auto newBlock =
+                std::unique_ptr<T[], AllocDeleter>(rawMemory, AllocDeleter{alloc, capacity});
+            memoryBlocks.push_back(std::move(newBlock));
+            blockCapacities.push_back(capacity);
+            currentBlockIndex = memoryBlocks.size() - 1;
+            currentIndex = 0;
+        }
     };
-    ObjectPool<Node> nodes;
+
+    std::unique_ptr<ObjectPool<Node>> nodes;
+    std::vector<Node*> holeQueue;
 };
 
 template <typename N>
@@ -183,7 +261,10 @@ void Earcut<N>::operator()(const Polygon& points)
     }
 
     // estimate size of nodes and indices
-    nodes.reset(len * 3 / 2);
+    if (!nodes) {
+        std::size_t estimatedNodes = len * 3 / 2;
+        nodes = std::make_unique<ObjectPool<Node>>(std::max<std::size_t>(estimatedNodes, 256));
+    }
     indices.reserve(len + points[0].size());
 
     Node* outerNode = linkedList(points[0], true);
@@ -207,15 +288,16 @@ void Earcut<N>::operator()(const Polygon& points)
             p = p->next;
         } while (p != outerNode);
 
-        // minX, minY and size are later used to transform coords into integers for z-order
+        // minX, minY and inv_size are later used to transform coords into integers for z-order
         // calculation
         inv_size = std::max<double>(maxX - minX, maxY - minY);
-        inv_size = inv_size != .0 ? (1. / inv_size) : .0;
+        inv_size = inv_size != .0 ? (32767. / inv_size) : .0;
     }
 
     earcutLinked(outerNode);
 
-    nodes.clear();
+    nodes->clear();
+    holeQueue.clear();
 }
 
 // create a circular doubly linked list from polygon points in the specified winding order
@@ -296,7 +378,6 @@ void Earcut<N>::earcutLinked(Node* ear, int pass)
     Node* prev;
     Node* next;
 
-
     // iterate through ears, slicing them one by one
     while (ear->prev != ear->next) {
         prev = ear->prev;
@@ -346,15 +427,15 @@ bool Earcut<N>::isEar(Node* ear)
     const Node* b = ear;
     const Node* c = ear->next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+    // Create triangle with cached coordinates and bounding box
+    const Triangle tri(a, b, c);
+    if (tri.area() >= 0) return false; // reflex, can't be an ear
 
     // now make sure we don't have other points inside the potential ear
     Node* p = ear->next->next;
 
     while (p != ear->prev) {
-        if (pointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) &&
-            area(p->prev, p, p->next) >= 0)
-            return false;
+        if (tri.containsPoint(p->x, p->y) && area(p->prev, p, p->next) >= 0) return false;
         p = p->next;
     }
 
@@ -368,13 +449,15 @@ bool Earcut<N>::isEarHashed(Node* ear)
     const Node* b = ear;
     const Node* c = ear->next;
 
-    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+    // Create triangle with cached coordinates and bounding box
+    const Triangle tri(a, b, c);
+    if (tri.area() >= 0) return false; // reflex, can't be an ear
 
     // triangle bbox; min & max are calculated like this for speed
-    const double minTX = std::min<double>(a->x, std::min<double>(b->x, c->x));
-    const double minTY = std::min<double>(a->y, std::min<double>(b->y, c->y));
-    const double maxTX = std::max<double>(a->x, std::max<double>(b->x, c->x));
-    const double maxTY = std::max<double>(a->y, std::max<double>(b->y, c->y));
+    const double minTX = std::min<double>(tri.ax, std::min<double>(tri.bx, tri.cx));
+    const double minTY = std::min<double>(tri.ay, std::min<double>(tri.by, tri.cy));
+    const double maxTX = std::max<double>(tri.ax, std::max<double>(tri.bx, tri.cx));
+    const double maxTY = std::max<double>(tri.ay, std::max<double>(tri.by, tri.cy));
 
     // z-order range for the current triangle bbox;
     const int32_t minZ = zOrder(minTX, minTY);
@@ -384,8 +467,7 @@ bool Earcut<N>::isEarHashed(Node* ear)
     Node* p = ear->nextZ;
 
     while (p && p->z <= maxZ) {
-        if (p != ear->prev && p != ear->next &&
-            pointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) &&
+        if (p != ear->prev && p != ear->next && tri.containsPoint(p->x, p->y) &&
             area(p->prev, p, p->next) >= 0)
             return false;
         p = p->nextZ;
@@ -395,8 +477,7 @@ bool Earcut<N>::isEarHashed(Node* ear)
     p = ear->prevZ;
 
     while (p && p->z >= minZ) {
-        if (p != ear->prev && p != ear->next &&
-            pointInTriangle(a->x, a->y, b->x, b->y, c->x, c->y, p->x, p->y) &&
+        if (p != ear->prev && p != ear->next && tri.containsPoint(p->x, p->y) &&
             area(p->prev, p, p->next) >= 0)
             return false;
         p = p->prevZ;
@@ -468,20 +549,21 @@ typename Earcut<N>::Node* Earcut<N>::eliminateHoles(const Polygon& points, Node*
 {
     const size_t len = points.size();
 
-    std::vector<Node*> queue;
+    holeQueue.clear();
     for (size_t i = 1; i < len; i++) {
         Node* list = linkedList(points[i], false);
         if (list) {
             if (list == list->next) list->steiner = true;
-            queue.push_back(getLeftmost(list));
+            holeQueue.push_back(getLeftmost(list));
         }
     }
-    std::sort(queue.begin(), queue.end(), [](const Node* a, const Node* b) { return a->x < b->x; });
+    std::sort(holeQueue.begin(), holeQueue.end(), [](const Node* a, const Node* b) {
+        return a->x < b->x;
+    });
 
     // process holes from left to right
-    for (size_t i = 0; i < queue.size(); i++) {
-        outerNode = eliminateHole(queue[i], outerNode);
-        outerNode = filterPoints(outerNode, outerNode->next);
+    for (size_t i = 0; i < holeQueue.size(); i++) {
+        outerNode = eliminateHole(holeQueue[i], outerNode);
     }
 
     return outerNode;
@@ -499,11 +581,10 @@ typename Earcut<N>::Node* Earcut<N>::eliminateHole(Node* hole, Node* outerNode)
     Node* bridgeReverse = splitPolygon(bridge, hole);
 
     // filter collinear points around the cuts
-    Node* filteredBridge = filterPoints(bridge, bridge->next);
     filterPoints(bridgeReverse, bridgeReverse->next);
 
     // Check if input node was removed by the filtering
-    return outerNode == bridge ? filteredBridge : outerNode;
+    return filterPoints(bridge, bridge->next);
 }
 
 // David Eberly's algorithm for finding a bridge between hole and outer polygon
@@ -523,19 +604,14 @@ typename Earcut<N>::Node* Earcut<N>::findHoleBridge(Node* hole, Node* outerNode)
             double x = p->x + (hy - p->y) * (p->next->x - p->x) / (p->next->y - p->y);
             if (x <= hx && x > qx) {
                 qx = x;
-                if (x == hx) {
-                    if (hy == p->y) return p;
-                    if (hy == p->next->y) return p->next;
-                }
                 m = p->x < p->next->x ? p : p->next;
+                if (x == hx) return m; // hole touches outer segment; pick leftmost endpoint
             }
         }
         p = p->next;
     } while (p != outerNode);
 
     if (!m) return 0;
-
-    if (hx == qx) return m; // hole touches outer segment; pick leftmost endpoint
 
     // look for points inside the triangle of hole Vertex, segment intersection and endpoint;
     // if there are no points found, we have a valid connection;
@@ -670,8 +746,8 @@ template <typename N>
 int32_t Earcut<N>::zOrder(const double x_, const double y_)
 {
     // coords are transformed into non-negative 15-bit integer range
-    int32_t x = static_cast<int32_t>(32767.0 * (x_ - minX) * inv_size);
-    int32_t y = static_cast<int32_t>(32767.0 * (y_ - minY) * inv_size);
+    int32_t x = static_cast<int32_t>((x_ - minX) * inv_size);
+    int32_t y = static_cast<int32_t>((y_ - minY) * inv_size);
 
     x = (x | (x << 8)) & 0x00FF00FF;
     x = (x | (x << 4)) & 0x0F0F0F0F;
@@ -712,9 +788,9 @@ bool Earcut<N>::pointInTriangle(
     double px,
     double py) const
 {
-    return (cx - px) * (ay - py) - (ax - px) * (cy - py) >= 0 &&
-           (ax - px) * (by - py) - (bx - px) * (ay - py) >= 0 &&
-           (bx - px) * (cy - py) - (cx - px) * (by - py) >= 0;
+    return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
+           (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
+           (bx - px) * (cy - py) >= (cx - px) * (by - py);
 }
 
 // check if a diagonal between two polygon nodes is valid (lies in polygon interior)
@@ -828,8 +904,8 @@ bool Earcut<N>::middleInside(const Node* a, const Node* b)
 template <typename N>
 typename Earcut<N>::Node* Earcut<N>::splitPolygon(Node* a, Node* b)
 {
-    Node* a2 = nodes.construct(a->i, a->x, a->y);
-    Node* b2 = nodes.construct(b->i, b->x, b->y);
+    Node* a2 = nodes->construct(a->i, a->x, a->y);
+    Node* b2 = nodes->construct(b->i, b->x, b->y);
     Node* an = a->next;
     Node* bp = b->prev;
 
@@ -853,7 +929,7 @@ template <typename N>
 template <typename Point>
 typename Earcut<N>::Node* Earcut<N>::insertNode(std::size_t i, const Point& pt, Node* last)
 {
-    Node* p = nodes.construct(
+    Node* p = nodes->construct(
         static_cast<N>(i),
         util::nth<0, Point>::get(pt),
         util::nth<1, Point>::get(pt));
@@ -890,6 +966,5 @@ std::vector<N> earcut(const Polygon& poly)
     earcut(poly);
     return std::move(earcut.indices);
 }
-
 } // namespace mapbox
 } // namespace lagrange

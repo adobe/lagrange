@@ -10,15 +10,6 @@
  * governing permissions and limitations under the License.
  */
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
-#include <lagrange/AttributeTypes.h>
-#include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/python/core.h>
 #include "bind_attribute.h"
 #include "bind_enum.h"
 #include "bind_indexed_attribute.h"
@@ -26,6 +17,10 @@
 #include "bind_surface_mesh.h"
 #include "bind_utilities.h"
 #include "logging.h"
+
+#include <lagrange/AttributeTypes.h>
+#include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/python/core.h>
 
 namespace lagrange::python {
 

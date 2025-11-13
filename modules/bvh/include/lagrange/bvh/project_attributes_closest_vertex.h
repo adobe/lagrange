@@ -42,9 +42,9 @@ namespace bvh {
 ///
 template <typename SourceMeshType, typename TargetMeshType>
 void project_attributes_closest_vertex(
-    const SourceMeshType &source,
-    TargetMeshType &target,
-    const std::vector<std::string> &names,
+    const SourceMeshType& source,
+    TargetMeshType& target,
+    const std::vector<std::string>& names,
     std::function<bool(IndexOf<TargetMeshType>)> skip_vertex = nullptr)
 {
     static_assert(MeshTrait<SourceMeshType>::is_mesh(), "Input type is not Mesh");
@@ -60,10 +60,10 @@ void project_attributes_closest_vertex(
     engine->build(source.get_vertices());
 
     // Store pointer to source/target arrays
-    std::vector<const SourceArray *> source_attrs(names.size());
+    std::vector<const SourceArray*> source_attrs(names.size());
     std::vector<TargetArray> target_attrs(names.size());
     for (size_t k = 0; k < names.size(); ++k) {
-        const auto &name = names[k];
+        const auto& name = names[k];
         la_runtime_assert(source.has_vertex_attribute(name));
         source_attrs[k] = &source.get_vertex_attribute(name);
         if (target.has_vertex_attribute(name)) {
@@ -87,7 +87,7 @@ void project_attributes_closest_vertex(
     // Not super pretty way, we still need to separately add/create the attribute,
     // THEN import it without copy. Would be better if we could get a ref to it.
     for (size_t k = 0; k < names.size(); ++k) {
-        const auto &name = names[k];
+        const auto& name = names[k];
         target.add_vertex_attribute(name);
         target.import_vertex_attribute(name, target_attrs[k]);
     }

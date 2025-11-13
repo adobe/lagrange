@@ -45,4 +45,4 @@ void save_scene_gltf(
     const scene::Scene<Scalar, Index>& scene,
     const SaveOptions& options = {});
 
-}
+} // namespace lagrange::io

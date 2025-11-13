@@ -210,9 +210,7 @@ RowMatrixView<ValueType> attribute_matrix_ref(
 /// @return     An Eigen::Map wrapping the attribute data.
 ///
 template <typename ValueType, typename Scalar, typename Index>
-RowMatrixView<ValueType> attribute_matrix_ref(
-    SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id);
+RowMatrixView<ValueType> attribute_matrix_ref(SurfaceMesh<Scalar, Index>& mesh, AttributeId id);
 
 ///
 /// Returns a read-only view of a mesh attribute in the form of an Eigen matrix.
@@ -262,9 +260,7 @@ ConstRowMatrixView<ValueType> attribute_matrix_view(
 /// @return     An Eigen::Map wrapping the attribute data.
 ///
 template <typename ValueType, typename Scalar, typename Index>
-VectorView<ValueType> attribute_vector_ref(
-    SurfaceMesh<Scalar, Index>& mesh,
-    std::string_view name);
+VectorView<ValueType> attribute_vector_ref(SurfaceMesh<Scalar, Index>& mesh, std::string_view name);
 
 ///
 /// Returns a writable view of a mesh attribute in the form of an Eigen vector. The attribute must
@@ -280,9 +276,7 @@ VectorView<ValueType> attribute_vector_ref(
 /// @return     An Eigen::Map wrapping the attribute data.
 ///
 template <typename ValueType, typename Scalar, typename Index>
-VectorView<ValueType> attribute_vector_ref(
-    SurfaceMesh<Scalar, Index>& mesh,
-    AttributeId id);
+VectorView<ValueType> attribute_vector_ref(SurfaceMesh<Scalar, Index>& mesh, AttributeId id);
 
 ///
 /// Returns a read-only view of a mesh attribute in the form of an Eigen vector. The attribute must

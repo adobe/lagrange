@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/internal/SafeVector.h>
 #include <lagrange/scene/api.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -32,9 +33,10 @@ namespace scene {
 class LA_SCENE_API Value
 {
 public:
-    typedef std::vector<Value> Array;
-    typedef std::map<std::string, Value> Object;
-    typedef std::vector<unsigned char> Buffer;
+    using Array = std::vector<Value>;
+    // using Array = SafeVector<Value>; // TODO: Switch to this?
+    using Object = std::map<std::string, Value>;
+    using Buffer = std::vector<unsigned char>;
     using variant_type = std::variant<bool, int, double, std::string, Buffer, Array, Object>;
 
     /**

@@ -46,8 +46,7 @@ void save_mesh_msh(
  * @param[in]  mesh      Mesh to write.
  * @param[in]  options   Save options.
  *
- * @see        save_mesh_msh(std::ostream&, const SurfaceMesh<S, I>&, const MshOptions&) for more
- *             info.
+ * @see        @ref save_mesh_msh
  *
  * @tparam     Scalar    Mesh scalar type.
  * @tparam     Index     Mesh index type.

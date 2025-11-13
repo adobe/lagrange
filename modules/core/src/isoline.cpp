@@ -35,6 +35,13 @@ enum class Sign {
     Outside,
 };
 
+template <typename Index>
+struct LocalDataT
+{
+    std::vector<Index> corners_with_crossing;
+    std::vector<StackVector<Index, 4>> new_facets;
+};
+
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> isoline_internal(
     SurfaceMesh<Scalar, Index> mesh,
@@ -122,11 +129,7 @@ SurfaceMesh<Scalar, Index> isoline_internal(
     std::vector<Index> repr_to_new_vertex(mesh.get_num_corners(), invalid<Index>());
     DisjointSets<Index> repr_corner(mesh.get_num_corners());
 
-    struct LocalData
-    {
-        std::vector<Index> corners_with_crossing;
-        std::vector<StackVector<Index, 4>> new_facets;
-    };
+    using LocalData = LocalDataT<Index>;
     tbb::enumerable_thread_specific<LocalData> data;
 
     // First pass to assign new vertex ids to corners with isocrossing
@@ -153,15 +156,17 @@ SurfaceMesh<Scalar, Index> isoline_internal(
             if (c == repr_corner.find(c)) {
                 auto it = new_vertex_to_provoking_corner.push_back(c);
                 repr_to_new_vertex[c] =
-                    num_vertices + (it - new_vertex_to_provoking_corner.begin());
+                    num_vertices + static_cast<Index>(it - new_vertex_to_provoking_corner.begin());
             }
         }
     });
 
     // Second pass to compute new vertex positions
-    result.add_vertices(static_cast<Index>(new_vertex_to_provoking_corner.size()), [&](Index v, span<Scalar> pos) {
-        interpolate_position(new_vertex_to_provoking_corner[v], pos);
-    });
+    result.add_vertices(
+        static_cast<Index>(new_vertex_to_provoking_corner.size()),
+        [&](Index v, span<Scalar> pos) {
+            interpolate_position(new_vertex_to_provoking_corner[v], pos);
+        });
 
     // Interpolate vertex attributes for new vertices
     // TODO:
@@ -281,9 +286,10 @@ SurfaceMesh<Scalar, Index> isoline_internal(
         using ValueType = typename AttributeType::ValueType;
         if (!(attr.get_element_type() == AttributeElement::Vertex ||
               attr.get_element_type() == AttributeElement::Indexed)) {
-            throw Error(fmt::format(
-                "Isoline attribute element type should be Vertex or Indexed, not {}",
-                internal::to_string(attr.get_element_type())));
+            throw Error(
+                fmt::format(
+                    "Isoline attribute element type should be Vertex or Indexed, not {}",
+                    internal::to_string(attr.get_element_type())));
         }
         if constexpr (AttributeType::IsIndexed) {
             if constexpr (std::is_same_v<ValueType, double>) {

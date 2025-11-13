@@ -12,11 +12,13 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/io/api.h>
+#include <lagrange/io/internal/detect_file_format.h>
 #include <lagrange/io/load_simple_scene.h>
 #include <lagrange/io/load_simple_scene_fbx.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/strings.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
@@ -37,14 +39,33 @@ SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_simple_scene_assimp<SceneType>(filename, options);
 #else
-        logger().error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON.");
+        throw Error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
 #endif
     }
     return SceneType();
 }
+
+template <typename SceneType>
+SceneType load_simple_scene(std::istream& input_stream, const LoadOptions& options)
+{
+    switch (internal::detect_file_format(input_stream)) {
+    case FileFormat::Gltf: return load_simple_scene_gltf<SceneType>(input_stream, options);
+    case FileFormat::Fbx: return load_simple_scene_fbx<SceneType>(input_stream, options);
+    default:
+#ifdef LAGRANGE_WITH_ASSIMP
+        return load_simple_scene_assimp<SceneType>(input_stream, options);
+#else
+        throw Error("Unsupported format. You may want to compile with LAGRANGE_WITH_ASSIMP=ON");
+#endif
+    }
+}
+
 #define LA_X_load_simple_scene(_, S, I, D)                            \
     template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene( \
         const fs::path& filename,                                     \
+        const LoadOptions& options);                                  \
+    template LA_IO_API scene::SimpleScene<S, I, D> load_simple_scene( \
+        std::istream& input_stream,                                   \
         const LoadOptions& options);
 LA_SIMPLE_SCENE_X(load_simple_scene, 0);
 

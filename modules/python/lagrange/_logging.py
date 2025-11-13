@@ -10,7 +10,7 @@
 # governing permissions and limitations under the License.
 #
 import logging
-import colorama
+import colorama  # type: ignore
 import platform
 
 if platform.system() == "Windows":

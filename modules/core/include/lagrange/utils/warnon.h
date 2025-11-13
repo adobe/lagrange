@@ -10,9 +10,9 @@
  * governing permissions and limitations under the License.
  */
 #if defined(__GNUC__)
-#pragma GCC diagnostic pop
+    #pragma GCC diagnostic pop
 #elif defined(__clang__)
-#pragma clang diagnostic pop
+    #pragma clang diagnostic pop
 #elif defined(_MSC_VER)
-#pragma warning(pop)
+    #pragma warning(pop)
 #endif

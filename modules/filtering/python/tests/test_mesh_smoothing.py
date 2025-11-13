@@ -18,6 +18,7 @@ import logging
 
 from .assets import cube
 
+
 class TestMeshSmoothing:
     def test_cube(self, cube):
         assert cube.num_vertices == 8

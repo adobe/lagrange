@@ -30,14 +30,36 @@ namespace lagrange {
 struct WeldOptions
 {
     /// If set, values whose relative difference (in L-inf norm) is less than epsilon are merged
-    /// together. If no absolute precision is set, a default absolute precision is used. Otherwise
-    /// both are used together.
+    /// together. If not set, default to `Eigen::NumTraits<ValueType>::dummy_precision()`.
     std::optional<double> epsilon_rel;
 
     /// If set, values whose absolute difference (in L-inf norm) is less than epsilon are merged
-    /// together. If no relative precision is set, a default relative precision is used. Otherwise
-    /// both are used together.
+    /// together. If not set, default to `Eigen::NumTraits<ValueType>::epsilon()`.
     std::optional<double> epsilon_abs;
+
+    /// If set, the absolute angle threshold (in radians) for merging attributes. If the angle
+    /// between two corners is less than this value, the attributes are merged. If not set, this
+    /// condition is not checked.
+    ///
+    /// @note Angle is computed as @f$ arccos(v1 \cdot v2 / (\|v1\| * \|v2\|)) $f@, where v1 and v2
+    /// are the corner attribute values. It is well defined for all dimensions. The angle check is
+    /// robust against degeneracies (e.g. zero-length vectors).
+    ///
+    /// @note Angle check is done in conjunction with the relative and absolute precision checks.
+    /// To only check the angle, set `epsilon_rel` to 0 and `epsilon_abs` to
+    /// `std::numeric_limits<double>::infinity()`.
+    std::optional<double> angle_abs;
+
+    /// If indices are shared between corners around different vertices, merge them together.
+    /// Otherwise, separate indices will be created for each group of welded corners around each
+    /// vertex.
+    bool merge_across_vertices = false;
+
+    /// Vertices to exclude from welding.
+    ///
+    /// This is mainly useful for cone singularities where welding similar attribute values may not
+    /// be desirable.
+    span<const size_t> exclude_vertices = {};
 };
 
 ///

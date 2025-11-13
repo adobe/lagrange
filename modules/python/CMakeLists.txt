@@ -29,12 +29,18 @@ set_target_properties(lagrange_python PROPERTIES
     FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules"
     CXX_VISIBILITY_PRESET default)
 
+include(GNUInstallDirs)
+target_include_directories(lagrange_python PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
+
 if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_python PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
 
 if(SKBUILD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
-    if (CMAKE_SYSTEM_NAME STREQUAL "Darwin")
+    if(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
         find_program(HAS_DSYMUTIL dsymutil)
         if(HAS_DSYMUTIL)
             add_custom_command(TARGET lagrange_python POST_BUILD
@@ -43,7 +49,7 @@ if(SKBUILD AND CMAKE_BUILD_TYPE STREQUAL "Debug")
         endif()
     elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
         find_program(HAS_OBJCOPY objcopy)
-        if (HAS_OBJCOPY)
+        if(HAS_OBJCOPY)
             add_custom_command(TARGET lagrange_python POST_BUILD
                 COMMAND objcopy --only-keep-debug $<TARGET_FILE:lagrange_python> $<TARGET_FILE:lagrange_python>.debug
                 COMMAND objcopy --strip-debug $<TARGET_FILE:lagrange_python>
@@ -66,11 +72,11 @@ if(SKBUILD)
         COMPONENT Lagrange_Python_Runtime
     )
     if(CMAKE_BUILD_TYPE STREQUAL "Debug")
-        if (HAS_DSYMUTIL)
+        if(HAS_DSYMUTIL)
             install(DIRECTORY $<TARGET_FILE:lagrange_python>.dSYM
                 DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
                 COMPONENT Lagrange_Python_Runtime)
-        elseif (HAS_OBJCOPY)
+        elseif(HAS_OBJCOPY)
             install(FILES $<TARGET_FILE:lagrange_python>.debug
                 DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
                 COMPONENT Lagrange_Python_Runtime)
@@ -100,9 +106,7 @@ function(lagrange_generate_binding_file)
     message(STATUS "Generating ${binding_file}")
 
     file(WRITE ${binding_file_in} [[
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
+#include <lagrange/python/binding.h>
 ]])
 
     foreach(line IN ITEMS ${include_lines})
@@ -168,17 +172,16 @@ function(lagrange_generate_python_binding_module)
     lagrange_generate_binding_file()
 
     # Generate __init__.py to import all modules.
-    if (SKBUILD)
+    if(SKBUILD)
         lagrange_generate_init_file()
     endif()
 
     # Lastly, add stubgen installation command.
     if(SKBUILD)
-        # Create the lagrange directory containing stubs.
-        file(MAKE_DIRECTORY ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange)
-
         # Write __init__.pyi to import all stubs.
-        set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange/__init__.pyi)
+        set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/__init__.pyi)
+        file(APPEND ${init_pyi_file} "from ._logging import logger\n")
+        file(APPEND ${init_pyi_file} "from .core import *\n")
 
         # Generate stubs for python binding within the install location.
         get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
@@ -189,7 +192,7 @@ function(lagrange_generate_python_binding_module)
                 lagrange_python_stubgen_${module_name}
                 INSTALL_TIME
                 MODULE lagrange.${module_name}
-                OUTPUT ${SKBUILD_PLATLIB_DIR}/lagrange/lagrange/${module_name}.pyi
+                OUTPUT ${SKBUILD_PLATLIB_DIR}/lagrange/${module_name}.pyi
                 DEPENDS lagrange_python
                 COMPONENT Lagrange_Python_Runtime
                 PYTHON_PATH ${SKBUILD_PLATLIB_DIR}/lagrange/

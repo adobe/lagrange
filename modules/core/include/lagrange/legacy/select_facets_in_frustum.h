@@ -22,10 +22,10 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <lagrange/legacy/inline.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/common.h>
+#include <lagrange/legacy/inline.h>
 #include <lagrange/utils/tbb.h>
 
 namespace lagrange {
@@ -76,7 +76,9 @@ bool select_facets_in_frustum(
         Point3D q0, q1, q2, q3; // Intermediate tet vertices.
         std::array<double, 2> r0, r1, r2; // Triangle projections.
     };
-    tbb::enumerable_thread_specific<LocalBuffers> temp_vars; // we can safely remove this and just declare these variables in the lambdas (as long as there's no memory allocation on the heap, this is not necessary)
+    tbb::enumerable_thread_specific<LocalBuffers>
+        temp_vars; // we can safely remove this and just declare these variables in the lambdas (as
+                   // long as there's no memory allocation on the heap, this is not necessary)
 
 
     auto edge_overlap_with_negative_octant = [](const Point3D& q0, const Point3D& q1) -> bool {
@@ -119,7 +121,7 @@ bool select_facets_in_frustum(
         return {n, c};
     };
 
-    // Compute the orientation of 2D traingle (v0, v1, O), where O = (0, 0).
+    // Compute the orientation of 2D triangle (v0, v1, O), where O = (0, 0).
     auto orient2D_inexact = [](const std::array<double, 2>& v0,
                                const std::array<double, 2>& v1) -> int {
         const auto r = v0[0] * v1[1] - v0[1] * v1[0];
@@ -252,7 +254,6 @@ bool select_facets_in_frustum(
         });
 
     if (!greedy) {
-
         mesh.add_facet_attribute("is_selected");
         mesh.import_facet_attribute("is_selected", attr);
     }

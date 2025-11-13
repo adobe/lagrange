@@ -26,20 +26,10 @@
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/io/save_scene.h>
 #include <lagrange/io/save_simple_scene.h>
+#include <lagrange/python/binding.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/Error.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/filesystem.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/string.h>
-#include <nanobind/stl/string_view.h>
-#include <nanobind/stl/vector.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <sstream>
 #include <string_view>
@@ -57,41 +47,99 @@ void populate_io_module(nb::module_& m)
     using SimpleSceneType = scene::SimpleScene<Scalar, Index, 3>;
     using SceneType = lagrange::scene::Scene<Scalar, Index>;
 
-    nb::class_<io::LoadOptions>(m, "LoadOptions", "Load options")
+    nb::class_<io::LoadOptions>(
+        m,
+        "LoadOptions",
+        "Options used when loading a mesh or a scene. Note that not all options are supported for "
+        "all backends or filetypes")
         .def(nb::init<>())
-        .def_rw("triangulate", &io::LoadOptions::triangulate)
-        .def_rw("load_normals", &io::LoadOptions::load_normals)
-        .def_rw("load_tangents", &io::LoadOptions::load_tangents)
-        .def_rw("load_uvs", &io::LoadOptions::load_uvs)
-        .def_rw("load_weights", &io::LoadOptions::load_weights)
-        .def_rw("load_materials", &io::LoadOptions::load_materials)
-        .def_rw("load_vertex_colors", &io::LoadOptions::load_vertex_colors)
-        .def_rw("load_object_ids", &io::LoadOptions::load_object_ids)
-        .def_rw("search_path", &io::LoadOptions::search_path);
+        .def_rw(
+            "triangulate",
+            &io::LoadOptions::triangulate,
+            "Triangulate any polygonal facet with > 3 vertices")
+        .def_rw("load_normals", &io::LoadOptions::load_normals, "Load vertex normals")
+        .def_rw("load_tangents", &io::LoadOptions::load_tangents, "Load tangents and bitangents")
+        .def_rw("load_uvs", &io::LoadOptions::load_uvs, "Load texture coordinates")
+        .def_rw(
+            "load_weights",
+            &io::LoadOptions::load_weights,
+            "Load skinning weights attributes (joints id and weight)")
+        .def_rw(
+            "load_materials",
+            &io::LoadOptions::load_materials,
+            "Load material ids as facet attribute")
+        .def_rw(
+            "load_vertex_colors",
+            &io::LoadOptions::load_vertex_colors,
+            "Load vertex colors as vertex attribute")
+        .def_rw(
+            "load_object_ids",
+            &io::LoadOptions::load_object_ids,
+            "Load object ids as facet attribute")
+        .def_rw(
+            "search_path",
+            &io::LoadOptions::search_path,
+            "Search path for related files, such as .mtl, .bin, or image textures. By default, "
+            "searches the same folder as the provided filename");
 
     nb::enum_<io::FileEncoding>(m, "FileEncoding", "File encoding type")
-        .value("Binary", io::FileEncoding::Binary)
-        .value("Ascii", io::FileEncoding::Ascii);
-    nb::class_<io::SaveOptions> save_options(m, "SaveOptions", "Save options");
+        .value("Binary", io::FileEncoding::Binary, "Binary encoding")
+        .value("Ascii", io::FileEncoding::Ascii, "ASCII text encoding");
+    nb::class_<io::SaveOptions> save_options(
+        m,
+        "SaveOptions",
+        "Options used when saving a mesh or a scene. Note that not all options are supported for "
+        "all backends or filetypes");
     save_options.def(nb::init<>())
-        .def_rw("encoding", &io::SaveOptions::encoding)
-        .def_rw("output_attributes", &io::SaveOptions::output_attributes)
-        .def_rw("selected_attributes", &io::SaveOptions::selected_attributes)
-        .def_rw("attribute_conversion_policy", &io::SaveOptions::attribute_conversion_policy)
-        .def_rw("embed_images", &io::SaveOptions::embed_images);
+        .def_rw(
+            "encoding",
+            &io::SaveOptions::encoding,
+            "Whether to encode the file as plain text or binary. Some filetypes only support Ascii "
+            "and will ignore this parameter")
+        .def_rw(
+            "output_attributes",
+            &io::SaveOptions::output_attributes,
+            "Which attributes to save with the mesh")
+        .def_rw(
+            "selected_attributes",
+            &io::SaveOptions::selected_attributes,
+            "Attributes to output, usage depends on output_attributes setting")
+        .def_rw(
+            "attribute_conversion_policy",
+            &io::SaveOptions::attribute_conversion_policy,
+            "The attribute conversion policy to use. While Lagrange SurfaceMesh supports vertex, "
+            "facet, corner, edge and indexed attributes, many filetypes only support a subset of "
+            "these attribute types")
+        .def_rw(
+            "embed_images",
+            &io::SaveOptions::embed_images,
+            "Whether to embed images in the file (if supported by the filetype)")
+        .def_rw(
+            "export_materials",
+            &io::SaveOptions::export_materials,
+            "Whether to export materials and textures.");
     nb::enum_<io::SaveOptions::OutputAttributes>(
         save_options,
         "OutputAttributes",
-        "Output attribute mode")
-        .value("All", io::SaveOptions::OutputAttributes::All)
-        .value("SelectedOnly", io::SaveOptions::OutputAttributes::SelectedOnly);
+        "Which attributes to save with the mesh")
+        .value("All", io::SaveOptions::OutputAttributes::All, "All attributes (default)")
+        .value(
+            "SelectedOnly",
+            io::SaveOptions::OutputAttributes::SelectedOnly,
+            "Only attributes listed in selected_attributes");
     nb::enum_<io::SaveOptions::AttributeConversionPolicy>(
         save_options,
         "AttributeConversionPolicy",
-        "Attribute conversion policy")
-        .value("ExactMatchOnly", io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly)
-        .value("ConvertAsNeeded", io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded);
-
+        "Attribute conversion policy. Provides options to handle non-supported attributes when "
+        "saving them")
+        .value(
+            "ExactMatchOnly",
+            io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly,
+            "Ignore mismatched attributes and print a warning")
+        .value(
+            "ConvertAsNeeded",
+            io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded,
+            "Convert attribute to supported attribute type when possible");
 
     m.def(
         "save_mesh",
@@ -142,6 +190,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
            bool load_object_ids,
            bool load_images,
            bool stitch_vertices,
+           bool quiet,
            const fs::path& search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
@@ -154,6 +203,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             opts.load_object_ids = load_object_ids;
             opts.load_images = load_images;
             opts.stitch_vertices = stitch_vertices;
+            opts.quiet = quiet;
             opts.search_path = search_path;
             return io::load_mesh<MeshType>(filename, opts);
         },
@@ -168,6 +218,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "load_object_ids"_a = io::LoadOptions().load_object_ids,
         "load_images"_a = io::LoadOptions().load_images,
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
+        "quiet"_a = io::LoadOptions().quiet,
         "search_path"_a = io::LoadOptions().search_path,
         R"(Load mesh from a file.
 
@@ -181,29 +232,70 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
 :param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
 :param load_images:        Whether to load external images if available. Defaults to True.
-:param stitch_vertices:    Whether to stitch vertices based on position. Defaults to False.
+:param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
+:param quiet:              Whether to silence warnings during loading. Defaults to False.
 :param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
 
 :return SurfaceMesh: The mesh object extracted from the input string.)");
 
     m.def(
         "load_simple_scene",
-        [](const fs::path& filename, bool triangulate, std::optional<fs::path> search_path) {
+        [](const fs::path& filename,
+           bool triangulate,
+           bool load_normals,
+           bool load_tangents,
+           bool load_uvs,
+           bool load_weights,
+           bool load_materials,
+           bool load_vertex_colors,
+           bool load_object_ids,
+           bool load_images,
+           bool stitch_vertices,
+           bool quiet,
+           const fs::path& search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
-            if (search_path.has_value()) {
-                opts.search_path = std::move(search_path.value());
-            }
+            opts.load_normals = load_normals;
+            opts.load_tangents = load_tangents;
+            opts.load_uvs = load_uvs;
+            opts.load_weights = load_weights;
+            opts.load_materials = load_materials;
+            opts.load_vertex_colors = load_vertex_colors;
+            opts.load_object_ids = load_object_ids;
+            opts.load_images = load_images;
+            opts.stitch_vertices = stitch_vertices;
+            opts.quiet = quiet;
+            opts.search_path = search_path;
             return io::load_simple_scene<SimpleSceneType>(filename, opts);
         },
         "filename"_a,
-        "triangulate"_a = false,
-        "search_path"_a = nb::none(),
+        "triangulate"_a = io::LoadOptions().triangulate,
+        "load_normals"_a = io::LoadOptions().load_normals,
+        "load_tangents"_a = io::LoadOptions().load_tangents,
+        "load_uvs"_a = io::LoadOptions().load_uvs,
+        "load_weights"_a = io::LoadOptions().load_weights,
+        "load_materials"_a = io::LoadOptions().load_materials,
+        "load_vertex_colors"_a = io::LoadOptions().load_vertex_colors,
+        "load_object_ids"_a = io::LoadOptions().load_object_ids,
+        "load_images"_a = io::LoadOptions().load_images,
+        "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
+        "quiet"_a = io::LoadOptions().quiet,
+        "search_path"_a = io::LoadOptions().search_path,
         R"(Load a simple scene from file.
 
-:param filename:    The input file name.
-:param triangulate: Whether to triangulate the scene if it is not already triangulated. Defaults to False.
-:param search_path: Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
+:param filename:           The input file name.
+:param triangulate:        Whether to triangulate the mesh if it is not already triangulated. Defaults to False.
+:param load_normals:       Whether to load vertex normals from mesh if available. Defaults to True.
+:param load_tangents:      Whether to load tangents and bitangents from mesh if available. Defaults to True.
+:param load_uvs:           Whether to load texture coordinates from mesh if available. Defaults to True.
+:param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
+:param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
+:param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
+:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_images:        Whether to load external images if available. Defaults to True.
+:param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
+:param quiet:              Whether to silence warnings during loading. Defaults to False.
+:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
 
 :return SimpleScene: The scene object extracted from the input string.)");
 
@@ -217,7 +309,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "filename"_a,
         "scene"_a,
         "binary"_a = true,
-        R"(Save a simple scene to file.
+        R"(Save a simple scene to file. Supports gltf, glb, obj.
 
 :param filename: The output file name.
 :param scene:    The input scene.
@@ -312,6 +404,66 @@ The binary string should use one of the supported formats. Supported formats inc
 :param options:     Load scene options. Check the class for more details.
 
 :return Scene: The loaded scene object.)");
+    m.def(
+        "load_scene",
+        [](const fs::path& filename,
+           bool triangulate,
+           bool load_normals,
+           bool load_tangents,
+           bool load_uvs,
+           bool load_weights,
+           bool load_materials,
+           bool load_vertex_colors,
+           bool load_object_ids,
+           bool load_images,
+           bool stitch_vertices,
+           bool quiet,
+           const fs::path& search_path) {
+            io::LoadOptions opts;
+            opts.triangulate = triangulate;
+            opts.load_normals = load_normals;
+            opts.load_tangents = load_tangents;
+            opts.load_uvs = load_uvs;
+            opts.load_weights = load_weights;
+            opts.load_materials = load_materials;
+            opts.load_vertex_colors = load_vertex_colors;
+            opts.load_object_ids = load_object_ids;
+            opts.load_images = load_images;
+            opts.stitch_vertices = stitch_vertices;
+            opts.quiet = quiet;
+            opts.search_path = search_path;
+            return io::load_scene<SceneType>(filename, opts);
+        },
+        "filename"_a,
+        "triangulate"_a = io::LoadOptions().triangulate,
+        "load_normals"_a = io::LoadOptions().load_normals,
+        "load_tangents"_a = io::LoadOptions().load_tangents,
+        "load_uvs"_a = io::LoadOptions().load_uvs,
+        "load_weights"_a = io::LoadOptions().load_weights,
+        "load_materials"_a = io::LoadOptions().load_materials,
+        "load_vertex_colors"_a = io::LoadOptions().load_vertex_colors,
+        "load_object_ids"_a = io::LoadOptions().load_object_ids,
+        "load_images"_a = io::LoadOptions().load_images,
+        "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
+        "quiet"_a = io::LoadOptions().quiet,
+        "search_path"_a = io::LoadOptions().search_path,
+        R"(Load a scene.
+
+:param filename:          The input file name.
+:param triangulate:        Whether to triangulate the mesh if it is not already triangulated. Defaults to False.
+:param load_normals:       Whether to load vertex normals from mesh if available. Defaults to True.
+:param load_tangents:      Whether to load tangents and bitangents from mesh if available. Defaults to True.
+:param load_uvs:           Whether to load texture coordinates from mesh if available. Defaults to True.
+:param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
+:param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
+:param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
+:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_images:        Whether to load external images if available. Defaults to True.
+:param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
+:param quiet:              Whether to silence warnings during loading. Defaults to False.
+:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
+
+:return Scene: The loaded scene object.)");
 
     m.def(
         "string_to_scene",
@@ -341,11 +493,51 @@ The binary string should use one of the supported formats (i.e. `gltf`, `glb` an
         "filename"_a,
         "scene"_a,
         "options"_a = io::SaveOptions(),
-        R"(Save a scene.
+        R"(Save a scene. Supports gltf, glb, obj.
 
 :param filename:    The output file name.
 :param scene:       The scene to save.
 :param options:     Save options. Check the class for more details.)");
+    m.def(
+        "save_scene",
+        [](const fs::path& filename,
+           const scene::Scene<Scalar, Index>& scene,
+           bool binary,
+           bool exact_match,
+           bool embed_images,
+           std::optional<std::vector<AttributeId>> selected_attributes) {
+            std::stringstream ss;
+
+            io::SaveOptions opts;
+            opts.encoding = binary ? io::FileEncoding::Binary : io::FileEncoding::Ascii;
+            opts.attribute_conversion_policy =
+                exact_match ? io::SaveOptions::AttributeConversionPolicy::ExactMatchOnly
+                            : io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+            opts.embed_images = embed_images;
+            if (selected_attributes.has_value()) {
+                opts.selected_attributes = std::move(selected_attributes.value());
+                opts.output_attributes = io::SaveOptions::OutputAttributes::SelectedOnly;
+            } else {
+                opts.output_attributes = io::SaveOptions::OutputAttributes::All;
+            }
+
+            io::save_scene(filename, scene, opts);
+        },
+        "filename"_a,
+        "scene"_a,
+        "binary"_a = true,
+        "exact_match"_a = true,
+        "embed_images"_a = false,
+        "selected_attributes"_a = nb::none(),
+        R"(Save a scene. Supports gltf, glb, obj.
+
+:param filename:    The output file name.
+:param scene:       The scene to save.
+:param binary:      Whether to save the scene in binary format if supported. Defaults to True. Only `glb` supports binary format.
+:param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
+:param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.
+
+:return str: The string representing the input scene.)");
 
     m.def(
         "scene_to_string",

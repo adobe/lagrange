@@ -12,6 +12,7 @@
 #include <lagrange/AttributeFwd.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_dihedral_angles.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/geometry3d.h>
@@ -62,8 +63,8 @@ AttributeId compute_dihedral_angles(
         }
         Index c2 = mesh.get_next_corner_around_edge(c1);
         if (c2 != invalid<Index>()) {
-            // Non-manifold edge, default to 2 * M_PI.
-            dihedral_angles(ei) = static_cast<Scalar>(2 * M_PI);
+            // Non-manifold edge, default to 2 * π.
+            dihedral_angles(ei) = static_cast<Scalar>(2 * lagrange::internal::pi);
             return;
         }
 
@@ -81,9 +82,9 @@ AttributeId compute_dihedral_angles(
     return attr_id;
 }
 
-#define LA_X_compute_dihedral_angles(_, Scalar, Index)           \
+#define LA_X_compute_dihedral_angles(_, Scalar, Index)                       \
     template LA_CORE_API AttributeId compute_dihedral_angles<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                             \
+        SurfaceMesh<Scalar, Index>&,                                         \
         const DihedralAngleOptions&);
 LA_SURFACE_MESH_X(compute_dihedral_angles, 0)
 

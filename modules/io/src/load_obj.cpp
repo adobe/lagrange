@@ -64,13 +64,17 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
     if (!reader.Warning().empty()) {
         auto lines = string_split(reader.Warning(), '\n');
         for (const auto& msg : lines) {
-            logger().warn("[load_mesh_obj] {}", msg);
+            if (!options.quiet) {
+                logger().warn("[load_mesh_obj] {}", msg);
+            }
         }
     }
     if (!reader.Error().empty()) {
         auto lines = string_split(reader.Error(), '\n');
         for (const auto& msg : lines) {
-            logger().error("[load_mesh_obj] {}", msg);
+            if (!options.quiet) {
+                logger().error("[load_mesh_obj] {}", msg);
+            }
         }
     }
     if (!reader.Valid()) {
@@ -253,6 +257,7 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
     });
 
     if (num_invalid_uv) {
+        // This one is a legit warning, so we do not silence it even in quiet mode.
         logger().warn(
             "Found {} vertices without UV indices. UV attribute will have invalid values.",
             num_invalid_uv.load());

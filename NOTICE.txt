@@ -258,10 +258,17 @@ This codebase contains a modified portion of code from smart_ptr which can be ob
     * https://github.com/X-czh/smart_ptr/blob/master/LICENSE
 
 -------------------------------------------------------------------------------
+This codebase contains a modified portion of code from TextureSignalProcessing which can be obtained at:
+  * SOURCE:
+    * https://github.com/mkazhdan/TextureSignalProcessing/blob/master/include/Src/Padding.h
+
+  * LICENSE:
+    * https://github.com/mkazhdan/TextureSignalProcessing/blob/master/LICENSE
+
+-------------------------------------------------------------------------------
 This codebase contains a modified portion of code from valuable which can be obtained at:
   * SOURCE:
     * https://github.com/LoopPerfect/valuable
 
   * LICENSE:
     * https://github.com/LoopPerfect/valuable/blob/master/LICENSE
-

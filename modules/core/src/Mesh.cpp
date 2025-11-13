@@ -23,4 +23,4 @@ template class Mesh<Vertices2D, Quads>;
 template class Mesh<Vertices3Df, Quads>;
 template class Mesh<Vertices2Df, Quads>;
 
-}
+} // namespace lagrange

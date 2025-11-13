@@ -11,18 +11,18 @@
  */
 
 #ifdef LA_TESTING_USE_CONFIG
-#include <lagrange/testing/private_config.h>
+    #include <lagrange/testing/private_config.h>
 #endif
 
 #include <lagrange/testing/common.h>
 
-#include <lagrange/io/legacy/load_mesh.impl.h>
 #include <lagrange/Mesh.h>
+#include <lagrange/io/legacy/load_mesh.impl.h>
 
 #include <lagrange/Logger.h>
 
 #ifdef EIGEN_USE_MKL_ALL
-#include <mkl.h>
+    #include <mkl.h>
 #endif
 
 namespace lagrange {
@@ -30,12 +30,25 @@ namespace testing {
 
 fs::path get_data_dir()
 {
+#ifdef TEST_DATA_DIR
     return fs::path(TEST_DATA_DIR);
+#else
+    static_assert(false, "TEST_DATA_DIR must be defined");
+#endif
 }
 
-// A nice thing about this function is that we don't have to rebuild "everything"
-// when we change it.
-fs::path get_data_path(const fs::path& relative_path)
+fs::path get_test_output_dir()
+{
+#ifdef TEST_OUTPUT_DIR
+    return fs::path(TEST_OUTPUT_DIR);
+#else
+    static_assert(false, "TEST_OUTPUT_DIR must be defined");
+#endif
+}
+
+namespace {
+
+fs::path get_data_path_impl(const fs::path& relative_path)
 {
     if (relative_path.is_absolute()) {
         logger().error("Expected relative path, got absolute path: {}", relative_path.string());
@@ -48,6 +61,49 @@ fs::path get_data_path(const fs::path& relative_path)
         logger().error("{} does not exist", absolute_path.string());
     }
     REQUIRE(fs::exists(absolute_path));
+    return absolute_path;
+}
+
+} // namespace
+
+fs::path get_data_path(const fs::path& relative_path)
+{
+    auto result = get_data_path_impl(relative_path);
+    REQUIRE(fs::is_regular_file(result));
+    return result;
+}
+
+fs::path get_data_folder(const fs::path& relative_path)
+{
+    auto result = get_data_path_impl(relative_path);
+    REQUIRE(fs::is_directory(result));
+    return result;
+}
+
+///
+/// Gets a path for writing test output files. Creates the directory if it doesn't exist.
+/// The path will be relative to the test output directory (typically build/tmp).
+///
+/// @param[in]  relative_path  Relative path within the test output directory.
+///
+/// @return     Absolute path for test output.
+///
+fs::path get_test_output_path(const fs::path& relative_path)
+{
+    if (relative_path.is_absolute()) {
+        logger().error("Expected relative path, got absolute path: {}", relative_path.string());
+    }
+    REQUIRE(relative_path.is_relative());
+
+    fs::path base_dir = get_test_output_dir();
+    fs::path absolute_path = base_dir / relative_path;
+
+    // Ensure the directory exists (create parent directories if needed)
+    fs::path parent_dir = absolute_path.parent_path();
+    if (!parent_dir.empty() && !fs::exists(parent_dir)) {
+        fs::create_directories(parent_dir);
+    }
+
     return absolute_path;
 }
 
@@ -83,11 +139,11 @@ void setup_mkl_reproducibility()
             // - MKL_CBWR_AVX
             // - MKL_CBWR_AVX2
 
-#if __APPLE__
+    #if __APPLE__
             auto res = mkl_cbwr_set(MKL_CBWR_AVX | MKL_CBWR_STRICT);
-#else
+    #else
             auto res = mkl_cbwr_set(MKL_CBWR_COMPATIBLE | MKL_CBWR_STRICT);
-#endif
+    #endif
             lagrange::logger().debug("MKL auto cbwr branch: {}", cbwr_branch);
             lagrange::logger().info("Setting MKL reproducibility flag: {}", res);
             la_runtime_assert(res == MKL_CBWR_SUCCESS);

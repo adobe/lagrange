@@ -152,11 +152,9 @@ if(SKBUILD AND LINUX)
     #
     # https://gitlab.kitware.com/cmake/cmake/-/issues/20491
     #
-    # Note: We should probably enable this on macOS as well, but our Jenkins nodes don't have a
-    # Fortran compiler (and our pre-built Arpack doesn't link against mkl_rt).
+    # Note: We should probably enable this on macOS as well
     #
     set(MKL_LINKING "sdl" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-    option(ARPACK_BUILD_FROM_SOURCE "Build arpack from source using a Fortran compiler" ON)
 
     # Set RPATH to $ORIGIN on Linux
     set(CMAKE_INSTALL_RPATH $ORIGIN)
@@ -194,6 +192,7 @@ option(LAGRANGE_FMT_EIGEN_FIX           "Avoid MSVC C1001 error releated to fmt 
 option(LAGRANGE_INSTALL                 "Enable installation"                                  ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_LIMIT_PARALLELISM       "Limit parallelism according to available cpu/memory"  OFF)
 option(LAGRANGE_MORE_WARNINGS           "Increase the level of warnings when compiling"        OFF)
+option(LAGRANGE_PROPAGATE_WARNINGS      "Propagate warning flags to dependent targets"         ON)
 option(LAGRANGE_PERFORMANCE_TESTS       "Build all performance tests"                          OFF)
 option(LAGRANGE_UNIT_TESTS              "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_USE_PCH                 "Enable precompiled headers"                           OFF)
@@ -218,15 +217,15 @@ if(BUILD_SHARED_LIBS)
     )
 endif()
 
+# Force LAGRANGE_MODULE_PYTHON when LAGRANGE_ALL is set
+if(LAGRANGE_ALL)
+    set(LAGRANGE_MODULE_PYTHON ON)
+endif()
+
 # Specific override for building on Jenkins
 if(LAGRANGE_JENKINS)
     # IPO is very slow and not needed for CI purposes
     option(TBB_ENABLE_IPO "Enable Interprocedural Optimization (IPO) during the compilation" OFF)
-endif()
-
-# When building Arpack from source, we need to enable Fortran support in the top-level directory
-if(ARPACK_BUILD_FROM_SOURCE)
-    enable_language(Fortran)
 endif()
 
 # Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
@@ -293,11 +292,9 @@ if(NOT EMSCRIPTEN AND (
     option(TBB_BUILD_TBBMALLOC "Build TBB malloc library"  ON) # TBB 2020 option
     option(TBBMALLOC_BUILD "Enable tbbmalloc build" ON) # OneTBB 2021 option
 
-    # When using pre-built Arpack, we still need to compile MKL/TBB as a shared library
-    if(NOT ARPACK_BUILD_FROM_SOURCE)
-        set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
-        option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
-    endif()
+    # We need to compile MKL/TBB as a shared library
+    set(MKL_LINKING "dynamic" CACHE STRING "Linking strategy to use with MKL (static, dynamic or sdl)")
+    option(TBB_PREFER_STATIC    "Build with static TBB"     OFF)
 endif()
 
 if(LAGRANGE_TOPLEVEL_PROJECT)
@@ -315,13 +312,14 @@ endif()
 
 # On Linux & Windows we use MKL to provide BLAS/LAPACK. Since it comes precompiled with /MD on Windows,
 # we need to use the MSVC runtime library flag globally for the whole project.
-file(READ "cmake/lagrange/lagrangeMklModules.txt" LAGRANGE_MKL_MODULES)
 if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED VCPKG_INSTALLED_DIR)
     if(LAGRANGE_ALL AND NOT LAGRANGE_NO_INTERNAL)
         # Set MSVC runtime library globally for all targets
         message(STATUS "Forcing /MD globally due to LAGRANGE_ALL requiring MKL")
         set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreadedDLL" CACHE STRING "Select the MSVC runtime library")
     else()
+        file(READ "cmake/lagrange/lagrangeMklModules.txt" LAGRANGE_MKL_MODULES)
+        string(STRIP "${LAGRANGE_MKL_MODULES}" LAGRANGE_MKL_MODULES)
         foreach(mkl_module_lc IN ITEMS ${LAGRANGE_MKL_MODULES})
             string(TOUPPER ${mkl_module_lc} mkl_module_uc)
             if(LAGRANGE_MODULE_${mkl_module_uc})

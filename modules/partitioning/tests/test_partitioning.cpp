@@ -13,13 +13,14 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/partitioning/partition_mesh_vertices.h>
 
-#include <lagrange/testing/common.h>
 #include <lagrange/Mesh.h>
+#include <lagrange/testing/common.h>
 ////////////////////////////////////////////////////////////////////////////////
 
 TEST_CASE("Partitioning: Reproducibility", "[partitioning]" LA_SLOW_DEBUG_FLAG)
 {
-    auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/bunny_simple.obj");
+    auto mesh =
+        lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/bunny_simple.obj");
     REQUIRE(mesh);
     REQUIRE(mesh->get_num_vertices() == 2503);
     REQUIRE(mesh->get_num_facets() == 5002);
@@ -33,7 +34,8 @@ TEST_CASE("Partitioning: Reproducibility", "[partitioning]" LA_SLOW_DEBUG_FLAG)
 
 TEST_CASE("Partitioning: Validity", "[partitioning]")
 {
-    auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/bunny_simple.obj");
+    auto mesh =
+        lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/bunny_simple.obj");
     REQUIRE(mesh);
     REQUIRE(mesh->get_num_vertices() == 2503);
     REQUIRE(mesh->get_num_facets() == 5002);

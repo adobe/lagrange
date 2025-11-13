@@ -12,23 +12,27 @@
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/compute_area.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/save_mesh_obj.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/topology.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/tracy.h>
+#include <lagrange/uv_mesh.h>
 #include <lagrange/views.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <spdlog/fmt/fmt.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <thread>
 #include <numeric>
+#include <thread>
 
 namespace fs = lagrange::fs;
 
@@ -114,7 +118,8 @@ void test_2d()
 
         auto mesh = [&] {
             // TODO: Write utils to go from 2d to 3d, and vice-versa (while preserving attributes)
-            auto mesh_3d = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
+            auto mesh_3d =
+                lagrange::testing::load_surface_mesh<Scalar, Index>("open/core" / filename);
             MeshType mesh_2d(2);
             mesh_2d.add_vertices(mesh_3d.get_num_vertices());
             vertex_ref(mesh_2d) = vertex_view(mesh_3d).leftCols(2);
@@ -286,6 +291,78 @@ void test_attributes()
     LAGRANGE_FRAME_MARK;
 }
 
+template <typename Scalar, typename Index>
+void test_centroid_fan()
+{
+    using namespace lagrange;
+
+    TriangulationOptions options;
+    options.scheme = TriangulationOptions::Scheme::CentroidFan;
+
+    // Single quad
+    {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_quad(0, 1, 2, 3);
+
+        triangulate_polygonal_facets(mesh, options);
+        REQUIRE(mesh.is_triangle_mesh());
+        REQUIRE(mesh.get_num_vertices() == 5);
+        REQUIRE(mesh.get_num_facets() == 4);
+        REQUIRE(compute_euler(mesh) == 1);
+        REQUIRE(is_manifold(mesh));
+
+        auto p = mesh.get_position(4);
+        REQUIRE_THAT(p[0], Catch::Matchers::WithinAbs(0.5, 1e-12));
+        REQUIRE_THAT(p[1], Catch::Matchers::WithinAbs(0.5, 1e-12));
+        REQUIRE_THAT(p[2], Catch::Matchers::WithinAbs(0.0, 1e-12));
+    }
+
+    // Two quads
+    {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({2, 0, 0});
+        mesh.add_vertex({2, 1, 0});
+        mesh.add_quad(0, 1, 2, 3);
+        mesh.add_quad(2, 1, 4, 5);
+
+        std::vector<Scalar> uv_values{0, 0, 1, 0, 1, 1, 0, 1, 2, 0, 2, 1};
+        std::vector<Index> uv_indices{0, 1, 2, 3, 2, 1, 4, 5};
+        mesh.template create_attribute<Scalar>(
+            "uv",
+            AttributeElement::Indexed,
+            2,
+            AttributeUsage::UV,
+            {uv_values.data(), uv_values.size()},
+            {uv_indices.data(), uv_indices.size()});
+
+        triangulate_polygonal_facets(mesh, options);
+        REQUIRE(mesh.is_triangle_mesh());
+        REQUIRE(mesh.get_num_vertices() == 8);
+        REQUIRE(mesh.get_num_facets() == 8);
+        REQUIRE(compute_euler(mesh) == 1);
+        REQUIRE(is_manifold(mesh));
+
+        REQUIRE(mesh.has_attribute("uv"));
+        auto uv_mesh = uv_mesh_view(mesh);
+        REQUIRE(is_manifold(uv_mesh));
+
+        MeshAreaOptions area_options;
+        area_options.use_signed_area = false;
+        REQUIRE_THAT(compute_mesh_area(mesh, area_options), Catch::Matchers::WithinAbs(2, 1e-12));
+        REQUIRE_THAT(
+            compute_mesh_area(uv_mesh, area_options),
+            Catch::Matchers::WithinAbs(2, 1e-12));
+    }
+}
+
 } // namespace
 
 TEST_CASE("triangulate_polygonal_facets: basic", "[core]")
@@ -311,6 +388,12 @@ TEST_CASE("triangulate_polygonal_facets: attributes", "[core]")
 #define LA_X_attributes(ValueType, Scalar, Index) test_attributes<Scalar, Index, ValueType>();
 #define LA_X_attributes_aux(_, ValueType) LA_SURFACE_MESH_X(attributes, ValueType)
     LA_ATTRIBUTE_X(attributes_aux, 0)
+}
+
+TEST_CASE("triangulate_polygonal_facets: centroid fan", "[core]")
+{
+#define LA_X_centroid_fan(_, Scalar, Index) test_centroid_fan<Scalar, Index>();
+    LA_SURFACE_MESH_X(centroid_fan, 0)
 }
 
 // TODO: Test removal degenerate facets, once we allow sizes <= 2

@@ -17,10 +17,6 @@
 #include <catch2/reporters/catch_reporter_event_listener.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 
-#ifdef LAGRANGE_WITH_STACKWALKER
-    #include <StackWalker.h>
-#endif
-
 #ifdef LAGRANGE_WITH_CPPTRACE
     #include <cpptrace/from_current.hpp>
 #endif
@@ -31,43 +27,13 @@
 
 #include <cstdlib>
 
-#ifdef LAGRANGE_WITH_STACKWALKER
-
-namespace {
-
-class LoggedStackWalker : public StackWalker
-{
-public:
-    using StackWalker::StackWalker;
-
-    virtual ~LoggedStackWalker() = default;
-
-protected:
-    virtual void OnOutput(LPCSTR szText)
-    {
-        size_t n = strlen(szText);
-        std::string_view truncated(szText, (n > 0 ? n - 1 : n));
-        lagrange::logger().warn("[stackwalker] {}", truncated);
-        StackWalker::OnOutput(szText);
-    }
-};
-
-LONG WINAPI ExpFilter(EXCEPTION_POINTERS* pExp, DWORD dwExpCode)
-{
-    LoggedStackWalker sw;
-    sw.ShowCallstack(GetCurrentThread(), pExp->ContextRecord);
-    return EXCEPTION_EXECUTE_HANDLER;
-}
-
-} // namespace
-
-#endif
-
 namespace {
 
 int wrapped_run(Catch::Session& session)
 {
 #if LAGRANGE_TARGET_OS(WASM)
+    // Remove this if/when cpptrace start supporting Emscripten:
+    // https://github.com/jeremy-rifkin/cpptrace/issues/175
     try {
         return session.run();
     } catch (const std::exception& e) {
@@ -78,24 +44,21 @@ int wrapped_run(Catch::Session& session)
         std::puts(callstack);
         return EXIT_FAILURE;
     }
-#elif LAGRANGE_WITH_STACKWALKER
-    __try {
-        const auto session_ret = session.run();
-        return session_ret;
-    } __except (ExpFilter(GetExceptionInformation(), GetExceptionCode())) {
-        return EXIT_FAILURE;
-    }
 #elif LAGRANGE_WITH_CPPTRACE
+    int ret = EXIT_FAILURE;
     CPPTRACE_TRY
     {
-        return session.run();
+        ret = session.run();
     }
     CPPTRACE_CATCH(const std::exception& e)
     {
         lagrange::logger().critical("Exception: {}", e.what());
+    #if LAGRANGE_TARGET_FEATURE(RTTI)
         cpptrace::from_current_exception().print();
-        return EXIT_FAILURE;
+    #endif
+        ret = EXIT_FAILURE;
     }
+    return ret;
 #else
     return session.run();
 #endif

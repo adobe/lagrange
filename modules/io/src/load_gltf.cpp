@@ -460,8 +460,10 @@ MeshType convert_tinygltf_primitive_to_lagrange_mesh(
     }
 
     // read other attributes
+    bool has_other_attributes = false;
     for (auto& attribute : primitive.attributes) {
         if (starts_with(attribute.first, "POSITION")) continue; // already done
+        has_other_attributes = true;
 
         const tinygltf::Accessor& accessor = model.accessors[attribute.second];
 
@@ -507,6 +509,11 @@ MeshType convert_tinygltf_primitive_to_lagrange_mesh(
 
     if (options.stitch_vertices) {
         stitch_mesh(lmesh);
+    } else if (!options.quiet && has_other_attributes) {
+        logger().warn(
+            "Loading a glTF mesh with attributes without stitching vertices may produce duplicated "
+            "vertices along mesh seams, creating disconnected components. Consider setting "
+            "'stitch_vertices' to true, or silence this warning by setting 'quiet' to true.");
     }
     if (options.triangulate) {
         triangulate_polygonal_facets(lmesh);
@@ -817,7 +824,9 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             lcam.aspect_ratio = camera.perspective.aspectRatio;
             lcam.set_horizontal_fov_from_vertical_fov(camera.perspective.yfov);
             lcam.near_plane = camera.perspective.znear;
-            lcam.far_plane = camera.perspective.zfar;
+            if (camera.perspective.zfar > 0) {
+                lcam.far_plane = camera.perspective.zfar;
+            }
         } else {
             lcam.type = scene::Camera::Type::Orthographic;
             lcam.near_plane = camera.orthographic.znear;

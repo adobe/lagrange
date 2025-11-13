@@ -98,7 +98,7 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
     if (matches.size() < 2 || !hasFragment || !hasVertex)
         return std::unordered_map<GLenum, std::string>(); // return empty
 
-    // Sort by order of occurence
+    // Sort by order of occurrence
     std::sort(
         matches.begin(),
         matches.end(),
@@ -110,7 +110,7 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
     // Extract common part
     std::string common = GLState::get_glsl_version_string() + "\n";
 
-#if defined(__EMSCRIPTEN__)
+    #if defined(__EMSCRIPTEN__)
     // WebGL does not have a default precision for floats, so provide a default precision now.
     // See https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/WebGL_best_practices#in_webgl_1_highp_float_support_is_optional_in_fragment_shaders.
     common += "#ifdef GL_FRAGMENT_PRECISION_HIGH\n"
@@ -118,7 +118,7 @@ std::unordered_map<GLenum, std::string> preprocessShaderCode(
               "#else\n"
               "precision mediump float;\n"
               "#endif\n";
-#endif
+    #endif
 
     for (auto& define : defines) {
         common += "#define " + define.first + " " + define.second + "\n";

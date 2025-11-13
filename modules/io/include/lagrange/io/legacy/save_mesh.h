@@ -24,10 +24,10 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/MeshTrait.h>
 #include <lagrange/common.h>
+#include <lagrange/legacy/inline.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/safe_cast.h>
-#include <lagrange/legacy/inline.h>
 
 #include <lagrange/io/legacy/save_mesh_ply.h>
 

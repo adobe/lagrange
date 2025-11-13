@@ -13,22 +13,22 @@
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
-#include <lagrange/fs/filesystem.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/attributes/attribute_utils.h>
-#include <lagrange/MeshTrait.h>
-#include <lagrange/Logger.h>
-#include <lagrange/fs/file_utils.h>
-#include <lagrange/legacy/inline.h>
+    #include <lagrange/Logger.h>
+    #include <lagrange/MeshTrait.h>
+    #include <lagrange/attributes/attribute_utils.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/fs/file_utils.h>
+    #include <lagrange/fs/filesystem.h>
+    #include <lagrange/legacy/inline.h>
 
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/mesh.h>
-#include <assimp/material.h>
-#include <assimp/postprocess.h>
+    #include <assimp/material.h>
+    #include <assimp/mesh.h>
+    #include <assimp/postprocess.h>
+    #include <assimp/scene.h>
+    #include <assimp/Importer.hpp>
 
-#include <string>
-#include <iostream>
+    #include <iostream>
+    #include <string>
 
 namespace lagrange::io {
 LAGRANGE_LEGACY_INLINE
@@ -38,7 +38,8 @@ namespace legacy {
 std::unique_ptr<aiScene> load_scene_assimp(const lagrange::fs::path& filename);
 std::unique_ptr<aiScene> load_scene_assimp_from_memory(const void* buffer, size_t size);
 
-template <typename MeshType,
+template <
+    typename MeshType,
     std::enable_if_t<lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 std::vector<std::unique_ptr<MeshType>> load_mesh_assimp(const lagrange::fs::path& filename);
 template <typename MeshType>
@@ -79,7 +80,8 @@ inline std::unique_ptr<aiScene> load_scene_assimp_from_memory(const void* buffer
     return std::unique_ptr<aiScene>(importer.GetOrphanedScene());
 }
 
-template <typename MeshType,
+template <
+    typename MeshType,
     std::enable_if_t<lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* /* = nullptr */>
 std::vector<std::unique_ptr<MeshType>> load_mesh_assimp(const lagrange::fs::path& filename)
 {

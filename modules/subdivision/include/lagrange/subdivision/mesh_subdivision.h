@@ -225,7 +225,7 @@ struct SubdivisionOptions
     /// List of attributes to interpolate. The selection can be either all (default), none, or
     /// specify a list of attribute ids to interpolate.
     ///
-    /// @see        InterpolatedAttributes
+    /// @see        @ref InterpolatedAttributes
     ///
     InterpolatedAttributes interpolated_attributes;
 

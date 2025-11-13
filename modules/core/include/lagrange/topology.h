@@ -37,6 +37,21 @@ template <typename Scalar, typename Index>
 int compute_euler(const SurfaceMesh<Scalar, Index>& mesh);
 
 ///
+/// Check if a mesh is closed.
+///
+/// A mesh is closed if and only if it has no boundary edges.
+///
+/// @tparam Scalar  The scalar type of the mesh.
+/// @tparam Index   The index type of the mesh.
+///
+/// @param mesh     The input mesh.
+///
+/// @return         True if the mesh is closed.
+///
+template <typename Scalar, typename Index>
+bool is_closed(const SurfaceMesh<Scalar, Index>& mesh);
+
+///
 /// Check if a mesh is vertex-manifold.
 ///
 /// A mesh is vertex-manifold if and only if the one-ring neighborhood of each vertex is of disc
@@ -95,7 +110,7 @@ struct VertexManifoldOptions
 };
 
 ///
-/// Compute a mesh attribute indicating vertex and edge manifoldness.
+/// Compute a mesh attribute of value type `uint8_t` indicating vertex manifoldness.
 ///
 /// @param[in,out] mesh     Input mesh.
 /// @param[in]     options  Output attribute options.
@@ -103,7 +118,7 @@ struct VertexManifoldOptions
 /// @tparam        Scalar   Mesh scalar type.
 /// @tparam        Index    Mesh index type.
 ///
-/// @return     Id of the newly added per-vertex attribute, of type uint8_t.
+/// @return     Id of the newly added per-vertex attribute.
 ///
 template <typename Scalar, typename Index>
 AttributeId compute_vertex_is_manifold(

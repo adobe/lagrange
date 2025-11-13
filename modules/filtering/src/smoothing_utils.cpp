@@ -132,8 +132,9 @@ std::unique_ptr<FEM::RiemannianMesh<Real>> setup_for_smoothing(
     }
     // Make sure the normal coordinate type is the same as that of the vertices
     if (!_mesh.template is_attribute_type<Scalar>(normal_id)) {
-        logger().warn("Input normals do not have the same scalar type as the input points. Casting "
-                      "attribute.");
+        logger().warn(
+            "Input normals do not have the same scalar type as the input points. Casting "
+            "attribute.");
         normal_id = cast_attribute_in_place<Scalar>(_mesh, normal_id);
     }
 
@@ -150,7 +151,8 @@ std::unique_ptr<FEM::RiemannianMesh<Real>> setup_for_smoothing(
     VerboseTimer r_mesh_timer("├── Set Riemannian mesh");
     r_mesh_timer.tick();
     original_area = 0;
-    auto r_mesh = std::make_unique<FEM::RiemannianMesh<Real>>(GetPointer(triangles), triangles.size());
+    auto r_mesh =
+        std::make_unique<FEM::RiemannianMesh<Real>>(GetPointer(triangles), triangles.size());
     {
         // Create the embedded metric and normalize to have unit area
         unsigned int count = r_mesh->template setMetricFromEmbedding<Dim>(

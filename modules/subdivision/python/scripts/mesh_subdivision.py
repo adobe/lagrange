@@ -119,9 +119,15 @@ def main():
     # Perform subdivision
     for id in mesh.get_matching_attribute_ids():
         if mesh.is_attribute_indexed(id):
-            lagrange.logger.info("Attribute %s has dtype=%s", mesh.get_attribute_name(id), mesh.indexed_attribute(id).values.dtype)
+            lagrange.logger.info(
+                "Attribute %s has dtype=%s",
+                mesh.get_attribute_name(id),
+                mesh.indexed_attribute(id).values.dtype,
+            )
         else:
-            lagrange.logger.info("Attribute %s has dtype=%s", mesh.get_attribute_name(id), mesh.attribute(id).dtype)
+            lagrange.logger.info(
+                "Attribute %s has dtype=%s", mesh.get_attribute_name(id), mesh.attribute(id).dtype
+            )
     mesh = lagrange.subdivision.subdivide_mesh(
         mesh,
         num_levels=args.num_levels,

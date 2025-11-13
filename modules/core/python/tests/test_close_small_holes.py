@@ -13,10 +13,11 @@ import lagrange
 
 from .assets import cube, cube_with_uv
 
+
 class TestCloseSmallHoles:
     def test_close_small_holes(self, cube):
         mesh = cube
-        mesh.remove_facets([0]);
+        mesh.remove_facets([0])
         mesh.initialize_edges()
         assert mesh.num_facets == 5
 
@@ -26,7 +27,7 @@ class TestCloseSmallHoles:
 
     def test_close_small_holes_with_uv(self, cube_with_uv):
         mesh = cube_with_uv
-        mesh.remove_facets([0]);
+        mesh.remove_facets([0])
         mesh.initialize_edges()
         assert mesh.num_facets == 5
         assert len(mesh.get_matching_attribute_ids(usage=lagrange.AttributeUsage.UV)) == 1
@@ -35,6 +36,6 @@ class TestCloseSmallHoles:
         # Note triangles will be used for hole filling due to UV seams.
 
         assert mesh.num_vertices == 9
-        assert mesh.num_facets == 5 + 4 # 5 quads + 4 triangles
+        assert mesh.num_facets == 5 + 4  # 5 quads + 4 triangles
 
         assert len(mesh.get_matching_attribute_ids(usage=lagrange.AttributeUsage.UV)) == 1

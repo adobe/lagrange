@@ -136,11 +136,12 @@ void ensure_approx_equivalent_mesh(
     SurfaceMesh<Scalar, Index>& mesh2)
 {
     // Ensure vertices are equivalent.
-    REQUIRE(testing::attribute_is_approx_equivalent<Scalar, Scalar>(
-        mesh1,
-        mesh2,
-        mesh1.attr_id_vertex_to_position(),
-        mesh2.attr_id_vertex_to_position()));
+    REQUIRE(
+        testing::attribute_is_approx_equivalent<Scalar, Scalar>(
+            mesh1,
+            mesh2,
+            mesh1.attr_id_vertex_to_position(),
+            mesh2.attr_id_vertex_to_position()));
 
     // Special attributes are compared based on usage.
     testing::ensure_approx_equivalent_usage<AttributeUsage::Normal>(mesh1, mesh2);
@@ -174,11 +175,12 @@ void ensure_approx_equivalent_mesh(
                 if (mesh2.attr_name_is_reserved(name2)) return;
 
                 using ValueType2 = typename std::decay_t<decltype(attr2)>::ValueType;
-                REQUIRE(testing::attribute_is_approx_equivalent<ValueType1, ValueType2>(
-                    mesh1,
-                    mesh2,
-                    id1,
-                    id2));
+                REQUIRE(
+                    testing::attribute_is_approx_equivalent<ValueType1, ValueType2>(
+                        mesh1,
+                        mesh2,
+                        id1,
+                        id2));
             },
             {&id2, 1});
     });

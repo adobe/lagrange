@@ -35,4 +35,3 @@ template <typename Scalar, typename Index>
 void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh);
 
 } // namespace lagrange
-

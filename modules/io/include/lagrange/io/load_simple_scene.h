@@ -16,6 +16,8 @@
 #include <lagrange/io/types.h>
 #include <lagrange/scene/SimpleScene.h>
 
+#include <iosfwd>
+
 namespace lagrange::io {
 
 /**
@@ -28,5 +30,16 @@ namespace lagrange::io {
  */
 template <typename SceneType>
 SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options = {});
+
+/**
+ * Load a simple scene from a stream.
+ *
+ * @param[in] input_stream  The input stream.
+ * @param[in] options       Extra options related to loading.
+ *
+ * @return A `SimpleScene` object loaded from the input stream.
+ */
+template <typename SceneType>
+SceneType load_simple_scene(std::istream& input_stream, const LoadOptions& options = {});
 
 } // namespace lagrange::io

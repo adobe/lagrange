@@ -77,7 +77,8 @@ void FrameBuffer::set_depth_attachement(
     auto id = t ? t->get_id() : 0;
     t->bind();
     if (target == GL_TEXTURE_2D) {
-        LA_GL(glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, id, mipmap_level));
+        LA_GL(
+            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, target, id, mipmap_level));
     } else {
 #if defined(__EMSCRIPTEN__)
         // TODO WebGL: glFramebufferTexture is not supported.

@@ -289,7 +289,6 @@ class TestIO:
             scene2 = lagrange.io.load_scene(filename)
             check_scene(scene2)
 
-
         # Save and load the scene using string.
         data = lagrange.io.scene_to_string(scene, "gltf")
         scene2 = lagrange.io.string_to_scene(data)

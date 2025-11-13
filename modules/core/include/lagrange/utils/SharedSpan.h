@@ -29,7 +29,7 @@ namespace lagrange {
  *
  * @tparam T  Value type.
  *
- * @see make_shared_span
+ * @see @ref make_shared_span
  */
 template <typename T>
 class SharedSpan

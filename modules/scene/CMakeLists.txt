@@ -21,8 +21,9 @@ lagrange_include_modules(fs)
 
 # 2. dependencies
 target_link_libraries(lagrange_scene
-    lagrange::core
-    lagrange::fs
+    PUBLIC
+        lagrange::core
+        lagrange::fs
 )
 
 # 3. unit tests and examples

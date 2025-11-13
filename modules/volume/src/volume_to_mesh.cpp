@@ -15,9 +15,11 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/volume/GridTypes.h>
+#include <lagrange/volume/sample_vertex_normal.h>
 
 #include <openvdb/tools/GridOperators.h>
 #include <openvdb/tools/Interpolation.h>
+#include <openvdb/tools/VolumeToMesh.h>
 
 namespace lagrange::volume {
 
@@ -74,49 +76,7 @@ auto volume_to_mesh(const Grid<GridScalar>& grid, const VolumeToMeshOptions& opt
     });
 
     if (!options.normal_attribute_name.empty()) {
-        // allocate attribute for normals
-        auto normals_id = mesh.template create_attribute<Scalar>(
-            options.normal_attribute_name,
-            lagrange::AttributeElement::Vertex,
-            lagrange::AttributeUsage::Normal,
-            3);
-        auto normals_view = mesh.template ref_attribute<Scalar>(normals_id).ref_all();
-
-        // compute normals
-        using NormalGridType =
-            typename openvdb::tools::ScalarToVectorConverter<volume::Grid<GridScalar>>::Type;
-        typename NormalGridType::Ptr gradient_grid = openvdb::tools::gradient(grid);
-
-        // Create thread-local data with an accessor and a sampler. Because a value accessor employs
-        // a cache for efficient access to grid data, it is important to use a different
-        // accessor/sampler per thread.
-        struct LocalData
-        {
-            LocalData(const NormalGridType& grid)
-                : accessor(grid.getConstAccessor())
-                , sampler(accessor, grid.transform())
-            {}
-
-            typename NormalGridType::ConstAccessor accessor;
-            openvdb::tools::
-                GridSampler<typename NormalGridType::ConstAccessor, openvdb::tools::BoxSampler>
-                    sampler;
-        };
-        tbb::enumerable_thread_specific<LocalData> accessors(
-            [&gradient_grid]() { return LocalData(*gradient_grid); });
-
-        tbb::parallel_for(
-            tbb::blocked_range<size_t>(0, points.size()),
-            [&](const tbb::blocked_range<size_t>& r) {
-                auto& sampler = accessors.local().sampler;
-
-                for (size_t i = r.begin(); i != r.end(); ++i) {
-                    auto p = openvdb::Vec3d(points[i]);
-                    auto n = sampler.wsSample(p);
-                    n.normalize();
-                    std::copy_n(n.asV(), 3, normals_view.data() + i * 3);
-                }
-            });
+        sample_vertex_normal(mesh, grid, {options.normal_attribute_name});
     }
 
     return mesh;

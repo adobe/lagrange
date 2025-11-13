@@ -45,12 +45,12 @@ template <typename AffineTransform>
 AffineTransform convert_transform_ufbx_to_lagrange(const ufbx_matrix& m)
 {
     AffineTransform transform;
+    transform.setIdentity();
     // clang-format off
-    transform.matrix() <<
+    transform.affine() <<
         m.m00, m.m01, m.m02, m.m03,
         m.m10, m.m11, m.m12, m.m13,
-        m.m20, m.m21, m.m22, m.m23,
-        0, 0, 0, 1;
+        m.m20, m.m21, m.m22, m.m23;
     // clang-format on
     return transform;
 }
@@ -463,7 +463,7 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
 
     auto try_load_texture = [&](const ufbx_texture* texture, scene::TextureInfo& tex_info) -> bool {
         if (texture == nullptr) return false;
-        if (tex_info.index != invalid<scene::ElementId>()) return false;
+        if (tex_info.index != scene::invalid_element) return false;
         tex_info.index = static_cast<int>(element_index[texture->element_id]);
         return true;
     };
@@ -510,7 +510,7 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
         if (node->mesh) {
             size_t mesh_idx = element_index[node->mesh->element_id];
             la_runtime_assert(mesh_idx != lagrange::invalid<size_t>());
-            std::vector<size_t> material_idxs;
+            std::vector<scene::ElementId> material_idxs;
 
             for (const ufbx_material* material : node->materials) {
                 if (material) {

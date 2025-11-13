@@ -18,6 +18,7 @@
 #include <lagrange/common.h>
 #include <lagrange/compute_corner_normal.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
@@ -28,7 +29,7 @@ TEST_CASE("legacy::compute_corner_normal", "[mesh][triangle][attribute][corner_n
 
     SECTION("Keep edge sharp")
     {
-        compute_corner_normal(*mesh, M_PI * 0.25);
+        compute_corner_normal(*mesh, lagrange::internal::pi * 0.25);
         REQUIRE(mesh->has_corner_attribute("normal"));
 
         const auto& corner_normals = mesh->get_corner_attribute("normal");
@@ -40,7 +41,7 @@ TEST_CASE("legacy::compute_corner_normal", "[mesh][triangle][attribute][corner_n
 
     SECTION("Smooth edge")
     {
-        compute_corner_normal(*mesh, M_PI);
+        compute_corner_normal(*mesh, lagrange::internal::pi);
         REQUIRE(mesh->has_corner_attribute("normal"));
 
         const auto& corner_normals = mesh->get_corner_attribute("normal");

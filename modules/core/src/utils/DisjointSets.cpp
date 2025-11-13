@@ -35,6 +35,10 @@ template <typename IndexType>
 IndexType DisjointSets<IndexType>::find(IndexType i)
 {
     la_runtime_assert(i >= 0 && i < safe_cast<IndexType>(m_parent.size()), "Index out of bound!");
+    // This performs path halving, replacing every other parent pointer with its grandparent
+    // pointer. It has the same worst-case time complexity as full path compression, but is faster
+    // in practice.
+    // See https://en.wikipedia.org/wiki/Disjoint-set_data_structure#Finding_set_representatives
     while (m_parent[i] != i) {
         m_parent[i] = m_parent[m_parent[i]];
         i = m_parent[i];

@@ -137,7 +137,8 @@ int main(int argc, char** argv)
         lagrange::logger().info(
             "Computing autosmooth normals with a threshold of {} degrees",
             args.autodetect_normal_threshold.value());
-        float feature_angle_threshold = args.autodetect_normal_threshold.value() * M_PI / 180.f;
+        float feature_angle_threshold =
+            args.autodetect_normal_threshold.value() * lagrange::internal::pi / 180.f;
         normal_id = lagrange::compute_normal<double, uint32_t>(mesh, feature_angle_threshold);
     }
     // Finally, compute edge sharpness info based on indexed normal topology

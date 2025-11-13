@@ -10,9 +10,9 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/create_mesh.h>
-#include <lagrange/volume/mesh_to_volume.h>
-#include <lagrange/volume/fill_with_spheres.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/volume/fill_with_spheres.h>
+#include <lagrange/volume/mesh_to_volume.h>
 
 TEST_CASE("fill_with_spheres: reproducibility", "[volume]")
 {

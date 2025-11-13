@@ -61,6 +61,8 @@ block()
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
+    target_compile_definitions(${OPENSUBDIV_TARGET} PUBLIC _USE_MATH_DEFINES)
+
     # Set folders for MSVC
     foreach(name IN ITEMS bfr_obj far_obj osd_cpu_obj osd_static_cpu sdc_obj vtr_obj)
         if(TARGET ${name})
@@ -77,4 +79,12 @@ block()
             set_target_properties(${name} PROPERTIES FOLDER third_party/opensubdiv/public_headers)
         endif()
     endforeach()
+
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
+       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+        target_compile_options(bfr_obj PRIVATE
+            "-Wno-unused-private-field"
+        )
+    endif()
+
 endblock()

@@ -24,14 +24,7 @@
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/optional.h>
-#include <nanobind/stl/vector.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/python/binding.h>
 
 #include <vector>
 
@@ -53,7 +46,7 @@ void bind_mesh_cleanup(nanobind::module_& m)
 .. note::
     A vertex is considered isolated if it is not referenced by any facet.
 
-:param mesh: The input mesh for inplace modification.)");
+:param mesh: Input mesh (modified in place).)");
 
     m.def(
         "detect_degenerate_facets",
@@ -62,11 +55,11 @@ void bind_mesh_cleanup(nanobind::module_& m)
         R"(Detect degenerate facets in a mesh.
 
 .. note::
-    Only __exaxtly__ degenerate facets are detected.
+    Only exactly degenerate facets are detected.
 
-:param mesh: The input mesh.
+:param mesh: Input mesh.
 
-:returns: A list of indices of degenerate facets.)");
+:returns: List of degenerate facet indices.)");
 
     m.def(
         "remove_null_area_facets",
@@ -81,8 +74,8 @@ void bind_mesh_cleanup(nanobind::module_& m)
         "remove_isolated_vertices"_a = false,
         R"(Remove facets with unsigned facets area <= `null_area_threhsold`.
 
-:param mesh:                     The input mesh.
-:param null_area_threshold:      The area threshold below which a facet is considered as null facet.
+:param mesh: Input mesh (modified in place).
+:param null_area_threshold: Area threshold below which facets are considered null.
 :param remove_isolated_vertices: Whether to remove isolated vertices after removing null area facets.)");
 
     m.def(
@@ -102,9 +95,9 @@ void bind_mesh_cleanup(nanobind::module_& m)
         "boundary_only"_a = false,
         R"(Remove duplicate vertices from a mesh.
 
-:param mesh:             The input mesh.
-:param extra_attributes: Two vertices are considered duplicates if they have the same position and the same values for all attributes in `extra_attributes`.
-:param boundary_only:    Only remove duplicate vertices on the boundary.)");
+:param mesh: Input mesh (modified in place).
+:param extra_attributes: Additional attributes to consider when detecting duplicates.
+:param boundary_only: Only remove duplicate vertices on the boundary.)");
 
     m.def(
         "remove_duplicate_facets",
@@ -117,24 +110,23 @@ void bind_mesh_cleanup(nanobind::module_& m)
         "consider_orientation"_a = false,
         R"(Remove duplicate facets from a mesh.
 
-Facets of different orientations (e.g. (0, 1, 2) and (2, 1, 0)) are considered as duplicates.
-If both orientations have equal number of duplicate facets, all of them are removed.
-If one orientation has more duplicate facets, all but one facet with the majority orientation are removed.
+Facets with different orientations (e.g. (0,1,2) and (2,1,0)) are considered duplicates.
+If both orientations have equal counts, all are removed.
+If one orientation has more duplicates, all but one of the majority orientation are kept.
 
-:param mesh: The input mesh. The mesh is modified in place.
-:param consider_orientation: Whether to consider orientation when detecting duplicate facets.)");
+:param mesh: Input mesh (modified in place).
+:param consider_orientation: Whether to consider orientation when detecting duplicates.)");
 
     m.def(
         "remove_topologically_degenerate_facets",
         &remove_topologically_degenerate_facets<Scalar, Index>,
         "mesh"_a,
-        R"(Remove topologically degenerate facets such as (0, 1, 1)
+        R"(Remove topologically degenerate facets such as (0,1,1).
 
-For general polygons, topologically degeneracy means that the polygon is made of at most two unique
-vertices. E.g. a quad of the form (0, 0, 1, 1) is degenerate, while a quad of the form (1, 1, 2, 3)
-is not.
+For polygons, topological degeneracy means the polygon has at most two unique vertices.
+E.g. quad (0,0,1,1) is degenerate, while (1,1,2,3) is not.
 
-:param mesh: The input mesh for inplace modification.)");
+:param mesh: Input mesh (modified in place).)");
 
     m.def(
         "remove_short_edges",
@@ -143,8 +135,8 @@ is not.
         "threshold"_a = 0,
         R"(Remove short edges from a mesh.
 
-:param mesh:      The input mesh for inplace modification.
-:param threshold: The minimum edge length below which an edge is considered short.)");
+:param mesh: Input mesh (modified in place).
+:param threshold: Minimum edge length below which edges are considered short.)");
 
     m.def(
         "resolve_vertex_nonmanifoldness",
@@ -152,7 +144,7 @@ is not.
         "mesh"_a,
         R"(Resolve vertex non-manifoldness in a mesh.
 
-:param mesh: The input mesh for inplace modification.
+:param mesh: Input mesh (modified in place).
 
 :raises RuntimeError: If the input mesh is not edge-manifold.)");
 
@@ -162,7 +154,7 @@ is not.
         "mesh"_a,
         R"(Resolve both vertex and edge nonmanifoldness in a mesh.
 
-:param mesh: The input mesh for inplace modification.)");
+:param mesh: Input mesh (modified in place).)");
 
     m.def(
         "split_long_edges",
@@ -185,17 +177,15 @@ is not.
         "recursive"_a = true,
         "active_region_attribute"_a = nb::none(),
         "edge_length_attribute"_a = nb::none(),
-        R"(Split edges that are longer than `max_edge_length`.
+        R"(Split edges longer than max_edge_length.
 
-:param mesh:                  The input mesh for inplace modification.
-:param max_edge_length:       Maximum edge length. Edges longer than this value will be split.
-:param recursive:              If true, the operation will be applied recursively until no edge is longer than `max_edge_length`.
-:param active_region_attribute: The facet attribute name that will be used to determine the active region.
-                                If `None`, all edges will be considered.
-                                Otherwise, only edges that are part of the active region will be split.
-                                The attribute must be of value type `uint8_t`.
-:param edge_length_attribute:  The edge length attribute name that will be used to determine the edge length.
-                               If `None`, the function will compute the edge lengths.
+:param mesh: Input mesh (modified in place).
+:param max_edge_length: Maximum edge length threshold.
+:param recursive: If true, apply recursively until no edge exceeds threshold.
+:param active_region_attribute: Facet attribute name for active region (uint8_t type).
+                                If None, all edges are considered.
+:param edge_length_attribute: Edge length attribute name.
+                              If None, edge lengths are computed.
 )");
 
     m.def(
@@ -205,11 +195,10 @@ is not.
         R"(Remove degenerate facets from a mesh.
 
 .. note::
-    The current method assumes input mesh is triangular.
-    Use `triangulate_polygonal_facets` if the input mesh is not triangular.
-    Non-degenerate facets adjacent to degenerte facets may be re-triangulated as a result of the removal.
+    Assumes triangular mesh. Use `triangulate_polygonal_facets` for non-triangular meshes.
+    Adjacent non-degenerate facets may be re-triangulated during removal.
 
-:param mesh: The mesh for inplace modification.)");
+:param mesh: Input mesh (modified in place).)");
 
     m.def(
         "close_small_holes",
@@ -224,9 +213,9 @@ is not.
         "triangulate_holes"_a = CloseSmallHolesOptions().triangulate_holes,
         R"(Close small holes in a mesh.
 
-:param mesh: The input mesh for inplace modification.
-:param max_hole_size: The maximum number of vertices on a hole to be closed.
-:param triangulate_holes: Whether to triangulate holes. If false, holes will be filled by polygons.)");
+:param mesh: Input mesh (modified in place).
+:param max_hole_size: Maximum number of vertices on a hole to be closed.
+:param triangulate_holes: Whether to triangulate holes (if false, fill with polygons).)");
 
     m.def(
         "rescale_uv_charts",
@@ -244,15 +233,15 @@ is not.
         "uv_attribute_name"_a = RescaleUVOptions().uv_attribute_name,
         "chart_id_attribute_name"_a = RescaleUVOptions().chart_id_attribute_name,
         "uv_area_threshold"_a = RescaleUVOptions().uv_area_threshold,
-        R"(Rescale UV charts such that their aspect ratios match their 3D images.
+        R"(Rescale UV charts to match their 3D aspect ratios.
 
-:param mesh: The input mesh for inplace modification.
-:param uv_attribute_name: The uv attribute name to use for rescaling.
-                         If empty, the first UV attribute found will be used.
-:param chart_id_attribute_name: The name used for storing the patch ID attribute.
-                                If empty, patches will be computed based on UV chart connectivity.
-:param uv_area_threshold: The threshold for UV area. 
-                         UV triangles with area smaller than this threshold will not contribute to scale factor computation.
+:param mesh: Input mesh (modified in place).
+:param uv_attribute_name: UV attribute name for rescaling.
+                         If empty, uses first UV attribute found.
+:param chart_id_attribute_name: Patch ID attribute name.
+                                If empty, computes patches from UV chart connectivity.
+:param uv_area_threshold: UV area threshold.
+                         Triangles below this threshold don't contribute to scale computation.
 )");
 }
 

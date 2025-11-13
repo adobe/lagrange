@@ -114,11 +114,12 @@ TEST_CASE("project_attributes_directional", "[raycasting]")
     {
         // No existing attr, should throw
         auto target = perturb_mesh(*source, 0.1);
-        LA_REQUIRE_THROWS(lagrange::raycasting::project_attributes_directional(
-            *source,
-            *target,
-            {"new_attr"},
-            direction));
+        LA_REQUIRE_THROWS(
+            lagrange::raycasting::project_attributes_directional(
+                *source,
+                *target,
+                {"new_attr"},
+                direction));
     }
 
     SECTION("perturbed")

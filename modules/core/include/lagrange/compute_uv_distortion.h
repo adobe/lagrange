@@ -14,8 +14,8 @@
     #include <lagrange/legacy/compute_uv_distortion.h>
 #endif
 
-#include <lagrange/SurfaceMesh.h>
 #include <lagrange/DistortionMetric.h>
+#include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
 ///
@@ -52,7 +52,7 @@ struct UVDistortionOptions
 ///
 /// @return     The attribute id of the distortion measure facet attribute.
 ///
-/// @see `UVDistortionOptions`.
+/// @see @ref UVDistortionOptions
 ///
 template <typename Scalar, typename Index>
 AttributeId compute_uv_distortion(

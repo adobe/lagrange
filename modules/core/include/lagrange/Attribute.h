@@ -461,7 +461,7 @@ public:
     /// Inserts new elements. Use set_default_value to use a non-zero default value to initialize
     /// the new elements.
     ///
-    /// @see        set_default_value
+    /// @see        @ref set_default_value
     ///
     /// @param[in]  count  The number elements to insert.
     ///

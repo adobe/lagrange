@@ -34,6 +34,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
         REQUIRE(is_oriented(mesh));
+        REQUIRE(!is_closed(mesh));
     }
 
     SECTION("bow tie")
@@ -56,6 +57,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(!is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
         REQUIRE(is_oriented(mesh));
+        REQUIRE(!is_closed(mesh));
     }
 
     SECTION("non-manifold edge")
@@ -79,6 +81,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(!is_vertex_manifold(mesh));
         REQUIRE(!is_edge_manifold(mesh));
         REQUIRE(!is_oriented(mesh));
+        REQUIRE(!is_closed(mesh));
     }
 
     SECTION("two triangles")
@@ -103,6 +106,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
         REQUIRE(is_oriented(mesh));
+        REQUIRE(!is_closed(mesh));
     }
 
     SECTION("tet")
@@ -125,6 +129,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
         REQUIRE(is_oriented(mesh));
+        REQUIRE(is_closed(mesh));
     }
 
     SECTION("two tets sharing a vertex")
@@ -150,6 +155,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(!is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
         REQUIRE(is_oriented(mesh));
+        REQUIRE(is_closed(mesh));
     }
 
     SECTION("isolated vertices")
@@ -159,6 +165,7 @@ TEST_CASE("Topology", "[surface][topology]")
         REQUIRE(compute_euler(mesh) == 1);
         REQUIRE(is_vertex_manifold(mesh));
         REQUIRE(is_edge_manifold(mesh));
+        REQUIRE(is_closed(mesh));
     }
 
     SECTION("nonmanifold vertex")

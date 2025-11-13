@@ -43,8 +43,9 @@ struct MeshCovarianceOptions
  *
  * @return     The covariance matrix in column-major order (but it should be symmetric).
  *
- * @see        MeshCovarianceOptions. Adapted from
- *             https://github.com/mkazhdan/ShapeSPH/blob/master/Util/TriangleMesh.h#L101
+ * @see        @ref MeshCovarianceOptions.
+ *
+ * @note Adapted from https://github.com/mkazhdan/ShapeSPH/blob/master/Util/TriangleMesh.h#L101
  */
 template <typename Scalar, typename Index>
 std::array<std::array<Scalar, 3>, 3> compute_mesh_covariance(

@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/Layer.h>
 #include <string>
 
@@ -45,7 +45,8 @@ LA_UI_API bool is_visible_in(
 
 LA_UI_API LayerIndex get_next_available_layer_index(Registry& r);
 
-LA_UI_API LayerIndex register_layer_name(Registry& registry, const std::string& name, LayerIndex index);
+LA_UI_API LayerIndex
+register_layer_name(Registry& registry, const std::string& name, LayerIndex index);
 LA_UI_API LayerIndex register_layer_name(Registry& registry, const std::string& name);
 
 

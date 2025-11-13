@@ -20,6 +20,7 @@
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_vertex_valence.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
 
 TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]" LA_SLOW_DEBUG_FLAG)
@@ -131,7 +132,7 @@ TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]" LA_SLOW_DEBUG_FLAG)
 
         // Add normal as indexed attribute.
         constexpr Scalar EPS = 1e-3;
-        compute_normal(*mesh, M_PI * 0.5 - EPS);
+        compute_normal(*mesh, lagrange::internal::pi * 0.5 - EPS);
         REQUIRE(mesh->has_indexed_attribute("normal"));
 
         SECTION("with UV")
@@ -169,7 +170,7 @@ TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]" LA_SLOW_DEBUG_FLAG)
 
         // Add normal as indexed attribute.
         constexpr Scalar EPS = 1e-3;
-        compute_normal(*mesh, M_PI * 0.5 - EPS);
+        compute_normal(*mesh, lagrange::internal::pi * 0.5 - EPS);
         REQUIRE(mesh->has_indexed_attribute("normal"));
 
         SECTION("with UV")

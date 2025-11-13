@@ -10,12 +10,13 @@
 # governing permissions and limitations under the License.
 #
 # 1. define module
-lagrange_add_module(INTERFACE)
+lagrange_add_module()
 
 # 2. dependencies
 lagrange_find_package(nanoflann REQUIRED)
 include(libigl)
-target_link_libraries(lagrange_bvh INTERFACE
+target_link_libraries(lagrange_bvh
+    PUBLIC
     lagrange::core
     nanoflann::nanoflann
     igl::core
@@ -28,4 +29,9 @@ endif()
 
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+# 4. python binding
+if(LAGRANGE_MODULE_PYTHON)
+    add_subdirectory(python)
 endif()

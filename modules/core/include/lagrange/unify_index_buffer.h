@@ -42,6 +42,8 @@ namespace lagrange {
  *
  * @returns A polygonal mesh with unified indices for position and attributes
  * specified in `attribute_ids`.
+ *
+ * @see @ref unify_named_index_buffer
  */
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> unify_index_buffer(
@@ -58,8 +60,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
  * @return  A polygonal mesh with unified indices for position and attributes
  * specified in `attribute_names`.
  *
- * @see unify_index_buffer(const SurfaceMesh<Scalar, Index>&, const std::vector<AttributeId>&) for
- * more info.
+ * @see @ref unify_index_buffer
  */
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> unify_named_index_buffer(

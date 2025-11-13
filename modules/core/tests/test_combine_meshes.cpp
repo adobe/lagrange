@@ -15,6 +15,7 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/compute_normal.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/views.h>
 
@@ -48,8 +49,8 @@ TEST_CASE("combine_meshes", "[surface][utilities]")
 
     NormalOptions options;
     options.output_attribute_name = "normal";
-    auto id1 = compute_normal(mesh1, M_PI / 4, {}, options);
-    auto id2 = compute_normal(mesh2, M_PI / 4, {}, options);
+    auto id1 = compute_normal(mesh1, lagrange::internal::pi / 4, {}, options);
+    auto id2 = compute_normal(mesh2, lagrange::internal::pi / 4, {}, options);
     REQUIRE(mesh1.is_attribute_indexed(id1));
     REQUIRE(mesh2.is_attribute_indexed(id2));
 

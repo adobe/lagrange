@@ -9,12 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/subdivision/sqrt_subdivision.h>
 #include <lagrange/subdivision/api.h>
+#include <lagrange/subdivision/sqrt_subdivision.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/utils/assert.h>
 #include <lagrange/eigen_convert.h>
+#include <lagrange/internal/constants.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -66,7 +67,8 @@ void sqrt_subdivision_internal(
     igl::adjacency_list(FI, VV);
     for (Index i = 0; i < (Index)VI.rows(); ++i) {
         Scalar n = static_cast<Scalar>(VV[i].size());
-        Scalar an = static_cast<Scalar>((4.0 - 2.0 * std::cos(2.0 * M_PI / n)) / 9.0);
+        Scalar an =
+            static_cast<Scalar>((4.0 - 2.0 * std::cos(2.0 * lagrange::internal::pi / n)) / 9.0);
         RowVector3s sum_vi = RowVector3s::Zero();
         for (auto j : VV[i]) {
             sum_vi += VI.row(j);
@@ -110,8 +112,9 @@ SurfaceMesh<Scalar, Index> sqrt_subdivision(const SurfaceMesh<Scalar, Index>& me
     return eigen_to_surface_mesh<Scalar, Index>(VO, FO);
 }
 
-#define LA_X_sqrt_subdivision(_, Scalar, Index) \
-    template LA_SUBDIVISION_API SurfaceMesh<Scalar, Index> sqrt_subdivision(const SurfaceMesh<Scalar, Index>& mesh);
+#define LA_X_sqrt_subdivision(_, Scalar, Index)                              \
+    template LA_SUBDIVISION_API SurfaceMesh<Scalar, Index> sqrt_subdivision( \
+        const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(sqrt_subdivision, 0)
 
 } // namespace lagrange::subdivision

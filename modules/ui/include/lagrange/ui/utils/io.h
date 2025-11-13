@@ -12,8 +12,8 @@
 #pragma once
 
 #include <lagrange/Logger.h>
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/types/Texture.h>
 #include <lagrange/ui/utils/io_assimp.h>

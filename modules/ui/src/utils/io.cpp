@@ -17,8 +17,8 @@
 #include <lagrange/ui/utils/treenode.h>
 
 #ifdef LAGRANGE_WITH_ASSIMP
-#include <assimp/material.h>
-#include <assimp/pbrmaterial.h>
+    #include <assimp/material.h>
+    #include <assimp/pbrmaterial.h>
 #endif
 
 namespace lagrange {
@@ -293,7 +293,7 @@ Entity detail::load_scene_impl(
                         tex_param.format = 0;
                         lagrange::logger().error("Unsupported packed texture fromat {}", fmt);
                     }
-                    
+
                     if (tex_param.format != 0) {
                         tex = std::make_shared<Texture>(
                             tex_param,

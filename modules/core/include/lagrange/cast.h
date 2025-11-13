@@ -48,7 +48,7 @@ namespace lagrange {
 ///
 /// @return     Output mesh.
 ///
-/// @see        filter_attributes
+/// @see        @ref filter_attributes
 ///
 template <typename ToScalar, typename ToIndex, typename FromScalar, typename FromIndex>
 SurfaceMesh<ToScalar, ToIndex> cast(

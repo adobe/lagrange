@@ -32,17 +32,17 @@
 //---- Define assertion handler. Defaults to calling assert().
 // If your macro uses multiple statements, make sure is enclosed in a 'do { .. } while (0)' block so
 // it can be used as a single statement.
-//#define IM_ASSERT(_EXPR)  MyAssert(_EXPR)
+// #define IM_ASSERT(_EXPR)  MyAssert(_EXPR)
 //#define IM_ASSERT(_EXPR)  ((void)(_EXPR))     // Disable asserts
 
 //---- Define attributes of all API symbols declarations, e.g. for DLL under Windows
 // Using dear imgui via a shared library is not recommended, because of function call overhead and
 // because we don't guarantee backward nor forward ABI compatibility.
-//#define IMGUI_API __declspec( dllexport )
-//#define IMGUI_API __declspec( dllimport )
+// #define IMGUI_API __declspec( dllexport )
+// #define IMGUI_API __declspec( dllimport )
 
 //---- Don't define obsolete functions/enums/behaviors. Consider enabling from time to time after updating to avoid using soon-to-be obsolete function/names.
-//#define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
+// #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 
 //---- Disable all of Dear ImGui or don't implement standard windows.
 // It is very strongly recommended to NOT disable the demo windows during development. Please read
@@ -62,21 +62,21 @@
 //#define IMGUI_DISABLE_DEFAULT_ALLOCATORS                  // Don't implement default allocators calling malloc()/free() to avoid linking with them. You will need to call ImGui::SetAllocatorFunctions().
 
 //---- Include imgui_user.h at the end of imgui.h as a convenience
-//#define IMGUI_INCLUDE_IMGUI_USER_H
+// #define IMGUI_INCLUDE_IMGUI_USER_H
 
 //---- Pack colors to BGRA8 instead of RGBA8 (to avoid converting from one to another)
-//#define IMGUI_USE_BGRA_PACKED_COLOR
+// #define IMGUI_USE_BGRA_PACKED_COLOR
 
 //---- Use 32-bit for ImWchar (default is 16-bit) to support full unicode code points.
-//#define IMGUI_USE_WCHAR32
+// #define IMGUI_USE_WCHAR32
 
 //---- Avoid multiple STB libraries implementations, or redefine path/filenames to prioritize another version
 // By default the embedded implementations are declared static and not available outside of imgui
 // cpp files.
 //#define IMGUI_STB_TRUETYPE_FILENAME   "my_folder/stb_truetype.h"
 //#define IMGUI_STB_RECT_PACK_FILENAME  "my_folder/stb_rect_pack.h"
-//#define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
-//#define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
+// #define IMGUI_DISABLE_STB_TRUETYPE_IMPLEMENTATION
+// #define IMGUI_DISABLE_STB_RECT_PACK_IMPLEMENTATION
 
 //---- Unless IMGUI_DISABLE_DEFAULT_FORMAT_FUNCTIONS is defined, use the much faster STB sprintf
 // library implementation of vsnprintf instead of the one from the default C library.
@@ -87,23 +87,29 @@
 
 //---- Define constructor and implicit cast operators to convert back<>forth between your math types and ImVec2/ImVec4.
 // This will be inlined as part of ImVec2 and ImVec4 class declarations.
-#define IM_VEC2_CLASS_EXTRA          \
-    ImVec2(const Eigen::Vector2f& f) \
-    {                                \
-        x = f.x();                   \
-        y = f.y();                   \
-    }                                \
-    operator Eigen::Vector2f() const { return Eigen::Vector2f(x, y); }
+#define IM_VEC2_CLASS_EXTRA           \
+    ImVec2(const Eigen::Vector2f& f)  \
+    {                                 \
+        x = f.x();                    \
+        y = f.y();                    \
+    }                                 \
+    operator Eigen::Vector2f() const  \
+    {                                 \
+        return Eigen::Vector2f(x, y); \
+    }
 
-#define IM_VEC4_CLASS_EXTRA          \
-    ImVec4(const Eigen::Vector4f& f) \
-    {                                \
-        x = f.x();                   \
-        y = f.y();                   \
-        z = f.z();                   \
-        w = f.w();                   \
-    }                                \
-    operator Eigen::Vector4f() const { return Eigen::Vector4f(x, y, z, w); }
+#define IM_VEC4_CLASS_EXTRA                 \
+    ImVec4(const Eigen::Vector4f& f)        \
+    {                                       \
+        x = f.x();                          \
+        y = f.y();                          \
+        z = f.z();                          \
+        w = f.w();                          \
+    }                                       \
+    operator Eigen::Vector4f() const        \
+    {                                       \
+        return Eigen::Vector4f(x, y, z, w); \
+    }
 
 
 //---- Use 32-bit vertex indices (default is 16-bit) is one way to allow large meshes with more than
@@ -111,7 +117,7 @@
 // Your renderer back-end will need to support it (most example renderer back-ends support both 16/32-bit indices).
 // Another way to allow large meshes while keeping 16-bit indices is to handle ImDrawCmd::VtxOffset
 // in your renderer. Read about ImGuiBackendFlags_RendererHasVtxOffset for details.
-//#define ImDrawIdx unsigned int
+// #define ImDrawIdx unsigned int
 
 //---- Override ImDrawCallback signature (will need to modify renderer back-ends accordingly)
 // struct ImDrawList;
@@ -122,16 +128,16 @@
 //---- Debug Tools: Macro to break in Debugger
 // (use 'Metrics->Tools->Item Picker' to pick widgets with the mouse and break into them for easy
 // debugging.)
-//#define IM_DEBUG_BREAK  IM_ASSERT(0)
-//#define IM_DEBUG_BREAK  __debugbreak()
+// #define IM_DEBUG_BREAK  IM_ASSERT(0)
+// #define IM_DEBUG_BREAK  __debugbreak()
 
 //---- Debug Tools: Have the Item Picker break in the ItemAdd() function instead of ItemHoverable(),
 // (which comes earlier in the code, will catch a few extra items, allow picking items other than
 // Hovered one.) This adds a small runtime cost which is why it is not enabled by default.
-//#define IMGUI_DEBUG_TOOL_ITEM_PICKER_EX
+// #define IMGUI_DEBUG_TOOL_ITEM_PICKER_EX
 
 //---- Debug Tools: Enable slower asserts
-//#define IMGUI_DEBUG_PARANOID
+// #define IMGUI_DEBUG_PARANOID
 
 //---- Tip: You can add extra functions within the ImGui:: namespace, here or in your own headers
 // files.

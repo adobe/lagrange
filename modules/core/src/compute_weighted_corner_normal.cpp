@@ -48,7 +48,11 @@ AttributeId compute_weighted_corner_normal(
 
     tbb::parallel_for(Index(0), num_corners, [&](Index ci) {
         LA_IGNORE_ARRAY_BOUNDS_BEGIN
-        normals.row(ci) += internal::compute_weighted_corner_normal(mesh, ci, options.weight_type);
+        normals.row(ci) += internal::compute_weighted_corner_normal(
+            mesh,
+            ci,
+            options.weight_type,
+            static_cast<Scalar>(options.distance_tolerance));
         LA_IGNORE_ARRAY_BOUNDS_END
     });
 

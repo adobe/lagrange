@@ -115,6 +115,9 @@ std::vector<double> to_vec4(const Eigen::Vector4f& v)
 
 void save_gltf(const fs::path& filename, const tinygltf::Model& model, const SaveOptions& options)
 {
+    fs::path parent_dir = filename.parent_path();
+    if (!parent_dir.empty() && !fs::exists(parent_dir)) fs::create_directories(parent_dir);
+
     bool binary = to_lower(filename.extension().string()) == ".glb";
     if (binary && options.encoding != FileEncoding::Binary) {
         logger().warn("Saving mesh in binary due to `.glb` extension.");
@@ -424,15 +427,13 @@ void populate_attributes(
             }
         }
 
-        const auto& values = [&]() -> const auto&
-        {
+        const auto& values = [&]() -> const auto& {
             if constexpr (AttributeType::IsIndexed) {
                 return attr.values();
             } else {
                 return attr;
             }
-        }
-        ();
+        }();
 
         // we are committed to writing the buffer here. Do not return early after this line.
 
@@ -503,7 +504,7 @@ tinygltf::Primitive create_gltf_primitive(
 
     tinygltf::Primitive primitive;
     primitive.mode = TINYGLTF_MODE_TRIANGLES;
-    primitive.material = 0;
+    // Note: Material assignment is handled by the caller who has the proper context
 
     populate_vertices(model, primitive, lmesh_copy);
     populate_facets(model, primitive, lmesh_copy);
@@ -575,7 +576,7 @@ LA_SURFACE_MESH_X(save_mesh_gltf, 0)
 // =====================================
 
 template <typename Scalar, typename Index, size_t Dimension>
-tinygltf::Model scene2model(
+tinygltf::Model lagrange_simple_scene_to_gltf_model(
     const scene::SimpleScene<Scalar, Index, Dimension>& lscene,
     const SaveOptions& options)
 {
@@ -589,8 +590,6 @@ tinygltf::Model scene2model(
     model.defaultScene = 0;
     tinygltf::Scene& scene = model.scenes.front();
 
-    // gltf requires a material, so we create a dummy one
-    model.materials.push_back(tinygltf::Material());
 
     for (Index i = 0; i < lscene.get_num_meshes(); ++i) {
         const auto& lmesh = lscene.get_mesh(i);
@@ -632,7 +631,7 @@ void save_simple_scene_gltf(
     const scene::SimpleScene<Scalar, Index, Dimension>& lscene,
     const SaveOptions& options)
 {
-    auto model = scene2model(lscene, options);
+    auto model = lagrange_simple_scene_to_gltf_model(lscene, options);
     save_gltf(filename, model, options);
 }
 
@@ -642,7 +641,7 @@ void save_simple_scene_gltf(
     const scene::SimpleScene<Scalar, Index, Dimension>& lscene,
     const SaveOptions& options)
 {
-    auto model = scene2model(lscene, options);
+    auto model = lagrange_simple_scene_to_gltf_model(lscene, options);
     save_gltf(output_stream, model, options);
 }
 
@@ -723,14 +722,16 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             camera.perspective.aspectRatio = lcam.aspect_ratio;
             camera.perspective.yfov = lcam.get_vertical_fov();
             camera.perspective.znear = lcam.near_plane;
-            camera.perspective.zfar = lcam.far_plane;
+            if (lcam.far_plane.has_value()) {
+                camera.perspective.zfar = lcam.far_plane.value();
+            }
             break;
         case scene::Camera::Type::Orthographic:
             camera.type = "orthographic";
             camera.orthographic.xmag = lcam.orthographic_width;
             camera.orthographic.ymag = lcam.orthographic_width / lcam.aspect_ratio;
             camera.orthographic.znear = lcam.near_plane;
-            camera.orthographic.zfar = lcam.far_plane;
+            camera.orthographic.zfar = lcam.far_plane.value();
             break;
         }
         // TODO: camera may have a position/up/lookAt. This is not allowed in gltf and will be lost.
@@ -742,114 +743,124 @@ tinygltf::Model lagrange_scene_to_gltf_model(
         model.cameras.push_back(camera);
     }
 
-    for (const auto& limage : lscene.images) {
-        tinygltf::Image image;
-        image.name = limage.name;
+    if (options.export_materials) {
+        for (const auto& limage : lscene.images) {
+            tinygltf::Image image;
+            image.name = limage.name;
 
-        const scene::ImageBufferExperimental& lbuffer = limage.image;
-        image.width = static_cast<int>(lbuffer.width);
-        image.height = static_cast<int>(lbuffer.height);
-        image.component = static_cast<int>(lbuffer.num_channels);
-        switch (lbuffer.element_type) {
-        case AttributeValueType::e_uint8_t:
-            image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
-            break;
-        case AttributeValueType::e_int8_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE; break;
-        case AttributeValueType::e_uint16_t:
-            image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
-            break;
-        case AttributeValueType::e_int16_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_SHORT; break;
-        case AttributeValueType::e_uint32_t:
-            image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
-            break;
-        case AttributeValueType::e_int32_t: image.pixel_type = TINYGLTF_COMPONENT_TYPE_INT; break;
-        case AttributeValueType::e_float: image.pixel_type = TINYGLTF_COMPONENT_TYPE_FLOAT; break;
-        case AttributeValueType::e_double: image.pixel_type = TINYGLTF_COMPONENT_TYPE_DOUBLE; break;
-        default:
-            logger().error("Saving image with unsupported pixel precision!");
-            // TODO: should we simply fail?
-            image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE;
+            const scene::ImageBufferExperimental& lbuffer = limage.image;
+            image.width = static_cast<int>(lbuffer.width);
+            image.height = static_cast<int>(lbuffer.height);
+            image.component = static_cast<int>(lbuffer.num_channels);
+            switch (lbuffer.element_type) {
+            case AttributeValueType::e_uint8_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_BYTE;
+                break;
+            case AttributeValueType::e_int8_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_BYTE;
+                break;
+            case AttributeValueType::e_uint16_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT;
+                break;
+            case AttributeValueType::e_int16_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_SHORT;
+                break;
+            case AttributeValueType::e_uint32_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT;
+                break;
+            case AttributeValueType::e_int32_t:
+                image.pixel_type = TINYGLTF_COMPONENT_TYPE_INT;
+                break;
+            case AttributeValueType::e_float: [[fallthrough]];
+            case AttributeValueType::e_double:
+                throw Error(
+                    "Saving image with float/double precision is not supported in glTF format");
+            default: throw Error("Saving image with unknown pixel precision.");
+            }
+            image.bits = static_cast<int>(lbuffer.get_bits_per_element());
+            std::copy(lbuffer.data.begin(), lbuffer.data.end(), std::back_inserter(image.image));
+
+            if (!limage.uri.empty()) {
+                image.uri = limage.uri.string();
+            } else {
+                image.mimeType = "image/png";
+            }
+
+            if (!limage.extensions.empty()) {
+                image.extensions = convert_extension_map(limage.extensions, options);
+            }
+
+            model.images.push_back(image);
         }
-        image.bits = static_cast<int>(lbuffer.get_bits_per_element());
-        std::copy(lbuffer.data.begin(), lbuffer.data.end(), std::back_inserter(image.image));
-
-        if (!limage.uri.empty()) {
-            image.uri = limage.uri.string();
-        } else {
-            image.mimeType = "image/png";
-        }
-
-        if (!limage.extensions.empty()) {
-            image.extensions = convert_extension_map(limage.extensions, options);
-        }
-
-        model.images.push_back(image);
     }
 
     auto element_id_to_int = [](scene::ElementId id) -> int {
-        if (id == lagrange::invalid<scene::ElementId>()) {
+        if (id == scene::invalid_element) {
             return -1;
         } else {
             return static_cast<int>(id);
         }
     };
-    for (const auto& lmat : lscene.materials) {
-        tinygltf::Material material;
-        material.name = lmat.name;
-        material.doubleSided = lmat.double_sided;
+    if (options.export_materials) {
+        for (const auto& lmat : lscene.materials) {
+            tinygltf::Material material;
+            material.name = lmat.name;
+            material.doubleSided = lmat.double_sided;
 
-        material.pbrMetallicRoughness.baseColorFactor = to_vec4(lmat.base_color_value);
-        material.pbrMetallicRoughness.baseColorTexture.index =
-            element_id_to_int(lmat.base_color_texture.index);
-        material.pbrMetallicRoughness.baseColorTexture.texCoord = lmat.base_color_texture.texcoord;
+            material.pbrMetallicRoughness.baseColorFactor = to_vec4(lmat.base_color_value);
+            material.pbrMetallicRoughness.baseColorTexture.index =
+                element_id_to_int(lmat.base_color_texture.index);
+            material.pbrMetallicRoughness.baseColorTexture.texCoord =
+                lmat.base_color_texture.texcoord;
 
-        material.emissiveFactor = to_vec3(lmat.emissive_value);
-        material.emissiveTexture.index = element_id_to_int(lmat.emissive_texture.index);
-        material.emissiveTexture.texCoord = lmat.emissive_texture.texcoord;
+            material.emissiveFactor = to_vec3(lmat.emissive_value);
+            material.emissiveTexture.index = element_id_to_int(lmat.emissive_texture.index);
+            material.emissiveTexture.texCoord = lmat.emissive_texture.texcoord;
 
-        material.pbrMetallicRoughness.metallicFactor = lmat.metallic_value;
-        material.pbrMetallicRoughness.roughnessFactor = lmat.roughness_value;
-        material.pbrMetallicRoughness.metallicRoughnessTexture.index =
-            element_id_to_int(lmat.metallic_roughness_texture.index);
-        material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord =
-            lmat.metallic_roughness_texture.texcoord;
+            material.pbrMetallicRoughness.metallicFactor = lmat.metallic_value;
+            material.pbrMetallicRoughness.roughnessFactor = lmat.roughness_value;
+            material.pbrMetallicRoughness.metallicRoughnessTexture.index =
+                element_id_to_int(lmat.metallic_roughness_texture.index);
+            material.pbrMetallicRoughness.metallicRoughnessTexture.texCoord =
+                lmat.metallic_roughness_texture.texcoord;
 
-        material.normalTexture.index = element_id_to_int(lmat.normal_texture.index);
-        material.normalTexture.texCoord = lmat.normal_texture.texcoord;
-        material.normalTexture.scale = lmat.normal_scale;
+            material.normalTexture.index = element_id_to_int(lmat.normal_texture.index);
+            material.normalTexture.texCoord = lmat.normal_texture.texcoord;
+            material.normalTexture.scale = lmat.normal_scale;
 
-        material.occlusionTexture.index = element_id_to_int(lmat.occlusion_texture.index);
-        material.occlusionTexture.texCoord = lmat.occlusion_texture.texcoord;
-        material.occlusionTexture.strength = lmat.occlusion_strength;
+            material.occlusionTexture.index = element_id_to_int(lmat.occlusion_texture.index);
+            material.occlusionTexture.texCoord = lmat.occlusion_texture.texcoord;
+            material.occlusionTexture.strength = lmat.occlusion_strength;
 
-        material.alphaCutoff = lmat.alpha_cutoff;
-        material.alphaMode = [](scene::MaterialExperimental::AlphaMode mode) {
-            switch (mode) {
-            case scene::MaterialExperimental::AlphaMode::Opaque: return "OPAQUE";
-            case scene::MaterialExperimental::AlphaMode::Mask: return "MASK";
-            case scene::MaterialExperimental::AlphaMode::Blend: return "BLEND";
-            default: logger().warn("Invalid alpha mode"); return "";
+            material.alphaCutoff = lmat.alpha_cutoff;
+            material.alphaMode = [](scene::MaterialExperimental::AlphaMode mode) {
+                switch (mode) {
+                case scene::MaterialExperimental::AlphaMode::Opaque: return "OPAQUE";
+                case scene::MaterialExperimental::AlphaMode::Mask: return "MASK";
+                case scene::MaterialExperimental::AlphaMode::Blend: return "BLEND";
+                default: logger().warn("Invalid alpha mode"); return "";
+                }
+            }(lmat.alpha_mode);
+
+            if (!lmat.extensions.empty()) {
+                material.extensions = convert_extension_map(lmat.extensions, options);
             }
-        }(lmat.alpha_mode);
 
-        if (!lmat.extensions.empty()) {
-            material.extensions = convert_extension_map(lmat.extensions, options);
+            model.materials.push_back(material);
         }
 
-        model.materials.push_back(material);
-    }
+        for (const auto& ltex : lscene.textures) {
+            la_debug_assert(ltex.image != scene::invalid_element);
+            tinygltf::Texture texture;
+            texture.name = ltex.name;
+            texture.source = static_cast<int>(ltex.image);
 
-    for (const auto& ltex : lscene.textures) {
-        la_debug_assert(ltex.image != invalid<scene::ElementId>());
-        tinygltf::Texture texture;
-        texture.name = ltex.name;
-        texture.source = static_cast<int>(ltex.image);
+            if (!ltex.extensions.empty()) {
+                texture.extensions = convert_extension_map(ltex.extensions, options);
+            }
 
-        if (!ltex.extensions.empty()) {
-            texture.extensions = convert_extension_map(ltex.extensions, options);
+            model.textures.push_back(texture);
         }
-
-        model.textures.push_back(texture);
     }
 
     // TODO skeletons
@@ -878,8 +889,10 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             for (const auto& mesh_instance : lnode.meshes) {
                 const auto& lmesh = lscene.meshes[mesh_instance.mesh];
                 tinygltf::Primitive prim = create_gltf_primitive(model, lmesh, options);
-                la_runtime_assert(mesh_instance.materials.size() == 1);
-                prim.material = lagrange::safe_cast<int>(mesh_instance.materials.front());
+                if (options.export_materials) {
+                    la_runtime_assert(mesh_instance.materials.size() == 1);
+                    prim.material = lagrange::safe_cast<int>(mesh_instance.materials.front());
+                }
                 mesh.primitives.push_back(prim);
             }
             int mesh_idx = lagrange::safe_cast<int>(model.meshes.size());
@@ -912,7 +925,7 @@ tinygltf::Model lagrange_scene_to_gltf_model(
 
         return node_idx;
     };
-    for (size_t i=0; i<num_nodes; i++) {
+    for (size_t i = 0; i < num_nodes; i++) {
         if (node_indices[i] != invalid<int>()) continue;
 
         const scene::Node& lnode = lscene.nodes[i];

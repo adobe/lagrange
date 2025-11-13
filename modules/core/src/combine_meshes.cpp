@@ -315,16 +315,16 @@ SurfaceMesh<Scalar, Index> combine_meshes(
         preserve_attributes);
 }
 
-#define LA_X_combine_meshes(_, Scalar, Index)                          \
+#define LA_X_combine_meshes(_, Scalar, Index)                                      \
     template LA_CORE_API SurfaceMesh<Scalar, Index> combine_meshes<Scalar, Index>( \
-        std::initializer_list<const SurfaceMesh<Scalar, Index>*>,      \
-        bool);                                                         \
+        std::initializer_list<const SurfaceMesh<Scalar, Index>*>,                  \
+        bool);                                                                     \
     template LA_CORE_API SurfaceMesh<Scalar, Index> combine_meshes<Scalar, Index>( \
-        span<const SurfaceMesh<Scalar, Index>>,                        \
-        bool);                                                         \
+        span<const SurfaceMesh<Scalar, Index>>,                                    \
+        bool);                                                                     \
     template LA_CORE_API SurfaceMesh<Scalar, Index> combine_meshes<Scalar, Index>( \
-        size_t,                                                        \
-        function_ref<const SurfaceMesh<Scalar, Index>&(size_t)>,       \
+        size_t,                                                                    \
+        function_ref<const SurfaceMesh<Scalar, Index>&(size_t)>,                   \
         bool);
 LA_SURFACE_MESH_X(combine_meshes, 0)
 

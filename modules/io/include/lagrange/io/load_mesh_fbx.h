@@ -47,4 +47,4 @@ MeshType load_mesh_fbx(std::istream& input_stream, const LoadOptions& options = 
 template <typename MeshType>
 MeshType load_mesh_fbx(const fs::path& filename, const LoadOptions& options = {});
 
-}
+} // namespace lagrange::io

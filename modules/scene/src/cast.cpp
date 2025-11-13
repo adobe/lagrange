@@ -44,7 +44,9 @@ SimpleScene<ToScalar, ToIndex, Dimension> cast(
             convertible_attributes,
             tmp_attribute_names_ptr);
         target_scene.add_mesh(std::move(converted_mesh));
-        target_scene.reserve_instances(static_cast<ToIndex>(mesh_index), static_cast<ToIndex>(source_scene.get_num_instances(mesh_index)));
+        target_scene.reserve_instances(
+            static_cast<ToIndex>(mesh_index),
+            static_cast<ToIndex>(source_scene.get_num_instances(mesh_index)));
         if (converted_attributes_names && first) {
             *converted_attributes_names = tmp_attribute_names;
             first = false;
@@ -75,11 +77,11 @@ SimpleScene<ToScalar, ToIndex, Dimension> cast(
 #define fst(first, second) first
 #define snd(first, second) second
 #define LA_X_cast_mesh_to(FromScalarIndex, ToScalar, ToIndex)                         \
-    template LA_SCENE_API SimpleScene<ToScalar, ToIndex, 2u> cast(                                 \
+    template LA_SCENE_API SimpleScene<ToScalar, ToIndex, 2u> cast(                    \
         const SimpleScene<fst FromScalarIndex, snd FromScalarIndex, 2u>& source_mesh, \
         const AttributeFilter& convertible_attributes,                                \
         std::vector<std::string>* converted_attributes_names);                        \
-    template LA_SCENE_API SimpleScene<ToScalar, ToIndex, 3u> cast(                                 \
+    template LA_SCENE_API SimpleScene<ToScalar, ToIndex, 3u> cast(                    \
         const SimpleScene<fst FromScalarIndex, snd FromScalarIndex, 3u>& source_mesh, \
         const AttributeFilter& convertible_attributes,                                \
         std::vector<std::string>* converted_attributes_names);

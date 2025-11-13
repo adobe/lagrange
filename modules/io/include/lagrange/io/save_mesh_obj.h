@@ -15,8 +15,7 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
-#include <ostream>
-#include <vector>
+#include <iosfwd>
 
 namespace lagrange {
 namespace io {

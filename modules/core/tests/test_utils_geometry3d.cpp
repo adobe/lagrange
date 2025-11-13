@@ -11,6 +11,7 @@
  */
 #include <lagrange/testing/common.h>
 
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/geometry3d.h>
 
 using namespace Eigen;
@@ -29,8 +30,8 @@ TEST_CASE("utils-geometry3d")
     REQUIRE(cos_angle_between(v2, Vector3f(0, 0, -1)) == -1.0);
 
     REQUIRE(angle_between(Vector3d(0, 0, 1), Vector3d(0, 0, 1)) == 0);
-    REQUIRE(angle_between(Vector3d(0, 0, 1), Vector3d(1, 0, 0)) == M_PI_2);
-    REQUIRE(angle_between(Vector3d(0, 0, 1), Vector3d(0, 0, -1)) == M_PI);
+    REQUIRE(angle_between(Vector3d(0, 0, 1), Vector3d(1, 0, 0)) == lagrange::internal::pi_2);
+    REQUIRE(angle_between(Vector3d(0, 0, 1), Vector3d(0, 0, -1)) == lagrange::internal::pi);
 
     REQUIRE(project_on_line(Vector3d(1, 1, 1), Vector3d(1, 0, 0)).isApprox(Vector3d(1, 0, 0)));
 

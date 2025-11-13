@@ -10,17 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
-#include "bind_simple_scene.h"
 #include "bind_scene.h"
+#include "bind_simple_scene.h"
 
+#include <lagrange/python/binding.h>
 #include <lagrange/scene/RemeshingOptions.h>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <nanobind/nanobind.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
 
 namespace lagrange::python {
 
@@ -31,18 +25,40 @@ void populate_scene_module(nb::module_& m)
 
     bind_simple_scene<Scalar, Index>(m);
 
-    nb::enum_<lagrange::scene::FacetAllocationStrategy>(m, "FacetAllocationStrategy")
-        .value("EvenSplit", lagrange::scene::FacetAllocationStrategy::EvenSplit)
-        .value("RelativeToMeshArea", lagrange::scene::FacetAllocationStrategy::RelativeToMeshArea)
-        .value("RelativeToNumFacets", lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets)
-        .value("Synchronized", lagrange::scene::FacetAllocationStrategy::Synchronized);
+    nb::enum_<lagrange::scene::FacetAllocationStrategy>(
+        m,
+        "FacetAllocationStrategy",
+        "Facet allocation strategy for meshes in the scene during decimation or remeshing.")
+        .value(
+            "EvenSplit",
+            lagrange::scene::FacetAllocationStrategy::EvenSplit,
+            "Split facet budget evenly between all meshes in a scene.")
+        .value(
+            "RelativeToMeshArea",
+            lagrange::scene::FacetAllocationStrategy::RelativeToMeshArea,
+            "Allocate facet budget according to the mesh area in the scene.")
+        .value(
+            "RelativeToNumFacets",
+            lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets,
+            "Allocate facet budget according to the number of facets.")
+        .value(
+            "Synchronized",
+            lagrange::scene::FacetAllocationStrategy::Synchronized,
+            "Synchronize simplification between multiple meshes in a scene by computing a "
+            "conservative threshold on the QEF error of all edges in the scene. This option gives "
+            "the best result in terms of facet budget allocation, but is a bit slower than other "
+            "options.");
 
     nb::class_<lagrange::scene::RemeshingOptions>(m, "RemeshingOptions")
         .def(nb::init<>())
         .def_rw(
             "facet_allocation_strategy",
-            &lagrange::scene::RemeshingOptions::facet_allocation_strategy)
-        .def_rw("min_facets", &lagrange::scene::RemeshingOptions::min_facets);
+            &lagrange::scene::RemeshingOptions::facet_allocation_strategy,
+            "Facet allocation strategy for meshes in the scene.")
+        .def_rw(
+            "min_facets",
+            &lagrange::scene::RemeshingOptions::min_facets,
+            "Minimum amount of facets for meshes in the scene.");
 
     bind_scene(m);
 }

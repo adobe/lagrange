@@ -69,20 +69,19 @@ endif()
     )
 # endif()
 
-if (LAGRANGE_FMT_EIGEN_FIX)
+if(LAGRANGE_FMT_EIGEN_FIX)
     target_compile_definitions(lagrange_core PUBLIC
         -DLAGRANGE_FMT_EIGEN_FIX
     )
 endif()
 
 # 2. dependencies
-lagrange_find_package(Eigen3 REQUIRED)
+lagrange_find_package(Eigen3 REQUIRED GLOBAL)
 lagrange_find_package(span-lite REQUIRED)
 lagrange_find_package(spdlog REQUIRED)
 lagrange_find_package(TBB CONFIG REQUIRED)
 target_link_libraries(lagrange_core PUBLIC
     Eigen3::Eigen
-    lagrange::warnings
     nonstd::span-lite
     spdlog::spdlog
     TBB::tbb
@@ -157,6 +156,10 @@ if(LAGRANGE_FMT_EIGEN_FORMATTER)
     endif()
 endif()
 
+if(LAGRANGE_MODULE_PYTHON)
+    target_compile_definitions(lagrange_core PUBLIC LAGRANGE_WITH_PYTHON)
+endif()
+
 # 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
@@ -171,6 +174,6 @@ if(LAGRANGE_EXAMPLES)
 endif()
 
 # 4. python binding
-if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL)
+if(LAGRANGE_MODULE_PYTHON)
     add_subdirectory(python)
 endif()

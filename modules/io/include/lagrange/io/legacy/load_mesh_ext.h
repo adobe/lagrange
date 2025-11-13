@@ -19,10 +19,10 @@
 #include <lagrange/attributes/attribute_utils.h>
 #include <lagrange/common.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/legacy/inline.h>
 #include <lagrange/normalize_meshes.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/safe_cast.h>
-#include <lagrange/legacy/inline.h>
 
 #include <lagrange/fs/filesystem.h>
 #include <tiny_obj_loader.h>

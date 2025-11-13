@@ -15,10 +15,10 @@
 
 // GLEW must come before GLFW
 #if defined(__EMSCRIPTEN__)
-#include <webgl/webgl2.h>
-#include <GL/gl.h>
+    #include <GL/gl.h>
+    #include <webgl/webgl2.h>
 #else
-#include <GL/gl3w.h>
+    #include <GL/gl3w.h>
 #endif
 // Do not change the order
 #include <GLFW/glfw3.h>
@@ -32,8 +32,8 @@
 #include <unordered_map>
 
 #ifdef _DEBUG
-#include <lagrange/utils/assert.h>
-#include <cassert>
+    #include <lagrange/utils/assert.h>
+    #include <cassert>
 #endif
 
 
@@ -47,17 +47,17 @@ namespace ui {
 #ifdef _DEBUG
 
 bool checkGLError(const char* label);
-#define LA_GL(x)                          \
-    do {                                  \
-        x;                                \
-        checkGLError(LA_ASSERT_FUNCTION); \
-    } while (0)
+    #define LA_GL(x)                          \
+        do {                                  \
+            x;                                \
+            checkGLError(LA_ASSERT_FUNCTION); \
+        } while (0)
 #else
 
-#define LA_GL(x) \
-    do {         \
-        x;       \
-    } while (0)
+    #define LA_GL(x) \
+        do {         \
+            x;       \
+        } while (0)
 #endif
 
 struct LA_UI_API GLState

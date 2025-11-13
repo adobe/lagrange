@@ -9,10 +9,10 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/bvh/zip_boundary.h>
 #include <lagrange/common.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
-#include <lagrange/bvh/zip_boundary.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -35,7 +35,10 @@ int main(int argc, char** argv)
     CLI::App app{argv[0]};
     app.add_option("input", args.input, "Input mesh.")->required()->check(CLI::ExistingFile);
     app.add_option("output", args.output, "Output mesh.");
-    app.add_option("-r,--radius", args.radius, "Merging radius. < 0 means relative to the bbox diagonal");
+    app.add_option(
+        "-r,--radius",
+        args.radius,
+        "Merging radius. < 0 means relative to the bbox diagonal");
     CLI11_PARSE(app, argc, argv)
 
     lagrange::logger().info("Loading input mesh: {}", args.input);

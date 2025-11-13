@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
@@ -62,7 +63,7 @@ public:
         q[0] = pos[0];
         q[1] = pos[1];
         q[2] = pos[2];
-        return m_engine.computeSolidAngle(q) / (4.f * M_PI) > 0.5f;
+        return m_engine.computeSolidAngle(q) / (4.f * lagrange::internal::pi) > 0.5f;
     }
 
     float solid_angle(const std::array<float, 3>& pos) const

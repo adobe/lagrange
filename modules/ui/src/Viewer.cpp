@@ -358,7 +358,8 @@ Viewer::Viewer(const WindowOptions& window_options)
     // Layer names
     register_default_layer_names(registry());
 
-    registry().ctx().insert_or_assign<WindowSize>(WindowSize{window_options.width, window_options.height});
+    registry().ctx().insert_or_assign<WindowSize>(
+        WindowSize{window_options.width, window_options.height});
 
     // Tool context
     auto& tools = initialize_tools(registry());
@@ -374,7 +375,8 @@ Viewer::Viewer(const WindowOptions& window_options)
     (void)(zeroth); // handle nodiscard
 
     // UI windows - create and set as context variable
-    auto& windows = m_registry.ctx().insert_or_assign<DefaultPanels>(add_default_panels(registry()));
+    auto& windows =
+        m_registry.ctx().insert_or_assign<DefaultPanels>(add_default_panels(registry()));
 
     m_width = window_options.width;
     m_height = window_options.height;
@@ -1063,8 +1065,9 @@ void Viewer::draw_menu()
 #else
         ImGui::MenuItem(ICON_FA_FOLDER_OPEN " Load Scene", nullptr, false, false);
         if (ImGui::IsItemHovered(ImGuiHoveredFlags_AllowWhenDisabled)) {
-            ImGui::SetTooltip("Load Scene is only available when Lagrange is compiled with\n"
-                              "Assimp support (CMake option: LAGRANGE_WITH_ASSIMP=ON)");
+            ImGui::SetTooltip(
+                "Load Scene is only available when Lagrange is compiled with\n"
+                "Assimp support (CMake option: LAGRANGE_WITH_ASSIMP=ON)");
         }
 #endif
 
@@ -1212,7 +1215,8 @@ void Viewer::draw_menu()
 void Viewer::start_dockspace()
 {
     // Set dockspace from Imgui to context
-    auto dockspace = registry().ctx().insert_or_assign<Dockspace>(Dockspace{ImGui::GetID("MyDockSpace")});
+    auto dockspace =
+        registry().ctx().insert_or_assign<Dockspace>(Dockspace{ImGui::GetID("MyDockSpace")});
 
     if (ImGui::DockBuilderGetNode(dockspace.ID) == NULL) {
         reset_layout(registry());
@@ -1222,7 +1226,8 @@ void Viewer::start_dockspace()
     {
         float left_offset = 0.0f;
 
-        const auto& toolbar = m_registry.get<UIPanel>(m_registry.ctx().get<DefaultPanels>().toolbar);
+        const auto& toolbar =
+            m_registry.get<UIPanel>(m_registry.ctx().get<DefaultPanels>().toolbar);
         if (toolbar.visible) {
             left_offset += ToolbarPanel::toolbar_width;
         }

@@ -16,13 +16,7 @@
 #include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/utils/assert.h>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
 #include <Eigen/Core>
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/optional.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <type_traits>
 
@@ -35,8 +29,13 @@ void bind_simple_scene(nb::module_& m)
 {
     using MeshInstance3D = lagrange::scene::MeshInstance<Scalar, Index, 3>;
     nb::class_<MeshInstance3D>(m, "MeshInstance3D", "A single mesh instance in a scene")
-        .def(nb::init<>())
-        .def_rw("mesh_index", &MeshInstance3D::mesh_index)
+        .def(
+            nb::init<>(),
+            "Creates a new mesh instance with identity transform and mesh_index of 0.")
+        .def_rw(
+            "mesh_index",
+            &MeshInstance3D::mesh_index,
+            "Index of the mesh in the scene's mesh array.")
         .def_prop_rw(
             "transform",
             [](MeshInstance3D& self) {
@@ -82,28 +81,92 @@ void bind_simple_scene(nb::module_& m)
                     M(3, 2) = values[14];
                     M(3, 3) = values[15];
                 }
-            });
+            },
+            R"(4x4 transformation matrix for this instance.
+
+The transformation matrix is stored in column-major order. Both row-major and column-major
+input tensors are supported for setting the transform.)");
 
     using SimpleScene3D = lagrange::scene::SimpleScene<Scalar, Index, 3>;
     nb::class_<SimpleScene3D>(m, "SimpleScene3D", "Simple scene container for instanced meshes")
-        .def(nb::init<>())
+        .def(nb::init<>(), "Creates an empty scene with no meshes or instances.")
         .def_prop_ro("num_meshes", &SimpleScene3D::get_num_meshes, "Number of meshes in the scene")
-        .def("num_instances", &SimpleScene3D::get_num_instances, "mesh_index"_a)
+        .def(
+            "num_instances",
+            &SimpleScene3D::get_num_instances,
+            "mesh_index"_a,
+            R"(Gets the number of instances for a specific mesh.
+
+:param mesh_index: Index of the mesh.
+
+:return: Number of instances of the specified mesh.)")
         .def_prop_ro(
             "total_num_instances",
             &SimpleScene3D::compute_num_instances,
             "Total number of instances for all meshes in the scene")
-        .def("get_mesh", &SimpleScene3D::get_mesh, "mesh_index"_a)
-        .def("ref_mesh", &SimpleScene3D::ref_mesh, "mesh_index"_a)
-        .def("get_instance", &SimpleScene3D::get_instance, "mesh_index"_a, "instance_index"_a)
-        .def("reserve_meshes", &SimpleScene3D::reserve_meshes, "num_meshes"_a)
-        .def("add_mesh", &SimpleScene3D::add_mesh, "mesh"_a)
+        .def(
+            "get_mesh",
+            &SimpleScene3D::get_mesh,
+            "mesh_index"_a,
+            R"(Gets a copy of the mesh at the specified index.
+
+:param mesh_index: Index of the mesh.
+
+:return: Copy of the mesh.)")
+        .def(
+            "ref_mesh",
+            &SimpleScene3D::ref_mesh,
+            "mesh_index"_a,
+            R"(Gets a reference to the mesh at the specified index.
+
+:param mesh_index: Index of the mesh.
+
+:return: Reference to the mesh.)")
+        .def(
+            "get_instance",
+            &SimpleScene3D::get_instance,
+            "mesh_index"_a,
+            "instance_index"_a,
+            R"(Gets a specific instance of a mesh.
+
+:param mesh_index: Index of the mesh.
+:param instance_index: Index of the instance for that mesh.
+
+:return: The mesh instance.)")
+        .def(
+            "reserve_meshes",
+            &SimpleScene3D::reserve_meshes,
+            "num_meshes"_a,
+            R"(Reserves storage for meshes.
+
+:param num_meshes: Number of meshes to reserve space for.)")
+        .def(
+            "add_mesh",
+            &SimpleScene3D::add_mesh,
+            "mesh"_a,
+            R"(Adds a mesh to the scene.
+
+:param mesh: Mesh to add.
+
+:return: Index of the newly added mesh.)")
         .def(
             "reserve_instances",
             &SimpleScene3D::reserve_instances,
             "mesh_index"_a,
-            "num_instances"_a)
-        .def("add_instance", &SimpleScene3D::add_instance, "instance"_a);
+            "num_instances"_a,
+            R"(Reserves storage for instances of a specific mesh.
+
+:param mesh_index: Index of the mesh.
+:param num_instances: Number of instances to reserve space for.)")
+        .def(
+            "add_instance",
+            &SimpleScene3D::add_instance,
+            "instance"_a,
+            R"(Adds an instance to the scene.
+
+:param instance: Mesh instance to add.
+
+:return: Index of the newly added instance for its mesh.)");
 
     // Mesh to scene + scene to mesh
 

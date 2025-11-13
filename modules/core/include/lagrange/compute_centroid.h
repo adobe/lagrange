@@ -43,7 +43,7 @@ struct FacetCentroidOptions
 /// @tparam        Index    Mesh Index type.
 ///
 /// @return        The id of the facet centroid attribute.
-/// @see           `FacetCentroidOptions`
+/// @see           @ref FacetCentroidOptions
 ///
 template <typename Scalar, typename Index>
 AttributeId compute_facet_centroid(
@@ -80,7 +80,7 @@ struct MeshCentroidOptions
 /// @tparam     Scalar    Mesh Scalar type.
 /// @tparam     Index     Mesh Index type.
 ///
-/// @see        `MeshCentroidOptions`
+/// @see        @ref MeshCentroidOptions
 ///
 template <typename Scalar, typename Index>
 void compute_mesh_centroid(

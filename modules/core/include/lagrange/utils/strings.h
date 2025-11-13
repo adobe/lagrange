@@ -102,12 +102,12 @@ LA_CORE_API std::string to_upper(std::string str);
 template <typename... Args>
 std::string string_format(fmt::format_string<Args...> format, Args&&... args)
 {
-    // TODO: Remove this string_format in our next major release...
-    #if FMT_VERSION >= 90100
+// TODO: Remove this string_format in our next major release...
+#if FMT_VERSION >= 90100
     return fmt::format(fmt::runtime(format), std::forward<Args>(args)...);
-    #else
+#else
     return fmt::format(format, std::forward<Args>(args)...);
-    #endif
+#endif
 }
 
 /// @}

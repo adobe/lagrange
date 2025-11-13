@@ -27,6 +27,7 @@
  * All modifications are Copyright 2021 Adobe.
  */
 
+#include <lagrange/internal/constants.h>
 #include <lagrange/ui/imgui/progress.h>
 
 #include <imgui_internal.h>
@@ -98,7 +99,7 @@ bool Spinner(const char* label, float radius, int thickness, const ImU32& color)
     const ImGuiID id = window->GetID(label);
 
     ImVec2 pos = window->DC.CursorPos;
-    ImVec2 size((radius)*2, (radius + style.FramePadding.y) * 2);
+    ImVec2 size((radius) * 2, (radius + style.FramePadding.y) * 2);
 
     const ImRect bb(pos, ImVec2(pos.x + size.x, pos.y + size.y));
     ItemSize(bb, style.FramePadding.y);
@@ -110,8 +111,9 @@ bool Spinner(const char* label, float radius, int thickness, const ImU32& color)
     int num_segments = 30;
     int start = int(abs(ImSin(float(g.Time) * 1.8f) * (num_segments - 5)));
 
-    const float a_min = IM_PI * 2.0f * ((float)start) / (float)num_segments;
-    const float a_max = IM_PI * 2.0f * ((float)num_segments - 3) / (float)num_segments;
+    const float a_min = lagrange::internal::pi * 2.0f * ((float)start) / (float)num_segments;
+    const float a_max =
+        lagrange::internal::pi * 2.0f * ((float)num_segments - 3) / (float)num_segments;
 
     const ImVec2 centre = ImVec2(pos.x + radius, pos.y + radius + style.FramePadding.y);
 

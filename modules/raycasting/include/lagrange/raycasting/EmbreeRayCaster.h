@@ -128,16 +128,10 @@ public:
 
 public:
     /** Get the total number of meshes (not instances). */
-    Index get_num_meshes() const
-    {
-        return safe_cast<Index>(m_meshes.size());
-    }
+    Index get_num_meshes() const { return safe_cast<Index>(m_meshes.size()); }
 
     /** Get the total number of mesh instances. */
-    Index get_num_instances() const
-    {
-        return m_instance_index_ranges.back();
-    }
+    Index get_num_instances() const { return m_instance_index_ranges.back(); }
 
     /** Get the number of instances of a particular mesh. */
     Index get_num_instances(Index mesh_index) const
@@ -423,10 +417,7 @@ public:
     }
 
     /** Throw an exception if an Embree error has occurred.*/
-    void ensure_no_errors() const
-    {
-        EmbreeHelper::ensure_no_errors(m_device);
-    }
+    void ensure_no_errors() const { EmbreeHelper::ensure_no_errors(m_device); }
 
     /**
      * Cast a packet of up to 4 rays through the scene, returning full data of the closest
@@ -745,7 +736,7 @@ public:
     /** Use the underlying BVH to find the point closest to a query point. */
     ClosestPoint query_closest_point(const Point& p) const;
 
-/** Add raycasting utilities **/
+    /** Add raycasting utilities **/
     Index add_raycasting_mesh(
         std::unique_ptr<RaycasterMesh> mesh,
         const Transform& trans = Transform::Identity(),
@@ -784,7 +775,8 @@ public:
 
 protected:
     /** Release internal Embree scenes */
-    void release_scenes() {
+    void release_scenes()
+    {
         for (auto& s : m_embree_mesh_scenes) {
             rtcReleaseScene(s);
         }
@@ -792,16 +784,10 @@ protected:
     }
 
     /** Get the Embree scene flags. */
-    virtual RTCSceneFlags get_scene_flags() const
-    {
-        return m_scene_flags;
-    }
+    virtual RTCSceneFlags get_scene_flags() const { return m_scene_flags; }
 
     /** Get the Embree geometry build quality. */
-    virtual RTCBuildQuality get_scene_build_quality() const
-    {
-        return m_build_quality;
-    }
+    virtual RTCBuildQuality get_scene_build_quality() const { return m_build_quality; }
 
     /** Update all internal structures based on the current dirty flags. */
     void update_internal()

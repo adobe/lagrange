@@ -13,11 +13,11 @@
 
 #ifdef LAGRANGE_WITH_ASSIMP
 
-#include <lagrange/fs/filesystem.h>
-#include <lagrange/scene/SimpleScene.h>
-#include <lagrange/io/types.h>
+    #include <lagrange/fs/filesystem.h>
+    #include <lagrange/io/types.h>
+    #include <lagrange/scene/SimpleScene.h>
 
-#include <iosfwd>
+    #include <iosfwd>
 
 namespace lagrange::io {
 

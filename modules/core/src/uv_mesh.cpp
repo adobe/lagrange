@@ -11,9 +11,9 @@
  */
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/uv_mesh.h>
 #include <lagrange/internal/get_uv_attribute.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/uv_mesh.h>
 
 namespace lagrange {
 

@@ -35,7 +35,7 @@ target_include_directories(quadprog SYSTEM INTERFACE
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-lagrange_find_package(Eigen3 REQUIRED)
+lagrange_find_package(Eigen3 REQUIRED GLOBAL)
 target_link_libraries(quadprog PUBLIC Eigen3::Eigen)
 
 # Install rules

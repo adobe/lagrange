@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/Logger.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/utils/assert.h>
@@ -96,7 +97,8 @@ int main(int argc, char** argv)
         const auto qq_ = barycenter - options.epsilon * normal;
         const std::array<float, 3> pp{pp_(0), pp_(1), pp_(2)};
         const std::array<float, 3> qq{qq_(0), qq_(1), qq_(2)};
-        const auto criterion = (engine.solid_angle(pp) - engine.solid_angle(qq)) / (4.f * M_PI); // / 2 / options.epsilon;
+        const auto criterion = (engine.solid_angle(pp) - engine.solid_angle(qq)) /
+                               (4.f * lagrange::internal::pi); // / 2 / options.epsilon;
         logger.debug("criterion {}", criterion);
 
         if (criterion > options.threshold) {

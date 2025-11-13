@@ -12,13 +12,13 @@
 #pragma once
 
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/MeshData.h>
 #include <lagrange/ui/components/MeshGeometry.h>
 #include <lagrange/ui/types/AABB.h>
 #include <lagrange/ui/types/Frustum.h>
 #include <lagrange/ui/types/RayFacetHit.h>
 #include <lagrange/ui/utils/math.h>
-#include <lagrange/ui/api.h>
 #include <optional>
 
 /// This header exposes functionality of previously registered mesh types
@@ -75,9 +75,10 @@ LA_UI_API RowMajorMatrixXf get_mesh_vertex_attribute(const MeshData& d, const st
 LA_UI_API RowMajorMatrixXf get_mesh_corner_attribute(const MeshData& d, const std::string& name);
 LA_UI_API RowMajorMatrixXf get_mesh_facet_attribute(const MeshData& d, const std::string& name);
 LA_UI_API RowMajorMatrixXf get_mesh_edge_attribute(const MeshData& d, const std::string& name);
-LA_UI_API RowMajorMatrixXf get_mesh_attribute(const MeshData& d, IndexingMode mode, const std::string& name);
-std::pair<Eigen::VectorXf, Eigen::VectorXf>
-LA_UI_API get_mesh_attribute_range(const MeshData& d, IndexingMode mode, const std::string& name);
+LA_UI_API RowMajorMatrixXf
+get_mesh_attribute(const MeshData& d, IndexingMode mode, const std::string& name);
+std::pair<Eigen::VectorXf, Eigen::VectorXf> LA_UI_API
+get_mesh_attribute_range(const MeshData& d, IndexingMode mode, const std::string& name);
 LA_UI_API AABB get_mesh_bounds(const MeshData& d);
 
 
@@ -99,10 +100,14 @@ LA_UI_API void map_corner_attribute_to_vertex_attribute(MeshData& d, const std::
 LA_UI_API void upload_mesh_vertices(const MeshData& d, GPUBuffer& gpu);
 LA_UI_API void upload_mesh_triangles(const MeshData& d, GPUBuffer& gpu);
 
-LA_UI_API void upload_mesh_vertex_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
-LA_UI_API void upload_mesh_corner_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
-LA_UI_API void upload_mesh_facet_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
-LA_UI_API void upload_mesh_edge_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
+LA_UI_API void
+upload_mesh_vertex_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
+LA_UI_API void
+upload_mesh_corner_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
+LA_UI_API void
+upload_mesh_facet_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
+LA_UI_API void
+upload_mesh_edge_attribute(const MeshData& d, const RowMajorMatrixXf& data, GPUBuffer& gpu);
 
 LA_UI_API std::unordered_map<entt::id_type, std::shared_ptr<GPUBuffer>> upload_submesh_indices(
     const MeshData& d,
@@ -124,12 +129,12 @@ LA_UI_API bool has_mesh_indexed_attribute(const MeshData& d, const std::string& 
 /// Intersect ray with MeshData
 LA_UI_API std::optional<RayFacetHit>
 intersect_ray(const MeshData& d, const Eigen::Vector3f& origin, const Eigen::Vector3f& dir);
-LA_UI_API bool select_facets_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const Frustum& frustum);
-LA_UI_API void select_vertices_in_frustum(
-    MeshData& d,
-    SelectionBehavior sel_behavior,
-    const Frustum& frustum);
-LA_UI_API void select_edges_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const Frustum& frustum);
+LA_UI_API bool
+select_facets_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const Frustum& frustum);
+LA_UI_API void
+select_vertices_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const Frustum& frustum);
+LA_UI_API void
+select_edges_in_frustum(MeshData& d, SelectionBehavior sel_behavior, const Frustum& frustum);
 LA_UI_API void propagate_corner_selection(MeshData& d, const std::string& attrib_name);
 LA_UI_API void propagate_vertex_selection(MeshData& d, const std::string& attrib_name);
 LA_UI_API void propagate_facet_selection(MeshData& d, const std::string& attrib_name);
@@ -152,10 +157,8 @@ LA_UI_API void select_vertices_by_color(
     SelectionBehavior sel_behavior,
     const unsigned char* color_bytes,
     size_t colors_byte_size);
-LA_UI_API void select_facets(
-    MeshData& d,
-    SelectionBehavior sel_behavior,
-    const std::vector<int>& facet_indices);
+LA_UI_API void
+select_facets(MeshData& d, SelectionBehavior sel_behavior, const std::vector<int>& facet_indices);
 
 LA_UI_API void filter_closest_vertex(
     MeshData& d,

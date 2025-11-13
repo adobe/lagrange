@@ -119,15 +119,19 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
 
     void seq_foreach_attribute_id(function_ref<void(AttributeId)> func) const
     {
-        for (auto& kv : m_name_to_id) {
-            func(kv.second);
+        for (size_t i = 0; i < m_attributes.size(); ++i) {
+            if (m_attributes[i].second.read()) {
+                func(static_cast<AttributeId>(i));
+            }
         }
     }
 
     void seq_foreach_attribute_id(function_ref<void(std::string_view, AttributeId)> func) const
     {
-        for (auto& kv : m_name_to_id) {
-            func(kv.first, kv.second);
+        for (size_t i = 0; i < m_attributes.size(); ++i) {
+            if (m_attributes[i].second.read()) {
+                func(m_attributes[i].first, static_cast<AttributeId>(i));
+            }
         }
     }
 
@@ -388,9 +392,10 @@ void SurfaceMesh<Scalar, Index>::set_attribute_default_internal(std::string_view
                 name == s_reserved_names.next_corner_around_vertex()) {
                 attr.set_default_value(invalid<ValueType>());
             } else {
-                throw Error(fmt::format(
-                    "Attribute name '{}' is not a valid reserved attribute name",
-                    name));
+                throw Error(
+                    fmt::format(
+                        "Attribute name '{}' is not a valid reserved attribute name",
+                        name));
             }
         }
     }
@@ -1069,6 +1074,12 @@ void SurfaceMesh<Scalar, Index>::delete_attribute(
     la_runtime_assert(num_deleted == 1, fmt::format("Attribute {} does not exist", name));
 }
 
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::delete_attribute(AttributeId id, AttributeDeletePolicy policy)
+{
+    delete_attribute(get_attribute_name(id), policy);
+}
+
 namespace {
 
 template <typename ValueType>
@@ -1083,9 +1094,10 @@ void check_export_policy(Attribute<ValueType>& attr, AttributeExportPolicy polic
             }
             return;
         case AttributeExportPolicy::KeepExternalPtr:
-            logger().warn("Exporting an Attribute pointing to an external buffer. It is the user's "
-                          "responsibility to guarantee the lifetime of the pointed data in that "
-                          "situation.");
+            logger().warn(
+                "Exporting an Attribute pointing to an external buffer. It is the user's "
+                "responsibility to guarantee the lifetime of the pointed data in that "
+                "situation.");
             return;
         case AttributeExportPolicy::ErrorIfExternal:
             throw Error("Cannot export an Attribute pointing to an external buffer");

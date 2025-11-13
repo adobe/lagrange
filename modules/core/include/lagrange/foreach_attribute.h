@@ -58,7 +58,9 @@ namespace details {
 enum class Ordering { Sequential, Parallel };
 enum class Access { Write, Read };
 
-LA_CORE_API void par_foreach_attribute_id(span<const AttributeId> ids, function_ref<void(AttributeId)> cb);
+LA_CORE_API void par_foreach_attribute_id(
+    span<const AttributeId> ids,
+    function_ref<void(AttributeId)> cb);
 
 template <
     std::underlying_type_t<AttributeElement> mask,
@@ -194,8 +196,7 @@ void internal_foreach_attribute(MeshType& mesh, Visitor&& vis, span<const Attrib
 ///                      lambda.
 ///
 /// @tparam     mask     Bit field mask to filter attribute based on their element types.
-/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T>
-///                      void(std::string_view, const Attribute<T> &);`
+/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T> void(std::string_view, const Attribute<T> &);`
 /// @tparam     Scalar   Mesh scalar type.
 /// @tparam     Index    Mesh index type.
 ///
@@ -220,8 +221,7 @@ void seq_foreach_named_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Vi
 ///                      lambda.
 ///
 /// @tparam     mask     Bit field mask to filter attribute based on their element types.
-/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T>
-///                      void(const Attribute<T> &);`
+/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T> void(const Attribute<T> &);`
 /// @tparam     Scalar   Mesh scalar type.
 /// @tparam     Index    Mesh index type.
 ///
@@ -254,8 +254,7 @@ void seq_foreach_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Visitor&
 ///                      lambda.
 ///
 /// @tparam     mask     Bit field mask to filter attribute based on their element types.
-/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T>
-///                      void(std::string_view, const Attribute<T> &);`
+/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T> void(std::string_view, const Attribute<T> &);`
 /// @tparam     Scalar   Mesh scalar type.
 /// @tparam     Index    Mesh index type.
 ///
@@ -281,8 +280,7 @@ void seq_foreach_named_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor
 ///                         lambda.
 ///
 /// @tparam        mask     Bit field mask to filter attribute based on their element types.
-/// @tparam        Visitor  Type of the visitor function, which should be `template<typename T>
-///                         void(Attribute<T> &);`
+/// @tparam        Visitor  Type of the visitor function, which should be `template<typename T> void(Attribute<T> &);`
 /// @tparam        Scalar   Mesh scalar type.
 /// @tparam        Index    Mesh index type.
 ///
@@ -314,8 +312,7 @@ void seq_foreach_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor&& vis
 ///                      lambda.
 ///
 /// @tparam     mask     Bit field mask to filter attribute based on their element types.
-/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T>
-///                      void(std::string_view, const Attribute<T> &);`
+/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T> void(std::string_view, const Attribute<T> &);`
 /// @tparam     Scalar   Mesh scalar type.
 /// @tparam     Index    Mesh index type.
 ///
@@ -340,8 +337,7 @@ void par_foreach_named_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Vi
 ///                      lambda.
 ///
 /// @tparam     mask     Bit field mask to filter attribute based on their element types.
-/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T>
-///                      void(const Attribute<T> &);`
+/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T> void(const Attribute<T> &);`
 /// @tparam     Scalar   Mesh scalar type.
 /// @tparam     Index    Mesh index type.
 ///
@@ -374,8 +370,7 @@ void par_foreach_attribute_read(const SurfaceMesh<Scalar, Index>& mesh, Visitor&
 ///                      lambda.
 ///
 /// @tparam     mask     Bit field mask to filter attribute based on their element types.
-/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T>
-///                      void(std::string_view, const Attribute<T> &);`
+/// @tparam     Visitor  Type of the visitor function, which should be `template<typename T> void(std::string_view, const Attribute<T> &);`
 /// @tparam     Scalar   Mesh scalar type.
 /// @tparam     Index    Mesh index type.
 ///
@@ -401,8 +396,7 @@ void par_foreach_named_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor
 ///                         lambda.
 ///
 /// @tparam        mask     Bit field mask to filter attribute based on their element types.
-/// @tparam        Visitor  Type of the visitor function, which should be `template<typename T>
-///                         void(Attribute<T> &);`
+/// @tparam        Visitor  Type of the visitor function, which should be `template<typename void(Attribute<T> &);`
 /// @tparam        Scalar   Mesh scalar type.
 /// @tparam        Index    Mesh index type.
 ///

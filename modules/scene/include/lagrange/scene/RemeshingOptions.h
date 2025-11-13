@@ -30,8 +30,7 @@ enum class FacetAllocationStrategy {
     RelativeToNumFacets,
     /// Synchronize simplification between multiple meshes in a scene by computing a conservative
     /// threshold on the QEF error of all edges in the scene. This option gives the best result in
-    /// terms of facet budget allocation, but is a bit slower than other options. This strategy is
-    /// only supported by edge-collapse decimation, and is not available for quadrangulation.
+    /// terms of facet budget allocation, but is a bit slower than other options.
     Synchronized,
 };
 
@@ -61,7 +60,8 @@ struct RemeshingOptions
     size_t min_facets = lagrange::invalid<size_t>();
 
     /// Behavior for meshes without instances in the scene.
-    UninstantiatedMeshesStrategy uninstantiated_meshes_strategy = UninstantiatedMeshesStrategy::None;
+    UninstantiatedMeshesStrategy uninstantiated_meshes_strategy =
+        UninstantiatedMeshesStrategy::None;
 
     /// Optional per-instance weights/importance. Must be > 0.
     std::vector<float> per_instance_importance;

@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/api.h>
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/api.h>
 #include <lagrange/utils/BitField.h>
 
 #include <string>

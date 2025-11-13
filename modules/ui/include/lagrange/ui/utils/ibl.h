@@ -11,9 +11,9 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/components/IBL.h>
 
 namespace lagrange {
@@ -33,7 +33,8 @@ LA_UI_API IBL generate_ibl(const fs::path& path, size_t resolution = 1024);
 /// @param path
 /// @param resolution
 /// @return IBL
-LA_UI_API IBL generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t resolution = 1024);
+LA_UI_API IBL
+generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t resolution = 1024);
 
 /// @brief Returns first <IBL> entity found in registry. If there are none, returns invalid Entity
 /// @param registry

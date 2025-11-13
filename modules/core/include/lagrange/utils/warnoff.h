@@ -48,6 +48,7 @@
     #pragma clang diagnostic ignored "-Wconversion"
     #pragma clang diagnostic ignored "-Wunused-function"
     #pragma clang diagnostic ignored "-Wbitwise-instead-of-logical"
+    #pragma clang diagnostic ignored "-Wvariadic-macro-arguments-omitted"
 #elif defined(__GNUC__)
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wpragmas"
@@ -95,12 +96,15 @@
     #pragma warning(disable : 4005) // macro redefintion.
     #pragma warning(disable : 4018) // sign/unsign mismatch in comparison.
     #pragma warning(disable : 4101) // unreferenced local variable.
+    #pragma warning( \
+        disable : 4146) // Unary minus operator applied to unsigned type, result still unsigned
     #pragma warning(disable : 4244) // int conversion, possible loss of data.
     #pragma warning(disable : 4251) // 'type' : class 'type1' needs to have dll-interface to be used
                                     // by clients of class 'type2'
     #pragma warning(disable : 4267) // size_t conversion, possible loss of data.
     #pragma warning(disable : 4305) // conversion to smaller type, possible loss of data.
-    #pragma warning(disable : 4275) // non dll-interface class 'std::exception' used as base for dll-interface class 'openvdb::v10_0::Exception' FIXME
+    #pragma warning(disable : 4275) // non dll-interface class 'std::exception' used as base for
+                                    // dll-interface class 'openvdb::v10_0::Exception' FIXME
     #pragma warning(disable : 4477) // mismatch in printf argument types.
     #pragma warning(disable : 4828) // File contain illegal character.
     #pragma warning(disable : 4996) // Using deprecated methods.

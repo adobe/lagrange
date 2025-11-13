@@ -15,11 +15,11 @@
 
 namespace lagrange::internal {
 
-#define LA_X_string_from_scalar(_, ValueType)        \
-    template <>                                      \
+#define LA_X_string_from_scalar(_, ValueType)                    \
+    template <>                                                  \
     LA_CORE_API std::string_view string_from_scalar<ValueType>() \
-    {                                                \
-        return #ValueType;                           \
+    {                                                            \
+        return #ValueType;                                       \
     }
 LA_ATTRIBUTE_X(string_from_scalar, 0)
 

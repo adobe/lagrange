@@ -11,8 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/ui/api.h>
 #include <lagrange/ui/Entity.h>
+#include <lagrange/ui/api.h>
 #include <lagrange/ui/utils/math.h>
 
 #include <lagrange/ui/types/Color.h>
@@ -21,16 +21,16 @@
 #include <lagrange/Logger.h>
 
 #if defined(__EMSCRIPTEN__)
-#include <webgl/webgl2.h>
+    #include <webgl/webgl2.h>
 #else
-#include <GL/gl3w.h>
+    #include <GL/gl3w.h>
 #endif
 
-#include <typeindex>
-#include <variant>
 #include <memory>
 #include <string>
+#include <typeindex>
 #include <unordered_map>
+#include <variant>
 #include <vector>
 
 namespace lagrange {

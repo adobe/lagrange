@@ -47,7 +47,7 @@ AttributeId get_uv_id(const SurfaceMesh<Scalar, Index>& mesh, std::string_view u
 }
 
 template <typename Scalar, typename Index>
-std::tuple<ConstRowMatrixView<Scalar>, ConstRowMatrixView<Index>> get_uv_attribute(
+std::tuple<ConstRowMatrixView<Scalar>, ConstVectorView<Index>> get_uv_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name)
 {
@@ -57,7 +57,7 @@ std::tuple<ConstRowMatrixView<Scalar>, ConstRowMatrixView<Index>> get_uv_attribu
     if (mesh.is_attribute_indexed(uv_attr_id)) {
         const auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(uv_attr_id);
         auto uv_values = matrix_view(uv_attr.values());
-        auto uv_indices = matrix_view(uv_attr.indices());
+        auto uv_indices = vector_view(uv_attr.indices());
         return {uv_values, uv_indices};
     } else {
         const auto& uv_attr = mesh.template get_attribute<Scalar>(uv_attr_id);
@@ -65,13 +65,13 @@ std::tuple<ConstRowMatrixView<Scalar>, ConstRowMatrixView<Index>> get_uv_attribu
             uv_attr.get_element_type() == AttributeElement::Vertex,
             "UV attribute must be a vertex attribute.");
         auto uv_values = matrix_view(uv_attr);
-        auto uv_indices = facet_view(mesh);
+        auto uv_indices = vector_view(mesh.get_corner_to_vertex());
         return {uv_values, uv_indices};
     }
 }
 
 template <typename Scalar, typename Index>
-std::tuple<RowMatrixView<Scalar>, RowMatrixView<Index>> ref_uv_attribute(
+std::tuple<RowMatrixView<Scalar>, VectorView<Index>> ref_uv_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name)
 {
@@ -81,7 +81,7 @@ std::tuple<RowMatrixView<Scalar>, RowMatrixView<Index>> ref_uv_attribute(
     if (mesh.is_attribute_indexed(uv_attr_id)) {
         auto& uv_attr = mesh.template ref_indexed_attribute<Scalar>(uv_attr_id);
         auto uv_values = matrix_ref(uv_attr.values());
-        auto uv_indices = matrix_ref(uv_attr.indices());
+        auto uv_indices = vector_ref(uv_attr.indices());
         return {uv_values, uv_indices};
     } else {
         auto& uv_attr = mesh.template ref_attribute<Scalar>(uv_attr_id);
@@ -89,19 +89,19 @@ std::tuple<RowMatrixView<Scalar>, RowMatrixView<Index>> ref_uv_attribute(
             uv_attr.get_element_type() == AttributeElement::Vertex,
             "UV attribute must be a vertex attribute.");
         auto uv_values = matrix_ref(uv_attr);
-        auto uv_indices = facet_ref(mesh);
+        auto uv_indices = vector_ref(mesh.ref_corner_to_vertex());
         return {uv_values, uv_indices};
     }
 }
 
-
-#define LA_X_get_uv_attribute(_, Scalar, Index)                                            \
-    template LA_CORE_API AttributeId get_uv_id<Scalar, Index>(                             \
-        const SurfaceMesh<Scalar, Index>&,                                                 \
-        std::string_view);                                                                 \
-    template LA_CORE_API std::tuple<ConstRowMatrixView<Scalar>, ConstRowMatrixView<Index>> \
-    get_uv_attribute<Scalar, Index>(const SurfaceMesh<Scalar, Index>&, std::string_view);  \
-    template LA_CORE_API std::tuple<RowMatrixView<Scalar>, RowMatrixView<Index>>           \
+#define LA_X_get_uv_attribute(_, Scalar, Index)                                           \
+    template LA_CORE_API AttributeId get_uv_id<Scalar, Index>(                            \
+        const SurfaceMesh<Scalar, Index>&,                                                \
+        std::string_view);                                                                \
+    template LA_CORE_API std::tuple<ConstRowMatrixView<Scalar>, ConstVectorView<Index>>   \
+    get_uv_attribute<Scalar, Index>(const SurfaceMesh<Scalar, Index>&, std::string_view); \
+    template LA_CORE_API std::tuple<RowMatrixView<Scalar>, VectorView<Index>>             \
     ref_uv_attribute<Scalar, Index>(SurfaceMesh<Scalar, Index>&, std::string_view);
 LA_SURFACE_MESH_X(get_uv_attribute, 0)
+
 } // namespace lagrange::internal

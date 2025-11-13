@@ -17,6 +17,7 @@
 #include <lagrange/MeshTrait.h>
 #include <lagrange/attributes/eval_as_attribute.h>
 #include <lagrange/compute_triangle_normal.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/legacy/inline.h>
 #include <lagrange/utils/geometry3d.h>
 
@@ -73,8 +74,8 @@ void compute_dihedral_angles(MeshType& mesh)
             const Eigen::Matrix<Scalar, 1, 3>& n2 = normals.row(1);
             return angle_between(n1, n2);
         } else {
-            // Non-manifold edge encountered.  Default to 2 * M_PI.
-            return 2 * M_PI;
+            // Non-manifold edge encountered.  Default to 2 * lagrange::internal::pi.
+            return 2 * lagrange::internal::pi;
         }
     });
 
