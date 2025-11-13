@@ -164,7 +164,9 @@ SurfaceMesh<Scalar, Index> load_surface_mesh(const fs::path& relative_path)
 {
     auto full_path = get_data_path(relative_path);
     REQUIRE(lagrange::fs::exists(full_path));
-    return lagrange::io::load_mesh<SurfaceMesh<Scalar, Index>>(full_path);
+    io::LoadOptions options;
+    options.quiet = true;
+    return lagrange::io::load_mesh<SurfaceMesh<Scalar, Index>>(full_path, options);
 }
 
 ///
