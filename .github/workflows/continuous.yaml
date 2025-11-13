@@ -57,6 +57,11 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      - name: Show disk space
+        run: |
+          echo "disk usage:"
+          df -h
+
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
@@ -138,6 +143,12 @@ jobs:
           cmake --build build -j ${{ steps.cpu-cores.outputs.count }}
           ccache --show-stats
 
+      - name: Show disk space
+        if: always()
+        run: |
+          echo "disk usage:"
+          df -h
+
       - name: Tests
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
@@ -191,11 +202,6 @@ jobs:
           # Scoop modifies the PATH so we make it available for the next steps of the job
           echo "${env:PATH}" >> ${env:GITHUB_PATH}
 
-      - name: Print disk usage
-        run: |
-          echo "disk usage:"
-          df -h
-
         # We run configure + build in the same step, since they both need to call VsDevCmd
         # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
       - name: Configure and build
@@ -207,30 +213,13 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -DLAGRANGE_JENKINS=ON ^
             -DLAGRANGE_ALL=ON ^
-            -B "C:/build" ^
+            -B "D:/build" ^
             -S .
-          cmake --build "C:/build" -j ${{ steps.cpu-cores.outputs.count }}
+          cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
 
-      - name: Print disk usage
+      - name: Show disk space
         if: always()
-        run: |
-          echo "disk usage:"
-          df -h
-
-      - name: Run ncdu
-        shell: msys2 {0}
-        if: always()
-        run: |
-          ncdu -0 -o ${{ matrix.config }}-C.json /C
-          ncdu -0 -o ${{ matrix.config }}-D.json /D
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.config }}
-          path: |
-            ${{ matrix.config }}-C.json
-            ${{ matrix.config }}-D.json
+        run: Get-PSDrive
 
       - name: Tests
-        run: cd "C:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+        run: cd "D:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}

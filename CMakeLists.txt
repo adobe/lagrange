@@ -61,20 +61,10 @@ endif()
 set(LAGRANGE_CCACHE_PROGRAMS none ccache sccache)
 set_property(CACHE LAGRANGE_CCACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CCACHE_PROGRAMS})
 
-# windows-2025 images have less disk space, so we need to use /Zi instead of /Z7
-# https://github.com/actions/runner-images/issues/12609
-# https://github.com/actions/runner-images/issues/12199
-if($ENV{GITHUB_ACTIONS})
-    message(STATUS "GitHub Runner detected: setting /Zi on Windows to save disk space")
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
-endif()
-
 # Enable sscache if available
 if((LAGRANGE_CCACHE_PROGRAM STREQUAL "sccache") AND SCCACHE_PROGRAM)
     message(STATUS "Using sccache: ${SCCACHE_PROGRAM}")
-    if(NOT DEFINED CMAKE_MSVC_DEBUG_INFORMATION_FORMAT)
-        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
-    endif()
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER
             ${CMAKE_COMMAND} -E env ${ccacheEnv} ${SCCACHE_PROGRAM}
