@@ -20,6 +20,7 @@
 #include <lagrange/utils/quad_area.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/triangle_area.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -348,8 +349,10 @@ AttributeId compute_facet_vector_area(
         auto f = mesh.get_facet_vertices(fid);
         for (Index lv = 0; lv < f_size; lv++) {
             Index lv_next = (lv + 1) % f_size;
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
             vector_area.row(fid) += vertices.row(f[lv]).template head<3>().cross(
                 vertices.row(f[lv_next]).template head<3>());
+            LA_IGNORE_ARRAY_BOUNDS_END
         }
     });
     vector_area /= 2;
