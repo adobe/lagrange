@@ -24,16 +24,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-13, macos-15]
+        os: [ubuntu-24.04, macos-15-intel, macos-15]
         config: [RelwithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
         exclude:
-          - os: macos-13
+          - os: macos-15-intel
             compiler: gcc
-          - os: macos-13
+          - os: macos-15-intel
             sanitizer: Thread
-          - os: macos-13
+          - os: macos-15-intel
             config: Debug
           - os: macos-15
             compiler: gcc
@@ -96,16 +96,16 @@ jobs:
             fi
 
       - name: Setup Xcode version
-        if: matrix.os == 'macos-13'
+        if: matrix.os == 'macos-15-intel'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.2'
+          xcode-version: '16.4'
 
       - name: Setup Xcode version
         if: matrix.os == 'macos-15'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '16.4'
+          xcode-version: '26.0.1'
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
