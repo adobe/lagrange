@@ -1,8 +1,8 @@
-diff --git i/CMakeLists.txt w/CMakeLists.txt
-index 517a957f4..0f8594369 100644
---- i/CMakeLists.txt
-+++ w/CMakeLists.txt
-@@ -339,7 +339,6 @@ ELSEIF(MSVC)
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index cd8f515..90b782a 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -343,7 +343,6 @@ ELSEIF(MSVC)
    ENDIF()
    # supress warning for double to float conversion if Double precision is activated
    ADD_COMPILE_OPTIONS(/wd4244)
@@ -10,3 +10,18 @@ index 517a957f4..0f8594369 100644
    # Allow user to disable PDBs
    if(ASSIMP_INSTALL_PDB)
      SET(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /Zi")
+diff --git a/contrib/zlib/zutil.h b/contrib/zlib/zutil.h
+index 0bc7f4e..e93e4bf 100644
+--- a/contrib/zlib/zutil.h
++++ b/contrib/zlib/zutil.h
+@@ -142,10 +142,6 @@ extern z_const char * const z_errmsg[10]; /* indexed by 2-zlib_error */
+ #  ifndef Z_SOLO
+ #    if defined(__MWERKS__) && __dest_os != __be_os && __dest_os != __win32_os
+ #      include <unix.h> /* for fdopen */
+-#    else
+-#      ifndef fdopen
+-#        define fdopen(fd,mode) NULL /* No fdopen() */
+-#      endif
+ #    endif
+ #  endif
+ #endif
