@@ -9,10 +9,18 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/utils/warning.h>
+
+// Include early so we can explicitly silence warnings from Eigen.
+// Note: This warning only shows up with GCC 13 when ASan is enabled, even though we include Eigen
+// headers via -isystem. It seems that with GCC 14+ -isystem also silences -Wmaybe-uninitialized.
+LA_IGNORE_MAYBE_UNINITIALIZED_START
+#include <Eigen/Geometry>
+LA_IGNORE_MAYBE_UNINITIALIZED_END
+
 #include <lagrange/attributes/rename_attribute.h>
 #include <lagrange/common.h>
 #include <lagrange/mesh_convert.h>
-
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
