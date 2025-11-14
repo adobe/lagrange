@@ -89,8 +89,10 @@ function(embree_import_target)
     lagrange_find_package(TBB CONFIG REQUIRED)
     ignore_package(TBB)
     get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
-    add_library(TBB INTERFACE)
-    target_link_libraries(TBB INTERFACE TBB::tbb)
+    if(NOT TARGET TBB)
+        add_library(TBB INTERFACE)
+        target_link_libraries(TBB INTERFACE TBB::tbb)
+    endif()
     set(TBB_LIBRARIES TBB)
 
     # Ready to include embree's atrocious CMake
@@ -105,7 +107,7 @@ function(embree_import_target)
             # Patch for emscripten compatibility. Fix available upstream in Embree 4+.
             # https://github.com/RenderKit/embree/pull/365
             # https://github.com/RenderKit/embree/issues/486
-            embree.patch
+            embree3.patch
     )
 
     unignore_package(TBB)

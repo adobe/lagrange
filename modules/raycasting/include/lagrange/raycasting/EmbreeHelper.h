@@ -11,8 +11,14 @@
  */
 #pragma once
 
-#include <embree3/rtcore.h>
+#ifdef LAGRANGE_WITH_EMBREE_4
+    #include <embree4/rtcore.h>
+#else
+    #include <embree3/rtcore.h>
+#endif
 #include <lagrange/raycasting/api.h>
+
+RTC_NAMESPACE_USE
 
 namespace lagrange {
 namespace raycasting {

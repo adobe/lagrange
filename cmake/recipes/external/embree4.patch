@@ -1,0 +1,491 @@
+diff --git i/CMakeLists.txt w/CMakeLists.txt
+index 1292e265..f386ecb5 100644
+--- i/CMakeLists.txt
++++ w/CMakeLists.txt
+@@ -691,16 +691,16 @@ ENDIF()
+ # Uninstall
+ ##############################################################
+ 
+-IF (NOT TARGET uninstall)
++IF (NOT TARGET embree4_uninstall)
+   configure_file(
+       "${CMAKE_CURRENT_SOURCE_DIR}/common/cmake/uninstall.cmake.in"
+       "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake"
+       IMMEDIATE @ONLY)
+ 
+-  add_custom_target(uninstall
++  add_custom_target(embree4_uninstall
+       COMMAND ${CMAKE_COMMAND} -P "${CMAKE_CURRENT_BINARY_DIR}/uninstall.cmake")
+ 
+-  SET_PROPERTY(TARGET uninstall PROPERTY FOLDER CMakePredefinedTargets)
++  SET_PROPERTY(TARGET embree4_uninstall PROPERTY FOLDER CMakePredefinedTargets)
+ ENDIF()
+ 
+ ##############################################################
+diff --git i/common/lexers/CMakeLists.txt w/common/lexers/CMakeLists.txt
+index 1e2452cd..5d060c7a 100644
+--- i/common/lexers/CMakeLists.txt
++++ w/common/lexers/CMakeLists.txt
+@@ -1,16 +1,16 @@
+ ## Copyright 2009-2021 Intel Corporation
+ ## SPDX-License-Identifier: Apache-2.0
+ 
+-ADD_LIBRARY(lexers STATIC
++ADD_LIBRARY(embree4_lexers STATIC
+  stringstream.cpp
+  tokenstream.cpp
+ )
+-TARGET_LINK_LIBRARIES(lexers sys math)
+-SET_PROPERTY(TARGET lexers PROPERTY FOLDER common)
+-SET_PROPERTY(TARGET lexers APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
++TARGET_LINK_LIBRARIES(embree4_lexers embree4_sys embree4_math)
++SET_PROPERTY(TARGET embree4_lexers PROPERTY FOLDER common)
++SET_PROPERTY(TARGET embree4_lexers APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
+ 
+ IF (EMBREE_STATIC_LIB)
+-  INSTALL(TARGETS lexers EXPORT lexers-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++  INSTALL(TARGETS embree4_lexers EXPORT lexers-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+   INSTALL(EXPORT lexers-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+ ENDIF()
+ 
+diff --git i/common/math/CMakeLists.txt w/common/math/CMakeLists.txt
+index fcfa4559..6cfed20e 100644
+--- i/common/math/CMakeLists.txt
++++ w/common/math/CMakeLists.txt
+@@ -1,12 +1,12 @@
+ ## Copyright 2009-2021 Intel Corporation
+ ## SPDX-License-Identifier: Apache-2.0
+ 
+-ADD_LIBRARY(math STATIC constants.cpp)
+-SET_PROPERTY(TARGET math PROPERTY FOLDER common)
+-SET_PROPERTY(TARGET math APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
++ADD_LIBRARY(embree4_math STATIC constants.cpp)
++SET_PROPERTY(TARGET embree4_math PROPERTY FOLDER common)
++SET_PROPERTY(TARGET embree4_math APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
+ 
+ IF (EMBREE_STATIC_LIB)
+-  INSTALL(TARGETS math EXPORT math-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++  INSTALL(TARGETS embree4_math EXPORT math-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+   INSTALL(EXPORT math-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+ ENDIF()
+ 
+diff --git i/common/simd/CMakeLists.txt w/common/simd/CMakeLists.txt
+index 989a00d6..742b885d 100644
+--- i/common/simd/CMakeLists.txt
++++ w/common/simd/CMakeLists.txt
+@@ -1,11 +1,11 @@
+ ## Copyright 2009-2021 Intel Corporation
+ ## SPDX-License-Identifier: Apache-2.0
+ 
+-ADD_LIBRARY(simd STATIC sse.cpp)
+-SET_PROPERTY(TARGET simd PROPERTY FOLDER common)
+-SET_PROPERTY(TARGET simd APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
++ADD_LIBRARY(embree4_simd STATIC sse.cpp)
++SET_PROPERTY(TARGET embree4_simd PROPERTY FOLDER common)
++SET_PROPERTY(TARGET embree4_simd APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
+ 
+ IF (EMBREE_STATIC_LIB)
+-  INSTALL(TARGETS simd EXPORT simd-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++  INSTALL(TARGETS embree4_simd EXPORT simd-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+   INSTALL(EXPORT simd-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+ ENDIF()
+diff --git i/common/sys/CMakeLists.txt w/common/sys/CMakeLists.txt
+index 66fc7083..d0e16cde 100644
+--- i/common/sys/CMakeLists.txt
++++ w/common/sys/CMakeLists.txt
+@@ -4,7 +4,7 @@
+ SET(CMAKE_THREAD_PREFER_PTHREAD TRUE)
+ FIND_PACKAGE(Threads REQUIRED)
+ 
+-ADD_LIBRARY(sys STATIC
++ADD_LIBRARY(embree4_sys STATIC
+   sysinfo.cpp
+   alloc.cpp
+   filename.cpp
+@@ -17,16 +17,16 @@ ADD_LIBRARY(sys STATIC
+   barrier.cpp
+ )
+ 
+-SET_PROPERTY(TARGET sys PROPERTY FOLDER common)
+-SET_PROPERTY(TARGET sys APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
++SET_PROPERTY(TARGET embree4_sys PROPERTY FOLDER common)
++SET_PROPERTY(TARGET embree4_sys APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
+ 
+-TARGET_LINK_LIBRARIES(sys ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
++TARGET_LINK_LIBRARIES(embree4_sys ${CMAKE_THREAD_LIBS_INIT} ${CMAKE_DL_LIBS})
+ IF (EMBREE_SYCL_SUPPORT)
+-  TARGET_LINK_LIBRARIES(sys ${SYCL_LIB_NAME})
++  TARGET_LINK_LIBRARIES(embree4_sys ${SYCL_LIB_NAME})
+ ENDIF()
+ 
+ IF (EMBREE_STATIC_LIB)
+-  INSTALL(TARGETS sys EXPORT sys-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++  INSTALL(TARGETS embree4_sys EXPORT sys-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+   INSTALL(EXPORT sys-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+ ENDIF()
+ 
+diff --git i/common/tasking/CMakeLists.txt w/common/tasking/CMakeLists.txt
+index bf790ef6..e2768e98 100644
+--- i/common/tasking/CMakeLists.txt
++++ w/common/tasking/CMakeLists.txt
+@@ -2,7 +2,7 @@
+ ## SPDX-License-Identifier: Apache-2.0
+ 
+ IF (TASKING_INTERNAL)
+-  ADD_LIBRARY(tasking STATIC taskschedulerinternal.cpp)
++  ADD_LIBRARY(embree4_tasking STATIC taskschedulerinternal.cpp)
+ ELSEIF (TASKING_TBB)
+   ##############################################################
+   # Find TBB
+@@ -13,16 +13,16 @@ ELSEIF (TASKING_TBB)
+     list(APPEND CMAKE_PREFIX_PATH ${EMBREE_TBB_ROOT})
+   endif()
+ 
+-  ADD_LIBRARY(tasking STATIC taskschedulertbb.cpp)
++  ADD_LIBRARY(embree4_tasking STATIC taskschedulertbb.cpp)
+   
+   if (TARGET TBB::${EMBREE_TBB_COMPONENT})
+     message("-- TBB: reuse existing TBB::${TBB_COMPONENT} target")
+-    TARGET_LINK_LIBRARIES(tasking PUBLIC TBB::${EMBREE_TBB_COMPONENT})
++    TARGET_LINK_LIBRARIES(embree4_tasking PUBLIC TBB::${EMBREE_TBB_COMPONENT})
+   else()
+     # Try getting TBB via config first
+     find_package(TBB 2020 COMPONENTS ${EMBREE_TBB_COMPONENT} CONFIG ${TBB_FIND_PACKAGE_OPTION})
+     if (TBB_FOUND)
+-      TARGET_LINK_LIBRARIES(tasking PUBLIC TBB::${EMBREE_TBB_COMPONENT})
++      TARGET_LINK_LIBRARIES(embree4_tasking PUBLIC TBB::${EMBREE_TBB_COMPONENT})
+       message("-- Found TBB: ${TBB_VERSION} at ${TBB_DIR} via TBBConfig.cmake")
+     else()
+ 
+@@ -32,8 +32,8 @@ ELSEIF (TASKING_TBB)
+       unset(TBB_DIR CACHE)
+       find_package(TBB 4.1 REQUIRED ${EMBREE_TBB_COMPONENT})
+       if (TBB_FOUND)
+-        TARGET_LINK_LIBRARIES(tasking PUBLIC TBB)
+-        TARGET_INCLUDE_DIRECTORIES(tasking PUBLIC $<BUILD_INTERFACE:${TBB_INCLUDE_DIRS}>)
++        TARGET_LINK_LIBRARIES(embree4_tasking PUBLIC TBB)
++        TARGET_INCLUDE_DIRECTORIES(embree4_tasking PUBLIC $<BUILD_INTERFACE:${TBB_INCLUDE_DIRS}>)
+ 
+         IF (EMBREE_STATIC_LIB)
+           INSTALL(TARGETS TBB EXPORT TBB-targets)
+@@ -50,8 +50,8 @@ ELSEIF (TASKING_TBB)
+   IF(WIN32)
+     GET_TARGET_PROPERTY(DLL_PATH TBB::${EMBREE_TBB_COMPONENT} IMPORTED_LOCATION_RELEASE)
+     GET_TARGET_PROPERTY(DLL_PATH_DEBUG TBB::${EMBREE_TBB_COMPONENT} IMPORTED_LOCATION_DEBUG)
+-    SET_TARGET_PROPERTIES(tasking PROPERTIES IMPORTED_LOCATION_RELEASE ${DLL_PATH})
+-    SET_TARGET_PROPERTIES(tasking PROPERTIES IMPORTED_LOCATION_DEBUG ${DLL_PATH_DEBUG})
++    SET_TARGET_PROPERTIES(embree4_tasking PROPERTIES IMPORTED_LOCATION_RELEASE ${DLL_PATH})
++    SET_TARGET_PROPERTIES(embree4_tasking PROPERTIES IMPORTED_LOCATION_DEBUG ${DLL_PATH_DEBUG})
+   ENDIF()
+ 
+   ###############################################################
+@@ -65,14 +65,14 @@ ELSEIF (TASKING_TBB)
+   include(installTBB)
+ 
+ ELSEIF (TASKING_PPL)
+-  ADD_LIBRARY(tasking STATIC taskschedulerppl.cpp)
+-  TARGET_LINK_LIBRARIES(tasking PUBLIC ${PPL_LIBRARIES})
++  ADD_LIBRARY(embree4_tasking STATIC taskschedulerppl.cpp)
++  TARGET_LINK_LIBRARIES(embree4_tasking PUBLIC ${PPL_LIBRARIES})
+ ENDIF()
+ 
+-SET_PROPERTY(TARGET tasking PROPERTY FOLDER common)
+-SET_PROPERTY(TARGET tasking APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
++SET_PROPERTY(TARGET embree4_tasking PROPERTY FOLDER common)
++SET_PROPERTY(TARGET embree4_tasking APPEND PROPERTY COMPILE_FLAGS " ${FLAGS_LOWEST}")
+ 
+ IF (EMBREE_STATIC_LIB)
+-  INSTALL(TARGETS tasking EXPORT tasking-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++  INSTALL(TARGETS embree4_tasking EXPORT tasking-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+   INSTALL(EXPORT tasking-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+ ENDIF()
+diff --git i/kernels/CMakeLists.txt w/kernels/CMakeLists.txt
+index b8278079..da9824f3 100644
+--- i/kernels/CMakeLists.txt
++++ w/kernels/CMakeLists.txt
+@@ -31,7 +31,7 @@ SOURCE_GROUP("Source Files\\algorithms" "/algorithms/")
+ SOURCE_GROUP("" FILES embree.rc)
+ 
+ SET(EMBREE_LIBRARY_FILES
+- 
++
+   embree.rc
+ 
+   common/device.cpp
+@@ -105,7 +105,7 @@ IF (EMBREE_GEOMETRY_SUBDIVISION)
+   subdiv/tessellation_cache.cpp
+   subdiv/subdivpatch1base.cpp
+   subdiv/catmullclark_coefficients.cpp
+-  geometry/grid_soa.cpp	
++  geometry/grid_soa.cpp
+   subdiv/subdivpatch1base_eval.cpp
+   bvh/bvh_builder_subdiv.cpp)
+ ENDIF()
+@@ -116,7 +116,7 @@ IF (EMBREE_RAY_PACKETS)
+ ENDIF()
+ 
+ MACRO(embree_files TARGET ISA)
+-      
++
+   SET(${TARGET}
+     geometry/instance_intersector.cpp
+     geometry/instance_array_intersector.cpp
+@@ -130,16 +130,16 @@ MACRO(embree_files TARGET ISA)
+ 
+   IF (${ISA} EQUAL ${ISA_LOWEST_AVX})
+     LIST(APPEND ${TARGET} geometry/primitive8.cpp)
+-  ENDIF() 
++  ENDIF()
+ 
+   IF (${ISA} EQUAL ${SSE2} OR ${ISA} EQUAL ${AVX} OR ${ISA} EQUAL ${AVX2} OR ${ISA} EQUAL ${AVX512} OR ${ISA_LOWEST} EQUAL ${ISA})
+-    
++
+     LIST(APPEND ${TARGET}
+       common/scene_user_geometry.cpp
+       common/scene_instance.cpp
+       common/scene_instance_array.cpp
+       common/scene_triangle_mesh.cpp
+-      common/scene_quad_mesh.cpp 
++      common/scene_quad_mesh.cpp
+       common/scene_curves.cpp
+       common/scene_line_segments.cpp
+       common/scene_grid_mesh.cpp
+@@ -166,7 +166,7 @@ MACRO(embree_files TARGET ISA)
+       bvh/bvh_rotate.cpp
+       builders/primrefgen.cpp)
+   ENDIF()
+-    
++
+   IF (${ISA} GREATER ${SSE42})
+     LIST(APPEND ${TARGET} bvh/bvh_intersector1_bvh8.cpp)
+   ENDIF()
+@@ -183,7 +183,7 @@ MACRO(embree_files TARGET ISA)
+         geometry/grid_soa.cpp
+         subdiv/subdivpatch1base_eval.cpp)
+   ENDIF()
+-    
++
+   IF (EMBREE_RAY_PACKETS)
+     LIST(APPEND ${TARGET}
+       bvh/bvh_intersector_hybrid4_bvh4.cpp)
+@@ -201,7 +201,7 @@ MACRO(embree_files TARGET ISA)
+         bvh/bvh_intersector_hybrid16_bvh4.cpp)
+     ENDIF()
+   ENDIF()
+-  
++
+ ENDMACRO()
+ 
+ #embree_files(EMBREE_LIBRARY_FILES_SSE2 ${SSE2})
+@@ -225,7 +225,7 @@ MACRO (CreateISADummyFiles list isa)
+     SET(dst_file "${CMAKE_BINARY_DIR}/${src}.${isa}.cpp")
+     SET(${list} ${${list}} ${dst_file})
+     ADD_CUSTOM_COMMAND(OUTPUT ${dst_file}
+-      COMMAND ${CMAKE_COMMAND} 
++      COMMAND ${CMAKE_COMMAND}
+        -D src=${src_file}
+        -D dst=${dst_file}
+        -P "${PROJECT_SOURCE_DIR}/common/cmake/create_isa_dummy_file.cmake"
+@@ -243,40 +243,40 @@ MACRO (CheckGlobals library)
+     ADD_CUSTOM_TARGET(${library}_check_globals ALL COMMAND ${CMAKE_COMMAND} -D file=$<TARGET_FILE:${library}> -P "${PROJECT_SOURCE_DIR}/common/cmake/check_globals.cmake" DEPENDS ${library})
+   ENDIF()
+ ENDMACRO()
+- 
++
+ DISABLE_STACK_PROTECTOR_FOR_INTERSECTORS(${EMBREE_LIBRARY_FILES})
+-ADD_LIBRARY(embree ${EMBREE_LIB_TYPE} ${EMBREE_LIBRARY_FILES})
++ADD_LIBRARY(embree4_embree ${EMBREE_LIB_TYPE} ${EMBREE_LIBRARY_FILES})
+ 
+ IF (EMBREE_SYCL_SUPPORT)
+   # add link flag '-fsycl' here to include the kernel for USM prefetch from
+   # scene_sycl.cpp in embree4.dll/embree4.so
+-  TARGET_LINK_OPTIONS(embree PRIVATE "-fsycl")
++  TARGET_LINK_OPTIONS(embree4_embree PRIVATE "-fsycl")
+ 
+-  ADD_LIBRARY(embree_sycl STATIC
++  ADD_LIBRARY(embree4_embree_sycl STATIC
+     sycl/rtcore_sycl.cpp
+     sycl/rthwif_embree.cpp)
+ 
+-  SET_TARGET_PROPERTIES(embree_sycl PROPERTIES COMPILE_FLAGS ${CMAKE_CXX_FLAGS_SYCL})
++  SET_TARGET_PROPERTIES(embree4_embree_sycl PROPERTIES COMPILE_FLAGS ${CMAKE_CXX_FLAGS_SYCL})
+   IF (EMBREE_SYCL_RT_VALIDATION_API)
+-    TARGET_LINK_LIBRARIES(embree_sycl PRIVATE embree_rthwif_sycl)
++    TARGET_LINK_LIBRARIES(embree4_embree_sycl PRIVATE embree_rthwif_sycl)
+   ENDIF()
+ 
+   IF (EMBREE_SYCL_RT_SIMULATION)
+-    TARGET_LINK_LIBRARIES(embree_sycl PRIVATE rtcore)
++    TARGET_LINK_LIBRARIES(embree4_embree_sycl PRIVATE rtcore)
+   ENDIF()
+ 
+-  INSTALL(TARGETS embree_sycl EXPORT embree_sycl-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT devel)
++  INSTALL(TARGETS embree4_embree_sycl EXPORT embree_sycl-targets ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT devel)
+   INSTALL(EXPORT embree_sycl-targets DESTINATION ${EMBREE_CMAKEEXPORT_DIR} COMPONENT devel)
+ 
+-  SET_TARGET_PROPERTIES(embree_sycl PROPERTIES OUTPUT_NAME embree${EMBREE_VERSION_MAJOR}_sycl)
++  SET_TARGET_PROPERTIES(embree4_embree_sycl PROPERTIES OUTPUT_NAME embree${EMBREE_VERSION_MAJOR}_sycl)
+ 
+ ENDIF()
+ 
+-SET_TARGET_PROPERTIES(embree PROPERTIES COMPILE_FLAGS "${FLAGS_LOWEST}")
+-SET_TARGET_PROPERTIES(embree PROPERTIES COMPILE_DEFINITIONS "EMBREE_LOWEST_ISA")
+-SET_PROPERTY(TARGET embree PROPERTY FOLDER kernels)
++SET_TARGET_PROPERTIES(embree4_embree PROPERTIES COMPILE_FLAGS "${FLAGS_LOWEST}")
++SET_TARGET_PROPERTIES(embree4_embree PROPERTIES COMPILE_DEFINITIONS "EMBREE_LOWEST_ISA")
++SET_PROPERTY(TARGET embree4_embree PROPERTY FOLDER kernels)
+ IF (NOT WIN32 AND NOT  APPLE)
+-  ADD_CUSTOM_TARGET(embree_check_stack_frame_size COMMAND ${CMAKE_COMMAND} -D file=$<TARGET_FILE:embree> -P "${PROJECT_SOURCE_DIR}/common/cmake/check_stack_frame_size.cmake" DEPENDS embree)
++  ADD_CUSTOM_TARGET(embree_check_stack_frame_size COMMAND ${CMAKE_COMMAND} -D file=$<TARGET_FILE:embree> -P "${PROJECT_SOURCE_DIR}/common/cmake/check_stack_frame_size.cmake" DEPENDS embree4_embree)
+ ENDIF()
+ 
+ #IF (EMBREE_ISA_SSE2 AND EMBREE_LIBRARY_FILES_SSE2)
+@@ -292,68 +292,68 @@ ENDIF()
+ 
+ IF (EMBREE_ISA_SSE42 AND EMBREE_LIBRARY_FILES_SSE42)
+   DISABLE_STACK_PROTECTOR_FOR_INTERSECTORS(${EMBREE_LIBRARY_FILES_SSE42})
+-  ADD_LIBRARY(embree_sse42 STATIC ${EMBREE_LIBRARY_FILES_SSE42})
+-  TARGET_LINK_LIBRARIES(embree_sse42 PRIVATE tasking)
+-  SET_TARGET_PROPERTIES(embree_sse42 PROPERTIES COMPILE_FLAGS "${FLAGS_SSE42}")
+-  SET_PROPERTY(TARGET embree_sse42 PROPERTY FOLDER kernels)
+-  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree_sse42)
+-  CheckGlobals(embree_sse42)
++  ADD_LIBRARY(embree4_embree_sse42 STATIC ${EMBREE_LIBRARY_FILES_SSE42})
++  TARGET_LINK_LIBRARIES(embree4_embree_sse42 PRIVATE tasking)
++  SET_TARGET_PROPERTIES(embree4_embree_sse42 PROPERTIES COMPILE_FLAGS "${FLAGS_SSE42}")
++  SET_PROPERTY(TARGET embree4_embree_sse42 PROPERTY FOLDER kernels)
++  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree4_embree_sse42)
++  CheckGlobals(embree4_embree_sse42)
+   IF (EMBREE_STATIC_LIB)
+-    INSTALL(TARGETS embree_sse42 EXPORT embree_sse42-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++    INSTALL(TARGETS embree4_embree_sse42 EXPORT embree_sse42-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+     INSTALL(EXPORT embree_sse42-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+   ENDIF()
+ ENDIF ()
+ 
+ IF (EMBREE_ISA_AVX  AND EMBREE_LIBRARY_FILES_AVX)
+   DISABLE_STACK_PROTECTOR_FOR_INTERSECTORS(${EMBREE_LIBRARY_FILES_AVX})
+-  ADD_LIBRARY(embree_avx STATIC ${EMBREE_LIBRARY_FILES_AVX})
+-  TARGET_LINK_LIBRARIES(embree_avx PRIVATE tasking)
+-  SET_TARGET_PROPERTIES(embree_avx PROPERTIES COMPILE_FLAGS "${FLAGS_AVX}")
+-  SET_PROPERTY(TARGET embree_avx PROPERTY FOLDER kernels)
+-  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree_avx)
+-  CheckGlobals(embree_avx)
++  ADD_LIBRARY(embree4_embree_avx STATIC ${EMBREE_LIBRARY_FILES_AVX})
++  TARGET_LINK_LIBRARIES(embree4_embree_avx PRIVATE tasking)
++  SET_TARGET_PROPERTIES(embree4_embree_avx PROPERTIES COMPILE_FLAGS "${FLAGS_AVX}")
++  SET_PROPERTY(TARGET embree4_embree_avx PROPERTY FOLDER kernels)
++  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree4_embree_avx)
++  CheckGlobals(embree4_embree_avx)
+   IF (EMBREE_STATIC_LIB)
+-    INSTALL(TARGETS embree_avx EXPORT embree_avx-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++    INSTALL(TARGETS embree4_embree_avx EXPORT embree_avx-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+     INSTALL(EXPORT embree_avx-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+   ENDIF()
+ ENDIF()
+ 
+ IF (EMBREE_ISA_AVX2 AND EMBREE_LIBRARY_FILES_AVX2)
+   DISABLE_STACK_PROTECTOR_FOR_INTERSECTORS(${EMBREE_LIBRARY_FILES_AVX2})
+-  ADD_LIBRARY(embree_avx2 STATIC ${EMBREE_LIBRARY_FILES_AVX2})
+-  TARGET_LINK_LIBRARIES(embree_avx2 PRIVATE tasking)
+-  SET_TARGET_PROPERTIES(embree_avx2 PROPERTIES COMPILE_FLAGS "${FLAGS_AVX2}")
+-  SET_PROPERTY(TARGET embree_avx2 PROPERTY FOLDER kernels)
+-  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree_avx2)
+-  CheckGlobals(embree_avx2)
++  ADD_LIBRARY(embree4_embree_avx2 STATIC ${EMBREE_LIBRARY_FILES_AVX2})
++  TARGET_LINK_LIBRARIES(embree4_embree_avx2 PRIVATE tasking)
++  SET_TARGET_PROPERTIES(embree4_embree_avx2 PROPERTIES COMPILE_FLAGS "${FLAGS_AVX2}")
++  SET_PROPERTY(TARGET embree4_embree_avx2 PROPERTY FOLDER kernels)
++  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree4_embree_avx2)
++  CheckGlobals(embree4_embree_avx2)
+   IF (EMBREE_STATIC_LIB)
+-    INSTALL(TARGETS embree_avx2 EXPORT embree_avx2-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++    INSTALL(TARGETS embree4_embree_avx2 EXPORT embree_avx2-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+     INSTALL(EXPORT embree_avx2-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+   ENDIF()
+ ENDIF()
+ 
+ IF (EMBREE_ISA_AVX512 AND EMBREE_LIBRARY_FILES_AVX512)
+   DISABLE_STACK_PROTECTOR_FOR_INTERSECTORS(${EMBREE_LIBRARY_FILES_AVX512})
+-  ADD_LIBRARY(embree_avx512 STATIC ${EMBREE_LIBRARY_FILES_AVX512})
+-  TARGET_LINK_LIBRARIES(embree_avx512 PRIVATE tasking)
+-  SET_TARGET_PROPERTIES(embree_avx512 PROPERTIES COMPILE_FLAGS "${FLAGS_AVX512}")
+-  SET_PROPERTY(TARGET embree_avx512 PROPERTY FOLDER kernels)
+-  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree_avx512)
+-  CheckGlobals(embree_avx512)
++  ADD_LIBRARY(embree4_embree_avx512 STATIC ${EMBREE_LIBRARY_FILES_AVX512})
++  TARGET_LINK_LIBRARIES(embree4_embree_avx512 PRIVATE tasking)
++  SET_TARGET_PROPERTIES(embree4_embree_avx512 PROPERTIES COMPILE_FLAGS "${FLAGS_AVX512}")
++  SET_PROPERTY(TARGET embree4_embree_avx512 PROPERTY FOLDER kernels)
++  SET(EMBREE_LIBRARIES ${EMBREE_LIBRARIES} embree4_embree_avx512)
++  CheckGlobals(embree4_embree_avx512)
+   IF (EMBREE_STATIC_LIB)
+-    INSTALL(TARGETS embree_avx512 EXPORT embree_avx512-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
++    INSTALL(TARGETS embree4_embree_avx512 EXPORT embree_avx512-targets ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel)
+     INSTALL(EXPORT embree_avx512-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT devel)
+   ENDIF()
+ ENDIF()
+ 
+-TARGET_LINK_LIBRARIES(embree PRIVATE ${EMBREE_LIBRARIES} sys math simd lexers tasking)
++TARGET_LINK_LIBRARIES(embree4_embree PRIVATE ${EMBREE_LIBRARIES} embree4_sys embree4_math embree4_simd embree4_lexers embree4_tasking)
+ IF (EMBREE_SYCL_SUPPORT)
+-  TARGET_LINK_LIBRARIES(embree PRIVATE ${SYCL_LIB_NAME} ze_wrapper PUBLIC embree_sycl)
++  TARGET_LINK_LIBRARIES(embree4_embree PRIVATE ${SYCL_LIB_NAME} ze_wrapper PUBLIC embree4_embree_sycl)
+ ENDIF()
+ 
+ #TARGET_LINK_LIBRARIES(embree PRIVATE ${EMBREE_LIBRARIES} sys math simd lexers tasking ${CMAKE_LINK_FLAGS_SYCL})  # FIXME: enable this line
+-SET_TARGET_PROPERTIES(embree PROPERTIES OUTPUT_NAME ${EMBREE_LIBRARY_NAME})
+-target_include_directories(embree PUBLIC
++SET_TARGET_PROPERTIES(embree4_embree PROPERTIES OUTPUT_NAME ${EMBREE_LIBRARY_NAME})
++target_include_directories(embree4_embree PUBLIC
+   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>
+   $<INSTALL_INTERFACE:include>)
+ 
+@@ -361,27 +361,27 @@ target_include_directories(embree PUBLIC
+ # libtbb is located in same install folder as libembree
+ IF(WIN32)
+ ELSEIF(APPLE)
+-  SET_TARGET_PROPERTIES(embree PROPERTIES INSTALL_RPATH "@loader_path") # On MacOSX we tell dyld to find libtbb in the folder libembree is placed
++  SET_TARGET_PROPERTIES(embree4_embree PROPERTIES INSTALL_RPATH "@loader_path") # On MacOSX we tell dyld to find libtbb in the folder libembree is placed
+ ELSE()
+-  SET_TARGET_PROPERTIES(embree PROPERTIES INSTALL_RPATH "$ORIGIN")  # Linux we tell ld to find libtbb in the folder libembree is placed.
++  SET_TARGET_PROPERTIES(embree4_embree PROPERTIES INSTALL_RPATH "$ORIGIN")  # Linux we tell ld to find libtbb in the folder libembree is placed.
+ ENDIF()
+ 
+ IF (WIN32)
+ ELSEIF (APPLE)
+-  SET_TARGET_PROPERTIES(embree PROPERTIES LINK_FLAGS -Wl,-exported_symbols_list,"${PROJECT_SOURCE_DIR}/kernels/export.macosx.map")
+-  SET_SOURCE_FILES_PROPERTIES(common/rtcore.cpp PROPERTIES OBJECT_DEPENDS "${PROJECT_SOURCE_DIR}/kernels/export.macosx.map") 
++  SET_TARGET_PROPERTIES(embree4_embree PROPERTIES LINK_FLAGS -Wl,-exported_symbols_list,"${PROJECT_SOURCE_DIR}/kernels/export.macosx.map")
++  SET_SOURCE_FILES_PROPERTIES(common/rtcore.cpp PROPERTIES OBJECT_DEPENDS "${PROJECT_SOURCE_DIR}/kernels/export.macosx.map")
+ ELSE()
+-  SET_TARGET_PROPERTIES(embree PROPERTIES LINK_FLAGS -Wl,--version-script="${PROJECT_SOURCE_DIR}/kernels/export.linux.map")
++  SET_TARGET_PROPERTIES(embree4_embree PROPERTIES LINK_FLAGS -Wl,--version-script="${PROJECT_SOURCE_DIR}/kernels/export.linux.map")
+   SET_SOURCE_FILES_PROPERTIES(common/rtcore.cpp PROPERTIES OBJECT_DEPENDS "${PROJECT_SOURCE_DIR}/kernels/export.linux.map")
+ ENDIF()
+ 
+ IF (EMBREE_ZIP_MODE)
+-  SET_TARGET_PROPERTIES(embree PROPERTIES VERSION ${EMBREE_VERSION_MAJOR} SOVERSION ${EMBREE_VERSION_MAJOR})
++  SET_TARGET_PROPERTIES(embree4_embree PROPERTIES VERSION ${EMBREE_VERSION_MAJOR} SOVERSION ${EMBREE_VERSION_MAJOR})
+ ELSE()
+-  SET_TARGET_PROPERTIES(embree PROPERTIES VERSION ${EMBREE_VERSION} SOVERSION ${EMBREE_VERSION_MAJOR})
++  SET_TARGET_PROPERTIES(embree4_embree PROPERTIES VERSION ${EMBREE_VERSION} SOVERSION ${EMBREE_VERSION_MAJOR})
+ ENDIF()
+ 
+-INSTALL(TARGETS embree EXPORT embree-targets
++INSTALL(TARGETS embree4_embree EXPORT embree-targets
+   LIBRARY NAMELINK_SKIP DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT lib
+   # on Windows put the dlls into bin
+   RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}" COMPONENT examples
+@@ -394,9 +394,9 @@ INSTALL(EXPORT embree-targets DESTINATION "${EMBREE_CMAKEEXPORT_DIR}" COMPONENT
+ 
+ # installs libembree4.so link
+ IF (NOT EMBREE_STATIC_LIB)
+-  INSTALL(TARGETS embree
++  INSTALL(TARGETS embree4_embree
+     LIBRARY NAMELINK_ONLY DESTINATION "${CMAKE_INSTALL_LIBDIR}" COMPONENT devel
+   )
+ ENDIF()
+ 
+-SIGN_TARGET(embree)
++SIGN_TARGET(embree4_embree)

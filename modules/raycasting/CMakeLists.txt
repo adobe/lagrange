@@ -13,13 +13,21 @@
 lagrange_add_module()
 
 # 2. dependencies
-lagrange_find_package(embree 3 CONFIG REQUIRED)
 lagrange_include_modules(bvh)
 target_link_libraries(lagrange_raycasting PUBLIC
     lagrange::core
     lagrange::bvh
-    embree::embree
 )
+
+option(LAGRANGE_WITH_EMBREE_4 "Use Embree4 with Lagrange" ON)
+if(LAGRANGE_WITH_EMBREE_4)
+    lagrange_find_package(embree 4 CONFIG REQUIRED)
+    target_compile_definitions(lagrange_raycasting PUBLIC LAGRANGE_WITH_EMBREE_4)
+    target_link_libraries(lagrange_raycasting PUBLIC embree::embree4)
+else()
+    lagrange_find_package(embree 3 CONFIG REQUIRED)
+    target_link_libraries(lagrange_raycasting PUBLIC embree::embree)
+endif()
 
 option(LAGRANGE_EMBREE_DEBUG "Perform error-checking when performing each single Embree call"  OFF)
 if(LAGRANGE_EMBREE_DEBUG)

@@ -11,9 +11,16 @@
  */
 #pragma once
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_geometry.h>
-#include <embree3/rtcore_ray.h>
+#ifdef LAGRANGE_WITH_EMBREE_4
+    #include <embree4/rtcore.h>
+    #include <embree4/rtcore_geometry.h>
+    #include <embree4/rtcore_ray.h>
+#else
+    #include <embree3/rtcore.h>
+    #include <embree3/rtcore_geometry.h>
+    #include <embree3/rtcore_ray.h>
+#endif
+
 #include <lagrange/common.h>
 #include <lagrange/raycasting/ClosestPointResult.h>
 #include <lagrange/raycasting/EmbreeHelper.h>
@@ -32,6 +39,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+
+RTC_NAMESPACE_USE
 
 namespace lagrange {
 namespace raycasting {
@@ -472,11 +481,13 @@ public:
         for (int i = static_cast<int>(batch_size); i < 4; ++i) packet_mask[i] = 0;
 
         ensure_no_errors_internal();
-        {
-            RTCIntersectContext context;
-            rtcInitIntersectContext(&context);
-            rtcIntersect4(packet_mask.data(), m_embree_world_scene, &context, &embree_raypacket);
-        }
+#ifdef LAGRANGE_WITH_EMBREE_4
+        rtcIntersect4(packet_mask.data(), m_embree_world_scene, &embree_raypacket);
+#else
+        RTCIntersectContext context;
+        rtcInitIntersectContext(&context);
+        rtcIntersect4(packet_mask.data(), m_embree_world_scene, &context, &embree_raypacket);
+#endif
         ensure_no_errors_internal();
 
         uint32_t is_hits = 0;
@@ -582,11 +593,13 @@ public:
         for (int i = static_cast<int>(batch_size); i < 4; ++i) packet_mask[i] = 0;
 
         ensure_no_errors_internal();
-        {
-            RTCIntersectContext context;
-            rtcInitIntersectContext(&context);
-            rtcOccluded4(packet_mask.data(), m_embree_world_scene, &context, &embree_raypacket);
-        }
+#ifdef LAGRANGE_WITH_EMBREE_4
+        rtcOccluded4(packet_mask.data(), m_embree_world_scene, &embree_raypacket);
+#else
+        RTCIntersectContext context;
+        rtcInitIntersectContext(&context);
+        rtcOccluded4(packet_mask.data(), m_embree_world_scene, &context, &embree_raypacket);
+#endif
         ensure_no_errors_internal();
 
         // If hit, the tfar field will be set to -inf.
@@ -634,11 +647,13 @@ public:
         embree_rayhit.ray.id = 0;
         embree_rayhit.ray.flags = 0;
         ensure_no_errors_internal();
-        {
-            RTCIntersectContext context;
-            rtcInitIntersectContext(&context);
-            rtcIntersect1(m_embree_world_scene, &context, &embree_rayhit);
-        }
+#ifdef LAGRANGE_WITH_EMBREE_4
+        rtcIntersect1(m_embree_world_scene, &embree_rayhit);
+#else
+        RTCIntersectContext context;
+        rtcInitIntersectContext(&context);
+        rtcIntersect1(m_embree_world_scene, &context, &embree_rayhit);
+#endif
         ensure_no_errors_internal();
 
         if (embree_rayhit.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
@@ -722,11 +737,13 @@ public:
         embree_ray.flags = 0;
 
         ensure_no_errors_internal();
-        {
-            RTCIntersectContext context;
-            rtcInitIntersectContext(&context);
-            rtcOccluded1(m_embree_world_scene, &context, &embree_ray);
-        }
+#ifdef LAGRANGE_WITH_EMBREE_4
+        rtcOccluded1(m_embree_world_scene, &embree_ray);
+#else
+        RTCIntersectContext context;
+        rtcInitIntersectContext(&context);
+        rtcOccluded1(m_embree_world_scene, &context, &embree_ray);
+#endif
         ensure_no_errors_internal();
 
         // If hit, the tfar field will be set to -inf.

@@ -162,6 +162,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-2025, windows-11-arm]
         config: [Release, Debug]
     steps:
       - name: Show disk space
