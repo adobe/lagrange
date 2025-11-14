@@ -105,8 +105,10 @@ function(embree4_import_target)
         GITHUB_REPOSITORY RenderKit/embree
         GIT_TAG v4.4.0
 
-        # Maybe one day we'll have https://gitlab.kitware.com/cmake/cmake/-/issues/22687
-        # Until then, if we want to compile both Embree3 and Embree4 side by side, we need patching
+        PATCHES
+            # Maybe one day we'll have https://gitlab.kitware.com/cmake/cmake/-/issues/22687
+            # Until then, if we want to compile both Embree3 and Embree4 side by side, we need patching.
+            embree4.patch
     )
 
     unignore_package(TBB)

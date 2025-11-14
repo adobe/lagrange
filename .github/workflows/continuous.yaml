@@ -157,8 +157,8 @@ jobs:
   ####################
 
   Windows:
-    name: windows-2025 (${{ matrix.config }})
-    runs-on: windows-2025
+    name: ${{ matrix.os }} (${{ matrix.config }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
