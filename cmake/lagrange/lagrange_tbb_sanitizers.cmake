@@ -10,7 +10,11 @@
 # governing permissions and limitations under the License.
 #
 
-# Set TBB_SANITIZE based on the USE_SANITIZER option
+# Set TBB_SANITIZE based on the USE_SANITIZER option. Even though global options are already enabled
+# by our sanitizers.cmake script, setting the TBB_SANITIZE option will let OneTBB disable elements
+# incompatible with TSan, such as ITT notifications and LTO:
+# https://github.com/uxlfoundation/oneTBB/blob/0cd32ab10a84eabf780bb699b17430deb028c0a4/src/tbbmalloc/CMakeLists.txt#L42
+# https://github.com/uxlfoundation/oneTBB/blob/0cd32ab10a84eabf780bb699b17430deb028c0a4/CMakeLists.txt#L254
 set(TBB_SANITIZE "")
 if(USE_SANITIZER)
     if(UNIX)
@@ -29,7 +33,6 @@ if(USE_SANITIZER)
     elseif(MSVC)
         if(USE_SANITIZER MATCHES "([Aa]ddress)")
             set(TBB_SANITIZE "address -fno-omit-frame-pointer")
-        else()
         endif()
     endif()
 endif()
