@@ -160,6 +160,13 @@
 /// @hideinitializer
 #define LA_IGNORE_ARRAY_BOUNDS_END LA_DISABLE_WARNING_END
 
+/// Ignore maybe uninitialized warnings (e.g. when instancing third-party code)
+/// @hideinitializer
+#define LA_IGNORE_MAYBE_UNINITIALIZED_START LA_DISABLE_WARNING_BEGIN \
+    LA_DISABLE_WARNING_CLANG(-Wmaybe-uninitialized)
+/// @hideinitializer
+#define LA_IGNORE_MAYBE_UNINITIALIZED_END LA_DISABLE_WARNING_END
+
 // clang-format on
 
 /// @}

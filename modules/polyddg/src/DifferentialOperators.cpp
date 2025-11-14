@@ -18,6 +18,7 @@
 #include <lagrange/polyddg/api.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 #include <Eigen/Geometry>
@@ -1024,7 +1025,9 @@ DifferentialOperators<Scalar, Index>::levi_civita_nrosy(Index fid, Index lv, Ind
 
     Vector nf = vec_area.row(fid); // No need to normalize
     Vector nv = vertex_normal.row(vid);
+    LA_IGNORE_MAYBE_UNINITIALIZED_START
     auto Q = Eigen::Quaternion<Scalar>::FromTwoVectors(nv, nf).matrix();
+    LA_IGNORE_MAYBE_UNINITIALIZED_END
 
     if (n != 1) {
         la_debug_assert(n > 1, "n should be positive.");
