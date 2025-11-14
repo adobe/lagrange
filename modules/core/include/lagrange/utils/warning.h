@@ -163,7 +163,7 @@
 /// Ignore maybe uninitialized warnings (e.g. when instancing third-party code)
 /// @hideinitializer
 #define LA_IGNORE_MAYBE_UNINITIALIZED_START LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING_CLANG(-Wmaybe-uninitialized)
+    LA_DISABLE_WARNING_GCC(-Wmaybe-uninitialized)
 /// @hideinitializer
 #define LA_IGNORE_MAYBE_UNINITIALIZED_END LA_DISABLE_WARNING_END
 
