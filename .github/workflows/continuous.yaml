@@ -192,33 +192,41 @@ jobs:
         # uses: mozilla-actions/sccache-action@v0.0.9
         uses: Vee99BR/sccache-action@v0.0.1
 
-      - name: Set build folder
+      - name: Set x64 vars
+        if: runner.os == 'windows-2025'
         run: |
-          if ("${{ matrix.os }}" -eq "windows-2025") {
             echo "BUILD_DIR=D:/build" >> ${env:GITHUB_ENV}
-          } else {
-            echo "BUILD_DIR=C:/build" >> ${env:GITHUB_ENV}
-          }
+            echo "ARCH=x64" >> ${env:GITHUB_ENV}
 
-        # We run configure + build in the same step, since they both need to call VsDevCmd
-        # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
-      - name: Configure and build
-        shell: cmd
+      - name: Set arm64 vars
+        if: runner.os == 'windows-11-arm'
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
-          cmake --version
-          cmake -G Ninja ^
-            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -DLAGRANGE_JENKINS=ON ^
-            -DLAGRANGE_ALL=ON ^
-            -B %BUILD_DIR% ^
+            echo "BUILD_DIR=C:/build" >> ${env:GITHUB_ENV}
+            echo "ARCH=arm64" >> ${env:GITHUB_ENV}
+
+      - name: Setup MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.ARCH }}
+
+        # Cmd uses ^ to break commands into multiple lines, powershell uses `
+      - name: Configure
+        run: |
+          cmake --version `
+          cmake -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
+            -DLAGRANGE_JENKINS=ON `
+            -DLAGRANGE_ALL=ON `
+            -B ${{ env.BUILD_DIR }} `
             -S .
-          cmake --build %BUILD_DIR% -j ${{ steps.cpu-cores.outputs.count }}
+
+      - name: Build
+        run: |
+          cmake --build ${{ env.BUILD_DIR }} -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Show disk space
         if: always()
         run: Get-PSDrive
 
       - name: Tests
-        run: cd %BUILD_DIR%; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
-        shell: cmd
+        run: cd ${{ env.BUILD_DIR }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
