@@ -212,7 +212,7 @@ jobs:
         # Cmd uses ^ to break commands into multiple lines, powershell uses `
       - name: Configure
         run: |
-          cmake --version `
+          cmake --version
           cmake -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
             -DLAGRANGE_JENKINS=ON `
