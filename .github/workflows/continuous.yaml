@@ -192,6 +192,14 @@ jobs:
         # uses: mozilla-actions/sccache-action@v0.0.9
         uses: Vee99BR/sccache-action@v0.0.1
 
+      - name: Set build folder
+        run: |
+          if ("${{ matrix.os }}" -eq "windows-2025") {
+            echo "BUILD_DIR=D:/build" >> ${env:GITHUB_ENV}
+          } else {
+            echo "BUILD_DIR=C:/build" >> ${env:GITHUB_ENV}
+          }
+
         # We run configure + build in the same step, since they both need to call VsDevCmd
         # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
       - name: Configure and build
@@ -203,13 +211,14 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -DLAGRANGE_JENKINS=ON ^
             -DLAGRANGE_ALL=ON ^
-            -B "D:/build" ^
+            -B %BUILD_DIR% ^
             -S .
-          cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
+          cmake --build %BUILD_DIR% -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Show disk space
         if: always()
         run: Get-PSDrive
 
       - name: Tests
-        run: cd "D:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+        run: cd %BUILD_DIR%; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+        shell: cmd
