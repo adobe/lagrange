@@ -180,28 +180,15 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
-      - name: Set env variable for sccache
-        run: |
-          echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
-
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
 
-      - name: Cache build
-        id: cache-build
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.appdata }}\Mozilla\sccache
-          key: ${{ runner.os }}-${{ matrix.config }}-cache
+      - name: Configure sccache
+        run: echo "SCCACHE_GHA_ENABLED=true" >> ${env:GITHUB_ENV}
 
       - name: Prepare sccache
-        run: |
-          iwr -useb 'https://raw.githubusercontent.com/scoopinstaller/install/master/install.ps1' -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop install sccache --global
-          # Scoop modifies the PATH so we make it available for the next steps of the job
-          echo "${env:PATH}" >> ${env:GITHUB_PATH}
+        uses: mozilla-actions/sccache-action@v0.0.9
 
         # We run configure + build in the same step, since they both need to call VsDevCmd
         # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
@@ -217,6 +204,7 @@ jobs:
             -B "D:/build" ^
             -S .
           cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
+          sccache --show-stats
 
       - name: Show disk space
         if: always()
