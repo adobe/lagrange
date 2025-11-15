@@ -1,1 +1,135 @@
 Submodule libs/context contains modified content
+diff --git i/libs/context/CMakeLists.txt w/libs/context/CMakeLists.txt
+index dca5349..089592f 100644
+--- i/libs/context/CMakeLists.txt
++++ w/libs/context/CMakeLists.txt
+@@ -12,7 +12,7 @@ list(APPEND CMAKE_MODULE_PATH ${boost_context_SOURCE_DIR}/cmake)
+ 
+ ## Binary format
+ 
+-if(WIN32)
++if(WIN32 OR CYGWIN)
+   set(_default_binfmt pe)
+ elseif(APPLE)
+   set(_default_binfmt mach-o)
+@@ -31,7 +31,7 @@ math(EXPR _bits "${CMAKE_SIZEOF_VOID_P}*8")
+ 
+ if(CMAKE_SYSTEM_PROCESSOR MATCHES "^[Aa][Rr][Mm]" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64")
+   set(_default_abi aapcs)
+-elseif(WIN32)
++elseif(WIN32 OR CYGWIN)
+   set(_default_abi ms)
+ elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^mips")
+   if(_bits EQUAL 32)
+@@ -60,6 +60,8 @@ elseif(_bits EQUAL 32)
+     set(_default_arch arm)
+   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^mips")
+     set(_default_arch mips32)
++  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc32)")
++    set(_default_arch ppc32)
+   else()
+     set(_default_arch i386)
+   endif()
+@@ -69,6 +71,8 @@ else()
+     set(_default_arch arm64)
+   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^mips")
+     set(_default_arch mips64)
++  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^(powerpc|ppc64)")
++    set(_default_arch ppc64)
+   else()
+     set(_default_arch x86_64)
+   endif()
+@@ -89,18 +93,22 @@ if(MSVC)
+   else()
+     set(_default_asm masm)
+   endif()
++elseif(BOOST_CONTEXT_ARCHITECTURE STREQUAL arm64 AND MINGW)
++  set(_default_asm armclang)
+ else()
+   set(_default_asm gas)
+ endif()
+ 
+-set(BOOST_CONTEXT_ASSEMBLER "${_default_asm}" CACHE STRING "Boost.Context assembler (masm, gas, armasm)")
+-set_property(CACHE BOOST_CONTEXT_ASSEMBLER PROPERTY STRINGS masm gas armasm)
++set(BOOST_CONTEXT_ASSEMBLER "${_default_asm}" CACHE STRING "Boost.Context assembler (masm, gas, armasm, armclang)")
++set_property(CACHE BOOST_CONTEXT_ASSEMBLER PROPERTY STRINGS masm gas armasm armclang)
+ 
+ unset(_default_asm)
+ 
+ ## Assembler source suffix
+ 
+-if(BOOST_CONTEXT_BINARY_FORMAT STREQUAL pe)
++if(BOOST_CONTEXT_ASSEMBLER STREQUAL armclang)
++  set(_default_ext .S)
++elseif(BOOST_CONTEXT_BINARY_FORMAT STREQUAL pe)
+   set(_default_ext .asm)
+ elseif(BOOST_CONTEXT_ASSEMBLER STREQUAL gas)
+   set(_default_ext .S)
+@@ -133,18 +141,22 @@ message(STATUS "Boost.Context: "
+   "implementation ${BOOST_CONTEXT_IMPLEMENTATION}")
+ 
+ # Enable the right assembler
+-
++set(ASM_LANGUAGE)
+ if(BOOST_CONTEXT_IMPLEMENTATION STREQUAL "fcontext")
+-  if(BOOST_CONTEXT_ASSEMBLER STREQUAL gas)
++  if(BOOST_CONTEXT_ASSEMBLER STREQUAL gas OR BOOST_CONTEXT_ASSEMBLER STREQUAL armclang)
+     if(CMAKE_CXX_PLATFORM_ID MATCHES "Cygwin")
+-      enable_language(ASM-ATT)
++      set(ASM_LANGUAGE ASM-ATT)
+     else()
+-      enable_language(ASM)
++      set(ASM_LANGUAGE ASM)
+     endif()
+   elseif(BOOST_CONTEXT_ASSEMBLER STREQUAL armasm)
+-    enable_language(ASM_ARMASM)
++    if(MSVC)
++      set(ASM_LANGUAGE ASM_MARMASM)
++    else()
++      set(ASM_LANGUAGE ASM_ARMASM)
++    endif()
+   else()
+-    enable_language(ASM_MASM)
++    set(ASM_LANGUAGE ASM_MASM)
+   endif()
+ endif()
+ 
+@@ -168,15 +180,31 @@ unset(_asm_suffix)
+ 
+ if(BOOST_CONTEXT_IMPLEMENTATION STREQUAL "fcontext")
+ 
+-  set(IMPL_SOURCES ${ASM_SOURCES})
++  set(IMPL_SOURCES ${ASM_SOURCES} src/fcontext.cpp)
+ 
+-  if(BOOST_CONTEXT_ASSEMBLER STREQUAL masm AND BOOST_CONTEXT_ARCHITECTURE STREQUAL i386)
+-      set_source_files_properties(${ASM_SOURCES} PROPERTIES COMPILE_FLAGS "/safeseh")
+-  endif()
++  if(BOOST_CONTEXT_ASSEMBLER STREQUAL masm)
+ 
+-  if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+-    set_property(SOURCE ${ASM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS "-x" "assembler-with-cpp")
+-  endif()
++    set_property(SOURCE ${ASM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS "/nologo")
++
++    if(MSVC AND NOT(MSVC_VERSION LESS 1936) AND NOT(CMAKE_CXX_SIMULATE_VERSION))
++      set_property(SOURCE ${ASM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS "/quiet")
++    endif()
++
++    if(BOOST_CONTEXT_ARCHITECTURE STREQUAL i386)
++      set_property(SOURCE ${ASM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS "/safeseh")
++    endif()
++
++  # armasm doesn't support most of these options
++  elseif(NOT BOOST_CONTEXT_ASSEMBLER STREQUAL armasm) # masm
++    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
++      set_property(SOURCE ${ASM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS "-x" "assembler-with-cpp")
++    elseif(CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
++      set_property(SOURCE ${ASM_SOURCES} APPEND PROPERTY COMPILE_OPTIONS "-Wno-unused-command-line-argument")
++    endif()
++  endif() # masm
++
++  enable_language(${ASM_LANGUAGE})
++  set_source_files_properties(${ASM_SOURCES} PROPERTIES LANGUAGE ${ASM_LANGUAGE})
+ else()
+   set(IMPL_SOURCES
+     src/continuation.cpp
