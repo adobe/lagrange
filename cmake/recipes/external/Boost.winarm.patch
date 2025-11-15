@@ -1,6 +1,6 @@
 Submodule libs/context contains modified content
 diff --git i/libs/context/CMakeLists.txt w/libs/context/CMakeLists.txt
-index dca5349..089592f 100644
+index dca5349..bd064b1 100644
 --- i/libs/context/CMakeLists.txt
 +++ w/libs/context/CMakeLists.txt
 @@ -12,7 +12,7 @@ list(APPEND CMAKE_MODULE_PATH ${boost_context_SOURCE_DIR}/cmake)
@@ -94,12 +94,9 @@ index dca5349..089592f 100644
    endif()
  endif()
  
-@@ -168,15 +180,31 @@ unset(_asm_suffix)
+@@ -170,13 +182,29 @@ if(BOOST_CONTEXT_IMPLEMENTATION STREQUAL "fcontext")
  
- if(BOOST_CONTEXT_IMPLEMENTATION STREQUAL "fcontext")
- 
--  set(IMPL_SOURCES ${ASM_SOURCES})
-+  set(IMPL_SOURCES ${ASM_SOURCES} src/fcontext.cpp)
+   set(IMPL_SOURCES ${ASM_SOURCES})
  
 -  if(BOOST_CONTEXT_ASSEMBLER STREQUAL masm AND BOOST_CONTEXT_ARCHITECTURE STREQUAL i386)
 -      set_source_files_properties(${ASM_SOURCES} PROPERTIES COMPILE_FLAGS "/safeseh")
