@@ -188,7 +188,9 @@ jobs:
         run: echo "SCCACHE_GHA_ENABLED=true" >> ${env:GITHUB_ENV}
 
       - name: Prepare sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+        # Re-enable official action one https://github.com/Mozilla-Actions/sccache-action/pull/225 is merged
+        # uses: mozilla-actions/sccache-action@v0.0.9
+        uses: Vee99BR/sccache-action@v0.0.1
 
         # We run configure + build in the same step, since they both need to call VsDevCmd
         # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
@@ -204,7 +206,6 @@ jobs:
             -B "D:/build" ^
             -S .
           cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
-          sccache --show-stats
 
       - name: Show disk space
         if: always()
