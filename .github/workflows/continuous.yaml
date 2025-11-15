@@ -193,13 +193,13 @@ jobs:
         uses: Vee99BR/sccache-action@v0.0.1
 
       - name: Set x64 vars
-        if: runner.os == 'windows-2025'
+        if: matrix.os == 'windows-2025'
         run: |
             echo "BUILD_DIR=D:/build" >> ${env:GITHUB_ENV}
             echo "ARCH=x64" >> ${env:GITHUB_ENV}
 
       - name: Set arm64 vars
-        if: runner.os == 'windows-11-arm'
+        if: matrix.os == 'windows-11-arm'
         run: |
             echo "BUILD_DIR=C:/build" >> ${env:GITHUB_ENV}
             echo "ARCH=arm64" >> ${env:GITHUB_ENV}
