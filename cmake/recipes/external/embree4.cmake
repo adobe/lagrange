@@ -9,11 +9,11 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET embree::embree)
+if(TARGET embree::embree4)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating target 'embree::embree'")
+message(STATUS "Third-party (external): creating target 'embree::embree4'")
 
 # Set Embree's default options
 option(EMBREE_ISPC_SUPPORT   "Build Embree with support for ISPC applications." OFF)
@@ -22,6 +22,9 @@ option(EMBREE_STATIC_LIB     "Build Embree as a static library."                
 set(EMBREE_TESTING_INTENSITY 0         CACHE STRING "Intensity of testing (0 = no testing, 1 = verify and tutorials, 2 = light testing, 3 = intensive testing.")
 set(EMBREE_TASKING_SYSTEM    "TBB"     CACHE STRING "Selects tasking system")
 option(EMBREE_IGNORE_CMAKE_CXX_FLAGS "When enabled Embree ignores default CMAKE_CXX_FLAGS." OFF)
+
+# Set C++ namespace to avoid symbol collisions when compiling with embree3 side-by-side
+set(EMBREE_API_NAMESPACE "embree4" CACHE STRING "C++ namespace to put API symbols into.")
 
 # The following options are necessary to ensure packed-ray support
 option(EMBREE_RAY_MASK       "Enable the usage of mask for packed ray."         ON)
@@ -41,7 +44,7 @@ endif()
 # context on how to achieve this:
 # - https://gitlab.kitware.com/cmake/cmake/issues/17735
 # - https://crascit.com/2018/09/14/do-not-redefine-cmake-commands/
-function(embree_import_target)
+function(embree4_import_target)
     macro(push_variable var value)
         if(DEFINED CACHE{${var}})
             set(LAGRANGE_OLD_${var}_VALUE "${${var}}")
@@ -89,23 +92,23 @@ function(embree_import_target)
     lagrange_find_package(TBB CONFIG REQUIRED)
     ignore_package(TBB)
     get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
-    add_library(TBB INTERFACE)
-    target_link_libraries(TBB INTERFACE TBB::tbb)
+    if(NOT TARGET TBB)
+        add_library(TBB INTERFACE)
+        target_link_libraries(TBB INTERFACE TBB::tbb)
+    endif()
     set(TBB_LIBRARIES TBB)
 
     # Ready to include embree's atrocious CMake
     include(CPM)
-    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
     CPMAddPackage(
-        NAME embree
-        GITHUB_REPOSITORY embree/embree
-        GIT_TAG v3.13.5
+        NAME embree4
+        GITHUB_REPOSITORY RenderKit/embree
+        GIT_TAG v4.4.0
 
         PATCHES
-            # Patch for emscripten compatibility. Fix available upstream in Embree 4+.
-            # https://github.com/RenderKit/embree/pull/365
-            # https://github.com/RenderKit/embree/issues/486
-            embree.patch
+            # Maybe one day we'll have https://gitlab.kitware.com/cmake/cmake/-/issues/22687
+            # Until then, if we want to compile both Embree3 and Embree4 side by side, we need patching.
+            embree4.patch
     )
 
     unignore_package(TBB)
@@ -117,40 +120,40 @@ function(embree_import_target)
         # for misfiring warnings.  See https://github.com/embree/embree/issues/271
         #
         # The issue should be fixed for gcc 9.2.1 and later.
-        target_compile_options(embree PRIVATE "-Wno-array-bounds")
+        target_compile_options(embree4_embree PRIVATE "-Wno-array-bounds")
     endif()
 
     # Warning setting
     set(unix_compilers "AppleClang;Clang;GNU")
     if(CMAKE_CXX_COMPILER_ID IN_LIST unix_compilers) # IN_LIST wants the second arg to be a var
-        target_compile_options(embree PRIVATE "-Wno-unused-private-field")
-        target_compile_options(embree PRIVATE "-Wno-unused-but-set-variable")
+        target_compile_options(embree4_embree PRIVATE "-Wno-unused-private-field")
+        target_compile_options(embree4_embree PRIVATE "-Wno-unused-but-set-variable")
     endif()
 
     # Now we need to do some juggling to propagate the include directory properties
     # along with the `embree` target
-    add_library(embree::embree INTERFACE IMPORTED GLOBAL)
-    target_include_directories(embree::embree SYSTEM INTERFACE ${embree_SOURCE_DIR}/include)
-    target_link_libraries(embree::embree INTERFACE embree)
+    add_library(embree::embree4 INTERFACE IMPORTED GLOBAL)
+    target_include_directories(embree::embree4 SYSTEM INTERFACE ${embree4_SOURCE_DIR}/include)
+    target_link_libraries(embree::embree4 INTERFACE embree4_embree)
 
     # Generate a dummy .cpp for embree's math library, to workaround a weird link issue with
     # LLVM-Clang on macOS
     # Generate implementation file
-    file(WRITE "${embree_BINARY_DIR}/embree_math_dummy.cpp.in" [[
+    file(WRITE "${embree4_BINARY_DIR}/embree_math_dummy.cpp.in" [[
         namespace embree {
             void math_dummy() {}
         }
     ]])
-    configure_file(${embree_BINARY_DIR}/embree_math_dummy.cpp.in ${embree_BINARY_DIR}/embree_math_dummy.cpp COPYONLY)
-    target_sources(math PRIVATE ${embree_BINARY_DIR}/embree_math_dummy.cpp)
+    configure_file(${embree4_BINARY_DIR}/embree_math_dummy.cpp.in ${embree4_BINARY_DIR}/embree_math_dummy.cpp COPYONLY)
+    target_sources(embree4_math PRIVATE ${embree4_BINARY_DIR}/embree_math_dummy.cpp)
 endfunction()
 
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
-embree_import_target()
+embree4_import_target()
 
 # Cleanup for IDEs
 foreach(name IN ITEMS embree algorithms lexers math simd sys tasking uninstall)
     if(TARGET ${name})
-        set_target_properties(${name} PROPERTIES FOLDER "third_party//embree")
+        set_target_properties(embree4_${name} PROPERTIES FOLDER "third_party//embree4")
     endif()
 endforeach()

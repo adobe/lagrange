@@ -84,12 +84,15 @@ if(SKBUILD)
     set(BUILD_SHARED_LIBS ON)
 endif()
 
-set(BOOST_PATCHES "")
+set(BOOST_PATCHES)
 if(EMSCRIPTEN)
     # Wasm doesn't have rounding mode control yet, so we trick Boost::interval into thinking it has.
     # https://github.com/WebAssembly/rounding-mode-control
     # https://github.com/boostorg/interval/issues/44
-    set(BOOST_PATCHES PATCHES Boost.wasm.patch)
+    list(APPEND BOOST_PATCHES Boost.wasm.patch)
+endif()
+if(WIN32)
+    list(APPEND BOOST_PATCHES Boost.winarm.patch)
 endif()
 
 # Modern CMake target support was added in Boost 1.82.0
@@ -101,7 +104,7 @@ CPMAddPackage(
     GITHUB_REPOSITORY "boostorg/boost"
     GIT_TAG "boost-1.84.0"
     EXCLUDE_FROM_ALL ON
-    ${BOOST_PATCHES}
+    PATCHES ${BOOST_PATCHES}
 )
 
 if(SKBUILD)
