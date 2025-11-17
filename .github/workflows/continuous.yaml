@@ -24,20 +24,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14]
+        os: [ubuntu-24.04, macos-15-intel, macos-15]
         config: [RelwithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
         exclude:
-          - os: macos-13
+          - os: macos-15-intel
             compiler: gcc
-          - os: macos-13
+          - os: macos-15-intel
             sanitizer: Thread
-          - os: macos-13
+          - os: macos-15-intel
             config: Debug
-          - os: macos-14
+          - os: macos-15
             compiler: gcc
-          - os: ubuntu-22.04
+          - os: ubuntu-24.04
             compiler: apple
     steps:
       - name: Free Disk Space
@@ -56,6 +56,11 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+
+      - name: Show disk space
+        run: |
+          echo "disk usage:"
+          df -h
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -91,10 +96,16 @@ jobs:
             fi
 
       - name: Setup Xcode version
-        if: runner.os == 'macOS'
+        if: matrix.os == 'macos-15-intel'
         uses: maxim-lobanov/setup-xcode@v1
         with:
-          xcode-version: '15.2'
+          xcode-version: '16.4'
+
+      - name: Setup Xcode version
+        if: matrix.os == 'macos-15'
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '26.0.1'
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
@@ -132,6 +143,12 @@ jobs:
           cmake --build build -j ${{ steps.cpu-cores.outputs.count }}
           ccache --show-stats
 
+      - name: Show disk space
+        if: always()
+        run: |
+          echo "disk usage:"
+          df -h
+
       - name: Tests
         run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
@@ -140,8 +157,8 @@ jobs:
   ####################
 
   Windows:
-    name: windows-2022 (${{ matrix.config }})
-    runs-on: windows-2022
+    name: windows-2025 (${{ matrix.config }})
+    runs-on: windows-2025
     strategy:
       fail-fast: false
       matrix:
@@ -196,9 +213,13 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -DLAGRANGE_JENKINS=ON ^
             -DLAGRANGE_ALL=ON ^
-            -B "C:/build" ^
+            -B "D:/build" ^
             -S .
-          cmake --build "C:/build" -j ${{ steps.cpu-cores.outputs.count }}
+          cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
+
+      - name: Show disk space
+        if: always()
+        run: Get-PSDrive
 
       - name: Tests
-        run: cd "C:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+        run: cd "D:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}

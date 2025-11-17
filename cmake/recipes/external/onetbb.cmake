@@ -72,7 +72,7 @@ function(onetbb_import_target)
     CPMAddPackage(
         NAME tbb
         GITHUB_REPOSITORY oneapi-src/oneTBB
-        GIT_TAG v2021.13.0
+        GIT_TAG v2022.3.0
     )
 
     # TODO: This might break with future versions of onetbb. Onetbb should eventually add a proper cmake option to turn wasm threads on/off.
