@@ -34,6 +34,19 @@ dependencies = [
     "numpy>=1.25",
     "scipy>=1.13.0",
 ]
+
+optional-dependencies.docs = [
+    "furo==2025.9.25; python_version>='3.12'",
+    "sphinx==8.2.3; python_version>='3.12'",
+    "sphinx-autoapi==3.6.1; python_version>='3.12'",
+    "sphinx-autodoc-typehints==3.5.2; python_version>='3.12'",
+]
+optional-dependencies.scripts = [
+    "pillow>=10.0.0",
+    "pyexr>=0.5.0",
+    "pymcubes==0.1.6",
+    "torch>=2.2.0",
+]
 urls.documentation = "https://opensource.adobe.com/lagrange-docs"
 urls.repository = "https://github.com/adobe/lagrange"
 
