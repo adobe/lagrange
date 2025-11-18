@@ -100,15 +100,16 @@ function(embree4_import_target)
 
     # Ready to include embree's atrocious CMake
     include(CPM)
+    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
     CPMAddPackage(
         NAME embree4
-        GITHUB_REPOSITORY RenderKit/embree
-        GIT_TAG v4.4.0
+        GITHUB_REPOSITORY anthony-linaro/embree
+        GIT_TAG f4d986c7707b6c8c4e95dba25ed7a035c67925ff
 
-        PATCHES
-            # Maybe one day we'll have https://gitlab.kitware.com/cmake/cmake/-/issues/22687
-            # Until then, if we want to compile both Embree3 and Embree4 side by side, we need patching.
-            embree4.patch
+        # PATCHES
+        #     # Maybe one day we'll have https://gitlab.kitware.com/cmake/cmake/-/issues/22687
+        #     # Until then, if we want to compile both Embree3 and Embree4 side by side, we need patching.
+        #     embree4.patch
     )
 
     unignore_package(TBB)
@@ -120,21 +121,21 @@ function(embree4_import_target)
         # for misfiring warnings.  See https://github.com/embree/embree/issues/271
         #
         # The issue should be fixed for gcc 9.2.1 and later.
-        target_compile_options(embree4_embree PRIVATE "-Wno-array-bounds")
+        target_compile_options(embree PRIVATE "-Wno-array-bounds")
     endif()
 
     # Warning setting
     set(unix_compilers "AppleClang;Clang;GNU")
     if(CMAKE_CXX_COMPILER_ID IN_LIST unix_compilers) # IN_LIST wants the second arg to be a var
-        target_compile_options(embree4_embree PRIVATE "-Wno-unused-private-field")
-        target_compile_options(embree4_embree PRIVATE "-Wno-unused-but-set-variable")
+        target_compile_options(embree PRIVATE "-Wno-unused-private-field")
+        target_compile_options(embree PRIVATE "-Wno-unused-but-set-variable")
     endif()
 
     # Now we need to do some juggling to propagate the include directory properties
     # along with the `embree` target
     add_library(embree::embree4 INTERFACE IMPORTED GLOBAL)
     target_include_directories(embree::embree4 SYSTEM INTERFACE ${embree4_SOURCE_DIR}/include)
-    target_link_libraries(embree::embree4 INTERFACE embree4_embree)
+    target_link_libraries(embree::embree4 INTERFACE embree)
 
     # Generate a dummy .cpp for embree's math library, to workaround a weird link issue with
     # LLVM-Clang on macOS
@@ -145,7 +146,7 @@ function(embree4_import_target)
         }
     ]])
     configure_file(${embree4_BINARY_DIR}/embree_math_dummy.cpp.in ${embree4_BINARY_DIR}/embree_math_dummy.cpp COPYONLY)
-    target_sources(embree4_math PRIVATE ${embree4_BINARY_DIR}/embree_math_dummy.cpp)
+    target_sources(math PRIVATE ${embree4_BINARY_DIR}/embree_math_dummy.cpp)
 endfunction()
 
 # Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
@@ -154,6 +155,6 @@ embree4_import_target()
 # Cleanup for IDEs
 foreach(name IN ITEMS embree algorithms lexers math simd sys tasking uninstall)
     if(TARGET ${name})
-        set_target_properties(embree4_${name} PROPERTIES FOLDER "third_party//embree4")
+        set_target_properties(${name} PROPERTIES FOLDER "third_party//embree4")
     endif()
 endforeach()

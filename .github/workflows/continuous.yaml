@@ -216,7 +216,7 @@ jobs:
           cmake -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
             -DLAGRANGE_JENKINS=ON `
-            -DLAGRANGE_ALL=ON `
+            -DLAGRANGE_MODULE_RAYCASTING=ON `
             -B ${{ env.BUILD_DIR }} `
             -S .
 
