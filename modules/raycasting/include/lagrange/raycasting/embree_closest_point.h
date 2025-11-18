@@ -11,10 +11,19 @@
 
 #include <lagrange/utils/point_triangle_squared_distance.h>
 
-#include <embree3/rtcore.h>
-#include <embree3/rtcore_geometry.h>
-#include <embree3/rtcore_ray.h>
+#ifdef LAGRANGE_WITH_EMBREE_4
+    #include <embree4/rtcore.h>
+    #include <embree4/rtcore_geometry.h>
+    #include <embree4/rtcore_ray.h>
+#else
+    #include <embree3/rtcore.h>
+    #include <embree3/rtcore_geometry.h>
+    #include <embree3/rtcore_ray.h>
+#endif
+
 #include <Eigen/Geometry>
+
+RTC_NAMESPACE_USE
 
 namespace lagrange {
 namespace raycasting {
