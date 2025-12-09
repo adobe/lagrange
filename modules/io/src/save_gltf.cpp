@@ -316,10 +316,12 @@ void populate_attributes(
             if (vector_view(indices) != vector_view(lmesh.get_corner_to_vertex())) {
                 // Indexed attributes are supported IF their indexing matches the vertices.
                 // This should be the case if you call `unify_index_buffer`
-                logger().warn(
-                    "Skipping attribute `{}`: unsupported non-indexed. Consider calling "
-                    "`unify_index_buffer`",
-                    name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Skipping attribute `{}`: unsupported non-indexed. Consider calling "
+                        "`unify_index_buffer`",
+                        name);
+                }
                 return;
             }
         }
@@ -346,10 +348,12 @@ void populate_attributes(
             // special case: convert double to float
             accessor.componentType = TINYGLTF_COMPONENT_TYPE_FLOAT;
         } else {
-            logger().warn(
-                "Skipping attribute `{}`: unsupported type {}",
-                name,
-                internal::string_from_scalar<ValueType>());
+            if (!options.quiet) {
+                logger().warn(
+                    "Skipping attribute `{}`: unsupported type {}",
+                    name,
+                    internal::string_from_scalar<ValueType>());
+            }
             return;
         }
 
@@ -362,10 +366,12 @@ void populate_attributes(
         case 9: accessor.type = TINYGLTF_TYPE_MAT3; break;
         case 16: accessor.type = TINYGLTF_TYPE_MAT4; break;
         default:
-            logger().warn(
-                "Skipping attribute `{}`: unsupported number of channels {}",
-                name,
-                attr.get_num_channels());
+            if (!options.quiet) {
+                logger().warn(
+                    "Skipping attribute `{}`: unsupported number of channels {}",
+                    name,
+                    attr.get_num_channels());
+            }
             return;
         }
 
@@ -373,10 +379,12 @@ void populate_attributes(
         if (attr.get_usage() == AttributeUsage::Normal) {
             if (found_normal) {
                 name_uppercase = "_" + name_uppercase;
-                logger().warn(
-                    "Found multiple attributes for normal, saving `{}` as `{}`.",
-                    name,
-                    name_uppercase);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Found multiple attributes for normal, saving `{}` as `{}`.",
+                        name,
+                        name_uppercase);
+                }
             } else {
                 found_normal = true;
                 name_uppercase = "NORMAL";
@@ -388,16 +396,20 @@ void populate_attributes(
                 name_uppercase = "TANGENT";
             } else if (accessor.type != TINYGLTF_TYPE_VEC4) {
                 name_uppercase = "_" + name_uppercase;
-                logger().warn(
-                    "gltf TANGENT attribute must be in vec4, saving `{}` as `{}`.",
-                    name,
-                    name_uppercase);
+                if (!options.quiet) {
+                    logger().warn(
+                        "gltf TANGENT attribute must be in vec4, saving `{}` as `{}`.",
+                        name,
+                        name_uppercase);
+                }
             } else {
                 name_uppercase = "_" + name_uppercase;
-                logger().warn(
-                    "Found multiple attributes for tangent, saving `{}` as `{}`.",
-                    name,
-                    name_uppercase);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Found multiple attributes for tangent, saving `{}` as `{}`.",
+                        name,
+                        name_uppercase);
+                }
             }
         } else if (attr.get_usage() == AttributeUsage::Color) {
             name_uppercase = "COLOR_" + std::to_string(color_count);
@@ -414,16 +426,20 @@ void populate_attributes(
             // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html#meshes
 
             if (accessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT) {
-                logger().warn(
-                    "gltf mesh attributes cannot use UNSIGNED_INT component type. Skipping "
-                    "attribute `{}`",
-                    name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "gltf mesh attributes cannot use UNSIGNED_INT component type. Skipping "
+                        "attribute `{}`",
+                        name);
+                }
                 return;
             }
 
             if (name_uppercase[0] != '_') {
                 name_uppercase = "_" + name_uppercase;
-                logger().warn("Saving attribute `{}` as `{}`.", name, name_uppercase);
+                if (!options.quiet) {
+                    logger().warn("Saving attribute `{}` as `{}`.", name, name_uppercase);
+                }
             }
         }
 
@@ -614,7 +630,9 @@ tinygltf::Model lagrange_simple_scene_to_gltf_model(
                 }
             } else {
                 // TODO: convert 2d transforms to 3d
-                logger().warn("Ignoring 2d instance transforms while saving gltf scene");
+                if (!options.quiet) {
+                    logger().warn("Ignoring 2d instance transforms while saving gltf scene");
+                }
             }
 
             model.nodes.push_back(node);
@@ -701,7 +719,9 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             light.spot.outerConeAngle = llight.angle_outer_cone;
             break;
         default:
-            logger().warn("unsupported light type in GLTF format");
+            if (!options.quiet) {
+                logger().warn("unsupported light type in GLTF format");
+            }
             light.type = "point";
             break;
         }
@@ -833,12 +853,16 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             material.occlusionTexture.strength = lmat.occlusion_strength;
 
             material.alphaCutoff = lmat.alpha_cutoff;
-            material.alphaMode = [](scene::MaterialExperimental::AlphaMode mode) {
+            material.alphaMode = [&](scene::MaterialExperimental::AlphaMode mode) {
                 switch (mode) {
                 case scene::MaterialExperimental::AlphaMode::Opaque: return "OPAQUE";
                 case scene::MaterialExperimental::AlphaMode::Mask: return "MASK";
                 case scene::MaterialExperimental::AlphaMode::Blend: return "BLEND";
-                default: logger().warn("Invalid alpha mode"); return "";
+                default:
+                    if (!options.quiet) {
+                        logger().warn("Invalid alpha mode");
+                    }
+                    return "";
                 }
             }(lmat.alpha_mode);
 
@@ -878,7 +902,9 @@ tinygltf::Model lagrange_scene_to_gltf_model(
         if (!lnode.cameras.empty()) {
             node.camera = lagrange::safe_cast<int>(lnode.cameras.front());
             if (lnode.cameras.size() > 1) {
-                logger().warn("GLTF format only supports one camera per node");
+                if (!options.quiet) {
+                    logger().warn("GLTF format only supports one camera per node");
+                }
             }
         }
 

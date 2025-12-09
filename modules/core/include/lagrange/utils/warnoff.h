@@ -105,6 +105,8 @@
     #pragma warning(disable : 4305) // conversion to smaller type, possible loss of data.
     #pragma warning(disable : 4275) // non dll-interface class 'std::exception' used as base for
                                     // dll-interface class 'openvdb::v10_0::Exception' FIXME
+    #pragma warning(disable : 4789) // buffer 'identifier' of size N bytes will be overrun; M bytes
+                                    // will be written starting at offset L.
     #pragma warning(disable : 4477) // mismatch in printf argument types.
     #pragma warning(disable : 4828) // File contain illegal character.
     #pragma warning(disable : 4996) // Using deprecated methods.

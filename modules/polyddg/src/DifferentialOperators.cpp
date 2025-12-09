@@ -9,18 +9,25 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/polyddg/DifferentialOperators.h>
+
+#include <lagrange/utils/warning.h>
+
+// Include early so we can explicitly silence warnings from Eigen.
+// Note: This warning only shows up with GCC 13, even though we include Eigen headers via -isystem.
+// It seems that with GCC 14+ -isystem also silences -Wmaybe-uninitialized.
+LA_IGNORE_MAYBE_UNINITIALIZED_START
+#include <Eigen/Geometry>
+LA_IGNORE_MAYBE_UNINITIALIZED_END
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_area.h>
 #include <lagrange/compute_centroid.h>
 #include <lagrange/internal/find_attribute_utils.h>
-#include <lagrange/polyddg/DifferentialOperators.h>
 #include <lagrange/polyddg/api.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/views.h>
-
-#include <Eigen/Geometry>
 
 #include <limits>
 #include <vector>

@@ -34,8 +34,8 @@ set_property(CACHE MKL_LINKING PROPERTY STRINGS ${MKL_LINKINK_CHOICES})
 message(STATUS "MKL linking strategy: ${MKL_LINKING}")
 
 # MKL version
-set(MKL_VERSION "2024.2.2" CACHE STRING "MKL version to use (2024.2.2)")
-set(MKL_VERSION_CHOICES 2024.2.2)
+set(MKL_VERSION "2025.3.0" CACHE STRING "MKL version to use (2025.3.0)")
+set(MKL_VERSION_CHOICES 2025.3.0)
 set_property(CACHE MKL_VERSION PROPERTY STRINGS ${MKL_VERSION_CHOICES})
 message(STATUS "MKL version: ${MKL_VERSION}")
 
@@ -72,21 +72,21 @@ elseif(APPLE)
     message(FATAL_ERROR "MKL not supported on macOS")
 elseif(UNIX)
     set(MKL_PLATFORM linux-64)
-    set(MKL_PLATFORM_TAG manylinux1_x86_64)
+    set(MKL_PLATFORM_TAG manylinux_2_28_x86_64)
 endif()
 
 #
 # How to get URL info:
-# https://pypi.org/pypi/mkl/2024.2.2/json
+# https://pypi.org/pypi/mkl/2025.3.0/json
 #
 # URL format:
 # https://files.pythonhosted.org/packages/${digest_a}/${digest_b}/${digest_c}/${name}-${version}-${python_tag}-${abi_tag}-${platform_tag}.whl
 #
 # Let's use jq to extract the checksum info into a separate JSON file:
 #
-# for name in mkl mkl-devel mkl-include mkl-static; do curl -s https://pypi.org/pypi/${name}/2024.2.2/json; done | jq -s 'reduce (.[] | {urls}.[].[] | {(.filename): {md5: .digests.md5, blake: .digests.blake2b_256}}) as $item ({}; . + $item)' > MKL.json
+# for name in mkl mkl-devel mkl-include mkl-static; do curl -s https://pypi.org/pypi/${name}/2025.3.0/json; done | jq -s 'reduce (.[] | {urls}.[].[] | {(.filename): {md5: .digests.md5, blake: .digests.blake2b_256}}) as $item ({}; . + $item)' > MKL.json
 #
-if(MKL_VERSION VERSION_EQUAL 2024.2.2)
+if(MKL_VERSION VERSION_EQUAL 2025.3.0)
     file(READ ${CMAKE_CURRENT_LIST_DIR}/MKL.json MKL_HASHES_JSON)
 else()
     message(FATAL_ERROR "MKL version not supported")
@@ -158,7 +158,7 @@ else()
     if(WIN32)
         set(MKL_LIB_SUFFIX "_dll")
     endif()
-    if(MKL_VERSION STREQUAL 2024.2.2)
+    if(MKL_VERSION STREQUAL 2025.3.0)
         set(MKL_DLL_SUFFIX ".2")
     endif()
     file(GLOB MKL_LIB_HINTS LIST_DIRECTORIES true "${mkl_SOURCE_DIR}/*.data" "${mkl-devel_SOURCE_DIR}/*.data")
@@ -338,12 +338,6 @@ function(mkl_add_shared_libraries)
         set_target_properties(MKL::${name} PROPERTIES
             IMPORTED_LOCATION "${${DLLVAR}}"
         )
-        if(UNIX)
-            get_filename_component(mkl_lib_filename "${${LIBVAR}}" NAME)
-            set_target_properties(MKL::${name} PROPERTIES
-                IMPORTED_SONAME "${MKL_SONAME_PREFIX}${mkl_lib_filename}"
-            )
-        endif()
 
         # Set as dependency to the meta target MKL::MKL. We cannot directly use `target_link_libraries`, since a MODULE
         # target represents a runtime dependency and cannot be linked against. Instead, we populate a custom property

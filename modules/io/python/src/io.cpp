@@ -117,7 +117,8 @@ void populate_io_module(nb::module_& m)
         .def_rw(
             "export_materials",
             &io::SaveOptions::export_materials,
-            "Whether to export materials and textures.");
+            "Whether to export materials and textures.")
+        .def_rw("quiet", &io::SaveOptions::quiet, "Whether to silence warnings during saving");
     nb::enum_<io::SaveOptions::OutputAttributes>(
         save_options,
         "OutputAttributes",

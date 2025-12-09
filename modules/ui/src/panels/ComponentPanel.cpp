@@ -41,9 +41,9 @@ std::string get_pretty_name(const entt::type_info& info)
     }
 
     using namespace entt::literals;
-    auto dname_prop = type.prop("display_name"_hs);
-    if (dname_prop) {
-        return dname_prop.value().cast<std::string>();
+    const TypeData* type_data = type.custom();
+    if (type_data && !type_data->display_name.empty()) {
+        return type_data->display_name;
     }
 
     return std::string(info.name());
@@ -128,10 +128,9 @@ void component_panel_system(Registry& registry, Entity window_entity)
                 continue;
             }
 
-
-            auto dname_prop = type.prop("display_name"_hs);
-            if (dname_prop) {
-                auto display_name = dname_prop.value().cast<std::string>();
+            const TypeData* type_data = type.custom();
+            if (type_data && !type_data->display_name.empty()) {
+                auto display_name = type_data->display_name;
                 if (!ImGui::CollapsingHeader(display_name.c_str(), ImGuiTreeNodeFlags_DefaultOpen))
                     continue;
             }

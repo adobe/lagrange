@@ -139,7 +139,7 @@ Viewer::Viewer(const WindowOptions& window_options)
 
     register_default_component_widgets();
 
-    // entt::meta<lagrange::MeshBase>().func<>("get_mesh_vertices"_hs);
+    // entt::meta_factory<lagrange::MeshBase>().func<>("get_mesh_vertices"_hs);
 
     ui::register_mesh_type<lagrange::TriangleMesh3Df>();
     ui::register_mesh_type<lagrange::TriangleMesh3D>();

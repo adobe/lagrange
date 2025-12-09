@@ -220,16 +220,16 @@ TEST_CASE("mesh_subdivision_with_uv", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
             options.refinement);
 
         auto uv_mesh = [&] {
-            lagrange::SurfaceMesh32d uv_mesh(2);
+            lagrange::SurfaceMesh32d uv_mesh_(2);
             const auto& uv_attr = subdivided_mesh.get_indexed_attribute<Scalar>("uv");
-            uv_mesh.wrap_as_const_vertices(
+            uv_mesh_.wrap_as_const_vertices(
                 uv_attr.values().get_all(),
                 uv_attr.values().get_num_elements());
-            uv_mesh.wrap_as_const_facets(
+            uv_mesh_.wrap_as_const_facets(
                 uv_attr.indices().get_all(),
                 subdivided_mesh.get_num_facets(),
                 subdivided_mesh.get_vertex_per_facet());
-            return uv_mesh;
+            return uv_mesh_;
         }();
 
         auto area = lagrange::compute_mesh_area(subdivided_mesh);

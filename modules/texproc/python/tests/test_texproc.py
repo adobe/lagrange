@@ -26,7 +26,11 @@ class TestTextureProcessing:
         assert quad_mesh.num_facets == 2
         assert quad_tex.dtype == np.float32
 
-        quad_tex_ = lagrange.texproc.texture_filtering(quad_mesh, quad_tex)
+        quad_tex_ = lagrange.texproc.texture_filtering(
+            quad_mesh,
+            quad_tex,
+            stiffness_regularization_weight=1e-5,
+        )
 
         assert quad_tex_.shape == quad_tex.shape
 
@@ -46,7 +50,11 @@ class TestTextureProcessing:
         assert cube_with_uv.num_facets == 12
         assert quad_tex.dtype == np.float32
 
-        quad_tex_ = lagrange.texproc.texture_stitching(cube_with_uv, quad_tex)
+        quad_tex_ = lagrange.texproc.texture_stitching(
+            cube_with_uv,
+            quad_tex,
+            stiffness_regularization_weight=1e-5,
+        )
 
         assert quad_tex_.shape == quad_tex.shape
 
@@ -84,7 +92,11 @@ class TestTextureProcessing:
             views.append(quad_tex.copy())
 
         colors, weights = lagrange.texproc.rasterize_textures_from_renders(
-            quad_scene, views, width=128, height=128, base_confidence=0
+            quad_scene,
+            views,
+            width=128,
+            height=128,
+            base_confidence=0,
         )
 
         assert len(colors) == num_cameras
@@ -97,6 +109,7 @@ class TestTextureProcessing:
             mesh,
             colors,
             weights,
+            clamp_to_range=(0.0, 1.0),
         )
 
         assert final_color.shape == (128, 128, 4)

@@ -21,7 +21,6 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/cast_attribute.h>
 #include <lagrange/find_matching_attributes.h>
-#include <lagrange/internal/get_uv_attribute.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/solver/DirectSolver.h>
 #include <lagrange/triangulate_polygonal_facets.h>
@@ -38,6 +37,8 @@ using namespace lagrange::texproc::threadpool;
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Misha/RegularGrid.h>
+#include <Src/PreProcessing.h>
+#include <Src/GradientDomain.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -115,6 +116,60 @@ void set_raw_view(
         for (unsigned int i = 0; i < grid.res(0); i++) {
             texture(i, j, 0) = grid(i, j);
         }
+    }
+}
+
+template <unsigned int NumChannels>
+void clamp_out_of_range(
+    span<Vector<double, NumChannels>> x,
+    const MishaK::TSP::GradientDomain<double>& gd,
+    std::pair<double, double> range = {0.0, 1.0},
+    bool mark_out_of_range = false)
+{
+    size_t num_interior_out_of_range = 0;
+    size_t num_exterior_out_of_range = 0;
+
+    Vector<double, NumChannels> red;
+    Vector<double, NumChannels> green;
+    for (unsigned int c = 0; c < NumChannels; c++) {
+        red[c] = (c == 0 ? 1.0 : 0.0);
+        green[c] = (c == 1 ? 1.0 : 0.0);
+    }
+
+    auto is_out_of_range = [&range](Vector<double, NumChannels> p) {
+        constexpr double eps = 1e-6;
+        for (unsigned int c = 0; c < NumChannels; c++) {
+            if (p[c] < range.first - eps || p[c] > range.second + eps) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    for (size_t n = 0; n < gd.numNodes(); ++n) {
+        const bool is_strictly_out = is_out_of_range(x[n]);
+        for (unsigned int c = 0; c < NumChannels; c++) {
+            x[n][c] = std::clamp(x[n][c], range.first, range.second);
+        }
+        if (is_strictly_out) {
+            if (gd.isCovered(n)) {
+                num_interior_out_of_range++;
+                if (mark_out_of_range) {
+                    x[n] = red;
+                }
+            } else {
+                num_exterior_out_of_range++;
+                if (mark_out_of_range) {
+                    x[n] = green;
+                }
+            }
+        }
+    }
+    if (num_interior_out_of_range || num_exterior_out_of_range) {
+        logger().info(
+            "{} interior and {} exterior texels were out of range and have been clamped.",
+            num_interior_out_of_range,
+            num_exterior_out_of_range);
     }
 }
 
@@ -210,6 +265,29 @@ void jitter_texture(
     for (auto& x : texcoords_buffer) {
         x += dist(gen);
     }
+}
+
+// Add combinatorial stiffness regularization
+template <typename Scalar>
+Eigen::SparseMatrix<Scalar> laplacian_regularization(Eigen::SparseMatrix<Scalar> S, Scalar eps)
+{
+    if (eps > 0) {
+        tbb::parallel_for(size_t(0), size_t(S.outerSize()), [&](size_t c) {
+            size_t count = 0;
+            for (typename Eigen::SparseMatrix<Scalar>::InnerIterator it(S, c); it; ++it) {
+                if (it.row() != it.col()) {
+                    it.valueRef() -= eps;
+                    ++count;
+                }
+            }
+            for (typename Eigen::SparseMatrix<Scalar>::InnerIterator it(S, c); it; ++it) {
+                if (it.row() == it.col()) {
+                    it.valueRef() += eps * count;
+                }
+            }
+        });
+    }
+    return S;
 }
 
 template <typename Scalar, typename Index>

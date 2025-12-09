@@ -79,6 +79,8 @@ if((LAGRANGE_CCACHE_PROGRAM STREQUAL "ccache") AND CCACHE_PROGRAM)
         CCACHE_SLOPPINESS=clang_index_store,include_file_ctime,include_file_mtime,locale,pch_defines,time_macros
     )
     message(STATUS "Using ccache: ${CCACHE_PROGRAM}")
+    # ccache does not yet support /Zi on Windows:
+    # https://github.com/ccache/ccache/issues/1040
     set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER
@@ -348,7 +350,6 @@ include(lagrange_add_test)
 include(lagrange_cpm_cache)
 include(lagrange_download_data)
 include(lagrange_find_package)
-include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)

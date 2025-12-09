@@ -110,11 +110,13 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
             if (result.found_uv_name.empty()) {
                 result.found_uv_name = name;
             } else {
-                logger().warn(
-                    "Found multiple UV attributes. This is not supported. '{}' is saved, '{}' is "
-                    "skipped",
-                    result.found_uv_name,
-                    name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Found multiple UV attributes. This is not supported. '{}' is saved, '{}' "
+                        "is skipped",
+                        result.found_uv_name,
+                        name);
+                }
                 return;
             }
 
@@ -138,11 +140,13 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
             if (result.found_normal_name.empty()) {
                 result.found_normal_name = name;
             } else {
-                logger().warn(
-                    "Found multiple Normal attributes. This is not supported. '{}' is saved, '{}' "
-                    "is skipped",
-                    result.found_normal_name,
-                    name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Found multiple Normal attributes. This is not supported. '{}' is saved, "
+                        "'{}' is skipped",
+                        result.found_normal_name,
+                        name);
+                }
                 return;
             }
 
@@ -168,9 +172,11 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
                 }
                 result.normal_indices = result.normal_index_buffer;
             } else {
-                logger().warn(
-                    "Skipping normal attribute '{}' due to unsupported element type",
-                    result.found_normal_name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Skipping normal attribute '{}' due to unsupported element type",
+                        result.found_normal_name);
+                }
                 result.found_normal_name.clear();
                 return;
             }
@@ -469,7 +475,9 @@ void save_scene_obj_impl(
                     // Check mesh dimension
                     const Index dim = mesh.get_dimension();
                     if (dim != 2 && dim != 3) {
-                        logger().warn("Skipping mesh with unsupported dimension: {}", dim);
+                        if (!options.quiet) {
+                            logger().warn("Skipping mesh with unsupported dimension: {}", dim);
+                        }
                         continue;
                     }
 

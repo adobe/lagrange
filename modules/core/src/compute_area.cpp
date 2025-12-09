@@ -14,12 +14,15 @@
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/find_attribute_utils.h>
+#include <lagrange/internal/get_uv_attribute.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/quad_area.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/triangle_area.h>
+#include <lagrange/utils/warning.h>
+#include <lagrange/uv_mesh.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -348,8 +351,10 @@ AttributeId compute_facet_vector_area(
         auto f = mesh.get_facet_vertices(fid);
         for (Index lv = 0; lv < f_size; lv++) {
             Index lv_next = (lv + 1) % f_size;
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
             vector_area.row(fid) += vertices.row(f[lv]).template head<3>().cross(
                 vertices.row(f[lv_next]).template head<3>());
+            LA_IGNORE_ARRAY_BOUNDS_END
         }
     });
     vector_area /= 2;
@@ -379,6 +384,22 @@ Scalar compute_mesh_area(
         FacetPositionsTransformed<Scalar, Index, Dimension>>(shallow_copy, options, transformation);
 }
 
+template <typename Scalar, typename Index>
+Scalar compute_uv_area(const SurfaceMesh<Scalar, Index>& mesh, MeshAreaOptions options)
+{
+#define LA_X_uv_area_dispatch(_, UVScalar)                                                \
+    {                                                                                     \
+        auto id = internal::get_uv_id<Scalar, Index, UVScalar>(mesh);                     \
+        if (id != invalid_attribute_id()) {                                               \
+            return static_cast<Scalar>(                                                   \
+                compute_mesh_area(uv_mesh_view<Scalar, Index, UVScalar>(mesh), options)); \
+        }                                                                                 \
+    }
+    LA_SURFACE_MESH_SCALAR_X(uv_area_dispatch, 0)
+#undef LA_X_uv_area_dispatch
+    throw Error("No suitable UV attribute found!");
+}
+
 #define LA_X_compute_facet_area(_, Scalar, Index)                              \
     template LA_CORE_API AttributeId compute_facet_area<Scalar, Index>(        \
         SurfaceMesh<Scalar, Index>&,                                           \
@@ -387,6 +408,9 @@ Scalar compute_mesh_area(
         SurfaceMesh<Scalar, Index>&,                                           \
         FacetVectorAreaOptions);                                               \
     template LA_CORE_API Scalar compute_mesh_area<Scalar, Index>(              \
+        const SurfaceMesh<Scalar, Index>&,                                     \
+        MeshAreaOptions);                                                      \
+    template LA_CORE_API Scalar compute_uv_area<Scalar, Index>(                \
         const SurfaceMesh<Scalar, Index>&,                                     \
         MeshAreaOptions);
 

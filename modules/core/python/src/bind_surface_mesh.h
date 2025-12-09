@@ -241,6 +241,35 @@ void bind_surface_mesh(nanobind::module_& m)
 
 :param facets: list of facet indices to remove)");
     surface_mesh_class.def(
+        "flip_facets",
+        [](MeshType& self, Tensor<Index> b, AttributeReorientPolicy policy) {
+            auto [data, shape, stride] = tensor_to_span(b);
+            la_runtime_assert(is_dense(shape, stride));
+            la_runtime_assert(is_vector(shape));
+            self.flip_facets(data, policy);
+        },
+        "facets"_a,
+        "policy"_a = AttributeReorientPolicy::None,
+        R"(Flip the orientation of selected facets.
+
+:param facets: 1D tensor of facet indices to flip
+:param policy: Whether to reorient associated attributes like normals and bitangents.)");
+    surface_mesh_class.def(
+        "flip_facets",
+        [](MeshType& self, nb::list b, AttributeReorientPolicy policy) {
+            std::vector<Index> indices;
+            for (auto i : b) {
+                indices.push_back(nb::cast<Index>(i));
+            }
+            self.flip_facets(indices, policy);
+        },
+        "facets"_a,
+        "policy"_a = AttributeReorientPolicy::None,
+        R"(Flip the orientation of selected facets.
+
+:param facets: list of facet indices to flip
+:param policy: Whether to reorient associated attributes like normals and bitangents.)");
+    surface_mesh_class.def(
         "clear_vertices",
         &MeshType::clear_vertices,
         R"(Remove all vertices from the mesh.)");
@@ -996,7 +1025,7 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(
                 self.is_attribute_indexed(name),
                 fmt::format(
-                    "Attribute \"{}\"is not indexed!  Please use `attribute` property instead.",
+                    "Attribute \"{}\" is not indexed!  Please use `attribute` property instead.",
                     name));
             if (!sharing) ensure_attribute_is_not_shared(self, self.get_attribute_id(name));
             return PyIndexedAttribute(self._ref_attribute_ptr(name));
@@ -1246,7 +1275,7 @@ void bind_surface_mesh(nanobind::module_& m)
                 la_runtime_assert(is_dense(edge_shape, edge_stride));
                 la_runtime_assert(
                     edge_data.empty() || check_shape(edge_shape, invalid<size_t>(), 2),
-                    "Edge tensor mush be of the shape num_edges x 2");
+                    "Edge tensor must be of the shape num_edges x 2");
                 self.initialize_edges(edge_data);
             } else {
                 self.initialize_edges();
@@ -1426,6 +1455,237 @@ If not provided, the edges are initialized in an arbitrary order.
 :param edge_id: edge index
 
 :returns: True if the edge is on the boundary, False otherwise)");
+
+    surface_mesh_class.def(
+        "foreach_facet_around_edge",
+        [](MeshType& self, Index edge_id, std::function<void(Index)>& func) {
+            self.foreach_facet_around_edge(edge_id, func);
+        },
+        "edge_id"_a,
+        "func"_a,
+        R"(Iterate over all facets around an edge.
+
+:param edge_id: edge index
+:param func: function to call for each facet index
+
+.. code-block:: python
+    >>> mesh.foreach_facet_around_edge(eid, lambda fid: print(fid))
+)");
+
+    surface_mesh_class.def(
+        "foreach_facet_around_vertex",
+        [](MeshType& self, Index vertex_id, std::function<void(Index)>& func) {
+            self.foreach_facet_around_vertex(vertex_id, func);
+        },
+        "vertex_id"_a,
+        "func"_a,
+        R"(Iterate over all facets around a vertex.
+
+:param vertex_id: vertex index
+:param func: function to call for each facet index
+
+.. code-block:: python
+    >>> mesh.foreach_facet_around_vertex(vid, lambda fid: print(fid))
+)");
+
+    surface_mesh_class.def(
+        "foreach_facet_around_facet",
+        [](MeshType& self, Index facet_id, std::function<void(Index)>& func) {
+            self.foreach_facet_around_facet(facet_id, func);
+        },
+        "facet_id"_a,
+        "func"_a,
+        R"(Iterate over all adjacent facets around a facet.
+
+:param facet_id: facet index
+:param func: function to call for each adjacent facet index
+
+.. code-block:: python
+    >>> mesh.foreach_facet_around_facet(fid, lambda afid: print(afid))
+)");
+
+    surface_mesh_class.def(
+        "foreach_corner_around_edge",
+        [](MeshType& self, Index edge_id, std::function<void(Index)>& func) {
+            self.foreach_corner_around_edge(edge_id, func);
+        },
+        "edge_id"_a,
+        "func"_a,
+        R"(Iterate over all corners around an edge.
+
+:param edge_id: edge index
+:param func: function to call for each corner index
+
+.. code-block:: python
+    >>> mesh.foreach_corner_around_edge(eid, lambda cid: print(cid))
+)");
+
+    surface_mesh_class.def(
+        "foreach_corner_around_vertex",
+        [](MeshType& self, Index vertex_id, std::function<void(Index)>& func) {
+            self.foreach_corner_around_vertex(vertex_id, func);
+        },
+        "vertex_id"_a,
+        "func"_a,
+        R"(Iterate over all corners around a vertex.
+
+:param vertex_id: vertex index
+:param func: function to call for each corner index
+
+.. code-block:: python
+    >>> mesh.foreach_corner_around_vertex(vid, lambda cid: print(cid))
+)");
+
+    surface_mesh_class.def(
+        "foreach_edge_around_vertex",
+        [](MeshType& self, Index vertex_id, std::function<void(Index)>& func) {
+            self.foreach_edge_around_vertex_with_duplicates(vertex_id, func);
+        },
+        "vertex_id"_a,
+        "func"_a,
+        R"(Iterate over all edges around a vertex.
+
+.. note::
+    Each incident edge will be visited once for each incident facet.
+    Thus, manifold edge will be visited exactly twice,
+    boundary edge will be visited exactly once,
+    non-manifold edges will be visited more than twice.
+
+:param vertex_id: vertex index
+:param func: function to call for each edge index
+
+.. code-block:: python
+    >>> mesh.foreach_edge_around_vertex(vid, lambda eid: print(eid))
+)");
+
+    // Pythonic versions that return lists/generators
+    surface_mesh_class.def(
+        "facets_around_facet",
+        [](MeshType& self, Index facet_id) {
+            std::vector<Index> result;
+            self.foreach_facet_around_facet(facet_id, [&](Index fid) { result.push_back(fid); });
+            return result;
+        },
+        "facet_id"_a,
+        R"(Get all adjacent facets around a facet.
+
+:param facet_id: facet index
+
+:returns: list of adjacent facet indices
+
+.. code-block:: python
+    >>> facets = mesh.facets_around_facet(fid)
+    >>> for afid in facets:
+    ...     print(afid)
+)");
+
+    surface_mesh_class.def(
+        "facets_around_vertex",
+        [](MeshType& self, Index vertex_id) {
+            std::vector<Index> result;
+            self.foreach_facet_around_vertex(vertex_id, [&](Index fid) { result.push_back(fid); });
+            return result;
+        },
+        "vertex_id"_a,
+        R"(Get all facets around a vertex.
+
+:param vertex_id: vertex index
+
+:returns: list of facet indices
+
+.. code-block:: python
+    >>> facets = mesh.facets_around_vertex(vid)
+    >>> for fid in facets:
+    ...     print(fid)
+)");
+
+    surface_mesh_class.def(
+        "facets_around_edge",
+        [](MeshType& self, Index edge_id) {
+            std::vector<Index> result;
+            self.foreach_facet_around_edge(edge_id, [&](Index fid) { result.push_back(fid); });
+            return result;
+        },
+        "edge_id"_a,
+        R"(Get all facets around an edge.
+
+:param edge_id: edge index
+
+:returns: list of facet indices
+
+.. code-block:: python
+    >>> facets = mesh.facets_around_edge(eid)
+    >>> for fid in facets:
+    ...     print(fid)
+)");
+
+    surface_mesh_class.def(
+        "corners_around_edge",
+        [](MeshType& self, Index edge_id) {
+            std::vector<Index> result;
+            self.foreach_corner_around_edge(edge_id, [&](Index cid) { result.push_back(cid); });
+            return result;
+        },
+        "edge_id"_a,
+        R"(Get all corners around an edge.
+
+:param edge_id: edge index
+
+:returns: list of corner indices
+
+.. code-block:: python
+    >>> corners = mesh.corners_around_edge(eid)
+    >>> for cid in corners:
+    ...     print(cid)
+)");
+
+    surface_mesh_class.def(
+        "corners_around_vertex",
+        [](MeshType& self, Index vertex_id) {
+            std::vector<Index> result;
+            self.foreach_corner_around_vertex(vertex_id, [&](Index cid) { result.push_back(cid); });
+            return result;
+        },
+        "vertex_id"_a,
+        R"(Get all corners around a vertex.
+
+:param vertex_id: vertex index
+
+:returns: list of corner indices
+
+.. code-block:: python
+    >>> corners = mesh.corners_around_vertex(vid)
+    >>> for cid in corners:
+    ...     print(cid)
+)");
+
+    surface_mesh_class.def(
+        "edges_around_vertex",
+        [](MeshType& self, Index vertex_id) {
+            std::vector<Index> result;
+            self.foreach_edge_around_vertex_with_duplicates(vertex_id, [&](Index eid) {
+                result.push_back(eid);
+            });
+            return result;
+        },
+        "vertex_id"_a,
+        R"(Get all edges around a vertex.
+
+.. note::
+    Each incident edge will be visited once for each incident facet.
+    Thus, manifold edge will be visited exactly twice,
+    boundary edge will be visited exactly once,
+    non-manifold edges will be visited more than twice.
+
+:param vertex_id: vertex index
+
+:returns: list of edge indices (with duplicates)
+
+.. code-block:: python
+    >>> edges = mesh.edges_around_vertex(vid)
+    >>> for eid in edges:
+    ...     print(eid)
+)");
 
     struct MetaData
     {

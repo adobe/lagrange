@@ -157,5 +157,22 @@ Scalar compute_mesh_area(
     const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transformation,
     MeshAreaOptions options = {});
 
+///
+/// Compute UV mesh area. It is equivalent to calling `compute_mesh_area` on the UV mesh extracted
+/// with `uv_mesh_view`. However, this function will also work if UV attribute is using a different
+/// scalar type than the mesh vertex positions.
+///
+/// @param[in]  mesh     The input mesh.
+/// @param[in]  options  The options controlling the computation.
+///
+/// @tparam     Scalar   Mesh scalar type.
+/// @tparam     Index    Mesh index type.
+///
+/// @return     The computed mesh area.
+/// @see        @ref MeshAreaOptions, @ref uv_mesh_view
+///
+template <typename Scalar, typename Index>
+Scalar compute_uv_area(const SurfaceMesh<Scalar, Index>& mesh, MeshAreaOptions options = {});
+
 /// @}
 } // namespace lagrange

@@ -33,6 +33,10 @@ option(TBB_PREFER_STATIC "Use the static version of TBB for the alias target" ON
 option(TBB_ENABLE_WASM_THREADS "Use wasm threads" ON)
 unset(TBB_DIR CACHE)
 
+# Make OneTBB version configurable for now to facilitate testing with -fno-rtti:
+# https://github.com/uxlfoundation/oneTBB/issues/1912
+set(TBB_VERSION_TAG "v2022.3.0" CACHE STRING "Hash or version tag for OneTBB")
+
 function(onetbb_import_target)
     macro(push_variable var value)
         if(DEFINED CACHE{${var}})
@@ -72,7 +76,7 @@ function(onetbb_import_target)
     CPMAddPackage(
         NAME tbb
         GITHUB_REPOSITORY oneapi-src/oneTBB
-        GIT_TAG v2021.13.0
+        GIT_TAG ${TBB_VERSION_TAG}
     )
 
     # TODO: This might break with future versions of onetbb. Onetbb should eventually add a proper cmake option to turn wasm threads on/off.
