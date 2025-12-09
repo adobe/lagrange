@@ -9,7 +9,7 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-lagrange_include_modules(io curve_io)
+lagrange_include_modules(io)
 
 lagrange_add_example(generate_octahedron generate_octahedron.cpp)
 target_link_libraries(generate_octahedron lagrange::primitive lagrange::io CLI11::CLI11)
@@ -35,6 +35,10 @@ target_link_libraries(generate_rounded_cylinder lagrange::primitive lagrange::io
 lagrange_add_example(generate_sphere generate_sphere.cpp)
 target_link_libraries(generate_sphere lagrange::primitive lagrange::io CLI11::CLI11)
 
-lagrange_add_example(generate_swept_surface generate_swept_surface.cpp)
-target_link_libraries(generate_swept_surface lagrange::primitive
-    lagrange::curve_io lagrange::io CLI11::CLI11)
+if(NOT LAGRANGE_NO_INTERNAL)
+    lagrange_include_modules(curve_io)
+
+    lagrange_add_example(generate_swept_surface generate_swept_surface.cpp)
+    target_link_libraries(generate_swept_surface lagrange::primitive
+        lagrange::curve_io lagrange::io CLI11::CLI11)
+endif()
