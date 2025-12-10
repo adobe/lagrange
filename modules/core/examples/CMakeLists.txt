@@ -17,7 +17,3 @@ target_link_libraries(mesh_cleanup lagrange::core lagrange::io CLI11::CLI11)
 
 lagrange_add_example(fix_nonmanifold fix_nonmanifold.cpp)
 target_link_libraries(fix_nonmanifold lagrange::core lagrange::io CLI11::CLI11)
-
-include(polyscope)
-lagrange_add_example(mesh_viewer mesh_viewer.cpp)
-target_link_libraries(mesh_viewer lagrange::core lagrange::io CLI11::CLI11 polyscope::polyscope)

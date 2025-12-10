@@ -12,10 +12,12 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 #include "../examples/io_helpers.h"
+#include "platform_subfolder.h"
 
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/texproc/texture_stitching.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/views.h>
 
 #include <lagrange/testing/common.h>
@@ -25,9 +27,7 @@
 
 namespace {
 
-// TODO: We're being VERY generous with the tolerances here. Let's investigate the discrepancies
-// later.
-void require_approx_mdspan(View3Df a, View3Df b, float eps_rel = 5e-1f, float eps_abs = 5e-1f)
+void require_approx_mdspan(View3Df a, View3Df b, float eps_rel = 1e-5f, float eps_abs = 1e-5f)
 {
     REQUIRE(a.extent(0) == b.extent(0));
     REQUIRE(a.extent(1) == b.extent(1));
@@ -84,7 +84,7 @@ TEST_CASE("texture stitching cube", "[texproc]")
     REQUIRE_NOTHROW(lagrange::texproc::texture_stitching(mesh, img.to_mdspan()));
 }
 
-TEST_CASE("texture stitching", "[texproc][!mayfail]" LA_SLOW_DEBUG_FLAG)
+TEST_CASE("texture stitching", "[texproc]" LA_SLOW_DEBUG_FLAG)
 {
     using Scalar = double;
     using Index = uint32_t;
@@ -94,19 +94,34 @@ TEST_CASE("texture stitching", "[texproc][!mayfail]" LA_SLOW_DEBUG_FLAG)
 
     SECTION("default")
     {
-        lagrange::texproc::texture_stitching(mesh, img.to_mdspan(), options);
-        save_image("blub_stitched.exr", img);
-        auto expected =
-            load_image(lagrange::testing::get_data_path("open/texproc/blub_stitched.exr"));
+        tbb::task_arena arena(1);
+        arena.execute(
+            [&] { lagrange::texproc::texture_stitching(mesh, img.to_mdspan(), options); });
+
+        // Uncomment to save and update the reference image
+        // save_image("blub_stitched.exr", img);
+
+        auto subfolder = get_platform_subfolder();
+        auto expected = load_image(
+            lagrange::testing::get_data_path(
+                fmt::format("open/texproc/{}/blub_stitched.exr", subfolder)));
         require_approx_mdspan(img.to_mdspan(), expected.to_mdspan());
     }
 
     SECTION("randomized")
     {
         options.__randomize = true;
-        lagrange::texproc::texture_stitching(mesh, img.to_mdspan(), options);
-        auto expected =
-            load_image(lagrange::testing::get_data_path("open/texproc/blub_stitched.exr"));
+        tbb::task_arena arena(1);
+        arena.execute(
+            [&] { lagrange::texproc::texture_stitching(mesh, img.to_mdspan(), options); });
+
+        // Uncomment to save and update the reference image
+        // save_image("blub_stitched_rnd.exr", img);
+
+        auto subfolder = get_platform_subfolder();
+        auto expected = load_image(
+            lagrange::testing::get_data_path(
+                fmt::format("open/texproc/{}/blub_stitched_rnd.exr", subfolder)));
         require_approx_mdspan(img.to_mdspan(), expected.to_mdspan());
     }
 }

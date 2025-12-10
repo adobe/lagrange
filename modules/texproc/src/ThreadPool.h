@@ -38,15 +38,19 @@ struct ThreadPool
     template <typename Function>
     static void ParallelFor(size_t begin, size_t end, Function&& func)
     {
+        static const bool NeedsThreadIndex =
+            std::is_convertible_v<Function, std::function<void(unsigned int, size_t)>>;
+
         // Keeping this commented block for quick debugging of multithread issues.
 #if 0
         int thread_index = 0;
         for (size_t i = begin; i < end; ++i) {
-            func(thread_index, i);
+            if constexpr (NeedsThreadIndex)
+                func(thread_index, i);
+            else
+                func(i);
         }
 #else
-        static const bool NeedsThreadIndex =
-            std::is_convertible_v<Function, std::function<void(unsigned int, size_t)>>;
 
         tbb::parallel_for(
             tbb::blocked_range<size_t>(begin, end),

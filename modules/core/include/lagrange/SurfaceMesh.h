@@ -554,24 +554,33 @@ public:
     ///
     /// Reverses the orientation of a list of facets.
     ///
-    /// @param[in]  facets_to_flip  List of facets to be reversed.
+    /// @param[in]  facets_to_flip   List of facets to be reversed.
+    /// @param[in]  reorient_policy  Whether to reorient impacted mesh attributes.
     ///
-    void flip_facets(span<const Index> facets_to_flip);
+    void flip_facets(
+        span<const Index> facets_to_flip,
+        AttributeReorientPolicy reorient_policy = AttributeReorientPolicy::None);
 
     ///
     /// Reverses the orientation of a list of facets.
     ///
-    /// @param[in]  facets_to_flip  List of facets to be reversed.
+    /// @param[in]  facets_to_flip   List of facets to be reversed.
+    /// @param[in]  reorient_policy  Whether to reorient impacted mesh attributes.
     ///
-    void flip_facets(std::initializer_list<const Index> facets_to_flip);
+    void flip_facets(
+        std::initializer_list<const Index> facets_to_flip,
+        AttributeReorientPolicy reorient_policy = AttributeReorientPolicy::None);
 
     ///
     /// Reverses the orientation of a list of facets.
     ///
     /// @param[in]  should_flip_func  Indicator function returning whether a facet should be
     ///                               reversed.
+    /// @param[in]  reorient_policy   Whether to reorient impacted mesh attributes.
     ///
-    void flip_facets(function_ref<bool(Index)> should_flip_func);
+    void flip_facets(
+        function_ref<bool(Index)> should_flip_func,
+        AttributeReorientPolicy reorient_policy = AttributeReorientPolicy::None);
 
     ///
     /// Clear buffer for mesh vertices and other vertex attributes. Since this function also removes

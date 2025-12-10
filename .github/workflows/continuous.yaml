@@ -136,6 +136,7 @@ jobs:
             -DOPENVDB_CORE_SHARED=ON \
             -DOPENVDB_CORE_STATIC=OFF \
             -DUSE_EXPLICIT_INSTANTIATION=OFF \
+            -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build
@@ -213,6 +214,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
             -DLAGRANGE_JENKINS=ON ^
             -DLAGRANGE_ALL=ON ^
+            -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON ^
             -B "D:/build" ^
             -S .
           cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}

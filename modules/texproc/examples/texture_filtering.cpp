@@ -55,6 +55,14 @@ int main(int argc, char** argv)
         "--jitter-epsilon",
         filtering_options.jitter_epsilon,
         "Random jitter amount (0 if no jittering).");
+    app.add_option(
+        "--stiffness-regularization",
+        filtering_options.stiffness_regularization_weight,
+        "Stiffness matrix regularization weight.");
+    app.add_option(
+        "--clamp",
+        filtering_options.clamp_to_range,
+        "Clamp out-of-range texels to the given range.");
     app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
 
     CLI11_PARSE(app, argc, argv)

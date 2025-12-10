@@ -124,7 +124,9 @@ void populate_texproc_module(nb::module_& m)
            double gradient_weight,
            double gradient_scale,
            unsigned int quadrature_samples,
-           double jitter_epsilon) {
+           double jitter_epsilon,
+           double stiffness_regularization_weight,
+           std::optional<std::pair<double, double>> clamp_to_range) {
             auto image = image::experimental::create_image<float>(
                 image_.shape(0),
                 image_.shape(1),
@@ -137,6 +139,8 @@ void populate_texproc_module(nb::module_& m)
             options.gradient_scale = gradient_scale;
             options.quadrature_samples = quadrature_samples;
             options.jitter_epsilon = jitter_epsilon;
+            options.stiffness_regularization_weight = stiffness_regularization_weight;
+            options.clamp_to_range = clamp_to_range;
 
             tp::texture_filtering(mesh, image.to_mdspan(), options);
 
@@ -149,6 +153,9 @@ void populate_texproc_module(nb::module_& m)
         "gradient_scale"_a = tp::FilteringOptions().gradient_scale,
         "quadrature_samples"_a = tp::FilteringOptions().quadrature_samples,
         "jitter_epsilon"_a = tp::FilteringOptions().jitter_epsilon,
+        "stiffness_regularization_weight"_a =
+            tp::FilteringOptions().stiffness_regularization_weight,
+        "clamp_to_range"_a = tp::FilteringOptions().clamp_to_range,
         R"("Smooth or sharpen a texture image associated with a mesh.
 
 :param mesh: Input mesh with UV attributes.
@@ -158,6 +165,8 @@ void populate_texproc_module(nb::module_& m)
 :param gradient_scale: The gradient modulation weight. Use a value of 0 for smoothing, and use a value between [2, 10] for sharpening.
 :param quadrature_samples: The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
+:param stiffness_regularization_weight: Regularize the stiffness matrix using a combinatorial Laplacian energy.
+:param clamp_to_range: Clamp out-of-range texels to the given range (disabled by default).
 
 :return: The filtered texture image.)");
 
@@ -167,7 +176,9 @@ void populate_texproc_module(nb::module_& m)
            const TextureTensor<float>& image_,
            bool exterior_only,
            unsigned int quadrature_samples,
-           double jitter_epsilon) {
+           double jitter_epsilon,
+           double stiffness_regularization_weight,
+           std::optional<std::pair<double, double>> clamp_to_range) {
             auto image = image::experimental::create_image<float>(
                 image_.shape(0),
                 image_.shape(1),
@@ -178,6 +189,8 @@ void populate_texproc_module(nb::module_& m)
             options.exterior_only = exterior_only;
             options.quadrature_samples = quadrature_samples;
             options.jitter_epsilon = jitter_epsilon;
+            options.stiffness_regularization_weight = stiffness_regularization_weight;
+            options.clamp_to_range = clamp_to_range;
 
             tp::texture_stitching(mesh, image.to_mdspan(), options);
 
@@ -188,6 +201,9 @@ void populate_texproc_module(nb::module_& m)
         "exterior_only"_a = tp::StitchingOptions().exterior_only,
         "quadrature_samples"_a = tp::StitchingOptions().quadrature_samples,
         "jitter_epsilon"_a = tp::StitchingOptions().jitter_epsilon,
+        "stiffness_regularization_weight"_a =
+            tp::StitchingOptions().stiffness_regularization_weight,
+        "clamp_to_range"_a = tp::StitchingOptions().clamp_to_range,
         R"(Smooth or sharpen a texture image associated with a mesh.
 
 :param mesh: Input mesh with UV attributes.
@@ -195,6 +211,8 @@ void populate_texproc_module(nb::module_& m)
 :param exterior_only: If true, interior texels are fixed degrees of freedom.
 :param quadrature_samples: The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
+:param stiffness_regularization_weight: Regularize the stiffness matrix using a combinatorial Laplacian energy.
+:param clamp_to_range: Clamp out-of-range texels to the given range (disabled by default).
 
 :return: The stitched texture image.)");
 
@@ -268,6 +286,7 @@ void populate_texproc_module(nb::module_& m)
            double value_weight,
            unsigned int quadrature_samples,
            double jitter_epsilon,
+           std::optional<std::pair<double, double>> clamp_to_range,
            bool smooth_low_weight_areas,
            unsigned int num_multigrid_levels,
            unsigned int num_gauss_seidel_iterations,
@@ -291,6 +310,7 @@ void populate_texproc_module(nb::module_& m)
             options.value_weight = value_weight;
             options.quadrature_samples = quadrature_samples;
             options.jitter_epsilon = jitter_epsilon;
+            options.clamp_to_range = clamp_to_range;
             options.smooth_low_weight_areas = smooth_low_weight_areas;
             options.solver.num_multigrid_levels = num_multigrid_levels;
             options.solver.num_gauss_seidel_iterations = num_gauss_seidel_iterations;
@@ -306,6 +326,7 @@ void populate_texproc_module(nb::module_& m)
         "value_weight"_a = tp::CompositingOptions().value_weight,
         "quadrature_samples"_a = tp::CompositingOptions().quadrature_samples,
         "jitter_epsilon"_a = tp::CompositingOptions().jitter_epsilon,
+        "clamp_to_range"_a = tp::CompositingOptions().clamp_to_range,
         "smooth_low_weight_areas"_a = tp::CompositingOptions().smooth_low_weight_areas,
         "num_multigrid_levels"_a = tp::CompositingOptions().solver.num_multigrid_levels,
         "num_gauss_seidel_iterations"_a =
@@ -319,6 +340,7 @@ void populate_texproc_module(nb::module_& m)
 :param value_weight: The weight for fitting the values of the signal.
 :param quadrature_samples: The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
+:param clamp_to_range: Clamp out-of-range texels to the given range (disabled by default).
 :param smooth_low_weight_areas: Whether to smooth pixels with a low total weight (< 1). When enabled, this will not dampen the gradient terms for pixels with a low total weight, resulting in a smoother texture in low-confidence areas.
 :param num_multigrid_levels: Number of multigrid levels.
 :param num_gauss_seidel_iterations: Number of Gauss-Seidel iterations per multigrid level.

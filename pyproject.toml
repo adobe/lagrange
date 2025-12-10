@@ -14,17 +14,17 @@ license = "Apache-2.0"
 license-files = [ "LICENSE", "NOTICE.txt" ]
 
 maintainers = [ { name = "Lagrange Core Team", email = "lagrange-core@adobe.com" } ]
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Multimedia :: Graphics :: 3D Modeling",
 ]
 dynamic = [ "version" ]
@@ -96,6 +96,7 @@ LAGRANGE_MODULE_IMAGE = true
 LAGRANGE_MODULE_IO = true
 LAGRANGE_MODULE_POISSON = true
 LAGRANGE_MODULE_POLYDDG = true
+LAGRANGE_MODULE_PRIMITIVE = true
 LAGRANGE_MODULE_PYTHON = true
 LAGRANGE_MODULE_SCENE = true
 LAGRANGE_MODULE_SOLVER = true

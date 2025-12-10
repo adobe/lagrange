@@ -35,7 +35,7 @@ jobs:
           xcode-version: '26.0.1'
 
       - name: Setup MSVC
-        if: runner.os == 'windows'
+        if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install uv

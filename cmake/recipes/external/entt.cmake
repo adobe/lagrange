@@ -20,5 +20,5 @@ include(CPM)
 CPMAddPackage(
     NAME entt
     GITHUB_REPOSITORY skypjack/entt
-    GIT_TAG v3.13.2
+    GIT_TAG v3.16.0
 )

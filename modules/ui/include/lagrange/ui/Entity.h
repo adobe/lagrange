@@ -30,6 +30,38 @@ inline constexpr entt::null_t NullEntity{};
 using System = std::function<void(Registry& registry)>;
 using StringID = entt::id_type;
 
+struct TypeData
+{
+    std::string display_name;
+    std::string icon;
+    std::string keybind;
+    std::function<void(entt::registry*, Entity)> show_widget;
+
+    TypeData& set_display_name(const std::string& name)
+    {
+        display_name = name;
+        return *this;
+    }
+
+    TypeData& set_icon(const std::string& ic)
+    {
+        icon = ic;
+        return *this;
+    }
+
+    TypeData& set_keybind(const std::string& kb)
+    {
+        keybind = kb;
+        return *this;
+    }
+
+    TypeData& set_show_widget(const std::function<void(entt::registry*, Entity)>& fn)
+    {
+        show_widget = fn;
+        return *this;
+    }
+};
+
 /*
     Globally used enums
 */
@@ -88,25 +120,25 @@ template <typename Component>
 void register_component(const std::string& display_name = entt::type_id<Component>().name().data())
 {
     using namespace entt::literals;
-    entt::meta<Component>()
+    entt::meta_factory<Component>()
         .template func<&component_clone<Component>>("component_clone"_hs)
         .template func<&component_move<Component>>("component_move"_hs)
         .template func<&component_add_default<Component>>("component_add_default"_hs)
-        .prop("display_name"_hs, display_name);
+        .template custom<TypeData>(TypeData().set_display_name(display_name));
 }
 
 template <typename Component, auto Func>
 void register_component_widget()
 {
     using namespace entt::literals;
-    entt::meta<Component>().template func<Func>("show_widget"_hs);
+    entt::meta_factory<Component>().template func<Func>("show_widget"_hs);
 }
 
 template <typename Component>
 void register_component_widget(const std::function<void(Registry*, Entity)>& fn)
 {
     using namespace entt::literals;
-    entt::meta<Component>().prop("show_widget_lambda"_hs, fn);
+    entt::meta_factory<Component>().template custom<TypeData>(TypeData().set_show_widget(fn));
 }
 
 inline void show_widget(Registry& w, Entity e, const entt::meta_type& meta_type)
@@ -116,9 +148,9 @@ inline void show_widget(Registry& w, Entity e, const entt::meta_type& meta_type)
     if (fn) {
         fn.invoke({}, &w, e);
     } else {
-        auto lambda = meta_type.prop("show_widget_lambda"_hs);
-        if (lambda) {
-            lambda.value().cast<std::function<void(Registry*, Entity)>>()(&w, e);
+        const TypeData* type_data = meta_type.custom();
+        if (type_data) {
+            type_data->show_widget(&w, e);
         }
     }
 }

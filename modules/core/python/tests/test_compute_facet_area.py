@@ -16,7 +16,7 @@ from numpy.linalg import norm
 import math
 import pytest
 
-from .assets import single_triangle, cube
+from .assets import single_triangle, cube, single_triangle_with_uv
 
 
 class TestComputeFacetArea:
@@ -41,6 +41,13 @@ class TestComputeFacetArea:
         assert area_attr.num_elements == 1
         assert area_attr.num_channels == 1
         assert area_attr.data == pytest.approx(math.sqrt(3) / 2)
+
+    def test_uv_triangle(self, single_triangle_with_uv):
+        mesh = single_triangle_with_uv
+        uv_area = lagrange.compute_uv_area(mesh)
+        mesh_area = lagrange.compute_mesh_area(mesh)
+        assert uv_area > 0
+        assert mesh_area > 0
 
     def test_degenerate_triangle(self):
         mesh = lagrange.SurfaceMesh()

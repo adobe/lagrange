@@ -17,14 +17,15 @@
 
 namespace lagrange {
 
-template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> uv_mesh_ref(
+template <typename Scalar, typename Index, typename UVScalar>
+SurfaceMesh<UVScalar, Index> uv_mesh_ref(
     SurfaceMesh<Scalar, Index>& mesh,
     const UVMeshOptions& options)
 {
-    auto [uv_values, uv_indices] = internal::ref_uv_attribute(mesh, options.uv_attribute_name);
+    auto [uv_values, uv_indices] =
+        internal::ref_uv_attribute<Scalar, Index, UVScalar>(mesh, options.uv_attribute_name);
 
-    SurfaceMesh<Scalar, Index> uv_mesh(2);
+    SurfaceMesh<UVScalar, Index> uv_mesh(2);
     uv_mesh.wrap_as_vertices(
         {uv_values.data(), static_cast<size_t>(uv_values.size())},
         static_cast<Index>(uv_values.rows()));
@@ -47,14 +48,15 @@ SurfaceMesh<Scalar, Index> uv_mesh_ref(
     return uv_mesh;
 }
 
-template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> uv_mesh_view(
+template <typename Scalar, typename Index, typename UVScalar>
+SurfaceMesh<UVScalar, Index> uv_mesh_view(
     const SurfaceMesh<Scalar, Index>& mesh,
     const UVMeshOptions& options)
 {
-    auto [uv_values, uv_indices] = internal::get_uv_attribute(mesh, options.uv_attribute_name);
+    auto [uv_values, uv_indices] =
+        internal::get_uv_attribute<Scalar, Index, UVScalar>(mesh, options.uv_attribute_name);
 
-    SurfaceMesh<Scalar, Index> uv_mesh(2);
+    SurfaceMesh<UVScalar, Index> uv_mesh(2);
     uv_mesh.wrap_as_const_vertices(
         {uv_values.data(), static_cast<size_t>(uv_values.size())},
         static_cast<Index>(uv_values.rows()));
@@ -77,12 +79,14 @@ SurfaceMesh<Scalar, Index> uv_mesh_view(
     return uv_mesh;
 }
 
-#define LA_X_uv_mesh_view(_, Scalar, Index)                                      \
-    template LA_CORE_API SurfaceMesh<Scalar, Index> uv_mesh_ref<Scalar, Index>(  \
-        SurfaceMesh<Scalar, Index>&,                                             \
-        const UVMeshOptions&);                                                   \
-    template LA_CORE_API SurfaceMesh<Scalar, Index> uv_mesh_view<Scalar, Index>( \
-        const SurfaceMesh<Scalar, Index>&,                                       \
+#define LA_X_uv_mesh_view(UVScalar, Scalar, Index)                                           \
+    template LA_CORE_API SurfaceMesh<UVScalar, Index> uv_mesh_ref<Scalar, Index, UVScalar>(  \
+        SurfaceMesh<Scalar, Index>&,                                                         \
+        const UVMeshOptions&);                                                               \
+    template LA_CORE_API SurfaceMesh<UVScalar, Index> uv_mesh_view<Scalar, Index, UVScalar>( \
+        const SurfaceMesh<Scalar, Index>&,                                                   \
         const UVMeshOptions&);
-LA_SURFACE_MESH_X(uv_mesh_view, 0)
+#define LA_X_uv_mesh_view_aux(_, UVScalar) LA_SURFACE_MESH_X(uv_mesh_view, UVScalar)
+LA_SURFACE_MESH_SCALAR_X(uv_mesh_view_aux, 0)
+
 } // namespace lagrange

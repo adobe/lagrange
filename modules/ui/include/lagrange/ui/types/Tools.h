@@ -26,10 +26,8 @@ entt::id_type register_tool_type(
 {
     using namespace entt::literals;
 
-    entt::meta<T>()
-        .prop("display_name"_hs, display_name)
-        .prop("icon"_hs, icon)
-        .prop("keybind"_hs, keybind);
+    entt::meta_factory<T>().template custom<TypeData>(
+        TypeData().set_display_name(display_name).set_icon(icon).set_keybind(keybind));
 
     return entt::type_id<T>().hash();
 }
