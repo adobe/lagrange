@@ -20,9 +20,9 @@
 
 namespace {
 #ifdef LAGRANGE_POLYSCOPE_MOCK_BACKEND
-constexpr std::string_view g_backend = "mock";
+const std::string g_backend = "mock";
 #else
-constexpr std::string_view g_backend = "";
+const std::string g_backend = "";
 #endif
 } // namespace
 
