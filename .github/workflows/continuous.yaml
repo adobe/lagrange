@@ -25,7 +25,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-15-intel, macos-15]
-        config: [RelwithDebInfo, Debug]
+        config: [RelWithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
         exclude:
@@ -157,11 +157,12 @@ jobs:
   ####################
 
   Windows:
-    name: windows-2025 (${{ matrix.config }})
-    runs-on: windows-2025
+    name: ${{ matrix.os }} (${{ matrix.config }})
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [windows-2025, windows-11-arm]
         config: [Release, Debug]
     steps:
       - name: Show disk space
@@ -179,47 +180,53 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
-      - name: Set env variable for sccache
-        run: |
-          echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
-
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
 
-      - name: Cache build
-        id: cache-build
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.appdata }}\Mozilla\sccache
-          key: ${{ runner.os }}-${{ matrix.config }}-cache
+      - name: Configure sccache
+        run: echo "SCCACHE_GHA_ENABLED=true" >> ${env:GITHUB_ENV}
 
       - name: Prepare sccache
-        run: |
-          iwr -useb 'https://raw.githubusercontent.com/scoopinstaller/install/master/install.ps1' -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop install sccache --global
-          # Scoop modifies the PATH so we make it available for the next steps of the job
-          echo "${env:PATH}" >> ${env:GITHUB_PATH}
+        # Re-enable official action one https://github.com/Mozilla-Actions/sccache-action/pull/225 is merged
+        # uses: mozilla-actions/sccache-action@v0.0.9
+        uses: Vee99BR/sccache-action@v0.0.1
 
-        # We run configure + build in the same step, since they both need to call VsDevCmd
-        # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
-      - name: Configure and build
-        shell: cmd
+      - name: Set x64 vars
+        if: matrix.os == 'windows-2025'
         run: |
-          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+            echo "BUILD_DIR=D:/build" >> ${env:GITHUB_ENV}
+            echo "ARCH=x64" >> ${env:GITHUB_ENV}
+
+      - name: Set arm64 vars
+        if: matrix.os == 'windows-11-arm'
+        run: |
+            echo "BUILD_DIR=C:/build" >> ${env:GITHUB_ENV}
+            echo "ARCH=arm64" >> ${env:GITHUB_ENV}
+
+      - name: Setup MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ env.ARCH }}
+
+        # Cmd uses ^ to break commands into multiple lines, powershell uses `
+      - name: Configure
+        run: |
           cmake --version
-          cmake -G Ninja ^
-            -DCMAKE_BUILD_TYPE=${{ matrix.config }} ^
-            -DLAGRANGE_JENKINS=ON ^
-            -DLAGRANGE_ALL=ON ^
-            -B "D:/build" ^
+          cmake -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
+            -DLAGRANGE_JENKINS=ON `
+            -DLAGRANGE_MODULE_RAYCASTING=ON `
+            -B ${{ env.BUILD_DIR }} `
             -S .
-          cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
+
+      - name: Build
+        run: |
+          cmake --build ${{ env.BUILD_DIR }} -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Show disk space
         if: always()
         run: Get-PSDrive
 
       - name: Tests
-        run: cd "D:/build"; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+        run: cd ${{ env.BUILD_DIR }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
