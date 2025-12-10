@@ -102,9 +102,9 @@ std::tuple<Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor>, std::vecto
     auto pack = [&](int L, bool trial) -> bool {
         assert(!internal::product_will_overflow<Int>(L, L));
 #ifdef RECTANGLE_BIN_PACK_OSS
-        if (allow_flip) {
+        if (!allow_flip) {
             logger().warn(
-                "Rotation requested but not supported with this version of RectangleBinPack!");
+                "Disabling rotation is not supported with this version of RectangleBinPack!");
         }
         rbp::GuillotineBinPack packer(L, L);
 #else
@@ -230,7 +230,7 @@ void compute_rectangle_packing(MeshType& mesh, const PackingOptions& options)
     Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor> centers(num_comps, 2);
     std::vector<bool> flipped(num_comps);
 #ifdef RECTANGLE_BIN_PACK_OSS
-    bool allow_flip = false;
+    bool allow_flip = true;
 #else
     bool allow_flip = options.allow_flip;
 #endif
