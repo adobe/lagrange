@@ -80,7 +80,7 @@ void repack_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const RepackOptions& opt
     std::vector<bool> rotated(num_charts);
     Scalar canvas_size;
 #ifdef RECTANGLE_BIN_PACK_OSS
-    bool allow_rotation = false;
+    bool allow_rotation = true;
 #else
     bool allow_rotation = options.allow_rotation;
 #endif

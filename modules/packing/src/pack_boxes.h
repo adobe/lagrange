@@ -146,9 +146,9 @@ pack_boxes(
     auto pack = [&](int L, bool trial) -> bool {
         la_debug_assert(!product_will_overflow<Int>(L, L));
 #ifdef RECTANGLE_BIN_PACK_OSS
-        if (allow_rotation) {
+        if (!allow_rotation) {
             logger().warn(
-                "Rotation requested but not supported with this version of RectangleBinPack!");
+                "Disabling rotation is not supported with this version of RectangleBinPack!");
         }
         rbp::GuillotineBinPack packer(L, L);
 #else
