@@ -10,3 +10,9 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_test()
+
+option(LAGRANGE_POLYSCOPE_MOCK_BACKEND "Use Polyscope's mock backend for unit testing" OFF)
+
+if(LAGRANGE_POLYSCOPE_MOCK_BACKEND)
+    target_compile_definitions(test_lagrange_polyscope PRIVATE LAGRANGE_POLYSCOPE_MOCK_BACKEND)
+endif()

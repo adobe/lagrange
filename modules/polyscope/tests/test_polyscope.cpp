@@ -18,6 +18,14 @@
 #include <lagrange/uv_mesh.h>
 #include <lagrange/views.h>
 
+namespace {
+#ifdef LAGRANGE_POLYSCOPE_MOCK_BACKEND
+constexpr std::string g_backend = "mock"
+#else
+constexpr std::string g_backend = ""
+#endif
+} // namespace
+
 TEST_CASE("register_mesh", "[polyscope]")
 {
     using Scalar = double;
@@ -28,7 +36,7 @@ TEST_CASE("register_mesh", "[polyscope]")
         "open/core/simple/quad_meshes/cube.obj",
         "open/core/poly/mixedFaringPart.obj"};
 
-    polyscope::init();
+    polyscope::init(g_backend);
     for (const auto& path : paths) {
         auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(path);
         auto ps_mesh = lagrange::polyscope::register_mesh(path, mesh);
@@ -77,7 +85,7 @@ TEST_CASE("register_mesh_2d", "[polyscope]")
         "open/core/simple/quad_meshes/cube.obj",
         "open/core/poly/mixedFaringPart.obj"};
 
-    polyscope::init();
+    polyscope::init(g_backend);
     for (const auto& path : paths) {
         auto mesh = project_to_2d(lagrange::testing::load_surface_mesh<Scalar, Index>(path));
         REQUIRE(mesh.get_dimension() == 2);
@@ -102,7 +110,7 @@ TEST_CASE("register_uv_mesh", "[polyscope]")
     using Scalar = double;
     using Index = uint32_t;
 
-    polyscope::init();
+    polyscope::init(g_backend);
     auto mesh =
         lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube_with_uv.obj");
     auto uv_mesh = lagrange::uv_mesh_view(mesh);
@@ -121,7 +129,7 @@ TEST_CASE("register_points", "[polyscope]")
     auto points = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube.obj");
     points.clear_facets();
 
-    polyscope::init();
+    polyscope::init(g_backend);
     auto ps_points = lagrange::polyscope::register_point_cloud("point_cloud", points);
     REQUIRE(ps_points != nullptr);
 
@@ -142,7 +150,7 @@ TEST_CASE("register_points_2d", "[polyscope]")
     using Scalar = double;
     using Index = uint32_t;
 
-    polyscope::init();
+    polyscope::init(g_backend);
     auto mesh =
         lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube_with_uv.obj");
     mesh.clear_facets();
@@ -170,7 +178,7 @@ TEST_CASE("register_edges", "[polyscope]")
     }
     REQUIRE(edges.get_num_facets() == mesh.get_num_edges());
 
-    polyscope::init();
+    polyscope::init(g_backend);
     auto ps_edges = lagrange::polyscope::register_edge_network("edge_network", edges);
     REQUIRE(ps_edges != nullptr);
 
@@ -191,7 +199,7 @@ TEST_CASE("register_edges_2d", "[polyscope]")
     using Scalar = double;
     using Index = uint32_t;
 
-    polyscope::init();
+    polyscope::init(g_backend);
     auto mesh =
         lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube_with_uv.obj");
     mesh.initialize_edges();
