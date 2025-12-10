@@ -20,7 +20,7 @@
 
 namespace {
 #ifdef LAGRANGE_POLYSCOPE_MOCK_BACKEND
-const std::string g_backend = "mock";
+const std::string g_backend = "openGL_mock";
 #else
 const std::string g_backend = "";
 #endif
