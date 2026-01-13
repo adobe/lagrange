@@ -63,6 +63,10 @@ lint = [
     "ruff==0.4.3",
 ]
 
+[tool.setuptools_scm]
+version_file = "modules/python/lagrange/_version.py"
+version_scheme = "no-guess-dev"
+
 [tool.scikit-build]
 ninja.version = ">=1.11.1"
 ninja.make-fallback = false
@@ -71,6 +75,9 @@ wheel.packages = [ "modules/python/lagrange" ]
 
 build-dir = "build-python"
 editable.rebuild = false
+
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+sdist.include = [ "modules/python/lagrange/_version.py" ]
 
 # Debug related options
 # cmd: uv sync [--verbose] [--reinstall-package lagrange]
@@ -105,11 +112,6 @@ LAGRANGE_MODULE_TEXPROC = true
 LAGRANGE_UNIT_TESTS = false
 LAGRANGE_WITH_ASSIMP = true
 TBB_PREFER_STATIC = false
-
-[tool.scikit-build.metadata.version]
-provider = "scikit_build_core.metadata.regex"
-input = "VERSION"
-regex = "(?P<value>\\d+\\.\\d+\\.\\d+)"
 
 [tool.black]
 line_length = 100
