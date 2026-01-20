@@ -1469,7 +1469,8 @@ If not provided, the edges are initialized in an arbitrary order.
 :param func: function to call for each facet index
 
 .. code-block:: python
-    >>> mesh.foreach_facet_around_edge(eid, lambda fid: print(fid))
+
+    mesh.foreach_facet_around_edge(eid, lambda fid: print(fid))
 )");
 
     surface_mesh_class.def(
@@ -1485,7 +1486,8 @@ If not provided, the edges are initialized in an arbitrary order.
 :param func: function to call for each facet index
 
 .. code-block:: python
-    >>> mesh.foreach_facet_around_vertex(vid, lambda fid: print(fid))
+
+    mesh.foreach_facet_around_vertex(vid, lambda fid: print(fid))
 )");
 
     surface_mesh_class.def(
@@ -1501,7 +1503,8 @@ If not provided, the edges are initialized in an arbitrary order.
 :param func: function to call for each adjacent facet index
 
 .. code-block:: python
-    >>> mesh.foreach_facet_around_facet(fid, lambda afid: print(afid))
+
+    mesh.foreach_facet_around_facet(fid, lambda afid: print(afid))
 )");
 
     surface_mesh_class.def(
@@ -1517,7 +1520,8 @@ If not provided, the edges are initialized in an arbitrary order.
 :param func: function to call for each corner index
 
 .. code-block:: python
-    >>> mesh.foreach_corner_around_edge(eid, lambda cid: print(cid))
+
+    mesh.foreach_corner_around_edge(eid, lambda cid: print(cid))
 )");
 
     surface_mesh_class.def(
@@ -1533,7 +1537,8 @@ If not provided, the edges are initialized in an arbitrary order.
 :param func: function to call for each corner index
 
 .. code-block:: python
-    >>> mesh.foreach_corner_around_vertex(vid, lambda cid: print(cid))
+
+    mesh.foreach_corner_around_vertex(vid, lambda cid: print(cid))
 )");
 
     surface_mesh_class.def(
@@ -1555,7 +1560,8 @@ If not provided, the edges are initialized in an arbitrary order.
 :param func: function to call for each edge index
 
 .. code-block:: python
-    >>> mesh.foreach_edge_around_vertex(vid, lambda eid: print(eid))
+
+    mesh.foreach_edge_around_vertex(vid, lambda eid: print(eid))
 )");
 
     // Pythonic versions that return lists/generators
@@ -1574,9 +1580,10 @@ If not provided, the edges are initialized in an arbitrary order.
 :returns: list of adjacent facet indices
 
 .. code-block:: python
-    >>> facets = mesh.facets_around_facet(fid)
-    >>> for afid in facets:
-    ...     print(afid)
+
+    facets = mesh.facets_around_facet(fid)
+    for afid in facets:
+        print(afid)
 )");
 
     surface_mesh_class.def(
@@ -1594,9 +1601,10 @@ If not provided, the edges are initialized in an arbitrary order.
 :returns: list of facet indices
 
 .. code-block:: python
-    >>> facets = mesh.facets_around_vertex(vid)
-    >>> for fid in facets:
-    ...     print(fid)
+
+    facets = mesh.facets_around_vertex(vid)
+    for fid in facets:
+        print(fid)
 )");
 
     surface_mesh_class.def(
@@ -1614,9 +1622,10 @@ If not provided, the edges are initialized in an arbitrary order.
 :returns: list of facet indices
 
 .. code-block:: python
-    >>> facets = mesh.facets_around_edge(eid)
-    >>> for fid in facets:
-    ...     print(fid)
+
+    facets = mesh.facets_around_edge(eid)
+    for fid in facets:
+        print(fid)
 )");
 
     surface_mesh_class.def(
@@ -1634,9 +1643,10 @@ If not provided, the edges are initialized in an arbitrary order.
 :returns: list of corner indices
 
 .. code-block:: python
-    >>> corners = mesh.corners_around_edge(eid)
-    >>> for cid in corners:
-    ...     print(cid)
+
+    corners = mesh.corners_around_edge(eid)
+    for cid in corners:
+        print(cid)
 )");
 
     surface_mesh_class.def(
@@ -1654,9 +1664,10 @@ If not provided, the edges are initialized in an arbitrary order.
 :returns: list of corner indices
 
 .. code-block:: python
-    >>> corners = mesh.corners_around_vertex(vid)
-    >>> for cid in corners:
-    ...     print(cid)
+
+    corners = mesh.corners_around_vertex(vid)
+    for cid in corners:
+        print(cid)
 )");
 
     surface_mesh_class.def(
@@ -1682,9 +1693,10 @@ If not provided, the edges are initialized in an arbitrary order.
 :returns: list of edge indices (with duplicates)
 
 .. code-block:: python
-    >>> edges = mesh.edges_around_vertex(vid)
-    >>> for eid in edges:
-    ...     print(eid)
+
+    edges = mesh.edges_around_vertex(vid)
+    for eid in edges:
+        print(eid)
 )");
 
     struct MetaData

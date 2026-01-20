@@ -103,9 +103,26 @@ if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 ################################################################################
-file(READ "VERSION" lagrange_version)
-string(STRIP ${lagrange_version} lagrange_version)
+
+if(SKBUILD)
+    # Version number dictated by setuptools_scm
+    set(lagrange_version ${SKBUILD_PROJECT_VERSION})
+else()
+    # Set ${lagrange_version} according to git tag
+    include(cmake/lagrange/lagrange_cpm_cache.cmake)
+    include(cmake/recipes/external/DynamicVersion.cmake)
+    dynamic_version(
+        PROJECT_PREFIX Lagrange_
+        OUTPUT_VERSION lagrange_version
+        VERSION_FULL_MODE POST
+        GIT_ARCHIVAL_FILE "${CMAKE_CURRENT_LIST_DIR}/.github/.git_archival.txt"
+    )
+endif()
+
+message(STATUS "Using Lagrange version: ${lagrange_version}")
 project(Lagrange VERSION ${lagrange_version})
+
+################################################################################
 
 if(MINGW)
     message(FATAL_ERROR "Please use the MSVC compiler on Windows")

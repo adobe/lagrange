@@ -19,8 +19,8 @@ message(STATUS "Third-party (external): creating target 'cpptrace::cpptrace'")
 include(CPM)
 CPMAddPackage(
     NAME cpptrace
-    GIT_REPOSITORY https://github.com/jeremy-rifkin/cpptrace.git
-    GIT_TAG        v1.0.4
+    GITHUB_REPOSITORY jeremy-rifkin/cpptrace
+    GIT_TAG           v1.0.4
 )
 
 if(TARGET cpptrace-lib)

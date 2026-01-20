@@ -64,8 +64,11 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        # Note: Update to actions/checkout@6 once 6.0.2 is out, and remove the fetch-depth: 0
+        # https://github.com/actions/checkout/issues/1471
         with:
-          fetch-depth: 10
+          fetch-tags: true
+          fetch-depth: 0
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -171,7 +174,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 10
+          fetch-tags: true
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
