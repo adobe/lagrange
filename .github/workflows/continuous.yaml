@@ -64,6 +64,8 @@ jobs:
 
       - name: Checkout repository
         uses: actions/checkout@v4
+        # Note: Update to actions/checkout@6 once 6.0.2 is out, and remove the fetch-depth: 0
+        # https://github.com/actions/checkout/issues/1471
         with:
           fetch-tags: true
           fetch-depth: 0
