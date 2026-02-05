@@ -28,4 +28,24 @@ if(SKBUILD)
             COMPONENT Lagrange_Python_Runtime
         )
     endforeach()
+
+    install(
+        TARGETS
+            boost_atomic
+            boost_chrono
+            boost_container
+            boost_context
+            boost_coroutine
+            boost_date_time
+            boost_filesystem
+            boost_graph
+            boost_iostreams
+            boost_log
+            boost_random
+            boost_serialization
+            boost_thread
+            boost_timer
+        DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
+        COMPONENT Lagrange_Python_Runtime
+    )
 endif()
