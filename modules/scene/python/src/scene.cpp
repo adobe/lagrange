@@ -49,6 +49,23 @@ void populate_scene_module(nb::module_& m)
             "the best result in terms of facet budget allocation, but is a bit slower than other "
             "options.");
 
+    nb::enum_<lagrange::scene::UninstantiatedMeshesStrategy>(
+        m,
+        "UninstantiatedMeshesStrategy",
+        "Strategy for meshes without instances in a scene.")
+        .value(
+            "NONE",
+            lagrange::scene::UninstantiatedMeshesStrategy::None,
+            "Use backend-specific default behavior.")
+        .value(
+            "Skip",
+            lagrange::scene::UninstantiatedMeshesStrategy::Skip,
+            "Skip meshes with zero instances and keep originals in the output.")
+        .value(
+            "ReplaceWithEmpty",
+            lagrange::scene::UninstantiatedMeshesStrategy::ReplaceWithEmpty,
+            "Replace meshes with zero instances with empty meshes.");
+
     nb::class_<lagrange::scene::RemeshingOptions>(m, "RemeshingOptions")
         .def(nb::init<>())
         .def_rw(
@@ -58,7 +75,15 @@ void populate_scene_module(nb::module_& m)
         .def_rw(
             "min_facets",
             &lagrange::scene::RemeshingOptions::min_facets,
-            "Minimum amount of facets for meshes in the scene.");
+            "Minimum amount of facets for meshes in the scene.")
+        .def_rw(
+            "uninstantiated_meshes_strategy",
+            &lagrange::scene::RemeshingOptions::uninstantiated_meshes_strategy,
+            "Behavior for meshes without instances in the scene.")
+        .def_rw(
+            "per_instance_importance",
+            &lagrange::scene::RemeshingOptions::per_instance_importance,
+            "Optional per-instance weights/importance. Must be > 0.");
 
     bind_scene(m);
 }

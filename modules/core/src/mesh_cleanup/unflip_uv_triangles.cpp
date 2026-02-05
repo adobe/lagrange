@@ -445,9 +445,9 @@ void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions
     weld_indexed_attribute(mesh, uv_attr_id);
 }
 
-#define LA_X_unflip_uv_triangles(_, Scalar, Index)    \
-    template void unflip_uv_triangles<Scalar, Index>( \
-        SurfaceMesh<Scalar, Index>&,                  \
+#define LA_X_unflip_uv_triangles(_, Scalar, Index)                \
+    template LA_CORE_API void unflip_uv_triangles<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index>&,                              \
         const UnflipUVOptions&);
 LA_SURFACE_MESH_X(unflip_uv_triangles, 0)
 

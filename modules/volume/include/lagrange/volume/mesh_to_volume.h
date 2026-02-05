@@ -32,6 +32,7 @@ struct MeshToVolumeOptions
     enum class Sign {
         FloodFill, ///< Default voxel flood-fill method used by OpenVDB.
         WindingNumber, ///< Fast winding number approach based on [Barill et al. 2018].
+        Unsigned, ///< Do not compute sign, output unsigned distance field.
     };
 
     /// Grid voxel size. If the target voxel size is too small, an exception will will be raised. A

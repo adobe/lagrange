@@ -22,7 +22,6 @@ if(NOT TARGET lagrange_download_data)
     lagrange_download_data()
 endif()
 
-
 function(lagrange_ui_add_example name)
     lagrange_add_example(${name} WITH_UI ${name}.cpp)
     target_link_libraries(${name} lagrange::ui CLI11::CLI11)

@@ -21,6 +21,7 @@
 
 // ====
 
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
@@ -188,7 +189,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
         auto id = lmesh.template create_attribute<Scalar>(
             AttributeName::tangent,
             AttributeElement::Indexed,
-            AttributeUsage::Vector,
+            AttributeUsage::Tangent,
             dim);
         auto& attr = lmesh.template ref_indexed_attribute<Scalar>(id);
         attr.indices().resize_elements(mesh->vertex_tangent.indices.count);
@@ -208,7 +209,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
         auto id = lmesh.template create_attribute<Scalar>(
             AttributeName::bitangent,
             AttributeElement::Indexed,
-            AttributeUsage::Vector,
+            AttributeUsage::Bitangent,
             dim);
         auto& attr = lmesh.template ref_indexed_attribute<Scalar>(id);
         attr.indices().resize_elements(mesh->vertex_bitangent.indices.count);
@@ -272,6 +273,12 @@ UfbxScene load_ufbx(const fs::path& filename)
     std::string filename_s = filename.string();
     ufbx_load_opts opts{};
     ufbx_error error{};
+
+    opts.target_axes.right = UFBX_COORDINATE_AXIS_POSITIVE_X;
+    opts.target_axes.front = UFBX_COORDINATE_AXIS_NEGATIVE_Y;
+    opts.target_axes.up = UFBX_COORDINATE_AXIS_POSITIVE_Z;
+    opts.target_unit_meters = 1.0;
+
     return ufbx_load_file(filename_s.c_str(), &opts, &error);
 }
 
@@ -282,6 +289,12 @@ UfbxScene load_ufbx(std::istream& input_stream)
 
     ufbx_load_opts opts{};
     ufbx_error error{};
+
+    opts.target_axes.right = UFBX_COORDINATE_AXIS_POSITIVE_X;
+    opts.target_axes.front = UFBX_COORDINATE_AXIS_NEGATIVE_Y;
+    opts.target_axes.up = UFBX_COORDINATE_AXIS_POSITIVE_Z;
+    opts.target_unit_meters = 1.0;
+
     return ufbx_load_memory(data.data(), data.size(), &opts, &error);
 }
 
@@ -439,6 +452,7 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
 
         scene::ImageExperimental limage;
         limage.name = texture->name.data;
+        limage.image.element_type = AttributeValueType::e_uint8_t; // default for empty images
         limage.uri = texture->relative_filename.data;
         // note: there is no width/height anywhere. read the image from disk, or read png from texture->content.
         bool loaded = false;
@@ -449,16 +463,19 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
                 "Loading fbx embedded textures is currently unsupported, missing data for {}",
                 limage.name);
         } else if (opt.load_images) {
+            loaded |= internal::try_load_image(texture->filename.data, opt, limage);
             loaded |= internal::try_load_image(texture->relative_filename.data, opt, limage);
             loaded |= internal::try_load_image(texture->absolute_filename.data, opt, limage);
+            if (!loaded && !opt.quiet) {
+                logger().warn("Failed to load texture image for texture '{}'", limage.name);
+            }
         } else {
             // opt.load_images is false: don't load, but consider it ok.
             loaded = true;
         }
 
-        if (loaded) {
-            lscene.add(std::move(limage));
-        }
+        // Append the image to the scene even if not loaded, so that references are valid.
+        lscene.add(std::move(limage));
     }
 
     auto try_load_texture = [&](const ufbx_texture* texture, scene::TextureInfo& tex_info) -> bool {
@@ -547,8 +564,6 @@ void display_ufbx_scene_warnings(const ufbx_scene* scene)
     }
     if (metadata.may_contain_no_index)
         logger().warn("fbx warning: index arrays may contain invalid indices");
-    if (metadata.may_contain_null_materials)
-        logger().warn("fbx warning: file may contain null materials");
     if (metadata.may_contain_missing_vertex_position)
         logger().warn("fbx warning: vertex positions may be missing");
     if (metadata.may_contain_broken_elements)

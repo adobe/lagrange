@@ -270,7 +270,8 @@ void write_texture_to_mtl(
     const scene::Scene<Scalar, Index>& scene,
     const scene::TextureInfo& texture_info,
     const fs::path& base_dir,
-    const std::string& map_directive)
+    const std::string& map_directive,
+    bool quiet)
 {
     if (texture_info.index == scene::invalid_element) return;
     la_debug_assert(texture_info.index < scene.textures.size());
@@ -318,9 +319,11 @@ void write_texture_to_mtl(
 
             // Write the texture map directive
             fmt::print(mtl_stream, "{} {}\n", map_directive, image_filename.string());
-        } else {
-            throw std::runtime_error(
-                fmt::format("Texture file not found: {}", source_path.string()));
+        } else if (!quiet) {
+            // Allow saving scenes with invalid texture paths
+            logger().warn(
+                "Texture file not found at URI: {}. Skipping texture.",
+                source_path.string());
         }
     } else {
         // Neither image data nor URI exists
@@ -330,7 +333,10 @@ void write_texture_to_mtl(
 }
 
 template <typename Scalar, typename Index>
-void write_mtl_file(const fs::path& mtl_filename, const scene::Scene<Scalar, Index>& scene)
+void write_mtl_file(
+    const fs::path& mtl_filename,
+    const scene::Scene<Scalar, Index>& scene,
+    bool quiet)
 {
     fs::ofstream mtl_stream(mtl_filename);
     if (!mtl_stream) {
@@ -390,12 +396,19 @@ void write_mtl_file(const fs::path& mtl_filename, const scene::Scene<Scalar, Ind
                 scene,
                 material.base_color_texture,
                 base_dir,
-                "map_Kd");
+                "map_Kd",
+                quiet);
         }
 
         // Handle normal texture
         if (material.normal_texture.index != scene::invalid_element) {
-            write_texture_to_mtl(mtl_stream, scene, material.normal_texture, base_dir, "map_Bump");
+            write_texture_to_mtl(
+                mtl_stream,
+                scene,
+                material.normal_texture,
+                base_dir,
+                "map_Bump",
+                quiet);
         }
 
         fmt::print(mtl_stream, "\n");
@@ -448,7 +461,7 @@ void save_scene_obj_impl(
         fmt::print(output_stream, "mtllib {}\n\n", mtl_filename.filename().string());
 
         // Write the MTL file
-        write_mtl_file(mtl_filename, scene);
+        write_mtl_file(mtl_filename, scene, options.quiet);
     }
 
     // Global offsets for proper indexing across all mesh instances

@@ -27,6 +27,7 @@
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/scene/scene_utils.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
@@ -52,6 +53,7 @@ namespace lagrange::io {
 //
 
 namespace {
+
 tinygltf::Value convert_value(const scene::Value& value)
 {
     switch (value.get_type_index()) {
@@ -540,6 +542,25 @@ tinygltf::Mesh create_gltf_mesh(
     return mesh;
 }
 
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> ensure_triangulated(
+    std::string_view name,
+    const SurfaceMesh<Scalar, Index>& lmesh,
+    const SaveOptions& options)
+{
+    if (lmesh.is_triangle_mesh()) {
+        return lmesh;
+    }
+    if (!options.quiet) {
+        logger().warn(
+            "Mesh `{}` is not a triangle mesh. Triangulating before saving to gltf.",
+            name);
+    }
+    auto mesh = lmesh; // copy
+    triangulate_polygonal_facets(mesh);
+    return mesh;
+}
+
 } // namespace
 
 // =====================================
@@ -614,8 +635,8 @@ tinygltf::Model lagrange_simple_scene_to_gltf_model(
         if (lmesh.get_num_vertices() == 0) continue;
         if (lscene.get_num_instances(i) == 0) continue;
 
-        la_runtime_assert(lmesh.is_triangle_mesh()); // only support triangles
-        model.meshes.push_back(create_gltf_mesh(model, lmesh, options));
+        const auto& tmesh = ensure_triangulated(fmt::format("#{}", i), lmesh, options);
+        model.meshes.push_back(create_gltf_mesh(model, tmesh, options));
 
         for (Index j = 0; j < lscene.get_num_instances(i); ++j) {
             const auto& instance = lscene.get_instance(i, j);
@@ -914,7 +935,8 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             tinygltf::Mesh mesh;
             for (const auto& mesh_instance : lnode.meshes) {
                 const auto& lmesh = lscene.meshes[mesh_instance.mesh];
-                tinygltf::Primitive prim = create_gltf_primitive(model, lmesh, options);
+                const auto& tmesh = ensure_triangulated(node.name, lmesh, options);
+                tinygltf::Primitive prim = create_gltf_primitive(model, tmesh, options);
                 if (options.export_materials) {
                     la_runtime_assert(mesh_instance.materials.size() == 1);
                     prim.material = lagrange::safe_cast<int>(mesh_instance.materials.front());

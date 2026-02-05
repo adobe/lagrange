@@ -59,7 +59,11 @@ void convert(const lagrange::fs::path& input_filename, const lagrange::fs::path&
             lagrange::io::save_simple_scene(output_filename, scene);
         } else {
             lagrange::logger().info("Saving output mesh: {}", output_filename.string());
-            lagrange::io::save_mesh(output_filename, lagrange::scene::simple_scene_to_mesh(scene));
+            lagrange::TransformOptions options;
+            options.reorient = true;
+            lagrange::io::save_mesh(
+                output_filename,
+                lagrange::scene::simple_scene_to_mesh(scene, options));
         }
     } else {
         // Load mesh

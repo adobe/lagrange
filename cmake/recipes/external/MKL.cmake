@@ -207,7 +207,11 @@ function(mkl_add_imported_library name)
     set(OLD_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
     if(LINUX)
         set(CMAKE_FIND_LIBRARY_SUFFIXES "")
-        set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}.so${MKL_DLL_SUFFIX})
+        if(MKL_LINKING STREQUAL static)
+            set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}.a)
+        else()
+            set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX}.so${MKL_DLL_SUFFIX})
+        endif()
     else()
         set(mkl_search_name mkl_${name}${MKL_LIB_SUFFIX})
     endif()
@@ -385,7 +389,6 @@ add_library(MKL::MKL INTERFACE IMPORTED GLOBAL)
 
 # Find header directory
 file(GLOB MKL_INCLUDE_HINTS LIST_DIRECTORIES true "${mkl-include_SOURCE_DIR}/*.data")
-message("MKL_INCLUDE_HINTS: ${MKL_INCLUDE_HINTS}")
 find_path(MKL_INCLUDE_DIR
     NAMES mkl.h
     HINTS

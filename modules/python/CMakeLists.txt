@@ -201,3 +201,9 @@ function(lagrange_generate_python_binding_module)
         endforeach()
     endif()
 endfunction()
+
+# 5. download unit test data
+if(NOT TARGET lagrange_download_data)
+    lagrange_download_data()
+endif()
+add_dependencies(lagrange_python lagrange_download_data)

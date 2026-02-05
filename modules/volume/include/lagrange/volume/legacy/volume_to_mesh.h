@@ -14,8 +14,12 @@
 #include <lagrange/create_mesh.h>
 #include <lagrange/legacy/inline.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/VolumeToMesh.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange {
 namespace volume {

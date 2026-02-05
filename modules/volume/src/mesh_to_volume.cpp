@@ -19,7 +19,12 @@
 #include <lagrange/volume/GridTypes.h>
 #include <lagrange/winding/FastWindingNumber.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <openvdb/tools/ValueTransformer.h>
+#include <openvdb/tools/MeshToVolume.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange::volume {
 
@@ -80,7 +85,7 @@ protected:
 } // namespace
 
 template <typename GridScalar, typename Scalar, typename Index>
-auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh, const MeshToVolumeOptions& options) ->
+auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh_, const MeshToVolumeOptions& options) ->
     typename Grid<GridScalar>::Ptr
 {
     static_assert(
@@ -89,6 +94,7 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh, const MeshToVolumeOp
             openvdb::Grid<typename openvdb::tree::Tree4<GridScalar, 5, 4, 3>::Type>>,
         "Mismatch between VDB grid types!");
 
+    auto mesh = SurfaceMesh<Scalar, Index>::stripped_copy(mesh_);
     la_runtime_assert(mesh.get_dimension() == 3, "Input mesh must be 3D");
     if (mesh.is_hybrid()) {
         for (Index f = 0; f < mesh.get_num_facets(); ++f) {
@@ -96,6 +102,14 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh, const MeshToVolumeOp
                 throw Error(
                     fmt::format("Facet size should be 3 or 4, but f{} has #{} vertices", f, nv));
             }
+        }
+    }
+
+    // Winding number requires triangle meshes. To ensure consistent discretization, we triangulate
+    // before letting OpenVDB compute the unsigned distance field.
+    if (options.signing_method == MeshToVolumeOptions::Sign::WindingNumber) {
+        if (!mesh.is_triangle_mesh()) {
+            triangulate_polygonal_facets(mesh);
         }
     }
 
@@ -129,54 +143,43 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh, const MeshToVolumeOp
     typename Grid<GridScalar>::Ptr grid;
     try {
         if (options.signing_method == MeshToVolumeOptions::Sign::WindingNumber) {
-            // Two stage grid signing approach
-            {
-                // Compute unsigned distance field
-                logger().debug("Computing unsigned distance field grid");
-                const float exterior_bandwidth = 3.0f;
-                const float interior_bandwidth = 3.0f;
-                grid = openvdb::tools::meshToVolume<Grid<GridScalar>, MeshAdapterType>(
-                    adapter,
-                    *transform,
-                    exterior_bandwidth,
-                    interior_bandwidth,
-                    openvdb::tools::UNSIGNED_DISTANCE_FIELD);
-            }
-            {
-                // Initialize fast winding number engine.
-                //
-                // TODO: Drop mesh attributes from copy to avoid remapping attributes that may be
-                // present in the input mesh.
-                logger().debug("Initializing fast winding number engine");
-                auto triangle_mesh = mesh;
-                if (!triangle_mesh.is_triangle_mesh()) {
-                    // Triangulate quad facets first if needed
-                    triangulate_polygonal_facets(triangle_mesh);
-                }
-                // Apply world->index transform (query points for winding number have coords in
-                // index space)
-                for (auto p : vertex_ref(triangle_mesh).rowwise()) {
-                    openvdb::Vec3d pos(p[0], p[1], p[2]);
-                    pos = transform->worldToIndex(pos);
-                    p << pos[0], pos[1], pos[2];
-                }
-                winding::FastWindingNumber engine(triangle_mesh);
+            // Initialize fast winding number engine.
+            logger().debug("Initializing fast winding number engine");
+            la_debug_assert(mesh.is_triangle_mesh());
+            winding::FastWindingNumber engine(mesh);
 
-                // Iterate over all grid values (both voxel and tile, active and inactive)
-                logger().debug("Applying fast winding number sign to the grid");
-                auto sign = [&](auto&& iter) {
-                    const auto pos = iter.getBoundingBox().getCenter();
+            // Use winding number to sign the distance field
+            logger().debug("Computing distance field with winding number signing");
+            const float exterior_bandwidth = 3.0f;
+            const float interior_bandwidth = 3.0f;
+            openvdb::util::NullInterrupter null_interrupter;
+            grid = openvdb::tools::meshToVolume<Grid<GridScalar>, MeshAdapterType>(
+                null_interrupter,
+                adapter,
+                *transform,
+                exterior_bandwidth,
+                interior_bandwidth,
+                0 /* flags */,
+                nullptr /* polygonIndexGrid */,
+                [transform, &engine](openvdb::Coord ijk) {
+                    openvdb::Vec3d pos = transform->indexToWorld(ijk);
                     const std::array<float, 3> p = {
                         static_cast<float>(pos[0]),
                         static_cast<float>(pos[1]),
                         static_cast<float>(pos[2])};
-                    if (engine.is_inside(p)) {
-                        iter.setValue(-*iter);
-                    }
-                };
-                openvdb::tools::foreach (grid->beginValueAll(), sign, true /* threaded */);
-                logger().debug("Done computing grid");
-            }
+                    return engine.is_inside(p);
+                },
+                openvdb::tools::EVAL_EVERY_VOXEL);
+        } else if (options.signing_method == MeshToVolumeOptions::Sign::Unsigned) {
+            // Compute unsigned distance field
+            const float exterior_bandwidth = 3.0f;
+            const float interior_bandwidth = 3.0f;
+            grid = openvdb::tools::meshToVolume<Grid<GridScalar>, MeshAdapterType>(
+                adapter,
+                *transform,
+                exterior_bandwidth,
+                interior_bandwidth,
+                openvdb::tools::UNSIGNED_DISTANCE_FIELD);
         } else {
             grid = openvdb::tools::meshToVolume<Grid<GridScalar>, MeshAdapterType>(
                 adapter,
@@ -186,6 +189,8 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh, const MeshToVolumeOp
         logger().error("Voxel size too small: {}", voxel_size);
         throw;
     }
+
+    logger().debug("Computed grid has {} active voxels", grid->activeVoxelCount());
 
     return grid;
 }

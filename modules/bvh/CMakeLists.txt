@@ -17,9 +17,9 @@ lagrange_find_package(nanoflann REQUIRED)
 include(libigl)
 target_link_libraries(lagrange_bvh
     PUBLIC
-    lagrange::core
-    nanoflann::nanoflann
-    igl::core
+        lagrange::core
+        nanoflann::nanoflann
+        igl::core
 )
 
 # 3. unit tests and examples

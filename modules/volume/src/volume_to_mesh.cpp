@@ -17,9 +17,13 @@
 #include <lagrange/volume/GridTypes.h>
 #include <lagrange/volume/sample_vertex_normal.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <openvdb/tools/GridOperators.h>
 #include <openvdb/tools/Interpolation.h>
 #include <openvdb/tools/VolumeToMesh.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange::volume {
 

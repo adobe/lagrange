@@ -64,4 +64,20 @@ SurfaceMesh<Scalar, Index> scene_to_mesh(
     const TransformOptions& transform_options = {},
     bool preserve_attributes = true);
 
+///
+/// Converts a scene into a list of meshes with all the transforms applied.
+///
+/// @param[in]  scene              Scene to convert.
+/// @param[in]  transform_options  Options to use when applying mesh transformations.
+///
+/// @tparam     Scalar             Input scene scalar type.
+/// @tparam     Index              Input scene index type.
+///
+/// @return     List of meshes with transforms applied.
+///
+template <typename Scalar, typename Index>
+std::vector<SurfaceMesh<Scalar, Index>> scene_to_meshes(
+    const Scene<Scalar, Index>& scene,
+    const TransformOptions& transform_options = {});
+
 } // namespace lagrange::scene
