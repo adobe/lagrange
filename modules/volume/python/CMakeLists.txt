@@ -23,10 +23,13 @@ if(SKBUILD)
             set(vdb_target ${vdb_target})
         endif()
 
-        install(TARGETS ${vdb_target}
-            DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
-            COMPONENT Lagrange_Python_Runtime
-        )
+        get_target_property(_type ${vdb_target} TYPE)
+        if(_type STREQUAL "SHARED_LIBRARY")
+            install(TARGETS ${vdb_target}
+                DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
+                COMPONENT Lagrange_Python_Runtime
+            )
+        endif()
     endforeach()
 
     install(
