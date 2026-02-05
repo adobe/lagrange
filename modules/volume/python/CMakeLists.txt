@@ -14,7 +14,7 @@ lagrange_add_python_binding()
 target_link_libraries(lagrange_python PRIVATE OpenVDB::nanovdb)
 
 if(SKBUILD)
-    foreach(vdb_target IN ITEMS OpenVDB::openvdb OpenVDB::nanovdb)
+    foreach(vdb_target IN ITEMS OpenVDB::openvdb OpenVDB::nanovdb boost_container boost_iostreams boost_random)
         get_target_property(_aliased ${vdb_target} ALIASED_TARGET)
 
         if(_aliased)
