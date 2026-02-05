@@ -14,7 +14,7 @@ lagrange_add_python_binding()
 target_link_libraries(lagrange_python PRIVATE OpenVDB::nanovdb)
 
 if(SKBUILD)
-    foreach(vdb_target IN ITEMS OpenVDB::openvdb OpenVDB::nanovdb boost_container boost_iostreams boost_random)
+    foreach(vdb_target IN ITEMS OpenVDB::openvdb OpenVDB::nanovdb)
         get_target_property(_aliased ${vdb_target} ALIASED_TARGET)
 
         if(_aliased)
@@ -31,20 +31,9 @@ if(SKBUILD)
 
     install(
         TARGETS
-            boost_atomic
-            boost_chrono
             boost_container
-            boost_context
-            boost_coroutine
-            boost_date_time
-            boost_filesystem
-            boost_graph
             boost_iostreams
-            boost_log
             boost_random
-            boost_serialization
-            boost_thread
-            boost_timer
         DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
         COMPONENT Lagrange_Python_Runtime
     )
