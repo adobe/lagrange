@@ -2,6 +2,7 @@
 build-backend = "scikit_build_core.build"
 
 requires = [
+    "numpy>=1.25",               # needed at build time for default dtype args
     "scikit-build-core==0.11.6",
     "typing-extensions~=4.1",
 ]
