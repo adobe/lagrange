@@ -42,7 +42,11 @@
     #undef __DEPRECATED
     #define LA_RESTORE_DEPRECATED
 #endif
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <strstream>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 #ifdef LA_RESTORE_DEPRECATED
     #define __DEPRECATED
 #endif
