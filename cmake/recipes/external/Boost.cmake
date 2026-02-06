@@ -79,11 +79,6 @@ option(BOOST_IOSTREAMS_ENABLE_BZIP2 "Boost.Iostreams: Enable BZip2 support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_LZMA "Boost.Iostreams: Enable LZMA support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
 
-if(SKBUILD)
-    set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
-    set(BUILD_SHARED_LIBS ON)
-endif()
-
 set(BOOST_PATCHES "")
 if(EMSCRIPTEN)
     # Wasm doesn't have rounding mode control yet, so we trick Boost::interval into thinking it has.
@@ -103,10 +98,6 @@ CPMAddPackage(
     EXCLUDE_FROM_ALL ON
     ${BOOST_PATCHES}
 )
-
-if(SKBUILD)
-    set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
-endif()
 
 # Due to MKL, we may require the release runtime (/MD) even when compiling in Debug mode.
 #
