@@ -66,18 +66,18 @@ jobs:
         if: runner.os == 'Linux'
         # Find mount point with the largest available space for our build dir...
         run: |
-            space_cwd=$(df --output=avail build | tail -1 | tr -d ' ')
+            space_cwd=$(df --output=avail . | tail -1 | tr -d ' ')
             space_mnt=$(df --output=avail /mnt/build 2>/dev/null | tail -1 | tr -d ' ')
             if [ -n "$space_mnt" ] && [ "$space_mnt" -gt "$space_cwd" ]; then
               echo "build_dir=/mnt/build" >> "$GITHUB_ENV"
-              echo "Selected /mnt/build (/mnt has $((space_mnt/1024/1024)) GB free vs ./build has $((space_cwd/1024/1024)) GB free)"
+              echo "Selected /mnt/build (/mnt has $((space_mnt/1024/1024)) GB free vs ./ has $((space_cwd/1024/1024)) GB free)"
             else
               echo "build_dir=build" >> "$GITHUB_ENV"
-              echo "Selected ./build (./build has $((space_cwd/1024/1024)) GB free)"
+              echo "Selected ./build (./ has $((space_cwd/1024/1024)) GB free)"
             fi
 
       - name: Select build dir (macOS)
-        if: runner.os == 'Linux'
+        if: runner.os == 'macOS'
         run:
             echo "build_dir=build" >> "$GITHUB_ENV"
 
