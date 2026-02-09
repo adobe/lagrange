@@ -57,10 +57,36 @@ jobs:
           docker-images: true
           swap-storage: true
 
+      - name: Maximize build space
+        uses: easimon/maximize-build-space@master
+        with:
+          root-reserve-mb: 512
+          swap-size-mb: 1024
+          remove-dotnet: 'true'
+
       - name: Show disk space
         run: |
           echo "disk usage:"
           df -h
+
+      - name: Select build dir (Linux)
+        if: runner.os == 'Linux'
+        run:
+            # Find mount point with the largest available space for our build dir...
+            space_cwd=$(df --output=avail build | tail -1 | tr -d ' ')
+            space_mnt=$(df --output=avail /mnt/build 2>/dev/null | tail -1 | tr -d ' ')
+            if [ -n "$space_mnt" ] && [ "$space_mnt" -gt "$space_cwd" ]; then
+              echo "build_dir=/mnt/build" >> "$GITHUB_ENV"
+              echo "Selected /mnt/build (/mnt has $((space_mnt/1024/1024)) GB free vs ./build has $((space_cwd/1024/1024)) GB free)"
+            else
+              echo "build_dir=build" >> "$GITHUB_ENV"
+              echo "Selected ./build (./build has $((space_cwd/1024/1024)) GB free)"
+            fi
+
+      - name: Select build dir (macOS)
+        if: runner.os == 'Linux'
+        run:
+            echo "build_dir=build" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -128,8 +154,8 @@ jobs:
 
       - name: Configure
         run: |
-          mkdir -p build
-          cd build
+          mkdir -p ${{ env.build_dir }}
+          cd ${{ env.build_dir }}
           cmake --version
           cmake .. -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
@@ -144,7 +170,7 @@ jobs:
 
       - name: Build
         run: |
-          cmake --build build -j ${{ steps.cpu-cores.outputs.count }}
+          cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
           ccache --show-stats
 
       - name: Show disk space
@@ -154,7 +180,7 @@ jobs:
           df -h
 
       - name: Tests
-        run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+        run: cd ${{ env.build_dir }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
   ####################
   # Windows
