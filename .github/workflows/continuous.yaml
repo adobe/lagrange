@@ -68,6 +68,8 @@ jobs:
         run: |
             space_cwd=$(df --output=avail . | tail -1 | tr -d ' ')
             space_mnt=$(df --output=avail /mnt/build 2>/dev/null | tail -1 | tr -d ' ')
+            echo "Space available on ./: $space_cwd KB"
+            echo "Space available on /mnt: $space_mnt KB"
             if [ -n "$space_mnt" ] && [ "$space_mnt" -gt "$space_cwd" ]; then
               echo "build_dir=/mnt/build" >> "$GITHUB_ENV"
               echo "Selected /mnt/build (/mnt has $((space_mnt/1024/1024)) GB free vs ./ has $((space_cwd/1024/1024)) GB free)"
