@@ -73,6 +73,8 @@ jobs:
             if [ -n "$space_mnt" ] && [ "$space_mnt" -gt "$space_cwd" ]; then
               echo "build_dir=/mnt/build" >> "$GITHUB_ENV"
               echo "Selected /mnt/build (/mnt has $((space_mnt/1024/1024)) GB free vs ./ has $((space_cwd/1024/1024)) GB free)"
+              sudo mkdir -p /mnt/build
+              sudo chown $USER /mnt/build
             else
               echo "build_dir=build" >> "$GITHUB_ENV"
               echo "Selected ./build (./ has $((space_cwd/1024/1024)) GB free)"
