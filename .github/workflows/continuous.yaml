@@ -151,10 +151,8 @@ jobs:
 
       - name: Configure
         run: |
-          mkdir -p ${{ env.build_dir }}
-          cd ${{ env.build_dir }}
           cmake --version
-          cmake .. -G Ninja \
+          cmake -B ${{ env.build_dir }} -S . -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
             -DLAGRANGE_JENKINS=ON \
             -DLAGRANGE_ALL=ON \
