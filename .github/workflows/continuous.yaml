@@ -71,8 +71,8 @@ jobs:
 
       - name: Select build dir (Linux)
         if: runner.os == 'Linux'
-        run:
-            # Find mount point with the largest available space for our build dir...
+        # Find mount point with the largest available space for our build dir...
+        run: |
             space_cwd=$(df --output=avail build | tail -1 | tr -d ' ')
             space_mnt=$(df --output=avail /mnt/build 2>/dev/null | tail -1 | tr -d ' ')
             if [ -n "$space_mnt" ] && [ "$space_mnt" -gt "$space_cwd" ]; then
