@@ -30,6 +30,7 @@ int main(int argc, char** argv)
         std::string output;
         bool verbose = false;
     } args;
+    lagrange::io::LoadOptions load_options;
 
     lagrange::logger().set_level(spdlog::level::info);
 
@@ -51,6 +52,10 @@ int main(int argc, char** argv)
            "Output scene file. Supported formats: .gltf, .glb, .obj.")
         ->required();
     app.add_flag("-v,--verbose", args.verbose, "Verbose output.");
+    app.add_flag(
+        "-s,--stitch-vertices",
+        load_options.stitch_vertices,
+        "Stitch input boundary vertices.");
     CLI11_PARSE(app, argc, argv)
 
     if (args.verbose) {
@@ -61,10 +66,9 @@ int main(int argc, char** argv)
     std::string input_ext = to_lower(fs::path(args.input).extension().string());
     std::string output_ext = to_lower(fs::path(args.output).extension().string());
 
-
     // Load scene
     lagrange::logger().info("Loading scene: {}", args.input);
-    auto scene = io::load_scene<SceneType>(args.input);
+    auto scene = io::load_scene<SceneType>(args.input, load_options);
 
     // Display scene info
     lagrange::logger().info(
@@ -78,6 +82,8 @@ int main(int argc, char** argv)
     lagrange::logger().info("Saving scene: {}", args.output);
     io::SaveOptions save_options;
     save_options.encoding = io::FileEncoding::Ascii;
+    save_options.attribute_conversion_policy =
+        io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
     io::save_scene(args.output, scene, save_options);
 
     lagrange::logger().info("Conversion completed successfully!");

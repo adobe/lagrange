@@ -15,6 +15,12 @@
 #include <lagrange/image/ImageView.h>
 #include <lagrange/image_io/api.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <spdlog/common.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
 namespace lagrange {
 namespace image_io {
 
@@ -29,17 +35,21 @@ struct LoadImageResult
 };
 
 // Load image. Storage type is determined by the image file type.
-LA_IMAGE_IO_API LoadImageResult load_image(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult
+load_image(const fs::path& path, spdlog::level::level_enum error_lvl = spdlog::level::err);
 
 // Load png or jpg image using stb library. Produces uint8 data.
-LA_IMAGE_IO_API LoadImageResult load_image_stb(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult
+load_image_stb(const fs::path& path, spdlog::level::level_enum error_lvl = spdlog::level::err);
 
 // Note: #include <lagrange/image_io/exr.h> to use the full load_image_exr directly
 // Load exr image using tinyexr. Produces multiple data types.
-LA_IMAGE_IO_API LoadImageResult load_image_exr(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult
+load_image_exr(const fs::path& path, spdlog::level::level_enum error_lvl = spdlog::level::err);
 
 // Load image from our custom binary format.
-LA_IMAGE_IO_API LoadImageResult load_image_bin(const fs::path& path);
+LA_IMAGE_IO_API LoadImageResult
+load_image_bin(const fs::path& path, spdlog::level::level_enum error_lvl = spdlog::level::err);
 
 // Load image as the provided type/view. Converts if needed/possible. Returns true on success.
 template <typename T>

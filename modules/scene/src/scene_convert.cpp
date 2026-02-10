@@ -41,10 +41,9 @@ Scene<Scalar, Index> meshes_to_scene(std::vector<SurfaceMesh<Scalar, Index>> mes
 }
 
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> scene_to_mesh(
+std::vector<SurfaceMesh<Scalar, Index>> scene_to_meshes(
     const Scene<Scalar, Index>& scene,
-    const TransformOptions& transform_options,
-    bool preserve_attributes)
+    const TransformOptions& transform_options)
 {
     std::vector<SurfaceMesh<Scalar, Index>> meshes;
 
@@ -65,7 +64,18 @@ SurfaceMesh<Scalar, Index> scene_to_mesh(
         }
     }
 
-    return combine_meshes<Scalar, Index>(meshes, preserve_attributes);
+    return meshes;
+}
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> scene_to_mesh(
+    const Scene<Scalar, Index>& scene,
+    const TransformOptions& transform_options,
+    bool preserve_attributes)
+{
+    return combine_meshes<Scalar, Index>(
+        scene_to_meshes(scene, transform_options),
+        preserve_attributes);
 }
 
 #define LA_X_scene_convert(_, Scalar, Index)                                                   \
@@ -75,7 +85,10 @@ SurfaceMesh<Scalar, Index> scene_to_mesh(
     template LA_SCENE_API SurfaceMesh<Scalar, Index> scene_to_mesh(                            \
         const Scene<Scalar, Index>& scene,                                                     \
         const TransformOptions& transform_options,                                             \
-        bool preserve_attributes);
+        bool preserve_attributes);                                                             \
+    template LA_SCENE_API std::vector<SurfaceMesh<Scalar, Index>> scene_to_meshes(             \
+        const Scene<Scalar, Index>& scene,                                                     \
+        const TransformOptions& transform_options);
 LA_SURFACE_MESH_X(scene_convert, 0)
 
 } // namespace lagrange::scene

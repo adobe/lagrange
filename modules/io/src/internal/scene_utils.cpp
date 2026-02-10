@@ -25,7 +25,10 @@ bool try_load_image(
     if (path.is_relative() && !options.search_path.empty()) path = options.search_path / name;
     if (path.empty()) return false;
 
-    image_io::LoadImageResult result = image_io::load_image(path);
+    spdlog::level::level_enum error_lvl = spdlog::level::err;
+    if (options.quiet) error_lvl = spdlog::level::off;
+
+    image_io::LoadImageResult result = image_io::load_image(path, error_lvl);
     if (!result.valid) return false;
 
     scene::ImageBufferExperimental& buffer = image.image;

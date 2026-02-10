@@ -784,6 +784,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cube_v0(RoundedCubeOptions setting)
     bvh::weld_vertices(mesh, weld_options);
 
     if (setting.triangulate) {
+        mesh.clear_edges();
         triangulate_polygonal_facets(mesh);
     }
 

@@ -177,6 +177,13 @@ def print_extra_info(mesh, info):
     info["degenerate_facets"] = num_degenerate_facets
     print_property("num degenerate facets", len(num_degenerate_facets), 0)
 
+    # Isolated vertices check
+    vertex_valence_id = lagrange.compute_vertex_valence(mesh)
+    vertex_valence = mesh.attribute(vertex_valence_id).data
+    num_isolated_vertices = int(np.sum(vertex_valence == 0))
+    info["num_isolated_vertices"] = num_isolated_vertices
+    print_property("num isolated vertices", num_isolated_vertices, 0)
+
     # UV check
     if (
         mesh.is_triangle_mesh

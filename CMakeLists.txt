@@ -292,6 +292,11 @@ else()
     set(LAGRANGE_IDE_PREFIX_DEFAULT "third_party/")
 endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
+foreach(target IN ITEMS Lagrange_DynamicVersion Lagrange_GitHash Lagrange_Version)
+    if(TARGET ${target})
+        set_target_properties(${target} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Utils")
+    endif()
+endforeach()
 
 # When building python module, compile MKL/TBB as a shared library
 if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL OR BUILD_SHARED_LIBS)

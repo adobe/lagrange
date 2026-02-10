@@ -29,3 +29,7 @@ endif()
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
 endif()
+
+if(LAGRANGE_MODULE_PYTHON)
+    add_subdirectory(python)
+endif()

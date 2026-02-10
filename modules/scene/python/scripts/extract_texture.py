@@ -28,7 +28,7 @@ def parse_args():
 
 
 def dump_texture(img, filename):
-    img.uri = filename
+    img.uri = str(filename)
     img_buffer = img.image
     buffer = img_buffer.data.reshape((img_buffer.height, img_buffer.width, img_buffer.num_channels))
     if img_buffer.num_channels == 4:

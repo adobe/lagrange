@@ -18,11 +18,10 @@
 #include <lagrange/views.h>
 #include <lagrange/volume/GridTypes.h>
 
-#include <openvdb/tools/GridOperators.h>
-#include <openvdb/tools/Interpolation.h>
-
 // clang-format off
 #include <lagrange/utils/warnoff.h>
+#include <openvdb/tools/GridOperators.h>
+#include <openvdb/tools/Interpolation.h>
 #include <tbb/parallel_for.h>
 #include <tbb/enumerable_thread_specific.h>
 #include <lagrange/utils/warnon.h>

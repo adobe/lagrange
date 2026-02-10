@@ -704,6 +704,25 @@ void bind_scene(nb::module_& m)
 :return: Concatenated mesh.)");
 
     m.def(
+        "scene_to_meshes",
+        [](const SceneType& scene, bool normalize_normals, bool normalize_tangents_bitangents) {
+            TransformOptions transform_options;
+            transform_options.normalize_normals = normalize_normals;
+            transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            return scene::scene_to_meshes(scene, transform_options);
+        },
+        "scene"_a,
+        "normalize_normals"_a = TransformOptions{}.normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        R"(Converts a scene into a list of meshes with all the transforms applied.
+
+:param scene: Scene to convert.
+:param normalize_normals: If enabled, normals are normalized after transformation.
+:param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+
+:return: List of transformed meshes.)");
+
+    m.def(
         "mesh_to_scene",
         [](const SceneType::MeshType& mesh) { return scene::mesh_to_scene(mesh); },
         "mesh"_a,

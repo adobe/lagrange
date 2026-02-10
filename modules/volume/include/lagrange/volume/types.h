@@ -11,7 +11,11 @@
  */
 #pragma once
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <openvdb/Grid.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 namespace lagrange::volume {
 

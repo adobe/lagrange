@@ -79,11 +79,6 @@ option(BOOST_IOSTREAMS_ENABLE_BZIP2 "Boost.Iostreams: Enable BZip2 support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_LZMA "Boost.Iostreams: Enable LZMA support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
 
-if(SKBUILD)
-    set(OLD_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
-    set(BUILD_SHARED_LIBS ON)
-endif()
-
 set(BOOST_PATCHES "")
 if(EMSCRIPTEN)
     # Wasm doesn't have rounding mode control yet, so we trick Boost::interval into thinking it has.
@@ -97,16 +92,11 @@ endif()
 include(CPM)
 CPMAddPackage(
     NAME Boost
-    VERSION 1.84.0
-    GITHUB_REPOSITORY "boostorg/boost"
-    GIT_TAG "boost-1.84.0"
+    URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
+    URL_HASH SHA256=2e64e5d79a738d0fa6fb546c6e5c2bd28f88d268a2a080546f74e5ff98f29d0e
     EXCLUDE_FROM_ALL ON
     ${BOOST_PATCHES}
 )
-
-if(SKBUILD)
-    set(BUILD_SHARED_LIBS ${OLD_BUILD_SHARED_LIBS})
-endif()
 
 # Due to MKL, we may require the release runtime (/MD) even when compiling in Debug mode.
 #

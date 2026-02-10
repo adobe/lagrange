@@ -41,22 +41,48 @@ size_t compute_vertex_based_components(
         is_blocked[vi] = true;
     });
 
-    DisjointSets<Index> components(num_facets);
-    for (auto vi : range(num_vertices)) {
-        if (is_blocked[vi]) continue;
-        Index rep_facet_id = invalid_index;
-        for (Index ci = mesh.get_first_corner_around_vertex(vi); ci != invalid_index;
-             ci = mesh.get_next_corner_around_vertex(ci)) {
-            Index fi = mesh.get_corner_facet(ci);
-            if (rep_facet_id == invalid_index) {
-                rep_facet_id = fi;
-            } else {
-                components.merge(rep_facet_id, fi);
-            }
+    DisjointSets<Index> components(num_vertices);
+    for (auto fi : range(num_facets)) {
+        auto v = mesh.get_facet_vertices(fi);
+        for (size_t lv = 0; lv < v.size(); ++lv) {
+            Index v0 = v[lv];
+            Index v1 = v[(lv + 1) % v.size()];
+            if (is_blocked[v0] || is_blocked[v1]) continue;
+            components.merge(v0, v1);
         }
     }
 
-    return components.extract_disjoint_set_indices(component_id);
+    std::vector<Index> per_vertex_component_id(num_vertices, invalid_index);
+    size_t num_components = components.extract_disjoint_set_indices(per_vertex_component_id);
+
+    // Transfer per-vertex component ids to per-facet component ids. Because blocked vertices form
+    // their own vertex-connected component, we need to renumber component ids excluding blocked
+    // vertices.
+    std::vector<Index> old_to_new_component_id(num_components, invalid_index);
+    size_t new_num_components = 0;
+    for (auto fi : range(num_facets)) {
+        bool is_set = false;
+        for (auto vi : mesh.get_facet_vertices(fi)) {
+            if (is_blocked[vi]) {
+                continue;
+            }
+            auto& new_id = old_to_new_component_id[per_vertex_component_id[vi]];
+            if (new_id == invalid_index) {
+                new_id = static_cast<Index>(new_num_components);
+                ++new_num_components;
+            }
+            component_id[fi] = new_id;
+            is_set = true;
+            break;
+        }
+        if (!is_set) {
+            // all vertices are blocked, assign a new component id for the facet
+            component_id[fi] = static_cast<Index>(new_num_components);
+            ++new_num_components;
+        }
+    }
+
+    return new_num_components;
 };
 
 template <typename Scalar, typename Index>
@@ -65,6 +91,8 @@ size_t compute_edge_based_components(
     AttributeId id,
     span<const Index> blocker_edges)
 {
+    mesh.initialize_edges();
+
     constexpr Index invalid_index = invalid<Index>();
     auto& attr = mesh.template ref_attribute<Index>(id);
     auto component_id = attr.ref_all();
@@ -120,8 +148,6 @@ size_t compute_components(
             AttributeUsage::Scalar,
             1);
     }
-
-    mesh.initialize_edges();
 
     switch (options.connectivity_type) {
     case ComponentOptions::ConnectivityType::Vertex:

@@ -164,7 +164,6 @@ void weld_vertices(SurfaceMesh<Scalar, Index>& mesh, WeldOptions options)
     remap_vertices(mesh, {vertex_mapping.data(), vertex_mapping.size()}, remap_options);
 }
 
-
 #define LA_X_weld_vertices(_, Scalar, Index) \
     template LA_BVH_API void weld_vertices<Scalar, Index>(SurfaceMesh<Scalar, Index>&, WeldOptions);
 LA_SURFACE_MESH_X(weld_vertices, 0)

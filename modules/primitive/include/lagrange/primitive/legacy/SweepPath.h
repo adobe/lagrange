@@ -14,6 +14,7 @@
 #include <lagrange/internal/constants.h>
 #include <lagrange/legacy/inline.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/safe_cast.h>
 
@@ -369,12 +370,16 @@ public:
 
     bool operator==(const SweepPath<Scalar>& other) const override
     {
+#if LAGRANGE_TARGET_FEATURE(RTTI)
         if (const auto* other_linear = dynamic_cast<const LinearSweepPath<Scalar>*>(&other)) {
             if (Parent::operator==(other)) {
                 constexpr Scalar TOL = std::numeric_limits<Scalar>::epsilon() * 100;
                 return (m_direction - other_linear->m_direction).norm() < TOL;
             }
         }
+#else
+        la_runtime_assert(false, "RTTI is required for comparing LinearSweepPath");
+#endif
         return false;
     }
 
@@ -506,6 +511,7 @@ public:
 
     bool operator==(const SweepPath<Scalar>& other) const override
     {
+#if LAGRANGE_TARGET_FEATURE(RTTI)
         if (const auto* other_circular =
                 dynamic_cast<const CircularArcSweepPath<Scalar>*>(&other)) {
             if (Parent::operator==(other)) {
@@ -514,6 +520,9 @@ public:
                        std::abs(m_theta - other_circular->m_theta) < TOL;
             }
         }
+#else
+        la_runtime_assert(false, "RTTI is required for comparing LinearSweepPath");
+#endif
         return false;
     }
 
@@ -733,6 +742,7 @@ public:
 
     bool operator==(const SweepPath<Scalar>& other) const override
     {
+#if LAGRANGE_TARGET_FEATURE(RTTI)
         if (const auto* other_polyline =
                 dynamic_cast<const PolylineSweepPath<VertexArray>*>(&other)) {
             if (Parent::operator==(other)) {
@@ -742,6 +752,9 @@ public:
                     TOL);
             }
         }
+#else
+        la_runtime_assert(false, "RTTI is required for comparing LinearSweepPath");
+#endif
         return false;
     }
 
