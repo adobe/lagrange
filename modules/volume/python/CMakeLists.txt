@@ -31,13 +31,4 @@ if(SKBUILD)
             )
         endif()
     endforeach()
-
-    install(
-        TARGETS
-            boost_container
-            boost_iostreams
-            boost_random
-        DESTINATION ${SKBUILD_PLATLIB_DIR}/lagrange
-        COMPONENT Lagrange_Python_Runtime
-    )
 endif()
