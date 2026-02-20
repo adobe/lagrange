@@ -33,13 +33,17 @@ namespace lagrange::internal {
 ///
 /// Get the ID of the UV attribute of a mesh.
 ///
-/// @param mesh The mesh to get the UV attribute from.
-/// @param uv_attribute_name The name of the UV attribute. If empty, use the first indexed or vertex
-/// UV attribute.
+/// @param      mesh               The mesh to get the UV attribute from.
+/// @param      uv_attribute_name  The name of the UV attribute. If empty, use the first indexed or
+///                                vertex UV attribute.
 ///
-/// @return The ID of the UV attribute.
+/// @tparam     Scalar             Mesh scalar type.
+/// @tparam     Index              Mesh index type.
+/// @tparam     UVScalar           Target UV attribute value type.
 ///
-template <typename Scalar, typename Index>
+/// @return     The ID of the UV attribute.
+///
+template <typename Scalar, typename Index, typename UVScalar = Scalar>
 AttributeId get_uv_id(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name = "");
@@ -47,26 +51,36 @@ AttributeId get_uv_id(
 ///
 /// Get the constant UV attribute buffers of a mesh.
 ///
-/// @param mesh The mesh to get the UV attribute from.
-/// @param uv_attribute_name The name of the UV attribute. If empty, use the first indexed or vertex UV attribute.
+/// @param      mesh               The mesh to get the UV attribute from.
+/// @param      uv_attribute_name  The name of the UV attribute. If empty, use the first indexed or
+///                                vertex UV attribute.
 ///
-/// @return A tuple containing the UV values and indices.
+/// @tparam     Scalar             Mesh scalar type.
+/// @tparam     Index              Mesh index type.
+/// @tparam     UVScalar           Target attribute value type.
 ///
-template <typename Scalar, typename Index>
-std::tuple<ConstRowMatrixView<Scalar>, ConstVectorView<Index>> get_uv_attribute(
+/// @return     A tuple containing the UV values and indices.
+///
+template <typename Scalar, typename Index, typename UVScalar = Scalar>
+std::tuple<ConstRowMatrixView<UVScalar>, ConstVectorView<Index>> get_uv_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name = "");
 
 ///
 /// Get the modifiable UV attribute buffers of a mesh.
 ///
-/// @param mesh The mesh to get the UV attribute from.
-/// @param uv_attribute_name The name of the UV attribute. If empty, use the first indexed or vertex UV attribute.
+/// @param      mesh               The mesh to get the UV attribute from.
+/// @param      uv_attribute_name  The name of the UV attribute. If empty, use the first indexed or
+///                                vertex UV attribute.
 ///
-/// @return A tuple containing the UV values and indices.
+/// @tparam     Scalar             Mesh scalar type.
+/// @tparam     Index              Mesh index type.
+/// @tparam     UVScalar           Target attribute value type.
 ///
-template <typename Scalar, typename Index>
-std::tuple<RowMatrixView<Scalar>, VectorView<Index>> ref_uv_attribute(
+/// @return     A tuple containing the UV values and indices.
+///
+template <typename Scalar, typename Index, typename UVScalar = Scalar>
+std::tuple<RowMatrixView<UVScalar>, VectorView<Index>> ref_uv_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name = "");
 

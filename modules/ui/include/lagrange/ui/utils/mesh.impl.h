@@ -1014,115 +1014,124 @@ void register_mesh_type(
     using namespace entt::literals;
 
     // Register MeshType
-    entt::meta<MeshType>().template base<lagrange::MeshBase>();
+    entt::meta_factory<MeshType>().template base<lagrange::MeshBase>();
 
     // Register conversion functions
     using VertexArray = typename MeshType::VertexArray;
 
-    entt::meta<RowMajorMatrixXf>().template ctor<&detail::eigen_convert_to_float<VertexArray>>();
+    entt::meta_factory<RowMajorMatrixXf>()
+        .template ctor<&detail::eigen_convert_to_float<VertexArray>>();
 
     // Getters
-    entt::meta<MeshType>().template func<&detail::get_num_vertices<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_num_vertices<MeshType>>(
         "get_num_vertices"_hs);
-    entt::meta<MeshType>().template func<&detail::get_num_edges<MeshType>>("get_num_edges"_hs);
-    entt::meta<MeshType>().template func<&detail::get_num_facets<MeshType>>("get_num_facets"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::get_num_edges<MeshType>>(
+        "get_num_edges"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::get_num_facets<MeshType>>(
+        "get_num_facets"_hs);
 
-    entt::meta<MeshType>().template func<&detail::get_mesh_vertices<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_vertices<MeshType>>(
         "get_mesh_vertices"_hs);
 
-    entt::meta<MeshType>().template func<&detail::get_mesh_facets<MeshType>>("get_mesh_facets"_hs);
-    entt::meta<MeshType>().template func<&detail::get_mesh_vertex_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_facets<MeshType>>(
+        "get_mesh_facets"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_vertex_attribute<MeshType>>(
         "get_mesh_vertex_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::get_mesh_corner_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_corner_attribute<MeshType>>(
         "get_mesh_corner_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::get_mesh_facet_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_facet_attribute<MeshType>>(
         "get_mesh_facet_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::get_mesh_edge_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_edge_attribute<MeshType>>(
         "get_mesh_edge_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::get_mesh_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_attribute<MeshType>>(
         "get_mesh_attribute"_hs);
 
-    entt::meta<MeshType>().template func<&detail::get_mesh_attribute_range<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_attribute_range<MeshType>>(
         "get_mesh_attribute_range"_hs);
 
-    entt::meta<MeshType>().template func<&detail::get_mesh_bounds<MeshType>>("get_mesh_bounds"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::get_mesh_bounds<MeshType>>(
+        "get_mesh_bounds"_hs);
 
 
     // Ensure attribs
-    entt::meta<MeshType>().template func<&detail::ensure_uv<MeshType>>("ensure_uv"_hs);
-    entt::meta<MeshType>().template func<&detail::ensure_normal<MeshType>>("ensure_normal"_hs);
-    entt::meta<MeshType>().template func<&detail::ensure_tangent_bitangent<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::ensure_uv<MeshType>>("ensure_uv"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::ensure_normal<MeshType>>(
+        "ensure_normal"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::ensure_tangent_bitangent<MeshType>>(
         "ensure_tangent_bitangent"_hs);
-    entt::meta<MeshType>().template func<&detail::ensure_is_selected_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::ensure_is_selected_attribute<MeshType>>(
         "ensure_is_selected_attribute"_hs);
-    entt::meta<MeshType>()
+    entt::meta_factory<MeshType>()
         .template func<&detail::map_indexed_attribute_to_corner_attribute<MeshType>>(
             "map_indexed_attribute_to_corner_attribute"_hs);
-    entt::meta<MeshType>()
+    entt::meta_factory<MeshType>()
         .template func<&detail::map_corner_attribute_to_vertex_attribute<MeshType>>(
             "map_corner_attribute_to_vertex_attribute"_hs);
 
 
     // Mesh to GPU
-    entt::meta<MeshType>().template func<&detail::upload_mesh_vertices<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::upload_mesh_vertices<MeshType>>(
         "upload_mesh_vertices"_hs);
-    entt::meta<MeshType>().template func<&detail::upload_mesh_triangles<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::upload_mesh_triangles<MeshType>>(
         "upload_mesh_triangles"_hs);
-    entt::meta<MeshType>().template func<&detail::upload_mesh_vertex_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::upload_mesh_vertex_attribute<MeshType>>(
         "upload_mesh_vertex_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::upload_mesh_corner_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::upload_mesh_corner_attribute<MeshType>>(
         "upload_mesh_corner_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::upload_mesh_facet_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::upload_mesh_facet_attribute<MeshType>>(
         "upload_mesh_facet_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::upload_mesh_edge_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::upload_mesh_edge_attribute<MeshType>>(
         "upload_mesh_edge_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::upload_submesh_indices<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::upload_submesh_indices<MeshType>>(
         "upload_submesh_indices"_hs);
 
 
     // Has attribute
-    entt::meta<MeshType>().template func<&detail::has_mesh_vertex_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::has_mesh_vertex_attribute<MeshType>>(
         "has_mesh_vertex_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::has_mesh_corner_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::has_mesh_corner_attribute<MeshType>>(
         "has_mesh_corner_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::has_mesh_facet_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::has_mesh_facet_attribute<MeshType>>(
         "has_mesh_facet_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::has_mesh_edge_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::has_mesh_edge_attribute<MeshType>>(
         "has_mesh_edge_attribute"_hs);
-    entt::meta<MeshType>().template func<&detail::has_mesh_indexed_attribute<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::has_mesh_indexed_attribute<MeshType>>(
         "has_mesh_indexed_attribute"_hs);
 
 
     // Picking
-    entt::meta<MeshType>().template func<&detail::intersect_ray<MeshType>>("intersect_ray"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::intersect_ray<MeshType>>(
+        "intersect_ray"_hs);
 
-    entt::meta<MeshType>().template func<&detail::select_vertices_in_frustum<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::select_vertices_in_frustum<MeshType>>(
         "select_vertices_in_frustum"_hs);
-    entt::meta<MeshType>().template func<&detail::select_facets_in_frustum<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::select_facets_in_frustum<MeshType>>(
         "select_facets_in_frustum"_hs);
-    entt::meta<MeshType>().template func<&detail::select_edges_in_frustum<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::select_edges_in_frustum<MeshType>>(
         "select_edges_in_frustum"_hs);
 
 
-    entt::meta<MeshType>().template func<&detail::propagate_corner_selection<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::propagate_corner_selection<MeshType>>(
         "propagate_corner_selection"_hs);
-    entt::meta<MeshType>().template func<&detail::propagate_vertex_selection<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::propagate_vertex_selection<MeshType>>(
         "propagate_vertex_selection"_hs);
-    entt::meta<MeshType>().template func<&detail::propagate_facet_selection<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::propagate_facet_selection<MeshType>>(
         "propagate_facet_selection"_hs);
-    entt::meta<MeshType>().template func<&detail::combine_vertex_and_corner_selection<MeshType>>(
-        "combine_vertex_and_corner_selection"_hs);
+    entt::meta_factory<MeshType>()
+        .template func<&detail::combine_vertex_and_corner_selection<MeshType>>(
+            "combine_vertex_and_corner_selection"_hs);
 
 
-    entt::meta<MeshType>().template func<&detail::select_facets_by_color<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::select_facets_by_color<MeshType>>(
         "select_facets_by_color"_hs);
-    entt::meta<MeshType>().template func<&detail::select_edges_by_color<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::select_edges_by_color<MeshType>>(
         "select_edges_by_color"_hs);
-    entt::meta<MeshType>().template func<&detail::select_vertices_by_color<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::select_vertices_by_color<MeshType>>(
         "select_vertices_by_color"_hs);
 
-    entt::meta<MeshType>().template func<&detail::select_facets<MeshType>>("select_facets"_hs);
-    entt::meta<MeshType>().template func<&detail::filter_closest_vertex<MeshType>>(
+    entt::meta_factory<MeshType>().template func<&detail::select_facets<MeshType>>(
+        "select_facets"_hs);
+    entt::meta_factory<MeshType>().template func<&detail::filter_closest_vertex<MeshType>>(
         "filter_closest_vertex"_hs);
 }
 

@@ -58,6 +58,7 @@ class TestAttribute:
 
     def test_internal_copy(self, single_triangle):
         ori_data = np.array([0, 0, 0], dtype=np.intc)
+        init_refcount = sys.getrefcount(ori_data)
         mesh = single_triangle
         id = mesh.wrap_as_attribute(
             "index",
@@ -67,18 +68,21 @@ class TestAttribute:
         )
         attr = mesh.attribute(id)
         assert attr.external
-        assert sys.getrefcount(ori_data) == 3
+        assert sys.getrefcount(ori_data) == init_refcount + 1
 
-        # `data` is a view of the internal buffer wrapped by `attr`
+        # `data` is a view of the internal buffer wrapped by `attr`. Since it creates a view of the
+        # raw buffer (regardless of where it came from), it is not aware of the Python refcount
+        # associated to `ori_data`. Thus, the refcount of `data` is the same as a newly created
+        # numpy array (`init_refcount`).
         data = attr.data
         assert address(data) == address(ori_data)
         assert not data.flags["OWNDATA"]
-        assert sys.getrefcount(data) == 2
-        assert sys.getrefcount(ori_data) == 3
+        assert sys.getrefcount(data) == init_refcount
+        assert sys.getrefcount(ori_data) == init_refcount + 1
 
         attr.create_internal_copy()
         assert not attr.external
-        assert sys.getrefcount(ori_data) == 2
+        assert sys.getrefcount(ori_data) == init_refcount
         data2 = attr.data
         assert address(data) != address(data2)
         assert not data2.flags["OWNDATA"]
@@ -86,7 +90,7 @@ class TestAttribute:
         # `data` is still valid because `ori_data` still exists.
         assert np.all(data == data2)
 
-        # Wrap anohter buffer.
+        # Wrap another buffer.
         data3 = np.array([4, 5, 6], dtype=np.intc)
         attr.data = data3
         assert attr.external
@@ -122,13 +126,15 @@ class TestAttribute:
 
     def test_delete_attribute_with_wrap(self, single_triangle_with_index):
         data = np.array([-1, 1, 0], dtype=np.intc)
+        init_refcount = sys.getrefcount(data)
         mesh = single_triangle_with_index
         attr = mesh.attribute("vertex_index")
-        attr.data = data
 
-        assert sys.getrefcount(data) == 3
+        attr.data = data
+        assert sys.getrefcount(data) == init_refcount + 1
+
         mesh.delete_attribute("vertex_index")
-        assert sys.getrefcount(data) == 2
+        assert sys.getrefcount(data) == init_refcount
 
     def test_read(self, single_triangle_with_index):
         mesh = single_triangle_with_index

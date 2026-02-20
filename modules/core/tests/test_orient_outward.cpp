@@ -12,10 +12,15 @@
 #include <lagrange/testing/common.h>
 
 #include <lagrange/Logger.h>
+#include <lagrange/find_matching_attributes.h>
+#include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/io/save_mesh.h>
+#include <lagrange/map_attribute.h>
 #include <lagrange/orient_outward.h>
 #include <lagrange/testing/check_mesh.h>
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/views.h>
+#include <lagrange/weld_indexed_attribute.h>
 
 TEST_CASE("orient_outward", "[mesh][orient]")
 {
@@ -41,6 +46,102 @@ TEST_CASE("orient_outward", "[mesh][orient]")
         REQUIRE(vertex_view(mesh_in) == vertex_view(mesh_out));
         REQUIRE(facet_view(mesh_in) == facet_view(mesh_out));
         lagrange::testing::check_mesh(mesh_in);
+    }
+}
+
+TEST_CASE("orient_outward: cube with attrs", "[mesh][orient]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh_in =
+        lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube_flipped.fbx");
+
+    lagrange::io::SaveOptions save_options;
+    save_options.attribute_conversion_policy =
+        lagrange::io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+
+    lagrange::seq_foreach_named_attribute_write(mesh_in, [&](auto name, auto&& attr) {
+        if (name == "tangent") {
+            attr.unsafe_set_usage(lagrange::AttributeUsage::Tangent);
+        }
+        if (name == "bitangent") {
+            attr.unsafe_set_usage(lagrange::AttributeUsage::Bitangent);
+        }
+    });
+
+    // Input attr for f0:
+    // normal = (0, -1, 0)
+    // tangent = (-1, 0, 0)
+    // bitangent = (0, -1, 0)
+    //
+    // Expected after reorientation:
+    // normal = (0, 1, 0)
+    // tangent = (-1, 0, 0)
+    // bitangent = (0, 1, 0)
+    //
+    // Every other facets should have its attributes unchanged.
+
+    auto mesh_out = mesh_in;
+    auto check_result = [&]() {
+        lagrange::map_attribute_in_place(mesh_in, "normal", lagrange::AttributeElement::Corner);
+        lagrange::map_attribute_in_place(mesh_in, "tangent", lagrange::AttributeElement::Corner);
+        lagrange::map_attribute_in_place(mesh_in, "bitangent", lagrange::AttributeElement::Corner);
+        lagrange::map_attribute_in_place(mesh_out, "normal", lagrange::AttributeElement::Corner);
+        lagrange::map_attribute_in_place(mesh_out, "tangent", lagrange::AttributeElement::Corner);
+        lagrange::map_attribute_in_place(mesh_out, "bitangent", lagrange::AttributeElement::Corner);
+        auto normals_in = lagrange::attribute_matrix_view<Scalar>(mesh_in, "normal");
+        auto tangents_in = lagrange::attribute_matrix_view<Scalar>(mesh_in, "tangent");
+        auto bitangents_in = lagrange::attribute_matrix_view<Scalar>(mesh_in, "bitangent");
+        auto normals_out = lagrange::attribute_matrix_view<Scalar>(mesh_out, "normal");
+        auto tangents_out = lagrange::attribute_matrix_view<Scalar>(mesh_out, "tangent");
+        auto bitangents_out = lagrange::attribute_matrix_view<Scalar>(mesh_out, "bitangent");
+        Index nvpf = mesh_in.get_vertex_per_facet();
+        Index num_corners = mesh_in.get_num_corners();
+        for (Index c = 0; c < nvpf; ++c) {
+            // Facet 0 is flipped
+            REQUIRE(normals_in.row(c) == -normals_out.row(c));
+            REQUIRE(tangents_in.row(c) == tangents_out.row(c));
+            REQUIRE(bitangents_in.row(c) == -bitangents_out.row(c));
+        }
+        REQUIRE(
+            normals_in.bottomRows(num_corners - nvpf) ==
+            normals_out.bottomRows(num_corners - nvpf));
+        REQUIRE(
+            tangents_in.bottomRows(num_corners - nvpf) ==
+            tangents_out.bottomRows(num_corners - nvpf));
+        REQUIRE(
+            bitangents_in.bottomRows(num_corners - nvpf) ==
+            bitangents_out.bottomRows(num_corners - nvpf));
+    };
+
+    SECTION("indexed attrs")
+    {
+        lagrange::orient_outward(mesh_out);
+        check_result();
+    }
+    SECTION("corner attrs")
+    {
+        lagrange::AttributeMatcher matcher;
+        matcher.element_types = lagrange::AttributeElement::Indexed;
+        auto ids = lagrange::find_matching_attributes(mesh_out, matcher);
+        for (auto id : ids) {
+            lagrange::map_attribute_in_place(mesh_out, id, lagrange::AttributeElement::Corner);
+        }
+        lagrange::orient_outward(mesh_out);
+        check_result();
+    }
+    SECTION("facet attrs")
+    {
+        lagrange::AttributeMatcher matcher;
+        matcher.element_types = lagrange::AttributeElement::Indexed;
+        matcher.usages = ~lagrange::BitField(lagrange::AttributeUsage::UV);
+        auto ids = lagrange::find_matching_attributes(mesh_out, matcher);
+        for (auto id : ids) {
+            lagrange::map_attribute_in_place(mesh_out, id, lagrange::AttributeElement::Facet);
+        }
+        lagrange::orient_outward(mesh_out);
+        check_result();
     }
 }
 

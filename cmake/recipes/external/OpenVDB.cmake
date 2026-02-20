@@ -27,6 +27,12 @@ endif()
 option(OPENVDB_BUILD_CORE "" ON)
 option(OPENVDB_BUILD_BINARIES "" OFF)
 option(OPENVDB_ENABLE_RPATH "" OFF)
+option(USE_NANOVDB "" ON)
+option(NANOVDB_BUILD_TOOLS "" OFF)
+option(NANOVDB_USE_BLOSC "" ON)
+option(NANOVDB_USE_OPENVDB "" ON)
+option(NANOVDB_USE_TBB "" ON)
+option(NANOVDB_USE_ZLIB "" ON)
 
 # option(USE_EXPLICIT_INSTANTIATION "" ON)
 
@@ -161,7 +167,7 @@ function(openvdb_import_target)
     CPMAddPackage(
         NAME openvdb
         GITHUB_REPOSITORY AcademySoftwareFoundation/openvdb
-        GIT_TAG v12.0.1
+        GIT_TAG v13.0.0
     )
 
     unignore_package(TBB)
@@ -191,6 +197,9 @@ function(openvdb_import_target)
     else()
         add_library(OpenVDB::openvdb ALIAS openvdb)
     endif()
+    if(TARGET nanovdb)
+        add_library(OpenVDB::nanovdb ALIAS nanovdb)
+    endif()
 
     # Copy miniz.h as zlib.h to have blosc use miniz symbols (which are aliased through #define in miniz.h)
     if(USE_ZLIB AND TARGET miniz::miniz)
@@ -202,6 +211,10 @@ function(openvdb_import_target)
         include(GNUInstallDirs)
         target_include_directories(${_aliased} SYSTEM BEFORE PRIVATE
             $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+        if(TARGET nanovdb)
+            target_include_directories(nanovdb SYSTEM BEFORE INTERFACE
+                $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/include>)
+        endif()
     endif()
 endfunction()
 

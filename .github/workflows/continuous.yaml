@@ -62,10 +62,36 @@ jobs:
           echo "disk usage:"
           df -h
 
+      - name: Select build dir (Linux)
+        if: runner.os == 'Linux'
+        # Find mount point with the largest available space for our build dir...
+        run: |
+            space_cwd=$(df --output=avail . | tail -1 | tr -d ' ')
+            space_mnt=$(df --output=avail /mnt 2>/dev/null | tail -1 | tr -d ' ')
+            echo "Space available on ./: $space_cwd KB"
+            echo "Space available on /mnt: $space_mnt KB"
+            if [ -n "$space_mnt" ] && [ "$space_mnt" -gt "$space_cwd" ]; then
+              echo "build_dir=/mnt/build" >> "$GITHUB_ENV"
+              echo "Selected /mnt/build (/mnt has $((space_mnt/1024/1024)) GB free vs ./ has $((space_cwd/1024/1024)) GB free)"
+              sudo mkdir -p /mnt/build
+              sudo chown $USER /mnt/build
+            else
+              echo "build_dir=build" >> "$GITHUB_ENV"
+              echo "Selected ./build (./ has $((space_cwd/1024/1024)) GB free)"
+            fi
+
+      - name: Select build dir (macOS)
+        if: runner.os == 'macOS'
+        run:
+            echo "build_dir=build" >> "$GITHUB_ENV"
+
       - name: Checkout repository
         uses: actions/checkout@v4
+        # Note: Update to actions/checkout@6 once 6.0.2 is out, and remove the fetch-depth: 0
+        # https://github.com/actions/checkout/issues/1471
         with:
-          fetch-depth: 10
+          fetch-tags: true
+          fetch-depth: 0
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -125,10 +151,8 @@ jobs:
 
       - name: Configure
         run: |
-          mkdir -p build
-          cd build
           cmake --version
-          cmake .. -G Ninja \
+          cmake -B ${{ env.build_dir }} -S . -G Ninja \
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} \
             -DLAGRANGE_JENKINS=ON \
             -DLAGRANGE_ALL=ON \
@@ -136,11 +160,12 @@ jobs:
             -DOPENVDB_CORE_SHARED=ON \
             -DOPENVDB_CORE_STATIC=OFF \
             -DUSE_EXPLICIT_INSTANTIATION=OFF \
+            -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build
         run: |
-          cmake --build build -j ${{ steps.cpu-cores.outputs.count }}
+          cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
           ccache --show-stats
 
       - name: Show disk space
@@ -150,7 +175,7 @@ jobs:
           df -h
 
       - name: Tests
-        run: cd build; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
+        run: cd ${{ env.build_dir }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
   ####################
   # Windows
@@ -171,7 +196,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 10
+          fetch-tags: true
+          fetch-depth: 0
 
       - uses: actions/setup-python@v5
         with:
@@ -216,7 +242,7 @@ jobs:
           cmake -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
             -DLAGRANGE_JENKINS=ON `
-            -DLAGRANGE_ALL=ON `
+            -DLAGRANGE_RAYCASTING=ON `
             -B ${{ env.BUILD_DIR }} `
             -S .
 

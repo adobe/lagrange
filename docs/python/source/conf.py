@@ -32,7 +32,7 @@ extensions = [
 package_dir = next(x for x in lagrange.__path__ if "site-packages" in x)
 autoapi_dirs = [f"{package_dir}"]
 
-autoapi_ignore = ["*/_version.py"]
+autoapi_ignore = ["*/_version.py", "*/_logging.py"]
 
 # https://github.com/readthedocs/sphinx-autoapi/issues/285
 suppress_warnings = ["autoapi.python_import_resolution"]

@@ -10,19 +10,9 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-
-import pytest
 import numpy as np
 
-
-@pytest.fixture
-def single_triangle():
-    mesh = lagrange.SurfaceMesh()
-    mesh.add_vertices(np.eye(3))
-    mesh.add_triangle(0, 1, 2)
-    assert mesh.num_vertices == 3
-    assert mesh.num_facets == 1
-    return mesh
+from .assets import single_triangle
 
 
 class TestSimpleScene:
@@ -80,11 +70,16 @@ class TestSimpleScene:
     def test_scene_convert(self, single_triangle):
         scene = lagrange.scene.mesh_to_simple_scene(single_triangle)
         scene2 = lagrange.scene.meshes_to_simple_scene([single_triangle, single_triangle])
-        print(scene, type(scene))
         mesh = lagrange.scene.simple_scene_to_mesh(scene)
+        mesh_alt = lagrange.combine_meshes(lagrange.scene.simple_scene_to_meshes(scene))
         mesh2 = lagrange.scene.simple_scene_to_mesh(scene2)
+        mesh2_alt = lagrange.combine_meshes(lagrange.scene.simple_scene_to_meshes(scene2))
 
         assert mesh.num_vertices == 3
         assert mesh.num_facets == 1
         assert mesh2.num_vertices == 6
         assert mesh2.num_facets == 2
+        assert np.all(mesh.vertices == mesh_alt.vertices) and np.all(mesh.facets == mesh_alt.facets)
+        assert np.all(mesh2.vertices == mesh2_alt.vertices) and np.all(
+            mesh2.facets == mesh2_alt.facets
+        )

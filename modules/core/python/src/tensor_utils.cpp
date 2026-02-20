@@ -78,7 +78,7 @@ bool is_dense(const Shape& shape, const Stride& stride)
 {
     const size_t ndim = shape.size();
     switch (ndim) {
-    case 1: return static_cast<size_t>(stride[0]) == 1;
+    case 1: return static_cast<size_t>(shape[0]) == 0 || static_cast<size_t>(stride[0]) == 1;
     case 2:
         return static_cast<size_t>(stride[0]) == shape[1] && static_cast<size_t>(stride[1]) == 1;
     default: throw Error(fmt::format("{}-dimensional tensor is not supported", ndim));

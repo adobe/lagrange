@@ -24,6 +24,7 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/copy_on_write_ptr.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/utils/scope_guard.h>
 #include <lagrange/utils/strings.h>
 #include <lagrange/utils/warning.h>
 
@@ -1968,42 +1969,247 @@ void SurfaceMesh<Scalar, Index>::remove_facets(function_ref<bool(Index)> should_
     resize_edges_internal(num_edges_new);
 }
 
-template <typename Scalar, typename Index>
-void SurfaceMesh<Scalar, Index>::flip_facets(span<const Index> facets_to_flip)
+namespace {
+
+template <typename Scalar, typename Index, typename Function>
+void flip_normals_tangents_bitangents(
+    SurfaceMesh<Scalar, Index>& mesh,
+    span<const Index> facets_to_flip,
+    Function should_flip)
 {
+    // 1st step: check if we have any indexed attributes that need to be flipped
+    // If so, we need to initialize connectivity for navigation purposes.
+    bool require_connectivity = false;
+    seq_foreach_attribute_read<AttributeElement::Indexed>(mesh, [&](auto&& attr) {
+        const auto usg = attr.get_usage();
+        bool flip_head = (usg == AttributeUsage::Normal || usg == AttributeUsage::Bitangent);
+        bool flip_tail = (usg == AttributeUsage::Normal || usg == AttributeUsage::Bitangent ||
+                          usg == AttributeUsage::Tangent) &&
+                         attr.get_num_channels() > static_cast<size_t>(mesh.get_dimension());
+        if (!flip_head && !flip_tail) {
+            return;
+        }
+        require_connectivity = true;
+    });
+    bool had_connectivity = mesh.has_edges();
+    if (require_connectivity && !had_connectivity) {
+        mesh.initialize_edges();
+    }
+    auto _ = make_scope_guard([&]() {
+        if (!had_connectivity && mesh.has_edges()) {
+            mesh.clear_edges();
+        }
+    });
+
+    // 2nd step: iterate over attributes in parallel
+    par_foreach_named_attribute_write<
+        AttributeElement::Facet | AttributeElement::Corner | AttributeElement::Indexed>(
+        mesh,
+        [&](auto name, auto&& attr) {
+            using AttributeType = std::decay_t<decltype(attr)>;
+            const auto usg = attr.get_usage();
+            const size_t dim = static_cast<size_t>(mesh.get_dimension());
+            const size_t num_channels = attr.get_num_channels();
+            bool flip_head = (usg == AttributeUsage::Normal || usg == AttributeUsage::Bitangent);
+            bool flip_tail = (usg == AttributeUsage::Normal || usg == AttributeUsage::Bitangent ||
+                              usg == AttributeUsage::Tangent) &&
+                             num_channels > dim;
+            if (!flip_head && !flip_tail) {
+                return;
+            }
+            la_debug_assert(num_channels == dim || num_channels == dim + 1);
+            if constexpr (AttributeType::IsIndexed) {
+                // Indexed attribute
+
+                // For each corner around a vertex sharing the same index, determine if their
+                // corresponding facets have a consistent flip status. If so, we can flip the
+                // attribute value. However, because indices may be shared between vertices across
+                // the mesh, we may need to split the value in two and assign a new index for the
+                // flipped group.
+                auto& values = attr.values();
+                auto indices = attr.indices().ref_all();
+                std::vector<bool> has_nonflips_uses(values.get_num_elements(), false);
+
+                // First pass: mark values being used by non-flipped facets
+                for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+                    if (!should_flip(f)) {
+                        const Index c_first = mesh.get_facet_corner_begin(f);
+                        const Index c_last = mesh.get_facet_corner_end(f);
+                        for (Index ci = c_first; ci < c_last; ++ci) {
+                            has_nonflips_uses[indices[ci]] = true;
+                        }
+                    }
+                }
+
+                // Second pass: iterate over flipped facets. Check for ambiguous values. Add flipped
+                // values as required.
+                bool has_ambiguous = false;
+                size_t old_num_values = values.get_num_elements();
+                std::vector<Index> value_to_flipped(values.get_num_elements(), invalid<Index>());
+                for (Index fi : facets_to_flip) {
+                    const Index c_first = mesh.get_facet_corner_begin(fi);
+                    const Index c_last = mesh.get_facet_corner_end(fi);
+                    for (Index ci = c_first; ci < c_last; ++ci) {
+                        const Index vi = mesh.get_corner_vertex(ci);
+                        // Check for ambiguity: are there other corners around this vertex
+                        // sharing the same index but belonging to non-flipped facets?
+                        bool is_ambiguous = false;
+                        mesh.foreach_corner_around_vertex(vi, [&](Index cj) {
+                            if (indices[cj] != indices[ci]) {
+                                return; // different indices, skip
+                            }
+                            const Index fj = mesh.get_corner_facet(cj);
+                            if (!should_flip(fj)) {
+                                is_ambiguous = true;
+                            }
+                        });
+                        if (is_ambiguous) {
+                            has_ambiguous = true;
+                            continue; // cannot flip this value
+                        }
+
+                        Index& idx = indices[ci];
+                        if (value_to_flipped[idx] != invalid<Index>()) {
+                            // Already created a flipped value for this index
+                            idx = value_to_flipped[idx];
+                            continue;
+                        }
+                        if (idx < old_num_values && has_nonflips_uses[idx] &&
+                            value_to_flipped[idx] == invalid<Index>()) {
+                            // Need to create a new value and flip it
+                            const Index new_idx = static_cast<Index>(values.get_num_elements());
+                            values.insert_elements(1);
+                            std::copy_n(
+                                values.get_row(idx).begin(),
+                                num_channels,
+                                values.ref_row(new_idx).begin());
+                            value_to_flipped[idx] = new_idx;
+                            idx = new_idx;
+                        }
+
+                        // Flip the value once.
+                        //
+                        // If we reached this point, this is the first time we flip the value.
+                        // Indeed, if the value has already been flipped, the "value_to_flipped"
+                        // entry will point to a valid value index.
+                        auto vals = values.ref_row(idx);
+                        if (flip_head) {
+                            for (auto& x : vals.subspan(0, dim)) {
+                                x *= -1;
+                            }
+                        }
+                        if (flip_tail) {
+                            vals[dim] *= -1;
+                        }
+                    }
+                }
+                if (values.get_num_elements() > old_num_values) {
+                    logger().info(
+                        "When flipping facets, attribute '{}' required {} new elements to resolve "
+                        "values shared between flipped facets.",
+                        name,
+                        values.get_num_elements() - old_num_values);
+                }
+                if (has_ambiguous) {
+                    logger().warn(
+                        "When flipping facets, some indexed attribute values for '{}' are used by "
+                        "both flipped and non-flipped facets around the same vertex. These values "
+                        "have been left unchanged.",
+                        name);
+                }
+            } else {
+                auto values = attr.ref_all();
+                for (Index f : facets_to_flip) {
+                    if (should_flip(f)) {
+                        if (attr.get_element_type() == AttributeElement::Facet) {
+                            // Facet attribute
+                            if (flip_head) {
+                                for (auto& x : values.subspan(f * num_channels, dim)) {
+                                    x *= -1;
+                                }
+                            }
+                            if (flip_tail) {
+                                values[f * num_channels + dim] *= -1;
+                            }
+                        } else {
+                            // Corner attribute
+                            const Index c_first = mesh.get_facet_corner_begin(f);
+                            const Index c_last = mesh.get_facet_corner_end(f);
+                            for (Index c = c_first; c < c_last; ++c) {
+                                if (flip_head) {
+                                    for (auto& x : values.subspan(c * num_channels, dim)) {
+                                        x *= -1;
+                                    }
+                                }
+                                if (flip_tail) {
+                                    values[c * num_channels + dim] *= -1;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+}
+
+} // namespace
+
+template <typename Scalar, typename Index>
+void SurfaceMesh<Scalar, Index>::flip_facets(
+    span<const Index> facets_to_flip,
+    AttributeReorientPolicy reorient_policy)
+{
+    const bool reorient = (reorient_policy == AttributeReorientPolicy::Reorient);
     std::vector<Index> old_to_new_corners(get_num_corners());
     std::iota(old_to_new_corners.begin(), old_to_new_corners.end(), 0);
+    std::vector<bool> should_flip(reorient ? get_num_facets() : 0, false);
     for (Index f : facets_to_flip) {
         const Index c_first = get_facet_corner_begin(f);
         const Index c_last = get_facet_corner_end(f);
         std::reverse(old_to_new_corners.begin() + c_first, old_to_new_corners.begin() + c_last);
+        if (reorient) should_flip[f] = true;
     }
     reindex_corners_internal(
         [&](Index c) { return old_to_new_corners[c]; },
         CornerMappingType::ReversingFacets);
+    if (reorient) {
+        flip_normals_tangents_bitangents(*this, facets_to_flip, [&should_flip](Index x) {
+            return should_flip[x];
+        });
+    }
 }
 
 template <typename Scalar, typename Index>
-void SurfaceMesh<Scalar, Index>::flip_facets(std::initializer_list<const Index> facets_to_flip)
+void SurfaceMesh<Scalar, Index>::flip_facets(
+    std::initializer_list<const Index> facets_to_flip,
+    AttributeReorientPolicy reorient_policy)
 {
-    flip_facets(span<const Index>(facets_to_flip));
+    flip_facets(span<const Index>(facets_to_flip), reorient_policy);
 }
 
 template <typename Scalar, typename Index>
-void SurfaceMesh<Scalar, Index>::flip_facets(function_ref<bool(Index)> should_flip_func)
+void SurfaceMesh<Scalar, Index>::flip_facets(
+    function_ref<bool(Index)> should_flip_func,
+    AttributeReorientPolicy reorient_policy)
 {
+    const bool reorient = (reorient_policy == AttributeReorientPolicy::Reorient);
     std::vector<Index> old_to_new_corners(get_num_corners());
     std::iota(old_to_new_corners.begin(), old_to_new_corners.end(), 0);
+    std::vector<Index> facets_to_flip;
     for (Index f = 0; f < get_num_facets(); ++f) {
         if (should_flip_func(f)) {
             const Index c_first = get_facet_corner_begin(f);
             const Index c_last = get_facet_corner_end(f);
             std::reverse(old_to_new_corners.begin() + c_first, old_to_new_corners.begin() + c_last);
+            if (reorient) facets_to_flip.push_back(f);
         }
     }
     reindex_corners_internal(
         [&](Index c) { return old_to_new_corners[c]; },
         CornerMappingType::ReversingFacets);
+    if (reorient) {
+        flip_normals_tangents_bitangents<Scalar, Index>(*this, facets_to_flip, should_flip_func);
+    }
 }
 
 namespace {

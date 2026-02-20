@@ -186,6 +186,15 @@ enum class AttributeCastPolicy : uint8_t {
 };
 
 ///
+/// Policy for updating attribute values when reorienting mesh facets. By default, attributes such as
+/// normals, tangents, and bitangents are reoriented when mesh facets are flipped.
+///
+enum class AttributeReorientPolicy : uint8_t {
+    None, ///< Do not reorient attribute values when flipping mesh facets.
+    Reorient, ///< Reorient attribute values when flipping mesh facets.
+};
+
+///
 /// Base handle for attributes. This is a common base class to allow for type erasure.
 ///
 class AttributeBase;

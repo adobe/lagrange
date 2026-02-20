@@ -10,7 +10,7 @@
 # governing permissions and limitations under the License.
 #
 
-lagrange_include_modules(io image_io)
+lagrange_include_modules(io image_io polyscope)
 
 lagrange_add_example(geodesic_dilation geodesic_dilation.cpp)
 target_link_libraries(geodesic_dilation lagrange::texproc CLI11::CLI11 lagrange::io lagrange::image_io)
@@ -26,3 +26,6 @@ target_link_libraries(texture_compositing lagrange::texproc CLI11::CLI11 lagrang
 
 lagrange_add_example(texture_rasterization texture_rasterization.cpp)
 target_link_libraries(texture_rasterization lagrange::texproc CLI11::CLI11 lagrange::io lagrange::image_io)
+
+lagrange_add_example(texture_stitching_gui texture_stitching_gui.cpp)
+target_link_libraries(texture_stitching_gui lagrange::texproc CLI11::CLI11 lagrange::io lagrange::image_io lagrange::polyscope)

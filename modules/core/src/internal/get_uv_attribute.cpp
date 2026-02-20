@@ -11,6 +11,7 @@
  */
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/internal/get_uv_attribute.h>
@@ -19,12 +20,12 @@
 
 namespace lagrange::internal {
 
-template <typename Scalar, typename Index>
+template <typename Scalar, typename Index, typename UVScalar>
 AttributeId get_uv_id(const SurfaceMesh<Scalar, Index>& mesh, std::string_view uv_attribute_name)
 {
     AttributeId uv_attr_id;
     if (uv_attribute_name.empty()) {
-        uv_attr_id = internal::find_matching_attribute<Scalar>(
+        uv_attr_id = internal::find_matching_attribute<UVScalar>(
             mesh,
             "",
             AttributeElement::Indexed,
@@ -33,12 +34,33 @@ AttributeId get_uv_id(const SurfaceMesh<Scalar, Index>& mesh, std::string_view u
 
         if (uv_attr_id == invalid_attribute_id()) {
             // No indexed UV attribute found. Try to find a vertex attribute instead.
-            uv_attr_id = internal::find_matching_attribute<Scalar>(
+            uv_attr_id = internal::find_matching_attribute<UVScalar>(
                 mesh,
                 "",
                 AttributeElement::Vertex,
                 AttributeUsage::UV,
                 2);
+        }
+        if (uv_attr_id == invalid_attribute_id()) {
+            // Still no UV attribute found. Look for a corner attribute and issue a warning if one
+            // is found.
+            auto corner_attr_id = internal::find_matching_attribute<UVScalar>(
+                mesh,
+                "",
+                AttributeElement::Corner,
+                AttributeUsage::UV,
+                2);
+            // Ideally we would be able to extract a proxy mesh from a corner attribute, but this
+            // requires creating a temporary buffer for indices (since corner indices are implicit
+            // for pure triangle or pure quad meshes). But maybe we should bite the bullet and do
+            // this?
+            if (corner_attr_id != invalid_attribute_id()) {
+                logger().warn(
+                    "Unable to find an indexed or per-vertex UV attribute to extract a mesh from. "
+                    "Instead, we found a corner UV attribute '{}'. Consider converting it to a "
+                    "vertex or indexed attribute for compatibility.",
+                    mesh.get_attribute_name(corner_attr_id));
+            }
         }
     } else {
         uv_attr_id = mesh.get_attribute_id(uv_attribute_name);
@@ -46,21 +68,21 @@ AttributeId get_uv_id(const SurfaceMesh<Scalar, Index>& mesh, std::string_view u
     return uv_attr_id;
 }
 
-template <typename Scalar, typename Index>
-std::tuple<ConstRowMatrixView<Scalar>, ConstVectorView<Index>> get_uv_attribute(
+template <typename Scalar, typename Index, typename UVScalar>
+std::tuple<ConstRowMatrixView<UVScalar>, ConstVectorView<Index>> get_uv_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name)
 {
-    AttributeId uv_attr_id = get_uv_id(mesh, uv_attribute_name);
+    AttributeId uv_attr_id = get_uv_id<Scalar, Index, UVScalar>(mesh, uv_attribute_name);
     la_runtime_assert(uv_attr_id != invalid_attribute_id(), "No UV attribute found.");
 
     if (mesh.is_attribute_indexed(uv_attr_id)) {
-        const auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(uv_attr_id);
+        const auto& uv_attr = mesh.template get_indexed_attribute<UVScalar>(uv_attr_id);
         auto uv_values = matrix_view(uv_attr.values());
         auto uv_indices = vector_view(uv_attr.indices());
         return {uv_values, uv_indices};
     } else {
-        const auto& uv_attr = mesh.template get_attribute<Scalar>(uv_attr_id);
+        const auto& uv_attr = mesh.template get_attribute<UVScalar>(uv_attr_id);
         la_runtime_assert(
             uv_attr.get_element_type() == AttributeElement::Vertex,
             "UV attribute must be a vertex attribute.");
@@ -70,21 +92,21 @@ std::tuple<ConstRowMatrixView<Scalar>, ConstVectorView<Index>> get_uv_attribute(
     }
 }
 
-template <typename Scalar, typename Index>
-std::tuple<RowMatrixView<Scalar>, VectorView<Index>> ref_uv_attribute(
+template <typename Scalar, typename Index, typename UVScalar>
+std::tuple<RowMatrixView<UVScalar>, VectorView<Index>> ref_uv_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name)
 {
-    AttributeId uv_attr_id = get_uv_id(mesh, uv_attribute_name);
+    AttributeId uv_attr_id = get_uv_id<Scalar, Index, UVScalar>(mesh, uv_attribute_name);
     la_runtime_assert(uv_attr_id != invalid_attribute_id(), "No UV attribute found.");
 
     if (mesh.is_attribute_indexed(uv_attr_id)) {
-        auto& uv_attr = mesh.template ref_indexed_attribute<Scalar>(uv_attr_id);
+        auto& uv_attr = mesh.template ref_indexed_attribute<UVScalar>(uv_attr_id);
         auto uv_values = matrix_ref(uv_attr.values());
         auto uv_indices = vector_ref(uv_attr.indices());
         return {uv_values, uv_indices};
     } else {
-        auto& uv_attr = mesh.template ref_attribute<Scalar>(uv_attr_id);
+        auto& uv_attr = mesh.template ref_attribute<UVScalar>(uv_attr_id);
         la_runtime_assert(
             uv_attr.get_element_type() == AttributeElement::Vertex,
             "UV attribute must be a vertex attribute.");
@@ -94,14 +116,17 @@ std::tuple<RowMatrixView<Scalar>, VectorView<Index>> ref_uv_attribute(
     }
 }
 
-#define LA_X_get_uv_attribute(_, Scalar, Index)                                           \
-    template LA_CORE_API AttributeId get_uv_id<Scalar, Index>(                            \
+#define LA_X_get_uv_attribute(UVScalar, Scalar, Index)                                    \
+    template LA_CORE_API AttributeId get_uv_id<Scalar, Index, UVScalar>(                  \
         const SurfaceMesh<Scalar, Index>&,                                                \
         std::string_view);                                                                \
-    template LA_CORE_API std::tuple<ConstRowMatrixView<Scalar>, ConstVectorView<Index>>   \
-    get_uv_attribute<Scalar, Index>(const SurfaceMesh<Scalar, Index>&, std::string_view); \
-    template LA_CORE_API std::tuple<RowMatrixView<Scalar>, VectorView<Index>>             \
-    ref_uv_attribute<Scalar, Index>(SurfaceMesh<Scalar, Index>&, std::string_view);
-LA_SURFACE_MESH_X(get_uv_attribute, 0)
+    template LA_CORE_API std::tuple<ConstRowMatrixView<UVScalar>, ConstVectorView<Index>> \
+    get_uv_attribute<Scalar, Index, UVScalar>(                                            \
+        const SurfaceMesh<Scalar, Index>&,                                                \
+        std::string_view);                                                                \
+    template LA_CORE_API std::tuple<RowMatrixView<UVScalar>, VectorView<Index>>           \
+    ref_uv_attribute<Scalar, Index, UVScalar>(SurfaceMesh<Scalar, Index>&, std::string_view);
+#define LA_X_get_uv_attribute_aux(_, UVScalar) LA_SURFACE_MESH_X(get_uv_attribute, UVScalar)
+LA_SURFACE_MESH_SCALAR_X(get_uv_attribute_aux, 0)
 
 } // namespace lagrange::internal

@@ -173,6 +173,47 @@ TEST_CASE("compute_facet_area", "[core][area][surface]")
     }
 }
 
+namespace {
+
+template <typename Scalar, typename Index, typename UVScalar>
+void test_uv_area()
+{
+    lagrange::SurfaceMesh<Scalar, Index> mesh(3);
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(2, 1, 3);
+
+    mesh.template create_attribute<UVScalar>(
+        "uv",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::UV,
+        2);
+    auto uv_attr = lagrange::attribute_matrix_ref<UVScalar>(mesh, "uv");
+    uv_attr.row(0) << 0, 0;
+    uv_attr.row(1) << 1, 0;
+    uv_attr.row(2) << 0, 1;
+    uv_attr.row(3) << 1, 1;
+
+    Scalar uv_area = lagrange::compute_uv_area<Scalar, Index>(mesh);
+    Scalar mesh_area = lagrange::compute_mesh_area<Scalar, Index>(mesh);
+
+    constexpr Scalar eps = std::numeric_limits<Scalar>::epsilon();
+    REQUIRE_THAT(uv_area, Catch::Matchers::WithinRel(mesh_area, eps));
+}
+
+} // namespace
+
+TEST_CASE("compute_uv_area", "[core][area][surface]")
+{
+    test_uv_area<float, uint32_t, float>();
+    test_uv_area<float, uint32_t, double>();
+    test_uv_area<double, uint32_t, double>();
+    test_uv_area<double, uint32_t, float>();
+}
+
 TEST_CASE("compute_facet_area benchmark", "[surface][attribute][area][!benchmark]")
 {
     using namespace lagrange;

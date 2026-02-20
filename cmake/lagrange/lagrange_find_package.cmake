@@ -28,14 +28,7 @@ function(lagrange_find_package name)
 
     # Defer to find_package() if desired. In the future we will switch to a dependency provider.
     if(LAGRANGE_USE_FIND_PACKAGE AND ${name} IN_LIST maybe_external_packages)
-        # Once we update to MKL 2024.2.1 on vcpkg, we should be able to use their MKLConfig.cmake
-        # directly. Until then, we need to guard against multiple inclusion by checking MKL::MKL.
-        # https://github.com/oneapi-src/oneMKL/pull/568
-        if(${name} STREQUAL MKL)
-            if(NOT TARGET MKL::MKL)
-                find_package(${name} ${ARGN})
-            endif()
-        elseif(${name} STREQUAL TBB)
+        if(${name} STREQUAL TBB)
             find_package(${name} ${ARGN})
             # TODO: Move that to our vcpkg port?
             target_compile_definitions(TBB::tbb INTERFACE __TBB_NO_IMPLICIT_LINKAGE=1)

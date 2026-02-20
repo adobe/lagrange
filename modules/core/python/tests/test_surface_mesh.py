@@ -335,6 +335,11 @@ class TestSurfaceMesh:
         assert not uv.values.external
         assert not uv.indices.external
 
+    def test_flip_facets(self, cube):
+        mesh = cube
+        mesh.flip_facets([0, 2])
+        mesh.flip_facets(np.array([1, 3], dtype=np.uint32))
+
     def test_copy_and_deepcopy(self, single_triangle_with_index):
         from copy import copy, deepcopy
 
@@ -370,3 +375,73 @@ class TestSurfaceMesh:
         assert mesh.metadata["author"] == "Jane"
         mesh.metadata["author"] = "🐶"
         assert mesh.metadata["author"] == "🐶"
+
+    def test_1_ring_callback(self, cube):
+        mesh = cube
+        mesh.initialize_edges()
+
+        facet_one_ring = []
+        mesh.foreach_facet_around_facet(0, lambda fid: facet_one_ring.append(fid))
+        assert set(facet_one_ring) == {2, 3, 4, 5}
+
+        vertex_one_ring = []
+        mesh.foreach_facet_around_vertex(0, lambda fid: vertex_one_ring.append(fid))
+        assert set(vertex_one_ring) == {0, 3, 5}
+
+        edge_one_ring = []
+        mesh.foreach_facet_around_edge(0, lambda fid: edge_one_ring.append(fid))
+        assert len(edge_one_ring) == 2
+
+        edge_one_ring_corner = []
+        mesh.foreach_corner_around_edge(0, lambda cid: edge_one_ring_corner.append(cid))
+        assert len(edge_one_ring_corner) == 2
+
+        for cid in edge_one_ring_corner:
+            fid = mesh.get_corner_facet(cid)
+            assert fid in edge_one_ring
+
+        vertex_one_ring_edges = []
+        mesh.foreach_edge_around_vertex(0, lambda eid: vertex_one_ring_edges.append(eid))
+        vertex_one_ring_edges = set(vertex_one_ring_edges)
+        assert len(vertex_one_ring_edges) == len(vertex_one_ring)
+
+        for eid in vertex_one_ring_edges:
+            v0, v1 = mesh.get_edge_vertices(eid)
+            assert 0 in (v0, v1)
+
+    def test_1_ring_pythonic(self, cube):
+        mesh = cube
+        mesh.initialize_edges()
+
+        # Test facets_around_facet
+        facet_one_ring = mesh.facets_around_facet(0)
+        assert set(facet_one_ring) == {2, 3, 4, 5}
+
+        # Test facets_around_vertex
+        vertex_one_ring = mesh.facets_around_vertex(0)
+        assert set(vertex_one_ring) == {0, 3, 5}
+
+        # Test facets_around_edge
+        edge_one_ring = mesh.facets_around_edge(0)
+        assert len(edge_one_ring) == 2
+
+        # Test corners_around_edge
+        edge_one_ring_corner = mesh.corners_around_edge(0)
+        assert len(edge_one_ring_corner) == 2
+
+        for cid in edge_one_ring_corner:
+            fid = mesh.get_corner_facet(cid)
+            assert fid in edge_one_ring
+
+        # Test edges_around_vertex
+        vertex_one_ring_edges = mesh.edges_around_vertex(0)
+        vertex_one_ring_edges = set(vertex_one_ring_edges)
+        assert len(vertex_one_ring_edges) == len(vertex_one_ring)
+
+        for eid in vertex_one_ring_edges:
+            v0, v1 = mesh.get_edge_vertices(eid)
+            assert 0 in (v0, v1)
+
+        # Test list comprehension style
+        facets = [fid for fid in mesh.facets_around_facet(0)]
+        assert set(facets) == {2, 3, 4, 5}

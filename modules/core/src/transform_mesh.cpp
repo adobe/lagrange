@@ -190,6 +190,7 @@ void transform_mesh_internal(
 
     // We must flip facets due to transform with negative scale
     if (options.reorient && is_reflection) {
+        // No need to have flip_facets reorient attributes again, since we already took care of that
         mesh.flip_facets([](Index /*f*/) { return true; });
     }
 }

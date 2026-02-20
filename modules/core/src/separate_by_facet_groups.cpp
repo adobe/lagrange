@@ -51,6 +51,8 @@ std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups(
 
     std::vector<SurfaceMesh<Scalar, Index>> results(num_groups);
 
+    // Note: When extracting many small submeshes, this does not scale very well (does a pass over
+    // the whole mesh for each component to extract...).
     SubmeshOptions submesh_options(options);
     tbb::parallel_for((size_t)0, num_groups, [&](size_t i) {
         span<const Index> selected_facets(

@@ -117,7 +117,8 @@ void populate_io_module(nb::module_& m)
         .def_rw(
             "export_materials",
             &io::SaveOptions::export_materials,
-            "Whether to export materials and textures.");
+            "Whether to export materials and textures.")
+        .def_rw("quiet", &io::SaveOptions::quiet, "Whether to silence warnings during saving");
     nb::enum_<io::SaveOptions::OutputAttributes>(
         save_options,
         "OutputAttributes",
@@ -191,7 +192,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
            bool load_images,
            bool stitch_vertices,
            bool quiet,
-           const fs::path& search_path) {
+           std::optional<fs::path> search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
             opts.load_normals = load_normals;
@@ -204,7 +205,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             opts.load_images = load_images;
             opts.stitch_vertices = stitch_vertices;
             opts.quiet = quiet;
-            opts.search_path = search_path;
+            if (search_path.has_value()) opts.search_path = search_path.value();
             return io::load_mesh<MeshType>(filename, opts);
         },
         "filename"_a,
@@ -219,7 +220,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "load_images"_a = io::LoadOptions().load_images,
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
         "quiet"_a = io::LoadOptions().quiet,
-        "search_path"_a = io::LoadOptions().search_path,
+        "search_path"_a = nb::none(),
         R"(Load mesh from a file.
 
 :param filename:           The input file name.
@@ -230,13 +231,13 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
 :param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
 :param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
-:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_object_ids:    Whether to load object ids from mesh if available. Defaults to True.
 :param load_images:        Whether to load external images if available. Defaults to True.
 :param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
 :param quiet:              Whether to silence warnings during loading. Defaults to False.
-:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
+:param search_path:        Search path for external references (e.g. .mtl, .bin, etc.). Defaults to "".
 
-:return SurfaceMesh: The mesh object extracted from the input string.)");
+:return SurfaceMesh: The mesh object loaded from the file.)");
 
     m.def(
         "load_simple_scene",
@@ -252,7 +253,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
            bool load_images,
            bool stitch_vertices,
            bool quiet,
-           const fs::path& search_path) {
+           std::optional<fs::path> search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
             opts.load_normals = load_normals;
@@ -265,7 +266,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             opts.load_images = load_images;
             opts.stitch_vertices = stitch_vertices;
             opts.quiet = quiet;
-            opts.search_path = search_path;
+            if (search_path.has_value()) opts.search_path = search_path.value();
             return io::load_simple_scene<SimpleSceneType>(filename, opts);
         },
         "filename"_a,
@@ -280,7 +281,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "load_images"_a = io::LoadOptions().load_images,
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
         "quiet"_a = io::LoadOptions().quiet,
-        "search_path"_a = io::LoadOptions().search_path,
+        "search_path"_a = nb::none(),
         R"(Load a simple scene from file.
 
 :param filename:           The input file name.
@@ -291,13 +292,13 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
 :param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
 :param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
-:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_object_ids:    Whether to load object ids from mesh if available. Defaults to True.
 :param load_images:        Whether to load external images if available. Defaults to True.
 :param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
 :param quiet:              Whether to silence warnings during loading. Defaults to False.
-:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
+:param search_path:        Search path for external references (e.g. .mtl, .bin, etc.). Defaults to "".
 
-:return SimpleScene: The scene object extracted from the input string.)");
+:return SimpleScene: The scene object loaded from the file.)");
 
     m.def(
         "save_simple_scene",
@@ -363,7 +364,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         R"(Convert a mesh to a binary string based on specified format.
 
 :param mesh: The input mesh.
-:param format: Format to use. Supported formats are "obj", "ply", "gltf" and "msh".
+:param format: Format to use. Supported formats are "obj", "ply", "msh", "gltf" and "glb".
 :param binary: Whether to save the mesh in binary format if supported. Defaults to True. Only `msh`, `ply` and `glb` support binary format.
 :param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
 :param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.
@@ -418,7 +419,7 @@ The binary string should use one of the supported formats. Supported formats inc
            bool load_images,
            bool stitch_vertices,
            bool quiet,
-           const fs::path& search_path) {
+           std::optional<fs::path> search_path) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
             opts.load_normals = load_normals;
@@ -431,7 +432,7 @@ The binary string should use one of the supported formats. Supported formats inc
             opts.load_images = load_images;
             opts.stitch_vertices = stitch_vertices;
             opts.quiet = quiet;
-            opts.search_path = search_path;
+            if (search_path.has_value()) opts.search_path = search_path.value();
             return io::load_scene<SceneType>(filename, opts);
         },
         "filename"_a,
@@ -446,7 +447,7 @@ The binary string should use one of the supported formats. Supported formats inc
         "load_images"_a = io::LoadOptions().load_images,
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
         "quiet"_a = io::LoadOptions().quiet,
-        "search_path"_a = io::LoadOptions().search_path,
+        "search_path"_a = nb::none(),
         R"(Load a scene.
 
 :param filename:          The input file name.
@@ -457,11 +458,11 @@ The binary string should use one of the supported formats. Supported formats inc
 :param load_weights:       Whether to load skinning weights attributes from mesh if available. Defaults to True.
 :param load_materials:     Whether to load material ids from mesh if available. Defaults to True.
 :param load_vertex_colors: Whether to load vertex colors from mesh if available. Defaults to True.
-:param load_object_id:     Whether to load object ids from mesh if available. Defaults to True.
+:param load_object_ids:    Whether to load object ids from mesh if available. Defaults to True.
 :param load_images:        Whether to load external images if available. Defaults to True.
 :param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
 :param quiet:              Whether to silence warnings during loading. Defaults to False.
-:param search_path:        Optional search path for external references (e.g. .mtl, .bin, etc.). Defaults to None.
+:param search_path:        Search path for external references (e.g. .mtl, .bin, etc.). Defaults to "".
 
 :return Scene: The loaded scene object.)");
 
@@ -535,9 +536,9 @@ The binary string should use one of the supported formats (i.e. `gltf`, `glb` an
 :param scene:       The scene to save.
 :param binary:      Whether to save the scene in binary format if supported. Defaults to True. Only `glb` supports binary format.
 :param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
+:param embed_images: Whether to embed images in the output file when supported.
 :param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.
-
-:return str: The string representing the input scene.)");
+)");
 
     m.def(
         "scene_to_string",
@@ -587,6 +588,7 @@ The binary string should use one of the supported formats (i.e. `gltf`, `glb` an
 :param format:   Format to use. Supported formats are "gltf" and "glb".
 :param binary:   Whether to save the scene in binary format if supported. Defaults to True. Only `glb` supports binary format.
 :param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
+:param embed_images: Whether to embed images in the output file when supported.
 :param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.
 
 :return str: The string representing the input scene.)");

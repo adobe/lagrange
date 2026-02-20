@@ -198,6 +198,19 @@ void bind_enum(nb::module_& m)
             AttributeCastPolicy::DoNotRemapInvalid,
             "Do not remap invalid values. They are simply static_cast<> to the target type");
 
+    nb::enum_<AttributeReorientPolicy>(
+        m,
+        "AttributeReorientPolicy",
+        "Policy for updating attributes values when reorienting mesh facets")
+        .value(
+            "NoReorient",
+            AttributeReorientPolicy::None,
+            "Do not reorient attributes when flipping facets")
+        .value(
+            "Reorient",
+            AttributeReorientPolicy::Reorient,
+            "Reorient attributes when flipping facets");
+
     nb::enum_<AttributeDeletePolicy>(
         m,
         "AttributeDeletePolicy",

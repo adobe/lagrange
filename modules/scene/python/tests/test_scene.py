@@ -12,9 +12,9 @@
 import math
 
 import lagrange
-
-import pytest
 import numpy as np
+
+from .assets import single_triangle
 
 
 class TestScene:
@@ -209,3 +209,20 @@ class TestScene:
         assert scene.extensions.data["extension0"] == {"key": [10, 1, 2]}
         scene.extensions.data["extension0"]["key"] = [3, 4, 5]
         assert scene.extensions.data["extension0"] == {"key": [3, 4, 5]}
+
+    def test_scene_convert(self, single_triangle):
+        scene = lagrange.scene.mesh_to_scene(single_triangle)
+        scene2 = lagrange.scene.meshes_to_scene([single_triangle, single_triangle])
+        mesh = lagrange.scene.scene_to_mesh(scene)
+        mesh_alt = lagrange.combine_meshes(lagrange.scene.scene_to_meshes(scene))
+        mesh2 = lagrange.scene.scene_to_mesh(scene2)
+        mesh2_alt = lagrange.combine_meshes(lagrange.scene.scene_to_meshes(scene2))
+
+        assert mesh.num_vertices == 3
+        assert mesh.num_facets == 1
+        assert mesh2.num_vertices == 6
+        assert mesh2.num_facets == 2
+        assert np.all(mesh.vertices == mesh_alt.vertices) and np.all(mesh.facets == mesh_alt.facets)
+        assert np.all(mesh2.vertices == mesh2_alt.vertices) and np.all(
+            mesh2.facets == mesh2_alt.facets
+        )

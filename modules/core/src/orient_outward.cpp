@@ -195,7 +195,7 @@ void orient_outward(lagrange::SurfaceMesh<Scalar, Index>& mesh, const OrientOpti
         mesh.clear_edges();
     }
     mesh.delete_attribute(component_options.output_attribute_name);
-    mesh.flip_facets([&](Index f) { return should_flip[f]; });
+    mesh.flip_facets([&](Index f) { return should_flip[f]; }, AttributeReorientPolicy::Reorient);
 }
 
 #define LA_X_orient_outward(_, Scalar, Index) \

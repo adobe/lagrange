@@ -14,22 +14,17 @@
 #include <lagrange/io/save_mesh.h>
 
 #include <lagrange/AttributeValueType.h>
-#include <lagrange/cast_attribute.h>
 #include <lagrange/compute_normal.h>
-#include <lagrange/compute_seam_edges.h>
-#include <lagrange/compute_vertex_valence.h>
-#include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/map_attribute.h>
-#include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
-#include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
-#include <lagrange/scene/simple_scene_convert.h>
+#include <lagrange/subdivision/compute_sharpness.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/subdivision/midpoint_subdivision.h>
 #include <lagrange/subdivision/sqrt_subdivision.h>
 #include <lagrange/topology.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/fmt_eigen.h>
+#include <lagrange/utils/utils.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
 
@@ -45,11 +40,12 @@ int main(int argc, char** argv)
         std::string output = "output.obj";
         std::string scheme = "auto";
         bool output_btn = false;
-        std::optional<float> autodetect_normal_threshold;
+        std::optional<float> autodetect_normal_threshold_deg;
         int log_level = 1; // debug
     } args;
 
-    lagrange::subdivision::SubdivisionOptions options;
+    lagrange::subdivision::SubdivisionOptions subdivision_options;
+    lagrange::subdivision::SharpnessOptions sharpness_options;
 
     std::map<std::string, lagrange::subdivision::RefinementType> map{
         {"Uniform", lagrange::subdivision::RefinementType::Uniform},
@@ -61,20 +57,23 @@ int main(int argc, char** argv)
     app.add_option("output", args.output, "Output mesh.");
     app.add_option("-s,--scheme", args.scheme, "Subdivision scheme")
         ->check(CLI::IsMember({"auto", "bilinear", "loop", "catmark", "sqrt", "midpoint"}));
-    app.add_option("-n,--num-levels", options.num_levels, "Number of subdivision levels");
+    app.add_option(
+        "-n,--num-levels",
+        subdivision_options.num_levels,
+        "Number of subdivision levels");
     app.add_option(
         "-a,--autodetect-normal-threshold",
-        args.autodetect_normal_threshold,
+        args.autodetect_normal_threshold_deg,
         "Normal angle threshold (in degree) for autodetecting sharp edges");
     app.add_flag(
         "--limit",
-        options.use_limit_surface,
+        subdivision_options.use_limit_surface,
         "Project vertex attributes to the limit surface");
-    app.add_option("--refinement", options.refinement, "Mesh refinement method")
+    app.add_option("--refinement", subdivision_options.refinement, "Mesh refinement method")
         ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
     app.add_option(
         "--edge-length",
-        options.max_edge_length,
+        subdivision_options.max_edge_length,
         "Max edge length target for adaptive refinement");
     app.add_flag("--normal", args.output_btn, "Compute limit normal as a vertex attribute");
     app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
@@ -123,46 +122,14 @@ int main(int argc, char** argv)
             lagrange::weld_indexed_attribute(mesh, mesh.get_attribute_id(name), w_opts);
         }
     });
-    // Find an attribute to use as facet normal if possible (defines sharp edges)
-    std::optional<lagrange::AttributeId> normal_id =
-        lagrange::find_matching_attribute(mesh, lagrange::AttributeUsage::Normal);
-    if (normal_id.has_value()) {
-        lagrange::logger().info(
-            "Found indexed normal attribute: {}",
-            mesh.get_attribute_name(normal_id.value()));
+    // Compute sharpness information
+    if (args.autodetect_normal_threshold_deg.has_value()) {
+        sharpness_options.feature_angle_threshold =
+            lagrange::to_radians(args.autodetect_normal_threshold_deg.value());
     }
-    // If autosmooth normals are requested by user, compute them (unless input asset already has
-    // normals)
-    if (!normal_id.has_value() && args.autodetect_normal_threshold.has_value()) {
-        lagrange::logger().info(
-            "Computing autosmooth normals with a threshold of {} degrees",
-            args.autodetect_normal_threshold.value());
-        float feature_angle_threshold =
-            args.autodetect_normal_threshold.value() * lagrange::internal::pi / 180.f;
-        normal_id = lagrange::compute_normal<double, uint32_t>(mesh, feature_angle_threshold);
-    }
-    // Finally, compute edge sharpness info based on indexed normal topology
-    if (normal_id.has_value()) {
-        lagrange::logger().info("Using mesh normals to set sharpness flag.");
-        auto seam_id = lagrange::compute_seam_edges(mesh, normal_id.value());
-        auto edge_sharpness_id = lagrange::cast_attribute<float>(mesh, seam_id, "edge_sharpness");
-        options.edge_sharpness_attr = edge_sharpness_id;
-
-        // Set vertex sharpness to 1 for leaf and junction vertices
-        lagrange::VertexValenceOptions v_opts;
-        v_opts.induced_by_attribute = mesh.get_attribute_name(seam_id);
-        auto valence_id = lagrange::compute_vertex_valence(mesh, v_opts);
-        auto valence = lagrange::attribute_vector_view<uint32_t>(mesh, valence_id);
-        auto vertex_sharpness_id = mesh.create_attribute<float>(
-            "vertex_sharpness",
-            lagrange::AttributeElement::Vertex,
-            lagrange::AttributeUsage::Scalar);
-        auto vertex_sharpness = lagrange::attribute_vector_ref<float>(mesh, vertex_sharpness_id);
-        for (uint32_t v = 0; v < mesh.get_num_vertices(); ++v) {
-            vertex_sharpness[v] = (valence[v] == 1 || valence[v] > 2 ? 1.f : 0.f);
-        }
-        options.vertex_sharpness_attr = vertex_sharpness_id;
-    }
+    auto sharpness_results = lagrange::subdivision::compute_sharpness(mesh, sharpness_options);
+    subdivision_options.vertex_sharpness_attr = sharpness_results.vertex_sharpness_attr;
+    subdivision_options.edge_sharpness_attr = sharpness_results.edge_sharpness_attr;
 
     //////////////////////
     // Mesh subdivision //
@@ -171,29 +138,29 @@ int main(int argc, char** argv)
     if ((std::set<std::string>{"auto", "bilinear", "loop", "catmark"}).count(args.scheme)) {
         // Convert subdiv scheme to enum
         if (args.scheme == "loop") {
-            options.scheme = lagrange::subdivision::SchemeType::Loop;
+            subdivision_options.scheme = lagrange::subdivision::SchemeType::Loop;
         } else if (args.scheme == "catmark") {
-            options.scheme = lagrange::subdivision::SchemeType::CatmullClark;
+            subdivision_options.scheme = lagrange::subdivision::SchemeType::CatmullClark;
         } else if (args.scheme == "bilinear") {
-            options.scheme = lagrange::subdivision::SchemeType::Bilinear;
+            subdivision_options.scheme = lagrange::subdivision::SchemeType::Bilinear;
         }
 
-        if (args.output_btn && normal_id.has_value()) {
+        if (args.output_btn && sharpness_results.normal_attr.has_value()) {
             // Only output a single set of normals in this example
-            mesh.delete_attribute(mesh.get_attribute_name(normal_id.value()));
+            mesh.delete_attribute(mesh.get_attribute_name(sharpness_results.normal_attr.value()));
         }
 
         if (args.output_btn) {
-            options.output_limit_normals = "normal";
+            subdivision_options.output_limit_normals = "normal";
         }
-        mesh = lagrange::subdivision::subdivide_mesh(mesh, options);
+        mesh = lagrange::subdivision::subdivide_mesh(mesh, subdivision_options);
         if (args.output_btn) {
             map_attribute_in_place(mesh, "normal", lagrange::AttributeElement::Indexed);
         }
     } else if (args.scheme == "sqrt") {
-        for (unsigned i = 0; i < options.num_levels; ++i) {
+        for (unsigned i = 0; i < subdivision_options.num_levels; ++i) {
             mesh = lagrange::subdivision::sqrt_subdivision(mesh);
-            if (i + 1 < options.num_levels) {
+            if (i + 1 < subdivision_options.num_levels) {
                 lagrange::logger().info(
                     "Intermediate mesh has {} vertices and {} facets",
                     mesh.get_num_vertices(),
@@ -201,9 +168,9 @@ int main(int argc, char** argv)
             }
         }
     } else if (args.scheme == "midpoint") {
-        for (unsigned i = 0; i < options.num_levels; ++i) {
+        for (unsigned i = 0; i < subdivision_options.num_levels; ++i) {
             mesh = lagrange::subdivision::midpoint_subdivision(mesh);
-            if (i + 1 < options.num_levels) {
+            if (i + 1 < subdivision_options.num_levels) {
                 lagrange::logger().info(
                     "Intermediate mesh has {} vertices and {} facets",
                     mesh.get_num_vertices(),

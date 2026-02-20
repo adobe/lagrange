@@ -194,6 +194,25 @@ input tensors are supported for setting the transform.)");
 
 :return: Concatenated mesh.)");
 
+    m.def(
+        "simple_scene_to_meshes",
+        [](const SimpleScene3D& scene, bool normalize_normals, bool normalize_tangents_bitangents) {
+            TransformOptions transform_options;
+            transform_options.normalize_normals = normalize_normals;
+            transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            return scene::simple_scene_to_meshes(scene, transform_options);
+        },
+        "scene"_a,
+        "normalize_normals"_a = TransformOptions{}.normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        R"(Converts a scene into a list of meshes with all the transforms applied.
+
+:param scene: Scene to convert.
+:param normalize_normals: If enabled, normals are normalized after transformation.
+:param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+
+:return: List of transformed meshes.)");
+
     using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
     m.def(
         "mesh_to_simple_scene",

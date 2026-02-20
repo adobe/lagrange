@@ -151,7 +151,7 @@ function(lagrange_generate_init_file)
 #
 from .lagrange.core import *
 from ._logging import logger
-from ._version import __version__
+from ._version import *
 
 del _logging, lagrange  # type: ignore
 
@@ -202,7 +202,8 @@ function(lagrange_generate_python_binding_module)
     endif()
 endfunction()
 
-# 5. dump lagrange version
-if(SKBUILD)
-    file(WRITE ${SKBUILD_PLATLIB_DIR}/lagrange/_version.py "__version__='${lagrange_version}'")
+# 5. download unit test data
+if(NOT TARGET lagrange_download_data)
+    lagrange_download_data()
 endif()
+add_dependencies(lagrange_python lagrange_download_data)

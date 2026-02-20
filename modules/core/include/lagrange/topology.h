@@ -125,6 +125,31 @@ AttributeId compute_vertex_is_manifold(
     SurfaceMesh<Scalar, Index>& mesh,
     const VertexManifoldOptions& options = {});
 
+///
+/// Option struct for computing edge manifold flags.
+///
+struct EdgeManifoldOptions
+{
+    /// Per-edge attribute indicating whether an edge is manifold.
+    std::string_view output_attribute_name = "@edge_is_manifold";
+};
+
+///
+/// Compute a mesh attribute of value type `uint8_t` indicating edge manifoldness.
+///
+/// @param[in,out] mesh     Input mesh.
+/// @param[in]     options  Output attribute options.
+///
+/// @tparam        Scalar   Mesh scalar type.
+/// @tparam        Index    Mesh index type.
+///
+/// @return     Id of the newly added per-edge attribute.
+///
+template <typename Scalar, typename Index>
+AttributeId compute_edge_is_manifold(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const EdgeManifoldOptions& options = {});
+
 /// @}
 
 } // namespace lagrange

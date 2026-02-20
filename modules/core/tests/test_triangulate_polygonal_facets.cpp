@@ -9,6 +9,8 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include "../src/mapbox/earcut.h"
+
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
@@ -58,6 +60,7 @@ void test_basic()
         "tilings/semi7.obj",
         "tilings/semi8.obj",
         "non_convex_quad.obj",
+        "envelope.obj",
     };
 
     for (fs::path filename : filenames) {
@@ -75,16 +78,10 @@ void test_basic()
         // Triangulation does not insert new vertices
         REQUIRE(mesh.get_num_vertices() == old_num_vertices);
 
-        // Because we edit the mesh in place, mesh.is_triangle_mesh() will *not* return true. Once
-        // we implement the method SurfaceMesh::compress_if_regular(), we should be able to use it
-        // instead.
-        bool all_triangles = true;
-        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
-            if (mesh.get_facet_size(f) != 3) {
-                all_triangles = false;
-            }
-        }
-        REQUIRE(all_triangles);
+        // Because we edit the mesh in place, mesh.is_triangle_mesh() will *not* return true unless
+        // we call mesh.compress_if_regular() explicitly.
+        mesh.compress_if_regular();
+        REQUIRE(mesh.is_triangle_mesh());
 
         lagrange::logger().debug(
             "Mesh after triangulation has {} vertices and {} facets",
@@ -364,6 +361,26 @@ void test_centroid_fan()
 }
 
 } // namespace
+
+TEST_CASE("earcut", "[core]")
+{
+    // Test case to ensure earcut doesn't enter infinite loop on specific input.
+    // See upstream discussion:
+    // https://github.com/mapbox/earcut.hpp/pull/90
+    std::vector<std::array<double, 2>> polygon = {
+        {0x1.9b21a8f6fa172p-2, 0x1.02ccccccccccap-1},
+        {0x1.9a9e3168c9909p-2, 0x1.01b0e74b9b37bp-1},
+        {0x1.9aa87b645e7c1p-2, 0x1.02367a1ca5791p-1},
+        {0x1.9aa87b645e7c1p-2, 0x1.02367a1ca5791p-1},
+        {0x1.9a9e3168c9909p-2, 0x1.01b0e74b9b37bp-1},
+        {0x1.9b21a8f6fa172p-2, 0x1.02ccccccccccap-1},
+        {0x1.9b019f9c1055ep-2, 0x1.02b403013b5e2p-1},
+        {0x1.9b019f9c1055ep-2, 0x1.02b403013b5e2p-1}};
+    lagrange::span<std::vector<std::array<double, 2>>> polygons(&polygon, 1);
+    lagrange::mapbox::detail::Earcut<uint32_t> earcut;
+    earcut(polygons); // => result = 3 * faces, clockwise
+    REQUIRE(earcut.indices.size() % 3 == 0);
+}
 
 TEST_CASE("triangulate_polygonal_facets: basic", "[core]")
 {

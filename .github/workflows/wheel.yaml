@@ -21,6 +21,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-tags: true
+          fetch-depth: 0
 
       - name: Setup Xcode version
         if: matrix.os == 'macos-15-intel'
@@ -35,7 +38,7 @@ jobs:
           xcode-version: '26.0.1'
 
       - name: Setup MSVC
-        if: runner.os == 'windows'
+        if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Install uv

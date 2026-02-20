@@ -234,10 +234,13 @@ void populate_non_indexed_edge_attribute(
     mshio::MshSpec& /*spec*/,
     const SurfaceMesh<Scalar, Index>& mesh,
     AttributeId id,
-    AttributeCounts& /*counts*/)
+    AttributeCounts& /*counts*/,
+    bool quiet)
 {
-    auto attr_name = mesh.get_attribute_name(id);
-    logger().warn("Skipping saving edge attribute {} in MSH format", attr_name);
+    if (!quiet) {
+        auto attr_name = mesh.get_attribute_name(id);
+        logger().warn("Skipping saving edge attribute {} in MSH format", attr_name);
+    }
 }
 
 template <typename Scalar, typename Index, typename Value>
@@ -289,7 +292,8 @@ void populate_non_indexed_attribute(
     mshio::MshSpec& spec,
     const SurfaceMesh<Scalar, Index>& mesh,
     AttributeId id,
-    AttributeCounts& counts)
+    AttributeCounts& counts,
+    bool quiet)
 {
     la_runtime_assert(!mesh.is_attribute_indexed(id));
     const auto& attr_base = mesh.get_attribute_base(id);
@@ -314,7 +318,7 @@ void populate_non_indexed_attribute(
     case AttributeElement::Edge: {
 #define LA_X_try_attribute(_, T)                \
     if (mesh.template is_attribute_type<T>(id)) \
-        populate_non_indexed_edge_attribute<Scalar, Index, T>(spec, mesh, id, counts);
+        populate_non_indexed_edge_attribute<Scalar, Index, T>(spec, mesh, id, counts, quiet);
         LA_ATTRIBUTE_X(try_attribute, 0)
 #undef LA_X_try_attribute
         break;
@@ -357,12 +361,13 @@ void populate_attribute(
     mshio::MshSpec& spec,
     const SurfaceMesh<Scalar, Index>& mesh,
     AttributeId id,
-    AttributeCounts& counts)
+    AttributeCounts& counts,
+    bool quiet)
 {
     if (mesh.is_attribute_indexed(id)) {
         populate_indexed_attribute(spec, mesh, id, counts);
     } else {
-        populate_non_indexed_attribute(spec, mesh, id, counts);
+        populate_non_indexed_attribute(spec, mesh, id, counts, quiet);
     }
 }
 
@@ -410,12 +415,12 @@ void save_mesh_msh(
         mesh.seq_foreach_attribute_id([&](AttributeId id) {
             auto name = mesh.get_attribute_name(id);
             if (!mesh.attr_name_is_reserved(name)) {
-                populate_attribute(spec, mesh, id, counts);
+                populate_attribute(spec, mesh, id, counts, options.quiet);
             }
         });
     } else {
         for (auto id : options.selected_attributes) {
-            populate_attribute(spec, mesh, id, counts);
+            populate_attribute(spec, mesh, id, counts, options.quiet);
         }
     }
 
