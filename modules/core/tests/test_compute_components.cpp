@@ -324,7 +324,7 @@ TEST_CASE("compute_components benchmark", "[surface][components][utilities][!ben
         return tmp_mesh;
     };
 
-    SECTION("Without initial computation")
+    SECTION("Edge components (excluding edge computation)")
     {
         BENCHMARK_ADVANCED("compute_components (disjoint sets)")
         (Catch::Benchmark::Chronometer meter)
@@ -347,7 +347,7 @@ TEST_CASE("compute_components benchmark", "[surface][components][utilities][!ben
 #endif
     }
 
-    SECTION("With initial computation")
+    SECTION("Edge components (including edge computation)")
     {
         BENCHMARK_ADVANCED("compute_components (disjoint sets)")
         (Catch::Benchmark::Chronometer meter)
@@ -369,6 +369,19 @@ TEST_CASE("compute_components benchmark", "[surface][components][utilities][!ben
             });
         };
 #endif
+    }
+
+    SECTION("Vertex components (excluding edge computation)")
+    {
+        BENCHMARK_ADVANCED("compute_components (disjoint sets)")
+        (Catch::Benchmark::Chronometer meter)
+        {
+            auto tmp_mesh = wrap_copy();
+            tmp_mesh.initialize_edges();
+            ComponentOptions opt;
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Vertex;
+            meter.measure([&]() { return compute_components(tmp_mesh, opt); });
+        };
     }
 }
 

@@ -987,6 +987,18 @@ Basel: Birkhäuser Basel, 2008. 175-188.
 :returns: The mesh area.)");
 
     m.def(
+        "compute_uv_area",
+        &lagrange::compute_uv_area<Scalar, Index>,
+        "mesh"_a,
+        "options"_a = MeshAreaOptions(),
+        R"(Compute UV mesh area.
+
+:param mesh: The input mesh.
+:param options: The options for computing mesh area.
+
+:returns: The UV mesh area.)");
+
+    m.def(
         "compute_mesh_area",
         [](MeshType& mesh,
            std::optional<std::string_view> input_attribute_name,
@@ -1523,14 +1535,76 @@ A mesh considered as manifold if it is both vertex and edge manifold.
 :return: Whether the mesh is manifold.)");
 
     m.def(
+        "compute_vertex_is_manifold",
+        [](MeshType& mesh, std::string_view output_attribute_name) {
+            VertexManifoldOptions options;
+            options.output_attribute_name = output_attribute_name;
+            return compute_vertex_is_manifold(mesh, options);
+        },
+        "mesh"_a,
+        "output_attribute_name"_a = VertexManifoldOptions().output_attribute_name,
+        R"(Compute whether each vertex is manifold.
+
+A vertex is considered manifold if its one-ring neighborhood is homeomorphic to a disk.
+
+:param mesh: The source mesh.
+:param output_attribute_name: The output vertex attribute name.
+
+:return: The attribute id of a vertex attribute indicating whether a vertex is manifold.)");
+
+    m.def(
+        "compute_edge_is_manifold",
+        [](MeshType& mesh, std::string_view output_attribute_name) {
+            EdgeManifoldOptions options;
+            options.output_attribute_name = output_attribute_name;
+            return compute_edge_is_manifold(mesh, options);
+        },
+        "mesh"_a,
+        "output_attribute_name"_a = EdgeManifoldOptions().output_attribute_name,
+        R"(Compute whether each edge is manifold.
+
+An edge is considered manifold if it is adjacent to one or two facets.
+
+:param mesh: The source mesh.
+:param output_attribute_name: The output edge attribute name.
+
+:return: The attribute id of an edge attribute indicating whether an edge is manifold.)");
+
+    m.def(
         "is_oriented",
         &is_oriented<Scalar, Index>,
         "mesh"_a,
         R"(Check if the mesh is oriented.
 
+A mesh is oriented if all interior edges are oriented. An interior edge is considered as
+oriented if it has the same number of half-edges for each edge direction. I.e. the number of
+facets that use the edge in one direction equals the number of facets that use the edge in the
+opposite direction. Boundary edges are always considered as oriented.
+
 :param mesh: The source mesh.
 
 :return: Whether the mesh is oriented.)");
+
+    m.def(
+        "compute_edge_is_oriented",
+        [](MeshType& mesh, std::string_view output_attribute_name) {
+            OrientationOptions options;
+            options.output_attribute_name = output_attribute_name;
+            return compute_edge_is_oriented(mesh, options);
+        },
+        "mesh"_a,
+        "output_attribute_name"_a = OrientationOptions().output_attribute_name,
+        R"(Compute whether each edge is oriented.
+
+An interior edge is considered as oriented if it has the same number of half-edges for each edge
+direction. I.e. the number of facets that use the edge in one direction equals to the number of
+facets that use the edge in the opposite direction. Boundary edges are always considered as
+oriented.
+
+:param mesh: The source mesh.
+:param output_attribute_name: The output edge attribute name.
+
+:return: The attribute id of an edge attribute indicating whether an edge is oriented.)");
 
     m.def(
         "transform_mesh",

@@ -10,3 +10,6 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_test()
+
+lagrange_include_modules(primitive)
+target_link_libraries(test_lagrange_bvh PRIVATE lagrange::primitive)

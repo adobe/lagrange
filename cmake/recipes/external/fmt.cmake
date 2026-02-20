@@ -22,13 +22,7 @@ include(CPM)
 CPMAddPackage(
     NAME fmt
     GITHUB_REPOSITORY fmtlib/fmt
-    GIT_TAG 11.1.3
-    # Other versions to test with:
-    # GIT_TAG 11.0.2
-    # GIT_TAG 10.2.1
-    # GIT_TAG 10.1.1
-    # GIT_TAG 9.1.0
-    # GIT_TAG 8.1.1
+    GIT_TAG 12.1.0
 )
 
 set_target_properties(fmt PROPERTIES POSITION_INDEPENDENT_CODE ON)

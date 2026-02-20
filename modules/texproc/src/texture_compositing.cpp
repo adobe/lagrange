@@ -212,6 +212,10 @@ image::experimental::Array3D<ValueType> texture_compositing(
         hgd.vCycle(options.solver.num_gauss_seidel_iterations);
     }
 
+    if (options.clamp_to_range.has_value()) {
+        mesh_utils::clamp_out_of_range(x, hgd, options.clamp_to_range.value());
+    }
+
     // Put the texel values back into the texture
     for (size_t n = 0; n < hgd.numNodes(); n++) {
         std::pair<unsigned int, unsigned int> coords = hgd.node(n);

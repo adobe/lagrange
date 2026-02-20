@@ -50,5 +50,8 @@ def cube():
 class TestMeshSubdivision:
     def test_basic(self, cube):
         num_levels = 2
-        mesh = lagrange.subdivision.subdivide_mesh(cube, num_levels=num_levels)
+        vert_id, edge_id, normal_id = lagrange.subdivision.compute_sharpness(cube)
+        mesh = lagrange.subdivision.subdivide_mesh(
+            cube, num_levels=num_levels, vertex_sharpness_attr=vert_id, edge_sharpness_attr=edge_id
+        )
         assert mesh.num_facets == cube.num_corners * 4 ** (num_levels - 1)

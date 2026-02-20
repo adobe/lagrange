@@ -32,8 +32,8 @@ __pycache__
 # Python folders
 *.egg-info
 
-# Nightly version file
-/VERSION_NIGHTLY
+# Python version file
+modules/python/lagrange/_version.py
 
 # Lock files
 uv.lock

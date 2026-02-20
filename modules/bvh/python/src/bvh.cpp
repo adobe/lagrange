@@ -12,6 +12,7 @@
 
 #include <lagrange/bvh/EdgeAABBTree.h>
 #include <lagrange/bvh/TriangleAABBTree.h>
+#include <lagrange/bvh/remove_interior_shells.h>
 #include <lagrange/bvh/weld_vertices.h>
 #include <lagrange/python/binding.h>
 #include <lagrange/python/bvh.h>
@@ -386,6 +387,18 @@ void populate_bvh_module(nb::module_& m)
 :param boundary_only: If true, only boundary vertices will be considered for welding. Defaults to False.
 
 .. warning:: This method may introduce non-manifoldness and degeneracy in the mesh.)");
+
+    m.def(
+        "remove_interior_shells",
+        bvh::remove_interior_shells<Scalar, Index>,
+        "mesh"_a,
+        R"(Removes interior shells from a (manifold, non-intersecting) mesh
+
+.. warning:: This method assumes that the input mesh is closed, manifold and has no self-intersections.
+             The result may be invalid if these conditions are not met.
+
+:param mesh: Input mesh to process.
+:return: A new mesh with interior shells removed.)");
 }
 
 } // namespace lagrange::python

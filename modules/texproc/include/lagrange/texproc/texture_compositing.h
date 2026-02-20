@@ -15,7 +15,9 @@
 #include <lagrange/image/Array3D.h>
 #include <lagrange/image/View3D.h>
 
+#include <optional>
 #include <string_view>
+#include <utility>
 
 namespace lagrange::texproc {
 
@@ -35,6 +37,9 @@ struct CompositingOptions
 
     /// Jitter amount per texel (0 to deactivate).
     double jitter_epsilon = 1e-4;
+
+    /// Clamp out-of-range texels to the given range (nullopt to disable).
+    std::optional<std::pair<double, double>> clamp_to_range = std::nullopt;
 
     /// Whether to smooth pixels with a low total weight (< 1). When enabled, this will not dampen
     /// the gradient terms for pixels with a low total weight, resulting in a smoother texture in

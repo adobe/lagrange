@@ -22,6 +22,7 @@
 #include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
+#include <lagrange/subdivision/compute_sharpness.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/subdivision/midpoint_subdivision.h>
 #include <lagrange/subdivision/sqrt_subdivision.h>
@@ -220,16 +221,16 @@ TEST_CASE("mesh_subdivision_with_uv", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
             options.refinement);
 
         auto uv_mesh = [&] {
-            lagrange::SurfaceMesh32d uv_mesh(2);
+            lagrange::SurfaceMesh32d uv_mesh_(2);
             const auto& uv_attr = subdivided_mesh.get_indexed_attribute<Scalar>("uv");
-            uv_mesh.wrap_as_const_vertices(
+            uv_mesh_.wrap_as_const_vertices(
                 uv_attr.values().get_all(),
                 uv_attr.values().get_num_elements());
-            uv_mesh.wrap_as_const_facets(
+            uv_mesh_.wrap_as_const_facets(
                 uv_attr.indices().get_all(),
                 subdivided_mesh.get_num_facets(),
                 subdivided_mesh.get_vertex_per_facet());
-            return uv_mesh;
+            return uv_mesh_;
         }();
 
         auto area = lagrange::compute_mesh_area(subdivided_mesh);
@@ -534,4 +535,217 @@ TEST_CASE("mesh_subdivision_midpoint", "[mesh][subdivision][sqrt]")
     auto subdivided_mesh = lagrange::subdivision::midpoint_subdivision(mesh);
     REQUIRE(vertex_view(subdivided_mesh) == vertex_view(expected_mesh));
     REQUIRE(facet_view(subdivided_mesh) == facet_view(expected_mesh));
+}
+
+TEST_CASE("compute_sharpness", "[mesh][subdivision][sharpness]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // Constants for common feature angles and sharpness thresholds
+    constexpr Scalar feature_angle_90_deg = 0.5; // 90 degrees in units of pi
+    constexpr Scalar feature_angle_45_deg = 0.25; // 45 degrees in units of pi
+    constexpr Scalar feature_angle_18_deg = 0.1; // 18 degrees in units of pi
+    constexpr float sharpness_threshold =
+        0.5f; // Threshold for determining if an edge/vertex is sharp
+
+    SECTION("with indexed normals")
+    {
+        // Create a simple cube mesh with indexed normals
+        auto mesh =
+            lagrange::testing::load_surface_mesh<Scalar, Index>("open/subdivision/cube.obj");
+
+        // Add indexed normals with a feature angle
+        auto nrm_id = lagrange::compute_normal(mesh, lagrange::internal::pi * feature_angle_90_deg);
+        auto nrm_name = mesh.get_attribute_name(nrm_id);
+
+        // Call compute_sharpness with the indexed normal attribute
+        lagrange::subdivision::SharpnessOptions options;
+        options.normal_attribute_name = nrm_name;
+        auto results = lagrange::subdivision::compute_sharpness(mesh, options);
+
+        // Verify that the function returned attribute ids
+        REQUIRE(results.normal_attr.has_value());
+        REQUIRE(results.edge_sharpness_attr.has_value());
+        REQUIRE(results.vertex_sharpness_attr.has_value());
+
+        // Verify the normal attribute is the one we provided
+        REQUIRE(results.normal_attr.value() == nrm_id);
+
+        // Verify edge sharpness attribute exists and has correct properties
+        const auto& edge_sharpness_attr =
+            mesh.get_attribute_base(results.edge_sharpness_attr.value());
+        REQUIRE(edge_sharpness_attr.get_element_type() == lagrange::AttributeElement::Edge);
+        REQUIRE(edge_sharpness_attr.get_num_channels() == 1);
+
+        // Verify vertex sharpness attribute exists and has correct properties
+        const auto& vertex_sharpness_attr =
+            mesh.get_attribute_base(results.vertex_sharpness_attr.value());
+        REQUIRE(vertex_sharpness_attr.get_element_type() == lagrange::AttributeElement::Vertex);
+        REQUIRE(vertex_sharpness_attr.get_num_channels() == 1);
+
+        // Verify that sharp edges are marked (cube has 12 edges, all should be sharp due to 90°
+        // angles)
+        mesh.initialize_edges();
+        auto edge_sharpness =
+            lagrange::attribute_vector_view<float>(mesh, results.edge_sharpness_attr.value());
+        Index num_sharp_edges = 0;
+        for (Index e = 0; e < mesh.get_num_edges(); ++e) {
+            if (edge_sharpness[e] > sharpness_threshold) {
+                num_sharp_edges++;
+            }
+        }
+        REQUIRE(num_sharp_edges == 12); // All edges of a cube should be sharp
+
+        // Verify that corner vertices are sharp (cube has 8 vertices, all should be sharp)
+        auto vertex_sharpness =
+            lagrange::attribute_vector_view<float>(mesh, results.vertex_sharpness_attr.value());
+        Index num_sharp_vertices = 0;
+        for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
+            if (vertex_sharpness[v] > sharpness_threshold) {
+                num_sharp_vertices++;
+            }
+        }
+        REQUIRE(num_sharp_vertices == 8); // All vertices of a cube should be sharp
+    }
+
+    SECTION("with feature angle threshold")
+    {
+        // Create a simple cube mesh without indexed normals
+        auto mesh =
+            lagrange::testing::load_surface_mesh<Scalar, Index>("open/subdivision/cube.obj");
+
+        // Remove any existing indexed normal attributes
+        std::vector<lagrange::AttributeId> to_remove;
+        lagrange::AttributeMatcher matcher;
+        matcher.usages = lagrange::AttributeUsage::Normal;
+        matcher.element_types = lagrange::AttributeElement::Indexed;
+        for (auto id : lagrange::find_matching_attributes(mesh, matcher)) {
+            to_remove.push_back(id);
+        }
+        for (auto id : to_remove) {
+            mesh.delete_attribute(mesh.get_attribute_name(id));
+        }
+
+        // Call compute_sharpness with a feature angle threshold
+        lagrange::subdivision::SharpnessOptions options;
+        options.feature_angle_threshold =
+            lagrange::internal::pi * feature_angle_90_deg; // 90 degrees
+        auto results = lagrange::subdivision::compute_sharpness(mesh, options);
+
+        // Verify that the function computed normals and sharpness attributes
+        REQUIRE(results.normal_attr.has_value());
+        REQUIRE(results.edge_sharpness_attr.has_value());
+        REQUIRE(results.vertex_sharpness_attr.has_value());
+
+        // Verify that an indexed normal attribute was created
+        const auto& normal_attr = mesh.get_attribute_base(results.normal_attr.value());
+        REQUIRE(normal_attr.get_element_type() == lagrange::AttributeElement::Indexed);
+    }
+
+    SECTION("without normals or feature angle")
+    {
+        // Create a simple cube mesh
+        auto mesh =
+            lagrange::testing::load_surface_mesh<Scalar, Index>("open/subdivision/cube.obj");
+
+        // Remove any existing indexed normal attributes
+        std::vector<lagrange::AttributeId> to_remove;
+        lagrange::AttributeMatcher matcher;
+        matcher.usages = lagrange::AttributeUsage::Normal;
+        matcher.element_types = lagrange::AttributeElement::Indexed;
+        for (auto id : lagrange::find_matching_attributes(mesh, matcher)) {
+            to_remove.push_back(id);
+        }
+        for (auto id : to_remove) {
+            mesh.delete_attribute(mesh.get_attribute_name(id));
+        }
+
+        // Call compute_sharpness without providing normals or feature angle
+        lagrange::subdivision::SharpnessOptions options;
+        auto results = lagrange::subdivision::compute_sharpness(mesh, options);
+
+        // Verify that no sharpness information is computed
+        REQUIRE(!results.normal_attr.has_value());
+        REQUIRE(!results.edge_sharpness_attr.has_value());
+        REQUIRE(!results.vertex_sharpness_attr.has_value());
+    }
+
+    SECTION("vertex sharpness computation - junction vertices")
+    {
+        // Create a simple quad mesh
+        lagrange::SurfaceMesh<Scalar, Index> mesh(3);
+        // clang-format off
+        mesh.add_vertices(5, {
+            0.5, 0.5, 1, // vertex 0 - center junction (valence 4)
+            1, 0, 0, // vertex 1
+            1, 1, 0, // vertex 2
+            0, 1, 0, // vertex 3
+            0, 0, 0 // vertex 4
+        });
+        // clang-format on
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+        mesh.add_triangle(0, 3, 4);
+        mesh.add_triangle(0, 4, 1);
+
+        // Add indexed normals
+        lagrange::compute_normal(mesh, lagrange::internal::pi * feature_angle_45_deg);
+
+        // Call compute_sharpness
+        lagrange::subdivision::SharpnessOptions options;
+        auto results = lagrange::subdivision::compute_sharpness(mesh, options);
+
+        // Verify results
+        REQUIRE(results.normal_attr.has_value());
+        REQUIRE(results.vertex_sharpness_attr.has_value());
+
+        // Check vertex sharpness - center vertex should have high valence and be sharp
+        auto vertex_sharpness =
+            lagrange::attribute_vector_view<float>(mesh, results.vertex_sharpness_attr.value());
+
+        // Vertex 0 (center, valence > 2) should be sharp
+        REQUIRE(vertex_sharpness[0] > sharpness_threshold);
+    }
+
+    SECTION("vertex sharpness computation - leaf vertices")
+    {
+        // Create a simple mesh with boundary edges
+        lagrange::SurfaceMesh<Scalar, Index> mesh(3);
+        // clang-format off
+        mesh.add_vertices(4, {
+            0, 0, 0,
+            1, 0, 1,
+            0.5, 1, 0,
+            1.5, 0, 0
+        });
+        // clang-format on
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 3, 2);
+
+        // Add indexed normals that create seams
+        lagrange::compute_normal(mesh, lagrange::internal::pi * feature_angle_18_deg);
+
+        // Call compute_sharpness
+        lagrange::subdivision::SharpnessOptions options;
+        auto results = lagrange::subdivision::compute_sharpness(mesh, options);
+
+        // Verify results
+        REQUIRE(results.vertex_sharpness_attr.has_value());
+
+        // At least some vertices should have sharpness values computed
+        auto vertex_sharpness =
+            lagrange::attribute_vector_view<float>(mesh, results.vertex_sharpness_attr.value());
+        bool has_sharp = false;
+        for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
+            if (vertex_sharpness[v] > sharpness_threshold) {
+                has_sharp = true;
+                break;
+            }
+        }
+        REQUIRE(has_sharp);
+        // The specific configuration depends on the normal seams created
+        // Just verify the attribute is populated
+        REQUIRE(vertex_sharpness.size() == mesh.get_num_vertices());
+    }
 }

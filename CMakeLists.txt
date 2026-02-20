@@ -103,9 +103,26 @@ if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
 endif()
 
 ################################################################################
-file(READ "VERSION" lagrange_version)
-string(STRIP ${lagrange_version} lagrange_version)
+
+if(SKBUILD)
+    # Version number dictated by setuptools_scm
+    set(lagrange_version ${SKBUILD_PROJECT_VERSION})
+else()
+    # Set ${lagrange_version} according to git tag
+    include(cmake/lagrange/lagrange_cpm_cache.cmake)
+    include(cmake/recipes/external/DynamicVersion.cmake)
+    dynamic_version(
+        PROJECT_PREFIX Lagrange_
+        OUTPUT_VERSION lagrange_version
+        VERSION_FULL_MODE POST
+        GIT_ARCHIVAL_FILE "${CMAKE_CURRENT_LIST_DIR}/.github/.git_archival.txt"
+    )
+endif()
+
+message(STATUS "Using Lagrange version: ${lagrange_version}")
 project(Lagrange VERSION ${lagrange_version})
+
+################################################################################
 
 if(MINGW)
     message(FATAL_ERROR "Please use the MSVC compiler on Windows")
@@ -275,6 +292,11 @@ else()
     set(LAGRANGE_IDE_PREFIX_DEFAULT "third_party/")
 endif()
 set(LAGRANGE_IDE_PREFIX ${LAGRANGE_IDE_PREFIX_DEFAULT} CACHE STRING "Folder prefix for Lagrange targets in MSVC/Xcode")
+foreach(target IN ITEMS Lagrange_DynamicVersion Lagrange_GitHash Lagrange_Version)
+    if(TARGET ${target})
+        set_target_properties(${target} PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Utils")
+    endif()
+endforeach()
 
 # When building python module, compile MKL/TBB as a shared library
 if(LAGRANGE_MODULE_PYTHON OR LAGRANGE_ALL OR BUILD_SHARED_LIBS)
@@ -350,7 +372,6 @@ include(lagrange_add_test)
 include(lagrange_cpm_cache)
 include(lagrange_download_data)
 include(lagrange_find_package)
-include(lagrange_has_onetbb)
 include(lagrange_include_modules)
 include(lagrange_install)
 include(lagrange_limit_parallelism)

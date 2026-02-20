@@ -14,3 +14,6 @@ lagrange_include_modules(io)
 
 lagrange_add_example(weld_vertices weld_vertices.cpp)
 target_link_libraries(weld_vertices lagrange::bvh lagrange::io CLI11::CLI11)
+
+lagrange_add_example(remove_interior_shells remove_interior_shells.cpp)
+target_link_libraries(remove_interior_shells lagrange::bvh lagrange::io CLI11::CLI11)

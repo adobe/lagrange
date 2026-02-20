@@ -15,8 +15,13 @@
 #include <lagrange/MeshTrait.h>
 #include <lagrange/legacy/inline.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/MeshToVolume.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+
 #include <Eigen/Dense>
 
 namespace lagrange {

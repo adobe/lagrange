@@ -70,6 +70,9 @@ struct SaveOptions
     /// Whether to export materials and textures
     bool export_materials = true;
 
+    /// Set to true to silence warnings during saving, such as incompatible attribute types.
+    bool quiet = false;
+
     std::vector<scene::UserDataConverter*> extension_converters;
 };
 

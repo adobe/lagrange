@@ -509,7 +509,7 @@ typename Earcut<N>::Node* Earcut<N>::cureLocalIntersections(Node* start)
             p = start = b;
         }
         p = p->next;
-    } while (p != start);
+    } while ((p != start) && (p != p->next) && (p != p->next->next));
 
     return filterPoints(p);
 }

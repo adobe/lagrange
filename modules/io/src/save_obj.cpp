@@ -110,11 +110,13 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
             if (result.found_uv_name.empty()) {
                 result.found_uv_name = name;
             } else {
-                logger().warn(
-                    "Found multiple UV attributes. This is not supported. '{}' is saved, '{}' is "
-                    "skipped",
-                    result.found_uv_name,
-                    name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Found multiple UV attributes. This is not supported. '{}' is saved, '{}' "
+                        "is skipped",
+                        result.found_uv_name,
+                        name);
+                }
                 return;
             }
 
@@ -138,11 +140,13 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
             if (result.found_normal_name.empty()) {
                 result.found_normal_name = name;
             } else {
-                logger().warn(
-                    "Found multiple Normal attributes. This is not supported. '{}' is saved, '{}' "
-                    "is skipped",
-                    result.found_normal_name,
-                    name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Found multiple Normal attributes. This is not supported. '{}' is saved, "
+                        "'{}' is skipped",
+                        result.found_normal_name,
+                        name);
+                }
                 return;
             }
 
@@ -168,9 +172,11 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
                 }
                 result.normal_indices = result.normal_index_buffer;
             } else {
-                logger().warn(
-                    "Skipping normal attribute '{}' due to unsupported element type",
-                    result.found_normal_name);
+                if (!options.quiet) {
+                    logger().warn(
+                        "Skipping normal attribute '{}' due to unsupported element type",
+                        result.found_normal_name);
+                }
                 result.found_normal_name.clear();
                 return;
             }
@@ -264,7 +270,8 @@ void write_texture_to_mtl(
     const scene::Scene<Scalar, Index>& scene,
     const scene::TextureInfo& texture_info,
     const fs::path& base_dir,
-    const std::string& map_directive)
+    const std::string& map_directive,
+    bool quiet)
 {
     if (texture_info.index == scene::invalid_element) return;
     la_debug_assert(texture_info.index < scene.textures.size());
@@ -312,9 +319,11 @@ void write_texture_to_mtl(
 
             // Write the texture map directive
             fmt::print(mtl_stream, "{} {}\n", map_directive, image_filename.string());
-        } else {
-            throw std::runtime_error(
-                fmt::format("Texture file not found: {}", source_path.string()));
+        } else if (!quiet) {
+            // Allow saving scenes with invalid texture paths
+            logger().warn(
+                "Texture file not found at URI: {}. Skipping texture.",
+                source_path.string());
         }
     } else {
         // Neither image data nor URI exists
@@ -324,7 +333,10 @@ void write_texture_to_mtl(
 }
 
 template <typename Scalar, typename Index>
-void write_mtl_file(const fs::path& mtl_filename, const scene::Scene<Scalar, Index>& scene)
+void write_mtl_file(
+    const fs::path& mtl_filename,
+    const scene::Scene<Scalar, Index>& scene,
+    bool quiet)
 {
     fs::ofstream mtl_stream(mtl_filename);
     if (!mtl_stream) {
@@ -384,12 +396,19 @@ void write_mtl_file(const fs::path& mtl_filename, const scene::Scene<Scalar, Ind
                 scene,
                 material.base_color_texture,
                 base_dir,
-                "map_Kd");
+                "map_Kd",
+                quiet);
         }
 
         // Handle normal texture
         if (material.normal_texture.index != scene::invalid_element) {
-            write_texture_to_mtl(mtl_stream, scene, material.normal_texture, base_dir, "map_Bump");
+            write_texture_to_mtl(
+                mtl_stream,
+                scene,
+                material.normal_texture,
+                base_dir,
+                "map_Bump",
+                quiet);
         }
 
         fmt::print(mtl_stream, "\n");
@@ -442,7 +461,7 @@ void save_scene_obj_impl(
         fmt::print(output_stream, "mtllib {}\n\n", mtl_filename.filename().string());
 
         // Write the MTL file
-        write_mtl_file(mtl_filename, scene);
+        write_mtl_file(mtl_filename, scene, options.quiet);
     }
 
     // Global offsets for proper indexing across all mesh instances
@@ -469,7 +488,9 @@ void save_scene_obj_impl(
                     // Check mesh dimension
                     const Index dim = mesh.get_dimension();
                     if (dim != 2 && dim != 3) {
-                        logger().warn("Skipping mesh with unsupported dimension: {}", dim);
+                        if (!options.quiet) {
+                            logger().warn("Skipping mesh with unsupported dimension: {}", dim);
+                        }
                         continue;
                     }
 

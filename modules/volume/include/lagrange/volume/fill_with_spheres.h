@@ -13,8 +13,12 @@
 
 #include <lagrange/Logger.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <openvdb/openvdb.h>
 #include <openvdb/tools/VolumeToSpheres.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <Eigen/Dense>
 

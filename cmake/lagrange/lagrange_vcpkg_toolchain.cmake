@@ -42,7 +42,7 @@ CPMAddPackage(
 )
 
 set(ENV{VCPKG_ROOT} "${vcpkg_SOURCE_DIR}")
-set(ENV{VCPKG_KEEP_ENV_VARS} "VCPKG_ROOT" $ENV{VCPKG_KEEP_ENV_VARS})
+set(ENV{VCPKG_KEEP_ENV_VARS} "VCPKG_ROOT;$ENV{VCPKG_KEEP_ENV_VARS}")
 
 # Since this file is included as a toolchain file via our CMake preset, we setup vcpkg.cmake
 # via CMAKE_PROJECT_TOP_LEVEL_INCLUDES instead. See the following threads for more information:

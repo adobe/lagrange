@@ -9,23 +9,25 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+
 #include <lagrange/image_io/load_image.h>
 
 #include <lagrange/Logger.h>
 #include <lagrange/image_io/common.h>
 #include <lagrange/image_io/exr.h>
+#include <lagrange/utils/warning.h>
 
 #include <stb_image.h>
 
 namespace lagrange {
 namespace image_io {
 
-LoadImageResult load_image(const fs::path& path)
+LoadImageResult load_image(const fs::path& path, spdlog::level::level_enum error_lvl)
 {
     LoadImageResult rtn;
     // basic sanity check
     if (path.empty()) {
-        logger().error("load_image error: empty path '{}'", path.string());
+        logger().log(error_lvl, "load_image error: empty path '{}'", path.string());
         return rtn;
     }
 
@@ -34,22 +36,23 @@ LoadImageResult load_image(const fs::path& path)
     std::transform(ext.begin(), ext.end(), ext.begin(), ::tolower);
     const auto type = file_extension_to_file_type(ext);
     if (FileType::unknown == type) {
-        logger().error("load_image error: invalid extension '{}'", ext);
+        logger().log(error_lvl, "load_image error: invalid extension '{}'", ext);
         return rtn;
     }
 
     // load
     if (FileType::png == type || FileType::jpg == type) {
-        return load_image_stb(path);
+        return load_image_stb(path, error_lvl);
 
     } else if (FileType::exr == type) {
-        return load_image_exr(path);
+        return load_image_exr(path, error_lvl);
 
     } else if (FileType::bin == type) {
-        return load_image_bin(path);
+        return load_image_bin(path, error_lvl);
 
     } else {
-        logger().error(
+        logger().log(
+            error_lvl,
             "load_image error, unknown file type: {}, {}",
             static_cast<unsigned int>(type),
             path.string());
@@ -57,8 +60,10 @@ LoadImageResult load_image(const fs::path& path)
     }
 }
 
-LoadImageResult load_image_stb(const fs::path& path)
+LoadImageResult load_image_stb(const fs::path& path, spdlog::level::level_enum error_lvl)
 {
+    LA_IGNORE(error_lvl);
+
     LoadImageResult rtn;
     rtn.precision = image::ImagePrecision::uint8;
     int w, h, ch;
@@ -81,8 +86,10 @@ LoadImageResult load_image_stb(const fs::path& path)
     return rtn;
 }
 
-LoadImageResult load_image_exr(const fs::path& path)
+LoadImageResult load_image_exr(const fs::path& path, spdlog::level::level_enum error_lvl)
 {
+    LA_IGNORE(error_lvl);
+
     LoadImageResult rtn;
 
     void* out = nullptr;
@@ -132,13 +139,13 @@ LoadImageResult load_image_exr(const fs::path& path)
     return rtn;
 }
 
-LoadImageResult load_image_bin(const fs::path& path)
+LoadImageResult load_image_bin(const fs::path& path, spdlog::level::level_enum error_lvl)
 {
     LoadImageResult rtn;
 
     std::ifstream ifs(path, std::ios_base::binary);
     if (!ifs.is_open()) {
-        logger().error("load_image error: cannot open file '{}'", path.string());
+        logger().log(error_lvl, "load_image error: cannot open file '{}'", path.string());
         return rtn;
     }
 
@@ -151,7 +158,8 @@ LoadImageResult load_image_bin(const fs::path& path)
         ss << buf;
         ss >> header >> width >> height >> components;
         if (!ss.good() || ss.eof()) {
-            logger().error(
+            logger().log(
+                error_lvl,
                 "load_image error, cannot parse the header of *.bin: {}, {}",
                 buf,
                 path.string());
@@ -161,12 +169,17 @@ LoadImageResult load_image_bin(const fs::path& path)
 
     rtn.precision = bin_header_to_precision(header);
     if (image::ImagePrecision::unknown == rtn.precision) {
-        logger().error("load_image error, invalid header of *.bin: {}, {}", header, path.string());
+        logger().log(
+            error_lvl,
+            "load_image error, invalid header of *.bin: {}, {}",
+            header,
+            path.string());
         return rtn;
     }
 
     if ((1 != components && 3 != components && 4 != components) || 0 >= width || 0 >= height) {
-        logger().error(
+        logger().log(
+            error_lvl,
             "load_image error, bad parameters of *.bin: {}, {}, {}, {}",
             path.string(),
             width,
@@ -187,7 +200,8 @@ LoadImageResult load_image_bin(const fs::path& path)
         reinterpret_cast<char*>(rtn.storage->data()),
         _width * _height * _components * size_of_precision(rtn.precision));
     if (ifs.eof() || !ifs.good()) {
-        logger().error(
+        logger().log(
+            error_lvl,
             "load_image error, failed in reading data block for *.bin: {}",
             path.string());
         return rtn;
@@ -196,7 +210,8 @@ LoadImageResult load_image_bin(const fs::path& path)
     char tag;
     ifs.read(&tag, 1);
     if (!ifs.eof()) {
-        logger().error(
+        logger().log(
+            error_lvl,
             "load_image error, the data block is larger than expected for *.bin: {}",
             path.string());
         return rtn;

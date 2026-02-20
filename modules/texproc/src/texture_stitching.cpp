@@ -18,6 +18,7 @@
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
+#include <tbb/parallel_sort.h>
 #include <Src/PreProcessing.h>
 #include <Src/GradientDomain.h>
 #include <lagrange/utils/warnon.h>
@@ -36,10 +37,7 @@ template <unsigned int NumChannels, typename Scalar, typename Index, typename Va
 void texture_stitching(
     const SurfaceMesh<Scalar, Index>& mesh,
     image::experimental::View3D<ValueType> texture,
-    bool exterior_only,
-    bool randomize,
-    unsigned int quadrature_samples,
-    double jitter_epsilon)
+    const StitchingOptions& options)
 {
     auto wrapper =
         mesh_utils::create_mesh_wrapper(mesh, RequiresIndexedTexcoords::Yes, CheckFlippedUV::Yes);
@@ -47,7 +45,7 @@ void texture_stitching(
 
     mesh_utils::set_grid(texture, grid);
 
-    mesh_utils::jitter_texture(wrapper.texcoords, grid.res(0), grid.res(1), jitter_epsilon);
+    mesh_utils::jitter_texture(wrapper.texcoords, grid.res(0), grid.res(1), options.jitter_epsilon);
 
     Padding padding = mesh_utils::create_padding(wrapper, grid.res(0), grid.res(1));
     padding.pad(grid);
@@ -60,7 +58,7 @@ void texture_stitching(
     const bool sanity_check = false;
 #endif
     GradientDomain<double> gd(
-        quadrature_samples,
+        options.quadrature_samples,
         wrapper.num_simplices(),
         wrapper.num_vertices(),
         wrapper.num_texcoords(),
@@ -77,43 +75,44 @@ void texture_stitching(
     std::unordered_set<size_t> dof_set;
     Eigen::SparseMatrix<double> P, Pt;
     {
-        std::vector<Eigen::Triplet<double>> triplets;
-        {
-            if (exterior_only) {
-                for (size_t n = 0; n < gd.numNodes(); n++) {
-                    if (!gd.isCovered(n)) {
-                        dof_set.insert(n);
-                    }
-                }
-            } else {
-                for (size_t e = 0; e < gd.numEdges(); e++) {
-                    if (gd.isChartCrossing(e)) {
-                        std::pair<size_t, size_t> edge = gd.edge(e);
-                        dof_set.insert(edge.first);
-                        dof_set.insert(edge.second);
-                    }
+        if (options.exterior_only) {
+            for (size_t n = 0; n < gd.numNodes(); n++) {
+                if (!gd.isCovered(n)) {
+                    dof_set.insert(n);
                 }
             }
-            if (dof_set.empty()) {
-                // Nothing to stitch
-                logger().warn("No seam to stitch.");
-                return;
-            }
-            triplets.reserve(dof_set.size());
-            size_t idx = 0;
-            for (auto iter = dof_set.begin(); iter != dof_set.end(); iter++) {
-                triplets.emplace_back(
-                    static_cast<typename Eigen::SparseMatrix<double>::StorageIndex>(*iter),
-                    static_cast<typename Eigen::SparseMatrix<double>::StorageIndex>(idx++),
-                    1.);
+        } else {
+            for (size_t e = 0; e < gd.numEdges(); e++) {
+                if (gd.isChartCrossing(e)) {
+                    std::pair<size_t, size_t> edge = gd.edge(e);
+                    dof_set.insert(edge.first);
+                    dof_set.insert(edge.second);
+                }
             }
         }
+        if (dof_set.empty()) {
+            // Nothing to stitch
+            logger().warn("No seam to stitch.");
+            return;
+        }
+
+        std::vector<Eigen::Triplet<double>> triplets;
+        triplets.reserve(dof_set.size());
+        size_t idx = 0;
+        for (const auto dof : dof_set) {
+            triplets.emplace_back(
+                static_cast<typename Eigen::SparseMatrix<double>::StorageIndex>(dof),
+                static_cast<typename Eigen::SparseMatrix<double>::StorageIndex>(idx++),
+                1.0);
+        }
+
         P.resize(gd.numNodes(), triplets.size());
         P.setFromTriplets(triplets.begin(), triplets.end());
         Pt = P.transpose();
     }
 
-    std::vector<Vector<double, NumChannels>> x(gd.numNodes()), b(gd.numNodes());
+    std::vector<Vector<double, NumChannels>> x(gd.numNodes());
+    std::vector<Vector<double, NumChannels>> b(gd.numNodes());
 
     // Copy the texture values into the vector
     for (size_t n = 0; n < gd.numNodes(); n++) {
@@ -121,14 +120,19 @@ void texture_stitching(
         x[n] = grid(coords.first, coords.second);
     }
 
-    if (randomize) {
+    if (options.__randomize) {
         std::mt19937 gen;
         std::uniform_real_distribution<double> dist(0., 255.);
-        for (size_t n = 0; n < gd.numNodes(); n++) {
-            if (dof_set.find(n) != dof_set.end()) {
-                for (unsigned int c = 0; c < NumChannels; c++) {
-                    x[n][c] = dist(gen);
-                }
+        // Sort dofs by (i,j) coords (GradientDomain node ordering is non-deterministic)
+        std::vector<std::tuple<unsigned int, unsigned int, size_t>> dof_coords;
+        for (const auto dof : dof_set) {
+            auto [i, j] = gd.node(dof);
+            dof_coords.emplace_back(i, j, dof);
+        }
+        tbb::parallel_sort(dof_coords.begin(), dof_coords.end());
+        for (const auto& [i, j, n] : dof_coords) {
+            for (unsigned int c = 0; c < NumChannels; c++) {
+                x[n][c] = dist(gen);
             }
         }
     }
@@ -137,7 +141,9 @@ void texture_stitching(
     gd.stiffness(&x[0], &b[0]);
 
     // Compute the system matrix
-    Eigen::SparseMatrix<double> M = Pt * gd.stiffness() * P;
+    const double eps = options.stiffness_regularization_weight;
+    Eigen::SparseMatrix<double> M =
+        Pt * mesh_utils::laplacian_regularization(gd.stiffness(), eps) * P;
 
     // Construct/factor the solver
     Solver solver(M);
@@ -160,6 +166,10 @@ void texture_stitching(
         for (size_t n = 0; n < gd.numNodes(); n++) {
             x[n][c] -= _x[n];
         }
+    }
+
+    if (options.clamp_to_range.has_value()) {
+        mesh_utils::clamp_out_of_range<NumChannels>(x, gd, options.clamp_to_range.value());
     }
 
     // Put the texel values back into the texture
@@ -191,42 +201,10 @@ void texture_stitching(
 {
     unsigned int num_channels = static_cast<unsigned int>(texture.extent(2));
     switch (num_channels) {
-    case 1:
-        texture_stitching<1>(
-            mesh,
-            texture,
-            options.exterior_only,
-            options.__randomize,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
-    case 2:
-        texture_stitching<2>(
-            mesh,
-            texture,
-            options.exterior_only,
-            options.__randomize,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
-    case 3:
-        texture_stitching<3>(
-            mesh,
-            texture,
-            options.exterior_only,
-            options.__randomize,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
-    case 4:
-        texture_stitching<4>(
-            mesh,
-            texture,
-            options.exterior_only,
-            options.__randomize,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
+    case 1: texture_stitching<1>(mesh, texture, options); break;
+    case 2: texture_stitching<2>(mesh, texture, options); break;
+    case 3: texture_stitching<3>(mesh, texture, options); break;
+    case 4: texture_stitching<4>(mesh, texture, options); break;
     default: la_debug_assert("Only 1, 2, 3, or 4 channels supported");
     }
 }

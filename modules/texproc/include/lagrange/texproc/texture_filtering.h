@@ -14,7 +14,9 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/View3D.h>
 
+#include <optional>
 #include <string_view>
+#include <utility>
 
 namespace lagrange::texproc {
 
@@ -45,6 +47,12 @@ struct FilteringOptions
 
     /// Jitter amount per texel (0 to deactivate).
     double jitter_epsilon = 1e-4;
+
+    /// Regularize the stiffness matrix using a combinatorial Laplacian energy.
+    double stiffness_regularization_weight = 1e-9;
+
+    /// Clamp out-of-range texels to the given range (nullopt to disable).
+    std::optional<std::pair<double, double>> clamp_to_range = std::nullopt;
 };
 
 ///

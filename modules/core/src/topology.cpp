@@ -164,6 +164,33 @@ AttributeId compute_vertex_is_manifold(
     return id;
 }
 
+template <typename Scalar, typename Index>
+AttributeId compute_edge_is_manifold(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const EdgeManifoldOptions& options)
+{
+    mesh.initialize_edges();
+    AttributeId id = internal::find_or_create_attribute<uint8_t>(
+        mesh,
+        options.output_attribute_name,
+        Edge,
+        AttributeUsage::Scalar,
+        1,
+        internal::ResetToDefault::No);
+    auto attr = mesh.template ref_attribute<uint8_t>(id).ref_all();
+
+    tbb::parallel_for(
+        tbb::blocked_range<Index>(0, mesh.get_num_edges()),
+        [&](const tbb::blocked_range<Index>& r) {
+            for (Index ei = r.begin(); ei != r.end(); ei++) {
+                auto num_corners_around_edge = mesh.count_num_corners_around_edge(ei);
+                attr[ei] = (num_corners_around_edge <= 2);
+            }
+        });
+
+    return id;
+}
+
 #define LA_X_topology(_, Scalar, Index)                                                            \
     template LA_CORE_API int compute_euler<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh); \
     template LA_CORE_API bool is_closed<Scalar, Index>(const SurfaceMesh<Scalar, Index>& mesh);    \
@@ -173,7 +200,10 @@ AttributeId compute_vertex_is_manifold(
         const SurfaceMesh<Scalar, Index>& mesh);                                                   \
     template LA_CORE_API AttributeId compute_vertex_is_manifold(                                   \
         SurfaceMesh<Scalar, Index>& mesh,                                                          \
-        const VertexManifoldOptions& options);
+        const VertexManifoldOptions& options);                                                     \
+    template LA_CORE_API AttributeId compute_edge_is_manifold(                                     \
+        SurfaceMesh<Scalar, Index>& mesh,                                                          \
+        const EdgeManifoldOptions& options);
 LA_SURFACE_MESH_X(topology, 0)
 
 } // namespace lagrange

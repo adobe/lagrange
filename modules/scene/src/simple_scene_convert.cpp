@@ -41,10 +41,9 @@ SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene(
 }
 
 template <typename Scalar, typename Index, size_t Dimension>
-SurfaceMesh<Scalar, Index> simple_scene_to_mesh(
+std::vector<SurfaceMesh<Scalar, Index>> simple_scene_to_meshes(
     const SimpleScene<Scalar, Index, Dimension>& scene,
-    const TransformOptions& transform_options,
-    bool preserve_attributes)
+    const TransformOptions& transform_options)
 {
     std::vector<SurfaceMesh<Scalar, Index>> meshes;
     meshes.reserve(scene.compute_num_instances());
@@ -56,18 +55,33 @@ SurfaceMesh<Scalar, Index> simple_scene_to_mesh(
                 instance.transform,
                 transform_options));
     });
-    return combine_meshes<Scalar, Index>(meshes, preserve_attributes);
+
+    return meshes;
 }
 
-#define LA_X_simple_scene_convert(_, Scalar, Index, Dimension)                          \
-    template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> mesh_to_simple_scene(   \
-        SurfaceMesh<Scalar, Index> mesh);                                               \
-    template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene( \
-        std::vector<SurfaceMesh<Scalar, Index>> meshes);                                \
-    template LA_SCENE_API SurfaceMesh<Scalar, Index> simple_scene_to_mesh(              \
-        const SimpleScene<Scalar, Index, Dimension>& scene,                             \
-        const TransformOptions& transform_options,                                      \
-        bool preserve_attributes);
+template <typename Scalar, typename Index, size_t Dimension>
+SurfaceMesh<Scalar, Index> simple_scene_to_mesh(
+    const SimpleScene<Scalar, Index, Dimension>& scene,
+    const TransformOptions& transform_options,
+    bool preserve_attributes)
+{
+    return combine_meshes<Scalar, Index>(
+        simple_scene_to_meshes(scene, transform_options),
+        preserve_attributes);
+}
+
+#define LA_X_simple_scene_convert(_, Scalar, Index, Dimension)                            \
+    template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> mesh_to_simple_scene(     \
+        SurfaceMesh<Scalar, Index> mesh);                                                 \
+    template LA_SCENE_API SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene(   \
+        std::vector<SurfaceMesh<Scalar, Index>> meshes);                                  \
+    template LA_SCENE_API SurfaceMesh<Scalar, Index> simple_scene_to_mesh(                \
+        const SimpleScene<Scalar, Index, Dimension>& scene,                               \
+        const TransformOptions& transform_options,                                        \
+        bool preserve_attributes);                                                        \
+    template LA_SCENE_API std::vector<SurfaceMesh<Scalar, Index>> simple_scene_to_meshes( \
+        const SimpleScene<Scalar, Index, Dimension>& scene,                               \
+        const TransformOptions& transform_options);
 LA_SIMPLE_SCENE_X(simple_scene_convert, 0)
 
 } // namespace lagrange::scene

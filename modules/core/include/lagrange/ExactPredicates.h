@@ -70,9 +70,9 @@ public:
     /// @param      p3    Third 3D point.
     /// @param      p4    Fourth 3D point.
     ///
-    /// @return     Return a positive value if the point pd lies below the plane passing through p1,
+    /// @return     Return a positive value if the point p4 lies below the plane passing through p1,
     ///             p2, and p3; "below" is defined so that p1, p2, and p3 appear in counterclockwise
-    ///             order when viewed from above the plane.  Returns a negative value if pd lies
+    ///             order when viewed from above the plane.  Returns a negative value if p4 lies
     ///             above the plane.  Returns zero if the points are coplanar.
     ///
     virtual short orient3D(double p1[3], double p2[3], double p3[3], double p4[3]) const = 0;
@@ -85,7 +85,7 @@ public:
     /// @param      p3    Third 2D point.
     /// @param      p4    Fourth 3D point.
     ///
-    /// @return     Return a positive value if the point pd lies inside the circle passing through
+    /// @return     Return a positive value if the point p4 lies inside the circle passing through
     ///             p1, p2, and p3; a negative value if it lies outside; and zero if the four points
     ///             are cocircular. The points p1, p2, and p3 must be in counterclockwise order, or
     ///             the sign of the result will be reversed.

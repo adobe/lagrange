@@ -19,43 +19,46 @@
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 
+#include <optional>
+
 namespace lagrange {
 
 template <typename Scalar, typename Index>
 AttributeId compute_vertex_valence(SurfaceMesh<Scalar, Index>& mesh, VertexValenceOptions options)
 {
+    std::optional<AttributeId> induced_by;
+    if (!options.induced_by_attribute.empty()) {
+        induced_by = mesh.get_attribute_id(options.induced_by_attribute);
+    }
+
     AttributeId id = internal::find_or_create_attribute<Index>(
         mesh,
         options.output_attribute_name,
         Vertex,
         AttributeUsage::Scalar,
         1,
-        options.induced_by_attribute.empty() ? internal::ResetToDefault::No
-                                             : internal::ResetToDefault::Yes);
+        induced_by.has_value() ? internal::ResetToDefault::Yes : internal::ResetToDefault::No);
     auto valence = mesh.template ref_attribute<Index>(id).ref_all();
     la_debug_assert(static_cast<Index>(valence.size()) == mesh.get_num_vertices());
 
-    if (!options.induced_by_attribute.empty()) {
+    if (induced_by.has_value()) {
         // Using the graph induced by the provided edge attribute
-        internal::visit_attribute_read(
-            mesh,
-            mesh.get_attribute_id(options.induced_by_attribute),
-            [&](auto&& attr) {
-                using AttributeType = std::decay_t<decltype(attr)>;
-                if constexpr (!AttributeType::IsIndexed) {
-                    if (attr.get_element_type() != AttributeElement::Edge) {
-                        throw Error("`induced_by_attribute` must be an edge attribute");
-                    }
-                    auto is_candidate = attr.get_all();
-                    for (Index e = 0; e < mesh.get_num_edges(); ++e) {
-                        if (is_candidate[e]) {
-                            auto [v0, v1] = mesh.get_edge_vertices(e);
-                            ++valence[v0];
-                            ++valence[v1];
-                        }
+        internal::visit_attribute_read(mesh, induced_by.value(), [&](auto&& attr) {
+            using AttributeType = std::decay_t<decltype(attr)>;
+            if constexpr (!AttributeType::IsIndexed) {
+                if (attr.get_element_type() != AttributeElement::Edge) {
+                    throw Error("`induced_by_attribute` must be an edge attribute");
+                }
+                auto is_candidate = attr.get_all();
+                for (Index e = 0; e < mesh.get_num_edges(); ++e) {
+                    if (is_candidate[e]) {
+                        auto [v0, v1] = mesh.get_edge_vertices(e);
+                        ++valence[v0];
+                        ++valence[v1];
                     }
                 }
-            });
+            }
+        });
     } else {
         // Default implementation using the vertex-vertex graph for valence computation
         const auto adjacency_list = compute_vertex_vertex_adjacency(mesh);

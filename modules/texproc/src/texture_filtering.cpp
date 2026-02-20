@@ -35,11 +35,7 @@ template <unsigned int NumChannels, typename Scalar, typename Index, typename Va
 void texture_gradient_modulation(
     const SurfaceMesh<Scalar, Index>& mesh,
     image::experimental::View3D<ValueType> texture,
-    double value_weight,
-    double gradient_weight,
-    double gradient_scale,
-    unsigned int quadrature_samples,
-    double jitter_epsilon)
+    const FilteringOptions& options)
 {
     auto wrapper =
         mesh_utils::create_mesh_wrapper(mesh, RequiresIndexedTexcoords::Yes, CheckFlippedUV::Yes);
@@ -47,7 +43,7 @@ void texture_gradient_modulation(
 
     mesh_utils::set_grid(texture, grid);
 
-    mesh_utils::jitter_texture(wrapper.texcoords, grid.res(0), grid.res(1), jitter_epsilon);
+    mesh_utils::jitter_texture(wrapper.texcoords, grid.res(0), grid.res(1), options.jitter_epsilon);
 
     Padding padding = mesh_utils::create_padding(wrapper, grid.res(0), grid.res(1));
     padding.pad(grid);
@@ -61,7 +57,7 @@ void texture_gradient_modulation(
     const bool sanity_check = false;
 #endif
     GradientDomain<double> gd(
-        quadrature_samples,
+        options.quadrature_samples,
         wrapper.num_simplices(),
         wrapper.num_vertices(),
         wrapper.num_texcoords(),
@@ -84,7 +80,8 @@ void texture_gradient_modulation(
 
     // Construct the constraints
     {
-        std::vector<Vector<double, NumChannels>> mass_b(gd.numNodes()), stiffness_b(gd.numNodes());
+        std::vector<Vector<double, NumChannels>> mass_b(gd.numNodes());
+        std::vector<Vector<double, NumChannels>> stiffness_b(gd.numNodes());
 
         // Get the constraints from the values
         gd.mass(&x[0], &mass_b[0]);
@@ -93,12 +90,17 @@ void texture_gradient_modulation(
         gd.stiffness(&x[0], &stiffness_b[0]);
 
         // Combine the constraints
-        for (size_t n = 0; n < gd.numNodes(); n++)
-            b[n] = mass_b[n] * value_weight + stiffness_b[n] * gradient_weight * gradient_scale;
+        for (size_t n = 0; n < gd.numNodes(); n++) {
+            b[n] = mass_b[n] * options.value_weight +
+                   stiffness_b[n] * options.gradient_weight * options.gradient_scale;
+        }
     }
 
     // Compute the system matrix
-    Eigen::SparseMatrix<double> M = gd.mass() * value_weight + gd.stiffness() * gradient_weight;
+    const double eps = options.stiffness_regularization_weight;
+    Eigen::SparseMatrix<double> M =
+        gd.mass() * options.value_weight +
+        mesh_utils::laplacian_regularization(gd.stiffness(), eps) * options.gradient_weight;
 
     // Construct/factor the solver
     Solver solver(M);
@@ -120,6 +122,10 @@ void texture_gradient_modulation(
         for (size_t n = 0; n < gd.numNodes(); n++) {
             x[n][c] = _x[n];
         }
+    }
+
+    if (options.clamp_to_range.has_value()) {
+        mesh_utils::clamp_out_of_range<NumChannels>(x, gd, options.clamp_to_range.value());
     }
 
     // Put the texel values back into the texture
@@ -151,46 +157,10 @@ void texture_filtering(
 {
     unsigned int num_channels = static_cast<unsigned int>(texture.extent(2));
     switch (num_channels) {
-    case 1:
-        texture_gradient_modulation<1>(
-            mesh,
-            texture,
-            options.value_weight,
-            options.gradient_weight,
-            options.gradient_scale,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
-    case 2:
-        texture_gradient_modulation<2>(
-            mesh,
-            texture,
-            options.value_weight,
-            options.gradient_weight,
-            options.gradient_scale,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
-    case 3:
-        texture_gradient_modulation<3>(
-            mesh,
-            texture,
-            options.value_weight,
-            options.gradient_weight,
-            options.gradient_scale,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
-    case 4:
-        texture_gradient_modulation<4>(
-            mesh,
-            texture,
-            options.value_weight,
-            options.gradient_weight,
-            options.gradient_scale,
-            options.quadrature_samples,
-            options.jitter_epsilon);
-        break;
+    case 1: texture_gradient_modulation<1>(mesh, texture, options); break;
+    case 2: texture_gradient_modulation<2>(mesh, texture, options); break;
+    case 3: texture_gradient_modulation<3>(mesh, texture, options); break;
+    case 4: texture_gradient_modulation<4>(mesh, texture, options); break;
     default: la_debug_assert("Only 1, 2, 3, or 4 channels supported");
     }
 }

@@ -73,6 +73,10 @@ int main(int argc, char** argv)
         "--smooth-low-weight-areas",
         compositing_options.smooth_low_weight_areas,
         "Smooth pixels with low total weight (< 1).");
+    app.add_option(
+        "--clamp",
+        compositing_options.clamp_to_range,
+        "Clamp out-of-range texels to the given range.");
     app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
 
     CLI11_PARSE(app, argc, argv)

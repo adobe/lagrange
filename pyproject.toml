@@ -2,6 +2,7 @@
 build-backend = "scikit_build_core.build"
 
 requires = [
+    "numpy>=1.25",               # needed at build time for default dtype args
     "scikit-build-core==0.11.6",
     "typing-extensions~=4.1",
 ]
@@ -14,17 +15,17 @@ license = "Apache-2.0"
 license-files = [ "LICENSE", "NOTICE.txt" ]
 
 maintainers = [ { name = "Lagrange Core Team", email = "lagrange-core@adobe.com" } ]
-requires-python = ">=3.9,<3.14"
+requires-python = ">=3.10"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Multimedia :: Graphics :: 3D Modeling",
 ]
 dynamic = [ "version" ]
@@ -63,6 +64,10 @@ lint = [
     "ruff==0.4.3",
 ]
 
+[tool.setuptools_scm]
+version_file = "modules/python/lagrange/_version.py"
+version_scheme = "no-guess-dev"
+
 [tool.scikit-build]
 ninja.version = ">=1.11.1"
 ninja.make-fallback = false
@@ -71,6 +76,9 @@ wheel.packages = [ "modules/python/lagrange" ]
 
 build-dir = "build-python"
 editable.rebuild = false
+
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
+sdist.include = [ "modules/python/lagrange/_version.py" ]
 
 # Debug related options
 # cmd: uv sync [--verbose] [--reinstall-package lagrange]
@@ -96,19 +104,16 @@ LAGRANGE_MODULE_IMAGE = true
 LAGRANGE_MODULE_IO = true
 LAGRANGE_MODULE_POISSON = true
 LAGRANGE_MODULE_POLYDDG = true
+LAGRANGE_MODULE_PRIMITIVE = true
 LAGRANGE_MODULE_PYTHON = true
 LAGRANGE_MODULE_SCENE = true
 LAGRANGE_MODULE_SOLVER = true
 LAGRANGE_MODULE_SUBDIVISION = true
 LAGRANGE_MODULE_TEXPROC = true
+LAGRANGE_MODULE_VOLUME = true
 LAGRANGE_UNIT_TESTS = false
 LAGRANGE_WITH_ASSIMP = true
 TBB_PREFER_STATIC = false
-
-[tool.scikit-build.metadata.version]
-provider = "scikit_build_core.metadata.regex"
-input = "VERSION"
-regex = "(?P<value>\\d+\\.\\d+\\.\\d+)"
 
 [tool.black]
 line_length = 100
