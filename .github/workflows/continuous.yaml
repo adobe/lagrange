@@ -214,9 +214,7 @@ jobs:
         run: echo "SCCACHE_GHA_ENABLED=true" >> ${env:GITHUB_ENV}
 
       - name: Prepare sccache
-        # Re-enable official action one https://github.com/Mozilla-Actions/sccache-action/pull/225 is merged
-        # uses: mozilla-actions/sccache-action@v0.0.9
-        uses: Vee99BR/sccache-action@v0.0.1
+        uses: mozilla-actions/sccache-action@v0.0.9
 
       - name: Set x64 vars
         if: matrix.os == 'windows-2025'
