@@ -35,8 +35,8 @@ struct Args
 
     // Projection options
     lagrange::raycasting::ProjectMode project_mode;
-    lagrange::raycasting::WrapMode wrap_mode = lagrange::raycasting::WrapMode::CONSTANT;
-    lagrange::raycasting::CastMode cast_mode = lagrange::raycasting::CastMode::BOTH_WAYS;
+    lagrange::raycasting::FallbackMode fallback_mode = lagrange::raycasting::FallbackMode::Constant;
+    lagrange::raycasting::CastMode cast_mode = lagrange::raycasting::CastMode::BothWays;
     std::array<double, 3> direction = {0, 0, 1};
     double fill_value = 0.0;
 };
@@ -63,10 +63,11 @@ int parse_args(int argc, char const* argv[], Args& args)
         ->transform(
             CLI::CheckedTransformer(lagrange::raycasting::project_modes(), CLI::ignore_case));
     app.add_option(
-           "--wrap-mode",
-           args.wrap_mode,
-           "Wrapping mode for non-hit vertices when using ray-casting   projection mode.")
-        ->transform(CLI::CheckedTransformer(lagrange::raycasting::wrap_modes(), CLI::ignore_case));
+           "--fallback-mode",
+           args.fallback_mode,
+           "Fallback mode for non-hit vertices when using ray-casting projection mode.")
+        ->transform(
+            CLI::CheckedTransformer(lagrange::raycasting::fallback_modes(), CLI::ignore_case));
     app.add_option(
            "--cast-mode",
            args.cast_mode,
@@ -147,7 +148,7 @@ int main(int argc, char const* argv[])
         args.project_mode,
         dir,
         args.cast_mode,
-        args.wrap_mode,
+        args.fallback_mode,
         args.fill_value);
     auto finish_time = lagrange::get_timestamp();
     auto timing = lagrange::timestamp_diff_in_seconds(start_time, finish_time);

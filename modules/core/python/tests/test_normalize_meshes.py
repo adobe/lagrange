@@ -13,7 +13,6 @@ import lagrange
 
 import numpy as np
 from numpy.linalg import norm
-import math
 import pytest
 
 

@@ -261,14 +261,14 @@ int main(int argc, char** argv)
     /*
      * Register new window type, set behavior of the window
      */
-    auto panel_fn = [](ui::Registry& registry, ui::Entity e) {
-        auto& s = registry.get<MyPanelState>(e);
+    auto panel_fn = [](ui::Registry& registry_, ui::Entity e) {
+        auto& s = registry_.get<MyPanelState>(e);
         ImGui::Text("Local panel state:");
         ImGui::InputInt("x", &s.x);
         ImGui::InputInt("y", &s.y);
 
         ImGui::Text("Shared state from other system:");
-        auto pos = ui::get_input(registry).mouse.position;
+        auto pos = ui::get_input(registry_).mouse.position;
         ImGui::InputFloat2("Mouse pos:", pos.data());
 
         ImGui::Text("Shared state created and modified by these panels");
@@ -280,12 +280,12 @@ int main(int argc, char** argv)
 
             ui::Entity viz_e = ui::NullEntity;
         };
-        auto& priv = registry.ctx().emplace<MyPrivateContextVar>(MyPrivateContextVar{16.0f});
+        auto& priv = registry_.ctx().emplace<MyPrivateContextVar>(MyPrivateContextVar{16.0f});
 
         ImGui::InputFloat("MyPrivateContextVar.x:", &priv.x);
 
         if (priv.viz_e != ui::NullEntity) {
-            ui::show_widget(registry, priv.viz_e, entt::resolve(entt::type_id<ui::Transform>()));
+            ui::show_widget(registry_, priv.viz_e, entt::resolve(entt::type_id<ui::Transform>()));
         }
     };
 
@@ -343,7 +343,7 @@ int main(int argc, char** argv)
 
     float t = 0;
 
-    viewer.run([&](ui::Registry& registry) {
+    viewer.run([&](ui::Registry& registry_) {
         t += float(viewer.get_frame_elapsed_time());
 
 
@@ -352,8 +352,8 @@ int main(int argc, char** argv)
         a = Eigen::Translation3f(0, std::sin(t), 0);
         b = Eigen::Translation3f(std::sin(t), 0, 0);
         Eigen::Matrix4f bones[2] = {a.matrix(), b.matrix()};
-        if (registry.valid(obj_pbr)) {
-            ui::get_material(registry, obj_pbr)->set_mat4_array("bones", bones, 2);
+        if (registry_.valid(obj_pbr)) {
+            ui::get_material(registry_, obj_pbr)->set_mat4_array("bones", bones, 2);
         }
 
         return true;

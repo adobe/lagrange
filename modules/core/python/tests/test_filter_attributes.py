@@ -11,9 +11,8 @@
 #
 import lagrange
 
-import numpy as np
 
-from .assets import cube, cube_with_uv
+from .assets import cube, cube_with_uv  # noqa: F401
 
 
 class TestFilterAttributes:

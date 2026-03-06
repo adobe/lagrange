@@ -14,7 +14,7 @@ import math
 import lagrange
 import numpy as np
 
-from .assets import single_triangle
+from .assets import single_triangle  # noqa: F401
 
 
 class TestScene:
@@ -182,12 +182,14 @@ class TestScene:
         # Add skeletons to the scene
         skeleton = lagrange.scene.Skeleton()
         skeleton_id = scene.add(skeleton)
+        assert skeleton_id == 0
         assert len(scene.skeletons) == 1
 
         # Add animations to the scene
         animation = lagrange.scene.Animation()
         animation.name = "test animation"
         animation_id = scene.add(animation)
+        assert animation_id == 0
         assert len(scene.animations) == 1
 
     def test_scene_extension(self):
@@ -201,6 +203,7 @@ class TestScene:
         scene.extensions.data.update({"extension0": {"key": [0, 1, 2]}})
         assert scene.extensions.size == 1
         x = scene.extensions.data["extension0"]
+        assert x == {"key": [0, 1, 2]}
         assert scene.extensions.data["extension0"] == {"key": [0, 1, 2]}
         scene.extensions.data.update({"extension1": {"key": "foo"}})
         assert scene.extensions.size == 2
@@ -226,3 +229,154 @@ class TestScene:
         assert np.all(mesh2.vertices == mesh2_alt.vertices) and np.all(
             mesh2.facets == mesh2_alt.facets
         )
+
+    def test_scene_to_simple_scene_empty(self):
+        """An empty scene converts to an empty SimpleScene."""
+        scene = lagrange.scene.Scene()
+        root = lagrange.scene.Node()
+        root.name = "root"
+        root_id = scene.add(root)
+        scene.root_nodes.append(root_id)
+
+        simple = lagrange.scene.scene_to_simple_scene(scene)
+        assert simple.num_meshes == 0
+
+    def test_scene_to_simple_scene_basic(self, single_triangle):
+        """A scene with one mesh instance converts to a SimpleScene with correct transform."""
+        scene = lagrange.scene.Scene()
+        mesh_id = scene.add(single_triangle)
+
+        root = lagrange.scene.Node()
+        root.name = "root"
+        root_id = scene.add(root)
+        scene.root_nodes.append(root_id)
+
+        child = lagrange.scene.Node()
+        child.name = "child"
+        xf = np.eye(4, dtype=np.float32)
+        xf[0, 3] = 1.0
+        xf[1, 3] = 2.0
+        xf[2, 3] = 3.0
+        child.transform = xf
+        child.parent = root_id
+
+        mi = lagrange.scene.SceneMeshInstance()
+        mi.mesh = mesh_id
+        child.meshes.append(mi)
+
+        child_id = scene.add(child)
+        scene.add_child(root_id, child_id)
+
+        simple = lagrange.scene.scene_to_simple_scene(scene)
+        assert simple.num_meshes == 1
+        assert simple.num_instances(0) == 1
+
+        inst = simple.get_instance(0, 0)
+        assert inst.mesh_index == 0
+        assert np.allclose(inst.transform, xf, atol=1e-6)
+
+    def test_scene_to_simple_scene_hierarchy(self, single_triangle):
+        """World transform is the product of ancestor transforms."""
+        scene = lagrange.scene.Scene()
+        mesh_id = scene.add(single_triangle)
+
+        root_xf = np.eye(4, dtype=np.float32)
+        root_xf[0, 3] = 1.0  # translate x by 1
+
+        root = lagrange.scene.Node()
+        root.name = "root"
+        root.transform = root_xf
+        root_id = scene.add(root)
+        scene.root_nodes.append(root_id)
+
+        child_xf = np.eye(4, dtype=np.float32)
+        child_xf[1, 3] = 2.0  # translate y by 2
+
+        child = lagrange.scene.Node()
+        child.name = "child"
+        child.transform = child_xf
+        child.parent = root_id
+        mi = lagrange.scene.SceneMeshInstance()
+        mi.mesh = mesh_id
+        child.meshes.append(mi)
+        child_id = scene.add(child)
+        scene.add_child(root_id, child_id)
+
+        simple = lagrange.scene.scene_to_simple_scene(scene)
+        assert simple.num_meshes == 1
+        assert simple.num_instances(0) == 1
+
+        expected_xf = root_xf @ child_xf
+        inst = simple.get_instance(0, 0)
+        assert np.allclose(inst.transform, expected_xf, atol=1e-6)
+
+    def test_simple_scene_to_scene_basic(self, single_triangle):
+        """A SimpleScene converts to a Scene with correct structure."""
+        simple = lagrange.scene.SimpleScene3D()
+        mesh_idx = simple.add_mesh(single_triangle)
+
+        inst = lagrange.scene.MeshInstance3D()
+        inst.mesh_index = mesh_idx
+        xf = np.eye(4, dtype=np.float64)
+        xf[0, 3] = 5.0
+        inst.transform = xf
+        simple.add_instance(inst)
+
+        scene = lagrange.scene.simple_scene_to_scene(simple)
+        assert len(scene.meshes) == 1
+        assert len(scene.root_nodes) == 1
+        # root + 1 instance node
+        assert len(scene.nodes) == 2
+
+        root_id = scene.root_nodes[0]
+        assert len(scene.nodes[root_id].children) == 1
+
+        child_id = scene.nodes[root_id].children[0]
+        child = scene.nodes[child_id]
+        assert len(child.meshes) == 1
+        assert child.meshes[0].mesh == 0
+        # Compare as float32 since Scene node transforms are float.
+        assert np.allclose(child.transform, xf.astype(np.float32), atol=1e-5)
+
+    def test_scene_to_simple_scene_roundtrip(self, single_triangle):
+        """Roundtrip Scene -> SimpleScene -> Scene preserves mesh data and world transforms."""
+        scene = lagrange.scene.Scene()
+        mesh_id = scene.add(single_triangle)
+
+        root_xf = np.eye(4, dtype=np.float32)
+        root_xf[0, 3] = 1.0
+
+        root = lagrange.scene.Node()
+        root.name = "root"
+        root.transform = root_xf
+        root_id = scene.add(root)
+        scene.root_nodes.append(root_id)
+
+        child_xf = np.eye(4, dtype=np.float32)
+        child_xf[1, 3] = 2.0
+
+        child = lagrange.scene.Node()
+        child.name = "child"
+        child.transform = child_xf
+        child.parent = root_id
+        mi = lagrange.scene.SceneMeshInstance()
+        mi.mesh = mesh_id
+        child.meshes.append(mi)
+        child_id = scene.add(child)
+        scene.add_child(root_id, child_id)
+
+        # Roundtrip
+        simple = lagrange.scene.scene_to_simple_scene(scene)
+        scene2 = lagrange.scene.simple_scene_to_scene(simple)
+
+        # Mesh data preserved
+        assert len(scene2.meshes) == len(scene.meshes)
+        assert np.all(scene2.meshes[0].vertices == scene.meshes[0].vertices)
+        assert np.all(scene2.meshes[0].facets == scene.meshes[0].facets)
+
+        # World transform preserved: the instance node in scene2 should carry
+        # the flattened world transform root_xf @ child_xf.
+        expected_world = root_xf @ child_xf
+        root2_id = scene2.root_nodes[0]
+        child2_id = scene2.nodes[root2_id].children[0]
+        assert np.allclose(scene2.nodes[child2_id].transform, expected_world, atol=1e-5)

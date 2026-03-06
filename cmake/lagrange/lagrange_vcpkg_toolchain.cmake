@@ -44,6 +44,18 @@ CPMAddPackage(
 set(ENV{VCPKG_ROOT} "${vcpkg_SOURCE_DIR}")
 set(ENV{VCPKG_KEEP_ENV_VARS} "VCPKG_ROOT;$ENV{VCPKG_KEEP_ENV_VARS}")
 
+if(WIN32)
+    CPMAddPackage(
+        NAME windowstoolchain
+        GIT_REPOSITORY https://github.com/MarkSchofield/WindowsToolchain.git
+        GIT_TAG        v0.13.0
+        QUIET
+        DOWNLOAD_ONLY ON
+    )
+    FetchContent_GetProperties(windowstoolchain)
+    set(VCPKG_CHAINLOAD_TOOLCHAIN_FILE "${windowstoolchain_SOURCE_DIR}/Windows.MSVC.toolchain.cmake")
+endif()
+
 # Since this file is included as a toolchain file via our CMake preset, we setup vcpkg.cmake
 # via CMAKE_PROJECT_TOP_LEVEL_INCLUDES instead. See the following threads for more information:
 # https://discourse.cmake.org/t/built-in-package-manager-for-cmake-modules/7513

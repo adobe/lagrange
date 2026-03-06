@@ -78,29 +78,34 @@ void texture_gradient_modulation(
         x[n] = grid(coords.first, coords.second);
     }
 
+    // Compute the system matrix
+    const double eps = options.stiffness_regularization_weight;
+    const Eigen::SparseMatrix<double> S_reg =
+        mesh_utils::laplacian_regularization(gd.stiffness(), eps);
+    const Eigen::SparseMatrix<double> M =
+        gd.mass() * options.value_weight + S_reg * options.gradient_weight;
+
     // Construct the constraints
     {
         std::vector<Vector<double, NumChannels>> mass_b(gd.numNodes());
-        std::vector<Vector<double, NumChannels>> stiffness_b(gd.numNodes());
 
         // Get the constraints from the values
         gd.mass(&x[0], &mass_b[0]);
 
-        // Get the constraints from the gradients
-        gd.stiffness(&x[0], &stiffness_b[0]);
-
-        // Combine the constraints
-        for (size_t n = 0; n < gd.numNodes(); n++) {
-            b[n] = mass_b[n] * options.value_weight +
-                   stiffness_b[n] * options.gradient_weight * options.gradient_scale;
+        // Get the constraints from the gradients using S_reg (not raw stiffness)
+        // This ensures consistency between LHS and RHS
+        for (unsigned int c = 0; c < NumChannels; c++) {
+            Eigen::VectorXd x_c(gd.numNodes());
+            for (size_t n = 0; n < gd.numNodes(); n++) {
+                x_c[n] = x[n][c];
+            }
+            Eigen::VectorXd stiffness_b_c = S_reg * x_c;
+            for (size_t n = 0; n < gd.numNodes(); n++) {
+                b[n][c] = mass_b[n][c] * options.value_weight +
+                          stiffness_b_c[n] * options.gradient_weight * options.gradient_scale;
+            }
         }
     }
-
-    // Compute the system matrix
-    const double eps = options.stiffness_regularization_weight;
-    Eigen::SparseMatrix<double> M =
-        gd.mass() * options.value_weight +
-        mesh_utils::laplacian_regularization(gd.stiffness(), eps) * options.gradient_weight;
 
     // Construct/factor the solver
     Solver solver(M);

@@ -11,12 +11,9 @@
 #
 import lagrange
 
-import math
-import pytest
 import numpy as np
-import logging
 
-from .assets import quad_scene, quad_mesh, quad_tex, cube_with_uv
+from .assets import quad_scene, quad_mesh, quad_tex, cube_with_uv  # noqa: F401
 
 
 class TestTextureProcessing:

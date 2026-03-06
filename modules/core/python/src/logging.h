@@ -11,11 +11,13 @@
  */
 #pragma once
 
+#include <lagrange/python/binding.h>
+
 namespace lagrange::python {
 
 ///
-/// Registers a Python logging sink for lagrange::Logger.
+/// Registers a Python logging sink for the module m.
 ///
-void register_python_logger();
+void register_python_logger(nanobind::module_& m);
 
 } // namespace lagrange::python

@@ -33,6 +33,7 @@ namespace lagrange::texproc {
 using Array3Df = image::experimental::Array3D<float>;
 using View3Df = image::experimental::View3D<float>;
 
+// FIXME this strips non-color channel, other variants of this function don't.
 Array3Df convert_from(const scene::ImageBufferExperimental& image)
 {
     size_t nc = std::min(image.num_channels, size_t(3));

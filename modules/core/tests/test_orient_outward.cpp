@@ -145,6 +145,31 @@ TEST_CASE("orient_outward: cube with attrs", "[mesh][orient]")
     }
 }
 
+TEST_CASE("orient_outward: double flip", "[mesh][orient]" LA_CORP_FLAG)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto mesh =
+        lagrange::testing::load_surface_mesh<Scalar, Index>("corp/core/cone_low_flipped.obj");
+    std::array<size_t, 8> indices = {8, 10, 11, 12, 13, 14, 15, 16};
+    {
+        const auto& attr = mesh.get_indexed_attribute<Scalar>("normal");
+        auto normals = matrix_view(attr.values());
+        for (size_t i : indices) {
+            CHECK(normals.row(i).y() < 0); // pointing downward
+        }
+    }
+    lagrange::orient_outward(mesh);
+    {
+        const auto& attr = mesh.get_indexed_attribute<Scalar>("normal");
+        auto normals = matrix_view(attr.values());
+        for (size_t i : indices) {
+            CHECK(normals.row(i).y() > 0); // pointing upward
+        }
+    }
+}
+
 TEST_CASE("orient_outward: poly", "[mesh][orient]")
 {
     using Scalar = double;

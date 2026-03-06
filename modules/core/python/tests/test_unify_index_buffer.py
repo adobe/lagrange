@@ -11,7 +11,7 @@
 #
 import lagrange
 
-from .assets import cube
+from .assets import cube  # noqa: F401
 
 
 class TestUnifyIndexBuffer:

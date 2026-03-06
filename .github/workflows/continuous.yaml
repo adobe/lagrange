@@ -82,8 +82,7 @@ jobs:
 
       - name: Select build dir (macOS)
         if: runner.os == 'macOS'
-        run:
-            echo "build_dir=build" >> "$GITHUB_ENV"
+        run: echo "build_dir=build" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4

@@ -98,9 +98,10 @@ public:
     void push_back(const T& value) { Super::emplace_back(std::make_shared<T>(value)); }
     void push_back(T&& value) { Super::push_back(std::make_shared<T>(std::move(value))); }
     template <typename... Args>
-    void emplace_back(Args&&... args)
+    T& emplace_back(Args&&... args)
     {
         Super::push_back(std::make_shared<T>(std::forward<Args>(args)...));
+        return back();
     }
     const T& back() const { return *Super::back().get(); }
     T& back() { return *Super::back().get(); }

@@ -1403,10 +1403,11 @@ auto SurfaceMesh<Scalar, Index>::get_corner_to_vertex() const -> const Attribute
 }
 
 template <typename Scalar, typename Index>
-auto SurfaceMesh<Scalar, Index>::ref_corner_to_vertex() -> Attribute<Index>&
+auto SurfaceMesh<Scalar, Index>::ref_corner_to_vertex(AttributeRefPolicy policy)
+    -> Attribute<Index>&
 {
     la_runtime_assert(
-        !has_edges(),
+        policy == AttributeRefPolicy::Force || !has_edges(),
         "Cannot retrieve a writeable reference to mesh facets when edge/connectivity is "
         "available.");
     return ref_attribute<Index>(m_reserved_ids.corner_to_vertex());
@@ -2074,9 +2075,11 @@ void flip_normals_tangents_bitangents(
                             idx = value_to_flipped[idx];
                             continue;
                         }
-                        if (idx < old_num_values && has_nonflips_uses[idx] &&
-                            value_to_flipped[idx] == invalid<Index>()) {
-                            // Need to create a new value and flip it
+                        la_debug_assert(idx < old_num_values);
+
+                        if (has_nonflips_uses[idx]) {
+                            // If the value is also used by non-flipped facets, we need to create a
+                            // new value for the flipped facets and update the index accordingly.
                             const Index new_idx = static_cast<Index>(values.get_num_elements());
                             values.insert_elements(1);
                             std::copy_n(
@@ -2085,6 +2088,12 @@ void flip_normals_tangents_bitangents(
                                 values.ref_row(new_idx).begin());
                             value_to_flipped[idx] = new_idx;
                             idx = new_idx;
+                        } else {
+                            // No other corner in the mesh uses the same index, so we can flip the
+                            // value in-place without creating a new one. We still need to update
+                            // the "value_to_flipped" entry to avoid flipping the same value
+                            // multiple times if it is shared between multiple flipped facets.
+                            value_to_flipped[idx] = idx;
                         }
 
                         // Flip the value once.

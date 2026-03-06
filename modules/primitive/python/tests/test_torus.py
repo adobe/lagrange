@@ -10,8 +10,6 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-import numpy as np
-import pytest
 import math
 
 

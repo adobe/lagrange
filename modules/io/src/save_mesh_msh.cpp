@@ -331,6 +331,14 @@ void populate_non_indexed_attribute(
 #undef LA_X_try_attribute
         break;
     }
+    case AttributeElement::Value: {
+        if (!quiet) {
+            logger().warn(
+                "Ignoring value attribute {} when saving to MSH format.",
+                mesh.get_attribute_name(id));
+        }
+        break;
+    }
     default: throw Error("Unsupported attribute element type!"); break;
     }
 }

@@ -208,10 +208,8 @@ void combine_attributes(
     });
 }
 
-} // namespace
-
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> combine_meshes(
+SurfaceMesh<Scalar, Index> combine_meshes_impl(
     size_t num_meshes,
     function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
     bool preserve_attributes)
@@ -289,6 +287,43 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     }
 
     return combined_mesh;
+}
+
+} // namespace
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> combine_meshes(
+    size_t num_meshes,
+    function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
+    bool preserve_attributes)
+{
+    if (preserve_attributes) {
+        // Check for empty meshes and skip them
+        bool has_empty_mesh = false;
+        for (size_t i = 0; i < num_meshes; ++i) {
+            if (get_mesh(i).get_num_vertices() == 0) {
+                has_empty_mesh = true;
+                break;
+            }
+        }
+        if (has_empty_mesh) {
+            // Only allocate remapping array if we have empty input meshes
+            std::vector<size_t> non_empty_meshes;
+            for (size_t i = 0; i < num_meshes; ++i) {
+                if (get_mesh(i).get_num_vertices() > 0) {
+                    non_empty_meshes.push_back(i);
+                }
+            }
+            return combine_meshes_impl<Scalar, Index>(
+                non_empty_meshes.size(),
+                [&](size_t i) -> const SurfaceMesh<Scalar, Index>& {
+                    return get_mesh(non_empty_meshes[i]);
+                },
+                true);
+        }
+    }
+    // Default path when we don't need to remap anything.
+    return combine_meshes_impl(num_meshes, get_mesh, preserve_attributes);
 }
 
 template <typename Scalar, typename Index>

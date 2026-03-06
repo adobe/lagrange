@@ -13,9 +13,12 @@
 #include <lagrange/io/load_mesh_ply.h>
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/save_scene.h>
+#include <lagrange/scene/internal/scene_string_utils.h>
+#include <lagrange/scene/scene_convert.h>
 #include <lagrange/views.h>
 
 #include <lagrange/testing/common.h>
+#include <lagrange/testing/equivalence_check.h>
 
 TEST_CASE("load_fbx", "[io][fbx]" LA_CORP_FLAG)
 {
@@ -46,4 +49,36 @@ TEST_CASE("load_fbx_and_save", "[io][fbx]" LA_CORP_FLAG)
         lagrange::testing::get_test_output_path("test_io/buffet_gray_001.obj");
     REQUIRE_NOTHROW(lagrange::io::save_scene(output_glb, scene, save_options));
     REQUIRE_NOTHROW(lagrange::io::save_scene(output_obj, scene, save_options));
+}
+
+TEST_CASE("load_fbx with duplicate attr", "[io][fbx]")
+{
+    lagrange::io::LoadOptions options;
+    options.quiet = true;
+    REQUIRE_NOTHROW(
+        lagrange::io::load_mesh_fbx<lagrange::SurfaceMesh32d>(
+            lagrange::testing::get_data_path("open/io/Walking.fbx"),
+            options));
+}
+
+TEST_CASE("load_fbx with geometric transform", "[io][fbx]" LA_CORP_FLAG)
+{
+    lagrange::io::LoadOptions options;
+    options.quiet = true;
+    auto mesh = lagrange::io::load_mesh_fbx<lagrange::SurfaceMesh32d>(
+        lagrange::testing::get_data_path("corp/io/cgt_fmcg_stain_remove_whiten_049.fbx"),
+        options);
+    auto scene = lagrange::io::load_scene_fbx<lagrange::scene::Scene32d>(
+        lagrange::testing::get_data_path("corp/io/cgt_fmcg_stain_remove_whiten_049.fbx"),
+        options);
+    auto flat = lagrange::scene::scene_to_mesh(scene);
+    auto expected = lagrange::io::load_mesh_ply<lagrange::SurfaceMesh32d>(
+        lagrange::testing::get_data_path("corp/io/cgt_fmcg_stain_remove_whiten_049.ply"),
+        options);
+    lagrange::logger().debug("{}", lagrange::scene::internal::to_string(scene));
+    mesh = lagrange::SurfaceMesh32d::stripped_move(std::move(mesh));
+    flat = lagrange::SurfaceMesh32d::stripped_move(std::move(flat));
+    expected = lagrange::SurfaceMesh32d::stripped_move(std::move(expected));
+    lagrange::testing::ensure_approx_equivalent_mesh(mesh, expected);
+    lagrange::testing::ensure_approx_equivalent_mesh(flat, expected);
 }

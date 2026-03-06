@@ -79,32 +79,23 @@ public:
     Eigen::SparseMatrix<Scalar> d1() const;
 
     ///
-    /// Compute the discrete Hodge star operator for 0-form.
+    /// Compute the discrete Hodge star operator for 0-forms (diagonal mass matrix, size #V x #V).
     ///
-    /// The Hodge star operator maps a k-form to a dual (n-k)-form, where n is the dimension of the
-    /// manifold. The discrete Hodge star operator for 0-form is a matrix of size #V by #V.
-    ///
-    /// @return A sparse matrix representing the discrete Hodge star operator for 0-forms.
+    /// @return A diagonal sparse matrix of size #V x #V.
     ///
     Eigen::SparseMatrix<Scalar> star0() const;
 
     ///
-    /// Compute the discrete Hodge star operator for 1-form.
+    /// Compute the discrete Hodge star operator for 1-forms (diagonal mass matrix, size #E x #E).
     ///
-    /// The Hodge star operator maps a k-form to a dual (n-k)-form, where n is the dimension of the
-    /// manifold. The discrete Hodge star operator for 1-form is a matrix of size #E by #E.
-    ///
-    /// @return A sparse matrix representing the discrete Hodge star operator for 1-forms.
+    /// @return A diagonal sparse matrix of size #E x #E.
     ///
     Eigen::SparseMatrix<Scalar> star1() const;
 
     ///
-    /// Compute the discrete Hodge star operator for 2-form.
+    /// Compute the discrete Hodge star operator for 2-forms (diagonal mass matrix, size #F x #F).
     ///
-    /// The Hodge star operator maps a k-form to a dual (n-k)-form, where n is the dimension of the
-    /// manifold. The discrete Hodge star operator for 2-form is a matrix of size #F by #F.
-    ///
-    /// @return A sparse matrix representing the discrete Hodge star operator for 2-forms.
+    /// @return A diagonal sparse matrix of size #F x #F.
     ///
     Eigen::SparseMatrix<Scalar> star2() const;
 
@@ -238,51 +229,69 @@ public:
     Eigen::SparseMatrix<Scalar> levi_civita() const;
 
     ///
-    /// Compute the discrete Levi-Civita connection for n-rosy fields.
+    /// n-rosy variant of levi_civita().
     ///
-    /// The discrete Levi-Civita connection parallel transports tangent vectors defined on vertices
-    /// to tangent vectors defined on corners. It is represented as a matrix of size #C * 2 by #V *
-    /// 2. All tangent vectors are expressed in its local tangent basis.
+    /// @param[in] n Symmetry order of the rosy field (applies the connection n times).
     ///
-    /// @param[in] n Number of times to apply the connection.
-    ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A sparse matrix representing the discrete Levi-Civita connection.
+    /// @return A sparse matrix of size (#C * 2) x (#V * 2).
     ///
     Eigen::SparseMatrix<Scalar> levi_civita_nrosy(Index n) const;
 
     ///
     /// Compute the discrete covariant derivative operator.
     ///
-    /// The covariance derivative operator measures the change of a tangent vector field with
+    /// The covariant derivative operator measures the change of a tangent vector field with
     /// respect to another tangent vector field using the Levi-Civita connection. In the discrete
-    /// setting, both vector fields are defined on the vertices. The discrete covariance derivative
-    /// operator is represented as a matrix of size #F * 4 by #V * 2. The output covariant
-    /// derivative is a flattened 2 by 2 matrix defined on each facet.
+    /// setting, both vector fields are defined on the vertices. The output covariant derivative is
+    /// a flattened 2x2 matrix defined on each facet.
     ///
     /// @return A sparse matrix representing the discrete covariant derivative operator.
     ///
     Eigen::SparseMatrix<Scalar> covariant_derivative() const;
 
     ///
-    /// Compute the discrete covariant derivative operator for n-rosy fields.
+    /// n-rosy variant of covariant_derivative().
     ///
-    /// The covariance derivative operator measures the change of a tangent vector field with
-    /// respect to another tangent vector field using the Levi-Civita connection. In the discrete
-    /// setting, both vector fields are defined on the vertices. The discrete covariance derivative
-    /// operator is represented as a matrix of size #F * 4 by #V * 2. The output covariant
-    /// derivative is a flattened 2 by 2 matrix defined on each facet.
+    /// @param[in] n Symmetry order of the rosy field (applies the connection n times).
     ///
-    /// @param[in] n Number of times to apply the connection.
-    ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A sparse matrix representing the discrete covariant derivative operator.
+    /// @return A sparse matrix of size (#F * 4) x (#V * 2).
     ///
     Eigen::SparseMatrix<Scalar> covariant_derivative_nrosy(Index n) const;
+
+    ///
+    /// Compute the global discrete shape operator (Eq. (23), de Goes et al. 2020).
+    ///
+    /// Applies the per-facet shape operator to the precomputed per-vertex normals and assembles
+    /// the result into a sparse linear map. It maps a per-vertex 3-D normal field (#V * 3 values,
+    /// three interleaved components per vertex) to per-facet 2x2 symmetrized shape operators
+    /// (#F * 4 values, row-major per facet: [S(0,0), S(0,1), S(1,0), S(1,1)]).
+    ///
+    /// @return A sparse matrix of size (#F * 4) x (#V * 3).
+    ///
+    Eigen::SparseMatrix<Scalar> shape_operator() const;
+
+    ///
+    /// Compute the global discrete adjoint gradient operator (Eq. (24), de Goes et al. 2020).
+    ///
+    /// The adjoint gradient is the vertex-centered dual of the per-facet gradient. It maps a
+    /// per-facet scalar field (#F values) to a per-vertex 3-D tangent vector field. The returned
+    /// sparse matrix has shape (#V * 3) x #F, with three interleaved components per vertex row.
+    ///
+    /// @return A sparse matrix of size (#V * 3) x #F.
+    ///
+    Eigen::SparseMatrix<Scalar> adjoint_gradient() const;
+
+    ///
+    /// Compute the global discrete adjoint shape operator (Eq. (26), de Goes et al. 2020).
+    ///
+    /// The adjoint shape operator is the vertex-centered dual of the per-facet shape operator. It
+    /// maps a per-facet 3-D normal field (#F * 3 values, three interleaved components per facet)
+    /// to per-vertex 2x2 symmetrized shape operators (#V * 4 values, row-major per vertex:
+    /// [S(0,0), S(0,1), S(1,0), S(1,1)]).
+    ///
+    /// @return A sparse matrix of size (#V * 4) x (#F * 3).
+    ///
+    Eigen::SparseMatrix<Scalar> adjoint_shape_operator() const;
 
     ///
     /// Compute the connection Laplacian operator.
@@ -298,32 +307,25 @@ public:
     Eigen::SparseMatrix<Scalar> connection_laplacian(Scalar lambda = 1) const;
 
     ///
-    /// Compute the connection Laplacian operator for n-rosy fields.
+    /// n-rosy variant of connection_laplacian().
     ///
-    /// The connection Laplacian operator computes the Laplacian of a tangent vector field defined
-    /// on the vertices using Levi-Civita connection for parallel transport. It is represented as a
-    /// matrix of size #V * 2 by #V * 2.
-    ///
-    /// @param[in] n Number of times to apply the connection.
+    /// @param[in] n      Symmetry order of the rosy field (applies the connection n times).
     /// @param[in] lambda Weight of projection term for the 1-form inner product (default: 1).
     ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A sparse matrix representing the discrete connection Laplacian operator.
+    /// @return A sparse matrix of size (#V * 2) x (#V * 2).
     ///
     Eigen::SparseMatrix<Scalar> connection_laplacian_nrosy(Index n, Scalar lambda = 1) const;
 
 public:
     ///
-    /// Compute the gradient for a single facet.
+    /// Compute the per-corner gradient vectors for a single facet (Eq. (8), de Goes et al. 2020).
     ///
-    /// The gradient for a single facet is a 3 by nf vector, where nf is the number vertices in the
-    /// facet. It represents the gradient of a linear function defined on the facet.
+    /// Returns a 3 x nf matrix whose column l is (a_f x e_f^l) / (2 * |a_f|^2), where a_f is
+    /// the facet vector area and e_f^l = x_{l-1} - x_{l+1} spans the opposite edge.
     ///
     /// @param[in] fid Facet index.
     ///
-    /// @return A matrix representing the gradient for the given facet.
+    /// @return A 3 x nf matrix of per-corner gradient vectors.
     ///
     Eigen::Matrix<Scalar, 3, Eigen::Dynamic> gradient(Index fid) const;
 
@@ -356,39 +358,36 @@ public:
     ///
     /// Compute the flat operator for a single facet.
     ///
-    /// The discrete flat operator for a single fact is a nf by 3 matrix, where nf is the number of
-    /// vertices of the facet. It maps a vector field defined on the facet to a 1-form defined on
-    /// the edges of the facet.
+    /// Maps a vector field defined on the facet to a 1-form on its edges. The matrix has size
+    /// nf x 3, where nf is the number of vertices of the facet.
     ///
     /// @param[in] fid Facet index.
     ///
-    /// @return A matrix representing the flat operator for the given facet.
+    /// @return An nf x 3 matrix representing the flat operator for the given facet.
     ///
     Eigen::Matrix<Scalar, Eigen::Dynamic, 3> flat(Index fid) const;
 
     ///
     /// Compute the sharp operator for a single facet.
     ///
-    /// The discrete sharp operator for a single fact is a 3 by nf matrix, where nf is the number of
-    /// vertices of the facet. It maps a 1-form defined on the edges of the facet to a vector
-    /// field defined on the facet.
+    /// Maps a 1-form on the edges of the facet to a vector field on the facet. The matrix has
+    /// size 3 x nf, where nf is the number of vertices of the facet.
     ///
     /// @param[in] fid Facet index.
     ///
-    /// @return A matrix representing the sharp operator for the given facet.
+    /// @return A 3 x nf matrix representing the sharp operator for the given facet.
     ///
     Eigen::Matrix<Scalar, 3, Eigen::Dynamic> sharp(Index fid) const;
 
     ///
     /// Compute the projection operator for a single facet.
     ///
-    /// The discrete projection operator for a single fact is a nf by nf matrix, where nf is the
-    /// number of vertices of the facet. It measures the information loss when extracting the part
-    /// of the 1-form associated with a vector field.
+    /// Measures the information loss when extracting the part of a 1-form associated with a
+    /// vector field. The matrix has size nf x nf, where nf is the number of vertices.
     ///
     /// @param[in] fid Facet index.
     ///
-    /// @return A matrix representing the projection operator for the given facet.
+    /// @return An nf x nf matrix representing the projection operator for the given facet.
     ///
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> projection(Index fid) const;
 
@@ -460,17 +459,13 @@ public:
     Eigen::Matrix<Scalar, 2, 2> levi_civita(Index fid, Index lv) const;
 
     ///
-    /// Compute the discrete Levi-Civita connection that parallel transport a tangent vector from a
-    /// vertex to an incident facet for n-rosy fields.
+    /// n-rosy variant of levi_civita(fid, lv).
     ///
     /// @param[in] fid Facet index.
     /// @param[in] lv  Local vertex index in the facet.
-    /// @param[in] n   Number of times to apply the connection.
+    /// @param[in] n   Symmetry order of the rosy field (applies the connection n times).
     ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A 2 by 2 matrix representing the Levi-Civita connection.
+    /// @return A 2x2 matrix representing the Levi-Civita connection.
     ///
     Eigen::Matrix<Scalar, 2, 2> levi_civita_nrosy(Index fid, Index lv, Index n) const;
 
@@ -488,19 +483,12 @@ public:
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> levi_civita(Index fid) const;
 
     ///
-    /// Compute the discrete Levi-Civita connection for a single facet for n-rosy fields.
-    ///
-    /// The per-facet Levi-Civita connection is a 2*nf by 2*nf block diagonal matrix that parallel
-    /// transports tangent vectors from the vertex tangent space to the tangent space of the facet.
-    /// Here nf is the number of vertices in the facet.
+    /// n-rosy variant of levi_civita(fid).
     ///
     /// @param[in] fid Facet index.
-    /// @param[in] n   Number of times to apply the connection.
+    /// @param[in] n   Symmetry order of the rosy field (applies the connection n times).
     ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A matrix representing the Levi-Civita connection.
+    /// @return A (2*nf) x (2*nf) block-diagonal matrix representing the Levi-Civita connection.
     ///
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> levi_civita_nrosy(Index fid, Index n)
         const;
@@ -519,49 +507,80 @@ public:
     Eigen::Matrix<Scalar, 4, Eigen::Dynamic> covariant_derivative(Index fid) const;
 
     ///
-    /// Compute the discrete covariant derivative operator for a single facet for n-rosy fields.
-    ///
-    /// The discrete covariant derivative operator is a 4 by 2 * nf matrix that maps a tangent vector
-    /// defined on a vertex to a flattened 2 by 2 covariant derivative matrix defined on the facet.
-    /// Here nf is the number of vertices in the facet.
+    /// n-rosy variant of covariant_derivative(fid).
     ///
     /// @param[in] fid Facet index.
-    /// @param[in] n   Number of times to apply the connection.
+    /// @param[in] n   Symmetry order of the rosy field (applies the connection n times).
     ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A matrix representing the discrete covariant derivative operator.
+    /// @return A 4 x (2*nf) matrix representing the covariant derivative operator.
     ///
     Eigen::Matrix<Scalar, 4, Eigen::Dynamic> covariant_derivative_nrosy(Index fid, Index n) const;
 
     ///
-    /// Compute the discrete covariant projection operator for a single facet.
+    /// Compute the discrete shape operator for a single facet (Eq. (23), de Goes et al. 2020).
     ///
-    /// The discrete covariant projection operator for a single fact is a 2*nf by 2*nf matrix, where nf
-    /// is the number vertices in facet. It measures the information loss when extracting the part
-    /// of a tangent vector field associated with a covariant derivative.
+    /// Applies the per-facet gradient to the precomputed per-vertex normals and symmetrizes the
+    /// result in the facet tangent plane. The returned 2x2 matrix is symmetric; its trace divided
+    /// by two gives the mean curvature at the facet, and its determinant gives the Gaussian
+    /// curvature.
     ///
     /// @param[in] fid Facet index.
     ///
-    /// @return A matrix representing the discrete covariant projection operator.
+    /// @return A 2x2 symmetric matrix representing the shape operator for the given facet.
+    ///
+    Eigen::Matrix<Scalar, 2, 2> shape_operator(Index fid) const;
+
+    ///
+    /// Compute the adjoint gradient operator for a single vertex (Eq. (24), de Goes et al. 2020).
+    ///
+    /// Returns a 3 x k dense matrix whose columns are the area-weighted, parallel-transported
+    /// per-corner gradient vectors for vertex @p vid, where k is the number of incident faces.
+    /// Columns are in the order of the incident-face traversal via get_first_corner_around_vertex(),
+    /// consistent with adjoint_shape_operator().
+    ///
+    /// @note There is a sign correction for Eq. (24) in the implementation.
+    ///
+    /// @param[in] vid Vertex index.
+    ///
+    /// @return A 3 x k dense matrix (k = number of incident faces).
+    ///
+    Eigen::Matrix<Scalar, 3, Eigen::Dynamic> adjoint_gradient(Index vid) const;
+
+    ///
+    /// Compute the adjoint shape operator for a single vertex (Eq. (26), de Goes et al. 2020).
+    ///
+    /// The adjoint shape operator is the vertex-centered dual of the per-facet shape operator. It
+    /// applies the adjoint gradient to the unit normals of the incident faces and symmetrizes the
+    /// result in the vertex tangent plane. The returned 2x2 matrix is symmetric; its trace divided
+    /// by two gives the mean curvature at the vertex, and its determinant gives the Gaussian
+    /// curvature.
+    ///
+    /// @param[in] vid Vertex index.
+    ///
+    /// @return A 2x2 symmetric matrix representing the adjoint shape operator at the vertex.
+    ///
+    Eigen::Matrix<Scalar, 2, 2> adjoint_shape_operator(Index vid) const;
+
+    ///
+    /// Compute the discrete covariant projection operator for a single facet.
+    ///
+    /// Measures the information loss when extracting the part of a tangent vector field associated
+    /// with a covariant derivative. The matrix has size (2*nf) x (2*nf), where nf is the number of
+    /// vertices in the facet.
+    ///
+    /// @param[in] fid Facet index.
+    ///
+    /// @return A (2*nf) x (2*nf) matrix representing the covariant projection operator.
     ///
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> covariant_projection(Index fid) const;
 
     ///
-    /// Compute the discrete covariant projection operator for a single facet for n-rosy fields.
-    ///
-    /// The discrete covariant projection operator for a single fact is a 2*nf by 2*nf matrix, where nf
-    /// is the number vertices in facet. It measures the information loss when extracting the part
-    /// of a tangent vector field associated with a covariant derivative.
+    /// n-rosy variant of covariant_projection(fid).
     ///
     /// @param[in] fid Facet index.
-    /// @param[in] n   Number of times to apply the connection.
+    /// @param[in] n   Symmetry order of the rosy field (applies the connection n times).
     ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A matrix representing the discrete covariant projection operator.
+    /// @return A (2*nf) x (2*nf) matrix representing the covariant projection operator.
     ///
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic> covariant_projection_nrosy(
         Index fid,
@@ -585,30 +604,24 @@ public:
         Scalar lambda = 1) const;
 
     ///
-    /// Compute the discrete connection Laplacian operator for a single facet for n-rosy fields.
-    ///
-    /// The discrete connection Laplacian operator for a single facet is a 2*nf by 2*nf matrix,
-    /// where nf is the number vertices in facet. It computes the Laplacian of a tangent vector
-    /// field defined on the vertices of the facet using Levi-Civita connection for parallel
-    /// transport.
+    /// n-rosy variant of connection_laplacian(fid).
     ///
     /// @param[in] fid    Facet index.
-    /// @param[in] n      Number of times to apply the connection.
+    /// @param[in] n      Symmetry order of the rosy field (applies the connection n times).
     /// @param[in] lambda Weight of projection term for the 1-form inner product (default: 1).
     ///
-    /// @note The parameter n is designed to work with n-rosy field, where a representative
-    /// tangent vector is the n-time rotation of any of the n vectors in a n-rosy field.
-    ///
-    /// @return A matrix representing the discrete connection Laplacian operator.
+    /// @return A (2*nf) x (2*nf) matrix representing the connection Laplacian operator.
     ///
     Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic>
     connection_laplacian_nrosy(Index fid, Index n, Scalar lambda = 1) const;
 
 private:
     ///
-    /// Compute the per-facet vector area attribute and store it in the mesh.
+    /// Compute per-vertex normals as the sum of incident facet vector areas and store them in the
+    /// mesh.
     ///
     void compute_vertex_normal_from_vector_area();
+
 
 public:
     ///

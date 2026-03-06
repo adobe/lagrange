@@ -13,13 +13,20 @@
 lagrange_add_module()
 
 # 2. dependencies
-lagrange_find_package(embree 3 CONFIG REQUIRED)
-lagrange_include_modules(bvh)
+lagrange_include_modules(bvh scene)
 target_link_libraries(lagrange_raycasting PUBLIC
     lagrange::core
     lagrange::bvh
-    embree::embree
+    lagrange::scene
 )
+
+if(LAGRANGE_WITH_EMBREE_3)
+    lagrange_find_package(embree 3 CONFIG REQUIRED)
+    target_compile_definitions(lagrange_raycasting PUBLIC LAGRANGE_WITH_EMBREE_3)
+else()
+    lagrange_find_package(embree 4 CONFIG REQUIRED)
+endif()
+target_link_libraries(lagrange_raycasting PUBLIC embree::embree)
 
 option(LAGRANGE_EMBREE_DEBUG "Perform error-checking when performing each single Embree call"  OFF)
 if(LAGRANGE_EMBREE_DEBUG)
@@ -37,4 +44,9 @@ endif()
 
 if(LAGRANGE_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+# 4. python binding
+if(LAGRANGE_MODULE_PYTHON)
+    add_subdirectory(python)
 endif()

@@ -56,10 +56,6 @@ int main(int argc, char** argv)
         filtering_options.jitter_epsilon,
         "Random jitter amount (0 if no jittering).");
     app.add_option(
-        "--stiffness-regularization",
-        filtering_options.stiffness_regularization_weight,
-        "Stiffness matrix regularization weight.");
-    app.add_option(
         "--clamp",
         filtering_options.clamp_to_range,
         "Clamp out-of-range texels to the given range.");

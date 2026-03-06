@@ -12,11 +12,9 @@
 import lagrange
 
 import numpy as np
-from numpy.linalg import norm
-import math
 import pytest
 
-from .assets import single_triangle, cube
+from .assets import single_triangle, cube  # noqa: F401
 
 
 class TestComputeCentroid:
@@ -33,4 +31,4 @@ class TestComputeCentroid:
     def test_empty_mesh(self):
         mesh = lagrange.SurfaceMesh()
         with pytest.raises(Exception):
-            c = lagrange.compute_mesh_centroid(mesh)
+            lagrange.compute_mesh_centroid(mesh)

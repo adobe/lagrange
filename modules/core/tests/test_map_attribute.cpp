@@ -274,3 +274,102 @@ TEST_CASE("map_attribute: invalid", "[attribute][conversion]")
 {
     test_map_attribute_invalid<float, uint32_t, double>();
 }
+
+TEST_CASE("map_attribute: constant value", "[attribute][conversion]")
+{
+    using namespace lagrange;
+
+    // Load a simple mesh
+    auto mesh = lagrange::testing::load_surface_mesh<float, uint32_t>("open/core/poly/L-plane.obj");
+    mesh.initialize_edges();
+
+    // Create a constant value attribute (single element that should be broadcast)
+    const size_t num_channels = 3;
+    auto id = mesh.create_attribute<float>(
+        "constant_normal",
+        AttributeElement::Value,
+        AttributeUsage::Normal,
+        num_channels);
+
+    // Set it to a single constant value (like a constant normal in USD)
+    auto& attr = mesh.ref_attribute<float>(id);
+    attr.resize_elements(1); // Only 1 element (constant value)
+    auto values = attr.ref_all();
+    values[0] = 0.0f;
+    values[1] = 0.0f;
+    values[2] = 1.0f;
+
+    // Test mapping to Indexed (this was failing before the fix)
+    auto indexed_id = map_attribute(mesh, id, "constant_normal_indexed", AttributeElement::Indexed);
+    REQUIRE(mesh.is_attribute_indexed(indexed_id));
+
+    // Verify memory optimization: constant values should only store 1 element
+    const auto& indexed_attr = mesh.get_indexed_attribute<float>(indexed_id);
+    REQUIRE(indexed_attr.values().get_num_elements() == 1);
+    for (uint32_t c = 0; c < mesh.get_num_corners(); ++c) {
+        const auto& row = indexed_attr.values().get_row(indexed_attr.indices().get(c));
+        REQUIRE(Catch::Approx(row[0]) == 0.0f);
+        REQUIRE(Catch::Approx(row[1]) == 0.0f);
+        REQUIRE(Catch::Approx(row[2]) == 1.0f);
+    }
+
+    // Test mapping to Corner
+    auto corner_id = map_attribute(mesh, id, "constant_normal_corner", AttributeElement::Corner);
+    const auto& corner_attr = mesh.get_attribute<float>(corner_id);
+    REQUIRE(corner_attr.get_num_elements() == mesh.get_num_corners());
+    for (size_t i = 0; i < corner_attr.get_num_elements(); ++i) {
+        const auto& row = corner_attr.get_row(i);
+        REQUIRE(Catch::Approx(row[0]) == 0.0f);
+        REQUIRE(Catch::Approx(row[1]) == 0.0f);
+        REQUIRE(Catch::Approx(row[2]) == 1.0f);
+    }
+
+    // Test mapping to Vertex
+    auto vertex_id = map_attribute(mesh, id, "constant_normal_vertex", AttributeElement::Vertex);
+    const auto& vertex_attr = mesh.get_attribute<float>(vertex_id);
+    REQUIRE(vertex_attr.get_num_elements() == mesh.get_num_vertices());
+    for (size_t i = 0; i < vertex_attr.get_num_elements(); ++i) {
+        const auto& row = vertex_attr.get_row(i);
+        REQUIRE(Catch::Approx(row[0]) == 0.0f);
+        REQUIRE(Catch::Approx(row[1]) == 0.0f);
+        REQUIRE(Catch::Approx(row[2]) == 1.0f);
+    }
+
+    // Test mapping to Facet
+    auto facet_id = map_attribute(mesh, id, "constant_normal_facet", AttributeElement::Facet);
+    const auto& facet_attr = mesh.get_attribute<float>(facet_id);
+    REQUIRE(facet_attr.get_num_elements() == mesh.get_num_facets());
+    for (size_t i = 0; i < facet_attr.get_num_elements(); ++i) {
+        const auto& row = facet_attr.get_row(i);
+        REQUIRE(Catch::Approx(row[0]) == 0.0f);
+        REQUIRE(Catch::Approx(row[1]) == 0.0f);
+        REQUIRE(Catch::Approx(row[2]) == 1.0f);
+    }
+
+    // Test mapping to Edge (edges were initialized earlier)
+    auto edge_id = map_attribute(mesh, id, "constant_normal_edge", AttributeElement::Edge);
+    const auto& edge_attr = mesh.get_attribute<float>(edge_id);
+    REQUIRE(edge_attr.get_num_elements() == mesh.get_num_edges());
+    for (size_t i = 0; i < edge_attr.get_num_elements(); ++i) {
+        const auto& row = edge_attr.get_row(i);
+        REQUIRE(Catch::Approx(row[0]) == 0.0f);
+        REQUIRE(Catch::Approx(row[1]) == 0.0f);
+        REQUIRE(Catch::Approx(row[2]) == 1.0f);
+    }
+
+    // Test map_attribute_in_place as well (this is what the user was calling)
+    mesh.create_attribute<float>(
+        "primvars:normals",
+        AttributeElement::Value,
+        AttributeUsage::Normal,
+        num_channels);
+    auto& primvar_attr = mesh.ref_attribute<float>("primvars:normals");
+    primvar_attr.resize_elements(1);
+    auto primvar_values = primvar_attr.ref_all();
+    primvar_values[0] = 0.0f;
+    primvar_values[1] = 0.0f;
+    primvar_values[2] = 1.0f;
+
+    // This should not throw anymore
+    REQUIRE_NOTHROW(map_attribute_in_place(mesh, "primvars:normals", AttributeElement::Indexed));
+}

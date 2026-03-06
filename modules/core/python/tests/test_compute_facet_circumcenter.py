@@ -13,7 +13,7 @@ import lagrange
 
 import numpy as np
 
-from .assets import cube_triangular
+from .assets import cube_triangular  # noqa: F401
 
 
 class TestComputeFacetCircumcenter:

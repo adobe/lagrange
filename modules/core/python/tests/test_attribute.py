@@ -15,7 +15,7 @@ import numpy as np
 import pytest
 import sys
 
-from .assets import single_triangle, single_triangle_with_index, cube
+from .assets import single_triangle, single_triangle_with_index, cube  # noqa: F401
 from .utils import address, assert_sharing_raw_data
 
 
@@ -121,8 +121,8 @@ class TestAttribute:
         mesh.delete_attribute("vertex_index")
 
         # `attr` is no longer valid.
-        with pytest.raises(RuntimeError) as e:
-            num_channels = attr.num_channels
+        with pytest.raises(RuntimeError):
+            attr.num_channels == 1
 
     def test_delete_attribute_with_wrap(self, single_triangle_with_index):
         data = np.array([-1, 1, 0], dtype=np.intc)

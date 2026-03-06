@@ -27,21 +27,15 @@ namespace lagrange::internal {
 
 namespace {
 
-enum class ShouldBeWritable { Yes, No };
-
-struct Result
-{
-    bool success = true;
-    std::string msg;
-};
-
-#define check_that(x, msh)         \
-    if (!(x)) {                    \
-        return Result{false, msh}; \
+#define check_that(x, msh)                       \
+    if (!(x)) {                                  \
+        return CheckAttributeResult{false, msh}; \
     }
 
+} // namespace
+
 template <typename ExpectedValueType, typename Scalar, typename Index>
-Result check_attribute(
+CheckAttributeResult check_attribute(
     const SurfaceMesh<Scalar, Index>& mesh,
     AttributeId id,
     BitField<AttributeElement> expected_element,
@@ -90,8 +84,6 @@ Result check_attribute(
 
     return {true, ""};
 }
-
-} // namespace
 
 template <typename ExpectedValueType, typename Scalar, typename Index>
 AttributeId find_matching_attribute(
@@ -238,6 +230,13 @@ AttributeId find_or_create_attribute(
 
 // Iterate over attribute types x mesh (scalar, index) types
 #define LA_X_find_attribute(ExpectedValueType, Scalar, Index)                                    \
+    template LA_CORE_API CheckAttributeResult check_attribute<ExpectedValueType, Scalar, Index>( \
+        const SurfaceMesh<Scalar, Index>& mesh,                                                  \
+        AttributeId id,                                                                          \
+        BitField<AttributeElement> expected_element,                                             \
+        AttributeUsage expected_usage,                                                           \
+        size_t expected_channels,                                                                \
+        ShouldBeWritable expected_writable);                                                     \
     template LA_CORE_API AttributeId find_matching_attribute<ExpectedValueType, Scalar, Index>(  \
         const SurfaceMesh<Scalar, Index>& mesh,                                                  \
         std::string_view name,                                                                   \

@@ -12,6 +12,7 @@
 
 #include <lagrange/bvh/EdgeAABBTree.h>
 #include <lagrange/bvh/TriangleAABBTree.h>
+#include <lagrange/bvh/compute_mesh_distances.h>
 #include <lagrange/bvh/remove_interior_shells.h>
 #include <lagrange/bvh/weld_vertices.h>
 #include <lagrange/python/binding.h>
@@ -368,6 +369,75 @@ void populate_bvh_module(nb::module_& m)
     - The index of the closest element.
     - A NumPy array representing the closest point on the element.
     - The squared distance between the query point and the closest point.)");
+
+    m.def(
+        "compute_mesh_distances",
+        [](MeshType& source, const MeshType& target, const std::string& output_attribute_name) {
+            bvh::MeshDistancesOptions opts;
+            opts.output_attribute_name = output_attribute_name;
+            return bvh::compute_mesh_distances(source, target, opts);
+        },
+        "source"_a,
+        "target"_a,
+        "output_attribute_name"_a = std::string(bvh::MeshDistancesOptions{}.output_attribute_name),
+        R"(Compute the distance from each vertex in source to the closest point on target.
+
+The result is stored as a per-vertex scalar attribute on source.
+Both meshes must have the same spatial dimension and target must be a triangle mesh.
+
+:param source: Mesh whose vertices are queried. The output attribute is added here.
+:param target: Triangle mesh against which distances are computed.
+:param output_attribute_name: Name of the output per-vertex attribute.
+
+:return: AttributeId of the newly created (or overwritten) distance attribute on source.)");
+
+    m.def(
+        "compute_hausdorff",
+        &bvh::compute_hausdorff<Scalar, Index>,
+        "source"_a,
+        "target"_a,
+        R"(Compute the symmetric Hausdorff distance between two meshes.
+
+The Hausdorff distance is the maximum of the two directed Hausdorff distances:
+.. math::
+
+   H(A, B) = \max \left(
+     \max_{a \in A} \text{dist}(a, B), \quad
+     \max_{b \in B} \text{dist}(b, A)
+   \right)
+
+where dist(v, M) is the distance from vertex v to the closest point on mesh M.
+
+Both meshes must have the same spatial dimension and must be triangle meshes.
+
+:param source: First mesh.
+:param target: Second mesh.
+
+:return: Hausdorff distance.)");
+
+    m.def(
+        "compute_chamfer",
+        &bvh::compute_chamfer<Scalar, Index>,
+        "source"_a,
+        "target"_a,
+        R"(Compute the Chamfer distance between two meshes.
+
+The Chamfer distance is defined as:
+.. math::
+
+   \begin{aligned}
+     C(A, B) = &\frac{1}{\|A\|} \sum_{a \in A} \text{dist}(a, B)^2 \\
+               &+ \frac{1}{\|B\|} \sum_{b \in B} \text{dist}(b, A)^2
+   \end{aligned}
+
+where dist(v, M) is the distance from vertex v to the closest point on mesh M.
+
+Both meshes must have the same spatial dimension and must be triangle meshes.
+
+:param source: First mesh.
+:param target: Second mesh.
+
+:return: Chamfer distance.)");
 
     m.def(
         "weld_vertices",

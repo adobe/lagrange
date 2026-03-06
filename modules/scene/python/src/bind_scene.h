@@ -16,6 +16,7 @@
 #include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/scene/Scene.h>
+#include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/internal/scene_string_utils.h>
 #include <lagrange/scene/scene_convert.h>
 #include <lagrange/scene/scene_utils.h>
@@ -663,12 +664,12 @@ void bind_scene(nb::module_& m)
         [](const SceneType& scene, size_t node_idx) {
             auto t = utils::compute_global_node_transform<Scalar, Index>(scene, node_idx);
             return nb::ndarray<nb::numpy, float, nb::f_contig, nb::shape<4, 4>>(
-                t.data(),
-                {4, 4},
-                nb::handle(), // owner
-                {1, 4});
+                       t.data(),
+                       {4, 4},
+                       nb::handle(), // owner
+                       {1, 4})
+                .cast();
         },
-        nb::rv_policy::copy,
         "scene"_a,
         "node_idx"_a,
         R"(Compute the global transform associated with a node.
@@ -723,6 +724,28 @@ void bind_scene(nb::module_& m)
 :return: List of transformed meshes.)");
 
     m.def(
+        "scene_to_meshes_and_materials",
+        [](const SceneType& scene, bool normalize_normals, bool normalize_tangents_bitangents)
+            -> std::pair<std::vector<SceneType::MeshType>, std::vector<std::vector<ElementId>>> {
+            TransformOptions transform_options;
+            transform_options.normalize_normals = normalize_normals;
+            transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            auto [meshes, material_ids] =
+                scene::scene_to_meshes_and_materials(scene, transform_options);
+            return {std::move(meshes), std::move(material_ids)};
+        },
+        "scene"_a,
+        "normalize_normals"_a = TransformOptions{}.normalize_normals,
+        "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        R"(Converts a scene into a list of meshes with all the transforms applied and a list of material IDs.
+
+:param scene: Scene to convert.
+:param normalize_normals: If enabled, normals are normalized after transformation.
+:param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+
+:return: List of meshes with transforms applied and a list of material IDs.)");
+
+    m.def(
         "mesh_to_scene",
         [](const SceneType::MeshType& mesh) { return scene::mesh_to_scene(mesh); },
         "mesh"_a,
@@ -743,6 +766,39 @@ void bind_scene(nb::module_& m)
 :param meshes: Input meshes to convert.
 
 :return: Scene containing the input meshes.)");
+
+    using SimpleScene3D = scene::SimpleScene<Scalar, Index, 3>;
+
+    m.def(
+        "scene_to_simple_scene",
+        [](const SceneType& scene) { return scene::scene_to_simple_scene(scene); },
+        "scene"_a,
+        R"(Converts a Scene into a SimpleScene.
+
+The Scene's node hierarchy is flattened: each mesh instance in the scene becomes a
+MeshInstance in the SimpleScene with the accumulated world transform. Meshes are copied
+by index. Materials and other scene metadata (images, textures, cameras, lights) are not
+preserved in the SimpleScene.
+
+:param scene: Input scene to convert.
+
+:return: SimpleScene containing all mesh instances from the scene.)");
+
+    m.def(
+        "simple_scene_to_scene",
+        [](const SimpleScene3D& simple_scene) {
+            return scene::simple_scene_to_scene(simple_scene);
+        },
+        "simple_scene"_a,
+        R"(Converts a SimpleScene into a Scene.
+
+Each mesh instance in the SimpleScene becomes a node in the Scene with the instance
+transform. All nodes are direct children of a single root node. Meshes are copied
+by index.
+
+:param simple_scene: Input simple scene to convert.
+
+:return: Scene containing the meshes and instances from the SimpleScene.)");
 }
 
 } // namespace lagrange::python

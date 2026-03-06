@@ -349,3 +349,17 @@ TEST_CASE("scene_extension_user", "[scene]" LA_CORP_FLAG)
     MyValue val = std::any_cast<MyValue>(scene.nodes[0].extensions.user_data["ADOBE_gsplat_asset"]);
     REQUIRE(val.splat_count == 104783);
 }
+
+TEST_CASE("load_gltf_non_triangle", "[io][gltf]" LA_CORP_FLAG)
+{
+    io::LoadOptions options;
+    options.quiet = true;
+    auto scene = io::load_scene_gltf<scene::Scene32f>(
+        testing::get_data_path("corp/io/segments.glb"),
+        options);
+    REQUIRE(scene.meshes.size() == 2);
+    REQUIRE(scene.meshes.at(0).get_num_vertices() == 0);
+    REQUIRE(scene.meshes.at(0).get_num_facets() == 0);
+    REQUIRE(scene.meshes.at(1).get_num_vertices() == 198);
+    REQUIRE(scene.meshes.at(1).get_num_facets() == 130);
+}

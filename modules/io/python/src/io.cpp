@@ -80,7 +80,11 @@ void populate_io_module(nb::module_& m)
             "search_path",
             &io::LoadOptions::search_path,
             "Search path for related files, such as .mtl, .bin, or image textures. By default, "
-            "searches the same folder as the provided filename");
+            "searches the same folder as the provided filename")
+        .def_rw(
+            "stitch_vertices",
+            &io::LoadOptions::stitch_vertices,
+            "Stitch duplicate boundary vertices together when loading file");
 
     nb::enum_<io::FileEncoding>(m, "FileEncoding", "File encoding type")
         .value("Binary", io::FileEncoding::Binary, "Binary encoding")

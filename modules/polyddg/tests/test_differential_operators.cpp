@@ -12,6 +12,7 @@
 
 #include <lagrange/polyddg/DifferentialOperators.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/testing/create_test_mesh.h>
 #include <lagrange/views.h>
 
 #include <Eigen/Core>
@@ -425,6 +426,207 @@ TEST_CASE("DifferentialOperators", "[polyddg]")
             for (Index i = 1; i < eigenvalues.size(); i++) {
                 REQUIRE(eigenvalues(i) > 1e-10);
             }
+        }
+    }
+
+    SECTION("shape operator")
+    {
+        // ---- symmetry on simple meshes ----
+
+        SECTION("symmetry - triangle")
+        {
+            polyddg::DifferentialOperators<Scalar, Index> ops(triangle_mesh);
+            Eigen::Matrix<Scalar, 2, 2> S = ops.shape_operator(0);
+            REQUIRE_THAT((S - S.transpose()).norm(), Catch::Matchers::WithinAbs(0.0, 1e-12));
+        }
+
+        SECTION("symmetry - pyramid")
+        {
+            polyddg::DifferentialOperators<Scalar, Index> ops(pyramid_mesh);
+            for (Index fid = 0; fid < pyramid_mesh.get_num_facets(); fid++) {
+                Eigen::Matrix<Scalar, 2, 2> S = ops.shape_operator(fid);
+                REQUIRE_THAT((S - S.transpose()).norm(), Catch::Matchers::WithinAbs(0.0, 1e-12));
+            }
+        }
+
+        // ---- global operator dimensions on simple meshes ----
+
+        SECTION("global operator dimensions - triangle")
+        {
+            polyddg::DifferentialOperators<Scalar, Index> ops(triangle_mesh);
+            auto S = ops.shape_operator();
+            REQUIRE(S.rows() == 4); // 1 facet * 4
+            REQUIRE(S.cols() == 9); // 3 vertices * 3
+        }
+
+        SECTION("global operator dimensions - pyramid")
+        {
+            polyddg::DifferentialOperators<Scalar, Index> ops(pyramid_mesh);
+            auto S = ops.shape_operator();
+            REQUIRE(S.rows() == 20); // 5 facets * 4
+            REQUIRE(S.cols() == 15); // 5 vertices * 3
+        }
+
+        // ---- unit sphere ----
+
+        SECTION("unit sphere")
+        {
+            auto sphere = lagrange::testing::create_test_sphere<Scalar, Index>(
+                lagrange::testing::CreateOptions{false, false});
+            polyddg::DifferentialOperators<Scalar, Index> ops(sphere);
+
+            const Index num_vertices = sphere.get_num_vertices();
+            const Index num_facets = sphere.get_num_facets();
+
+            SECTION("symmetry at every facet")
+            {
+                for (Index fid = 0; fid < num_facets; fid++) {
+                    Eigen::Matrix<Scalar, 2, 2> S = ops.shape_operator(fid);
+                    REQUIRE_THAT(
+                        (S - S.transpose()).norm(),
+                        Catch::Matchers::WithinAbs(0.0, 1e-12));
+                }
+            }
+
+            SECTION("mean curvature is positive at every facet")
+            {
+                // For a unit sphere with outward normals, H = trace(S) / 2 = 1 > 0.
+                for (Index fid = 0; fid < num_facets; fid++) {
+                    const Scalar H = ops.shape_operator(fid).trace() / Scalar(2);
+                    REQUIRE(H > 0.0);
+                }
+            }
+
+            SECTION("mean curvature is close to 1 at every facet")
+            {
+                // The icosphere is coarse, so a generous tolerance is needed.
+                for (Index fid = 0; fid < num_facets; fid++) {
+                    const Scalar H = ops.shape_operator(fid).trace() / Scalar(2);
+                    REQUIRE_THAT(H, Catch::Matchers::WithinAbs(1.0, 0.5));
+                }
+            }
+
+            SECTION("global operator is consistent with per-facet shape_operator(fid)")
+            {
+                // Build the flat vertex-normal input vector (size #V * 3).
+                // shape_operator(fid) reads the raw stored vertex normals directly,
+                // so we use the same attribute here for consistency.
+                auto vertex_normals =
+                    attribute_matrix_view<Scalar>(sphere, ops.get_vertex_normal_attribute_id());
+                Eigen::Matrix<Scalar, Eigen::Dynamic, 1> normals_flat(num_vertices * 3);
+                for (Index vid = 0; vid < num_vertices; vid++) {
+                    normals_flat.template segment<3>(vid * 3) =
+                        vertex_normals.row(vid).template head<3>().transpose();
+                }
+
+                Eigen::SparseMatrix<Scalar> S_global = ops.shape_operator();
+                REQUIRE(S_global.rows() == static_cast<Eigen::Index>(num_facets * 4));
+                REQUIRE(S_global.cols() == static_cast<Eigen::Index>(num_vertices * 3));
+
+                Eigen::Matrix<Scalar, Eigen::Dynamic, 1> result = S_global * normals_flat;
+
+                // Each 4-element block in result must match shape_operator(fid).
+                // Layout per facet: [S(0,0), S(0,1), S(1,0), S(1,1)]
+                for (Index fid = 0; fid < num_facets; fid++) {
+                    Eigen::Matrix<Scalar, 2, 2> S_per_f = ops.shape_operator(fid);
+                    Eigen::Matrix<Scalar, 2, 2> S_from_global;
+                    S_from_global(0, 0) = result[fid * 4 + 0];
+                    S_from_global(0, 1) = result[fid * 4 + 1];
+                    S_from_global(1, 0) = result[fid * 4 + 2];
+                    S_from_global(1, 1) = result[fid * 4 + 3];
+                    REQUIRE_THAT(
+                        (S_per_f - S_from_global).norm(),
+                        Catch::Matchers::WithinAbs(0.0, 1e-10));
+                }
+            }
+        }
+    }
+
+    SECTION("adjoint shape operator - unit sphere")
+    {
+        // Build the sphere and its differential operators.
+        auto sphere = lagrange::testing::create_test_sphere<Scalar, Index>(
+            lagrange::testing::CreateOptions{false, false});
+        polyddg::DifferentialOperators<Scalar, Index> ops(sphere);
+
+        const Index num_vertices = sphere.get_num_vertices();
+        const Index num_facets = sphere.get_num_facets();
+
+        // ---- per-vertex method ----
+
+        SECTION("mean curvature is positive at every vertex")
+        {
+            for (Index vid = 0; vid < num_vertices; vid++) {
+                Eigen::Matrix<Scalar, 2, 2> S = ops.adjoint_shape_operator(vid);
+
+                // S must be symmetric.
+                REQUIRE_THAT((S - S.transpose()).norm(), Catch::Matchers::WithinAbs(0.0, 1e-12));
+
+                // Mean curvature H = trace(S) / 2.
+                // For a unit sphere with outward normals H = 1 > 0.
+                const Scalar H = S.trace() / Scalar(2);
+                REQUIRE(H > 0.0);
+            }
+        }
+
+        SECTION("mean curvature is close to 1 everywhere")
+        {
+            // The icosphere approximation of a unit sphere is coarse (42 vertices),
+            // so we allow a generous tolerance.
+            for (Index vid = 0; vid < num_vertices; vid++) {
+                const Scalar H = ops.adjoint_shape_operator(vid).trace() / Scalar(2);
+                REQUIRE_THAT(H, Catch::Matchers::WithinAbs(1.0, 0.5));
+            }
+        }
+
+        // ---- global operator ----
+
+        SECTION("global operator is consistent with per-vertex method")
+        {
+            // Build the face-normal input vector (size 3*#F): [n_f0^x, n_f0^y, n_f0^z, n_f1^x, ...]
+            auto vec_area =
+                attribute_matrix_view<Scalar>(sphere, ops.get_vector_area_attribute_id());
+            Eigen::Matrix<Scalar, Eigen::Dynamic, 1> face_normals(num_facets * 3);
+            for (Index fid = 0; fid < num_facets; fid++) {
+                face_normals.template segment<3>(fid * 3) =
+                    vec_area.row(fid).template head<3>().stableNormalized().transpose();
+            }
+
+            // Apply the global operator.
+            Eigen::SparseMatrix<Scalar> S_global = ops.adjoint_shape_operator();
+            REQUIRE(S_global.rows() == static_cast<Eigen::Index>(num_vertices * 4));
+            REQUIRE(S_global.cols() == static_cast<Eigen::Index>(num_facets * 3));
+
+            Eigen::Matrix<Scalar, Eigen::Dynamic, 1> result = S_global * face_normals;
+
+            // Compare each per-vertex result to the per-vertex method.
+            for (Index vid = 0; vid < num_vertices; vid++) {
+                Eigen::Matrix<Scalar, 2, 2> S_per_v = ops.adjoint_shape_operator(vid);
+                Eigen::Matrix<Scalar, 2, 2> S_from_global;
+                // Row-major layout: [S(0,0), S(0,1), S(1,0), S(1,1)]
+                S_from_global(0, 0) = result[vid * 4 + 0];
+                S_from_global(0, 1) = result[vid * 4 + 1];
+                S_from_global(1, 0) = result[vid * 4 + 2];
+                S_from_global(1, 1) = result[vid * 4 + 3];
+                REQUIRE_THAT(
+                    (S_per_v - S_from_global).norm(),
+                    Catch::Matchers::WithinAbs(0.0, 1e-10));
+            }
+        }
+
+        // ---- adjoint gradient size and symmetry sanity ----
+
+        SECTION("adjoint gradient has correct dimensions")
+        {
+            for (Index vid = 0; vid < num_vertices; vid++) {
+                auto G_adj = ops.adjoint_gradient(vid);
+                REQUIRE(G_adj.rows() == 3);
+                REQUIRE(G_adj.cols() > 0); // every vertex has at least one incident face
+            }
+
+            Eigen::SparseMatrix<Scalar> G_adj_global = ops.adjoint_gradient();
+            REQUIRE(G_adj_global.rows() == static_cast<Eigen::Index>(num_vertices * 3));
+            REQUIRE(G_adj_global.cols() == static_cast<Eigen::Index>(num_facets));
         }
     }
 

@@ -37,7 +37,7 @@ struct LA_SCENE_API MeshInstance
     /// Affine transformation matrix.
     using AffineTransform = Eigen::Transform<Scalar, static_cast<int>(Dimension), Eigen::Affine>;
 
-    /// Index of the referenced mesh in the scene.
+    /// Index of the source mesh in the scene.
     Index mesh_index = invalid<Index>();
 
     /// Instance transformation.
@@ -121,8 +121,9 @@ public:
     ///
     /// Get a const reference to a mesh instance in the scene.
     ///
-    /// @param[in]  mesh_index      Index of the parent mesh in the scene.
-    /// @param[in]  instance_index  Local instance index respective to the parent mesh.
+    /// @param[in]  mesh_index      Index of the source mesh in the scene.
+    /// @param[in]  instance_index  Local instance index relative to other instances of the same
+    ///                             source mesh.
     ///
     /// @return     Reference to the specified mesh instance.
     ///
@@ -134,8 +135,9 @@ public:
     ///
     /// Get a reference to a mesh instance in the scene.
     ///
-    /// @param[in]  mesh_index      Index of the parent mesh in the scene.
-    /// @param[in]  instance_index  Local instance index respective to the parent mesh.
+    /// @param[in]  mesh_index      Index of the source mesh in the scene.
+    /// @param[in]  instance_index  Local instance index relative to other instances of the same
+    ///                             source mesh.
     ///
     /// @return     Reference to the specified mesh instance.
     ///
@@ -197,7 +199,7 @@ protected:
     /// List of meshes in the scene.
     std::vector<MeshType> m_meshes;
 
-    /// List of mesh instances in the scene. Stored as a list of instance per parent mesh.
+    /// List of mesh instances in the scene. Stored as a list of instances per source mesh.
     std::vector<std::vector<InstanceType>> m_instances;
 };
 
