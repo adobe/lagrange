@@ -446,7 +446,7 @@ struct RayCasterImpl
             RTC_BUFFER_TYPE_VERTEX,
             0,
             RTC_FORMAT_FLOAT3,
-            mesh.get_vertex_to_position().get_all().data(),
+            mesh.get_vertex_to_position().get_all_with_padding().data(),
             0,
             sizeof(float) * 3,
             mesh.get_num_vertices());
@@ -463,7 +463,7 @@ struct RayCasterImpl
             RTC_BUFFER_TYPE_INDEX,
             0,
             RTC_FORMAT_UINT3,
-            mesh.get_corner_to_vertex().get_all().data(),
+            mesh.get_corner_to_vertex().get_all_with_padding().data(),
             0,
             sizeof(uint32_t) * 3,
             mesh.get_num_facets());
