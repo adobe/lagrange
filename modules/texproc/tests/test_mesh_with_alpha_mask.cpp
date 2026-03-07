@@ -73,13 +73,13 @@ void run_mesh_with_alpha_mask(const lagrange::fs::path& path)
     }
 }
 
-TEST_CASE("extract cube with transparent numbers", "[texproc][alpha_mask]")
+TEST_CASE("extract cube with transparent numbers", "[texproc][alpha_mask]" LA_CORP_FLAG)
 {
     const auto path = lagrange::testing::get_data_dir() / "corp/texproc/alpha_cube_numbers.glb";
     run_mesh_with_alpha_mask(path);
 }
 
-TEST_CASE("extract cube with transparent letters", "[texproc][alpha_mask]")
+TEST_CASE("extract cube with transparent letters", "[texproc][alpha_mask]" LA_CORP_FLAG)
 {
     const auto path = lagrange::testing::get_data_dir() / "corp/texproc/alpha_cube_letters.glb";
     run_mesh_with_alpha_mask(path);
