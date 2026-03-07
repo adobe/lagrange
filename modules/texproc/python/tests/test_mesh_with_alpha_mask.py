@@ -49,10 +49,14 @@ def load_alpha_data(scene_path: Path):
     return mesh, texcoord_id, image, material.alpha_cutoff, node_transform
 
 
-all_alpha_datas = list(
-    map(
-        lambda pp: load_alpha_data(Path("data/corp/texproc") / pp),
-        [Path("alpha_cube_numbers.glb"), Path("alpha_cube_letters.glb")],
+all_alpha_datas = (
+    []
+    if lagrange.variant == "open"
+    else list(
+        map(
+            lambda pp: load_alpha_data(Path("data/corp/texproc") / pp),
+            [Path("alpha_cube_numbers.glb"), Path("alpha_cube_letters.glb")],
+        )
     )
 )
 
