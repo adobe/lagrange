@@ -57,6 +57,10 @@ all_alpha_datas = list(
 )
 
 
+@pytest.mark.skipif(
+    lagrange.variant == "open",
+    reason="Test requires corp data",
+)
 @pytest.mark.parametrize(
     "alpha_data",
     all_alpha_datas,
@@ -65,7 +69,7 @@ class TestMeshWithAlphaMask:
     def test_extract_alpha_cube(self, alpha_data):
         mesh, texcoord_id, image, alpha_threshold, transform = alpha_data
 
-        # extract tesselated mesh
+        # extract tessellated mesh
         mesh_ = lagrange.texproc.extract_mesh_with_alpha_mask(
             mesh,
             image,
