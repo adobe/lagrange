@@ -86,8 +86,10 @@ PrincipalCurvaturesResult compute_principal_curvatures(
 
         // Map 2-D eigenvectors back to 3-D through the vertex tangent basis.
         Eigen::Matrix<Scalar, 3, 2> B = ops.vertex_basis(vid);
+        LA_IGNORE_ARRAY_BOUNDS_BEGIN
         direction_min_data.row(vid) = (B * solver.eigenvectors().col(0)).normalized().transpose();
         direction_max_data.row(vid) = (B * solver.eigenvectors().col(1)).normalized().transpose();
+        LA_IGNORE_ARRAY_BOUNDS_END
     });
 
     return {kappa_min_id, kappa_max_id, direction_min_id, direction_max_id};
