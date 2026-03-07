@@ -18,6 +18,7 @@
 #include <lagrange/eigen_convert.h>
 #include <lagrange/remeshing_im/api.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 // clang-format off
@@ -162,8 +163,10 @@ SurfaceMesh<Scalar, Index> remesh(SurfaceMesh<Scalar, Index>& mesh, const Remesh
             if (mRes.E2E()[i] == INVALID) {
                 uint32_t i0 = mRes.F()(i % 3, i / 3);
                 uint32_t i1 = mRes.F()((i + 1) % 3, i / 3);
+                LA_IGNORE_ARRAY_BOUNDS_BEGIN
                 Vector3f p0 = mRes.V().col(i0), p1 = mRes.V().col(i1);
                 Vector3f edge = p1 - p0;
+                LA_IGNORE_ARRAY_BOUNDS_END
                 if (edge.squaredNorm() > 0) {
                     edge.normalize();
                     mRes.CO().col(i0) = p0;
