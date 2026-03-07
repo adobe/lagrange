@@ -20,6 +20,7 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
+#include <lagrange/utils/scope_guard.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -95,6 +96,7 @@ SurfaceMesh<Scalar, Index> remesh(SurfaceMesh<Scalar, Index>& mesh, const Remesh
         scale);
 
     MultiResolutionHierarchy mRes;
+    auto _ = make_scope_guard([&]() { mRes.free(); });
 
     if (!pointcloud) {
         /* Subdivide the mesh if necessary */
