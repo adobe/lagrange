@@ -208,6 +208,9 @@ jobs:
       - name: Set env variable for sccache
         run: |
           echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
+          # Disable idle timeout: embree AVX2 files take 12+ min each and can occupy all job slots,
+          # starving sccache of requests until the default 600s timeout kills the server.
+          echo "SCCACHE_IDLE_TIMEOUT=0" >> ${env:GITHUB_ENV}
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
