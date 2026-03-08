@@ -227,7 +227,7 @@ jobs:
 
       - name: Select embree isa (Windows)
         if: runner.os == 'Windows'
-        run: echo "embree_max_isa=AVX2" >> $GITHUB_ENV
+        run: echo "embree_max_isa=AVX2" >> ${env:GITHUB_ENV}
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
