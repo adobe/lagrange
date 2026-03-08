@@ -133,6 +133,18 @@ jobs:
         with:
           xcode-version: '26.0.1'
 
+      - name: Select embree isa (Linux)
+        if: runner.os == 'Linux'
+        run: echo "embree_max_isa=AVX2" >> $GITHUB_ENV
+
+      - name: Select embree isa (macOS x64)
+        if: runner.os == 'macOS' && runner.arch == 'X64'
+        run: echo "embree_max_isa=DEFAULT" >> $GITHUB_ENV
+
+      - name: Select embree isa (macOS arm64)
+        if: runner.os == 'macOS' && runner.arch == 'ARM64'
+        run: echo "embree_max_isa=NONE" >> $GITHUB_ENV
+
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
@@ -161,6 +173,7 @@ jobs:
             -DOPENVDB_CORE_STATIC=OFF \
             -DUSE_EXPLICIT_INSTANTIATION=OFF \
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON \
+            -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build
@@ -212,6 +225,10 @@ jobs:
           # starving sccache of requests until the default 600s timeout kills the server.
           echo "SCCACHE_IDLE_TIMEOUT=0" >> ${env:GITHUB_ENV}
 
+      - name: Select embree isa (Windows)
+        if: runner.os == 'Windows'
+        run: echo "embree_max_isa=AVX2" >> $GITHUB_ENV
+
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
@@ -231,6 +248,7 @@ jobs:
             -DLAGRANGE_JENKINS=ON ^
             -DLAGRANGE_ALL=ON ^
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON ^
+            -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} ^
             -B "D:/build" ^
             -S .
           cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
