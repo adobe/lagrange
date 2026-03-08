@@ -177,9 +177,11 @@ jobs:
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build
-        run: |
-          cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
-          ccache --show-stats
+        run: cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
+
+      - name: Ccache stats
+        if: always()
+        run: ccache --show-stats
 
       - name: Show disk space
         if: always()
@@ -254,7 +256,7 @@ jobs:
           cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Sccache stats
-        shell: bash
+        if: always()
         run: ${SCCACHE_PATH} --show-stats
 
       - name: Show disk space
