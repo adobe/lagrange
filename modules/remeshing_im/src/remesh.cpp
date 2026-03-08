@@ -168,7 +168,6 @@ SurfaceMesh<Scalar, Index> remesh(SurfaceMesh<Scalar, Index>& mesh, const Remesh
                 LA_IGNORE_ARRAY_BOUNDS_BEGIN
                 Vector3f p0 = mRes.V().col(i0), p1 = mRes.V().col(i1);
                 Vector3f edge = p1 - p0;
-                LA_IGNORE_ARRAY_BOUNDS_END
                 if (edge.squaredNorm() > 0) {
                     edge.normalize();
                     mRes.CO().col(i0) = p0;
@@ -176,6 +175,7 @@ SurfaceMesh<Scalar, Index> remesh(SurfaceMesh<Scalar, Index>& mesh, const Remesh
                     mRes.CQ().col(i0) = mRes.CQ().col(i1) = edge;
                     mRes.CQw()[i0] = mRes.CQw()[i1] = mRes.COw()[i0] = mRes.COw()[i1] = 1.0f;
                 }
+                LA_IGNORE_ARRAY_BOUNDS_END
             }
         }
         mRes.propagateConstraints(rosy, posy);
