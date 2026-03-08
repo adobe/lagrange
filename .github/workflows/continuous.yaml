@@ -257,6 +257,7 @@ jobs:
 
       - name: Sccache stats
         if: always()
+        shell: bash
         run: ${SCCACHE_PATH} --show-stats
 
       - name: Show disk space
