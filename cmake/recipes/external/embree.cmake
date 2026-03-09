@@ -1,0 +1,175 @@
+#
+# Copyright 2019 Adobe. All rights reserved.
+# This file is licensed to you under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License. You may obtain a copy
+# of the License at http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under
+# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+# OF ANY KIND, either express or implied. See the License for the specific language
+# governing permissions and limitations under the License.
+#
+if(TARGET embree::embree)
+    return()
+endif()
+
+message(STATUS "Third-party (external): creating target 'embree::embree'")
+
+# Set Embree's default options
+option(EMBREE_ISPC_SUPPORT   "Build Embree with support for ISPC applications." OFF)
+option(EMBREE_TUTORIALS      "Enable to build Embree tutorials"                 OFF)
+option(EMBREE_STATIC_LIB     "Build Embree as a static library."                ON)
+set(EMBREE_TESTING_INTENSITY 0         CACHE STRING "Intensity of testing (0 = no testing, 1 = verify and tutorials, 2 = light testing, 3 = intensive testing.")
+set(EMBREE_TASKING_SYSTEM    "TBB"     CACHE STRING "Selects tasking system")
+option(EMBREE_IGNORE_CMAKE_CXX_FLAGS "When enabled Embree ignores default CMAKE_CXX_FLAGS." OFF)
+
+# Set C++ namespace to ensure support for user-defined namespaces
+# TODO: Not supported yet by other internal dependencies.
+# set(EMBREE_API_NAMESPACE "embree" CACHE STRING "C++ namespace to put API symbols into.")
+
+# The following options are necessary to ensure packed-ray support
+option(EMBREE_RAY_MASK       "Enable the usage of mask for packed ray."         ON)
+option(EMBREE_RAY_PACKETS    "Enable the usage packed ray."                     ON)
+
+# Match embree's platform detection logic for arm
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" AND CMAKE_OSX_ARCHITECTURES STREQUAL "") OR ("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES))
+    set(EMBREE_ARM ON)
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    set(EMBREE_ARM ON)
+endif()
+
+if(EMSCRIPTEN)
+    set(EMBREE_MAX_ISA "SSE2" CACHE STRING "Selects highest ISA to support.")
+    set(FLAGS_SSE2 "-msse -msse2 -msimd128") # set to non-empty to prevent embree from using incorrect flags
+else()
+    if(APPLE AND NOT EMBREE_ARM)
+        set(EMBREE_MAX_ISA "DEFAULT" CACHE STRING "Selects highest ISA to support.")
+    else()
+        set(EMBREE_MAX_ISA "NONE" CACHE STRING "Selects highest ISA to support.")
+    endif()
+endif()
+
+# We want to compile Embree with TBB support, so we need to overwrite Embree's
+# `find_package()` and provide variables. The following discussion provide some
+# context on how to achieve this:
+# - https://gitlab.kitware.com/cmake/cmake/issues/17735
+# - https://crascit.com/2018/09/14/do-not-redefine-cmake-commands/
+function(embree_import_target)
+    macro(push_variable var value)
+        if(DEFINED CACHE{${var}})
+            set(LAGRANGE_OLD_${var}_VALUE "${${var}}")
+            set(LAGRANGE_OLD_${var}_TYPE CACHE_TYPE)
+        elseif(DEFINED ${var})
+            set(LAGRANGE_OLD_${var}_VALUE "${${var}}")
+            set(LAGRANGE_OLD_${var}_TYPE NORMAL_TYPE)
+        else()
+            set(LAGRANGE_OLD_${var}_TYPE NONE_TYPE)
+        endif()
+        set(${var} "${value}")
+    endmacro()
+
+    macro(pop_variable var)
+        if(LAGRANGE_OLD_${var}_TYPE STREQUAL CACHE_TYPE)
+            set(${var} "${LAGRANGE_OLD_${var}_VALUE}" CACHE PATH "" FORCE)
+        elseif(LAGRANGE_OLD_${var}_TYPE STREQUAL NORMAL_TYPE)
+            unset(${var} CACHE)
+            set(${var} "${LAGRANGE_OLD_${var}_VALUE}")
+        elseif(LAGRANGE_OLD_${var}_TYPE STREQUAL NONE_TYPE)
+            unset(${var} CACHE)
+        else()
+            message(FATAL_ERROR "Trying to pop a variable that has not been pushed: ${var}")
+        endif()
+    endmacro()
+
+    macro(ignore_package NAME)
+        set(LAGRANGE_DUMMY_DIR "${CMAKE_CURRENT_BINARY_DIR}/embree_cmake/${NAME}")
+        file(WRITE ${LAGRANGE_DUMMY_DIR}/${NAME}Config.cmake "")
+        push_variable(${NAME}_DIR ${LAGRANGE_DUMMY_DIR})
+        push_variable(${NAME}_ROOT ${LAGRANGE_DUMMY_DIR})
+    endmacro()
+
+    macro(unignore_package NAME)
+        pop_variable(${NAME}_DIR)
+        pop_variable(${NAME}_ROOT)
+    endmacro()
+
+    # Prefer Config mode before Module mode to prevent embree from loading its own FindTBB.cmake
+    set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
+
+    # Embree wants to be able to export() its target, and expects a target named `TBB` to exist.
+    # Somehow we stil need to define `TBB_INCLUDE_DIRS`, and linking against `TBB` isn't sufficient
+    # to compile embree targets properly.
+    lagrange_find_package(TBB CONFIG REQUIRED)
+    ignore_package(TBB)
+    get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
+    if(NOT TARGET TBB)
+        add_library(TBB INTERFACE)
+        target_link_libraries(TBB INTERFACE TBB::tbb)
+    endif()
+    set(TBB_LIBRARIES TBB)
+
+    # Ready to include embree's atrocious CMake
+    include(CPM)
+    set(EMBREE_VERSION v4.4.0)
+    set(EMBREE_PATCHES "")
+    if(LAGRANGE_WITH_EMBREE_3)
+        set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+        set(EMBREE_VERSION v3.13.5)
+        # Patch for emscripten compatibility. Fix available upstream in Embree 4+.
+        # https://github.com/RenderKit/embree/pull/365
+        # https://github.com/RenderKit/embree/issues/486
+        set(EMBREE_PATCHES PATCHES embree.patch)
+    endif()
+    CPMAddPackage(
+        NAME embree
+        GITHUB_REPOSITORY RenderKit/embree
+        GIT_TAG ${EMBREE_VERSION}
+        ${EMBREE_PATCHES}
+    )
+
+    unignore_package(TBB)
+
+    # Disable warnings
+    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+        # Embree's subgrid.h is known for causing array subscript out of bound
+        # warning.  Embree dev claim the code is correct and it is a GCC bug
+        # for misfiring warnings.  See https://github.com/embree/embree/issues/271
+        #
+        # The issue should be fixed for gcc 9.2.1 and later.
+        target_compile_options(embree PRIVATE "-Wno-array-bounds")
+    endif()
+
+    # Warning setting
+    set(unix_compilers "AppleClang;Clang;GNU")
+    if(CMAKE_CXX_COMPILER_ID IN_LIST unix_compilers) # IN_LIST wants the second arg to be a var
+        target_compile_options(embree PRIVATE "-Wno-unused-private-field")
+        target_compile_options(embree PRIVATE "-Wno-unused-but-set-variable")
+    endif()
+
+    # Now we need to do some juggling to propagate the include directory properties
+    # along with the `embree` target
+    add_library(embree::embree INTERFACE IMPORTED GLOBAL)
+    target_include_directories(embree::embree SYSTEM INTERFACE ${embree_SOURCE_DIR}/include)
+    target_link_libraries(embree::embree INTERFACE embree)
+
+    # Generate a dummy .cpp for embree's math library, to workaround a weird link issue with
+    # LLVM-Clang on macOS
+    # Generate implementation file
+    file(WRITE "${embree_BINARY_DIR}/embree_math_dummy.cpp.in" [[
+        namespace embree {
+            void math_dummy() {}
+        }
+    ]])
+    configure_file(${embree_BINARY_DIR}/embree_math_dummy.cpp.in ${embree_BINARY_DIR}/embree_math_dummy.cpp COPYONLY)
+    target_sources(math PRIVATE ${embree_BINARY_DIR}/embree_math_dummy.cpp)
+endfunction()
+
+# Call via a proper function in order to scope variables such as CMAKE_FIND_PACKAGE_PREFER_CONFIG and TBB_DIR
+embree_import_target()
+
+# Cleanup for IDEs
+foreach(name IN ITEMS embree algorithms lexers math simd sys tasking uninstall)
+    if(TARGET ${name})
+        set_target_properties(${name} PROPERTIES FOLDER "third_party//embree")
+    endif()
+endforeach()
