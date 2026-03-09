@@ -10,9 +10,8 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-import pytest
 
-from .asset import cube
+from .asset import cube  # noqa: F401
 
 
 class TestRemoveInteriorShells:

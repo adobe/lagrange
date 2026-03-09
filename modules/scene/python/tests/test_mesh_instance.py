@@ -11,7 +11,6 @@
 #
 import lagrange
 
-import pytest
 import numpy as np
 
 

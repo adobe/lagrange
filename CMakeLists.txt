@@ -130,9 +130,9 @@ endif()
 
 # Detects whether internal libs are available
 if(IS_DIRECTORY "${PROJECT_SOURCE_DIR}/cmake/recipes/internal")
-    set(LAGRANGE_NO_INTERNAL OFF)
+    option(LAGRANGE_NO_INTERNAL "Disable internal dependencies" OFF)
 else()
-    set(LAGRANGE_NO_INTERNAL ON)
+    option(LAGRANGE_NO_INTERNAL "Disable internal dependencies" ON)
 endif()
 
 # Define this first since other options defaults depend on this
@@ -189,8 +189,10 @@ endif()
 # When using vcpkg, use find_package() to find external libraries
 if(DEFINED VCPKG_INSTALLED_DIR)
     set(LAGRANGE_USE_FIND_PACKAGE_DEFAULT ON)
+    option(LAGRANGE_WITH_EMBREE_3 "Use Embree3 with Lagrange" ON)
 else()
     set(LAGRANGE_USE_FIND_PACKAGE_DEFAULT OFF)
+    option(LAGRANGE_WITH_EMBREE_3 "Use Embree3 with Lagrange" OFF)
 endif()
 
 if(EMSCRIPTEN)

@@ -11,9 +11,8 @@
 #
 import lagrange
 import numpy as np
-import pytest
 
-from .assets import *
+from .assets import cube  # noqa: F401
 
 
 class TestSelectFacetsInFrustum:

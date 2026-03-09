@@ -13,7 +13,7 @@ import lagrange
 import numpy as np
 import pytest
 
-from .asset import cube, square
+from .asset import cube, square  # noqa: F401
 
 
 class TestTriangleAABBTree:

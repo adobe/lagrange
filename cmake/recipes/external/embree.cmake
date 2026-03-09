@@ -23,17 +23,30 @@ set(EMBREE_TESTING_INTENSITY 0         CACHE STRING "Intensity of testing (0 = n
 set(EMBREE_TASKING_SYSTEM    "TBB"     CACHE STRING "Selects tasking system")
 option(EMBREE_IGNORE_CMAKE_CXX_FLAGS "When enabled Embree ignores default CMAKE_CXX_FLAGS." OFF)
 
+# Set C++ namespace to ensure support for user-defined namespaces
+# TODO: Not supported yet by other internal dependencies.
+# set(EMBREE_API_NAMESPACE "embree" CACHE STRING "C++ namespace to put API symbols into.")
+
 # The following options are necessary to ensure packed-ray support
 option(EMBREE_RAY_MASK       "Enable the usage of mask for packed ray."         ON)
 option(EMBREE_RAY_PACKETS    "Enable the usage packed ray."                     ON)
 
-if(APPLE)
-    set(EMBREE_MAX_ISA "NEON" CACHE STRING "Selects highest ISA to support.")
-elseif(EMSCRIPTEN)
+# Match embree's platform detection logic for arm
+if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" AND CMAKE_OSX_ARCHITECTURES STREQUAL "") OR ("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES))
+    set(EMBREE_ARM ON)
+elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    set(EMBREE_ARM ON)
+endif()
+
+if(EMSCRIPTEN)
     set(EMBREE_MAX_ISA "SSE2" CACHE STRING "Selects highest ISA to support.")
     set(FLAGS_SSE2 "-msse -msse2 -msimd128") # set to non-empty to prevent embree from using incorrect flags
 else()
-    set(EMBREE_MAX_ISA "DEFAULT" CACHE STRING "Selects highest ISA to support.")
+    if(APPLE AND NOT EMBREE_ARM)
+        set(EMBREE_MAX_ISA "DEFAULT" CACHE STRING "Selects highest ISA to support.")
+    else()
+        set(EMBREE_MAX_ISA "NONE" CACHE STRING "Selects highest ISA to support.")
+    endif()
 endif()
 
 # We want to compile Embree with TBB support, so we need to overwrite Embree's
@@ -89,23 +102,29 @@ function(embree_import_target)
     lagrange_find_package(TBB CONFIG REQUIRED)
     ignore_package(TBB)
     get_target_property(TBB_INCLUDE_DIRS TBB::tbb INTERFACE_INCLUDE_DIRECTORIES)
-    add_library(TBB INTERFACE)
-    target_link_libraries(TBB INTERFACE TBB::tbb)
+    if(NOT TARGET TBB)
+        add_library(TBB INTERFACE)
+        target_link_libraries(TBB INTERFACE TBB::tbb)
+    endif()
     set(TBB_LIBRARIES TBB)
 
     # Ready to include embree's atrocious CMake
     include(CPM)
-    set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+    set(EMBREE_VERSION v4.4.0)
+    set(EMBREE_PATCHES "")
+    if(LAGRANGE_WITH_EMBREE_3)
+        set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
+        set(EMBREE_VERSION v3.13.5)
+        # Patch for emscripten compatibility. Fix available upstream in Embree 4+.
+        # https://github.com/RenderKit/embree/pull/365
+        # https://github.com/RenderKit/embree/issues/486
+        set(EMBREE_PATCHES PATCHES embree.patch)
+    endif()
     CPMAddPackage(
         NAME embree
-        GITHUB_REPOSITORY embree/embree
-        GIT_TAG v3.13.5
-
-        PATCHES
-            # Patch for emscripten compatibility. Fix available upstream in Embree 4+.
-            # https://github.com/RenderKit/embree/pull/365
-            # https://github.com/RenderKit/embree/issues/486
-            embree.patch
+        GITHUB_REPOSITORY RenderKit/embree
+        GIT_TAG ${EMBREE_VERSION}
+        ${EMBREE_PATCHES}
     )
 
     unignore_package(TBB)

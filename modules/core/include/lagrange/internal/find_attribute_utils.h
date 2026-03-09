@@ -15,11 +15,49 @@
 #include <lagrange/utils/BitField.h>
 #include <lagrange/utils/span.h>
 
+#include <string>
 #include <string_view>
 
 namespace lagrange::internal {
 
+/// Whether to reset the attribute values to default when an existing attribute is found
 enum class ResetToDefault { Yes, No };
+
+/// Whether the attribute should be writable.
+enum class ShouldBeWritable { Yes, No };
+
+/// Result of a check_attribute call.
+struct CheckAttributeResult
+{
+    bool success = true; ///< Whether the check passed.
+    std::string msg; ///< Error message if the check failed.
+};
+
+///
+/// Check that an attribute matches the expected value type, element type, usage and number of
+/// channels. Optionally verify that the attribute is writable.
+///
+/// @param      mesh               Mesh where to look for the attribute.
+/// @param[in]  id                 Attribute id to check.
+/// @param[in]  expected_element   Expected element type.
+/// @param[in]  expected_usage     Expected attribute usage.
+/// @param[in]  expected_channels  Expected number of channels. If 0, then the check is skipped.
+/// @param[in]  expected_writable  Whether the attribute should be writable.
+///
+/// @tparam     ExpectedValueType  Expected attribute value type.
+/// @tparam     Scalar             Mesh scalar type.
+/// @tparam     Index              Mesh index type.
+///
+/// @return     A CheckAttributeResult indicating success or failure with an error message.
+///
+template <typename ExpectedValueType, typename Scalar, typename Index>
+CheckAttributeResult check_attribute(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    AttributeId id,
+    BitField<AttributeElement> expected_element,
+    AttributeUsage expected_usage,
+    size_t expected_channels,
+    ShouldBeWritable expected_writable = ShouldBeWritable::No);
 
 ///
 /// Find an attribute with a given name, ensuring the usage and element type match an expected

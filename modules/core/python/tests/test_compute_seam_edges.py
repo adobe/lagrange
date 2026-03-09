@@ -12,9 +12,8 @@
 import lagrange
 
 import numpy as np
-import pytest
 
-from .assets import cube_with_uv, cube
+from .assets import cube_with_uv, cube  # noqa: F401
 
 
 class TestComputeCentroid:

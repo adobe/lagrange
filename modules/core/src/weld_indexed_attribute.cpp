@@ -19,6 +19,7 @@
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
+#include <lagrange/utils/scope_guard.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
 
@@ -99,6 +100,11 @@ void weld_indexed_attribute(
 
     const bool had_edges = mesh.has_edges();
     mesh.initialize_edges();
+    const auto _ = make_scope_guard([&]() {
+        if (!had_edges) {
+            mesh.clear_edges();
+        }
+    });
     auto& attr_values = attr.values();
     auto values = matrix_view(attr_values);
     auto corner_to_value = vector_ref(attr.indices());
@@ -134,7 +140,7 @@ void weld_indexed_attribute(
         tbb::blocked_range<Index>(0, num_vertices),
         [&](const tbb::blocked_range<Index>& range) {
             for (Index vi = range.begin(); vi < range.end(); vi++) {
-                if (exclude_vertices_mask[vi]) return;
+                if (exclude_vertices_mask[vi]) continue;
 
                 SmallVector<IndexAndCorner, 16> involved_indices_and_corners;
                 mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
@@ -206,6 +212,15 @@ void weld_indexed_attribute(
         }
     }
 
+    // Propagate flags to roots after all merges are done
+    std::vector<bool> group_flagged(num_corners, false);
+    for (Index c = 0; c < num_corners; ++c) {
+        if (corner_map[c].flag()) {
+            Index rc = find_and_compress(c);
+            group_flagged[rc] = true;
+        }
+    }
+
     Index num_reduced = 0;
     std::vector<Index> corner_to_reduced(num_corners, invalid<Index>());
     std::vector<Index> index_to_reduced(num_values, invalid<Index>());
@@ -215,7 +230,7 @@ void weld_indexed_attribute(
             // If the root corner has already been processed, we can skip it.
             return;
         }
-        if (corner_map[c].flag()) {
+        if (group_flagged[c]) {
             // If the group is flagged, it means a merge happened, and we assign a new index to
             // the corner group.
             corner_to_reduced[c] = num_reduced++;
@@ -280,12 +295,6 @@ void weld_indexed_attribute(
     tbb::parallel_for(Index(0), num_corners, [&](auto c) {
         corner_to_value[c] = corner_to_reduced[c];
     });
-
-    if (!had_edges) {
-        // Initializing edges is an implementation detail and should not leak outside of the
-        // function.
-        mesh.clear_edges();
-    }
 }
 
 template <typename DerivedA, typename DerivedB>

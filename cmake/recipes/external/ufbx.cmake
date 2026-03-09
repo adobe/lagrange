@@ -18,7 +18,7 @@ include(CPM)
 CPMAddPackage(
     NAME ufbx
     GITHUB_REPOSITORY ufbx/ufbx
-    GIT_TAG v0.21.2
+    GIT_TAG v0.21.3
 )
 
 include(GNUInstallDirs)

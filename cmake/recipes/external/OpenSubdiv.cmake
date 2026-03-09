@@ -80,11 +80,14 @@ block()
         endif()
     endforeach()
 
-    if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
-       "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-        target_compile_options(bfr_obj PRIVATE
-            "-Wno-unused-private-field"
-        )
-    endif()
+    foreach(name IN ITEMS bfr_obj far_obj osd_cpu_obj osd_static_cpu sdc_obj vtr_obj)
+        if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
+        "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+            target_compile_options(${name} PRIVATE
+                "-Wno-unused-private-field"
+                "-Wno-unused-parameter"
+            )
+        endif()
+    endforeach()
 
 endblock()

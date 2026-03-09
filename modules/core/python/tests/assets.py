@@ -131,7 +131,7 @@ def cube_triangular():
 @pytest.fixture
 def cube_with_uv(cube):
     mesh = cube
-    id = mesh.create_attribute(
+    mesh.create_attribute(
         "uv",
         lagrange.AttributeElement.Indexed,
         lagrange.AttributeUsage.UV,

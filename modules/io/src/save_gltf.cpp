@@ -912,8 +912,7 @@ tinygltf::Model lagrange_scene_to_gltf_model(
 
     // TODO animations
 
-    size_t num_nodes = lscene.nodes.size();
-    std::vector<int> node_indices(num_nodes, invalid<int>());
+    std::vector<int> node_indices(lscene.nodes.size(), invalid<int>());
 
     std::function<int(const scene::Node&)> visit_node;
     visit_node = [&](const scene::Node& lnode) -> int {
@@ -973,14 +972,38 @@ tinygltf::Model lagrange_scene_to_gltf_model(
 
         return node_idx;
     };
-    for (size_t i = 0; i < num_nodes; i++) {
-        if (node_indices[i] != invalid<int>()) continue;
+    auto visit_root = [&](scene::ElementId i, bool explicit_root) {
+        if (node_indices[i] != invalid<int>()) {
+            if (!options.quiet && explicit_root) {
+                logger().warn(
+                    "Node {} is a root node but has already been visited as a child node. "
+                    "Skipping.",
+                    i);
+            }
+            return;
+        };
 
         const scene::Node& lnode = lscene.nodes[i];
         int lnode_idx = visit_node(lnode);
         scene.nodes.push_back(lnode_idx);
 
         node_indices[i] = lnode_idx;
+    };
+    if (lscene.root_nodes.empty()) {
+        if (!options.quiet) {
+            logger().warn(
+                "Scene has no explicit root nodes. Visiting all non-child nodes and treating them "
+                "as root nodes if they are not visited as children of other nodes.");
+        }
+        for (scene::ElementId i = 0; i < lscene.nodes.size(); ++i) {
+            if (lscene.nodes[i].parent == scene::invalid_element) {
+                visit_root(i, false);
+            }
+        }
+    } else {
+        for (auto i : lscene.root_nodes) {
+            visit_root(i, true);
+        }
     }
 
     return model;

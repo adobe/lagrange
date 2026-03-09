@@ -19,8 +19,10 @@
 #include <lagrange/image/Array3D.h>
 #include <lagrange/image/View3D.h>
 #include <lagrange/python/binding.h>
+#include <lagrange/python/image_utils.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/texproc/TextureRasterizer.h>
+#include <lagrange/texproc/extract_mesh_with_alpha_mask.h>
 #include <lagrange/texproc/geodesic_dilation.h>
 #include <lagrange/texproc/texture_compositing.h>
 #include <lagrange/texproc/texture_filtering.h>
@@ -40,77 +42,6 @@ namespace tp = texproc;
 namespace nb = nanobind;
 using namespace nb::literals;
 
-using TextureShape = nb::shape<-1, -1, -1>;
-
-template <typename Scalar>
-using TextureTensor = nb::ndarray<Scalar, TextureShape, nb::numpy, nb::c_contig, nb::device::cpu>;
-
-static_assert(!std::is_same_v<TextureTensor<float>, Tensor<float>>);
-static_assert(std::is_same_v<tp::Array3Df, image::experimental::Array3D<float>>);
-static_assert(std::is_same_v<tp::View3Df, image::experimental::View3D<float>>);
-
-tp::View3Df tensor_to_mdspan(const TextureTensor<float>& tensor)
-{
-    // Numpy indexes tensors as (row, col, channel), but our mdspan uses (x, y, channel)
-    // coordinates, so we need to transpose the first two dimensions.
-    const image::experimental::dextents<size_t, 3> shape{
-        tensor.shape(1),
-        tensor.shape(0),
-        tensor.shape(2),
-    };
-    const std::array<size_t, 3> strides{
-        static_cast<size_t>(tensor.stride(1)),
-        static_cast<size_t>(tensor.stride(0)),
-        static_cast<size_t>(tensor.stride(2)),
-    };
-    const image::experimental::layout_stride::mapping mapping{shape, strides};
-    image::experimental::View3D<float> view{
-        static_cast<float*>(tensor.data()),
-        mapping,
-    };
-    return view;
-}
-
-void copy_to_mdspan(const TextureTensor<float>& tensor, tp::View3Df image)
-{
-    unsigned int width = static_cast<unsigned int>(tensor.shape(1));
-    unsigned int height = static_cast<unsigned int>(tensor.shape(0));
-    unsigned int num_channels = static_cast<unsigned int>(tensor.shape(2));
-
-    la_runtime_assert(
-        image.extent(0) == width && image.extent(1) == height && image.extent(2) == num_channels,
-        "Tensor and mdspan dimensions do not match");
-
-    for (unsigned int j = 0; j < height; j++) {
-        for (unsigned int i = 0; i < width; i++) {
-            for (unsigned int c = 0; c < num_channels; c++) {
-                image(i, j, c) = tensor(j, i, c);
-            }
-        }
-    }
-}
-
-nb::object mdarray_to_tensor(const tp::Array3Df& array_)
-{
-    // Numpy indexes tensors as (row, col, channel), but our mdspan uses (x, y, channel)
-    // coordinates, so we need to transpose the first two dimensions.
-    auto array = const_cast<tp::Array3Df&>(array_);
-    auto tensor = Tensor<float>(
-        static_cast<float*>(array.data()),
-        {
-            array.extent(1),
-            array.extent(0),
-            array.extent(2),
-        },
-        nb::handle(),
-        {
-            static_cast<int64_t>(array.stride(1)),
-            static_cast<int64_t>(array.stride(0)),
-            static_cast<int64_t>(array.stride(2)),
-        });
-    return tensor.cast();
-}
-
 void populate_texproc_module(nb::module_& m)
 {
     using Scalar = double;
@@ -119,7 +50,7 @@ void populate_texproc_module(nb::module_& m)
     m.def(
         "texture_filtering",
         [](const SurfaceMesh<Scalar, Index>& mesh,
-           const TextureTensor<float>& image_,
+           const ImageTensor<float>& image_,
            double value_weight,
            double gradient_weight,
            double gradient_scale,
@@ -131,7 +62,7 @@ void populate_texproc_module(nb::module_& m)
                 image_.shape(0),
                 image_.shape(1),
                 image_.shape(2));
-            copy_to_mdspan(image_, image.to_mdspan());
+            copy_tensor_to_image_view(image_, image.to_mdspan());
 
             tp::FilteringOptions options;
             options.value_weight = value_weight;
@@ -144,7 +75,7 @@ void populate_texproc_module(nb::module_& m)
 
             tp::texture_filtering(mesh, image.to_mdspan(), options);
 
-            return mdarray_to_tensor(image);
+            return image_array_to_tensor(image);
         },
         "mesh"_a,
         "image"_a,
@@ -173,7 +104,7 @@ void populate_texproc_module(nb::module_& m)
     m.def(
         "texture_stitching",
         [](const SurfaceMesh<Scalar, Index>& mesh,
-           const TextureTensor<float>& image_,
+           const ImageTensor<float>& image_,
            bool exterior_only,
            unsigned int quadrature_samples,
            double jitter_epsilon,
@@ -183,7 +114,7 @@ void populate_texproc_module(nb::module_& m)
                 image_.shape(0),
                 image_.shape(1),
                 image_.shape(2));
-            copy_to_mdspan(image_, image.to_mdspan());
+            copy_tensor_to_image_view(image_, image.to_mdspan());
 
             tp::StitchingOptions options;
             options.exterior_only = exterior_only;
@@ -194,7 +125,7 @@ void populate_texproc_module(nb::module_& m)
 
             tp::texture_stitching(mesh, image.to_mdspan(), options);
 
-            return mdarray_to_tensor(image);
+            return image_array_to_tensor(image);
         },
         "mesh"_a,
         "image"_a,
@@ -219,7 +150,7 @@ void populate_texproc_module(nb::module_& m)
     m.def(
         "geodesic_dilation",
         [](const SurfaceMesh<Scalar, Index>& mesh,
-           const TextureTensor<float>& image_,
+           const ImageTensor<float>& image_,
            float dilation_radius) {
             tp::DilationOptions options;
             options.dilation_radius = dilation_radius;
@@ -228,11 +159,11 @@ void populate_texproc_module(nb::module_& m)
                 image_.shape(0),
                 image_.shape(1),
                 image_.shape(2));
-            copy_to_mdspan(image_, image.to_mdspan());
+            copy_tensor_to_image_view(image_, image.to_mdspan());
 
             tp::geodesic_dilation(mesh, image.to_mdspan(), options);
 
-            return mdarray_to_tensor(image);
+            return image_array_to_tensor(image);
         },
         "mesh"_a,
         "image"_a,
@@ -263,7 +194,7 @@ void populate_texproc_module(nb::module_& m)
 
             tp::geodesic_dilation(mesh, image.to_mdspan(), options);
 
-            return mdarray_to_tensor(image);
+            return image_array_to_tensor(image);
         },
         "mesh"_a,
         "width"_a,
@@ -281,8 +212,8 @@ void populate_texproc_module(nb::module_& m)
     m.def(
         "texture_compositing",
         [](const SurfaceMesh<Scalar, Index>& mesh,
-           const std::vector<TextureTensor<float>>& textures,
-           const std::vector<TextureTensor<float>>& weights,
+           const std::vector<ImageTensor<float>>& textures,
+           const std::vector<ImageTensor<float>>& weights,
            double value_weight,
            unsigned int quadrature_samples,
            double jitter_epsilon,
@@ -297,8 +228,8 @@ void populate_texproc_module(nb::module_& m)
 
             std::vector<tp::ConstWeightedTextureView<float>> weighted_textures;
             for (const auto kk : range(textures.size())) {
-                const tp::View3Df texture = tensor_to_mdspan(textures[kk]);
-                const tp::View3Df weight = tensor_to_mdspan(weights[kk]);
+                const tp::View3Df texture = tensor_to_image_view(textures[kk]);
+                const tp::View3Df weight = tensor_to_image_view(weights[kk]);
                 weighted_textures.emplace_back(
                     tp::ConstWeightedTextureView<float>{
                         texture,
@@ -318,7 +249,7 @@ void populate_texproc_module(nb::module_& m)
 
             auto image = tp::texture_compositing(mesh, weighted_textures, options);
 
-            return mdarray_to_tensor(image);
+            return image_array_to_tensor(image);
         },
         "mesh"_a,
         "colors"_a,
@@ -351,14 +282,14 @@ void populate_texproc_module(nb::module_& m)
     m.def(
         "rasterize_textures_from_renders",
         [](const scene::Scene<Scalar, Index>& scene,
-           const std::vector<TextureTensor<float>>& renders,
+           const std::vector<ImageTensor<float>>& renders,
            const std::optional<size_t> width,
            const std::optional<size_t> height,
            const float low_confidence_ratio,
            const std::optional<float> base_confidence) {
             std::vector<tp::View3Df> views;
             for (const auto& render : renders) {
-                views.push_back(tensor_to_mdspan(render));
+                views.push_back(tensor_to_image_view(render));
             }
 
             auto textures_and_weights = tp::rasterize_textures_from_renders(
@@ -373,8 +304,8 @@ void populate_texproc_module(nb::module_& m)
             std::vector<nb::object> textures;
             std::vector<nb::object> weights;
             for (auto& [texture_, weight_] : textures_and_weights) {
-                auto texture = mdarray_to_tensor(texture_);
-                auto weight = mdarray_to_tensor(weight_);
+                auto texture = image_array_to_tensor(texture_);
+                auto weight = image_array_to_tensor(weight_);
                 textures.emplace_back(texture);
                 weights.emplace_back(weight);
             }
@@ -397,6 +328,35 @@ void populate_texproc_module(nb::module_& m)
 :param base_confidence: Confidence value for the base texture if present in the scene. If set to 0, ignore the base texture of the mesh. Defaults to 0.3 otherwise.
 
 :return: A pair of lists (textures, weights), one per camera.)");
+
+    m.def(
+        "extract_mesh_with_alpha_mask",
+        [](const SurfaceMesh32d& mesh,
+           const ImageTensor<float>& image_,
+           const std::optional<AttributeId> texcoord_id,
+           const float alpha_threshold) -> SurfaceMesh32d {
+            const auto image = tensor_to_image_view(image_);
+
+            tp::ExtractMeshWithAlphaMaskOptions options;
+            if (texcoord_id) options.texcoord_id = *texcoord_id;
+            options.alpha_threshold = alpha_threshold;
+
+            auto mesh_ = tp::extract_mesh_with_alpha_mask(mesh, image, options);
+
+            return mesh_;
+        },
+        "mesh"_a,
+        "image"_a,
+        "texcoord_id"_a = nb::none(),
+        "alpha_threshold"_a = tp::ExtractMeshWithAlphaMaskOptions().alpha_threshold,
+        R"(Convert a unwrapped triangle mesh with non-opaque texture to tesselated mesh.
+
+:param mesh: Input mesh.
+:param image: RGBA non-opaque texture.
+:param texcoord_id: Indexed UV attribute id.
+:param alpha_threshold: Opaque mask theshold.
+
+:returns: Tesselated mesh.)");
 }
 
 } // namespace lagrange::python

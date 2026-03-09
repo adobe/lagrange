@@ -435,7 +435,15 @@ MeshType convert_tinygltf_primitive_to_lagrange_mesh(
     // Different primitives can reference different materials and data buffers.
 
     MeshType lmesh;
-    la_runtime_assert(primitive.mode == TINYGLTF_MODE_TRIANGLES);
+    if (primitive.mode != TINYGLTF_MODE_TRIANGLES) {
+        if (!options.quiet) {
+            logger().warn(
+                "Skipping non-triangle primitive with mode {}. Empty mesh will be created for this "
+                "primitive.",
+                primitive.mode);
+        }
+        return lmesh;
+    }
 
     // read vertices
     auto it = primitive.attributes.find("POSITION");
@@ -730,11 +738,13 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
         // We assume the image data was loaded by tinygltf.
         // If this assumptions does not always hold, then we will have
         // to instead read the gltf buffer or file from disk.
+        int bytes_per_component = tinygltf::GetComponentSizeInBytes(image.pixel_type);
         la_runtime_assert(image.width > 0);
         la_runtime_assert(image.height > 0);
         la_runtime_assert(image.component > 0);
         la_runtime_assert(
-            static_cast<int>(image.image.size()) == image.width * image.height * image.component);
+            static_cast<int>(image.image.size()) ==
+            image.width * image.height * image.component * bytes_per_component);
 
         scene::ImageExperimental limage;
         limage.name = image.name;
@@ -779,6 +789,8 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             logger().warn("Loading image with unsupported pixel precision!");
             throw std::runtime_error("Unsupported pixel type");
         }
+        la_runtime_assert(
+            bytes_per_component * 8 == static_cast<int>(limage_buffer.get_bits_per_element()));
         limage_buffer.data = std::move(image.image);
 
         lscene.add(std::move(limage));

@@ -10,10 +10,8 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-import numpy as np
-import pytest
 
-from .assets import *
+from .assets import single_triangle  # noqa: F401
 
 
 class TestSelectFacetsByNormalSimilarity:

@@ -24,6 +24,19 @@
 #include <algorithm>
 #include <cstddef>
 
+#if defined(__has_feature)
+    #if __has_feature(address_sanitizer)
+        #include <sanitizer/asan_interface.h>
+        #define LAGRANGE_ASAN_ENABLED 1
+    #endif
+#elif defined(__SANITIZE_ADDRESS__)
+    #include <sanitizer/asan_interface.h>
+    #define LAGRANGE_ASAN_ENABLED 1
+#endif
+#ifndef LAGRANGE_ASAN_ENABLED
+    #define LAGRANGE_ASAN_ENABLED 0
+#endif
+
 namespace lagrange {
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -512,6 +525,24 @@ template <typename ValueType>
 lagrange::span<const ValueType> Attribute<ValueType>::get_all() const
 {
     return m_const_view.first(m_num_elements * get_num_channels());
+}
+
+template <typename ValueType>
+lagrange::span<const ValueType> Attribute<ValueType>::get_all_with_padding() const
+{
+    if (!is_external()) {
+#if LAGRANGE_ASAN_ENABLED
+        // Unpoison the [size, capacity) region so that external libraries (e.g. Embree) can safely
+        // read padding entries without triggering ASan's container-overflow detection.
+        if (m_data.capacity() > m_data.size()) {
+            ASAN_UNPOISON_MEMORY_REGION(
+                m_data.data() + m_data.size(),
+                (m_data.capacity() - m_data.size()) * sizeof(ValueType));
+        }
+#endif
+        return {m_data.data(), m_data.capacity()};
+    }
+    return get_all();
 }
 
 template <typename ValueType>

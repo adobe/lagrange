@@ -112,7 +112,6 @@ void texture_stitching(
     }
 
     std::vector<Vector<double, NumChannels>> x(gd.numNodes());
-    std::vector<Vector<double, NumChannels>> b(gd.numNodes());
 
     // Copy the texture values into the vector
     for (size_t n = 0; n < gd.numNodes(); n++) {
@@ -137,13 +136,11 @@ void texture_stitching(
         }
     }
 
-    // Construct the constraints
-    gd.stiffness(&x[0], &b[0]);
-
     // Compute the system matrix
     const double eps = options.stiffness_regularization_weight;
-    Eigen::SparseMatrix<double> M =
-        Pt * mesh_utils::laplacian_regularization(gd.stiffness(), eps) * P;
+    const Eigen::SparseMatrix<double> S_reg =
+        mesh_utils::laplacian_regularization(gd.stiffness(), eps);
+    const Eigen::SparseMatrix<double> M = Pt * S_reg * P;
 
     // Construct/factor the solver
     Solver solver(M);
@@ -156,12 +153,13 @@ void texture_stitching(
     }
 
     // Solve the system per channel
+    // The constraints (rhs) are b = S_reg * x, reduced to b' = Pt * b
     for (unsigned int c = 0; c < NumChannels; c++) {
         Eigen::VectorXd _b(gd.numNodes());
         for (size_t n = 0; n < gd.numNodes(); n++) {
-            _b[n] = b[n][c];
+            _b[n] = x[n][c];
         }
-        _b = Pt * _b;
+        _b = Pt * (S_reg * _b);
         Eigen::VectorXd _x = P * solver.solve(_b);
         for (size_t n = 0; n < gd.numNodes(); n++) {
             x[n][c] -= _x[n];

@@ -399,6 +399,15 @@ void populate_volume_module(nb::module_& m)
         "Return the number of active voxels in the grid.");
 
     g.def_prop_ro(
+        "background",
+        [](const GridWrapper& self) {
+            std::variant<float, double> result;
+            apply_or_fail(self.grid(), [&](auto&& grid) { result = grid.background(); });
+            return result;
+        },
+        "Return the grid background value.");
+
+    g.def_prop_ro(
         "bbox_index",
         [](const GridWrapper& self) {
             const auto bbox = self.grid()->evalActiveVoxelBoundingBox();

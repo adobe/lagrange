@@ -12,6 +12,7 @@ concurrency:
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
   CTEST_PARALLEL_LEVEL: 1
+  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   ####################
@@ -25,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-15-intel, macos-15]
-        config: [RelwithDebInfo, Debug]
+        config: [RelWithDebInfo, Debug]
         compiler: [gcc, apple, llvm]
         sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
         exclude:
@@ -82,8 +83,7 @@ jobs:
 
       - name: Select build dir (macOS)
         if: runner.os == 'macOS'
-        run:
-            echo "build_dir=build" >> "$GITHUB_ENV"
+        run: echo "build_dir=build" >> "$GITHUB_ENV"
 
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -109,17 +109,21 @@ jobs:
               echo "CC=clang" >> $GITHUB_ENV
               echo "CXX=clang++" >> $GITHUB_ENV
             fi
-            sudo apt-get install xorg-dev ccache
+            sudo apt-get install xorg-dev
 
       - name: Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-            brew install ccache
             if [ "${{ matrix.compiler }}" = "llvm" ]; then
               brew install llvm@17
               echo "CC='$(brew --prefix llvm@17)/bin/clang'" >> $GITHUB_ENV
               echo "CXX='$(brew --prefix llvm@17)/bin/clang++'" >> $GITHUB_ENV
             fi
+
+      - name: Ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.sanitizer }}-${{ matrix.config }}
 
       - name: Setup Xcode version
         if: matrix.os == 'macos-15-intel'
@@ -133,21 +137,21 @@ jobs:
         with:
           xcode-version: '26.0.1'
 
+      - name: Select embree isa (Linux)
+        if: runner.os == 'Linux'
+        run: echo "embree_max_isa=SSE2" >> $GITHUB_ENV
+
+      - name: Select embree isa (macOS x64)
+        if: runner.os == 'macOS' && runner.arch == 'X64'
+        run: echo "embree_max_isa=DEFAULT" >> $GITHUB_ENV
+
+      - name: Select embree isa (macOS arm64)
+        if: runner.os == 'macOS' && runner.arch == 'ARM64'
+        run: echo "embree_max_isa=NONE" >> $GITHUB_ENV
+
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
-
-      - name: Cache Build
-        id: cache-build
-        uses: actions/cache@v3
-        with:
-          path: ~/.ccache
-          key: ${{ matrix.name }}-${{ matrix.config }}-cache
-
-      - name: Prepare ccache
-        run: |
-          ccache --max-size=1.0G
-          ccache -V && ccache --show-stats && ccache --zero-stats
 
       - name: Configure
         run: |
@@ -161,12 +165,11 @@ jobs:
             -DOPENVDB_CORE_STATIC=OFF \
             -DUSE_EXPLICIT_INSTANTIATION=OFF \
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON \
+            -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build
-        run: |
-          cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
-          ccache --show-stats
+        run: cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
 
       - name: Show disk space
         if: always()
@@ -208,25 +211,20 @@ jobs:
       - name: Set env variable for sccache
         run: |
           echo "appdata=$env:LOCALAPPDATA" >> ${env:GITHUB_ENV}
+          # Disable idle timeout: embree AVX2 files take 12+ min each and can occupy all job slots,
+          # starving sccache of requests until the default 600s timeout kills the server.
+          echo "SCCACHE_IDLE_TIMEOUT=0" >> ${env:GITHUB_ENV}
+
+      - name: Select embree isa (Windows)
+        if: runner.os == 'Windows'
+        run: echo "embree_max_isa=AVX2" >> ${env:GITHUB_ENV}
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
 
-      - name: Cache build
-        id: cache-build
-        uses: actions/cache@v3
-        with:
-          path: ${{ env.appdata }}\Mozilla\sccache
-          key: ${{ runner.os }}-${{ matrix.config }}-cache
-
-      - name: Prepare sccache
-        run: |
-          iwr -useb 'https://raw.githubusercontent.com/scoopinstaller/install/master/install.ps1' -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop install sccache --global
-          # Scoop modifies the PATH so we make it available for the next steps of the job
-          echo "${env:PATH}" >> ${env:GITHUB_PATH}
+      - name: Sccache
+        uses: mozilla-actions/sccache-action@v0.0.9
 
         # We run configure + build in the same step, since they both need to call VsDevCmd
         # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
@@ -240,9 +238,15 @@ jobs:
             -DLAGRANGE_JENKINS=ON ^
             -DLAGRANGE_ALL=ON ^
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON ^
+            -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} ^
             -B "D:/build" ^
             -S .
           cmake --build "D:/build" -j ${{ steps.cpu-cores.outputs.count }}
+
+      - name: Sccache stats
+        if: always()
+        shell: bash
+        run: ${SCCACHE_PATH} --show-stats
 
       - name: Show disk space
         if: always()

@@ -13,6 +13,7 @@
 
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SceneExtension.h>
+#include <lagrange/scene/api.h>
 
 #include <string>
 
@@ -26,7 +27,7 @@ namespace lagrange::scene::internal {
 ///
 /// @return     A string representation of the mesh instance.
 ///
-std::string to_string(const SceneMeshInstance& mesh_instance, size_t indent = 0);
+LA_SCENE_API std::string to_string(const SceneMeshInstance& mesh_instance, size_t indent = 0);
 
 ///
 /// Convert a node to a string representation.
@@ -36,7 +37,7 @@ std::string to_string(const SceneMeshInstance& mesh_instance, size_t indent = 0)
 ///
 /// @return     A string representation of the node.
 ///
-std::string to_string(const Node& node, size_t indent = 0);
+LA_SCENE_API std::string to_string(const Node& node, size_t indent = 0);
 
 ///
 /// Convert an image buffer to a string representation.
@@ -46,7 +47,7 @@ std::string to_string(const Node& node, size_t indent = 0);
 ///
 /// @return     A string representation of the image buffer.
 ///
-std::string to_string(const ImageBufferExperimental& image, size_t indent = 0);
+LA_SCENE_API std::string to_string(const ImageBufferExperimental& image, size_t indent = 0);
 
 ///
 /// Convert an image to a string representation.
@@ -56,7 +57,7 @@ std::string to_string(const ImageBufferExperimental& image, size_t indent = 0);
 ///
 /// @return     A string representation of the image.
 ///
-std::string to_string(const ImageExperimental& image, size_t indent = 0);
+LA_SCENE_API std::string to_string(const ImageExperimental& image, size_t indent = 0);
 
 ///
 /// Convert a texture info object to a string representation.
@@ -66,7 +67,7 @@ std::string to_string(const ImageExperimental& image, size_t indent = 0);
 ///
 /// @return     A string representation of the texture info.
 ///
-std::string to_string(const TextureInfo& texture_info, size_t indent = 0);
+LA_SCENE_API std::string to_string(const TextureInfo& texture_info, size_t indent = 0);
 
 ///
 /// Convert a material to a string representation.
@@ -76,7 +77,7 @@ std::string to_string(const TextureInfo& texture_info, size_t indent = 0);
 ///
 /// @return     A string representation of the material.
 ///
-std::string to_string(const MaterialExperimental& material, size_t indent = 0);
+LA_SCENE_API std::string to_string(const MaterialExperimental& material, size_t indent = 0);
 
 ///
 /// Convert a Texture to a string representation.
@@ -86,7 +87,7 @@ std::string to_string(const MaterialExperimental& material, size_t indent = 0);
 ///
 /// @return     A string representation of the texture.
 ///
-std::string to_string(const Texture& texture, size_t indent = 0);
+LA_SCENE_API std::string to_string(const Texture& texture, size_t indent = 0);
 
 ///
 /// Convert a light to a string representation.
@@ -96,7 +97,7 @@ std::string to_string(const Texture& texture, size_t indent = 0);
 ///
 /// @return     A string representation of the light.
 ///
-std::string to_string(const Light& light, size_t indent = 0);
+LA_SCENE_API std::string to_string(const Light& light, size_t indent = 0);
 
 
 ///
@@ -107,7 +108,7 @@ std::string to_string(const Light& light, size_t indent = 0);
 ///
 /// @return     A string representation of the camera.
 ///
-std::string to_string(const Camera& camera, size_t indent = 0);
+LA_SCENE_API std::string to_string(const Camera& camera, size_t indent = 0);
 
 
 ///
@@ -118,7 +119,7 @@ std::string to_string(const Camera& camera, size_t indent = 0);
 ///
 /// @return     A string representation of the animation.
 ///
-std::string to_string(const Animation& animation, size_t indent = 0);
+LA_SCENE_API std::string to_string(const Animation& animation, size_t indent = 0);
 
 ///
 /// Convert a skeleton to a string representation.
@@ -128,7 +129,7 @@ std::string to_string(const Animation& animation, size_t indent = 0);
 ///
 /// @return     A string representation of the skeleton.
 ///
-std::string to_string(const Skeleton& skeleton, size_t indent = 0);
+LA_SCENE_API std::string to_string(const Skeleton& skeleton, size_t indent = 0);
 
 ///
 /// Convert a scene to a string representation.
@@ -152,6 +153,6 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent = 0);
 ///
 /// @return     A string representation of the scene extensions.
 ///
-std::string to_string(const Extensions& extensions, size_t indent = 0);
+LA_SCENE_API std::string to_string(const Extensions& extensions, size_t indent = 0);
 
 } // namespace lagrange::scene::internal

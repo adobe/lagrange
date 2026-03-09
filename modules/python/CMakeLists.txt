@@ -135,17 +135,30 @@ function(lagrange_generate_init_file)
         list(APPEND init_lines "from .lagrange import ${module_name}")
     endforeach()
 
-    # Generate __init__.py to import all modules.
+    # Determine Python package variant
+    if(LAGRANGE_NO_INTERNAL)
+        set(python_variant "open")
+    else()
+        set(python_variant "corp")
+    endif()
+
+    # Build the import lines
+    set(import_lines "")
+    foreach(line IN ITEMS ${init_lines})
+        string(APPEND import_lines "${line}\n")
+    endforeach()
+
+    # Generate __init__.py to import all modules using file(GENERATE)
     set(init_file ${SKBUILD_PLATLIB_DIR}/lagrange/__init__.py)
-    file(WRITE ${init_file} [[
+    file(GENERATE OUTPUT ${init_file} CONTENT "\
 #
 # Copyright 2022 Adobe. All rights reserved.
-# This file is licensed to you under the Apache License, Version 2.0 (the "License");
+# This file is licensed to you under the Apache License, Version 2.0 (the \"License\");
 # you may not use this file except in compliance with the License. You may obtain a copy
 # of the License at http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software distributed under
-# the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
+# the License is distributed on an \"AS IS\" BASIS, WITHOUT WARRANTIES OR REPRESENTATIONS
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
@@ -155,12 +168,12 @@ from ._version import *
 
 del _logging, lagrange  # type: ignore
 
-# Import all modules.
-]])
+# Package variant identifier
+# One of: \"corp\", \"open\"
+variant: str = \"${python_variant}\"
 
-    foreach(line IN ITEMS ${init_lines})
-        file(APPEND ${init_file} ${line}\n)
-    endforeach()
+# Import all modules.
+${import_lines}")
 endfunction()
 
 function(lagrange_generate_python_binding_module)
@@ -182,6 +195,7 @@ function(lagrange_generate_python_binding_module)
         set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/__init__.pyi)
         file(APPEND ${init_pyi_file} "from ._logging import logger\n")
         file(APPEND ${init_pyi_file} "from .core import *\n")
+        file(APPEND ${init_pyi_file} "\n# Package variant identifier\nvariant: str\n")
 
         # Generate stubs for python binding within the install location.
         get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)

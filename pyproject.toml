@@ -1,6 +1,5 @@
 [build-system]
 build-backend = "scikit_build_core.build"
-
 requires = [
     "numpy>=1.25",               # needed at build time for default dtype args
     "scikit-build-core==0.11.6",
@@ -8,12 +7,11 @@ requires = [
 ]
 
 [project]
-name = "lagrange-open"
+name = "adobe-lagrange"
 description = "A robust geometry processing engine"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = [ "LICENSE", "NOTICE.txt" ]
-
 maintainers = [ { name = "Lagrange Core Team", email = "lagrange-core@adobe.com" } ]
 requires-python = ">=3.10"
 classifiers = [
@@ -35,7 +33,6 @@ dependencies = [
     "numpy>=1.25",
     "scipy>=1.13.0",
 ]
-
 optional-dependencies.docs = [
     "furo==2025.9.25; python_version>='3.12'",
     "sphinx==8.2.3; python_version>='3.12'",
@@ -73,13 +70,10 @@ ninja.version = ">=1.11.1"
 ninja.make-fallback = false
 install.components = [ "Lagrange_Python_Runtime" ]
 wheel.packages = [ "modules/python/lagrange" ]
-
 build-dir = "build-python"
 editable.rebuild = false
-
 metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 sdist.include = [ "modules/python/lagrange/_version.py" ]
-
 # Debug related options
 # cmd: uv sync [--verbose] [--reinstall-package lagrange]
 # ---------------------
@@ -106,30 +100,33 @@ LAGRANGE_MODULE_POISSON = true
 LAGRANGE_MODULE_POLYDDG = true
 LAGRANGE_MODULE_PRIMITIVE = true
 LAGRANGE_MODULE_PYTHON = true
+LAGRANGE_MODULE_RAYCASTING = true
 LAGRANGE_MODULE_SCENE = true
 LAGRANGE_MODULE_SOLVER = true
 LAGRANGE_MODULE_SUBDIVISION = true
-LAGRANGE_MODULE_TEXPROC = true
 LAGRANGE_MODULE_VOLUME = true
+LAGRANGE_MODULE_TEXPROC = true
 LAGRANGE_UNIT_TESTS = false
 LAGRANGE_WITH_ASSIMP = true
 TBB_PREFER_STATIC = false
+
+[tool.uv]
+python-preference = "only-managed"
 
 [tool.black]
 line_length = 100
 
 [tool.ruff]
 line-length = 100
+lint.extend-per-file-ignores."modules/**/python/tests/test_*.py" = [ "F811" ]
 
 [tool.pyproject-fmt]
 indent = 4
 keep_full_version = true
+expand_tables = [ "tool.scikit-build.cmake.define" ]
 
-[tool.pytest.ini_options]
-addopts = [
+[tool.pytest]
+ini_options.addopts = [
     "--import-mode=importlib",
 ]
-pythonpath = "."
-
-[tool.uv]
-python-preference = "only-managed"
+ini_options.pythonpath = "."

@@ -12,10 +12,8 @@
 import lagrange
 
 import numpy as np
-import pytest
-import sys
 
-from .assets import cube
+from .assets import cube  # noqa: F401
 
 
 class TestIndexedAttribute:

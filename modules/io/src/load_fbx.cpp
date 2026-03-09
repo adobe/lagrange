@@ -26,6 +26,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
+#include <lagrange/internal/get_unique_attribute_name.h>
 #include <lagrange/io/internal/scene_utils.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
@@ -113,7 +114,8 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
     if (opt.load_uvs) {
         for (size_t i = 0; i < mesh->uv_sets.count; ++i) {
             const ufbx_uv_set& uv_set = mesh->uv_sets[i];
-            std::string name{uv_set.name.data};
+            std::string name =
+                lagrange::internal::get_unique_attribute_name(lmesh, uv_set.name.data);
 
             auto id = lmesh.template create_attribute<Scalar>(
                 name,
@@ -268,16 +270,31 @@ struct UfbxScene
     UfbxScene& operator=(UfbxScene&&) = delete;
 };
 
-UfbxScene load_ufbx(const fs::path& filename)
+ufbx_load_opts create_load_opts()
 {
-    std::string filename_s = filename.string();
     ufbx_load_opts opts{};
-    ufbx_error error{};
-
     opts.target_axes.right = UFBX_COORDINATE_AXIS_POSITIVE_X;
     opts.target_axes.front = UFBX_COORDINATE_AXIS_NEGATIVE_Y;
     opts.target_axes.up = UFBX_COORDINATE_AXIS_POSITIVE_Z;
     opts.target_unit_meters = 1.0;
+    opts.geometry_transform_handling = UFBX_GEOMETRY_TRANSFORM_HANDLING_HELPER_NODES;
+    opts.inherit_mode_handling = UFBX_INHERIT_MODE_HANDLING_HELPER_NODES;
+    constexpr std::string_view scale_helper_name = "__scale__helper__";
+    constexpr std::string_view geometry_helper_name = "__geometry_helper__";
+    opts.scale_helper_name = {scale_helper_name.data(), scale_helper_name.size()};
+    opts.geometry_transform_helper_name = {
+        geometry_helper_name.data(),
+        geometry_helper_name.size()};
+    return opts;
+}
+
+UfbxScene load_ufbx(const fs::path& filename)
+{
+    std::string filename_s = filename.string();
+
+    ufbx_load_opts opts = create_load_opts();
+    ufbx_error error{};
+
 
     return ufbx_load_file(filename_s.c_str(), &opts, &error);
 }
@@ -287,13 +304,8 @@ UfbxScene load_ufbx(std::istream& input_stream)
     std::istreambuf_iterator<char> data_itr(input_stream), end_of_stream;
     std::string data(data_itr, end_of_stream);
 
-    ufbx_load_opts opts{};
+    ufbx_load_opts opts = create_load_opts();
     ufbx_error error{};
-
-    opts.target_axes.right = UFBX_COORDINATE_AXIS_POSITIVE_X;
-    opts.target_axes.front = UFBX_COORDINATE_AXIS_NEGATIVE_Y;
-    opts.target_axes.up = UFBX_COORDINATE_AXIS_POSITIVE_Z;
-    opts.target_unit_meters = 1.0;
 
     return ufbx_load_memory(data.data(), data.size(), &opts, &error);
 }

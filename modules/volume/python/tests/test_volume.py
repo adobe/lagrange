@@ -12,11 +12,10 @@
 import lagrange
 from lagrange.lagrange.volume import Grid  # why??
 import numpy as np
-import pytest
 import tempfile
 import pathlib
 
-from .assets import cube
+from .assets import cube  # noqa: F401
 
 
 class TestMeshToVolume:

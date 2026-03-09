@@ -260,6 +260,11 @@ SurfaceMesh<Scalar, Index> subdivide_mesh(
     const SurfaceMesh<Scalar, Index>& input_mesh,
     const SubdivisionOptions& options)
 {
+    if (input_mesh.get_num_vertices() == 0 || input_mesh.get_num_facets() == 0) {
+        logger().debug("[subdivide_mesh] Input mesh has no facet or vertices. Returning a copy.");
+        return input_mesh;
+    }
+
     // Prepare list of attribute ids to interpolate
     auto interpolated_attr =
         prepare_interpolated_attribute_ids(input_mesh, options.interpolated_attributes);

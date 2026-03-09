@@ -24,6 +24,7 @@
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/polyscope/register_mesh.h>
+#include <lagrange/texproc/texture_filtering.h>
 #include <lagrange/texproc/texture_stitching.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/Error.h>
@@ -208,17 +209,19 @@ struct UiState
 {
     OrientReturn orient_ret;
     lagrange::texproc::StitchingOptions stitching_options;
+    lagrange::texproc::FilteringOptions filtering_options;
     SurfaceMesh mesh;
     Array3Df input_texture;
     Array3Df stitched_texture;
+    Array3Df filtered_texture;
     polyscope::SurfaceMesh* ps_mesh;
     polyscope::SurfaceCornerParameterizationQuantity* ps_tex;
 
-    bool can_run_texture_stitching() const;
+    bool has_valid_inputs() const;
     void main_panel();
 };
 
-bool UiState::can_run_texture_stitching() const
+bool UiState::has_valid_inputs() const
 {
     bool can_stitch = true;
     can_stitch &= mesh.get_num_facets() > 0;
@@ -255,19 +258,19 @@ void UiState::main_panel()
         input_texture.extent(1),
         input_texture.extent(2));
 
+    const auto valid_inputs = has_valid_inputs();
+    ImGui_FmtText("{} inputs", valid_inputs ? "valid" : "invalid / missing");
+
     ImGui::Separator();
 
-    const auto can_stitch = can_run_texture_stitching();
-    ImGui_FmtText("texture stitching inputs: {}", can_stitch ? "valid" : "invalid / missing");
-
     // trigger stitching
-    if (ImGui::Button("run texture stitching") && can_stitch) {
+    if (ImGui::Button("run texture stitching") && valid_inputs) {
         lagrange::logger().info("Running texture stitching");
         auto result_texture = input_texture;
         lagrange::texproc::texture_stitching(mesh, result_texture.to_mdspan(), stitching_options);
         stitched_texture = result_texture;
         register_color_texture(ps_mesh, ps_tex, "stitched", result_texture.to_mdspan());
-        lagrange::logger().warn("Done");
+        lagrange::logger().info("Done");
     }
 
     // stitching options
@@ -323,6 +326,91 @@ void UiState::main_panel()
             options.clamp_to_range =
                 is_clamped ? std::make_optional(std::pair<double, double>{0.0, 1.0}) : std::nullopt;
         }
+
+        if (ImGui::Button("Reset")) options = {};
+
+        ImGui::TreePop();
+    }
+
+
+    ImGui::Separator();
+
+    // trigger filtering
+    if (ImGui::Button("run texture filtering") && valid_inputs) {
+        lagrange::logger().info("Running texture filtering");
+        auto result_texture = input_texture;
+        lagrange::texproc::texture_filtering(mesh, result_texture.to_mdspan(), filtering_options);
+        filtered_texture = result_texture;
+        register_color_texture(ps_mesh, ps_tex, "filtered", filtered_texture.to_mdspan());
+        lagrange::logger().info("Done");
+    }
+
+    // filtering options
+    if (ImGui::TreeNode("texture filtering options")) {
+        auto& options = filtering_options;
+
+        {
+            const std::array<const char*, 5> labels = {
+                "1",
+                "3",
+                "6 (default)",
+                "12",
+                "24",
+            };
+            const std::array<const unsigned int, 5> values = {
+                1,
+                3,
+                6,
+                12,
+                24,
+            };
+            la_runtime_assert(labels.size() == values.size());
+            auto index = 0;
+            for (const auto& value : values) {
+                if (value == options.quadrature_samples) break;
+                index += 1;
+            }
+            la_runtime_assert(static_cast<size_t>(index) < values.size());
+            ImGui::Combo("quadrature", &index, labels.data(), static_cast<int>(labels.size()));
+            options.quadrature_samples = values.at(index);
+        }
+
+        {
+            float weight = options.gradient_scale;
+            ImGui::SliderFloat("scale", &weight, 0.0f, 10.0);
+            options.gradient_scale = weight;
+        }
+
+        {
+            options.value_weight = std::max(options.value_weight, 1e0);
+            la_runtime_assert(options.value_weight > 0);
+            float weight_log = std::log(options.value_weight) / std::log(10.0f);
+            ImGui::SliderFloat("log value weight", &weight_log, 0.0f, 5.0f);
+            options.value_weight = std::pow(10.0f, weight_log);
+        }
+
+        {
+            options.gradient_weight = std::max(options.gradient_weight, 1e0);
+            la_runtime_assert(options.gradient_weight > 0);
+            float weight_log = std::log(options.gradient_weight) / std::log(10.0f);
+            ImGui::SliderFloat("log grad weight", &weight_log, 0.0f, 5.0f);
+            options.gradient_weight = std::pow(10.0f, weight_log);
+        }
+
+        {
+            bool has_jitter = options.jitter_epsilon > 0;
+            ImGui::Checkbox("jitter", &has_jitter);
+            options.jitter_epsilon = has_jitter ? 1e-4 : 0.0;
+        }
+
+        {
+            bool is_clamped = options.clamp_to_range.has_value();
+            ImGui::Checkbox("clamp", &is_clamped);
+            options.clamp_to_range =
+                is_clamped ? std::make_optional(std::pair<double, double>{0.0, 1.0}) : std::nullopt;
+        }
+
+        if (ImGui::Button("Reset")) options = {};
 
         ImGui::TreePop();
     }
