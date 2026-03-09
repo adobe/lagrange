@@ -109,17 +109,21 @@ jobs:
               echo "CC=clang" >> $GITHUB_ENV
               echo "CXX=clang++" >> $GITHUB_ENV
             fi
-            sudo apt-get install xorg-dev ccache
+            sudo apt-get install xorg-dev
 
       - name: Dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-            brew install ccache
             if [ "${{ matrix.compiler }}" = "llvm" ]; then
               brew install llvm@17
               echo "CC='$(brew --prefix llvm@17)/bin/clang'" >> $GITHUB_ENV
               echo "CXX='$(brew --prefix llvm@17)/bin/clang++'" >> $GITHUB_ENV
             fi
+
+      - name: Ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.sanitizer }}-${{ matrix.config }}
 
       - name: Setup Xcode version
         if: matrix.os == 'macos-15-intel'
@@ -149,18 +153,6 @@ jobs:
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
 
-      - name: Cache Build
-        id: cache-build
-        uses: actions/cache@v5
-        with:
-          path: ~/.ccache
-          key: ${{ matrix.name }}-${{ matrix.config }}-cache
-
-      - name: Prepare ccache
-        run: |
-          ccache --max-size=1.0G
-          ccache -V && ccache --show-stats && ccache --zero-stats
-
       - name: Configure
         run: |
           cmake --version
@@ -178,10 +170,6 @@ jobs:
 
       - name: Build
         run: cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
-
-      - name: Ccache stats
-        if: always()
-        run: ccache --show-stats
 
       - name: Show disk space
         if: always()
@@ -235,7 +223,7 @@ jobs:
         uses: SimenB/github-actions-cpu-cores@v1
         id: cpu-cores
 
-      - name: Cache build
+      - name: Sccache
         uses: mozilla-actions/sccache-action@v0.0.9
 
         # We run configure + build in the same step, since they both need to call VsDevCmd
