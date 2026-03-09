@@ -11,31 +11,6 @@
  */
 #pragma once
 
-#include <lagrange/common.h>
-
-#include <Eigen/Core>
-
-#include <functional>
-
-namespace lagrange {
-namespace raycasting {
-
-template <typename Scalar>
-struct ClosestPointResult
-{
-    // Point type
-    using Point = Eigen::Matrix<Scalar, 3, 1>;
-
-    // Callback to populate triangle corner position given a (mesh_id, facet_id)
-    std::function<void(unsigned, unsigned, Point&, Point&, Point&)> populate_triangle;
-
-    // Current best result
-    unsigned mesh_index = invalid<unsigned>();
-    unsigned facet_index = invalid<unsigned>();
-    Point closest_point;
-    Point barycentric_coord;
-};
-
-} // namespace raycasting
-
-} // namespace lagrange
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/raycasting/legacy/ClosestPointResult.h>
+#endif

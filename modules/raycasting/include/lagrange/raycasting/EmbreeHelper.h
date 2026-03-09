@@ -11,6 +11,7 @@
  */
 #pragma once
 
+<<<<<<< HEAD
 #ifdef LAGRANGE_WITH_EMBREE_4
     #include <embree4/rtcore.h>
 #else
@@ -30,3 +31,8 @@ void ensure_no_errors(const RTCDevice& device);
 } // namespace EmbreeHelper
 } // namespace raycasting
 } // namespace lagrange
+=======
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/raycasting/legacy/EmbreeHelper.h>
+#endif
+>>>>>>> origin/main

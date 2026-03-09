@@ -10,12 +10,14 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/find_matching_attributes.h>
-#include <lagrange/foreach_attribute.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
-#include <lagrange/polyscope/register_mesh.h>
+#include <lagrange/polyscope/register_structure.h>
+#include <lagrange/unify_index_buffer.h>
 #include <lagrange/views.h>
+
+#include <spdlog/fmt/ranges.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -26,6 +28,37 @@
 #include <CLI/CLI.hpp>
 
 using SurfaceMesh = lagrange::SurfaceMesh32d;
+
+void prepare_mesh(SurfaceMesh& mesh)
+{
+    lagrange::AttributeMatcher matcher;
+    matcher.element_types = lagrange::AttributeElement::Indexed;
+
+    // 1st, unify index buffers for all non-UV indexed attributes
+    matcher.usages = ~lagrange::BitField(lagrange::AttributeUsage::UV);
+    auto ids = lagrange::find_matching_attributes(mesh, matcher);
+    if (!ids.empty()) {
+        std::vector<std::string> attr_names;
+        for (auto id : ids) {
+            attr_names.emplace_back(mesh.get_attribute_name(id));
+        }
+        lagrange::logger().info(
+            "Unifying index buffers for {} non-UV indexed attributes: {}",
+            ids.size(),
+            fmt::join(attr_names, ", "));
+        mesh = lagrange::unify_index_buffer(mesh, ids);
+    }
+
+    // 2nd, convert indexed UV attributes into corner attributes
+    matcher.usages = lagrange::AttributeUsage::UV;
+    ids = lagrange::find_matching_attributes(mesh, matcher);
+    for (auto id : ids) {
+        lagrange::logger().info(
+            "Converting indexed UV attribute to corner attribute: {}",
+            mesh.get_attribute_name(id));
+        map_attribute_in_place(mesh, id, lagrange::AttributeElement::Corner);
+    }
+}
 
 int main(int argc, char** argv)
 {
@@ -51,7 +84,8 @@ int main(int argc, char** argv)
     for (auto input : args.inputs) {
         lagrange::logger().info("Loading input mesh: {}", input.string());
         auto mesh = lagrange::io::load_mesh<SurfaceMesh>(input);
-        lagrange::polyscope::register_mesh(input.stem().string(), std::move(mesh));
+        prepare_mesh(mesh);
+        lagrange::polyscope::register_structure(input.stem().string(), std::move(mesh));
     }
 
     polyscope::show();

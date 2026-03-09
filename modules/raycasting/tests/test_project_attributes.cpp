@@ -129,6 +129,7 @@ TEST_CASE("project_attributes_directional", "[raycasting]")
         // Not a bool since we write to this guy in parallel
         std::vector<char> ishit(target->get_num_vertices(), true);
 
+        LA_IGNORE_DEPRECATION_WARNING_BEGIN
         lagrange::raycasting::project_attributes_directional(
             *source,
             *target,
@@ -138,6 +139,7 @@ TEST_CASE("project_attributes_directional", "[raycasting]")
             lagrange::raycasting::WrapMode::CONSTANT,
             0,
             [&](int v, bool hit) { ishit[v] = hit; });
+        LA_IGNORE_DEPRECATION_WARNING_END
         target->has_vertex_attribute("pos");
         const auto& V = target->get_vertices();
         const auto& P = target->get_vertex_attribute("pos");
@@ -154,6 +156,7 @@ TEST_CASE("project_attributes_directional", "[raycasting]")
         auto target = perturb_mesh(*source, 0.1, true);
 
         std::atomic_bool all_hit(true);
+        LA_IGNORE_DEPRECATION_WARNING_BEGIN
         lagrange::raycasting::project_attributes_directional(
             *source,
             *target,
@@ -165,6 +168,7 @@ TEST_CASE("project_attributes_directional", "[raycasting]")
             [&](int /*v*/, bool hit) {
                 if (!hit) all_hit = false;
             });
+        LA_IGNORE_DEPRECATION_WARNING_END
         REQUIRE(all_hit);
         target->has_vertex_attribute("pos");
         const auto& V = target->get_vertices();
@@ -180,6 +184,7 @@ TEST_CASE("project_attributes_directional", "[raycasting]")
         auto target = lagrange::create_mesh(source->get_vertices(), source->get_facets());
 
         std::atomic_bool all_hit(true);
+        LA_IGNORE_DEPRECATION_WARNING_BEGIN
         lagrange::raycasting::project_attributes_directional(
             *source,
             *target,
@@ -191,6 +196,7 @@ TEST_CASE("project_attributes_directional", "[raycasting]")
             [&](int /*v*/, bool hit) {
                 if (!hit) all_hit = false;
             });
+        LA_IGNORE_DEPRECATION_WARNING_END
         REQUIRE(all_hit);
         target->has_vertex_attribute("pos");
         const auto& V = target->get_vertices();
@@ -286,8 +292,10 @@ TEST_CASE("project_attributes: reproducibility", "[raycasting]")
 
     using ProjectMode = lagrange::raycasting::ProjectMode;
 
+    LA_IGNORE_DEPRECATION_WARNING_BEGIN
     for (auto proj :
          {ProjectMode::CLOSEST_VERTEX, ProjectMode::CLOSEST_POINT, ProjectMode::RAY_CASTING}) {
+        LA_IGNORE_DEPRECATION_WARNING_END
         auto target1 = perturb_mesh(*source, 0.1);
         auto target2 = perturb_mesh(*source, 0.1);
         REQUIRE(source->get_vertices() != target2->get_vertices());

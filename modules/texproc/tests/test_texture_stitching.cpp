@@ -47,7 +47,7 @@ void require_approx_mdspan(View3Df a, View3Df b, float eps_rel = 1e-5f, float ep
 
 } // namespace
 
-TEST_CASE("texture stitching quad", "[texproc]")
+TEST_CASE("texture stitching quad", "[texproc][stitching]")
 {
     using Scalar = double;
     using Index = uint32_t;
@@ -72,7 +72,7 @@ TEST_CASE("texture stitching quad", "[texproc]")
     REQUIRE_NOTHROW(lagrange::texproc::texture_stitching(quad_mesh, img.to_mdspan()));
 }
 
-TEST_CASE("texture stitching cube", "[texproc]")
+TEST_CASE("texture stitching cube", "[texproc][stitching]")
 {
     using Scalar = double;
     using Index = uint32_t;
@@ -84,7 +84,7 @@ TEST_CASE("texture stitching cube", "[texproc]")
     REQUIRE_NOTHROW(lagrange::texproc::texture_stitching(mesh, img.to_mdspan()));
 }
 
-TEST_CASE("texture stitching", "[texproc]" LA_SLOW_DEBUG_FLAG)
+TEST_CASE("texture stitching", "[texproc][stitching]" LA_SLOW_DEBUG_FLAG)
 {
     using Scalar = double;
     using Index = uint32_t;
@@ -126,7 +126,7 @@ TEST_CASE("texture stitching", "[texproc]" LA_SLOW_DEBUG_FLAG)
     }
 }
 
-TEST_CASE("Penguin with flips", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
+TEST_CASE("Penguin with flips", "[texproc][stitching]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
 {
     using Scalar = double;
     using Index = uint32_t;

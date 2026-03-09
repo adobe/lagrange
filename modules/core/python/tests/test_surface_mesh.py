@@ -13,9 +13,8 @@ import lagrange
 
 import numpy as np
 import pytest
-import sys
 
-from .assets import single_triangle, single_triangle_with_index, cube
+from .assets import single_triangle, single_triangle_with_index, cube  # noqa: F401
 from .utils import address, assert_sharing_raw_data
 
 
@@ -98,8 +97,8 @@ class TestSurfaceMesh:
         mesh.delete_attribute("index")
         del attr2
 
-        with pytest.raises(RuntimeError) as e:
-            data = attr.data
+        with pytest.raises(RuntimeError):
+            attr.data
 
     def test_create_attribute_without_init_values(self, single_triangle):
         mesh = single_triangle

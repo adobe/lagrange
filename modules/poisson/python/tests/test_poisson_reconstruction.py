@@ -12,9 +12,7 @@
 import lagrange
 
 import math
-import pytest
 import numpy as np
-import logging
 
 
 def fibonacci_sphere(num_points=1000):

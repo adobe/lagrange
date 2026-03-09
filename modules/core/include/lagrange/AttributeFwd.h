@@ -195,6 +195,21 @@ enum class AttributeReorientPolicy : uint8_t {
 };
 
 ///
+/// Policy for retrieving writable references to attribute buffers. By default, it is not allowed to
+/// get a writable reference to the corner -> vertex id attribute when a mesh has edge/connectivity
+/// information. This policy can be used to change that.
+///
+enum class AttributeRefPolicy : uint8_t {
+    /// Throws an exception if the attribute is the corner -> vertex id attribute and the mesh has
+    /// edge/connectivity information.
+    Default,
+
+    /// Allows retrieving writable references even if the attribute is the corner -> vertex id
+    /// attribute and the mesh has edge/connectivity information.
+    Force,
+};
+
+///
 /// Base handle for attributes. This is a common base class to allow for type erasure.
 ///
 class AttributeBase;

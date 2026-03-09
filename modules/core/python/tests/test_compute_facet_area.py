@@ -12,11 +12,10 @@
 import lagrange
 
 import numpy as np
-from numpy.linalg import norm
 import math
 import pytest
 
-from .assets import single_triangle, cube, single_triangle_with_uv
+from .assets import single_triangle, cube, single_triangle_with_uv  # noqa: F401
 
 
 class TestComputeFacetArea:

@@ -12,11 +12,10 @@
 import lagrange
 
 import numpy as np
-from numpy.linalg import norm
 import math
 import pytest
 
-from .assets import single_triangle, cube
+from .assets import single_triangle, cube  # noqa: F401
 
 
 class TestComputeNormal:

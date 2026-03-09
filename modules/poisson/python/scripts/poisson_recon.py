@@ -15,7 +15,6 @@
 
 import argparse
 import lagrange
-import numpy as np
 
 
 def parse_args():

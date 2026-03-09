@@ -216,7 +216,9 @@ void register_attributes(PolyscopeStructure* ps_struct, const SurfaceMesh<Scalar
             return;
         }
         using AttributeType = std::decay_t<decltype(attr)>;
-        if constexpr (!AttributeType::IsIndexed) {
+        if constexpr (AttributeType::IsIndexed) {
+            lagrange::logger().warn("Skipping indexed attribute: {}", name);
+        } else {
             if (!register_attribute(ps_struct, name, attr)) {
                 lagrange::logger().warn("Skipping unsupported attribute: {}", name);
             }

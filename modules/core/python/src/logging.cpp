@@ -23,29 +23,37 @@
 
 #include <mutex>
 
+namespace nb = nanobind;
+
 namespace lagrange::python {
+
+namespace {
 
 class PythonLoggingSink : public spdlog::sinks::base_sink<std::mutex>
 {
+public:
+    PythonLoggingSink(std::string logger_name)
+    {
+        nb::module_ logging = nb::module_::import_("logging");
+        m_py_logger = logging.attr("getLogger")(logger_name);
+    }
+
 protected:
     void sink_it_(const spdlog::details::log_msg& msg) override
     {
         // Logging in python requires the current thread to hold the GIL.
         if (!PyGILState_Check()) return;
 
-        namespace nb = nanobind;
         auto payload = msg.payload;
         auto res = nb::str(payload.data(), payload.size());
-        nb::module_ logging = nb::module_::import_("logging");
-        auto py_logger = logging.attr("getLogger")("lagrange");
 
         switch (msg.level) {
-        case spdlog::level::trace: py_logger.attr("debug")(res); break;
-        case spdlog::level::debug: py_logger.attr("debug")(res); break;
-        case spdlog::level::info: py_logger.attr("info")(res); break;
-        case spdlog::level::warn: py_logger.attr("warning")(res); break;
-        case spdlog::level::err: py_logger.attr("error")(res); break;
-        case spdlog::level::critical: py_logger.attr("critical")(res); break;
+        case spdlog::level::trace: m_py_logger.attr("debug")(res); break;
+        case spdlog::level::debug: m_py_logger.attr("debug")(res); break;
+        case spdlog::level::info: m_py_logger.attr("info")(res); break;
+        case spdlog::level::warn: m_py_logger.attr("warning")(res); break;
+        case spdlog::level::err: m_py_logger.attr("error")(res); break;
+        case spdlog::level::critical: m_py_logger.attr("critical")(res); break;
         case spdlog::level::off: break;
         default: break;
         }
@@ -56,21 +64,24 @@ protected:
         // Logging in python requires the current thread to hold the GIL.
         if (!PyGILState_Check()) return;
 
-        namespace nb = nanobind;
-        nb::module_ logging = nb::module_::import_("logging");
-        auto py_logger = logging.attr("getLogger")("lagrange");
-        auto handlers = py_logger.attr("handlers");
+        auto handlers = m_py_logger.attr("handlers");
         for (auto handler : handlers) {
             handler.attr("flush")();
         }
     }
+
+private:
+    nanobind::object m_py_logger;
 };
 
-void register_python_logger()
+} // namespace
+
+void register_python_logger(nanobind::module_& m)
 {
     auto& logger = lagrange::logger();
+    std::string logger_name = nb::cast<std::string>(m.attr("__name__"));
     logger.sinks().clear();
-    logger.sinks().emplace_back(std::make_shared<PythonLoggingSink>());
+    logger.sinks().emplace_back(std::make_shared<PythonLoggingSink>(std::move(logger_name)));
     logger.set_level(spdlog::level::trace); // Log level will be controlled by Python.
 }
 

@@ -10,7 +10,7 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-from .assets import cube, cube_triangular, cube_with_uv
+from .assets import cube, cube_triangular, cube_with_uv  # noqa: F401
 
 import numpy as np
 

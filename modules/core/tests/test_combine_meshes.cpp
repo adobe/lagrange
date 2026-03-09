@@ -359,6 +359,47 @@ TEST_CASE("combine_meshes hybrid", "[surface][utilities]")
     REQUIRE(mesh.get_num_facets() == 392);
 }
 
+TEST_CASE("combine_meshes empty", "[surface][utilities]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh2;
+    mesh2.add_vertices(3);
+    mesh2.add_triangle(0, 1, 2);
+
+    SurfaceMesh<Scalar, Index> mesh3;
+    mesh3.add_vertices(4);
+    mesh3.add_quad(0, 1, 3, 2);
+
+    SurfaceMesh<Scalar, Index> empty;
+
+    SECTION("without attributes")
+    {
+        auto mesh0 = combine_meshes<Scalar, Index>({&mesh2, &mesh3, &empty}, true);
+        auto mesh1 = combine_meshes<Scalar, Index>({&mesh2, &mesh3, &empty}, false);
+        REQUIRE(mesh0.get_num_vertices() == 7);
+        REQUIRE(mesh0.get_num_facets() == 2);
+        REQUIRE(mesh1.get_num_vertices() == 7);
+        REQUIRE(mesh1.get_num_facets() == 2);
+    }
+
+    SECTION("with attributes")
+    {
+        mesh2.create_attribute<Scalar>("x", AttributeElement::Facet, 3);
+        mesh3.create_attribute<Scalar>("x", AttributeElement::Facet, 3);
+
+        auto mesh0 = combine_meshes<Scalar, Index>({&mesh2, &mesh3, &empty}, true);
+        auto mesh1 = combine_meshes<Scalar, Index>({&mesh2, &mesh3, &empty}, false);
+        REQUIRE(mesh0.get_num_vertices() == 7);
+        REQUIRE(mesh0.get_num_facets() == 2);
+        REQUIRE(mesh1.get_num_vertices() == 7);
+        REQUIRE(mesh1.get_num_facets() == 2);
+        REQUIRE(mesh0.has_attribute("x"));
+        REQUIRE(!mesh1.has_attribute("x"));
+    }
+}
+
 TEST_CASE("combine_meshes benchmark", "[surface][utilities][!benchmark]")
 {
     using namespace lagrange;

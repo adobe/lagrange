@@ -589,7 +589,7 @@ std::string to_string(const Extensions& extensions, size_t indent)
 }
 
 #define LA_X_to_string(_, Scalar, Index) \
-    template std::string to_string(const Scene<Scalar, Index>&, size_t);
+    template LA_SCENE_API std::string to_string(const Scene<Scalar, Index>&, size_t);
 LA_SURFACE_MESH_X(to_string, 0)
 
 } // namespace lagrange::scene::internal

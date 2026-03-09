@@ -43,3 +43,10 @@ install(DIRECTORY ${geometry-central_SOURCE_DIR} DESTINATION ${CMAKE_INSTALL_INC
 install(TARGETS geometry-central EXPORT GeometryCentral_Targets)
 install(EXPORT GeometryCentral_Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/geometry-central
     NAMESPACE geometry-central::)
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
+    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(geometry-central PRIVATE
+        "-Wno-deprecated-declarations"
+    )
+endif()

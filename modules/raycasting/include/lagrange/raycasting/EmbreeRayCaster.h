@@ -11,6 +11,7 @@
  */
 #pragma once
 
+<<<<<<< HEAD
 #ifdef LAGRANGE_WITH_EMBREE_4
     #include <embree4/rtcore.h>
     #include <embree4/rtcore_geometry.h>
@@ -1161,3 +1162,8 @@ auto EmbreeRayCaster<Scalar>::query_closest_point(const Point& p) const -> Close
 
 } // namespace raycasting
 } // namespace lagrange
+=======
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/raycasting/legacy/EmbreeRayCaster.h>
+#endif
+>>>>>>> origin/main

@@ -34,6 +34,12 @@ template <typename Scalar, typename Index>
             return ::polyscope::registerPointCloud(std::string(name), vertex_view(mesh));
         }
     }();
+    if (mesh.get_num_vertices() > 500000) {
+        logger().warn(
+            "Mesh '{}' is a large point cloud. Rendering points as quads to improve performance.",
+            name);
+        ps_cloud->setPointRenderMode(::polyscope::PointRenderMode::Quad);
+    }
     register_attributes(ps_cloud, mesh);
     return ps_cloud;
 }

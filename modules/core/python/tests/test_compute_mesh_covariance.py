@@ -11,9 +11,8 @@
 #
 import lagrange
 import numpy as np
-import pytest
 
-from .assets import cube, single_triangle
+from .assets import cube, single_triangle  # noqa: F401
 
 
 class TestComputeMeshCovariance:

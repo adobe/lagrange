@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/Logger.h>
 #include <lagrange/attribute_names.h>
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_simple_scene_gltf.h>
@@ -156,4 +157,18 @@ TEST_CASE("load_gltf_point_cloud", "[io][gltf]")
     auto scene2 =
         lagrange::io::load_simple_scene_gltf<lagrange::scene::SimpleScene<Scalar, Index>>(ss);
     REQUIRE(scene2.get_num_meshes() == 1);
+}
+
+TEST_CASE("load_gltf_non_triangle_simple", "[io][gltf]" LA_CORP_FLAG)
+{
+    io::LoadOptions options;
+    options.quiet = true;
+    auto scene = io::load_simple_scene_gltf<lagrange::scene::SimpleScene32f3>(
+        testing::get_data_path("corp/io/segments.glb"),
+        options);
+    REQUIRE(scene.get_num_meshes() == 2);
+    REQUIRE(scene.get_mesh(0).get_num_vertices() == 0);
+    REQUIRE(scene.get_mesh(0).get_num_facets() == 0);
+    REQUIRE(scene.get_mesh(1).get_num_vertices() == 198);
+    REQUIRE(scene.get_mesh(1).get_num_facets() == 130);
 }

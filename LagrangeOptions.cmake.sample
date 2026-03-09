@@ -63,6 +63,7 @@
 # option(LAGRANGE_MODULE_PRIMITIVE    "Build module lagrange::primitive"    ON)
 # option(LAGRANGE_MODULE_PYTHON       "Build module lagrange::python"       ON)
 # option(LAGRANGE_MODULE_RAYCASTING   "Build module lagrange::raycasting"   ON)
+# option(LAGRANGE_MODULE_REMESHING_IM "Build module lagrange::remeshing_im" ON)
 # option(LAGRANGE_MODULE_SCENE        "Build module lagrange::scene"        ON)
 # option(LAGRANGE_MODULE_SOLVER       "Build module lagrange::solver"       ON)
 # option(LAGRANGE_MODULE_SUBDIVISION  "Build module lagrange::subdivision"  ON)

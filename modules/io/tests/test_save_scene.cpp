@@ -257,3 +257,39 @@ TEST_CASE("save_scene with float images", "[io]")
         LA_REQUIRE_THROWS(io::save_scene(output, scene, io::FileFormat::Gltf, options));
     }
 }
+
+
+TEST_CASE("save_scene with new root node", "[io]")
+{
+    using Scene = scene::Scene32f;
+    lagrange::io::LoadOptions load_options;
+    load_options.quiet = true;
+
+    fs::path avocado_path = testing::get_data_path("open/io/avocado/Avocado.gltf");
+    auto scene = lagrange::io::load_scene<Scene>(avocado_path, load_options);
+
+    const size_t old_num_nodes = scene.nodes.size();
+    const size_t old_num_root_nodes = scene.root_nodes.size();
+
+    // Add a new root node to the scene
+    {
+        lagrange::scene::Node xform;
+        xform.name = "NewRoot";
+        xform.transform.setIdentity();
+        size_t new_root_node_index = scene.add(xform);
+        for (auto i : scene.root_nodes) {
+            scene.add_child(new_root_node_index, i);
+        }
+        scene.root_nodes = {new_root_node_index};
+    }
+
+    // Save the modified scene
+    fs::path reparented_scene = testing::get_test_output_path("test_save_scene/reparented.glb");
+    lagrange::io::save_scene(reparented_scene, scene);
+    auto re_scene = lagrange::io::load_scene<Scene>(reparented_scene, load_options);
+
+    REQUIRE(re_scene.nodes.size() == old_num_nodes + 1);
+    REQUIRE(re_scene.root_nodes.size() == 1);
+    REQUIRE(re_scene.nodes[re_scene.root_nodes[0]].name == "NewRoot");
+    REQUIRE(re_scene.nodes[re_scene.root_nodes[0]].children.size() == old_num_root_nodes);
+}

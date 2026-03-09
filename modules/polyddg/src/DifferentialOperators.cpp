@@ -797,7 +797,7 @@ Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::connection_lap
     return Lc;
 }
 
-// Per-facet gradient operator
+// Per-facet gradient operator — stacks per-corner gradient vectors column-wise.
 template <typename Scalar, typename Index>
 Eigen::Matrix<Scalar, 3, Eigen::Dynamic> DifferentialOperators<Scalar, Index>::gradient(
     Index fid) const
@@ -810,16 +810,12 @@ Eigen::Matrix<Scalar, 3, Eigen::Dynamic> DifferentialOperators<Scalar, Index>::g
     const Scalar area_sq = a.squaredNorm();
 
     Eigen::Matrix<Scalar, 3, Eigen::Dynamic> G(3, facet_size);
-
     for (Index lv = 0; lv < facet_size; lv++) {
-        const Index vid_next = m_mesh.get_facet_vertex(fid, (lv + 1) % facet_size);
         const Index vid_prev = m_mesh.get_facet_vertex(fid, (lv + facet_size - 1) % facet_size);
-        Vector e = (vertices.row(vid_prev) - vertices.row(vid_next)).template head<3>();
-        Vector g = a.cross(e) / (2 * area_sq);
-
-        G.col(lv) = g.transpose();
+        const Index vid_next = m_mesh.get_facet_vertex(fid, (lv + 1) % facet_size);
+        const Vector e = (vertices.row(vid_prev) - vertices.row(vid_next)).template head<3>();
+        G.col(lv) = (a.cross(e) / (2 * area_sq)).transpose();
     }
-
     return G;
 }
 
@@ -1136,6 +1132,341 @@ DifferentialOperators<Scalar, Index>::connection_laplacian_nrosy(Index fid, Inde
     auto P_cov = covariant_projection_nrosy(fid, n);
 
     return area * G_cov.transpose() * G_cov + lambda * P_cov.transpose() * P_cov;
+}
+
+// Per-facet shape operator  (Eq. 23, de Goes et al. 2020)
+template <typename Scalar, typename Index>
+Eigen::Matrix<Scalar, 2, 2> DifferentialOperators<Scalar, Index>::shape_operator(Index fid) const
+{
+    // G_f  : 3 x nf  discrete gradient
+    // T_f  : 3 x 2   local tangent frame
+    // N_f  : nf x 3  per-vertex normals stacked row-wise
+    //
+    // S_f = (1/2) T_f^t (G_f N_f + (G_f N_f)^t) T_f   [Eq. 23]
+    //     = sym( T_f^t G_f N_f T_f )
+
+    auto G_f = gradient(fid); // 3 x nf
+    auto T_f = facet_basis(fid); // 3 x 2
+
+    auto vertex_normals = attribute_matrix_view<Scalar>(m_mesh, m_vertex_normal_id);
+    const Index facet_size = m_mesh.get_facet_size(fid);
+
+    Eigen::Matrix<Scalar, Eigen::Dynamic, 3> N_f(facet_size, 3);
+    for (Index lv = 0; lv < facet_size; lv++) {
+        N_f.row(lv) = vertex_normals.row(m_mesh.get_facet_vertex(fid, lv));
+    }
+
+    // Q = T_f^t G_f N_f T_f  (2x2)
+    Eigen::Matrix<Scalar, 2, 2> Q = T_f.transpose() * G_f * N_f * T_f;
+    return Scalar(0.5) * (Q + Q.transpose());
+}
+
+// Global shape operator  (#F*4 x #V*3, maps 3D vertex normals to per-face 2x2 shape operators)
+template <typename Scalar, typename Index>
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::shape_operator() const
+{
+    // Output layout per facet f (row offset fid*4):
+    //   row 0: S_f(0,0),  row 1: S_f(0,1),  row 2: S_f(1,0),  row 3: S_f(1,1)
+    //
+    // Input layout per vertex v (column offset vid*3):
+    //   col 0: n_v^x,  col 1: n_v^y,  col 2: n_v^z
+    //
+    // From the per-facet derivation, with C_f = T_f^t G_f  (2 x nf):
+    //
+    //   S_f(a,b) = (1/2) sum_{lv,m} [ C_f(a,lv)*T_f(m,b) + C_f(b,lv)*T_f(m,a) ] * n_{v_lv, m}
+    //
+    // so the global-operator coefficient for output (fid*4 + a*2 + b) and input (vid*3 + m) is
+    //   (1/2) * [ C_f(a,lv)*T_f(m,b) + C_f(b,lv)*T_f(m,a) ]
+    // where lv is the local index of vid within face fid.
+
+    const Index num_facets = m_mesh.get_num_facets();
+    const Index num_vertices = m_mesh.get_num_vertices();
+    const Index num_corners = m_mesh.get_num_corners();
+
+    // Each corner contributes 4 outputs x 3 normal components = 12 triplets.
+    std::vector<Eigen::Triplet<Scalar>> entries;
+    entries.reserve(num_corners * 12);
+
+    for (Index fid = 0; fid < num_facets; fid++) {
+        const Index facet_size = m_mesh.get_facet_size(fid);
+        auto G_f = gradient(fid); // 3 x nf
+        auto T_f = facet_basis(fid); // 3 x 2
+
+        // C_f = T_f^t * G_f  (2 x nf)
+        Eigen::Matrix<Scalar, 2, Eigen::Dynamic> C_f = T_f.transpose() * G_f;
+
+        for (Index lv = 0; lv < facet_size; lv++) {
+            const Index vid = m_mesh.get_facet_vertex(fid, lv);
+
+            for (Eigen::Index a = 0; a < 2; a++) {
+                for (Eigen::Index b = 0; b < 2; b++) {
+                    const Eigen::Index out_row = static_cast<Eigen::Index>(fid * 4 + a * 2 + b);
+                    for (Eigen::Index m = 0; m < 3; m++) {
+                        const Eigen::Index in_col = static_cast<Eigen::Index>(vid * 3 + m);
+                        const Scalar val =
+                            Scalar(0.5) * (C_f(a, lv) * T_f(m, b) + C_f(b, lv) * T_f(m, a));
+                        entries.emplace_back(out_row, in_col, val);
+                    }
+                }
+            }
+        }
+    }
+
+    Eigen::SparseMatrix<Scalar> S(num_facets * 4, num_vertices * 3);
+    S.setFromTriplets(entries.begin(), entries.end());
+    return S;
+}
+
+// Per-vertex adjoint gradient  (Eq. 24, de Goes et al. 2020)
+template <typename Scalar, typename Index>
+Eigen::Matrix<Scalar, 3, Eigen::Dynamic> DifferentialOperators<Scalar, Index>::adjoint_gradient(
+    Index vid) const
+{
+    auto vertices = vertex_view(m_mesh);
+    auto vec_area = attribute_matrix_view<Scalar>(m_mesh, m_vector_area_id);
+    auto vertex_normals = attribute_matrix_view<Scalar>(m_mesh, m_vertex_normal_id);
+
+    const Vector nv = vertex_normals.row(vid);
+
+    // a_v = sum_{f incident to v} a_f / n_f
+    Scalar a_v = Scalar(0);
+    Index n_incident = 0;
+    {
+        Index c = m_mesh.get_first_corner_around_vertex(vid);
+        while (c != invalid<Index>()) {
+            const Index fid = m_mesh.get_corner_facet(c);
+            a_v += vec_area.row(fid).norm() / m_mesh.get_facet_size(fid);
+            n_incident++;
+            c = m_mesh.get_next_corner_around_vertex(c);
+        }
+    }
+
+    // G̃_v : 3 × n_incident
+    // Column j = -(a_{f_j} / a_v) * (Q_{f_j}^v)^t * g_{f_j}^v  (sign correction)
+    Eigen::Matrix<Scalar, 3, Eigen::Dynamic> G_adj(3, n_incident);
+
+    Index j = 0;
+    Index c = m_mesh.get_first_corner_around_vertex(vid);
+    while (c != invalid<Index>()) {
+        const Index fid = m_mesh.get_corner_facet(c);
+        const Index lv = c - m_mesh.get_facet_corner_begin(fid);
+
+        const Vector nf = vec_area.row(fid);
+        const Scalar a_f = nf.norm();
+        const Scalar area_sq = a_f * a_f;
+        const Eigen::Matrix<Scalar, 3, 3> Q =
+            Eigen::Quaternion<Scalar>::FromTwoVectors(nv, nf).matrix();
+
+        const Index facet_size = m_mesh.get_facet_size(fid);
+        const Index vid_prev = m_mesh.get_facet_vertex(fid, (lv + facet_size - 1) % facet_size);
+        const Index vid_next = m_mesh.get_facet_vertex(fid, (lv + 1) % facet_size);
+        const Vector e = (vertices.row(vid_prev) - vertices.row(vid_next)).template head<3>();
+        const Eigen::Matrix<Scalar, 3, 1> g = (nf.cross(e) / (2 * area_sq)).transpose();
+
+        G_adj.col(j) = -(a_f / a_v) * Q.transpose() * g;
+
+        j++;
+        c = m_mesh.get_next_corner_around_vertex(c);
+    }
+
+    return G_adj;
+}
+
+// Per-vertex adjoint shape operator  (Eq. 26, de Goes et al. 2020)
+template <typename Scalar, typename Index>
+Eigen::Matrix<Scalar, 2, 2> DifferentialOperators<Scalar, Index>::adjoint_shape_operator(
+    Index vid) const
+{
+    auto vec_area = attribute_matrix_view<Scalar>(m_mesh, m_vector_area_id);
+
+    auto G_adj = adjoint_gradient(vid); // 3 × k
+    auto T_v = vertex_basis(vid); // 3 × 2
+
+    // N_v : k × 3, rows are unit face normals of incident faces (same traversal order)
+    const Index k = G_adj.cols();
+    Eigen::Matrix<Scalar, Eigen::Dynamic, 3> N_v(k, 3);
+
+    Index j = 0;
+    Index c = m_mesh.get_first_corner_around_vertex(vid);
+    while (c != invalid<Index>()) {
+        const Index fid = m_mesh.get_corner_facet(c);
+        N_v.row(j) = vec_area.row(fid).template head<3>().stableNormalized();
+        j++;
+        c = m_mesh.get_next_corner_around_vertex(c);
+    }
+
+    // Eq. (26): S̃_v = (1/2) T_v^t (G̃_v N_v + (G̃_v N_v)^t) T_v
+    //                = sym( T_v^t G̃_v N_v T_v )
+    Eigen::Matrix<Scalar, 2, 2> Q = T_v.transpose() * G_adj * N_v * T_v;
+    return Scalar(0.5) * (Q + Q.transpose());
+}
+
+// Global adjoint gradient  (3*#V × #F)
+template <typename Scalar, typename Index>
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::adjoint_gradient() const
+{
+    // Entry [vid*3+i, fid] = -(a_f / a_v) * ((Q_f^v)^t g_f^v)[i]
+    // for every (vertex, incident-face) pair.
+
+    const Index num_vertices = m_mesh.get_num_vertices();
+    const Index num_facets = m_mesh.get_num_facets();
+    const Index num_corners = m_mesh.get_num_corners();
+
+    auto vertices = vertex_view(m_mesh);
+    auto vec_area = attribute_matrix_view<Scalar>(m_mesh, m_vector_area_id);
+    auto vertex_normals = attribute_matrix_view<Scalar>(m_mesh, m_vertex_normal_id);
+
+    std::vector<Eigen::Triplet<Scalar>> entries;
+    entries.reserve(num_corners * 3); // each corner → 3 triplets (one per xyz)
+
+    for (Index vid = 0; vid < num_vertices; vid++) {
+        const Vector nv = vertex_normals.row(vid);
+
+        // Compute vertex area: a_v = sum_{f incident to v} a_f / n_f
+        Scalar a_v = Scalar(0);
+        {
+            Index c = m_mesh.get_first_corner_around_vertex(vid);
+            while (c != invalid<Index>()) {
+                const Index fid = m_mesh.get_corner_facet(c);
+                a_v += vec_area.row(fid).norm() / m_mesh.get_facet_size(fid);
+                c = m_mesh.get_next_corner_around_vertex(c);
+            }
+        }
+
+        Index c = m_mesh.get_first_corner_around_vertex(vid);
+        while (c != invalid<Index>()) {
+            const Index fid = m_mesh.get_corner_facet(c);
+            const Index lv = c - m_mesh.get_facet_corner_begin(fid);
+
+            const Vector nf = vec_area.row(fid);
+            const Scalar a_f = nf.norm();
+            const Scalar area_sq = a_f * a_f;
+            const Eigen::Matrix<Scalar, 3, 3> Q =
+                Eigen::Quaternion<Scalar>::FromTwoVectors(nv, nf).matrix();
+
+            const Index facet_size = m_mesh.get_facet_size(fid);
+            const Index vid_prev = m_mesh.get_facet_vertex(fid, (lv + facet_size - 1) % facet_size);
+            const Index vid_next = m_mesh.get_facet_vertex(fid, (lv + 1) % facet_size);
+            const Vector e = (vertices.row(vid_prev) - vertices.row(vid_next)).template head<3>();
+            const Eigen::Matrix<Scalar, 3, 1> g = (nf.cross(e) / (2 * area_sq)).transpose();
+
+            const Eigen::Matrix<Scalar, 3, 1> col = -(a_f / a_v) * Q.transpose() * g;
+
+            for (Eigen::Index i = 0; i < 3; i++) {
+                entries.emplace_back(
+                    static_cast<Eigen::Index>(vid * 3 + i),
+                    static_cast<Eigen::Index>(fid),
+                    col[i]);
+            }
+
+            c = m_mesh.get_next_corner_around_vertex(c);
+        }
+    }
+
+    Eigen::SparseMatrix<Scalar> G_adj(num_vertices * 3, num_facets);
+    G_adj.setFromTriplets(entries.begin(), entries.end());
+    return G_adj;
+}
+
+// Global adjoint shape operator  (4*#V × 3*#F)
+template <typename Scalar, typename Index>
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::adjoint_shape_operator() const
+{
+    // Output layout per vertex v (row offset vid*4):
+    //   row 0: S̃_v(0,0),  row 1: S̃_v(0,1),  row 2: S̃_v(1,0),  row 3: S̃_v(1,1)
+    //
+    // Input layout per face f (column offset fid*3):
+    //   col 0: n_f^x,  col 1: n_f^y,  col 2: n_f^z
+    //
+    // With C̃_v = T_v^t G̃_v  (2 × k) and k incident faces:
+    //
+    //   S̃_v(a,b) = (1/2) sum_{j,m} [ C̃_v(a,j)*T_v(m,b) + C̃_v(b,j)*T_v(m,a) ] * n_{f_j,m}
+    //
+    // so the triplet weight for output (vid*4 + a*2+b) and input (fid_j*3+m) is
+    //   (1/2) * [ C̃_v(a,j)*T_v(m,b) + C̃_v(b,j)*T_v(m,a) ]
+
+    const Index num_vertices = m_mesh.get_num_vertices();
+    const Index num_facets = m_mesh.get_num_facets();
+    const Index num_corners = m_mesh.get_num_corners();
+
+    auto vertices = vertex_view(m_mesh);
+    auto vec_area = attribute_matrix_view<Scalar>(m_mesh, m_vector_area_id);
+    auto vertex_normals = attribute_matrix_view<Scalar>(m_mesh, m_vertex_normal_id);
+
+    std::vector<Eigen::Triplet<Scalar>> entries;
+    entries.reserve(num_corners * 12); // each corner → 4 outputs × 3 normal components
+
+    for (Index vid = 0; vid < num_vertices; vid++) {
+        const Vector nv = vertex_normals.row(vid);
+        const Eigen::Matrix<Scalar, 3, 2> T_v = vertex_basis(vid);
+
+        // Compute vertex area and count incident faces
+        Scalar a_v = Scalar(0);
+        Index k = 0;
+        {
+            Index c = m_mesh.get_first_corner_around_vertex(vid);
+            while (c != invalid<Index>()) {
+                const Index fid = m_mesh.get_corner_facet(c);
+                a_v += vec_area.row(fid).norm() / m_mesh.get_facet_size(fid);
+                k++;
+                c = m_mesh.get_next_corner_around_vertex(c);
+            }
+        }
+
+        // Build G̃_v (3 × k) and record incident face IDs
+        Eigen::Matrix<Scalar, 3, Eigen::Dynamic> G_adj_v(3, k);
+        std::vector<Index> incident_faces(k);
+        {
+            Index j = 0;
+            Index c = m_mesh.get_first_corner_around_vertex(vid);
+            while (c != invalid<Index>()) {
+                const Index fid = m_mesh.get_corner_facet(c);
+                const Index lv = c - m_mesh.get_facet_corner_begin(fid);
+
+                incident_faces[j] = fid;
+                const Vector nf = vec_area.row(fid);
+                const Scalar a_f = nf.norm();
+                const Scalar area_sq = a_f * a_f;
+                const Eigen::Matrix<Scalar, 3, 3> Q =
+                    Eigen::Quaternion<Scalar>::FromTwoVectors(nv, nf).matrix();
+
+                const Index facet_size = m_mesh.get_facet_size(fid);
+                const Index vid_prev =
+                    m_mesh.get_facet_vertex(fid, (lv + facet_size - 1) % facet_size);
+                const Index vid_next = m_mesh.get_facet_vertex(fid, (lv + 1) % facet_size);
+                const Vector e =
+                    (vertices.row(vid_prev) - vertices.row(vid_next)).template head<3>();
+                const Eigen::Matrix<Scalar, 3, 1> g = (nf.cross(e) / (2 * area_sq)).transpose();
+
+                G_adj_v.col(j) = -(a_f / a_v) * Q.transpose() * g;
+
+                j++;
+                c = m_mesh.get_next_corner_around_vertex(c);
+            }
+        }
+
+        // C̃_v = T_v^t * G̃_v  (2 × k)
+        const Eigen::Matrix<Scalar, 2, Eigen::Dynamic> C_adj_v = T_v.transpose() * G_adj_v;
+
+        for (Index j = 0; j < k; j++) {
+            const Index fid_j = incident_faces[j];
+            for (Eigen::Index a = 0; a < 2; a++) {
+                for (Eigen::Index b = 0; b < 2; b++) {
+                    const Eigen::Index out_row = static_cast<Eigen::Index>(vid * 4 + a * 2 + b);
+                    for (Eigen::Index m = 0; m < 3; m++) {
+                        const Eigen::Index in_col = static_cast<Eigen::Index>(fid_j * 3 + m);
+                        const Scalar val =
+                            Scalar(0.5) * (C_adj_v(a, j) * T_v(m, b) + C_adj_v(b, j) * T_v(m, a));
+                        entries.emplace_back(out_row, in_col, val);
+                    }
+                }
+            }
+        }
+    }
+
+    Eigen::SparseMatrix<Scalar> S_adj(num_vertices * 4, num_facets * 3);
+    S_adj.setFromTriplets(entries.begin(), entries.end());
+    return S_adj;
 }
 
 // Compute vertex normals from vector area

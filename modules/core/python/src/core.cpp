@@ -30,7 +30,7 @@ void populate_core_module(nb::module_& m)
     using Scalar = double;
     using Index = uint32_t;
 
-    register_python_logger();
+    register_python_logger(m);
 
     m.attr("invalid_scalar") = lagrange::invalid<Scalar>();
     m.attr("invalid_index") = nb::int_(lagrange::invalid<Index>());

@@ -86,7 +86,7 @@ protected:
 ///
 /// @param[in]  mesh        Input mesh.
 /// @param[in]  voxel_size  Grid voxel size. If the target voxel size is too small, an exception
-///                         will will be raised.
+///                         will be raised.
 ///
 /// @tparam     MeshType    Mesh type.
 /// @tparam     GridType    OpenVDB grid type.

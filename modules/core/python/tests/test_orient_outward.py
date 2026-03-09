@@ -10,10 +10,9 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-from .assets import cube
+from .assets import cube  # noqa: F401
 
 import numpy as np
-import pytest
 
 
 class TestOrientOutward:

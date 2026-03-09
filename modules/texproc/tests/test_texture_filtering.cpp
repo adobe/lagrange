@@ -46,7 +46,7 @@ void require_approx_mdspan(View3Df a, View3Df b, float eps_rel = 1e-5f, float ep
 } // namespace
 
 // TODO: Also run in debug mode with 128x128 texture?
-TEST_CASE("texture filtering", "[texproc]" LA_SLOW_DEBUG_FLAG)
+TEST_CASE("texture filtering", "[texproc][filtering]" LA_SLOW_DEBUG_FLAG)
 {
     using Scalar = double;
     using Index = uint32_t;

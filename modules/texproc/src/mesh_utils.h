@@ -269,24 +269,29 @@ void jitter_texture(
 
 // Add combinatorial stiffness regularization
 template <typename Scalar>
-Eigen::SparseMatrix<Scalar> laplacian_regularization(Eigen::SparseMatrix<Scalar> S, Scalar eps)
+Eigen::SparseMatrix<Scalar> laplacian_regularization(Eigen::SparseMatrix<Scalar> S, Scalar weight)
 {
-    if (eps > 0) {
-        tbb::parallel_for(size_t(0), size_t(S.outerSize()), [&](size_t c) {
+    if (std::abs(weight) > std::numeric_limits<Scalar>().denorm_min()) {
+        la_runtime_assert(S.rows() == S.cols());
+        la_runtime_assert(S.nonZeros() >= S.rows());
+        la_runtime_assert(weight > Scalar(0));
+
+        tbb::parallel_for(size_t(0), size_t(S.outerSize()), [&S, weight](size_t c) {
             size_t count = 0;
             for (typename Eigen::SparseMatrix<Scalar>::InnerIterator it(S, c); it; ++it) {
                 if (it.row() != it.col()) {
-                    it.valueRef() -= eps;
+                    it.valueRef() -= weight;
                     ++count;
                 }
             }
             for (typename Eigen::SparseMatrix<Scalar>::InnerIterator it(S, c); it; ++it) {
                 if (it.row() == it.col()) {
-                    it.valueRef() += eps * count;
+                    it.valueRef() += weight * count;
                 }
             }
         });
     }
+
     return S;
 }
 

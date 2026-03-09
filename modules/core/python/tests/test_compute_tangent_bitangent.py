@@ -11,10 +11,9 @@
 #
 import lagrange
 
-import numpy as np
 import pytest
 
-from .assets import single_triangle, single_triangle_with_uv, cube, cube_with_uv
+from .assets import single_triangle, single_triangle_with_uv, cube, cube_with_uv  # noqa: F401
 
 
 class TestComputeTangentBitangent:

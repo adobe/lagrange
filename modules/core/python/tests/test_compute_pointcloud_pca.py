@@ -11,7 +11,6 @@
 #
 import lagrange
 import numpy as np
-import pytest
 
 a = 0.1
 b = 0.4

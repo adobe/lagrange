@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/scene/Scene.h>
+#include <lagrange/scene/SimpleScene.h>
 #include <lagrange/types/TransformOptions.h>
 
 #include <vector>
@@ -79,5 +80,73 @@ template <typename Scalar, typename Index>
 std::vector<SurfaceMesh<Scalar, Index>> scene_to_meshes(
     const Scene<Scalar, Index>& scene,
     const TransformOptions& transform_options = {});
+
+///
+/// Converts a Scene into a SimpleScene.
+///
+/// The Scene's node hierarchy is flattened: each mesh instance in the scene becomes a
+/// MeshInstance in the SimpleScene with the accumulated world transform. Meshes are copied
+/// by index. Materials and other scene metadata (images, textures, cameras, lights) are not
+/// preserved in the SimpleScene.
+///
+/// @param[in]  scene   Input scene to convert.
+///
+/// @tparam     Scalar  Mesh scalar type.
+/// @tparam     Index   Mesh index type.
+///
+/// @return     SimpleScene containing all mesh instances from the scene.
+///
+template <typename Scalar, typename Index>
+SimpleScene<Scalar, Index> scene_to_simple_scene(const Scene<Scalar, Index>& scene);
+
+///
+/// Converts a SimpleScene into a Scene.
+///
+/// Each mesh instance in the SimpleScene becomes a node in the Scene with the instance
+/// transform. All nodes are direct children of a single root node. Meshes are copied
+/// by index.
+///
+/// @param[in]  simple_scene  Input simple scene to convert.
+///
+/// @tparam     Scalar        Mesh scalar type.
+/// @tparam     Index         Mesh index type.
+///
+/// @return     Scene containing the meshes and instances from the SimpleScene.
+///
+template <typename Scalar, typename Index>
+Scene<Scalar, Index> simple_scene_to_scene(const SimpleScene<Scalar, Index>& simple_scene);
+
+///
+/// Result structure for scene to meshes and materials conversion.
+///
+/// @tparam     Scalar             Mesh scalar type.
+/// @tparam     Index              Mesh index type.
+///
+template <typename Scalar, typename Index>
+struct MeshesAndMaterialsResult
+{
+    /// List of meshes with transforms applied.
+    std::vector<SurfaceMesh<Scalar, Index>> meshes;
+
+    /// List of material IDs for each mesh.
+    std::vector<std::vector<ElementId>> material_ids;
+};
+
+///
+/// Converts a scene into a list of meshes with all the transforms applied and a list of material IDs.
+///
+/// @param[in]  scene              Scene to convert.
+/// @param[in]  transform_options  Options to use when applying mesh transformations.
+///
+/// @tparam     Scalar             Input scene scalar type.
+/// @tparam     Index              Input scene index type.
+///
+/// @return     List of meshes with transforms applied and a list of material IDs.
+///
+template <typename Scalar, typename Index>
+MeshesAndMaterialsResult<Scalar, Index> scene_to_meshes_and_materials(
+    const Scene<Scalar, Index>& scene,
+    const TransformOptions& transform_options = {});
+
 
 } // namespace lagrange::scene

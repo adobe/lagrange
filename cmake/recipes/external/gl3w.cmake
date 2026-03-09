@@ -21,7 +21,7 @@ block()
     CPMAddPackage(
         NAME gl3w
         GITHUB_REPOSITORY adobe/lagrange-gl3w
-        GIT_TAG a9e41479e30266cecb72df413f4f6d71b0228a71
+        GIT_TAG b31870049f562cfe9af52ccbedebfff0694864f2
     )
 endblock()
 

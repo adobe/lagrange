@@ -16,7 +16,7 @@ import platform
 if platform.system() == "Windows":
     colorama.just_fix_windows_console()
 
-logger = logging.getLogger("lagrange")
+logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
 formatter = logging.Formatter("[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s")
 

@@ -138,6 +138,7 @@ class TestIO:
                     else:
                         attr_name = mesh.get_attribute_name(attr_id)
                         attr = mesh.attribute(attr_id)
+                        assert type(attr) is lagrange.Attribute
                         assert mesh2.has_attribute(attr_name)
 
     def save_and_load(self, mesh, attribute_ids=None):

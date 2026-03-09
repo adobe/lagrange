@@ -537,6 +537,26 @@ TEST_CASE("mesh_subdivision_midpoint", "[mesh][subdivision][sqrt]")
     REQUIRE(facet_view(subdivided_mesh) == facet_view(expected_mesh));
 }
 
+TEST_CASE("mesh_subdivision_empty", "[mesh][subdivision]")
+{
+    SECTION("no vertices")
+    {
+        lagrange::SurfaceMesh32f mesh;
+        auto result = lagrange::subdivision::subdivide_mesh(mesh);
+        REQUIRE(result.get_num_vertices() == 0);
+        REQUIRE(result.get_num_facets() == 0);
+    }
+
+    SECTION("vertices but no facets")
+    {
+        lagrange::SurfaceMesh32f mesh;
+        mesh.add_vertices(5);
+        auto result = lagrange::subdivision::subdivide_mesh(mesh);
+        REQUIRE(result.get_num_vertices() == 5);
+        REQUIRE(result.get_num_facets() == 0);
+    }
+}
+
 TEST_CASE("compute_sharpness", "[mesh][subdivision][sharpness]")
 {
     using Scalar = double;

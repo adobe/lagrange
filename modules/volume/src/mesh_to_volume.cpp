@@ -190,7 +190,16 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh_, const MeshToVolumeO
         throw;
     }
 
-    logger().debug("Computed grid has {} active voxels", grid->activeVoxelCount());
+    const auto bbox = grid->evalActiveVoxelBoundingBox();
+    auto nx = bbox.max().x() - bbox.min().x() + 1;
+    auto ny = bbox.max().y() - bbox.min().y() + 1;
+    auto nz = bbox.max().z() - bbox.min().z() + 1;
+    logger().debug(
+        "Computed grid has {} active voxels in {}x{}x{}",
+        grid->activeVoxelCount(),
+        nx,
+        ny,
+        nz);
 
     return grid;
 }

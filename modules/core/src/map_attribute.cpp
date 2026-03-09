@@ -118,12 +118,23 @@ AttributeId map_attribute_internal(
             case AttributeElement::Edge: num_elements = mesh.get_num_edges(); break;
             case AttributeElement::Corner: num_elements = mesh.get_num_corners(); break;
             case AttributeElement::Value:
-                num_elements = mesh.get_num_corners();
-                la_runtime_assert(old_attr.get_num_elements() == num_elements);
+                // For constant values (single element), we'll broadcast to all elements
+                if (old_attr.get_num_elements() == 1) {
+                    num_elements = 1;
+                } else {
+                    num_elements = mesh.get_num_corners();
+                    la_runtime_assert(old_attr.get_num_elements() == num_elements);
+                }
                 break;
             case AttributeElement::Indexed: la_debug_assert(false);
             }
-            src_element = [](size_t i) { return i; };
+            // For constant values, broadcast the single element to all positions
+            // When mapping to Indexed, we optimize by keeping a single value with all indices == 0
+            if (old_element == AttributeElement::Value && old_attr.get_num_elements() == 1) {
+                src_element = [](size_t) { return 0; };
+            } else {
+                src_element = [](size_t i) { return i; };
+            }
         } else {
             num_elements = mesh.get_num_corners();
             switch (old_element) {
@@ -153,8 +164,13 @@ AttributeId map_attribute_internal(
                 case AttributeElement::Indexed:
                 case AttributeElement::Value: la_debug_assert(false); break;
                 }
-                la_runtime_assert(old_attr.get_num_elements() == num_elements);
-                src_element = [](size_t i) { return i; };
+                // For constant values (single element), broadcast to all elements
+                if (old_attr.get_num_elements() == 1) {
+                    src_element = [](size_t) { return 0; };
+                } else {
+                    la_runtime_assert(old_attr.get_num_elements() == num_elements);
+                    src_element = [](size_t i) { return i; };
+                }
                 break;
             case AttributeElement::Indexed: la_debug_assert(false);
             }
@@ -187,7 +203,12 @@ AttributeId map_attribute_internal(
             break;
         case AttributeElement::Corner:
         case AttributeElement::Value:
-            std::iota(src_index.begin(), src_index.end(), Index(0));
+            if (num_elements == 1) {
+                // All indices point to the single constant value
+                std::fill(src_index.begin(), src_index.end(), Index(0));
+            } else {
+                std::iota(src_index.begin(), src_index.end(), Index(0));
+            }
             break;
         case AttributeElement::Indexed: la_debug_assert(false);
         }

@@ -15,10 +15,12 @@ lagrange_add_module(NO_INSTALL)
 # 2. dependencies
 lagrange_include_modules(core winding)
 lagrange_find_package(OpenVDB CONFIG REQUIRED GLOBAL COMPONENTS openvdb)
-target_link_libraries(lagrange_volume PUBLIC
-    lagrange::core
-    lagrange::winding
-    OpenVDB::openvdb
+target_link_libraries(lagrange_volume
+    PUBLIC
+        lagrange::core
+        OpenVDB::openvdb
+    PRIVATE
+        lagrange::winding
 )
 
 # 3. unit tests and examples

@@ -566,6 +566,14 @@ public:
     lagrange::span<const ValueType> get_all() const;
 
     ///
+    /// Returns a read-only view of the full allocated buffer, including any padding entries added
+    /// via reserve_entries(). For external attributes, this is equivalent to get_all().
+    ///
+    /// @return     A read-only view of the full attribute buffer including padding.
+    ///
+    lagrange::span<const ValueType> get_all_with_padding() const;
+
+    ///
     /// Returns a writable view of the buffer spanning num elements x num channels. The actual
     /// buffer may have a larger capacity (e.g. used for padding).
     ///

@@ -10,9 +10,7 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-from .assets import cube
-
-import numpy as np
+from .assets import cube  # noqa: F401
 
 
 class TestRemoveVertexNonmanifoldness:

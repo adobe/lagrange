@@ -1927,14 +1927,17 @@ public:
     ///
     /// Gets a writable reference to the corner -> vertex id attribute.
     ///
-    /// @warning    If the mesh contains edge/connectivity attributes, this function will throw an
-    ///             exception. This is because it is impossible to update edge/connectivity
+    /// @warning    If the mesh contains edge/connectivity attributes, by default this function will
+    ///             throw an exception. This is because it is impossible to update edge/connectivity
     ///             information if the facet buffer is directly modified by the user. Instead, the
     ///             correct facet indices must be provided when the facet is constructed.
     ///
+    /// @param[in]  policy  Policy for retrieving writable references to attribute buffers.
+    ///
     /// @return     Vertex indices attribute.
     ///
-    [[nodiscard]] Attribute<Index>& ref_corner_to_vertex();
+    [[nodiscard]] Attribute<Index>& ref_corner_to_vertex(
+        AttributeRefPolicy policy = AttributeRefPolicy::Default);
 
 public:
     /// @}
