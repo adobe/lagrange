@@ -11,28 +11,6 @@
  */
 #pragma once
 
-<<<<<<< HEAD
-#ifdef LAGRANGE_WITH_EMBREE_4
-    #include <embree4/rtcore.h>
-#else
-    #include <embree3/rtcore.h>
-#endif
-#include <lagrange/raycasting/api.h>
-
-RTC_NAMESPACE_USE
-
-namespace lagrange {
-namespace raycasting {
-namespace EmbreeHelper {
-
-LA_RAYCASTING_API
-void ensure_no_errors(const RTCDevice& device);
-
-} // namespace EmbreeHelper
-} // namespace raycasting
-} // namespace lagrange
-=======
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     #include <lagrange/raycasting/legacy/EmbreeHelper.h>
 #endif
->>>>>>> origin/main

@@ -9,17 +9,10 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-<<<<<<< HEAD:modules/raycasting/src/EmbreeHelper.cpp
-#ifdef LAGRANGE_WITH_EMBREE_4
-    #include <embree4/rtcore.h>
-#else
-    #include <embree3/rtcore.h>
-=======
 #ifdef LAGRANGE_WITH_EMBREE_3
     #include <embree3/rtcore.h>
 #else
     #include <embree4/rtcore.h>
->>>>>>> origin/main:modules/raycasting/src/legacy/EmbreeHelper.cpp
 #endif
 
 #include <lagrange/raycasting/EmbreeHelper.h>
