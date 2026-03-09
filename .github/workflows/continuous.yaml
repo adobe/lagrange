@@ -135,7 +135,7 @@ jobs:
 
       - name: Select embree isa (Linux)
         if: runner.os == 'Linux'
-        run: echo "embree_max_isa=AVX2" >> $GITHUB_ENV
+        run: echo "embree_max_isa=SSE2" >> $GITHUB_ENV
 
       - name: Select embree isa (macOS x64)
         if: runner.os == 'macOS' && runner.arch == 'X64'
