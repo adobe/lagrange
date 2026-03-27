@@ -9,6 +9,13 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
+
+if(BUILD_SHARED_LIBS AND WIN32)
+    # See https://github.com/nmwsharp/polyscope/issues/330
+    message(WARNING "Skipping polyscope unit tests in shared lib builds on Windows.")
+    return()
+endif()
+
 lagrange_add_test()
 
 option(LAGRANGE_POLYSCOPE_MOCK_BACKEND "Use Polyscope's mock backend for unit testing" OFF)

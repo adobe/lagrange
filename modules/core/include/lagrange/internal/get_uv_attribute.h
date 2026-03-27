@@ -23,6 +23,7 @@
  */
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/uv_mesh.h>
 #include <lagrange/views.h>
 
 #include <string_view>
@@ -35,7 +36,9 @@ namespace lagrange::internal {
 ///
 /// @param      mesh               The mesh to get the UV attribute from.
 /// @param      uv_attribute_name  The name of the UV attribute. If empty, use the first indexed or
-///                                vertex UV attribute.
+///                                vertex UV attribute or, if element_types is set to
+///                                UVMeshOptions::ElementTypes::All, the first corner attribute.
+/// @param      element_types      Supported element types for the UV attribute lookup.
 ///
 /// @tparam     Scalar             Mesh scalar type.
 /// @tparam     Index              Mesh index type.
@@ -46,7 +49,8 @@ namespace lagrange::internal {
 template <typename Scalar, typename Index, typename UVScalar = Scalar>
 AttributeId get_uv_id(
     const SurfaceMesh<Scalar, Index>& mesh,
-    std::string_view uv_attribute_name = "");
+    std::string_view uv_attribute_name = "",
+    UVMeshOptions::ElementTypes element_types = UVMeshOptions::ElementTypes::IndexedOrVertex);
 
 ///
 /// Get the constant UV attribute buffers of a mesh.

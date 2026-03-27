@@ -20,6 +20,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Removes isolated vertices of a mesh. Facets incident to any removed vertex will be deleted.
 ///
 /// @param      mesh    Mesh to modify in place.
@@ -29,5 +34,7 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 void remove_isolated_vertices(SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange

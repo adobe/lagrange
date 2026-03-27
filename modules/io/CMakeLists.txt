@@ -18,7 +18,7 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 # 2. dependencies
-lagrange_include_modules(core fs scene image_io)
+lagrange_include_modules(core fs scene image_io serialization2)
 include(tinyobjloader)
 include(tinygltf)
 include(libigl) # TODO: remove libigl later
@@ -34,6 +34,7 @@ target_link_libraries(lagrange_io
         happly::happly
         igl::core
     PRIVATE
+        lagrange::serialization2
         lagrange::image_io
         tinygltf::tinygltf
         ufbx::ufbx

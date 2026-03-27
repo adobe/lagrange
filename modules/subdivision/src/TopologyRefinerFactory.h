@@ -169,7 +169,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                     auto values = attr.get_all();
                     for (int f = 0; f < static_cast<int>(values.size()); ++f) {
                         if (values[f] != ValueType(0)) {
-                            lagrange::logger().warn("Setting facet f{} as a hole", f);
+                            lagrange::logger().debug("Setting facet f{} as a hole", f);
                             setBaseFaceHole(refiner, f, true);
                         }
                     }

@@ -20,21 +20,38 @@
 
 #include <CLI/CLI.hpp>
 
-#include <set>
+#include <unordered_set>
+
+using Index = uint32_t;
+constexpr size_t Dimension = 3;
+
+std::unordered_set<std::string_view> input_scene_formats()
+{
+    return {".gltf", ".glb", ".fbx", ".lgs"};
+}
+std::unordered_set<std::string_view> output_scene_formats()
+{
+    return {".gltf", ".glb", ".obj", ".lgs"};
+}
 
 template <typename Scalar>
 void convert(const lagrange::fs::path& input_filename, const lagrange::fs::path& output_filename)
 {
-    using Index = uint32_t;
     using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
-    using SceneType = lagrange::scene::SimpleScene<Scalar, Index, 3u>;
+    using SceneType = lagrange::scene::SimpleScene<Scalar, Index, Dimension>;
 
     // Load as scene if extension is .fbx, .gtlf or .glb
     std::string input_ext = lagrange::to_lower(input_filename.extension().string());
-    if (std::set<std::string>{".fbx", ".gltf", ".glb"}.count(input_ext)) {
+    if (input_scene_formats().count(input_ext)) {
         // Load scene
         lagrange::logger().info("Loading input scene: {}", input_filename.string());
-        auto scene = lagrange::io::load_simple_scene<SceneType>(input_filename);
+        lagrange::io::LoadOptions load_options;
+        if (input_ext == ".gltf" || input_ext == ".glb") {
+            // If input scene if gtTF, we need to stitch duplicate vertices (glTF doesn't support
+            // indexed buffers)
+            load_options.stitch_vertices = true;
+        }
+        auto scene = lagrange::io::load_simple_scene<SceneType>(input_filename, load_options);
 
         // Display info
         lagrange::logger().info(
@@ -42,19 +59,9 @@ void convert(const lagrange::fs::path& input_filename, const lagrange::fs::path&
             scene.get_num_meshes(),
             scene.compute_num_instances());
 
-        // If input scene if gtTF, we need to stitch duplicate vertices (glTF doesn't support
-        // indexed buffers)
-        if (input_ext == ".gltf" || input_ext == ".glb") {
-            lagrange::logger().info("Stitching duplicate vertices");
-            for (Index i = 0; i < scene.get_num_meshes(); i++) {
-                auto& mesh = scene.ref_mesh(i);
-                lagrange::remove_duplicate_vertices(mesh);
-            }
-        }
-
         // Save as scene or mesh
         std::string output_ext = lagrange::to_lower(output_filename.extension().string());
-        if (std::set<std::string>{".gltf", ".glb"}.count(output_ext)) {
+        if (output_scene_formats().count(output_ext)) {
             lagrange::logger().info("Saving output scene: {}", output_filename.string());
             lagrange::io::save_simple_scene(output_filename, scene);
         } else {

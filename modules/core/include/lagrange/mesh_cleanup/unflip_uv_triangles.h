@@ -17,6 +17,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
 struct UnflipUVOptions
 {
     /// Name of the attribute containing the UV coordinates.
@@ -43,5 +48,7 @@ struct UnflipUVOptions
 ///
 template <typename Scalar, typename Index>
 void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

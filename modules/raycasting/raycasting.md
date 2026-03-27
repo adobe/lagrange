@@ -16,3 +16,4 @@ Raycasting Module
     - [project_attributes_closest_point](@ref lagrange::raycasting::project_attributes_closest_point)
     - [project_attributes_directional](@ref lagrange::raycasting::project_attributes_directional)
     - [project_attributes_closest_vertex](@ref lagrange::bvh::project_attributes_closest_vertex)
+- [compute_local_feature_size](@ref lagrange::raycasting::compute_local_feature_size)

@@ -13,14 +13,10 @@ import lagrange
 import numpy as np
 import pytest
 
-from .asset import cube  # noqa: F401
-
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
 def make_parallel_squares(d: float):
     """Two axis-aligned unit squares at z=0 and z=d, each made of 2 triangles.
     Every vertex of sq_a is directly below a vertex of sq_b, so the

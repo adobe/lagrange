@@ -24,6 +24,7 @@ function(lagrange_find_package name)
         span-lite
         spdlog
         TBB
+        zstd
     )
 
     # Defer to find_package() if desired. In the future we will switch to a dependency provider.

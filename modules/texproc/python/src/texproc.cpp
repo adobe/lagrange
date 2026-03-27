@@ -287,7 +287,7 @@ void populate_texproc_module(nb::module_& m)
            const std::optional<size_t> height,
            const float low_confidence_ratio,
            const std::optional<float> base_confidence) {
-            std::vector<tp::View3Df> views;
+            std::vector<tp::ConstView3Df> views;
             for (const auto& render : renders) {
                 views.push_back(tensor_to_image_view(render));
             }
@@ -336,14 +336,10 @@ void populate_texproc_module(nb::module_& m)
            const std::optional<AttributeId> texcoord_id,
            const float alpha_threshold) -> SurfaceMesh32d {
             const auto image = tensor_to_image_view(image_);
-
             tp::ExtractMeshWithAlphaMaskOptions options;
             if (texcoord_id) options.texcoord_id = *texcoord_id;
             options.alpha_threshold = alpha_threshold;
-
-            auto mesh_ = tp::extract_mesh_with_alpha_mask(mesh, image, options);
-
-            return mesh_;
+            return tp::extract_mesh_with_alpha_mask(mesh, image, options);
         },
         "mesh"_a,
         "image"_a,
@@ -354,9 +350,9 @@ void populate_texproc_module(nb::module_& m)
 :param mesh: Input mesh.
 :param image: RGBA non-opaque texture.
 :param texcoord_id: Indexed UV attribute id.
-:param alpha_threshold: Opaque mask theshold.
+:param alpha_threshold: Opaque mask threshold.
 
-:returns: Tesselated mesh.)");
+:returns: Tessellated triangle mesh, quad mesh or quad-dominant mesh.)");
 }
 
 } // namespace lagrange::python

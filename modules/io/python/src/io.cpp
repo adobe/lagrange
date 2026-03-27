@@ -174,7 +174,7 @@ void populate_io_module(nb::module_& m)
         "selected_attributes"_a = nb::none(),
         R"(Save mesh to file.
 
-Filename extension determines the file format. Supported formats are: `obj`, `ply`, `msh`, `glb` and `gltf`.
+Filename extension determines the file format. Supported formats are: `obj`, `ply`, `msh`, `glb`, `gltf` and `lgm`.
 
 :param filename: The output file name.
 :param mesh: The input mesh.

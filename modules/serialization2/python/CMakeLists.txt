@@ -9,16 +9,4 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-import lagrange
-import numpy as np
-import pytest
-
-
-@pytest.fixture
-def single_triangle():
-    mesh = lagrange.SurfaceMesh()
-    mesh.add_vertices(np.eye(3))
-    mesh.add_triangle(0, 1, 2)
-    assert mesh.num_vertices == 3
-    assert mesh.num_facets == 1
-    return mesh
+lagrange_add_python_binding(PYTHON_NAME serialization)

@@ -346,6 +346,20 @@ void weld_indexed_attribute(
                 options.exclude_vertices,
                 options.merge_across_vertices,
                 [&, eps_rel, eps_abs, cos_angle_abs](Index i, Index j) -> bool {
+                    if (values.row(i) == values.row(j)) {
+                        return true;
+                    }
+                    const bool invalid_i =
+                        (values.row(i).array() == lagrange::invalid<ValueType>()).any();
+                    const bool invalid_j =
+                        (values.row(j).array() == lagrange::invalid<ValueType>()).any();
+                    if (invalid_i || invalid_j) {
+                        // Along with the equality check above, this ensures that we only merge
+                        // invalid values with other invalid values, and we don't merge valid values
+                        // with invalid values.
+                        return false;
+                    }
+                    la_debug_assert(values.row(i).allFinite() && values.row(j).allFinite());
                     return allclose(
                         values.row(i).template cast<RealType>(),
                         values.row(j).template cast<RealType>(),

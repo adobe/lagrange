@@ -15,6 +15,7 @@
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/polyscope/api.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
 
@@ -56,16 +57,16 @@ template <typename ValueType>
     return register_attribute(&ps_curve_network, name, attr);
 }
 
-#define LA_X_register_edge_network(_, Scalar, Index)                          \
-    template ::polyscope::CurveNetwork* register_edge_network<Scalar, Index>( \
-        std::string_view name,                                                \
+#define LA_X_register_edge_network(_, Scalar, Index)                                           \
+    template LA_POLYSCOPE_API ::polyscope::CurveNetwork* register_edge_network<Scalar, Index>( \
+        std::string_view name,                                                                 \
         const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(register_edge_network, 0)
 
-#define LA_X_register_attribute(_, ValueType)                                  \
-    template ::polyscope::CurveNetworkQuantity* register_attribute<ValueType>( \
-        ::polyscope::CurveNetwork & ps_curve_network,                          \
-        std::string_view name,                                                 \
+#define LA_X_register_attribute(_, ValueType)                                                   \
+    template LA_POLYSCOPE_API ::polyscope::CurveNetworkQuantity* register_attribute<ValueType>( \
+        ::polyscope::CurveNetwork & ps_curve_network,                                           \
+        std::string_view name,                                                                  \
         const lagrange::Attribute<ValueType>& attr);
 LA_ATTRIBUTE_X(register_attribute, 0)
 

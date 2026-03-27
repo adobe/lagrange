@@ -46,7 +46,7 @@ struct MeshToVolumeOptions
 ///
 /// Converts a triangle mesh to a OpenVDB sparse voxel grid.
 ///
-/// @param[in]  mesh        Input mesh. Must be a triangle mesh, a quad-mesh, or a quad-dominant
+/// @param[in]  mesh        Input mesh. Must be a triangle mesh, a quad mesh, or a quad-dominant
 ///                         mesh.
 /// @param[in]  options     Conversion options.
 ///

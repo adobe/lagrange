@@ -11,9 +11,11 @@
  */
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/io/load_simple_scene.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/polyscope/register_structure.h>
+#include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/views.h>
 
@@ -27,7 +29,10 @@
 
 #include <CLI/CLI.hpp>
 
-using SurfaceMesh = lagrange::SurfaceMesh32d;
+using Scalar = double;
+using Index = uint32_t;
+using SurfaceMesh = lagrange::SurfaceMesh<Scalar, Index>;
+using SimpleScene = lagrange::scene::SimpleScene<Scalar, Index, 3>;
 
 void prepare_mesh(SurfaceMesh& mesh)
 {
@@ -65,12 +70,14 @@ int main(int argc, char** argv)
     struct
     {
         std::vector<lagrange::fs::path> inputs;
+        bool scene = false;
         int log_level = 2; // normal
     } args;
 
     CLI::App app{argv[0]};
     app.add_option("inputs", args.inputs, "Input mesh(es).")->required()->check(CLI::ExistingFile);
     app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
+    app.add_flag("--scene", args.scene, "Load as a scene (instead of a single mesh per file).");
     CLI11_PARSE(app, argc, argv)
 
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.log_level));
@@ -81,11 +88,30 @@ int main(int argc, char** argv)
     };
     polyscope::init();
 
+    lagrange::io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+
     for (auto input : args.inputs) {
-        lagrange::logger().info("Loading input mesh: {}", input.string());
-        auto mesh = lagrange::io::load_mesh<SurfaceMesh>(input);
-        prepare_mesh(mesh);
-        lagrange::polyscope::register_structure(input.stem().string(), std::move(mesh));
+        lagrange::logger().info("Loading input: {}", input.string());
+
+        if (args.scene) {
+            SimpleScene simple_scene =
+                lagrange::io::load_simple_scene<SimpleScene>(input, load_options);
+            auto meshes = lagrange::scene::simple_scene_to_meshes(simple_scene);
+            lagrange::logger().info(
+                "Loaded scene with {} mesh(es) from {}",
+                meshes.size(),
+                input.string());
+            for (size_t i = 0; i < meshes.size(); ++i) {
+                prepare_mesh(meshes[i]);
+                std::string name = input.stem().string() + "_" + std::to_string(i);
+                lagrange::polyscope::register_structure(name, std::move(meshes[i]));
+            }
+        } else {
+            SurfaceMesh mesh = lagrange::io::load_mesh<SurfaceMesh>(input, load_options);
+            prepare_mesh(mesh);
+            lagrange::polyscope::register_structure(input.stem().string(), std::move(mesh));
+        }
     }
 
     polyscope::show();

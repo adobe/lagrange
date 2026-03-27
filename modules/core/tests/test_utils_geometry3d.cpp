@@ -13,6 +13,7 @@
 
 #include <lagrange/internal/constants.h>
 #include <lagrange/utils/geometry3d.h>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 using namespace Eigen;
 using namespace lagrange;
@@ -38,7 +39,9 @@ TEST_CASE("utils-geometry3d")
     REQUIRE(project_on_plane(Vector3d(1, 1, 1), Vector3d(0, 1, 0)).isApprox(Vector3d(1, 0, 1)));
     REQUIRE(project_on_plane(Vector3d(2, 2, 2), Vector3d(0, 1, 0)).isApprox(Vector3d(2, 0, 2)));
 
-    REQUIRE(
-        projected_cos_angle_between(Vector3d(1, 1, 1), Vector3d(1, 1, -1), Vector3d(0, 1, 0)) ==
-        0.0);
+    Vector3d a(1, 1, 1);
+    Vector3d b(1, 1, -1);
+    Vector3d n(0, 1, 0);
+
+    REQUIRE_THAT(projected_cos_angle_between(a, b, n), Catch::Matchers::WithinAbs(0.0, 1e-15));
 }

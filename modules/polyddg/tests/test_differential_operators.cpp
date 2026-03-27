@@ -11,8 +11,10 @@
  */
 
 #include <lagrange/polyddg/DifferentialOperators.h>
+#include <lagrange/primitive/generate_torus.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/testing/create_test_mesh.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/views.h>
 
 #include <Eigen/Core>
@@ -20,6 +22,10 @@
 #include <Eigen/Sparse>
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <algorithm>
+#include <limits>
+#include <vector>
 
 TEST_CASE("DifferentialOperators", "[polyddg]")
 {
@@ -686,6 +692,94 @@ TEST_CASE("DifferentialOperators", "[polyddg]")
                 Eigen::Matrix<Scalar, Eigen::Dynamic, 1> r = Lf * tv_test;
                 REQUIRE_THAT(r.norm(), Catch::Matchers::WithinAbs(0.0, 1e-10));
             }
+        }
+    }
+
+    SECTION("Levi-Civita edge transport consistency converges on torus")
+    {
+        // For edge (v0, v1) shared by faces f0 and f1, the parallel transport
+        // v0→f0→v1 should equal v0→f1→v1:
+        //   R_{f0,v1}^T * R_{f0,v0}  ==  R_{f1,v1}^T * R_{f1,v0}
+        // The inconsistency comes from composing shortest-arc rotations through
+        // different face normals and converges to zero at O(h²) under refinement.
+        auto compute_max_inconsistency = [](SurfaceMesh<Scalar, Index>& mesh_ref) {
+            polyddg::DifferentialOperators<Scalar, Index> ops_ref(mesh_ref);
+            Scalar max_inconsistency = 0;
+            for (Index eid = 0; eid < mesh_ref.get_num_edges(); ++eid) {
+                auto ev = mesh_ref.get_edge_vertices(eid);
+                Index v0 = ev[0], v1 = ev[1];
+
+                std::vector<Eigen::Matrix<Scalar, 2, 2>> Ts;
+                mesh_ref.foreach_facet_around_edge(eid, [&](Index fid) {
+                    Index f_size = mesh_ref.get_facet_size(fid);
+                    Eigen::Matrix<Scalar, 2, 2> R0, R1;
+                    for (Index lv = 0; lv < f_size; ++lv) {
+                        if (mesh_ref.get_facet_vertex(fid, lv) == v0)
+                            R0 = ops_ref.levi_civita(fid, lv);
+                        else if (mesh_ref.get_facet_vertex(fid, lv) == v1)
+                            R1 = ops_ref.levi_civita(fid, lv);
+                    }
+                    Ts.push_back(R1.transpose() * R0);
+                });
+
+                if (Ts.size() == 2) {
+                    max_inconsistency = std::max(max_inconsistency, (Ts[0] - Ts[1]).norm());
+                }
+            }
+            return max_inconsistency;
+        };
+
+        Scalar prev_inc = std::numeric_limits<Scalar>::max();
+        for (int res : {20, 40, 80}) {
+            primitive::TorusOptions fine_opts;
+            fine_opts.major_radius = 3.0;
+            fine_opts.minor_radius = 1.0;
+            fine_opts.ring_segments = static_cast<size_t>(res * 3 / 2);
+            fine_opts.pipe_segments = static_cast<size_t>(res);
+
+            auto torus_quad = primitive::generate_torus<Scalar, Index>(fine_opts);
+            Scalar inc_quad = compute_max_inconsistency(torus_quad);
+
+            auto tri_mesh = primitive::generate_torus<Scalar, Index>(fine_opts);
+            triangulate_polygonal_facets(tri_mesh);
+            Scalar inc_tri = compute_max_inconsistency(tri_mesh);
+
+            Scalar inc = std::max(inc_quad, inc_tri);
+            INFO("res=" << res << ": quad=" << inc_quad << ", tri=" << inc_tri);
+            REQUIRE(inc < prev_inc);
+            prev_inc = inc;
+        }
+    }
+
+    SECTION("vertex_basis orthogonal to vertex normal")
+    {
+        auto check_orthogonality = [](SurfaceMesh<Scalar, Index>& mesh) {
+            polyddg::DifferentialOperators<Scalar, Index> diff_ops(mesh);
+            auto vertex_normals =
+                attribute_matrix_view<Scalar>(mesh, diff_ops.get_vertex_normal_attribute_id());
+
+            for (Index vid = 0; vid < mesh.get_num_vertices(); vid++) {
+                Eigen::Matrix<Scalar, 3, 2> B = diff_ops.vertex_basis(vid);
+                Eigen::Matrix<Scalar, 3, 1> n =
+                    vertex_normals.row(vid).template head<3>().stableNormalized();
+
+                // Both tangent vectors must be orthogonal to the vertex normal.
+                REQUIRE_THAT(std::abs(n.dot(B.col(0))), Catch::Matchers::WithinAbs(0.0, 1e-12));
+                REQUIRE_THAT(std::abs(n.dot(B.col(1))), Catch::Matchers::WithinAbs(0.0, 1e-12));
+            }
+        };
+
+        SECTION("triangle")
+        {
+            check_orthogonality(triangle_mesh);
+        }
+        SECTION("quad")
+        {
+            check_orthogonality(quad_mesh);
+        }
+        SECTION("pyramid")
+        {
+            check_orthogonality(pyramid_mesh);
         }
     }
 }

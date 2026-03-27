@@ -10,48 +10,69 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-
-import pytest
 import numpy as np
 
 
-@pytest.fixture
-def cube():
-    vertices = np.array(
-        [
-            [0, 0, 0],
-            [1, 0, 0],
-            [1, 1, 0],
-            [0, 1, 0],
-            [0, 0, 1],
-            [1, 0, 1],
-            [1, 1, 1],
-            [0, 1, 1],
-        ],
-        dtype=float,
-    )
-    facets = np.array(
-        [
-            [0, 3, 2, 1],
-            [4, 5, 6, 7],
-            [1, 2, 6, 5],
-            [4, 7, 3, 0],
-            [2, 3, 7, 6],
-            [0, 1, 5, 4],
-        ],
-        dtype=np.uint32,
-    )
-    mesh = lagrange.SurfaceMesh()
-    mesh.vertices = vertices
-    mesh.facets = facets
-    return mesh
-
-
 class TestMeshSubdivision:
-    def test_basic(self, cube):
+    def test_cube_passthrough(self, cube):
+        mesh = lagrange.subdivision.subdivide_mesh(
+            cube,
+            num_levels=0,
+        )
+        all_zeros = (np.abs(mesh.vertices) < 1e-6).all()
+        assert not all_zeros
+
+    def test_cube_passthrough_limit(self, cube):
+        mesh = lagrange.subdivision.subdivide_mesh(
+            cube,
+            num_levels=0,
+            use_limit_surface=True,
+        )
+        all_zeros = (np.abs(mesh.vertices) < 1e-6).all()
+        assert not all_zeros
+
+    def test_house_passthrough(self, house):
+        assert house.is_attribute_indexed("texcoord_0")
+        mesh = lagrange.subdivision.subdivide_mesh(
+            house,
+            num_levels=0,
+        )
+        all_zeros = (np.abs(mesh.vertices) < 1e-6).all()
+        assert not all_zeros
+        assert mesh.is_attribute_indexed("texcoord_0")
+
+    def test_house_passthrough_limit(self, house):
+        assert house.is_attribute_indexed("texcoord_0")
+        mesh = lagrange.subdivision.subdivide_mesh(
+            house,
+            num_levels=0,
+            use_limit_surface=True,
+        )
+        all_zeros = (np.abs(mesh.vertices) < 1e-6).all()
+        assert not all_zeros
+        assert mesh.is_attribute_indexed("texcoord_0")
+
+    def test_cube_twice(self, cube):
         num_levels = 2
         vert_id, edge_id, normal_id = lagrange.subdivision.compute_sharpness(cube)
         mesh = lagrange.subdivision.subdivide_mesh(
-            cube, num_levels=num_levels, vertex_sharpness_attr=vert_id, edge_sharpness_attr=edge_id
+            cube,
+            num_levels=num_levels,
+            vertex_sharpness_attr=vert_id,
+            edge_sharpness_attr=edge_id,
         )
         assert mesh.num_facets == cube.num_corners * 4 ** (num_levels - 1)
+
+    def test_house_twice(self, house):
+        assert house.is_attribute_indexed("texcoord_0")
+        mesh = lagrange.subdivision.subdivide_mesh(
+            house,
+            num_levels=2,
+        )
+        all_zeros = (np.abs(mesh.vertices) < 1e-6).all()
+        assert not all_zeros
+        texcoord_id = mesh.get_attribute_id("texcoord_0")
+        assert mesh.is_attribute_indexed(texcoord_id)
+        texcoord_attr = mesh.indexed_attribute(texcoord_id)
+        assert np.abs(texcoord_attr.indices.data - mesh.facets.flatten()).max() == 0
+        assert np.abs(texcoord_attr.values.data - mesh.vertices[:, :2]).max() < 1e-6

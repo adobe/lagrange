@@ -12,9 +12,6 @@
 import lagrange
 
 
-from .assets import cube  # noqa: F401
-
-
 class TestMeshSmoothing:
     def test_cube(self, cube):
         assert cube.num_vertices == 8

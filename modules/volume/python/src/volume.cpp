@@ -24,9 +24,11 @@
 #include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
 #include <tbb/enumerable_thread_specific.h>
+#ifdef NANOVDB_ENABLED
 #include <nanovdb/tools/CreateNanoGrid.h>
 #include <nanovdb/tools/NanoToOpenVDB.h>
 #include <nanovdb/io/IO.h>
+#endif
 #include <openvdb/io/Stream.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
@@ -126,6 +128,7 @@ uint32_t to_vdb_compression(Compression compression)
     }
 }
 
+#ifdef NANOVDB_ENABLED
 nanovdb::io::Codec to_nanovdb_compression(Compression compression)
 {
     switch (compression) {
@@ -135,6 +138,7 @@ nanovdb::io::Codec to_nanovdb_compression(Compression compression)
     default: throw Error("Unknown compression type.");
     }
 }
+#endif
 
 struct GridWrapper
 {
@@ -180,9 +184,11 @@ openvdb::GridBase::Ptr grid_from_data(std::variant<fs::path, nb::bytes> input_pa
                 grids && grids->size() == 1,
                 "Input VDB must contain exactly one grid.");
             return (*grids)[0];
+#ifdef NANOVDB_ENABLED
         } else if (input_path->extension() == ".nvdb") {
             auto handle = nanovdb::io::readGrid(input_path->string());
             return nanovdb::tools::nanoToOpenVDB(handle);
+#endif
         } else {
             throw Error("Unsupported input file extension: " + input_path->extension().string());
         }
@@ -202,6 +208,7 @@ openvdb::GridBase::Ptr grid_from_data(std::variant<fs::path, nb::bytes> input_pa
                 "Input VDB must contain exactly one grid.");
             return (*grids)[0];
         } catch (const openvdb::IoError&) {
+#ifdef NANOVDB_ENABLED
             // Not a VDB grid, try NanoVDB
             LA_IGNORE_DEPRECATION_WARNING_BEGIN
             // TODO: Switch to std::ispanstream() when we can use C++23 (probably when I
@@ -217,6 +224,9 @@ openvdb::GridBase::Ptr grid_from_data(std::variant<fs::path, nb::bytes> input_pa
             } catch (const std::runtime_error&) {
                 throw Error("Invalid input grid: not a valid VDB or NanoVDB grid.");
             }
+#else
+            throw Error("Invalid input grid: not a valid VDB grid.");
+#endif
         }
     } else {
         throw Error("Invalid input grid: not a path or buffer.");
@@ -234,9 +244,11 @@ void grid_to_file(
         file.setCompression(to_vdb_compression(compression));
         file.write({grid});
         file.close();
+#ifdef NANOVDB_ENABLED
     } else if (output_path.extension() == ".nvdb") {
         auto handle = nanovdb::tools::createNanoGrid(*grid);
         nanovdb::io::writeGrid(output_path.string(), handle, to_nanovdb_compression(compression));
+#endif
     } else {
         throw Error("Unsupported output file extension: " + output_path.string());
     }
@@ -265,9 +277,11 @@ std::string grid_to_buffer(
         openvdb::io::Stream oss(output_stream);
         oss.setCompression(to_vdb_compression(compression));
         oss.write({grid});
+#ifdef NANOVDB_ENABLED
     } else if (ext == "nvdb") {
         auto handle = nanovdb::tools::createNanoGrid(*grid);
         nanovdb::io::writeGrid(output_stream, handle, to_nanovdb_compression(compression));
+#endif
     } else {
         throw Error("Unsupported grid extension: " + ext);
     }
@@ -316,6 +330,7 @@ sample_trilinear_index_space(const GridWrapper& self, IndexArray& idx, VecType)
 
 void populate_volume_module(nb::module_& m)
 {
+    openvdb::initialize();
     using Scalar = double;
     using Index = uint32_t;
 

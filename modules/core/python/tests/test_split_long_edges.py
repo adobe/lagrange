@@ -12,8 +12,6 @@
 import lagrange
 import numpy as np
 
-from .assets import single_triangle  # noqa: F401
-
 
 class TestSplitLongEdges:
     def test_triangle(self, single_triangle):

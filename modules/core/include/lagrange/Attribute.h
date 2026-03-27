@@ -19,6 +19,27 @@
 
 namespace lagrange {
 
+/// @cond LA_INTERNAL_DOCS
+namespace internal {
+
+///
+/// Returns a read-only view of the attribute buffer (num elements x num channels), after
+/// unpoisoning the padding region [size, capacity) under ASan for internal buffers. This allows
+/// external libraries (e.g. Embree) to safely perform SIMD reads that may overshoot the logical
+/// buffer size.
+///
+/// @param[in]  attr       The attribute to access.
+///
+/// @tparam     ValueType  Attribute value type.
+///
+/// @return     A read-only view of the attribute buffer (same as get_all()).
+///
+template <typename ValueType>
+lagrange::span<const ValueType> get_all_unpoisoned(const Attribute<ValueType>& attr);
+
+} // namespace internal
+/// @endcond
+
 ///
 /// @defgroup   group-surfacemesh-attr Attributes
 /// @ingroup    group-surfacemesh
@@ -565,13 +586,10 @@ public:
     ///
     lagrange::span<const ValueType> get_all() const;
 
-    ///
-    /// Returns a read-only view of the full allocated buffer, including any padding entries added
-    /// via reserve_entries(). For external attributes, this is equivalent to get_all().
-    ///
-    /// @return     A read-only view of the full attribute buffer including padding.
-    ///
-    lagrange::span<const ValueType> get_all_with_padding() const;
+    /// @cond LA_INTERNAL_DOCS
+    template <typename V>
+    friend lagrange::span<const V> internal::get_all_unpoisoned(const Attribute<V>& attr);
+    /// @endcond
 
     ///
     /// Returns a writable view of the buffer spanning num elements x num channels. The actual

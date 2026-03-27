@@ -23,6 +23,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
+///
 /// Options for thicken_and_close_mesh.
 ///
 struct ThickenAndCloseOptions
@@ -67,5 +72,7 @@ template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> thicken_and_close_mesh(
     SurfaceMesh<Scalar, Index> input_mesh,
     const ThickenAndCloseOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

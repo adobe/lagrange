@@ -13,8 +13,6 @@ import lagrange
 import numpy as np
 import pytest
 
-from .asset import cube, square  # noqa: F401
-
 
 class TestTriangleAABBTree:
     def test_elements_in_radius_3D(self, cube):

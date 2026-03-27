@@ -12,6 +12,7 @@
 #include <lagrange/volume/mesh_to_volume.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/mesh_bbox.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
@@ -96,6 +97,27 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh_, const MeshToVolumeO
 
     auto mesh = SurfaceMesh<Scalar, Index>::stripped_copy(mesh_);
     la_runtime_assert(mesh.get_dimension() == 3, "Input mesh must be 3D");
+
+    // Winding number requires triangle meshes. To ensure consistent discretization, we triangulate
+    // before letting OpenVDB compute the unsigned distance field.
+    if (options.signing_method == MeshToVolumeOptions::Sign::WindingNumber) {
+        if (!mesh.is_triangle_mesh()) {
+            triangulate_polygonal_facets(mesh);
+        }
+    } else {
+        if (mesh.is_hybrid() || mesh.get_vertex_per_facet() > 4) {
+            // Check that the maximum facet size is <= 4. If not, we need to triangulate.
+            for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+                Index nv = mesh.get_facet_size(f);
+                if (nv > 4) {
+                    logger().debug("Triangulating mesh because of facets with > 4 vertices");
+                    triangulate_polygonal_facets(mesh);
+                    break;
+                }
+            }
+        }
+    }
+
     if (mesh.is_hybrid()) {
         for (Index f = 0; f < mesh.get_num_facets(); ++f) {
             if (auto nv = mesh.get_facet_size(f); nv < 3 || nv > 4) {
@@ -105,23 +127,12 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh_, const MeshToVolumeO
         }
     }
 
-    // Winding number requires triangle meshes. To ensure consistent discretization, we triangulate
-    // before letting OpenVDB compute the unsigned distance field.
-    if (options.signing_method == MeshToVolumeOptions::Sign::WindingNumber) {
-        if (!mesh.is_triangle_mesh()) {
-            triangulate_polygonal_facets(mesh);
-        }
-    }
-
     openvdb::initialize();
 
     auto voxel_size = options.voxel_size;
     if (voxel_size < 0) {
         // Compute bbox
-        Eigen::AlignedBox<Scalar, 3> bbox;
-        for (auto p : vertex_view(mesh).rowwise()) {
-            bbox.extend(p.transpose());
-        }
+        auto bbox = mesh_bbox<3>(mesh);
 
         const Scalar diag = bbox.diagonal().norm();
         voxel_size = std::abs(voxel_size);

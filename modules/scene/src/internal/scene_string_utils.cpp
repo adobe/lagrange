@@ -24,6 +24,20 @@
 
 namespace lagrange::scene::internal {
 
+namespace {
+
+template <typename T>
+std::string fmt_optional(const std::optional<T>& value)
+{
+    if (value.has_value()) {
+        return fmt::format("{}", value.value());
+    } else {
+        return "<null>";
+    }
+}
+
+} // namespace
+
 std::string to_string(const std::vector<ElementId>& ids)
 {
     return fmt::format("[{}]", fmt::join(ids, ", "));
@@ -327,8 +341,16 @@ std::string to_string(const Light& light, size_t indent)
             light.color_ambient[0],
             light.color_ambient[1],
             light.color_ambient[2]) +
-        fmt::format("{:{}s}angle_inner_cone: {}\n", "", indent, light.angle_inner_cone) +
-        fmt::format("{:{}s}angle_outer_cone: {}\n", "", indent, light.angle_outer_cone) +
+        fmt::format(
+            "{:{}s}angle_inner_cone: {}\n",
+            "",
+            indent,
+            fmt_optional(light.angle_inner_cone)) +
+        fmt::format(
+            "{:{}s}angle_outer_cone: {}\n",
+            "",
+            indent,
+            fmt_optional(light.angle_outer_cone)) +
         fmt::format("{:{}s}size: [{}, {}]\n", "", indent, light.size[0], light.size[1]);
     if (!light.extensions.empty()) {
         r += fmt::format(

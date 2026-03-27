@@ -15,8 +15,6 @@ import numpy as np
 import math
 import pytest
 
-from .assets import single_triangle, cube  # noqa: F401
-
 
 class TestComputeNormal:
     def validate_normal(self, mesh, normal_attr):

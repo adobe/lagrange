@@ -260,6 +260,87 @@ TEST_CASE("io/obj scene with materials", "[io][obj]")
     }
 }
 
+TEST_CASE("io/obj missing indices", "[io][obj]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // OBJ with 4 vertices, 3 UV coords, 1 normal, and 3 object groups.
+    // Each group uses a different face format and includes one face with
+    // indices and one without, to test missing index handling.
+    // tinyobjloader requires consistent face formats within a single group,
+    // so we use separate "o" groups to mix formats.
+    const std::string obj_data = R"(v 0 0 0
+v 1 0 0
+v 0 1 0
+v 1 1 0
+vt 0.0 0.0
+vt 1.0 0.0
+vt 0.0 1.0
+vn 0 0 1
+o uv_only
+f 1/1 2/2 3/3
+f 3 2 4
+o normal_only
+f 1//1 2//1 3//1
+f 3 2 4
+o all
+f 1/1/1 2/2/1 3/3/1
+f 3 2 4
+)";
+
+    std::istringstream ss(obj_data);
+    auto mesh = io::load_mesh_obj<SurfaceMesh<Scalar, Index>>(ss);
+    REQUIRE(mesh.get_num_facets() == 6);
+    REQUIRE(mesh.has_attribute("texcoord"));
+    REQUIRE(mesh.has_attribute("normal"));
+
+    constexpr Index num_uv_values = 3;
+    constexpr Index num_nrm_values = 1;
+
+    auto& uv_attr = mesh.get_indexed_attribute<Scalar>("texcoord");
+    auto uv_indices = uv_attr.indices().get_all();
+    auto& nrm_attr = mesh.get_indexed_attribute<Scalar>("normal");
+    auto nrm_indices = nrm_attr.indices().get_all();
+
+    REQUIRE(mesh.get_vertex_per_facet() == 3);
+    const Index nvpf = 3;
+
+    // Check that all corners of a face have original (non-remapped) indices.
+    auto check_valid = [&](const auto& indices, Index face_index, Index original_count) {
+        for (Index c = 0; c < nvpf; ++c) {
+            CHECK(indices[face_index * nvpf + c] < original_count);
+        }
+    };
+
+    // Check that all corners of a face have been remapped to appended default values.
+    auto check_remapped = [&](const auto& indices, Index face_index, Index original_count) {
+        for (Index c = 0; c < nvpf; ++c) {
+            CHECK(indices[face_index * nvpf + c] != invalid<Index>());
+            CHECK(indices[face_index * nvpf + c] >= original_count);
+        }
+    };
+
+    // uv_only group: face 0 has UVs, face 1 has neither.
+    check_valid(uv_indices, 0, num_uv_values);
+    check_remapped(nrm_indices, 0, num_nrm_values);
+    check_remapped(uv_indices, 1, num_uv_values);
+    check_remapped(nrm_indices, 1, num_nrm_values);
+
+    // normal_only group: face 2 has normals, face 3 has neither.
+    check_remapped(uv_indices, 2, num_uv_values);
+    check_valid(nrm_indices, 2, num_nrm_values);
+    check_remapped(uv_indices, 3, num_uv_values);
+    check_remapped(nrm_indices, 3, num_nrm_values);
+
+    // all group: face 4 has both, face 5 has neither.
+    check_valid(uv_indices, 4, num_uv_values);
+    check_valid(nrm_indices, 4, num_nrm_values);
+    check_remapped(uv_indices, 5, num_uv_values);
+    check_remapped(nrm_indices, 5, num_nrm_values);
+}
+
 TEST_CASE("io/obj 2d mesh", "[io][obj]")
 {
     using namespace lagrange;

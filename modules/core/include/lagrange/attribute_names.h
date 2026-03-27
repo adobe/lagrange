@@ -15,6 +15,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-attr
+/// @{
+///
+
 // Valid attribute semantic properties are listed below.
 // Attribute semantic property names can be in the form [semantic]_[set_index], e.g. texcoord_0,
 // texcoord_1, etc.
@@ -74,5 +79,7 @@ struct AttributeName
      */
     static constexpr std::string_view indexed_joint = "indexed_joint";
 };
+
+/// @}
 
 } // namespace lagrange

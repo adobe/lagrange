@@ -11,8 +11,6 @@
 #
 import lagrange
 
-from .assets import single_triangle  # noqa: F401
-
 
 class TestRemoveShortEdges:
     def test_triangle(self, single_triangle):

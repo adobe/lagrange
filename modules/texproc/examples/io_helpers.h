@@ -23,6 +23,7 @@
 
 using Array3Df = lagrange::image::experimental::Array3D<float>;
 using View3Df = lagrange::image::experimental::View3D<float>;
+using ConstView3Df = lagrange::image::experimental::View3D<const float>;
 
 template <size_t NumChannels, typename Precision>
 Array3Df convert_from(const lagrange::image_io::LoadImageResult& img)

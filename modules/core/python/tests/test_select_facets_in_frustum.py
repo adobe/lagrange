@@ -12,8 +12,6 @@
 import lagrange
 import numpy as np
 
-from .assets import cube  # noqa: F401
-
 
 class TestSelectFacetsInFrustum:
     def test_cube_big_frustum(self, cube):
