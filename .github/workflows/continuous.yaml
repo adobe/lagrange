@@ -58,10 +58,18 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      - name: Show disk space
+      - name: Set swap space
+        if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.config == 'RelWithDebInfo'
+        uses: pierotofy/set-swap-space@fc79b3f
+        with:
+          swap-size-gb: 16
+
+      - name: Show disk and memory space
         run: |
           echo "disk usage:"
           df -h
+          echo "memory:"
+          free -h
 
       - name: Select build dir (Linux)
         if: runner.os == 'Linux'
