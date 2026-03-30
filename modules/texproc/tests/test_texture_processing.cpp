@@ -92,7 +92,7 @@ TEST_CASE("Grid bounds", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
         lagrange::testing::get_data_path("corp/texproc/segfault/scene_with_cameras.glb"),
         scene_options);
 
-    const auto& [mesh, _] = lagrange::texproc::single_mesh_from_scene(scene);
+    const auto& [mesh, _] = lagrange::scene::internal::single_mesh_from_scene(scene);
     const auto cameras = lagrange::texproc::cameras_from_scene(scene);
     REQUIRE(cameras.size() == 16);
 
@@ -125,7 +125,7 @@ TEST_CASE("Pumpkin pipeline", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
         lagrange::testing::get_data_path("corp/texproc/prepared/pumpkin.glb"),
         scene_options);
 
-    const auto& [mesh, _] = lagrange::texproc::single_mesh_from_scene(scene);
+    const auto& [mesh, _] = lagrange::scene::internal::single_mesh_from_scene(scene);
     const auto cameras = lagrange::texproc::cameras_from_scene(scene);
     REQUIRE(cameras.size() == 16);
 
@@ -166,7 +166,7 @@ TEST_CASE("Check benchmark", "[texproc][!benchmark]" LA_CORP_FLAG)
         lagrange::testing::get_data_path("corp/texproc/prepared/pumpkin.glb"),
         scene_options);
 
-    const auto mesh = std::get<0>(lagrange::texproc::single_mesh_from_scene(scene));
+    const auto mesh = std::get<0>(lagrange::scene::internal::single_mesh_from_scene(scene));
     const auto cameras = lagrange::texproc::cameras_from_scene(scene);
     REQUIRE(cameras.size() == 16);
 

@@ -113,7 +113,7 @@ int main(int argc, char** argv)
     // Load rendered images to unproject
     lagrange::logger().info("Loading input {} renders", args.input_renders.size());
     std::vector<Array3Df> renders;
-    std::vector<View3Df> views;
+    std::vector<ConstView3Df> views;
     for (const auto& render : args.input_renders) {
         renders.push_back(load_image(render));
         views.push_back(renders.back().to_mdspan());

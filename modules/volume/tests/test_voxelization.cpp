@@ -10,11 +10,14 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/create_mesh.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/views.h>
 #include <lagrange/volume/mesh_to_volume.h>
 #include <lagrange/volume/volume_to_mesh.h>
+
+#include <cmath>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 TEST_CASE("voxelization: reproducibility (legacy)", "[volume]")
@@ -65,4 +68,39 @@ TEST_CASE("voxelization: winding number", "[volume]")
     // Winding number result should have more vertices/facets than the flood-fill result
     REQUIRE(mesh3.get_num_vertices() > mesh2.get_num_vertices());
     REQUIRE(mesh3.get_num_facets() > mesh2.get_num_facets());
+}
+
+TEST_CASE("mesh_to_volume: polygonal mesh", "[volume]")
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    lagrange::volume::MeshToVolumeOptions m2v_opt;
+    m2v_opt.signing_method = lagrange::volume::MeshToVolumeOptions::Sign::FloodFill;
+    m2v_opt.voxel_size = 0.1;
+
+    SECTION("hybrid mesh")
+    {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            "open/core/poly/mixedFaringPart.obj");
+        REQUIRE(mesh.is_hybrid());
+        auto grid = lagrange::volume::mesh_to_volume(mesh, m2v_opt);
+        REQUIRE(grid->activeVoxelCount() > 0);
+    }
+
+    SECTION("poly mesh")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertices(7);
+        auto vertices = vertex_ref(mesh);
+        for (Index i = 0; i < 7; ++i) {
+            vertices.row(i) << std::cos(2 * lagrange::internal::pi * i / 7),
+                std::sin(2 * lagrange::internal::pi * i / 7), 0;
+        }
+        mesh.add_polygon({0, 1, 2, 3, 4, 5, 6});
+        REQUIRE(mesh.is_regular());
+        REQUIRE(mesh.get_vertex_per_facet() == 7);
+        auto grid = lagrange::volume::mesh_to_volume(mesh, m2v_opt);
+        REQUIRE(grid->activeVoxelCount() > 0);
+    }
 }

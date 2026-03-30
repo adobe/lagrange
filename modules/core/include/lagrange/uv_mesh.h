@@ -17,13 +17,31 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
 struct UVMeshOptions
 {
+    /// Supported element types for UV mesh extraction.
+    enum class ElementTypes {
+        IndexedOrVertex, ///< Only indexed/vertex attributes (zero-copy, no allocation).
+        All, ///< Also supports corner attributes (may allocate an index buffer).
+    };
+
     /// Input UV attribute name.
     ///
-    /// The attribute must be a vertex or indexed attribute of type `Scalar`.
-    /// If empty, the first UV attribute will be used.
+    /// The attribute must be a UV attribute of type `UVScalar` with 2 channels. Supported element
+    /// types depend on the `element_types` option. If empty, the first matching UV attribute will be
+    /// used.
     std::string_view uv_attribute_name = "";
+
+    /// Supported element types for UV attribute lookup.
+    ///
+    /// By default, only indexed and vertex attributes are supported (zero-copy). Set to
+    /// ElementTypes::All to also support corner attributes, which may allocate an index buffer.
+    ElementTypes element_types = ElementTypes::IndexedOrVertex;
 };
 
 /**
@@ -32,9 +50,6 @@ struct UVMeshOptions
  * This method will create a new mesh with the same topology as the input mesh, but with vertex
  * positions set to the corresponding UV coordinates. Modification of UV mesh vertices will be
  * reflected in the input mesh.
- *
- * @warning    This method requires that the input UV attribute is an indexed or vertex attribute.
- *             Corner attributes are not supported by this function.
  *
  * @param      mesh      Input mesh.
  * @param      options   Options to control UV mesh extraction.
@@ -58,9 +73,6 @@ SurfaceMesh<UVScalar, Index> uv_mesh_ref(
  * This method will create a new mesh with the same topology as the input mesh, but with vertex
  * positions set to the corresponding UV coordinates. The output UV mesh cannot be modified.
  *
- * @warning    This method requires that the input UV attribute is an indexed or vertex attribute.
- *             Corner attributes are not supported by this function.
- *
  * @param      mesh      Input mesh.
  * @param      options   Options to control UV mesh extraction.
  *
@@ -76,5 +88,7 @@ template <typename Scalar, typename Index, typename UVScalar = Scalar>
 SurfaceMesh<UVScalar, Index> uv_mesh_view(
     const SurfaceMesh<Scalar, Index>& mesh,
     const UVMeshOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

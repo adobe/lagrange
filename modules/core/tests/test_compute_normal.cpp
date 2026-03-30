@@ -616,8 +616,10 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
             lagrange::testing::FloatPointBehavior::XcodeGreaterThan14) {
             // For some reason x.cross(x) is not zero on arm64 Xcode 14+. It's around 1e-17, which
             // is enough for stableNormalize() to produce a non-zero first row.
-            REQUIRE(normal_values(Eigen::seq(1, Eigen::last), Eigen::all).isZero(0));
-            REQUIRE(triangle_normals(Eigen::seq(1, Eigen::last), Eigen::all).isZero(0));
+            REQUIRE(normal_values(Eigen::seq(1, Eigen::indexing::last), Eigen::indexing::all)
+                        .isZero(0));
+            REQUIRE(triangle_normals(Eigen::seq(1, Eigen::indexing::last), Eigen::indexing::all)
+                        .isZero(0));
         } else {
             REQUIRE(normal_values.isZero(0));
             REQUIRE(triangle_normals.isZero(0));

@@ -19,10 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME instant-meshes-core
     GITHUB_REPOSITORY qnzhou/instant-meshes-core
-    GIT_TAG 7e2b804d533e10578a730bb9d06dee2a5418730d
-    PATCHES
-        # Fix memory leak: adj_sets buffer not freed in generate_adjacency_matrix_pointcloud.
-        instant-meshes-core.patch
+    GIT_TAG 8c87f12bec4b98ce29febcf5dd63ebb90e957104
 )
 
 add_library(instant-meshes-core::instant-meshes-core ALIAS instant-meshes-core)

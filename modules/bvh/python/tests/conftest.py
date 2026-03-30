@@ -50,27 +50,3 @@ def cube():
     mesh.vertices = vertices
     mesh.facets = facets
     return mesh
-
-
-@pytest.fixture
-def square():
-    vertices = np.array(
-        [
-            [0, 0],
-            [1, 0],
-            [1, 1],
-            [0, 1],
-        ],
-        dtype=float,
-    )
-    facets = np.array(
-        [
-            [0, 1, 2],
-            [2, 3, 0],
-        ],
-        dtype=np.uint32,
-    )
-    mesh = lagrange.SurfaceMesh(2)
-    mesh.vertices = vertices
-    mesh.facets = facets
-    return mesh

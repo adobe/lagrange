@@ -58,10 +58,18 @@ jobs:
           docker-images: true
           swap-storage: true
 
-      - name: Show disk space
+      - name: Set swap space
+        if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.config == 'RelWithDebInfo'
+        uses: pierotofy/set-swap-space@fc79b3f67fa8a838184ce84a674ca12238d2c761
+        with:
+          swap-size-gb: 16
+
+      - name: Show disk and memory space
         run: |
           echo "disk usage:"
           df -h
+          echo "memory:"
+          if command -v free &>/dev/null; then free -h; else sysctl hw.memsize; fi
 
       - name: Select build dir (Linux)
         if: runner.os == 'Linux'
@@ -96,6 +104,9 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Install mold
+        uses: rui314/setup-mold@v1
+
       - name: Dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -109,7 +120,7 @@ jobs:
               echo "CC=clang" >> $GITHUB_ENV
               echo "CXX=clang++" >> $GITHUB_ENV
             fi
-            sudo apt-get install xorg-dev
+            sudo apt-get install -y xorg-dev
 
       - name: Dependencies (macOS)
         if: runner.os == 'macOS'

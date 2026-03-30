@@ -557,10 +557,8 @@ Eigen::Transform<Scalar, 3, 2> get_node_transform(const tinygltf::Node& node)
                 Scalar(node.rotation[2]));
         }
         if (!node.scale.empty()) {
-            scale = Eigen::Scaling<Scalar>(
-                Scalar(node.scale[0]),
-                Scalar(node.scale[1]),
-                Scalar(node.scale[2]));
+            scale =
+                Eigen::Scaling(Scalar(node.scale[0]), Scalar(node.scale[1]), Scalar(node.scale[2]));
         }
         t = translation * rotation * scale;
     }

@@ -13,8 +13,6 @@ import lagrange
 
 import pytest
 
-from .assets import single_triangle, single_triangle_with_uv, cube, cube_with_uv  # noqa: F401
-
 
 class TestComputeTangentBitangent:
     def check_orthogonality(self, mesh, normal_id, tangent_id, bitangent_id):

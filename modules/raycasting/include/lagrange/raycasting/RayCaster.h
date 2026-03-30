@@ -768,8 +768,10 @@ public:
     /// @}
 
 private:
+    /// @cond LA_INTERNAL_DOCS
     struct Impl;
     value_ptr<Impl> m_impl;
+    /// @endcond
 };
 
 } // namespace lagrange::raycasting

@@ -16,6 +16,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
 struct UVChartOptions
 {
     using ConnectivityType = lagrange::ConnectivityType;
@@ -49,5 +54,7 @@ struct UVChartOptions
  */
 template <typename Scalar, typename Index>
 size_t compute_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const UVChartOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

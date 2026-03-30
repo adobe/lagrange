@@ -17,3 +17,7 @@ target_link_libraries(weld_vertices lagrange::bvh lagrange::io CLI11::CLI11)
 
 lagrange_add_example(remove_interior_shells remove_interior_shells.cpp)
 target_link_libraries(remove_interior_shells lagrange::bvh lagrange::io CLI11::CLI11)
+
+lagrange_include_modules(packing polyscope)
+lagrange_add_example(uv_overlap uv_overlap.cpp WITH_UI)
+target_link_libraries(uv_overlap lagrange::bvh lagrange::packing lagrange::polyscope lagrange::io CLI11::CLI11)

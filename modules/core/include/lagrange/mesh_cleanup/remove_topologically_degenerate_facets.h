@@ -16,6 +16,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Remove topologically degenerate facets (i.e. triangles like (0, 1, 1)).
 ///
 /// Non-triangle polygons are not handled at the moment.
@@ -27,5 +32,7 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 void remove_topologically_degenerate_facets(SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange

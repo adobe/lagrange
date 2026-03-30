@@ -14,35 +14,69 @@
 #include <lagrange/internal/get_uv_attribute.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/uv_mesh.h>
+#include <lagrange/views.h>
+
+#include <numeric>
 
 namespace lagrange {
+
+namespace {
+
+/// Add facets to the UV mesh using iota indices (for corner attributes).
+template <typename UVScalar, typename Scalar, typename Index>
+void add_iota_facets(SurfaceMesh<UVScalar, Index>& uv_mesh, const SurfaceMesh<Scalar, Index>& mesh)
+{
+    uv_mesh.add_hybrid(
+        mesh.get_num_facets(),
+        [&](Index f) { return mesh.get_facet_size(f); },
+        [&](Index f, span<Index> t) {
+            std::iota(t.begin(), t.end(), mesh.get_facet_corner_begin(f));
+        });
+}
+
+} // namespace
 
 template <typename Scalar, typename Index, typename UVScalar>
 SurfaceMesh<UVScalar, Index> uv_mesh_ref(
     SurfaceMesh<Scalar, Index>& mesh,
     const UVMeshOptions& options)
 {
-    auto [uv_values, uv_indices] =
-        internal::ref_uv_attribute<Scalar, Index, UVScalar>(mesh, options.uv_attribute_name);
+    AttributeId uv_attr_id = internal::get_uv_id<Scalar, Index, UVScalar>(
+        mesh,
+        options.uv_attribute_name,
+        options.element_types);
+    la_runtime_assert(uv_attr_id != invalid_attribute_id(), "No UV attribute found.");
 
     SurfaceMesh<UVScalar, Index> uv_mesh(2);
-    uv_mesh.wrap_as_vertices(
-        {uv_values.data(), static_cast<size_t>(uv_values.size())},
-        static_cast<Index>(uv_values.rows()));
 
-    if (mesh.is_regular()) {
-        uv_mesh.wrap_as_facets(
-            {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
-            mesh.get_num_facets(),
-            mesh.get_vertex_per_facet());
+    if (mesh.get_attribute_base(uv_attr_id).get_element_type() == AttributeElement::Corner) {
+        auto& uv_attr = mesh.template ref_attribute<UVScalar>(uv_attr_id);
+        auto uv_values = matrix_ref(uv_attr);
+        uv_mesh.wrap_as_vertices(
+            {uv_values.data(), static_cast<size_t>(uv_values.size())},
+            static_cast<Index>(uv_values.rows()));
+        add_iota_facets(uv_mesh, mesh);
     } else {
-        AttributeId facet_offset_id = mesh.attr_id_facet_to_first_corner();
-        auto& facet_offset = mesh.template ref_attribute<Index>(facet_offset_id);
-        uv_mesh.wrap_as_facets(
-            facet_offset.ref_all(),
-            mesh.get_num_facets(),
-            {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
-            mesh.get_num_corners());
+        auto [uv_values, uv_indices] =
+            internal::ref_uv_attribute<Scalar, Index, UVScalar>(mesh, options.uv_attribute_name);
+        uv_mesh.wrap_as_vertices(
+            {uv_values.data(), static_cast<size_t>(uv_values.size())},
+            static_cast<Index>(uv_values.rows()));
+
+        if (mesh.is_regular()) {
+            uv_mesh.wrap_as_facets(
+                {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
+                mesh.get_num_facets(),
+                mesh.get_vertex_per_facet());
+        } else {
+            AttributeId facet_offset_id = mesh.attr_id_facet_to_first_corner();
+            auto& facet_offset = mesh.template ref_attribute<Index>(facet_offset_id);
+            uv_mesh.wrap_as_facets(
+                facet_offset.ref_all(),
+                mesh.get_num_facets(),
+                {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
+                mesh.get_num_corners());
+        }
     }
 
     return uv_mesh;
@@ -53,27 +87,42 @@ SurfaceMesh<UVScalar, Index> uv_mesh_view(
     const SurfaceMesh<Scalar, Index>& mesh,
     const UVMeshOptions& options)
 {
-    auto [uv_values, uv_indices] =
-        internal::get_uv_attribute<Scalar, Index, UVScalar>(mesh, options.uv_attribute_name);
+    AttributeId uv_attr_id = internal::get_uv_id<Scalar, Index, UVScalar>(
+        mesh,
+        options.uv_attribute_name,
+        options.element_types);
+    la_runtime_assert(uv_attr_id != invalid_attribute_id(), "No UV attribute found.");
 
     SurfaceMesh<UVScalar, Index> uv_mesh(2);
-    uv_mesh.wrap_as_const_vertices(
-        {uv_values.data(), static_cast<size_t>(uv_values.size())},
-        static_cast<Index>(uv_values.rows()));
 
-    if (mesh.is_regular()) {
-        uv_mesh.wrap_as_const_facets(
-            {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
-            mesh.get_num_facets(),
-            mesh.get_vertex_per_facet());
+    if (mesh.get_attribute_base(uv_attr_id).get_element_type() == AttributeElement::Corner) {
+        const auto& uv_attr = mesh.template get_attribute<UVScalar>(uv_attr_id);
+        auto uv_values = matrix_view(uv_attr);
+        uv_mesh.wrap_as_const_vertices(
+            {uv_values.data(), static_cast<size_t>(uv_values.size())},
+            static_cast<Index>(uv_values.rows()));
+        add_iota_facets(uv_mesh, mesh);
     } else {
-        AttributeId facet_offset_id = mesh.attr_id_facet_to_first_corner();
-        const auto& facet_offset = mesh.template get_attribute<Index>(facet_offset_id);
-        uv_mesh.wrap_as_const_facets(
-            facet_offset.get_all(),
-            mesh.get_num_facets(),
-            {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
-            mesh.get_num_corners());
+        auto [uv_values, uv_indices] =
+            internal::get_uv_attribute<Scalar, Index, UVScalar>(mesh, options.uv_attribute_name);
+        uv_mesh.wrap_as_const_vertices(
+            {uv_values.data(), static_cast<size_t>(uv_values.size())},
+            static_cast<Index>(uv_values.rows()));
+
+        if (mesh.is_regular()) {
+            uv_mesh.wrap_as_const_facets(
+                {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
+                mesh.get_num_facets(),
+                mesh.get_vertex_per_facet());
+        } else {
+            AttributeId facet_offset_id = mesh.attr_id_facet_to_first_corner();
+            const auto& facet_offset = mesh.template get_attribute<Index>(facet_offset_id);
+            uv_mesh.wrap_as_const_facets(
+                facet_offset.get_all(),
+                mesh.get_num_facets(),
+                {uv_indices.data(), static_cast<size_t>(uv_indices.size())},
+                mesh.get_num_corners());
+        }
     }
 
     return uv_mesh;

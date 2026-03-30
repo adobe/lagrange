@@ -17,13 +17,14 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
     set_target_properties(lagrange_scene PROPERTIES COMPILE_WARNING_AS_ERROR ON)
 endif()
 
-lagrange_include_modules(fs)
+lagrange_include_modules(fs image)
 
 # 2. dependencies
 target_link_libraries(lagrange_scene
     PUBLIC
         lagrange::core
         lagrange::fs
+        lagrange::image
 )
 
 # 3. unit tests and examples

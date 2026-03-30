@@ -21,6 +21,7 @@
 #include <lagrange/io/load_mesh_obj.h>
 #include <lagrange/io/load_mesh_ply.h>
 #include <lagrange/io/load_mesh_stl.h>
+#include <lagrange/serialization/serialize_mesh.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/strings.h>
 
@@ -59,7 +60,18 @@ template <
 MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
 {
     std::string ext = to_lower(filename.extension().string());
-    if (ext == ".obj") {
+    if (ext == ".lgm") {
+        serialization::DeserializeOptions enc_options;
+        enc_options.allow_type_cast = true;
+        enc_options.quiet = options.quiet;
+        return serialization::load_mesh<MeshType>(filename, enc_options);
+    } else if (ext == ".lgs") {
+        serialization::DeserializeOptions enc_options;
+        enc_options.allow_scene_conversion = true;
+        enc_options.allow_type_cast = true;
+        enc_options.quiet = options.quiet;
+        return serialization::load_mesh<MeshType>(filename, enc_options);
+    } else if (ext == ".obj") {
         return load_mesh_obj<MeshType>(filename, options);
     } else if (ext == ".ply") {
         return load_mesh_ply<MeshType>(filename, options);

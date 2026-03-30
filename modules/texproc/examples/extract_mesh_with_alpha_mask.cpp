@@ -12,22 +12,28 @@
 
 #include "../tests/image_helpers.h"
 
-#include <lagrange/texproc/extract_mesh_with_alpha_mask.h>
-
 #include <lagrange/AttributeValueType.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
+#include <lagrange/combine_meshes.h>
 #include <lagrange/common.h>
 #include <lagrange/image/Array3D.h>
 #include <lagrange/io/load_scene.h>
-#include <lagrange/io/save_scene.h>
+#include <lagrange/io/save_mesh.h>
 #include <lagrange/scene/Scene.h>
+#include <lagrange/scene/scene_convert.h>
 #include <lagrange/scene/scene_utils.h>
+#include <lagrange/texproc/extract_mesh_with_alpha_mask.h>
 #include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/utils/range.h>
 
 #include <CLI/CLI.hpp>
 
 #include <unordered_map>
+
+// Suggested meshes to try it with:
+// - fish bowl: objaverse1/000-010/5a39e8c683f946b1aeb848dd2e88deb8.glb
+// - helmet: objaverse1/000-138/f85b8c2149c24a4a8b86c7b7df7be254.glb
 
 namespace fs = lagrange::fs;
 using Scene = lagrange::scene::Scene<float, uint32_t>;
@@ -38,7 +44,7 @@ int main(int argc, char** argv)
     struct
     {
         fs::path input_path;
-        fs::path output_path;
+        fs::path output_path = "output.obj";
         bool split_grids = false;
         size_t log_level = 2;
     } args;
@@ -46,7 +52,7 @@ int main(int argc, char** argv)
     CLI::App app{argv[0]};
     app.option_defaults()->always_capture_default();
     app.add_option("input", args.input_path, "Input scene.")->required()->check(CLI::ExistingFile);
-    app.add_option("output", args.output_path, "Output scene.");
+    app.add_option("output", args.output_path, "Output mesh.");
     app.add_option("-l,--level", args.log_level, "Log level.");
 
     CLI11_PARSE(app, argc, argv)
@@ -97,47 +103,45 @@ int main(int argc, char** argv)
     }
     logger.info("found {} compatible materials", material_to_payloads.size());
 
-    lagrange::scene::MaterialExperimental material_;
-    const auto material_id_ = scene.add(material_);
-    size_t num_extracted = 0;
-    for (auto& node : scene.nodes) {
-        la_runtime_assert(!node.name.empty());
-        for (auto& instance : node.meshes) {
-            if (instance.materials.size() != 1) {
-                throw std::runtime_error("multi-material instance not supported");
-                continue;
-            }
-            la_runtime_assert(instance.materials.size() == 1);
-            const auto iter = material_to_payloads.find(instance.materials.front());
-            if (iter == material_to_payloads.end()) continue;
-            const auto& payload = iter->second;
-            const auto image =
-                test::scene_image_to_image_array(scene.images.at(payload.image_id).image);
-            auto mesh = scene.meshes.at(instance.mesh);
-            la_runtime_assert(image.extent(2) == 4, "must have alpha channel");
-            const auto texcoord_id =
-                mesh.get_attribute_id(fmt::format("texcoord_{}", payload.texcoord_id));
-            if (texcoord_id == lagrange::invalid_attribute_id()) continue;
-            if (!mesh.is_attribute_indexed(texcoord_id)) continue;
-            lagrange::texproc::ExtractMeshWithAlphaMaskOptions extract_options;
-            extract_options.texcoord_id = texcoord_id;
-            extract_options.alpha_threshold = payload.alpha_threshold;
-            auto mesh_ = lagrange::texproc::extract_mesh_with_alpha_mask(
-                mesh,
-                image.to_mdspan(),
-                extract_options);
-            const auto mesh_id_ = scene.add(mesh_);
-            instance.mesh = mesh_id_;
-            instance.materials.clear();
-            instance.materials.emplace_back(material_id_);
-            num_extracted += 1;
+    const auto [meshes, material_ids] = lagrange::scene::scene_to_meshes_and_materials(scene);
+
+    std::vector<SurfaceMesh> extracted_meshes;
+    la_runtime_assert(meshes.size() == material_ids.size());
+    for (const auto kk : lagrange::range(meshes.size())) {
+        const auto& mesh = meshes[kk];
+        const auto& material_id = material_ids[kk];
+        la_runtime_assert(material_id.size() == 1);
+        const auto iter = material_to_payloads.find(material_id.front());
+        if (iter == material_to_payloads.end()) {
+            extracted_meshes.emplace_back(mesh);
+            continue;
         }
+
+        const auto& payload = iter->second;
+        const auto image =
+            test::scene_image_to_image_array(scene.images.at(payload.image_id).image);
+        la_runtime_assert(image.extent(2) == 4, "must have alpha channel");
+        const auto texcoord_id =
+            mesh.get_attribute_id(fmt::format("texcoord_{}", payload.texcoord_id));
+        if (texcoord_id == lagrange::invalid_attribute_id()) continue;
+        if (!mesh.is_attribute_indexed(texcoord_id)) continue;
+        lagrange::texproc::ExtractMeshWithAlphaMaskOptions extract_options;
+        extract_options.texcoord_id = texcoord_id;
+        extract_options.alpha_threshold = payload.alpha_threshold;
+        auto extracted = lagrange::texproc::extract_mesh_with_alpha_mask(
+            mesh,
+            image.to_mdspan(),
+            extract_options);
+        extracted_meshes.emplace_back(extracted);
     }
-    logger.info("extracted {} meshes", num_extracted);
+
+    logger.info("combining {} meshes", extracted_meshes.size());
+    auto combined =
+        lagrange::combine_meshes<SurfaceMesh::Scalar, SurfaceMesh::Index>(extracted_meshes);
 
     if (!args.output_path.empty()) {
-        logger.info("saving scene \"{}\"", args.output_path.string());
-        lagrange::io::save_scene(args.output_path, scene);
+        logger.info("saving mesh \"{}\"", args.output_path.string());
+        lagrange::io::save_mesh(args.output_path, combined);
     }
 
     return 0;

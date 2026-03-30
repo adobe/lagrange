@@ -23,12 +23,14 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/internal/string_from_scalar.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/build.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
@@ -144,10 +146,20 @@ void save_gltf(const fs::path& filename, const tinygltf::Model& model, const Sav
 
     constexpr bool embed_buffers = true;
     constexpr bool pretty_print = true;
+
+#if LAGRANGE_TARGET_COMPILER(EMSCRIPTEN)
+    // On Emscripten, writing external image files via tinygltf may silently fail on the virtual
+    // filesystem, producing a .glb/.gltf with unencoded raw pixel data that STB cannot decode on reload.
+    // Force embedding images when saving as binary .glb/.gltf to ensure a self-contained file.
+    bool embed_images = true;
+#else
+    bool embed_images = options.embed_images;
+#endif
+
     bool success = loader.WriteGltfSceneToFile(
         &model,
         filename.string(),
-        options.embed_images,
+        embed_images,
         embed_buffers,
         pretty_print,
         binary);
@@ -721,7 +733,8 @@ tinygltf::Model lagrange_scene_to_gltf_model(
         scene.extensions = convert_extension_map(lscene.extensions, options);
     }
 
-    for (const auto& llight : lscene.lights) {
+    for (size_t light_idx = 0; light_idx < lscene.lights.size(); ++light_idx) {
+        const auto& llight = lscene.lights[light_idx];
         // note that the gltf support for lights is limited compared to our representation.
         // Information can be lost.
         tinygltf::Light light;
@@ -731,13 +744,32 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             llight.color_diffuse.y(),
             llight.color_diffuse.z()};
         light.intensity = 1 / llight.attenuation_constant;
+        auto light_label = llight.name.empty()
+                               ? fmt::format("light[{}]", light_idx)
+                               : fmt::format("'{}' (index {})", llight.name, light_idx);
         switch (llight.type) {
         case scene::Light::Type::Directional: light.type = "directional"; break;
         case scene::Light::Type::Point: light.type = "point"; break;
         case scene::Light::Type::Spot:
+            la_runtime_assert(
+                llight.angle_inner_cone.has_value() && llight.angle_outer_cone.has_value(),
+                fmt::format("Spot light {} must have inner and outer cone angles.", light_label));
             light.type = "spot";
-            light.spot.innerConeAngle = llight.angle_inner_cone;
-            light.spot.outerConeAngle = llight.angle_outer_cone;
+            light.spot.innerConeAngle = llight.angle_inner_cone.value();
+            light.spot.outerConeAngle = llight.angle_outer_cone.value();
+            if (!options.quiet) {
+                constexpr double half_pi = lagrange::internal::pi / 2.0;
+                if (light.spot.innerConeAngle < 0 ||
+                    light.spot.innerConeAngle > light.spot.outerConeAngle ||
+                    light.spot.outerConeAngle > half_pi) {
+                    logger().warn(
+                        "Spot light {} has invalid cone angles (inner={}, outer={}). "
+                        "glTF requires 0 <= innerConeAngle <= outerConeAngle <= pi/2.",
+                        light_label,
+                        light.spot.innerConeAngle,
+                        light.spot.outerConeAngle);
+                }
+            }
             break;
         default:
             if (!options.quiet) {

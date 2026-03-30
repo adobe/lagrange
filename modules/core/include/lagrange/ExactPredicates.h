@@ -19,6 +19,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup module-core
+/// @{
+///
+
 class LA_CORE_API ExactPredicates
 {
 public:
@@ -110,4 +115,6 @@ public:
     virtual short insphere(double p1[3], double p2[3], double p3[3], double p4[3], double p5[3])
         const = 0;
 };
+/// @}
+
 } // namespace lagrange

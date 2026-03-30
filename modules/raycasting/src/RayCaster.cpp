@@ -159,8 +159,8 @@ constexpr RTCBuildQuality to_embree_build_quality(BuildQuality quality)
     }
 }
 
-/// Convert a bool-typed Eigen mask to an int32_t array for Embree.
-/// Embree expects 0 (inactive) / -1 (active, i.e. 0xFFFFFFFF) as int32_t.
+// Convert a bool-typed Eigen mask to an int32_t array for Embree.
+// Embree expects 0 (inactive) / -1 (active, i.e. 0xFFFFFFFF) as int32_t.
 template <int N>
 void mask_to_embree(const Eigen::Matrix<bool, N, 1>& mask, std::array<int, N>& out)
 {
@@ -169,7 +169,7 @@ void mask_to_embree(const Eigen::Matrix<bool, N, 1>& mask, std::array<int, N>& o
     }
 }
 
-/// Build an Embree int32_t mask from a count: the first `count` lanes are active.
+// Build an Embree int32_t mask from a count: the first `count` lanes are active.
 template <int N>
 void count_to_embree_mask(size_t count, std::array<int, N>& out)
 {
@@ -178,7 +178,7 @@ void count_to_embree_mask(size_t count, std::array<int, N>& out)
     }
 }
 
-/// Resolve a std::variant<MaskN, size_t> into an Embree-ready int32_t mask.
+// Resolve a std::variant<MaskN, size_t> into an Embree-ready int32_t mask.
 template <int N>
 void resolve_active_mask(
     const std::variant<Eigen::Matrix<bool, N, 1>, size_t>& active,
@@ -191,15 +191,15 @@ void resolve_active_mask(
     }
 }
 
-/// Mapping from Embree instance geometry ID to user-facing mesh/instance indices.
+// Mapping from Embree instance geometry ID to user-facing mesh/instance indices.
 struct InstanceIndices
 {
     uint32_t mesh_index;
     uint32_t instance_index;
 };
 
-/// User data passed to the Embree point query callback for closest-point queries on an instanced
-/// scene. Holds a pointer to the scene so that the callback can retrieve triangle vertices.
+// User data passed to the Embree point query callback for closest-point queries on an instanced
+// scene. Holds a pointer to the scene so that the callback can retrieve triangle vertices.
 struct ClosestPointUserData
 {
     const SimpleScene32f* scene = nullptr;
@@ -342,6 +342,7 @@ bool embree_closest_point_callback(RTCPointQueryFunctionArguments* args)
 // Impl
 // ============================================================================
 
+/// @cond LA_INTERNAL_DOCS
 struct RayCasterImpl
 {
     RTCSceneFlags m_scene_flags = to_embree_scene_flags(SceneFlags::None);
@@ -446,7 +447,7 @@ struct RayCasterImpl
             RTC_BUFFER_TYPE_VERTEX,
             0,
             RTC_FORMAT_FLOAT3,
-            mesh.get_vertex_to_position().get_all_with_padding().data(),
+            lagrange::internal::get_all_unpoisoned(mesh.get_vertex_to_position()).data(),
             0,
             sizeof(float) * 3,
             mesh.get_num_vertices());
@@ -463,7 +464,7 @@ struct RayCasterImpl
             RTC_BUFFER_TYPE_INDEX,
             0,
             RTC_FORMAT_UINT3,
-            mesh.get_corner_to_vertex().get_all_with_padding().data(),
+            lagrange::internal::get_all_unpoisoned(mesh.get_corner_to_vertex()).data(),
             0,
             sizeof(uint32_t) * 3,
             mesh.get_num_facets());
@@ -572,16 +573,17 @@ struct RayCasterImpl
         inst_idx = m_instance_indices[rtc_inst_id].instance_index;
     }
 };
+/// @endcond
 
 // ============================================================================
 // Embree filter callbacks
 // ============================================================================
 
-/// Whether the filter is for intersection or occlusion queries.
+// Whether the filter is for intersection or occlusion queries.
 enum class FilterKind { Intersection, Occlusion };
 
-/// Context struct that extends RTCRayQueryContext (Embree 4) / RTCIntersectContext (Embree 3) with a
-/// pointer back to the RayCasterImpl so that the filter callback can look up user filter functions.
+// Context struct that extends RTCRayQueryContext (Embree 4) / RTCIntersectContext (Embree 3) with a
+// pointer back to the RayCasterImpl so that the filter callback can look up user filter functions.
 struct FilterContext
 {
 #ifdef LAGRANGE_WITH_EMBREE_3
@@ -593,8 +595,8 @@ struct FilterContext
     FilterKind kind = FilterKind::Intersection;
 };
 
-/// Embree filter callback invoked for each potential hit. Looks up the user-defined filter function
-/// on the mesh that was hit and rejects the hit (sets valid[i] = 0) if the filter returns false.
+// Embree filter callback invoked for each potential hit. Looks up the user-defined filter function
+// on the mesh that was hit and rejects the hit (sets valid[i] = 0) if the filter returns false.
 void embree_filter_callback(const RTCFilterFunctionNArguments* args)
 {
     // Recover our extended context from the context pointer.
@@ -635,7 +637,7 @@ void embree_filter_callback(const RTCFilterFunctionNArguments* args)
     }
 }
 
-/// Returns true if any mesh in the scene has an intersection filter set.
+// Returns true if any mesh in the scene has an intersection filter set.
 bool has_any_intersection_filter(const RayCasterImpl& impl)
 {
     for (const auto& m : impl.m_meshes) {
@@ -644,7 +646,7 @@ bool has_any_intersection_filter(const RayCasterImpl& impl)
     return false;
 }
 
-/// Returns true if any mesh in the scene has an occlusion filter set.
+// Returns true if any mesh in the scene has an occlusion filter set.
 bool has_any_occlusion_filter(const RayCasterImpl& impl)
 {
     for (const auto& m : impl.m_meshes) {
@@ -653,7 +655,7 @@ bool has_any_occlusion_filter(const RayCasterImpl& impl)
     return false;
 }
 
-/// Initialize a FilterContext for intersection queries.
+// Initialize a FilterContext for intersection queries.
 void init_intersection_filter_context(FilterContext& fctx, const RayCasterImpl& impl)
 {
 #ifdef LAGRANGE_WITH_EMBREE_3
@@ -666,7 +668,7 @@ void init_intersection_filter_context(FilterContext& fctx, const RayCasterImpl& 
     fctx.kind = FilterKind::Intersection;
 }
 
-/// Initialize a FilterContext for occlusion queries.
+// Initialize a FilterContext for occlusion queries.
 void init_occlusion_filter_context(FilterContext& fctx, const RayCasterImpl& impl)
 {
 #ifdef LAGRANGE_WITH_EMBREE_3

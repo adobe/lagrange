@@ -25,6 +25,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
+#include <lagrange/internal/set_invalid_indexed_values.h>
 #include <lagrange/io/internal/scene_utils.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SceneTypes.h>
@@ -203,6 +204,7 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
     logger().trace("[load_mesh_obj] Copy facet indices");
     std::partial_sum(facet_counts.begin(), facet_counts.end(), facet_counts.begin());
     std::atomic_size_t num_invalid_uv = 0;
+    std::atomic_size_t num_invalid_nrm = 0;
     tbb::parallel_for(Index(0), Index(shapes.size()), [&](Index i) {
         const auto& shape = shapes[i];
         const Index first_facet = (i == 0 ? 0 : facet_counts[i - 1]);
@@ -248,7 +250,12 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
                     }
                 }
                 if (!nrm_indices.empty()) {
-                    nrm_indices[c] = safe_cast<Index>(index.normal_index);
+                    if (index.normal_index < 0) {
+                        nrm_indices[c] = invalid<Index>();
+                        ++num_invalid_nrm;
+                    } else {
+                        nrm_indices[c] = safe_cast<Index>(index.normal_index);
+                    }
                 }
             }
         }
@@ -256,12 +263,18 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
         // TODO: Support smoothing groups + subd tags
     });
 
-    if (num_invalid_uv) {
-        // This one is a legit warning, so we do not silence it even in quiet mode.
-        logger().warn(
-            "Found {} vertices without UV indices. UV attribute will have invalid values.",
-            num_invalid_uv.load());
-    }
+    auto handle_invalid_indices = [&](std::atomic_size_t& num_invalid,
+                                      std::string_view attr_name,
+                                      IndexedAttribute<Scalar, Index>* attr_ptr) {
+        if (!attr_ptr) return;
+        if (!num_invalid) return;
+        if (!options.quiet) {
+            logger().warn("Found {} corners without {} indices.", num_invalid.load(), attr_name);
+        }
+        lagrange::internal::set_invalid_indexed_values(*attr_ptr);
+    };
+    handle_invalid_indices(num_invalid_uv, AttributeName::texcoord, uv_attr);
+    handle_invalid_indices(num_invalid_nrm, AttributeName::normal, nrm_attr);
     logger().trace("[load_mesh_obj] Loading complete");
 
     if (options.stitch_vertices) {

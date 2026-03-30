@@ -12,8 +12,6 @@
 import lagrange
 import numpy as np
 
-from .assets import cube, single_triangle  # noqa: F401
-
 
 class TestComputeMeshCovariance:
     def test_triangle(self, single_triangle):

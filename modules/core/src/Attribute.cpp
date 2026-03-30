@@ -527,23 +527,26 @@ lagrange::span<const ValueType> Attribute<ValueType>::get_all() const
     return m_const_view.first(m_num_elements * get_num_channels());
 }
 
+namespace internal {
+
 template <typename ValueType>
-lagrange::span<const ValueType> Attribute<ValueType>::get_all_with_padding() const
+lagrange::span<const ValueType> get_all_unpoisoned(const Attribute<ValueType>& attr)
 {
-    if (!is_external()) {
+    if (!attr.is_external()) {
 #if LAGRANGE_ASAN_ENABLED
         // Unpoison the [size, capacity) region so that external libraries (e.g. Embree) can safely
-        // read padding entries without triggering ASan's container-overflow detection.
-        if (m_data.capacity() > m_data.size()) {
+        // perform SIMD reads that overshoot the logical buffer size.
+        if (attr.m_data.capacity() > attr.m_data.size()) {
             ASAN_UNPOISON_MEMORY_REGION(
-                m_data.data() + m_data.size(),
-                (m_data.capacity() - m_data.size()) * sizeof(ValueType));
+                attr.m_data.data() + attr.m_data.size(),
+                (attr.m_data.capacity() - attr.m_data.size()) * sizeof(ValueType));
         }
 #endif
-        return {m_data.data(), m_data.capacity()};
     }
-    return get_all();
+    return attr.get_all();
 }
+
+} // namespace internal
 
 template <typename ValueType>
 lagrange::span<ValueType> Attribute<ValueType>::ref_all()
@@ -686,6 +689,11 @@ void Attribute<ValueType>::clear_views()
 // This needs to be first for GCC
 #define LA_X_attr(_, ValueType) template class LA_CORE_API Attribute<ValueType>;
 LA_ATTRIBUTE_X(attr, 0)
+
+#define LA_X_get_all_unpoisoned(_, ValueType)                                          \
+    template LA_CORE_API lagrange::span<const ValueType> internal::get_all_unpoisoned( \
+        const Attribute<ValueType>&);
+LA_ATTRIBUTE_X(get_all_unpoisoned, 0)
 
 // Workaround for cartesian product of attr type with itself...
 // clang-format off

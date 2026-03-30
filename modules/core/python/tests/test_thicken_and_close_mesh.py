@@ -11,8 +11,6 @@
 #
 import lagrange
 
-from .assets import single_triangle, cube  # noqa: F401
-
 
 class TestThickenAndCloseMesh:
     def test_triangle(self, single_triangle):

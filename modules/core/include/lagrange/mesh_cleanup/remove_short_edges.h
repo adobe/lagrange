@@ -20,6 +20,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Collapse all edges shorter than a given tolerance.
 ///
 /// @param mesh       Input mesh to be updated in place.
@@ -27,5 +32,7 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 void remove_short_edges(SurfaceMesh<Scalar, Index>& mesh, Scalar threshold = 0);
+
+/// @}
 
 } // namespace lagrange

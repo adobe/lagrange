@@ -11,8 +11,6 @@
 #
 import lagrange
 
-from .asset import cube  # noqa: F401
-
 
 class TestRemoveInteriorShells:
     def test_remove_interior_shells(self, cube):

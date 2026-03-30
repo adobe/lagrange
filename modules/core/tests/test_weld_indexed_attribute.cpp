@@ -14,6 +14,7 @@
 #include <lagrange/internal/constants.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/invalid.h>
 #include <lagrange/weld_indexed_attribute.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
@@ -273,6 +274,61 @@ TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
             const auto& attr = cube.get_indexed_attribute<Scalar>(attr_id);
             REQUIRE(attr.values().get_num_elements() == 1);
         }
+    }
+
+    SECTION("Valid and invalid values do not weld even with large epsilon")
+    {
+        const Scalar inv = lagrange::invalid<Scalar>();
+
+        std::array<Scalar, 12> uv_values{0, 0, inv, inv, 0, 0, 0, 0, 0, 0, 0, 0};
+        std::array<Index, 6> uv_indices{0, 1, 2, 3, 4, 5};
+        auto id = mesh.create_attribute<Scalar>(
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
+            uv_values,
+            uv_indices);
+
+        WeldOptions options;
+        options.epsilon_abs = std::numeric_limits<Scalar>::infinity();
+        options.epsilon_rel = 1.0f;
+        weld_indexed_attribute(mesh, id, options);
+
+        const auto& attr = mesh.get_indexed_attribute<Scalar>(id);
+        const auto& welded_values = attr.values();
+        const auto& welded_indices = attr.indices();
+
+        // Valid rows 2 and 3 collapse into one; the rest stays separate.
+        REQUIRE(welded_values.get_num_elements() == 5);
+        REQUIRE(welded_indices.get(2) == welded_indices.get(3));
+        REQUIRE(welded_indices.get(1) != welded_indices.get(4));
+    }
+
+    SECTION("Two identical invalid rows weld together")
+    {
+        const Scalar inv = lagrange::invalid<Scalar>();
+
+        std::array<Scalar, 12> uv_values{0, 0, inv, inv, 0, 0, inv, inv, inv, inv, 0, 0};
+        std::array<Index, 6> uv_indices{0, 1, 2, 3, 4, 5};
+        auto id = mesh.create_attribute<Scalar>(
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
+            uv_values,
+            uv_indices);
+
+        weld_indexed_attribute(mesh, id);
+
+        const auto& attr = mesh.get_indexed_attribute<Scalar>(id);
+        const auto& welded_values = attr.values();
+        const auto& welded_indices = attr.indices();
+
+        // Rows 1 and 4 (both invalid {inv,inv}) collapse into one; the rest stays separate.
+        REQUIRE(welded_values.get_num_elements() == 5);
+        REQUIRE(welded_indices.get(1) == welded_indices.get(4));
+        REQUIRE(welded_indices.get(2) != welded_indices.get(3));
     }
 }
 

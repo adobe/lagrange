@@ -12,6 +12,8 @@
 #include <lagrange/ui/types/Color.h>
 #include <lagrange/ui/utils/colormap.h>
 
+#include <cassert>
+
 namespace {
 #include <colormaps/coolwarm.h>
 #include <colormaps/inferno.h>

@@ -20,6 +20,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
+///
 /// Options for orienting the facets of a mesh.
 ///
 struct OrientOptions
@@ -40,5 +45,7 @@ struct OrientOptions
 ///
 template <typename Scalar, typename Index>
 void orient_outward(lagrange::SurfaceMesh<Scalar, Index>& mesh, const OrientOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

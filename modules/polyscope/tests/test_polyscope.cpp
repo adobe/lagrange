@@ -219,3 +219,49 @@ TEST_CASE("register_edges_2d", "[polyscope]")
     auto ps_struct = lagrange::polyscope::register_structure("edge_network_struct", uv_mesh);
     REQUIRE(dynamic_cast<polyscope::CurveNetwork*>(ps_struct) != nullptr);
 }
+
+TEST_CASE("register_4channel_attributes", "[polyscope]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    polyscope::init(g_backend);
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube.obj");
+
+    // Add 4-channel vertex color attribute (RGBA)
+    auto vertex_color_id = mesh.template create_attribute<Scalar>(
+        "vertex_color",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Color,
+        4);
+    auto& vertex_color = mesh.template ref_attribute<Scalar>(vertex_color_id);
+
+    // Add 4-channel vertex vector attribute
+    auto vertex_vec_id = mesh.template create_attribute<Scalar>(
+        "vertex_vec",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Vector,
+        4);
+    auto& vertex_vec = mesh.template ref_attribute<Scalar>(vertex_vec_id);
+
+    // Add 4-channel facet color attribute (RGBA)
+    auto facet_color_id = mesh.template create_attribute<Scalar>(
+        "facet_color",
+        lagrange::AttributeElement::Facet,
+        lagrange::AttributeUsage::Color,
+        4);
+    auto& facet_color = mesh.template ref_attribute<Scalar>(facet_color_id);
+
+    // Register mesh and attributes
+    auto ps_mesh = lagrange::polyscope::register_mesh("mesh_4ch", mesh);
+    REQUIRE(ps_mesh != nullptr);
+
+    auto attr1 = lagrange::polyscope::register_attribute(*ps_mesh, "vertex_color", vertex_color);
+    REQUIRE(attr1 != nullptr);
+
+    auto attr2 = lagrange::polyscope::register_attribute(*ps_mesh, "vertex_vec", vertex_vec);
+    REQUIRE(attr2 != nullptr);
+
+    auto attr3 = lagrange::polyscope::register_attribute(*ps_mesh, "facet_color", facet_color);
+    REQUIRE(attr3 != nullptr);
+}

@@ -56,15 +56,28 @@ function(lagrange_add_test)
     # Register tests
     file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/reports")
 
+    # When cross-compiling with Emscripten, test discovery at build time can produce truncated JSON
+    # output due to stdout flushing issues with PROXY_TO_PTHREAD. Use PRE_TEST to defer discovery to
+    # ctest runtime instead. See:
+    # - https://github.com/emscripten-core/emscripten/issues/15186
+    # - https://github.com/emscripten-core/emscripten/issues/20059
+    if(EMSCRIPTEN)
+        set(_discovery_mode PRE_TEST)
+    else()
+        set(_discovery_mode POST_BUILD)
+    endif()
+
     if(LAGRANGE_TOPLEVEL_PROJECT AND NOT USE_SANITIZER MATCHES "([Tt]hread)")
         catch_discover_tests(${test_target}
             REPORTER junit
             OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
             OUTPUT_SUFFIX ".xml"
+            DISCOVERY_MODE ${_discovery_mode}
             PROPERTIES ENVIRONMENT ${LAGRANGE_TESTS_ENVIRONMENT}
         )
     else()
         catch_discover_tests(${test_target}
+            DISCOVERY_MODE ${_discovery_mode}
             PROPERTIES ENVIRONMENT ${LAGRANGE_TESTS_ENVIRONMENT}
         )
     endif()

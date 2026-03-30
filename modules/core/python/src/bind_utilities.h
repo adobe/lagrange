@@ -1326,7 +1326,7 @@ Basel: Birkhäuser Basel, 2008. 175-188.
     m.def(
         "extract_submesh",
         [](MeshType& mesh,
-           Tensor<Index> selected_facets,
+           std::variant<Tensor<Index>, nb::list> selected_facets,
            std::string_view source_vertex_attr_name,
            std::string_view source_facet_attr_name,
            bool map_attributes) {
@@ -1334,9 +1334,17 @@ Basel: Birkhäuser Basel, 2008. 175-188.
             options.source_vertex_attr_name = source_vertex_attr_name;
             options.source_facet_attr_name = source_facet_attr_name;
             options.map_attributes = map_attributes;
-            auto [data, shape, stride] = tensor_to_span(selected_facets);
-            la_runtime_assert(is_dense(shape, stride));
-            return extract_submesh<Scalar, Index>(mesh, data, options);
+            if (std::holds_alternative<nb::list>(selected_facets)) {
+                auto selected_facets_list =
+                    nb::cast<std::vector<Index>>(std::get<nb::list>(selected_facets));
+                span<const Index> data{selected_facets_list.data(), selected_facets_list.size()};
+                return extract_submesh<Scalar, Index>(mesh, data, options);
+            } else {
+                auto selected_facets_tensor = std::get<Tensor<Index>>(selected_facets);
+                auto [data, shape, stride] = tensor_to_span(selected_facets_tensor);
+                la_runtime_assert(is_dense(shape, stride));
+                return extract_submesh<Scalar, Index>(mesh, data, options);
+            }
         },
         "mesh"_a,
         "selected_facets"_a,
@@ -1346,7 +1354,7 @@ Basel: Birkhäuser Basel, 2008. 175-188.
         R"(Extract a submesh based on the selected facets.
 
 :param mesh:                    The source mesh.
-:param selected_facets:         A listed of facet ids to extract.
+:param selected_facets:         A list or tensor of facet ids to extract.
 :param source_vertex_attr_name: The optional attribute name to track source vertices.
 :param source_facet_attr_name:  The optional attribute name to track source facets.
 :param map_attributes:          Map attributes from the source to target meshes.

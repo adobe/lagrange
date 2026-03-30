@@ -13,8 +13,6 @@ import lagrange
 
 import numpy as np
 
-from .assets import single_triangle, cube  # noqa: F401
-
 
 class TestComputeVertexValence:
     def test_simple(self, single_triangle):

@@ -18,6 +18,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/SurfaceMeshInfo.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/internal/fast_edge_sort.h>
 #include <lagrange/utils/Error.h>
@@ -2307,8 +2308,8 @@ void SurfaceMesh<Scalar, Index>::compress_if_regular()
         delete_attribute(s_reserved_names.facet_to_first_corner(), AttributeDeletePolicy::Force);
         delete_attribute(s_reserved_names.corner_to_facet(), AttributeDeletePolicy::Force);
         m_vertex_per_facet = nvpf;
+        la_debug_assert(is_regular());
     }
-    la_debug_assert(is_regular());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -3589,6 +3590,175 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
         return id;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// SurfaceMeshInfo conversion
+////////////////////////////////////////////////////////////////////////////////
+
+namespace internal {
+
+template <typename Scalar, typename Index>
+SurfaceMeshInfo from_surface_mesh(const SurfaceMesh<Scalar, Index>& mesh)
+{
+    SurfaceMeshInfo info;
+    info.scalar_type_size = sizeof(Scalar);
+    info.index_type_size = sizeof(Index);
+    info.num_vertices = mesh.m_num_vertices;
+    info.num_facets = mesh.m_num_facets;
+    info.num_corners = mesh.m_num_corners;
+    info.num_edges = mesh.m_num_edges;
+    info.dimension = mesh.m_dimension;
+    info.vertex_per_facet = mesh.m_vertex_per_facet;
+
+    seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+
+        AttributeInfo ai;
+        ai.name = name;
+        ai.attribute_id = mesh.get_attribute_id(name);
+        ai.value_type = static_cast<decltype(ai.value_type)>(attr.get_value_type());
+        ai.element_type = static_cast<decltype(ai.element_type)>(attr.get_element_type());
+        ai.usage = static_cast<decltype(ai.usage)>(attr.get_usage());
+        ai.num_channels = attr.get_num_channels();
+
+        if constexpr (AttributeType::IsIndexed) {
+            ai.is_indexed = true;
+            const auto& values = attr.values();
+            const auto& indices = attr.indices();
+            ai.num_elements = 0;
+            ai.values_num_elements = values.get_num_elements();
+            ai.values_num_channels = values.get_num_channels();
+            ai.indices_num_elements = indices.get_num_elements();
+            ai.index_type_size = sizeof(Index);
+
+            auto vals = values.get_all();
+            ai.values_bytes = span<const uint8_t>(
+                reinterpret_cast<const uint8_t*>(vals.data()),
+                vals.size() * sizeof(typename AttributeType::ValueType));
+            auto inds = indices.get_all();
+            ai.indices_bytes = span<const uint8_t>(
+                reinterpret_cast<const uint8_t*>(inds.data()),
+                inds.size() * sizeof(Index));
+        } else {
+            ai.is_indexed = false;
+            ai.num_elements = attr.get_num_elements();
+
+            auto data = attr.get_all();
+            ai.data_bytes = span<const uint8_t>(
+                reinterpret_cast<const uint8_t*>(data.data()),
+                data.size() * sizeof(typename AttributeType::ValueType));
+        }
+
+        info.attributes.push_back(std::move(ai));
+    });
+
+    return info;
+}
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> to_surface_mesh(const SurfaceMeshInfo& info)
+{
+    la_runtime_assert(
+        info.scalar_type_size == sizeof(Scalar),
+        "Scalar type size mismatch: expected " + std::to_string(sizeof(Scalar)) + ", got " +
+            std::to_string(info.scalar_type_size));
+    la_runtime_assert(
+        info.index_type_size == sizeof(Index),
+        "Index type size mismatch: expected " + std::to_string(sizeof(Index)) + ", got " +
+            std::to_string(info.index_type_size));
+
+    using MeshType = SurfaceMesh<Scalar, Index>;
+    MeshType mesh(typename MeshType::BareMeshTag{});
+
+    mesh.m_num_vertices = static_cast<Index>(info.num_vertices);
+    mesh.m_num_facets = static_cast<Index>(info.num_facets);
+    mesh.m_num_corners = static_cast<Index>(info.num_corners);
+    mesh.m_num_edges = static_cast<Index>(info.num_edges);
+    mesh.m_dimension = static_cast<Index>(info.dimension);
+    mesh.m_vertex_per_facet = static_cast<Index>(info.vertex_per_facet);
+
+    // Sort attributes by attribute_id to restore original creation order
+    std::vector<const AttributeInfo*> sorted_attrs;
+    sorted_attrs.reserve(info.attributes.size());
+    for (const auto& ai : info.attributes) {
+        sorted_attrs.push_back(&ai);
+    }
+    std::sort(sorted_attrs.begin(), sorted_attrs.end(), [](const auto* a, const auto* b) {
+        return a->attribute_id < b->attribute_id;
+    });
+
+    for (const auto* ai : sorted_attrs) {
+        auto value_type = static_cast<AttributeValueType>(ai->value_type);
+        auto element = static_cast<AttributeElement>(ai->element_type);
+        auto usage = static_cast<AttributeUsage>(ai->usage);
+
+        AttributeId id = invalid_attribute_id();
+
+        if (ai->is_indexed) {
+            switch (value_type) {
+#define LA_X_restore_indexed(_, ValueType)                               \
+    case make_attribute_value_type<ValueType>(): {                       \
+        auto values = span<const ValueType>(                             \
+            reinterpret_cast<const ValueType*>(ai->values_bytes.data()), \
+            ai->values_bytes.size() / sizeof(ValueType));                \
+        auto indices = span<const Index>(                                \
+            reinterpret_cast<const Index*>(ai->indices_bytes.data()),    \
+            ai->indices_bytes.size() / sizeof(Index));                   \
+        id = mesh.template create_attribute_internal<ValueType>(         \
+            ai->name,                                                    \
+            element,                                                     \
+            usage,                                                       \
+            ai->values_num_channels,                                     \
+            values,                                                      \
+            indices);                                                    \
+        break;                                                           \
+    }
+                LA_ATTRIBUTE_X(restore_indexed, 0)
+#undef LA_X_restore_indexed
+            }
+        } else {
+            switch (value_type) {
+#define LA_X_restore_attr(_, ValueType)                                \
+    case make_attribute_value_type<ValueType>(): {                     \
+        auto data = span<const ValueType>(                             \
+            reinterpret_cast<const ValueType*>(ai->data_bytes.data()), \
+            ai->data_bytes.size() / sizeof(ValueType));                \
+        id = mesh.template create_attribute_internal<ValueType>(       \
+            ai->name,                                                  \
+            element,                                                   \
+            usage,                                                     \
+            ai->num_channels,                                          \
+            data);                                                     \
+        break;                                                         \
+    }
+                LA_ATTRIBUTE_X(restore_attr, 0)
+#undef LA_X_restore_attr
+            }
+        }
+
+        // Set reserved attribute IDs
+        constexpr int N = MeshType::ReservedAttributeIds::size();
+        for (int i = 0; i < N; ++i) {
+            if (ai->name == MeshType::s_reserved_names.items[i]) {
+                mesh.m_reserved_ids.items[i] = id;
+                break;
+            }
+        }
+    }
+
+    return mesh;
+}
+
+// Explicit instantiations for from_surface_mesh / to_surface_mesh
+#define LA_X_mesh_info(_, Scalar, Index)                                            \
+    template LA_CORE_API SurfaceMeshInfo from_surface_mesh<Scalar, Index>(          \
+        const SurfaceMesh<Scalar, Index>&);                                         \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> to_surface_mesh<Scalar, Index>( \
+        const SurfaceMeshInfo&);
+LA_SURFACE_MESH_X(mesh_info, 0)
+#undef LA_X_mesh_info
+
+} // namespace internal
 
 ////////////////////////////////////////////////////////////////////////////////
 // Explicit template instantiations

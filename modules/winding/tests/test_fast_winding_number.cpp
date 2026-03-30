@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/internal/constants.h>
+#include <lagrange/mesh_bbox.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/views.h>
 #include <lagrange/winding/FastWindingNumber.h>
@@ -88,10 +89,7 @@ TEST_CASE("fast winding number", "[winding][!benchmark]")
 
     auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/dragon.obj");
 
-    Eigen::AlignedBox<Scalar, 3> bbox;
-    for (auto p : vertex_view(mesh).rowwise()) {
-        bbox.extend(p.transpose());
-    }
+    auto bbox = lagrange::mesh_bbox<3>(mesh);
     std::uniform_real_distribution<Scalar> px(bbox.min().x(), bbox.max().x());
     std::uniform_real_distribution<Scalar> py(bbox.min().y(), bbox.max().y());
     std::uniform_real_distribution<Scalar> pz(bbox.min().z(), bbox.max().z());

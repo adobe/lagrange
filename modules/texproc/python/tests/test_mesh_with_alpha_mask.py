@@ -49,29 +49,19 @@ def load_alpha_data(scene_path: Path):
     return mesh, texcoord_id, image, material.alpha_cutoff, node_transform
 
 
-all_alpha_datas = (
-    []
-    if lagrange.variant == "open"
-    else list(
-        map(
-            lambda pp: load_alpha_data(Path("data/corp/texproc") / pp),
-            [Path("alpha_cube_numbers.glb"), Path("alpha_cube_letters.glb")],
-        )
-    )
-)
+alpha_scene_files = ["alpha_cube_numbers.glb", "alpha_cube_letters.glb"]
 
 
 @pytest.mark.skipif(
     lagrange.variant == "open",
     reason="Test requires corp data",
 )
-@pytest.mark.parametrize(
-    "alpha_data",
-    all_alpha_datas,
-)
+@pytest.mark.parametrize("scene_file", alpha_scene_files)
 class TestMeshWithAlphaMask:
-    def test_extract_alpha_cube(self, alpha_data):
-        mesh, texcoord_id, image, alpha_threshold, transform = alpha_data
+    def test_extract_alpha_cube(self, scene_file):
+        mesh, texcoord_id, image, alpha_threshold, transform = load_alpha_data(
+            Path("data/corp/texproc") / scene_file
+        )
 
         # extract tessellated mesh
         mesh_ = lagrange.texproc.extract_mesh_with_alpha_mask(
@@ -82,7 +72,9 @@ class TestMeshWithAlphaMask:
         )
         assert mesh_.num_facets > 0
 
-    def test_transform(self, alpha_data):
-        mesh, texcoord_id, image, alpha_threshold, transform = alpha_data
+    def test_transform(self, scene_file):
+        mesh, texcoord_id, image, alpha_threshold, transform = load_alpha_data(
+            Path("data/corp/texproc") / scene_file
+        )
 
         assert np.abs(transform - np.eye(4)).max() < 1e-7

@@ -22,6 +22,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
 struct SplitLongEdgesOptions
 {
     /// Maximum edge length. Edges longer than this value will be split.
@@ -50,5 +55,7 @@ struct SplitLongEdgesOptions
 ///
 template <typename Scalar, typename Index>
 void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions options = {});
+
+/// @}
 
 } // namespace lagrange

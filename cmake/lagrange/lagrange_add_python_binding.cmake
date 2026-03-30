@@ -10,6 +10,8 @@
 # governing permissions and limitations under the License.
 #
 function(lagrange_add_python_binding)
+    cmake_parse_arguments(PARSE_ARGV 0 ARG "" "PYTHON_NAME" "")
+
     # Retrieve module name
     get_filename_component(module_path "${CMAKE_CURRENT_SOURCE_DIR}/.." REALPATH)
     get_filename_component(module_name "${module_path}" NAME)
@@ -39,4 +41,9 @@ function(lagrange_add_python_binding)
 
     # Keep track of active modules
     set_property(TARGET lagrange_python APPEND PROPERTY LAGRANGE_ACTIVE_MODULES ${module_name})
+
+    # Optional: override the Python submodule name (e.g. expose "serialization2" as "serialization")
+    if(ARG_PYTHON_NAME)
+        set_property(TARGET lagrange_python PROPERTY LAGRANGE_PYTHON_NAME_${module_name} ${ARG_PYTHON_NAME})
+    endif()
 endfunction()

@@ -43,6 +43,10 @@ uv.lock
 *.out
 *.app
 
+# Lagrange serialized mesh/scene
+*.lgs
+*.lgm
+
 # Mesh files
 *.obj
 *.off
@@ -96,3 +100,8 @@ keyfile.txt
 
 # ctags
 tags
+
+# Claude
+.claude/agent-memory/
+/.tmp/
+.claude/settings.local.json

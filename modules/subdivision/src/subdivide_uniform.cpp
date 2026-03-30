@@ -178,6 +178,15 @@ void interpolate_vertex_attribute(
         }
         src = dst;
     }
+    if (!need_limit && num_refined_levels == 1) {
+        // No refinement and no limit projection: copy source directly to output.
+        for (size_t i = 0; i < target_attr.get_num_elements(); ++i) {
+            const auto& s = source_attr.get_row(i);
+            auto t = target_attr.ref_row(i);
+            std::copy(s.begin(), s.end(), t.begin());
+        }
+        return;
+    }
     if (need_limit_btn) {
         // Project the vertex positions to the limit surface and compute derivatives
         const auto& last_level = topology_refiner.GetLevel(num_refined_levels - 1);
@@ -271,10 +280,20 @@ void interpolate_indexed_attribute_values(
         src = dst;
     }
     if (limit) {
-        // Project the last level interpolated data to the limit surface
-        Vertex<Scalar>* dst =
-            src + topology_refiner.GetLevel(num_refined_levels - 1).GetNumFVarValues(fvar_index);
-        primvar_refiner.LimitFaceVarying(src, dst, fvar_index);
+        // Project the last level interpolated data to the limit surface.
+        // Note: LimitFaceVarying requires at least one level of refinement.
+        if (num_refined_levels > 1) {
+            Vertex<Scalar>* dst =
+                src +
+                topology_refiner.GetLevel(num_refined_levels - 1).GetNumFVarValues(fvar_index);
+            primvar_refiner.LimitFaceVarying(src, dst, fvar_index);
+        } else {
+            // No refinement: copy the source values directly to the output.
+            Vertex<Scalar>* dst = src + topology_refiner.GetLevel(0).GetNumFVarValues(fvar_index);
+            for (int i = 0; i < topology_refiner.GetLevel(0).GetNumFVarValues(fvar_index); ++i) {
+                std::copy(src[i].values.begin(), src[i].values.end(), dst[i].values.begin());
+            }
+        }
     }
 }
 
@@ -305,8 +324,10 @@ SurfaceMesh<Scalar, Index> subdivide_uniform(
         topology_refiner.RefineUniform(uniform_options);
     }
 
-    // Adaptive refinement may result in fewer levels than the max specified.
+    // Check number of refinement levels
     int num_refined_levels = topology_refiner.GetNumLevels();
+    la_debug_assert(num_refined_levels == options.num_levels + 1);
+    la_debug_assert(num_refined_levels >= 1);
 
     // Extract mesh facet topology
     SurfaceMesh<Scalar, Index> output_mesh = extract_uniform_mesh_topology<Scalar, Index>(

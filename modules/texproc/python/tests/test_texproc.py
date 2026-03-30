@@ -13,8 +13,6 @@ import lagrange
 
 import numpy as np
 
-from .assets import quad_scene, quad_mesh, quad_tex, cube_with_uv  # noqa: F401
-
 
 class TestTextureProcessing:
     def test_filtering(self, quad_mesh, quad_tex):

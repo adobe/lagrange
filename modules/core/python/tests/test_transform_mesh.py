@@ -13,8 +13,6 @@ import lagrange
 
 import numpy as np
 
-from .assets import single_triangle  # noqa: F401
-
 
 class TestTransformMesh:
     def test_identity(self, single_triangle):

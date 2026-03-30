@@ -96,8 +96,13 @@ function(lagrange_generate_binding_file)
     set(bind_lines "")
     get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
     foreach(module_name IN ITEMS ${active_modules})
+        # Check for a Python name override (e.g. expose "serialization2" as "serialization")
+        get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
+        if(NOT python_name)
+            set(python_name ${module_name})
+        endif()
         list(APPEND include_lines "#include <lagrange/python/${module_name}.h>")
-        list(APPEND bind_lines "nb::module_ m_${module_name} = m.def_submodule(\"${module_name}\", \"${module_name} module\")\\\;")
+        list(APPEND bind_lines "nb::module_ m_${module_name} = m.def_submodule(\"${python_name}\", \"${python_name} module\")\\\;")
         list(APPEND bind_lines "lagrange::python::populate_${module_name}_module(m_${module_name})\\\;")
     endforeach()
 
@@ -132,7 +137,12 @@ function(lagrange_generate_init_file)
     set(init_lines "")
     get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
     foreach(module_name IN ITEMS ${active_modules})
-        list(APPEND init_lines "from .lagrange import ${module_name}")
+        # Check for a Python name override
+        get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
+        if(NOT python_name)
+            set(python_name ${module_name})
+        endif()
+        list(APPEND init_lines "from .lagrange import ${python_name}")
     endforeach()
 
     # Determine Python package variant
@@ -142,10 +152,19 @@ function(lagrange_generate_init_file)
         set(python_variant "corp")
     endif()
 
-    # Build the import lines
+    # Build the import lines and sys.modules alias lines
     set(import_lines "")
+    set(sysmod_lines "")
     foreach(line IN ITEMS ${init_lines})
         string(APPEND import_lines "${line}\n")
+    endforeach()
+    foreach(module_name IN ITEMS ${active_modules})
+        # Check for a Python name override
+        get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
+        if(NOT python_name)
+            set(python_name ${module_name})
+        endif()
+        string(APPEND sysmod_lines "sys.modules[__name__ + '.${python_name}'] = ${python_name}\n")
     endforeach()
 
     # Generate __init__.py to import all modules using file(GENERATE)
@@ -162,6 +181,8 @@ function(lagrange_generate_init_file)
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
+import sys
+
 from .lagrange.core import *
 from ._logging import logger
 from ._version import *
@@ -173,7 +194,10 @@ del _logging, lagrange  # type: ignore
 variant: str = \"${python_variant}\"
 
 # Import all modules.
-${import_lines}")
+${import_lines}
+# Register submodules in sys.modules so that 'import lagrange.X' and
+# 'from lagrange.X import Y' work correctly.
+${sysmod_lines}")
 endfunction()
 
 function(lagrange_generate_python_binding_module)

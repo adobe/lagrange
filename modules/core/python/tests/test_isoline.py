@@ -10,7 +10,6 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-from .assets import single_triangle  # noqa: F401
 
 import numpy as np
 
