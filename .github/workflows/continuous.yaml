@@ -69,7 +69,7 @@ jobs:
           echo "disk usage:"
           df -h
           echo "memory:"
-          free -h
+          if command -v free &>/dev/null; then free -h; else sysctl hw.memsize; fi
 
       - name: Select build dir (Linux)
         if: runner.os == 'Linux'
