@@ -104,6 +104,9 @@ jobs:
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
 
+      - name: Install mold
+        uses: rui314/setup-mold@v1
+
       - name: Dependencies (Linux)
         if: runner.os == 'Linux'
         run: |
