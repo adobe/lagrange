@@ -79,12 +79,15 @@ option(BOOST_IOSTREAMS_ENABLE_BZIP2 "Boost.Iostreams: Enable BZip2 support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_LZMA "Boost.Iostreams: Enable LZMA support" OFF)
 option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
 
-set(BOOST_PATCHES "")
+set(BOOST_PATCHES)
 if(EMSCRIPTEN)
     # Wasm doesn't have rounding mode control yet, so we trick Boost::interval into thinking it has.
     # https://github.com/WebAssembly/rounding-mode-control
     # https://github.com/boostorg/interval/issues/44
-    set(BOOST_PATCHES PATCHES Boost.wasm.patch)
+    list(APPEND BOOST_PATCHES Boost.wasm.patch)
+endif()
+if(WIN32)
+    list(APPEND BOOST_PATCHES Boost.winarm.patch)
 endif()
 
 # Modern CMake target support was added in Boost 1.82.0
@@ -95,7 +98,7 @@ CPMAddPackage(
     URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
     URL_HASH SHA256=2e64e5d79a738d0fa6fb546c6e5c2bd28f88d268a2a080546f74e5ff98f29d0e
     EXCLUDE_FROM_ALL ON
-    ${BOOST_PATCHES}
+    PATCHES ${BOOST_PATCHES}
 )
 
 # Due to MKL, we may require the release runtime (/MD) even when compiling in Debug mode.
