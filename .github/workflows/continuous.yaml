@@ -236,7 +236,7 @@ jobs:
         id: cpu-cores
 
       - name: Sccache
-        uses: mozilla-actions/sccache-action@v0.0.9
+        uses: mozilla-actions/sccache-action@v0.0.10
 
         # We run configure + build in the same step, since they both need to call VsDevCmd
         # Also, cmd uses ^ to break commands into multiple lines (in powershell this is `)
