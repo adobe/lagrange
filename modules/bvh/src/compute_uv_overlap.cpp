@@ -17,6 +17,7 @@
 #include <lagrange/bvh/AABB.h>
 #include <lagrange/compute_facet_facet_adjacency.h>
 #include <lagrange/internal/find_attribute_utils.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/triangle_area.h>
 #include <lagrange/uv_mesh.h>
@@ -830,26 +831,20 @@ std::vector<Index> chart_aware_graph_color(
     return color;
 }
 
-} // namespace
-
-// ---------------------------------------------------------------------------
-// compute_uv_overlap — main entry point
-// ---------------------------------------------------------------------------
+template <typename Index>
+struct InternalOverlapResult
+{
+    bool has_overlap = false;
+    std::optional<double> overlap_area;
+    std::vector<std::pair<Index, Index>> overlapping_pairs;
+    std::vector<Index> colors;
+};
 
 template <typename Scalar, typename Index>
-UVOverlapResult<Scalar, Index> compute_uv_overlap(
-    SurfaceMesh<Scalar, Index>& mesh,
+InternalOverlapResult<Index> compute_uv_overlap_impl(
+    SurfaceMesh<Scalar, Index> uv_mesh,
     const UVOverlapOptions& options)
 {
-    la_runtime_assert(mesh.is_triangle_mesh(), "compute_uv_overlap: mesh must be triangulated.");
-
-    // ----- Phase 1: extract UV mesh -----
-    UVMeshOptions uv_opts;
-    uv_opts.uv_attribute_name = options.uv_attribute_name;
-    uv_opts.element_types = UVMeshOptions::ElementTypes::All;
-    // uv_mesh_view creates a 2-D mesh whose vertex positions are UV coordinates.
-    auto uv_mesh = uv_mesh_view(mesh, uv_opts);
-
     const Index num_facets = uv_mesh.get_num_facets();
     if (num_facets == 0) return {};
 
@@ -889,7 +884,7 @@ UVOverlapResult<Scalar, Index> compute_uv_overlap(
     {
         std::vector<std::pair<Index, Index>> pairs; // only used when collect_pairs
         size_t count = 0;
-        Scalar area = 0.f;
+        double area = 0;
     };
     tbb::enumerable_thread_specific<ThreadLocal> tls;
 
@@ -914,7 +909,7 @@ UVOverlapResult<Scalar, Index> compute_uv_overlap(
 
     // ----- Phase 5: accumulate results -----
     size_t total_results = 0;
-    Scalar total_area = Scalar(0);
+    double total_area = 0;
     std::vector<std::pair<Index, Index>> overlap_edges;
 
     for (auto& loc : tls) {
@@ -930,16 +925,66 @@ UVOverlapResult<Scalar, Index> compute_uv_overlap(
 
     if (total_results == 0) return {};
 
-    UVOverlapResult<Scalar, Index> result;
+    InternalOverlapResult<Index> result;
     result.has_overlap = true;
     if (compute_area) result.overlap_area = total_area;
 
     // ----- Phase 6: optional per-facet overlap coloring -----
     if (options.compute_overlap_coloring && !overlap_edges.empty()) {
         const auto uv_adj = compute_facet_facet_adjacency(uv_mesh);
-        std::vector<Index> colors =
-            chart_aware_graph_color<Index>(num_facets, overlap_edges, uv_adj);
+        result.colors = chart_aware_graph_color<Index>(num_facets, overlap_edges, uv_adj);
+    }
 
+    if (options.compute_overlapping_pairs) {
+        tbb::parallel_sort(overlap_edges.begin(), overlap_edges.end());
+        result.overlapping_pairs = std::move(overlap_edges);
+    }
+
+    return result;
+}
+
+} // namespace
+
+// ---------------------------------------------------------------------------
+// compute_uv_overlap — main entry point
+// ---------------------------------------------------------------------------
+
+template <typename Scalar, typename Index>
+UVOverlapResult<Scalar, Index> compute_uv_overlap(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const UVOverlapOptions& options)
+{
+    la_runtime_assert(mesh.is_triangle_mesh(), "compute_uv_overlap: mesh must be triangulated.");
+
+    // ----- Phase 1: Extract UV mesh and dispatch internal implementation
+    UVMeshOptions uv_opts;
+    uv_opts.uv_attribute_name = options.uv_attribute_name;
+    uv_opts.element_types = UVMeshOptions::ElementTypes::All;
+    auto internal = [&]() -> InternalOverlapResult<Index> {
+        using OtherScalar = std::conditional_t<std::is_same_v<Scalar, float>, double, float>;
+        if (uv_attribute_id<Scalar, Index, Scalar>(mesh, uv_opts)) {
+            return compute_uv_overlap_impl(
+                uv_mesh_view<Scalar, Index, Scalar>(mesh, uv_opts),
+                options);
+        } else if (uv_attribute_id<Scalar, Index, OtherScalar>(mesh, uv_opts)) {
+            return compute_uv_overlap_impl(
+                uv_mesh_view<Scalar, Index, OtherScalar>(mesh, uv_opts),
+                options);
+        } else {
+            throw Error("compute_uv_overlap: no suitable UV attribute found.");
+        }
+    }();
+
+    // ----- Phase 2: Convert internal result to public result
+    UVOverlapResult<Scalar, Index> result;
+    result.has_overlap = internal.has_overlap;
+    if (internal.overlap_area.has_value()) {
+        result.overlap_area = static_cast<Scalar>(internal.overlap_area.value());
+    }
+    result.overlapping_pairs = std::move(internal.overlapping_pairs);
+
+    // Write the coloring attribute to the original mesh.
+    if (!internal.colors.empty()) {
         const AttributeId attr_id = internal::find_or_create_attribute<Index>(
             mesh,
             options.overlap_coloring_attribute_name,
@@ -947,20 +992,12 @@ UVOverlapResult<Scalar, Index> compute_uv_overlap(
             AttributeUsage::Scalar,
             1,
             internal::ResetToDefault::No);
-
         auto& attr = mesh.template ref_attribute<Index>(attr_id);
         auto attr_data = attr.ref_all();
-        la_debug_assert(static_cast<Index>(attr_data.size()) == num_facets);
-        for (Index f = 0; f < num_facets; ++f) {
-            attr_data[f] = colors[f];
-        }
-
+        la_debug_assert(attr_data.size() == internal.colors.size());
+        la_debug_assert(attr_data.size() == static_cast<size_t>(mesh.get_num_facets()));
+        std::copy(internal.colors.begin(), internal.colors.end(), attr_data.begin());
         result.overlap_coloring_id = attr_id;
-    }
-
-    if (options.compute_overlapping_pairs) {
-        tbb::parallel_sort(overlap_edges.begin(), overlap_edges.end());
-        result.overlapping_pairs = std::move(overlap_edges);
     }
 
     return result;

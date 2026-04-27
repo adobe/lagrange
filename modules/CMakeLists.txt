@@ -26,6 +26,9 @@ list(PREPEND module_names "ui")
 
 ################################################################################
 
+# Embind / WebAssembly (not a Lagrange library module; see bindings/js/)
+option(LAGRANGE_BINDINGS_JS "Build JavaScript/WebAssembly bindings" OFF)
+
 # Always build core library
 add_subdirectory(core)
 

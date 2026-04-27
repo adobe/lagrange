@@ -176,6 +176,183 @@ TEST_CASE("remove_short_edges", "[surface][cleanup]")
         REQUIRE(mesh.get_num_facets() == 2);
         REQUIRE(mesh.get_num_vertices() == 6);
     }
+
+    SECTION("custom importance attribute")
+    {
+        // Use the same tet geometry as the "tet" test, but with custom importance
+        mesh.add_vertex({0, 0, 0}); // v0
+        mesh.add_vertex({1, 0, 0}); // v1
+        mesh.add_vertex({0, 1, 0}); // v2
+        mesh.add_vertex({0, 0, -0.1}); // v3 - short edge to v0
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 0, 3);
+        mesh.add_triangle(2, 1, 3);
+        mesh.add_triangle(0, 2, 3);
+
+        // Create custom importance: make v0 low and v3 high
+        // Without custom importance, default behavior would keep v0 (interior with higher dihedral)
+        // With custom importance, we should keep v3
+        auto importance_id = mesh.template create_attribute<Scalar>(
+            "my_importance",
+            AttributeElement::Vertex,
+            AttributeUsage::Scalar,
+            1);
+        auto importance = mesh.template ref_attribute<Scalar>(importance_id).ref_all();
+        importance[0] = 1.0; // v0: low importance
+        importance[1] = 50.0; // v1: medium importance
+        importance[2] = 50.0; // v2: medium importance
+        importance[3] = 100.0; // v3: high importance
+
+        RemoveShortEdgesOptions options;
+        options.threshold = 0.5;
+        options.vertex_importance_attribute_name = "my_importance";
+        remove_short_edges(mesh, options);
+
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.get_num_vertices() == 3);
+
+        // Verify the importance attribute still exists
+        REQUIRE(mesh.has_attribute("my_importance"));
+        auto final_importance = attribute_vector_view<Scalar>(mesh, "my_importance");
+        REQUIRE(final_importance.size() == 3);
+
+        // Check that at least one vertex kept high importance (or averaged high)
+        Scalar max_importance = final_importance.maxCoeff();
+        REQUIRE(max_importance >= 50.0);
+    }
+
+    SECTION("options with default importance")
+    {
+        // Test using options struct without custom importance
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, -0.1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 0, 3);
+        mesh.add_triangle(2, 1, 3);
+        mesh.add_triangle(0, 2, 3);
+
+        RemoveShortEdgesOptions options;
+        options.threshold = 0.5;
+        remove_short_edges(mesh, options);
+
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.get_num_vertices() == 3);
+
+        // The importance attribute should have been cleaned up
+        REQUIRE(!mesh.has_attribute("@vertex_collapse_importance"));
+    }
+
+    SECTION("normal flip guard — tight threshold blocks flip-inducing collapse")
+    {
+        // A short edge (keep_v → remove_v, length = 2*eps) straddles the x-axis.
+        //
+        //   A(-1,0,0) -------- B(1,0,0)
+        //        \    remove_v    /
+        //         \   (0,+eps,0) /   <- face (A, B, remove_v): normal +Z
+        //          \            /
+        //        keep_v(0,-eps,0)
+        //
+        // After collapsing remove_v onto keep_v, the face (A, B, remove_v) becomes
+        // (A, B, keep_v) whose normal points -Z — a full 180° flip.
+        // A threshold of pi/4 must reject this collapse.
+        // A threshold of pi (disabled) must allow it.
+        //
+        // We assign high importance to keep_v via a custom attribute so that
+        // keep_v is always retained and remove_v is always eliminated.
+
+        constexpr Scalar eps = Scalar(0.004); // edge length = 2*eps = 0.008 < 0.01
+
+        auto make_mesh = [&]() {
+            SurfaceMesh<Scalar, Index> m;
+            m.add_vertex({-1, 0, 0}); // 0 = A
+            m.add_vertex({1, 0, 0}); // 1 = B
+            m.add_vertex({0, -eps, 0}); // 2 = keep_v
+            m.add_vertex({0, eps, 0}); // 3 = remove_v
+            m.add_vertex({0, 0, 1}); // 4 = C (connectivity anchor)
+
+            // The face that flips: (A, B, remove_v) → (A, B, keep_v)
+            m.add_triangle(0, 1, 3); // normal +Z before, -Z after
+
+            // Face containing both keep_v and remove_v → becomes degenerate,
+            // is excluded from the normal check and cleaned up afterwards.
+            m.add_triangle(2, 3, 4);
+
+            // Extra face so keep_v has a 1-ring (prevents it from being isolated).
+            m.add_triangle(0, 2, 1); // normal -Z, does not involve remove_v
+
+            // Custom importance: keep_v >> remove_v so the assignment is deterministic.
+            auto imp_id = m.template create_attribute<Scalar>(
+                "imp",
+                AttributeElement::Vertex,
+                AttributeUsage::Scalar,
+                1);
+            auto imp = m.template ref_attribute<Scalar>(imp_id).ref_all();
+            imp[0] = 100; // A
+            imp[1] = 100; // B
+            imp[2] = 200; // keep_v — highest, always retained
+            imp[3] = 1; // remove_v — lowest, always eliminated
+            imp[4] = 100; // C
+            return m;
+        };
+
+        // Case 1: tight threshold (45°) — collapse must be blocked.
+        {
+            auto m = make_mesh();
+            RemoveShortEdgesOptions opts;
+            opts.threshold = Scalar(0.01);
+            opts.max_normal_deviation_angle = lagrange::internal::pi / 4;
+            opts.vertex_importance_attribute_name = "imp";
+            const Index nf = m.get_num_facets();
+            remove_short_edges(m, opts);
+            REQUIRE(m.get_num_facets() == nf);
+        }
+
+        // Case 2: guard disabled (pi) — collapse must proceed.
+        {
+            auto m = make_mesh();
+            RemoveShortEdgesOptions opts;
+            opts.threshold = Scalar(0.01);
+            opts.max_normal_deviation_angle = lagrange::internal::pi;
+            opts.vertex_importance_attribute_name = "imp";
+            const Index nf = m.get_num_facets();
+            remove_short_edges(m, opts);
+            REQUIRE(m.get_num_facets() < nf);
+        }
+    }
+
+    SECTION("normal flip guard — safe collapse is still performed")
+    {
+        // Two triangles that share a nearly-duplicate vertex (v2 ≈ v3).
+        // Collapsing the short edge v2-v3 is planar — normals do not change —
+        // so it must proceed even with a tight threshold.
+        //
+        //   v0(0,0,0) ---- v2(1,0,0)
+        //       \          / |
+        //        \        /  |
+        //         \      /   v3(1,0,eps)  <- nearly identical to v2
+        //          \    /   /
+        //           v1(0,1,0)
+
+        constexpr Scalar eps = Scalar(0.001); // v2-v3 edge length ≈ eps < 0.01
+
+        mesh.add_vertex({0, 0, 0}); // v0
+        mesh.add_vertex({0, 1, 0}); // v1
+        mesh.add_vertex({1, 0, 0}); // v2
+        mesh.add_vertex({1, 0, eps}); // v3 — short edge to v2
+
+        mesh.add_triangle(0, 2, 1); // face using v2
+        mesh.add_triangle(1, 2, 3); // face using both v2 and v3
+
+        RemoveShortEdgesOptions opts;
+        opts.threshold = Scalar(0.01);
+        opts.max_normal_deviation_angle = lagrange::internal::pi / 6; // 30° — tight
+        remove_short_edges(mesh, opts);
+
+        // v3 must have been merged into v2: vertex count drops.
+        REQUIRE(mesh.get_num_vertices() < 4);
+    }
 }
 
 TEST_CASE("remove_short_edges benchmark", "[surface][cleanup][!benchmark]")

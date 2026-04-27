@@ -18,6 +18,7 @@
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/transform_mesh.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <algorithm>
 
@@ -159,19 +160,17 @@ std::tuple<SurfaceMesh<Scalar, Index>, std::optional<Array3Df>> single_mesh_from
     }
 
     if (mesh_node_ids.size() != 1) {
-        throw std::runtime_error(
-            fmt::format(
-                "Input scene contains {} mesh nodes. Expected exactly 1 mesh node.",
-                mesh_node_ids.size()));
+        throw std::runtime_error(format(
+            "Input scene contains {} mesh nodes. Expected exactly 1 mesh node.",
+            mesh_node_ids.size()));
     }
     const auto& mesh_node = scene.nodes[mesh_node_ids.front()];
 
     if (mesh_node.meshes.size() != 1) {
-        throw std::runtime_error(
-            fmt::format(
-                "Input scene has a mesh node with {} instance per node. Expected "
-                "exactly 1 instance per node",
-                mesh_node.meshes.size()));
+        throw std::runtime_error(format(
+            "Input scene has a mesh node with {} instance per node. Expected "
+            "exactly 1 instance per node",
+            mesh_node.meshes.size()));
     }
     const auto& mesh_instance = mesh_node.meshes.front();
 

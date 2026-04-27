@@ -29,6 +29,7 @@
 #include <opensubdiv/far/topologyRefiner.h>
 #include <opensubdiv/far/topologyRefinerFactory.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 //------------------------------------------------------------------------------
@@ -185,13 +186,12 @@ InterpolatedAttributeIds prepare_interpolated_attribute_ids(
             if constexpr (!(std::is_same_v<ValueType, float> ||
                             std::is_same_v<ValueType, double>)) {
                 if (check_attribute) {
-                    throw Error(
-                        fmt::format(
-                            "Interpolated attribute '{}' (id: {}) type must be float or double. "
-                            "Received: {}",
-                            name,
-                            id,
-                            lagrange::internal::value_type_name<ValueType>()));
+                    throw Error(format(
+                        "Interpolated attribute '{}' (id: {}) type must be float or double. "
+                        "Received: {}",
+                        name,
+                        id,
+                        lagrange::internal::value_type_name<ValueType>()));
                 } else {
                     logger().debug(
                         "Skipping attribute '{}' (id: {}) with incompatible value type: {}",
@@ -214,13 +214,12 @@ InterpolatedAttributeIds prepare_interpolated_attribute_ids(
                 result.face_varying_attributes.push_back(id);
             } else {
                 if (check_attribute) {
-                    throw Error(
-                        fmt::format(
-                            "Requested interpolation of a attribute '{}' (id: {}), which has "
-                            "unsupported element type '{}'.",
-                            name,
-                            id,
-                            lagrange::internal::to_string(attr.get_element_type())));
+                    throw Error(format(
+                        "Requested interpolation of a attribute '{}' (id: {}), which has "
+                        "unsupported element type '{}'.",
+                        name,
+                        id,
+                        lagrange::internal::to_string(attr.get_element_type())));
                 } else {
                     logger().debug(
                         "Skipping attribute '{}' (id: {}) with unsupported element type: {}",

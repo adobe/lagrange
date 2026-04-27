@@ -15,6 +15,7 @@
 #include <lagrange/Mesh.h>
 #include <lagrange/common.h>
 #include <lagrange/fs/filesystem.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/range.h>
 
 #include <fstream>
@@ -71,7 +72,7 @@ void save_image_svg(
         height = float(bbox_max[1] - bbox_min[1]) * settings.scaling_factor;
     }
 
-    fout << fmt::format(
+    fout << format(
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?> <svg version=\"1.1\" id=\"Layer_1\" "
                 "xmlns=\"http://www.w3.org/2000/svg\" "
                 "xmlns:xlink=\"http://www.w3.org/1999/xlink\" x=\"0px\" "
@@ -85,8 +86,8 @@ void save_image_svg(
                 height,
                 width,
                 height,
-                settings.with_fill ? fmt::format("#{:06x}", settings.fill_color) : "none",
-                settings.with_stroke ? fmt::format("#{:06x}", settings.stroke_color) : "none",
+                settings.with_fill ? format("#{:06x}", settings.fill_color) : "none",
+                settings.with_stroke ? format("#{:06x}", settings.stroke_color) : "none",
                 settings.with_stroke ? settings.stroke_width : 0)
          << std::endl;
 

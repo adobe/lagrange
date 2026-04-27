@@ -16,8 +16,11 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/load_scene.h>
 #include <lagrange/io/save_mesh.h>
+#include <lagrange/io/save_scene.h>
+#include <lagrange/scene/scene_convert.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/texproc/TextureRasterizer.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <tbb/parallel_for.h>
 
@@ -27,13 +30,22 @@ namespace fs = lagrange::fs;
 
 fs::path make_output_path(const fs::path& base_path, size_t index)
 {
-    return base_path.parent_path() / fmt::format(
+    return base_path.parent_path() / lagrange::format(
                                          "{}_{:02d}{}",
                                          base_path.stem().string(),
                                          index,
                                          base_path.extension().string());
 }
 
+/* Example usage:
+
+    ./examples/Release/texture_rasterization \
+        --scene-in ../data/corp/texproc/prepared/pumpkin.glb \
+        --renders-in ../data/corp/texproc/prepared/view_*.png \
+        --width 1024 --height 1024 --base-confidence 0 \
+        --meshes-out pumpkin.glb
+
+*/
 int main(int argc, char** argv)
 {
     struct
@@ -41,8 +53,10 @@ int main(int argc, char** argv)
         fs::path input_scene;
         fs::path input_texture;
         std::vector<fs::path> input_renders;
+        fs::path input_render_grid;
         fs::path output_textures = "output_textures.exr";
         fs::path output_weights = "output_weights.exr";
+        fs::path output_meshes;
         std::optional<size_t> width;
         std::optional<size_t> height;
         float low_confidence_ratio = 0.75;
@@ -62,7 +76,12 @@ int main(int argc, char** argv)
     app.add_option("--texture-in", args.input_texture, "Override input base texture.")
         ->check(CLI::ExistingFile);
     app.add_option("--renders-in", args.input_renders, "Input rendered images.")
-        ->required()
+        ->check(CLI::ExistingFile);
+    app.add_option(
+           "--render-grid-in",
+           args.input_render_grid,
+           "Input single grid image containing all renders. "
+           "The grid is split based on the number of cameras in the scene.")
         ->check(CLI::ExistingFile);
     app.add_option(
         "--textures-out",
@@ -72,6 +91,10 @@ int main(int argc, char** argv)
         "--weights-out",
         args.output_weights,
         "Output base name for confidence weight texture images.");
+    app.add_option(
+        "--meshes-out",
+        args.output_meshes,
+        "Output base name for textured mesh files (.obj or .glb).");
     app.add_option(
         "--base-confidence",
         args.base_confidence,
@@ -107,27 +130,49 @@ int main(int argc, char** argv)
         base_texture = load_image(args.input_texture);
     }
 
-    // Sort input renders
-    sort_paths(args.input_renders);
+    la_runtime_assert(
+        !args.input_renders.empty() || !args.input_render_grid.empty(),
+        "Either --renders-in or --render-grid-in must be provided");
+    la_runtime_assert(
+        args.input_renders.empty() || args.input_render_grid.empty(),
+        "--renders-in and --render-grid-in are mutually exclusive");
 
-    // Load rendered images to unproject
-    lagrange::logger().info("Loading input {} renders", args.input_renders.size());
-    std::vector<Array3Df> renders;
-    std::vector<ConstView3Df> views;
-    for (const auto& render : args.input_renders) {
-        renders.push_back(load_image(render));
-        views.push_back(renders.back().to_mdspan());
+    std::vector<std::pair<Array3Df, Array3Df>> textures_and_weights;
+    if (!args.input_render_grid.empty()) {
+        // Load single grid image and split based on camera count
+        lagrange::logger().info("Loading render grid: {}", args.input_render_grid.string());
+        Array3Df render_grid = load_image(args.input_render_grid);
+
+        textures_and_weights = lagrange::texproc::rasterize_textures_from_renders(
+            scene,
+            base_texture,
+            render_grid.to_mdspan(),
+            args.width,
+            args.height,
+            args.low_confidence_ratio,
+            args.base_confidence);
+    } else {
+        // Sort input renders
+        sort_paths(args.input_renders);
+
+        // Load rendered images to unproject
+        lagrange::logger().info("Loading input {} renders", args.input_renders.size());
+        std::vector<Array3Df> renders;
+        std::vector<ConstView3Df> views;
+        for (const auto& render : args.input_renders) {
+            renders.push_back(load_image(render));
+            views.push_back(renders.back().to_mdspan());
+        }
+
+        textures_and_weights = lagrange::texproc::rasterize_textures_from_renders(
+            scene,
+            base_texture,
+            views,
+            args.width,
+            args.height,
+            args.low_confidence_ratio,
+            args.base_confidence);
     }
-
-    // Rasterize textures from renders
-    auto textures_and_weights = lagrange::texproc::rasterize_textures_from_renders(
-        scene,
-        base_texture,
-        views,
-        args.width,
-        args.height,
-        args.low_confidence_ratio,
-        args.base_confidence);
 
     // Save textures and confidences
     tbb::parallel_for(size_t(0), textures_and_weights.size(), [&](size_t i) {
@@ -138,6 +183,24 @@ int main(int argc, char** argv)
         lagrange::logger().info("Saving confidence: {}", output_weight.string());
         save_image(output_weight, textures_and_weights[i].second.to_mdspan());
     });
+
+    // Save textured meshes (one per view)
+    if (!args.output_meshes.empty()) {
+        auto mesh = lagrange::scene::scene_to_mesh(scene);
+        lagrange::io::SaveOptions save_options;
+        save_options.encoding = lagrange::io::FileEncoding::Binary;
+        save_options.embed_images = true;
+        save_options.attribute_conversion_policy =
+            lagrange::io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+        for (size_t i = 0; i < textures_and_weights.size(); ++i) {
+            fs::path output_mesh = make_output_path(args.output_meshes, i);
+            lagrange::logger().info("Saving textured mesh: {}", output_mesh.string());
+            auto output_scene = lagrange::scene::internal::single_mesh_to_scene(
+                mesh,
+                textures_and_weights[i].first.to_mdspan());
+            lagrange::io::save_scene(output_mesh, output_scene, save_options);
+        }
+    }
 
     return 0;
 }

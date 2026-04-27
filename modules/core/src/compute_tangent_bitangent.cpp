@@ -26,6 +26,7 @@
 #include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 namespace lagrange {
@@ -491,13 +492,12 @@ void corner_tangent_bitangent_raw(
                     //   Alexa, Marc, and Max Wardetzky. "Discrete Laplacians on general
                     //   polygonal meshes." ACM SIGGRAPH 2011 papers. 2011. 1-10.
                     //   https://ddg.math.uni-goettingen.de/pub/Polygonal_Laplace.pdf
-                    throw Error(
-                        fmt::format(
-                            "Facet {} has {} vertices. Only facets with 3 and 4 vertices are "
-                            "supported "
-                            "at the moment.",
-                            f,
-                            facet.size()));
+                    throw Error(format(
+                        "Facet {} has {} vertices. Only facets with 3 and 4 vertices are "
+                        "supported "
+                        "at the moment.",
+                        f,
+                        facet.size()));
                 }
             }();
 
@@ -572,7 +572,7 @@ TangentBitangentResult compute_tangent_bitangent(
                 mesh.get_attribute_base(options.tangent_attribute_name).get_element_type();
             la_runtime_assert(
                 tangent_element_type == lagrange::AttributeElement::Corner,
-                fmt::format(
+                format(
                     "compute_tangent_bitangent with keep_existing_tangent enabled: "
                     "input tangent is of element_type {}, while output element_type is {}.",
                     internal::to_string(tangent_element_type),
@@ -632,7 +632,7 @@ TangentBitangentResult compute_tangent_bitangent(
                     mesh.template get_attribute<Scalar>(options.tangent_attribute_name);
                 la_runtime_assert(
                     tangent_attrib.get_element_type() == lagrange::AttributeElement::Corner,
-                    fmt::format(
+                    format(
                         "Invalid tangent attribute element_type {}. Only Indexed and Corner "
                         "accepted. ",
                         internal::to_string(tangent_attrib.get_element_type())));

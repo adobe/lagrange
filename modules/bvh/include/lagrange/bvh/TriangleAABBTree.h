@@ -87,6 +87,13 @@ public:
         RowVectorType& closest_point,
         Scalar& closest_sq_dist) const;
 
+    ///
+    /// Get a const reference to the underlying AABB tree.
+    ///
+    /// @return     Const reference to the AABB tree.
+    ///
+    const AABB<Scalar, Dim>& get_aabb() const { return m_aabb; }
+
 private:
     SurfaceMesh<Scalar, Index> m_mesh;
 

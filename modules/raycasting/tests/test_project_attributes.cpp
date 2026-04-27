@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/compute_barycentric_coordinates.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/raycasting/project_attributes.h>
 #include <lagrange/raycasting/project_attributes_closest_point.h>

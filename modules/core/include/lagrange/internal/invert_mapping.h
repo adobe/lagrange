@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
 
@@ -96,7 +97,7 @@ InverseMapping<Index> invert_mapping(
         }
         la_runtime_assert(
             j < static_cast<Index>(mapping.offsets.size()),
-            fmt::format(
+            format(
                 "Mapped element index cannot exceeds {} number of elements!",
                 has_target_count ? "target" : "source"));
         ++mapping.offsets[j + 1];

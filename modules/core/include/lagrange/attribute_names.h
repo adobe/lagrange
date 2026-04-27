@@ -62,6 +62,13 @@ struct AttributeName
     static constexpr std::string_view object_id = "object_id";
 
     /**
+     * Line ID (in obj files). Marks which OBJ line element each edge segment belongs to.
+     * 0 for regular faces, 1-based ID for line element segments.
+     * Paired with AttributeUsage::Scalar.
+     */
+    static constexpr std::string_view line_id = "line_id";
+
+    /**
      * Skinning weights, with all joints specified for each vertex. Paired with
      * AttributeUsage::Vector.
      */

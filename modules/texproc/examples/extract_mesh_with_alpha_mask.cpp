@@ -25,6 +25,7 @@
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/texproc/extract_mesh_with_alpha_mask.h>
 #include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/range.h>
 
 #include <CLI/CLI.hpp>
@@ -122,7 +123,7 @@ int main(int argc, char** argv)
             test::scene_image_to_image_array(scene.images.at(payload.image_id).image);
         la_runtime_assert(image.extent(2) == 4, "must have alpha channel");
         const auto texcoord_id =
-            mesh.get_attribute_id(fmt::format("texcoord_{}", payload.texcoord_id));
+            mesh.get_attribute_id(lagrange::format("texcoord_{}", payload.texcoord_id));
         if (texcoord_id == lagrange::invalid_attribute_id()) continue;
         if (!mesh.is_attribute_indexed(texcoord_id)) continue;
         lagrange::texproc::ExtractMeshWithAlphaMaskOptions extract_options;

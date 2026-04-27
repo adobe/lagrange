@@ -22,6 +22,7 @@
 // clang-format on
 
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/fmt/format.h>
 #include <Eigen/Core>
 #include <catch2/benchmark/catch_benchmark.hpp>
 
@@ -196,7 +197,7 @@ TEST_CASE("Raycasting Speed", "[raycasting][!benchmark]")
     // Lagrange 4-packed raycaster
     for (auto type : all_types) {
         for (auto quality : all_qualities) {
-            std::string name = fmt::format("{} + {}", type.first, quality.first);
+            std::string name = lagrange::format("{} + {}", type.first, quality.first);
             auto engine =
                 lagrange::raycasting::create_ray_caster<float>(type.second, quality.second);
             engine->add_mesh(mesh, Eigen::Matrix4f::Identity());
@@ -211,7 +212,7 @@ TEST_CASE("Raycasting Speed", "[raycasting][!benchmark]")
     // Lagrange single-ray raycaster
     for (auto type : all_types) {
         for (auto quality : all_qualities) {
-            std::string name = fmt::format("{} + {}", type.first, quality.first);
+            std::string name = lagrange::format("{} + {}", type.first, quality.first);
             auto engine =
                 lagrange::raycasting::create_ray_caster<float>(type.second, quality.second);
             engine->add_mesh(mesh, Eigen::Matrix4f::Identity());

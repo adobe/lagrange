@@ -30,6 +30,7 @@
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <sstream>
 #include <string_view>
@@ -354,7 +355,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
                 opts.encoding = io::FileEncoding::Binary;
                 io::save_mesh_gltf(ss, mesh, opts);
             } else {
-                throw std::invalid_argument(fmt::format("Unsupported format: {}", format));
+                throw std::invalid_argument(lagrange::format("Unsupported format: {}", format));
             }
             // TODO: switch to ss.view() when C++20 is available.
             std::string data = ss.str();
@@ -573,7 +574,7 @@ The binary string should use one of the supported formats (i.e. `gltf`, `glb` an
                 opts.encoding = io::FileEncoding::Binary;
                 io::save_scene(ss, scene, lagrange::io::FileFormat::Gltf, opts);
             } else {
-                throw std::invalid_argument(fmt::format("Unsupported format: {}", format));
+                throw std::invalid_argument(lagrange::format("Unsupported format: {}", format));
             }
 
             // TODO: switch to ss.view() when C++20 is available.

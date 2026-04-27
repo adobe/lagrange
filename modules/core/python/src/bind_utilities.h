@@ -33,8 +33,10 @@
 #include <lagrange/compute_uv_distortion.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/compute_vertex_valence.h>
+#include <lagrange/disconnect_uv_charts.h>
 #include <lagrange/extract_submesh.h>
 #include <lagrange/filter_attributes.h>
+#include <lagrange/get_unique_attribute_name.h>
 #include <lagrange/internal/constants.h>
 #include <lagrange/isoline.h>
 #include <lagrange/map_attribute.h>
@@ -58,6 +60,7 @@
 #include <lagrange/transform_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/uv_mesh.h>
 #include <lagrange/weld_indexed_attribute.h>
@@ -601,7 +604,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
             } else if (scheme == "centroid_fan") {
                 opt.scheme = lagrange::TriangulationOptions::Scheme::CentroidFan;
             } else {
-                throw Error(fmt::format("Unsupported triangulation scheme {}", scheme));
+                throw Error(lagrange::format("Unsupported triangulation scheme {}", scheme));
             }
             lagrange::triangulate_polygonal_facets(mesh, opt);
         },
@@ -1248,7 +1251,7 @@ Basel: Birkhäuser Basel, 2008. 175-188.
             } else if (method == "None" || method == "none") {
                 reorder_method = ReorderingMethod::None;
             } else {
-                throw std::runtime_error(fmt::format("Invalid reordering method: {}", method));
+                throw std::runtime_error(lagrange::format("Invalid reordering method: {}", method));
             }
 
             lagrange::reorder_mesh(mesh, reorder_method);
@@ -1876,6 +1879,43 @@ The input mesh must be a triangle mesh.
 :returns: The id of the new attribute.)");
 
     m.def(
+        "get_unique_attribute_name",
+        [](const MeshType& mesh,
+           std::string_view name,
+           std::string separator,
+           std::string postfix,
+           int max_increment,
+           bool emit_warning) {
+            UniqueAttributeNameOptions options;
+            options.separator = std::move(separator);
+            options.postfix = std::move(postfix);
+            options.max_increment = max_increment;
+            options.emit_warning = emit_warning;
+            return get_unique_attribute_name(mesh, name, options);
+        },
+        "mesh"_a,
+        "name"_a,
+        "separator"_a = UniqueAttributeNameOptions().separator,
+        "postfix"_a = UniqueAttributeNameOptions().postfix,
+        "max_increment"_a = UniqueAttributeNameOptions().max_increment,
+        "emit_warning"_a = UniqueAttributeNameOptions().emit_warning,
+        R"(Get a unique attribute name for a mesh.
+
+If the desired name does not exist on the mesh it is returned as-is. If it
+already exists, a suffix of the form ``{separator}{count}{postfix}`` is appended
+until a unique name is found. An exception is raised if no unique name can be
+found after ``max_increment`` attempts.
+
+:param mesh: The input mesh.
+:param name: The desired attribute name.
+:param separator: Separator between the base name and counter (default: ".").
+:param postfix: Postfix to append after the counter (default: "").
+:param max_increment: Maximum number of attempts to find a unique name (default: 1000).
+:param emit_warning: Whether to log a warning when a collision is detected (default: True).
+
+:returns: A unique attribute name.)");
+
+    m.def(
         "compute_mesh_covariance",
         [](MeshType& mesh,
            std::array<Scalar, 3> center,
@@ -1929,7 +1969,7 @@ The input mesh must be a triangle mesh.
                     options.search_type = SelectFacetsByNormalSimilarityOptions::SearchType::DFS;
                 else
                     throw std::runtime_error(
-                        fmt::format("Invalid search type: {}", search_type.value()));
+                        lagrange::format("Invalid search type: {}", search_type.value()));
             }
             if (num_smooth_iterations.has_value())
                 options.num_smooth_iterations = num_smooth_iterations.value();
@@ -2089,7 +2129,7 @@ The input mesh must be a triangle mesh.
                 options.connectivity_type = UVChartOptions::ConnectivityType::Edge;
             } else {
                 throw std::runtime_error(
-                    fmt::format("Invalid connectivity type: {}", connectivity_type));
+                    lagrange::format("Invalid connectivity type: {}", connectivity_type));
             }
             return compute_uv_charts(mesh, options);
         },
@@ -2105,6 +2145,32 @@ The input mesh must be a triangle mesh.
 @param connectivity_type: Type of connectivity to use for chart computation. Can be "Vertex" or "Edge".
 
 @returns: A list of chart ids for each vertex.)");
+
+    m.def(
+        "disconnect_uv_charts",
+        [](MeshType& mesh,
+           std::string_view uv_attribute_name,
+           std::string_view chart_id_attribute_name) {
+            DisconnectUVChartsOptions options;
+            options.uv_attribute_name = uv_attribute_name;
+            options.chart_id_attribute_name = chart_id_attribute_name;
+            return disconnect_uv_charts(mesh, options);
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = DisconnectUVChartsOptions().uv_attribute_name,
+        "chart_id_attribute_name"_a = DisconnectUVChartsOptions().chart_id_attribute_name,
+        R"(Disconnect UV charts by duplicating UV vertices shared across different charts.
+
+After this operation, no two facets belonging to different UV charts will share a UV vertex
+index. Without any input chart id attribute, this eliminates non-manifold UV vertices (pinch
+points) where charts touch at a single vertex.
+
+:param mesh:                    Input mesh. The UV attribute must be indexed.
+:param uv_attribute_name:       Name of the UV attribute. If empty, uses the first indexed UV attribute.
+:param chart_id_attribute_name: Optional per-facet chart id attribute name. If empty, chart ids
+                                are computed automatically using edge connectivity on the UV mesh.
+
+:returns: The number of UV vertices that were duplicated.)");
 
     m.def(
         "uv_mesh_view",

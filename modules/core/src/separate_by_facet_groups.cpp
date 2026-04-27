@@ -9,15 +9,10 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/extract_submesh.h>
-#include <lagrange/separate_by_facet_groups.h>
+#include "internal/extract_submeshes_by_group.h"
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <tbb/parallel_for.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
+#include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/separate_by_facet_groups.h>
 
 #include <algorithm>
 #include <numeric>
@@ -49,18 +44,12 @@ std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups(
     group_offsets[0] = 0;
     la_debug_assert(group_offsets.back() == num_facets);
 
-    std::vector<SurfaceMesh<Scalar, Index>> results(num_groups);
-
-    // Note: When extracting many small submeshes, this does not scale very well (does a pass over
-    // the whole mesh for each component to extract...).
-    SubmeshOptions submesh_options(options);
-    tbb::parallel_for((size_t)0, num_groups, [&](size_t i) {
-        span<const Index> selected_facets(
-            facet_indices.data() + group_offsets[i],
-            static_cast<size_t>(group_offsets[i + 1] - group_offsets[i]));
-        results[i] = extract_submesh(mesh, selected_facets, submesh_options);
-    });
-    return results;
+    return internal::extract_submeshes_by_group(
+        mesh,
+        num_groups,
+        {facet_indices.data(), facet_indices.size()},
+        {group_offsets.data(), group_offsets.size()},
+        SubmeshOptions(options));
 }
 
 template <typename Scalar, typename Index>
@@ -82,9 +71,10 @@ std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups(
     function_ref<Index(Index)> get_facet_group,
     const SeparateByFacetGroupsOptions& options)
 {
-    std::vector<Index> facet_group_indices(num_groups);
-    for (size_t i = 0; i < num_groups; i++) {
-        facet_group_indices[i] = get_facet_group(static_cast<Index>(i));
+    const Index num_facets = mesh.get_num_facets();
+    std::vector<Index> facet_group_indices(num_facets);
+    for (Index i = 0; i < num_facets; i++) {
+        facet_group_indices[i] = get_facet_group(i);
     }
     return separate_by_facet_groups(
         mesh,

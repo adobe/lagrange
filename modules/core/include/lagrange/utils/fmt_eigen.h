@@ -41,7 +41,31 @@
 
 #elif defined(SPDLOG_USE_STD_FORMAT)
 
-// It's still a bit early for C++20 format support...
+    #include <format>
+    #include <type_traits>
+
+template <typename T>
+struct std::formatter<T, std::enable_if_t<std::is_base_of_v<Eigen::DenseBase<T>, T>, char>>
+{
+    std::formatter<typename T::Scalar, char> m_scalar;
+
+    constexpr auto parse(std::format_parse_context& ctx) { return m_scalar.parse(ctx); }
+
+    auto format(T const& a, std::format_context& ctx) const
+    {
+        auto out = ctx.out();
+        for (Eigen::Index ir = 0; ir < a.rows(); ir++) {
+            for (Eigen::Index ic = 0; ic < a.cols(); ic++) {
+                out = m_scalar.format(a(ir, ic), ctx);
+                *out++ = ' ';
+            }
+            if (ir + 1 < a.rows()) {
+                *out++ = '\n';
+            }
+        }
+        return out;
+    }
+};
 
 #else
 

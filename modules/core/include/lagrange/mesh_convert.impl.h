@@ -19,8 +19,8 @@
 #include <lagrange/attribute_names.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/get_unique_attribute_name.h>
 #include <lagrange/internal/fast_edge_sort.h>
-#include <lagrange/internal/get_unique_attribute_name.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
@@ -143,7 +143,7 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_internal(InputMeshType&& mesh)
     };
 
     auto transfer_attribute = [&](auto&& name, auto&& array, AttributeElement elem) {
-        std::string new_name = internal::get_unique_attribute_name(new_mesh, name);
+        std::string new_name = get_unique_attribute_name(new_mesh, name);
         decltype(auto) attr = array->template get<AttributeArray>();
         if constexpr (policy == Policy::Copy) {
             new_mesh.template create_attribute<MeshScalar>(
@@ -197,7 +197,7 @@ SurfaceMesh<Scalar, Index> to_surface_mesh_internal(InputMeshType&& mesh)
         decltype(auto) attr = mesh.get_indexed_attribute_array(name);
         decltype(auto) values = std::get<0>(attr)->template get<AttributeArray>();
         decltype(auto) indices = std::get<1>(attr)->template get<IndexArray>();
-        std::string new_name = internal::get_unique_attribute_name(new_mesh, name);
+        std::string new_name = get_unique_attribute_name(new_mesh, name);
 
         if constexpr (policy == Policy::Wrap) {
             static_assert(std::is_same_v<Index, MeshIndex>, "Mesh attribute index type mismatch");

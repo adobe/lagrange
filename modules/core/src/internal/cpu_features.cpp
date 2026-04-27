@@ -25,6 +25,7 @@
 // SIMD extension querying is only available on x86.
 #if LAGRANGE_TARGET_PLATFORM(x86_64)
     #if LAGRANGE_TARGET_OS(WINDOWS)
+        #include <intrin.h>
         // Visual Studio defines a builtin function for CPUID, so use that if possible.
         #define GETCPUID(a, b, c, d, a_inp, c_inp) \
             {                                      \

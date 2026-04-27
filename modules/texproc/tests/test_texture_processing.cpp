@@ -23,6 +23,7 @@
 #include <lagrange/utils/range.h>
 
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <tbb/parallel_for.h>
 #include <catch2/benchmark/catch_benchmark.hpp>
@@ -100,7 +101,7 @@ TEST_CASE("Grid bounds", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
     for (const auto kk : lagrange::range(cameras.size())) {
         views.emplace_back(load_image(
             lagrange::testing::get_data_path(
-                fmt::format("corp/texproc/segfault/render_{:d}.exr", kk))));
+                lagrange::format("corp/texproc/segfault/render_{:d}.exr", kk))));
     }
     REQUIRE(cameras.size() == views.size());
 
@@ -133,7 +134,7 @@ TEST_CASE("Pumpkin pipeline", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
     for (const auto kk : lagrange::range(cameras.size())) {
         views.emplace_back(load_image(
             lagrange::testing::get_data_path(
-                fmt::format("corp/texproc/prepared/view_{:02d}.png", kk))));
+                lagrange::format("corp/texproc/prepared/view_{:02d}.png", kk))));
     }
     REQUIRE(cameras.size() == views.size());
 
@@ -174,7 +175,7 @@ TEST_CASE("Check benchmark", "[texproc][!benchmark]" LA_CORP_FLAG)
     for (const auto kk : lagrange::range(cameras.size())) {
         views.emplace_back(load_image(
             lagrange::testing::get_data_path(
-                fmt::format("corp/texproc/prepared/view_{:02d}.png", kk))));
+                lagrange::format("corp/texproc/prepared/view_{:02d}.png", kk))));
     }
     REQUIRE(cameras.size() == views.size());
 

@@ -21,9 +21,14 @@ CPMAddPackage(
     URL https://github.com/richgel999/miniz/releases/download/3.0.2/miniz-3.0.2.zip
     URL_MD5 0604f14151944ff984444b04c5c760e5
 )
+FetchContent_GetProperties(miniz)
 
 add_library(miniz STATIC ${miniz_SOURCE_DIR}/miniz.c)
-add_library(miniz::miniz ALIAS miniz)
+
+# Not an alias because libdwarf (included via cpptrace) depends on zlib/miniz and expects
+# an imported target (it doesn't define zlib/miniz in its export set for install).
+add_library(miniz::miniz IMPORTED INTERFACE GLOBAL)
+target_link_libraries(miniz::miniz INTERFACE miniz)
 
 include(GNUInstallDirs)
 target_include_directories(miniz PUBLIC
@@ -33,11 +38,6 @@ target_include_directories(miniz PUBLIC
 
 set_target_properties(miniz PROPERTIES FOLDER third_party)
 set_target_properties(miniz PROPERTIES POSITION_INDEPENDENT_CODE ON)
-
-target_include_directories(miniz PUBLIC
-    $<BUILD_INTERFACE:${miniz_BINARY_DIR}>
-    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
-)
 
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME miniz)

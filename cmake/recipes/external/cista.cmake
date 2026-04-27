@@ -28,11 +28,17 @@ CPMAddPackage(
 add_library(cista INTERFACE)
 add_library(cista::cista ALIAS cista)
 
-target_include_directories(cista SYSTEM INTERFACE "${cista_SOURCE_DIR}/include")
+FetchContent_GetProperties(cista)
+include(GNUInstallDirs)
+target_include_directories(cista SYSTEM INTERFACE
+    $<BUILD_INTERFACE:${cista_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+)
 
 set_target_properties(cista PROPERTIES FOLDER "third_party")
 
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME cista)
+install(DIRECTORY ${cista_SOURCE_DIR}/include/cista DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS cista EXPORT Cista_Targets INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(EXPORT Cista_Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/cista NAMESPACE cista::)

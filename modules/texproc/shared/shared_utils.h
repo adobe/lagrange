@@ -20,11 +20,11 @@
 #include <lagrange/Logger.h>
 #include <lagrange/scene/internal/shared_utils.h>
 #include <lagrange/texproc/TextureRasterizer.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <tbb/parallel_for.h>
 
 namespace lagrange::texproc {
-
 using scene::internal::Array3Df;
 using scene::internal::ConstView3Df;
 using scene::internal::View3Df;
@@ -148,8 +148,9 @@ std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
         rasterizer_options.height = base_image.extent(1);
         la_runtime_assert(
             renders.front().extent(2) == base_image.extent(2),
-            fmt::format(
-                "Input render image num channels (={}) must match base texture num channels (={})",
+            format(
+                "Input render image num channels (={}) must match base texture num channels "
+                "(={})",
                 renders.front().extent(2),
                 base_image.extent(2)));
         lagrange::logger().info(
@@ -175,6 +176,106 @@ std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
     filter_low_confidences(textures_and_weights, low_confidence_ratio);
 
     return textures_and_weights;
+}
+
+///
+/// Overload of rasterize_textures_from_renders that takes a single grid image instead of a vector
+/// of renders. The grid image is split into individual render views based on the number of cameras
+/// in the scene.
+///
+/// @param[in]  scene                 Input scene with mesh, UVs and cameras.
+/// @param[in]  base_texture_in       Optional base texture override.
+/// @param[in]  render_grid           Single image containing a grid of renders.
+/// @param[in]  tex_width             Optional rasterization texture width.
+/// @param[in]  tex_height            Optional rasterization texture height.
+/// @param[in]  low_confidence_ratio  Ratio threshold for low confidence filtering.
+/// @param[in]  base_confidence       Optional uniform confidence for the base texture.
+///
+/// @return     Vector of (texture, weight) pairs.
+///
+template <typename Scalar, typename Index>
+std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
+    const lagrange::scene::Scene<Scalar, Index>& scene,
+    std::optional<Array3Df> base_texture_in,
+    const ConstView3Df& render_grid,
+    const std::optional<size_t> tex_width,
+    const std::optional<size_t> tex_height,
+    const float low_confidence_ratio,
+    const std::optional<float> base_confidence)
+{
+    // Determine number of cameras in the scene
+    auto cameras = cameras_from_scene(scene);
+    const size_t num_cameras = cameras.size();
+    la_runtime_assert(num_cameras > 0, "No cameras found in the input scene");
+
+    const size_t grid_width = render_grid.extent(0);
+    const size_t grid_height = render_grid.extent(1);
+    const size_t num_channels = render_grid.extent(2);
+
+    // Find the best grid layout (rows x cols = num_cameras) such that the grid image can be evenly
+    // divided into cells. The heuristic picks the factorization whose cells are closest to square.
+    // This assumes the grid was rendered with approximately square (or at least uniform aspect
+    // ratio) cameras. Use the std::vector<ConstView3Df> overload for grids with non-square cells.
+    size_t best_cols = 0;
+    size_t best_rows = 0;
+    double best_aspect_diff = std::numeric_limits<double>::max();
+    for (size_t cols = 1; cols <= num_cameras; ++cols) {
+        if (num_cameras % cols != 0) continue;
+        size_t rows = num_cameras / cols;
+        if (grid_width % cols != 0 || grid_height % rows != 0) continue;
+        size_t cell_w = grid_width / cols;
+        size_t cell_h = grid_height / rows;
+        double aspect_diff = std::abs(static_cast<double>(cell_w) / cell_h - 1.0);
+        if (aspect_diff < best_aspect_diff) {
+            best_aspect_diff = aspect_diff;
+            best_cols = cols;
+            best_rows = rows;
+        }
+    }
+    la_runtime_assert(
+        best_cols > 0,
+        format(
+            "Cannot evenly divide grid image ({}x{}) into {} cells",
+            grid_width,
+            grid_height,
+            num_cameras));
+
+    const size_t cell_width = grid_width / best_cols;
+    const size_t cell_height = grid_height / best_rows;
+    lagrange::logger().info(
+        "Splitting {}x{} grid image into {}x{} cells of size {}x{}",
+        grid_width,
+        grid_height,
+        best_cols,
+        best_rows,
+        cell_width,
+        cell_height);
+
+    // Create views into the grid image for each cell (row-major order)
+    using namespace image::experimental;
+    std::vector<ConstView3Df> views;
+    views.reserve(num_cameras);
+    const dextents<size_t, 3> cell_shape{cell_width, cell_height, num_channels};
+    const std::array<size_t, 3> cell_strides{
+        render_grid.stride(0),
+        render_grid.stride(1),
+        render_grid.stride(2)};
+    const layout_stride::mapping<dextents<size_t, 3>> cell_mapping{cell_shape, cell_strides};
+    for (size_t row = 0; row < best_rows; ++row) {
+        for (size_t col = 0; col < best_cols; ++col) {
+            const float* cell_ptr = &render_grid(col * cell_width, row * cell_height, 0);
+            views.emplace_back(cell_ptr, cell_mapping);
+        }
+    }
+
+    return rasterize_textures_from_renders(
+        scene,
+        std::move(base_texture_in),
+        views,
+        tex_width,
+        tex_height,
+        low_confidence_ratio,
+        base_confidence);
 }
 
 } // namespace lagrange::texproc

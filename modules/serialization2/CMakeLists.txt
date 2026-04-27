@@ -36,3 +36,7 @@ endif()
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()
+
+if(LAGRANGE_BINDINGS_JS)
+    add_subdirectory(js)
+endif()

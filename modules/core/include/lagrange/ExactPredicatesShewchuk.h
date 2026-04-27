@@ -29,23 +29,29 @@ public:
     ///
     /// @copydoc ExactPredicates::orient2D
     ///
-    virtual short orient2D(double p1[2], double p2[2], double p3[2]) const;
+    virtual short orient2D(const double p1[2], const double p2[2], const double p3[2]) const;
 
     ///
     /// @copydoc ExactPredicates::orient2D
     ///
-    virtual short orient3D(double p1[3], double p2[3], double p3[3], double p4[3]) const;
+    virtual short
+    orient3D(const double p1[3], const double p2[3], const double p3[3], const double p4[3]) const;
 
     ///
     /// @copydoc ExactPredicates::orient2D
     ///
-    virtual short incircle(double p1[2], double p2[2], double p3[2], double p4[2]) const;
+    virtual short
+    incircle(const double p1[2], const double p2[2], const double p3[2], const double p4[2]) const;
 
     ///
     /// @copydoc ExactPredicates::orient2D
     ///
-    virtual short insphere(double p1[3], double p2[3], double p3[3], double p4[3], double p5[3])
-        const;
+    virtual short insphere(
+        const double p1[3],
+        const double p2[3],
+        const double p3[3],
+        const double p4[3],
+        const double p5[3]) const;
 };
 
 /// @}

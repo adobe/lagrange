@@ -19,12 +19,13 @@
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/views.h>
 
-#include <spdlog/fmt/ranges.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <polyscope/polyscope.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/fmt/join.h>
 // clang-format on
 
 #include <CLI/CLI.hpp>
@@ -50,7 +51,7 @@ void prepare_mesh(SurfaceMesh& mesh)
         lagrange::logger().info(
             "Unifying index buffers for {} non-UV indexed attributes: {}",
             ids.size(),
-            fmt::join(attr_names, ", "));
+            lagrange::join(attr_names, ", "));
         mesh = lagrange::unify_index_buffer(mesh, ids);
     }
 

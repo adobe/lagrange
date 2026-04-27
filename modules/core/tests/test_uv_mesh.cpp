@@ -226,6 +226,132 @@ TEST_CASE("uv_mesh: corner attribute hybrid mesh", "[core][uv_mesh]")
     }
 }
 
+TEST_CASE("uv_mesh: indexed attribute with different UV scalar type", "[core][uv_mesh]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+    using UVScalar = float;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(2, 1, 3);
+
+    std::vector<UVScalar> uv_values{0, 0, 1, 0, 0, 1, 1, 1};
+    std::vector<Index> uv_indices{0, 1, 2, 2, 1, 3};
+    mesh.template create_attribute<UVScalar>(
+        "uv",
+        AttributeElement::Indexed,
+        AttributeUsage::UV,
+        2,
+        uv_values,
+        uv_indices);
+
+    SECTION("uv_mesh_view")
+    {
+        auto uv = uv_mesh_view<Scalar, Index, UVScalar>(mesh);
+        REQUIRE(uv.get_num_vertices() == 4);
+        REQUIRE(uv.get_num_facets() == 2);
+        REQUIRE(uv.get_num_corners() == 6);
+    }
+
+    SECTION("uv_mesh_ref")
+    {
+        auto uv = uv_mesh_ref<Scalar, Index, UVScalar>(mesh);
+        REQUIRE(uv.get_num_vertices() == 4);
+        REQUIRE(uv.get_num_facets() == 2);
+        REQUIRE(uv.get_num_corners() == 6);
+    }
+}
+
+TEST_CASE("uv_mesh: vertex attribute with different UV scalar type", "[core][uv_mesh]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+    using UVScalar = float;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(2, 1, 3);
+
+    std::vector<UVScalar> uv_values{0, 0, 1, 0, 0, 1, 1, 1};
+    mesh.template create_attribute<UVScalar>(
+        "uv",
+        AttributeElement::Vertex,
+        AttributeUsage::UV,
+        2,
+        uv_values);
+
+    SECTION("uv_mesh_view")
+    {
+        auto uv = uv_mesh_view<Scalar, Index, UVScalar>(mesh);
+        REQUIRE(uv.get_num_vertices() == 4);
+        REQUIRE(uv.get_num_facets() == 2);
+        REQUIRE(uv.get_num_corners() == 6);
+    }
+
+    SECTION("uv_mesh_ref")
+    {
+        auto uv = uv_mesh_ref<Scalar, Index, UVScalar>(mesh);
+        REQUIRE(uv.get_num_vertices() == 4);
+        REQUIRE(uv.get_num_facets() == 2);
+        REQUIRE(uv.get_num_corners() == 6);
+    }
+}
+
+TEST_CASE("uv_mesh: corner attribute with different UV scalar type", "[core][uv_mesh]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+    using UVScalar = float;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(2, 1, 3);
+
+    std::vector<UVScalar> uv_values{0, 0, 1, 0, 0, 1, 0, 1, 1, 0, 1, 1};
+    mesh.template create_attribute<UVScalar>(
+        "uv",
+        AttributeElement::Corner,
+        AttributeUsage::UV,
+        2,
+        uv_values);
+
+    UVMeshOptions options;
+    options.uv_attribute_name = "uv";
+    options.element_types = UVMeshOptions::ElementTypes::All;
+
+    SECTION("uv_mesh_view")
+    {
+        auto uv = uv_mesh_view<Scalar, Index, UVScalar>(mesh, options);
+        REQUIRE(uv.get_num_vertices() == 6);
+        REQUIRE(uv.get_num_facets() == 2);
+        REQUIRE(uv.get_num_corners() == 6);
+    }
+
+    SECTION("uv_mesh_ref")
+    {
+        auto uv = uv_mesh_ref<Scalar, Index, UVScalar>(mesh, options);
+        REQUIRE(uv.get_num_vertices() == 6);
+        REQUIRE(uv.get_num_facets() == 2);
+        REQUIRE(uv.get_num_corners() == 6);
+    }
+}
+
 TEST_CASE(
     "uv_mesh: auto-detect corner attribute with UVMeshOptions::ElementTypes::All",
     "[core][uv_mesh]")

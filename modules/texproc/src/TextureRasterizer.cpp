@@ -14,11 +14,14 @@
 
 #include "mesh_utils.h"
 
+#include <lagrange/utils/compute_normal_cotransform.h>
+
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Misha/Texels.h>
 #include <Misha/SquaredEDT.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <atomic>
@@ -40,6 +43,7 @@ struct CameraParameters
     Eigen::Affine3d view_from_world = Eigen::Affine3d::Identity(); // world -> view
     Eigen::Projective3d ndc_from_view = Eigen::Projective3d::Identity(); // world -> ndc
     Eigen::Affine2d screen_from_ndc = Eigen::Affine2d::Identity(); // ndc -> screen
+    bool is_orthographic = false;
 
     CameraParameters(
         const Eigen::Affine3d& view_from_world_,
@@ -50,6 +54,24 @@ struct CameraParameters
         res[0] = width;
         res[1] = height;
         view_from_world = view_from_world_;
+
+        // Detect orthographic vs perspective from the last row of the projection matrix.
+        //   Perspective:   row 3 = [0, 0, -1, 0]  →  P(3,2) = -1, P(3,3) = 0
+        //   Orthographic:  row 3 = [0, 0,  0, 1]  →  P(3,2) =  0, P(3,3) = 1
+        {
+            const auto& P = ndc_from_view_.matrix();
+            const double p32 = P(3, 2);
+            const double p33 = P(3, 3);
+            is_orthographic = (std::abs(p33 - 1.0) < 1e-8 && std::abs(p32) < 1e-8);
+            la_runtime_assert(
+                is_orthographic || (std::abs(p33) < 1e-8 && std::abs(p32 + 1.0) < 1e-8),
+                "Projection matrix does not match perspective or orthographic convention");
+            logger().debug(
+                "Camera projection: {} (P(3,2)={}, P(3,3)={})",
+                is_orthographic ? "orthographic" : "perspective",
+                p32,
+                p33);
+        }
 
         // Remap depth from [-1, 1] to [0, 1] to improve numerical precision
         // https://www.reedbeta.com/blog/depth-precision-visualized/
@@ -318,13 +340,22 @@ struct TextureAndConfidenceFromRender
                 auto npos_screen = Texels<NodeAtCellCenter>::NodePosition(I);
                 Eigen::Vector2d npos_ndc =
                     ndc_from_screen * Eigen::Vector2d(npos_screen[0], npos_screen[1]);
+                // Unproject two points along the ray (near and far planes in NDC)
+                // to construct a ray that works for both perspective and orthographic cameras.
+                const double znear_ndc = 1.0;
                 const double zfar_ndc = 0.0;
-                Eigen::Vector3d npos_view =
+                Eigen::Vector3d near_view =
+                    (view_from_ndc *
+                     Eigen::Vector3d(npos_ndc[0], npos_ndc[1], znear_ndc).homogeneous())
+                        .hnormalized();
+                Eigen::Vector3d far_view =
                     (view_from_ndc *
                      Eigen::Vector3d(npos_ndc[0], npos_ndc[1], zfar_ndc).homogeneous())
                         .hnormalized();
+                Eigen::Vector3d dir = far_view - near_view;
                 Ray<double, 3> ray;
-                ray.direction = Vector<double, 3>(npos_view[0], npos_view[1], npos_view[2]);
+                ray.position = Vector<double, 3>(near_view[0], near_view[1], near_view[2]);
+                ray.direction = Vector<double, 3>(dir[0], dir[1], dir[2]);
                 std::pair<double, Vector<double, 3>> _bc = c_tri.barycentricCoordinates(ray);
                 Vector<double, 3> bc = _bc.second;
                 Vector<double, 3> p_c = c_tri[0] * bc[0] + c_tri[1] * bc[1] + c_tri[2] * bc[2];
@@ -521,7 +552,11 @@ struct TextureAndConfidenceFromRender
 
         // Set the cumulative confidence based on the depth and normal confidence information
         {
-            Vector<double, 3> camera_position = camera_params.camera_position_world();
+            // Cotransform (cofactor matrix) for transforming normals from world to view space.
+            // This correctly handles non-rigid transforms (scale/shear), unlike using the
+            // linear part directly.
+            Eigen::Matrix3d normal_matrix =
+                compute_normal_cotransform(Eigen::Affine3d(camera_params.view_from_world));
 
             DepthMapWrapper depth_map(depth);
 
@@ -531,28 +566,34 @@ struct TextureAndConfidenceFromRender
                     // The position of the texel in world coordinates
                     Vector<double, Dim> p_w = world_texel->first;
 
-                    // The normal of the texel in world coordinates
-                    Vector<double, Dim> n = world_texel->second;
-                    n /= Vector<double, Dim>::Length(n);
+                    // The normal of the texel in view space
+                    Eigen::Vector3d n_world(
+                        world_texel->second[0],
+                        world_texel->second[1],
+                        world_texel->second[2]);
+                    Eigen::Vector3d n_view = (normal_matrix * n_world).stableNormalized();
 
-                    // The direction from the camera to the world position of the texel
-                    Vector<double, Dim> dir = p_w - camera_position;
-                    dir /= Vector<double, Dim>::Length(dir);
-
-                    // The projection of the texl in the rendering
+                    // The projection of the texel in the rendering
                     Vector<double, K> q = camera_params(p_w);
 
-                    // The position of the texel in the camera coordinate system
+                    // The position of the texel in view space
                     Vector<double, Dim> p_c = camera_params.world_to_view(p_w);
                     const double z = -p_c[2]; // depth is -z in view space
 
                     // The depth map at the texel
                     double d = depth_map(q);
 
-                    // The normal confidence based on the alignment of the normal with the camera's
+                    // For perspective cameras, the view direction is the normalized position
+                    // in view space (rays converge to origin). For orthographic cameras, all
+                    // rays are parallel to -Z in view space.
+                    Eigen::Vector3d dir_view =
+                        camera_params.is_orthographic
+                            ? Eigen::Vector3d(0, 0, -1)
+                            : Eigen::Vector3d(p_c[0], p_c[1], p_c[2]).stableNormalized();
+
+                    // The normal confidence based on the alignment of the normal with the
                     // view direction
-                    [[maybe_unused]] double normal_confidence =
-                        fabs(Vector<double, Dim>::Dot(n, dir));
+                    [[maybe_unused]] double normal_confidence = fabs(n_view.dot(dir_view));
 
                     // If the texel is visible, set the confidence to the product of the depth and
                     // normal confidences
@@ -667,10 +708,9 @@ auto TextureRasterizer<Scalar, Index>::weighted_texture_from_render(
             options,
             m_impl->options);
     default:
-        throw Error(
-            fmt::format(
-                "Only 1, 2, 3, or 4 channels supported. Input render image has {} channels.",
-                num_channels));
+        throw Error(format(
+            "Only 1, 2, 3, or 4 channels supported. Input render image has {} channels.",
+            num_channels));
     }
 }
 

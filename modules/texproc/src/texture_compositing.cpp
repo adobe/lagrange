@@ -15,12 +15,14 @@
 #include "mesh_utils.h"
 
 #include <lagrange/utils/build.h>
+#include <lagrange/utils/timing.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <Src/PreProcessing.h>
 #include <Src/GradientDomain.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <Eigen/Sparse>
@@ -49,6 +51,9 @@ image::experimental::Array3D<ValueType> texture_compositing(
         RegularGrid<K, Vector<double, 1>> weights;
     };
 
+    VerboseTimer timer("[compositing] ");
+
+    timer.tick();
     auto wrapper =
         mesh_utils::create_mesh_wrapper(mesh, RequiresIndexedTexcoords::Yes, CheckFlippedUV::Yes);
     std::vector<InputData> in(textures.size());
@@ -73,6 +78,7 @@ image::experimental::Array3D<ValueType> texture_compositing(
     height += padding.height();
 
     out.resize(width, height);
+    timer.tock("preprocessing");
 
     // Construct the hierarchical gradient domain object
     // TODO: Compute number of levels based on texture size
@@ -82,6 +88,7 @@ image::experimental::Array3D<ValueType> texture_compositing(
 #else
     const bool sanity_check = false;
 #endif
+    timer.tick();
     HierarchicalGradientDomain<double, Solver, Vector<double, NumChannels>> hgd(
         options.quadrature_samples,
         wrapper.num_simplices(),
@@ -96,6 +103,25 @@ image::experimental::Array3D<ValueType> texture_compositing(
         options.solver.num_multigrid_levels,
         normalize,
         sanity_check);
+    timer.tock("hierarchy construction");
+
+    logger().debug(
+        "[compositing] mesh: {} triangles, {} vertices, {} texcoords",
+        wrapper.num_simplices(),
+        wrapper.num_vertices(),
+        wrapper.num_texcoords());
+    logger().debug(
+        "[compositing] texture: {}x{} ({} channels), {} views",
+        width,
+        height,
+        NumChannels,
+        textures.size());
+    logger().debug(
+        "[compositing] solver: {} nodes, {} edges, {} multigrid levels, {} v-cycles",
+        hgd.numNodes(),
+        hgd.numEdges(),
+        options.solver.num_multigrid_levels,
+        options.solver.num_v_cycles);
 
     // Get the pointers to the solver constraints and solution
     span<Vector<double, NumChannels>> x{hgd.x(), hgd.numNodes()};
@@ -123,6 +149,7 @@ image::experimental::Array3D<ValueType> texture_compositing(
     };
 
     // Compute the weighted sum of texture values
+    timer.tick();
     for (size_t n = 0; n < hgd.numNodes(); n++) {
         auto [row, col] = hgd.node(n);
 
@@ -131,6 +158,8 @@ image::experimental::Array3D<ValueType> texture_compositing(
             x[n] += in[i].texture(row, col) * in[i].weights(row, col)[0] * scale;
         }
     }
+
+    timer.tock("weighted sum");
 
     // Set unobserved texels to the average observed color
     {
@@ -163,6 +192,7 @@ image::experimental::Array3D<ValueType> texture_compositing(
     }
 
     // Construct the constraints
+    timer.tick();
     {
         std::vector<Vector<double, NumChannels>> value_b(hgd.numNodes()),
             gradient_b(hgd.numNodes());
@@ -203,20 +233,27 @@ image::experimental::Array3D<ValueType> texture_compositing(
         }
     }
 
+    timer.tock("constraint assembly");
+
     // Compute the system matrix
+    timer.tick();
     const double gradient_weight = 1.0;
     hgd.updateSystem(options.value_weight, gradient_weight);
+    timer.tock("system update");
 
     // Relax the solution
+    timer.tick();
     for (unsigned int v = 0; v < options.solver.num_v_cycles; ++v) {
         hgd.vCycle(options.solver.num_gauss_seidel_iterations);
     }
+    timer.tock("v-cycles");
 
     if (options.clamp_to_range.has_value()) {
         mesh_utils::clamp_out_of_range(x, hgd, options.clamp_to_range.value());
     }
 
     // Put the texel values back into the texture
+    timer.tick();
     for (size_t n = 0; n < hgd.numNodes(); n++) {
         std::pair<unsigned int, unsigned int> coords = hgd.node(n);
         out(coords.first, coords.second) = x[n];
@@ -239,6 +276,7 @@ image::experimental::Array3D<ValueType> texture_compositing(
             }
         }
     }
+    timer.tock("postprocessing");
 
     return composite;
 }
@@ -257,15 +295,14 @@ image::experimental::Array3D<ValueType> texture_compositing(
         if (texture.texture.extent(0) != textures[0].texture.extent(0) ||
             texture.texture.extent(1) != textures[0].texture.extent(1) ||
             texture.texture.extent(2) != textures[0].texture.extent(2)) {
-            throw std::runtime_error(
-                fmt::format(
-                    "All textures must have the same dimensions: {}x{}x{} vs {}x{}x{}",
-                    texture.texture.extent(0),
-                    texture.texture.extent(1),
-                    texture.texture.extent(2),
-                    textures[0].texture.extent(0),
-                    textures[0].texture.extent(1),
-                    textures[0].texture.extent(2)));
+            throw std::runtime_error(format(
+                "All textures must have the same dimensions: {}x{}x{} vs {}x{}x{}",
+                texture.texture.extent(0),
+                texture.texture.extent(1),
+                texture.texture.extent(2),
+                textures[0].texture.extent(0),
+                textures[0].texture.extent(1),
+                textures[0].texture.extent(2)));
         }
         if (texture.weights.extent(0) != textures[0].weights.extent(0) ||
             texture.weights.extent(1) != textures[0].weights.extent(1)) {

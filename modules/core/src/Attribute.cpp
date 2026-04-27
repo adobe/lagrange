@@ -17,6 +17,7 @@
 #include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/warning.h>
@@ -625,12 +626,11 @@ void Attribute<ValueType>::growth_check(size_t new_cap)
             throw Error("Attribute policy prevents growing external buffer");
         case AttributeGrowthPolicy::AllowWithinCapacity:
             if (new_cap > m_const_view.size()) {
-                throw Error(
-                    fmt::format(
-                        "Attribute policy prevents growing external buffer beyond capacity ({} / "
-                        "{})",
-                        new_cap,
-                        m_const_view.size()));
+                throw Error(format(
+                    "Attribute policy prevents growing external buffer beyond capacity ({} / "
+                    "{})",
+                    new_cap,
+                    m_const_view.size()));
             }
             break;
         case AttributeGrowthPolicy::WarnAndCopy:

@@ -19,6 +19,7 @@
 #include <lagrange/serialization/serialize_mesh.h>
 #include <lagrange/serialization/serialize_scene.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include "CistaSimpleScene.h"
 #include "compress.h"
@@ -82,32 +83,32 @@ scene::SimpleScene<Scalar, Index, Dimension> from_cista_simple_scene(const Cista
 {
     la_runtime_assert(
         cscene.version == simple_scene_format_version(),
-        fmt::format(
+        format(
             "Unsupported encoding format version: expected {}, got {}",
             simple_scene_format_version(),
             cscene.version));
     la_runtime_assert(
         cscene.scalar_type_size == sizeof(Scalar),
-        fmt::format(
+        format(
             "Scalar type size mismatch: expected {}, got {}",
             sizeof(Scalar),
             cscene.scalar_type_size));
     la_runtime_assert(
         cscene.index_type_size == sizeof(Index),
-        fmt::format(
+        format(
             "Index type size mismatch: expected {}, got {}",
             sizeof(Index),
             cscene.index_type_size));
     la_runtime_assert(
         cscene.dimension == Dimension,
-        fmt::format("Dimension mismatch: expected {}, got {}", Dimension, cscene.dimension));
+        format("Dimension mismatch: expected {}, got {}", Dimension, cscene.dimension));
 
     scene::SimpleScene<Scalar, Index, Dimension> scene;
 
     const size_t num_meshes = cscene.meshes.size();
     la_runtime_assert(
         cscene.instances_per_mesh.size() == num_meshes,
-        fmt::format(
+        format(
             "instances_per_mesh size mismatch: expected {}, got {}",
             num_meshes,
             cscene.instances_per_mesh.size()));
@@ -123,7 +124,7 @@ scene::SimpleScene<Scalar, Index, Dimension> from_cista_simple_scene(const Cista
         const size_t num_instances = static_cast<size_t>(cscene.instances_per_mesh[i]);
         la_runtime_assert(
             instance_offset + num_instances <= cscene.instances.size(),
-            fmt::format(
+            format(
                 "Instance offset out of bounds: offset={} + count={} > total={}",
                 instance_offset,
                 num_instances,
@@ -142,7 +143,7 @@ scene::SimpleScene<Scalar, Index, Dimension> from_cista_simple_scene(const Cista
             constexpr size_t byte_size = matrix_size * sizeof(Scalar);
             la_runtime_assert(
                 cinst.transform_bytes.size() == byte_size,
-                fmt::format(
+                format(
                     "Transform data size mismatch: expected {}, got {}",
                     byte_size,
                     cinst.transform_bytes.size()));
@@ -154,7 +155,7 @@ scene::SimpleScene<Scalar, Index, Dimension> from_cista_simple_scene(const Cista
     }
     la_runtime_assert(
         instance_offset == cscene.instances.size(),
-        fmt::format(
+        format(
             "Total instance count mismatch: expected {}, got {}",
             cscene.instances.size(),
             instance_offset));
@@ -174,13 +175,13 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
 
     la_runtime_assert(
         cscene->version == simple_scene_format_version(),
-        fmt::format(
+        format(
             "Unsupported encoding format version: expected {}, got {}",
             simple_scene_format_version(),
             cscene->version));
     la_runtime_assert(
         cscene->dimension == Dimension,
-        fmt::format("Dimension mismatch: expected {}, got {}", Dimension, cscene->dimension));
+        format("Dimension mismatch: expected {}, got {}", Dimension, cscene->dimension));
 
     const uint8_t ss = cscene->scalar_type_size;
     const uint8_t is = cscene->index_type_size;
@@ -201,7 +202,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
             return lagrange::cast<ToScalar, ToIndex>(m);
         } else {
             throw std::runtime_error(
-                fmt::format("Unsupported scalar/index type sizes: scalar={} index={}", ss, is));
+                format("Unsupported scalar/index type sizes: scalar={} index={}", ss, is));
         }
     };
 
@@ -210,7 +211,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
     const size_t num_meshes = cscene->meshes.size();
     la_runtime_assert(
         cscene->instances_per_mesh.size() == num_meshes,
-        fmt::format(
+        format(
             "instances_per_mesh size mismatch: expected {}, got {}",
             num_meshes,
             cscene->instances_per_mesh.size()));
@@ -227,7 +228,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
         const size_t num_instances = static_cast<size_t>(cscene->instances_per_mesh[i]);
         la_runtime_assert(
             instance_offset + num_instances <= cscene->instances.size(),
-            fmt::format(
+            format(
                 "Instance offset out of bounds: offset={} + count={} > total={}",
                 instance_offset,
                 num_instances,
@@ -245,7 +246,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
             const size_t expected_byte_size = matrix_size * ss;
             la_runtime_assert(
                 cinst.transform_bytes.size() == expected_byte_size,
-                fmt::format(
+                format(
                     "Transform data size mismatch: expected {}, got {}",
                     expected_byte_size,
                     cinst.transform_bytes.size()));
@@ -262,7 +263,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
                     inst.transform.matrix().data()[k] = static_cast<ToScalar>(native[k]);
                 }
             } else {
-                throw std::runtime_error(fmt::format("Unsupported scalar type size: {}", ss));
+                throw std::runtime_error(format("Unsupported scalar type size: {}", ss));
             }
 
             result.add_instance(std::move(inst));
@@ -271,7 +272,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
     }
     la_runtime_assert(
         instance_offset == cscene->instances.size(),
-        fmt::format(
+        format(
             "Total instance count mismatch: expected {}, got {}",
             cscene->instances.size(),
             instance_offset));
@@ -320,14 +321,13 @@ SceneType deserialize_simple_scene(span<const uint8_t> buffer, const Deserialize
         if (cscene->scalar_type_size != sizeof(Scalar) ||
             cscene->index_type_size != sizeof(Index)) {
             if (!options.allow_type_cast) {
-                throw std::runtime_error(
-                    fmt::format(
-                        "Scalar/Index type mismatch: buffer has scalar_size={} index_size={}, "
-                        "expected scalar_size={} index_size={}",
-                        cscene->scalar_type_size,
-                        cscene->index_type_size,
-                        sizeof(Scalar),
-                        sizeof(Index)));
+                throw std::runtime_error(format(
+                    "Scalar/Index type mismatch: buffer has scalar_size={} index_size={}, "
+                    "expected scalar_size={} index_size={}",
+                    cscene->scalar_type_size,
+                    cscene->index_type_size,
+                    sizeof(Scalar),
+                    sizeof(Index)));
             }
             if (!options.quiet) {
                 logger().warn(

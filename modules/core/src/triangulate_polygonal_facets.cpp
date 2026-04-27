@@ -161,7 +161,10 @@ void append_triangles_from_polygon(
 }
 
 template <typename Scalar, typename Index>
-void triangulate_polygonal_facets_earcut(SurfaceMesh<Scalar, Index>& mesh)
+void triangulate_polygonal_facets_earcut(
+    SurfaceMesh<Scalar, Index>& mesh,
+    bool preserve_edges,
+    bool preserve_points)
 {
     LAGRANGE_ZONE_SCOPED;
 
@@ -187,8 +190,14 @@ void triangulate_polygonal_facets_earcut(SurfaceMesh<Scalar, Index>& mesh)
         if (facet_size != 3) {
             need_removal = true;
         }
-        if (facet_size <= 2) {
-            to_remove[f] = true;
+        if (facet_size == 1) {
+            if (!preserve_points) {
+                to_remove[f] = true;
+            }
+        } else if (facet_size == 2) {
+            if (!preserve_edges) {
+                to_remove[f] = true;
+            }
         } else if (facet_size == 4) {
             // Triangulate quad
             to_remove[f] = true;
@@ -299,7 +308,10 @@ void triangulate_polygonal_facets_earcut(SurfaceMesh<Scalar, Index>& mesh)
 }
 
 template <typename Scalar, typename Index>
-void triangulate_polygonal_facets_centroid_fan(SurfaceMesh<Scalar, Index>& mesh)
+void triangulate_polygonal_facets_centroid_fan(
+    SurfaceMesh<Scalar, Index>& mesh,
+    bool preserve_edges,
+    bool preserve_points)
 {
     if (mesh.is_triangle_mesh()) {
         return;
@@ -321,7 +333,8 @@ void triangulate_polygonal_facets_centroid_fan(SurfaceMesh<Scalar, Index>& mesh)
 
     for (Index fid = 0; fid < old_num_facets; ++fid) {
         const auto facet_size = mesh.get_facet_size(fid);
-        if (facet_size != 3) {
+        if (facet_size != 3 && !(preserve_edges && facet_size == 2) &&
+            !(preserve_points && facet_size == 1)) {
             auto f = mesh.get_facet_vertices(fid);
             facets_to_remove.push_back(fid);
 
@@ -522,9 +535,14 @@ void triangulate_polygonal_facets(
     const TriangulationOptions& options)
 {
     switch (options.scheme) {
-    case TriangulationOptions::Scheme::Earcut: triangulate_polygonal_facets_earcut(mesh); break;
+    case TriangulationOptions::Scheme::Earcut:
+        triangulate_polygonal_facets_earcut(mesh, options.preserve_edges, options.preserve_points);
+        break;
     case TriangulationOptions::Scheme::CentroidFan:
-        triangulate_polygonal_facets_centroid_fan(mesh);
+        triangulate_polygonal_facets_centroid_fan(
+            mesh,
+            options.preserve_edges,
+            options.preserve_points);
         break;
     }
 }

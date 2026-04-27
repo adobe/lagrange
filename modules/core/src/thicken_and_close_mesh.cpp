@@ -16,12 +16,13 @@
 #include <lagrange/filter_attributes.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/internal/visit_attribute.h>
+#include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/fmt/join.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
-#include <spdlog/fmt/ranges.h>
 
 namespace lagrange {
 
@@ -257,7 +258,7 @@ void offset_values(
                 for (Index is = 0; is + 1 < num_segments; ++is) {
                     std::copy(src.begin(), src.end(), tmp_values.data() + is * nc);
                 }
-                logger().debug("New values: {}", fmt::join(tmp_values, ", "));
+                logger().debug("New values: {}", join(tmp_values, ", "));
                 values_.insert_elements(tmp_values);
             }
         }
@@ -434,7 +435,7 @@ SurfaceMesh<Scalar, Index> thicken_and_close_mesh(
                     [&](Index f) { return mesh.get_facet_size(f); },
                     [&](Index c) { return mesh.get_next_corner_around_facet(c); });
             } else {
-                throw Error(fmt::format("Attribute '{}' is not indexed.", name));
+                throw Error(format("Attribute '{}' is not indexed.", name));
             }
         });
     }

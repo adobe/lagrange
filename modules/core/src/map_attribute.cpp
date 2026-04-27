@@ -18,6 +18,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/range.h>
 
@@ -302,12 +303,12 @@ AttributeId map_attribute_in_place(
         } else {
             std::string new_name;
             for (int cnt = 0; cnt < 1000; ++cnt) {
-                new_name = fmt::format("{}.{}", name, cnt);
+                new_name = format("{}.{}", name, cnt);
                 if (!mesh.has_attribute(new_name)) {
                     return new_name;
                 }
             }
-            throw Error(fmt::format("Could not assign a unique attribute name for: {}", name));
+            throw Error(format("Could not assign a unique attribute name for: {}", name));
         }
     };
 

@@ -27,6 +27,7 @@
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
@@ -353,13 +354,13 @@ TEST_CASE("compute_normal nmtest", "[core][normal]" LA_CORP_FLAG)
         mesh = lagrange::unify_index_buffer(mesh, {nrm_id});
         mesh.rename_attribute(nrm_name, "Vertex_Normal"); // match ply attribute name
 
-        auto filename = fmt::format("nmtest_normal_{}.ply", angle_threshold_deg);
+        auto filename = lagrange::format("nmtest_normal_{}.ply", angle_threshold_deg);
 
         // Uncomment to save a new output
         // lagrange::io::save_mesh(filename, mesh);
 
         auto expected = lagrange::testing::load_surface_mesh<Scalar, Index>(
-            fmt::format("corp/core/regression/{}", filename));
+            lagrange::format("corp/core/regression/{}", filename));
 
         lagrange::seq_foreach_named_attribute_read<lagrange::AttributeElement::Vertex>(
             mesh,

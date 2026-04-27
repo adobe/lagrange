@@ -18,6 +18,7 @@
 
 #include <array>
 #include <string>
+#include <tuple>
 #include <variant>
 
 namespace nb = nanobind;
@@ -60,6 +61,38 @@ void populate_geodesic_module(nb::module_& m)
 :param target_facet_bc: Barycentric coordinates of the target point within the target facet. Given a triangle (p1, p2, p3), the barycentric coordinates (u, v) are such that the surface point is represented by p = (1 - u - v) * p1 + u * p2 + v * p3.
 
 :returns: The geodesic distance between the two points.)");
+    };
+
+    auto def_point_to_point_geodesic_path = [](auto& cls) {
+        using EngineType = typename std::decay_t<decltype(cls)>::Type;
+        cls.def(
+            "point_to_point_geodesic_path",
+            [](EngineType& self,
+               size_t source_facet_id,
+               size_t target_facet_id,
+               std::array<double, 2> source_facet_bc,
+               std::array<double, 2> target_facet_bc) {
+                geodesic::PointToPointGeodesicPathOptions options;
+                options.source_facet_id = source_facet_id;
+                options.target_facet_id = target_facet_id;
+                options.source_facet_bc = source_facet_bc;
+                options.target_facet_bc = target_facet_bc;
+                auto result = self.point_to_point_geodesic_path(options);
+                return std::make_tuple(std::move(result.points), std::move(result.facet_ids));
+            },
+            "source_facet_id"_a,
+            "target_facet_id"_a,
+            "source_facet_bc"_a,
+            "target_facet_bc"_a,
+            R"(Compute the geodesic path between two points on the mesh.
+
+:param source_facet_id: Facet containing the source point.
+:param target_facet_id: Facet containing the target point.
+:param source_facet_bc: Barycentric coordinates of the source point within the source facet. Given a triangle (p1, p2, p3), the barycentric coordinates (u, v) are such that the surface point is represented by p = (1 - u - v) * p1 + u * p2 + v * p3.
+:param target_facet_bc: Barycentric coordinates of the target point within the target facet. Given a triangle (p1, p2, p3), the barycentric coordinates (u, v) are such that the surface point is represented by p = (1 - u - v) * p1 + u * p2 + v * p3.
+
+:returns: A tuple of (points, facet_ids) where points is a list of [x, y, z] coordinates along the geodesic path (first is source, last is target), and facet_ids is a list of facet indices for each path segment.
+:raises RuntimeError: If the engine does not support path extraction.)");
     };
 
     // DGPC engine
@@ -167,6 +200,7 @@ void populate_geodesic_module(nb::module_& m)
 
 :returns: The attribute ID of the computed geodesic distance attributes.)");
     def_point_to_point_geodesic(cls_mmp);
+    def_point_to_point_geodesic_path(cls_mmp);
 }
 
 } // namespace lagrange::python

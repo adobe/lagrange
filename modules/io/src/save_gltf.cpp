@@ -31,6 +31,7 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/build.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
 #include <lagrange/views.h>
@@ -647,7 +648,7 @@ tinygltf::Model lagrange_simple_scene_to_gltf_model(
         if (lmesh.get_num_vertices() == 0) continue;
         if (lscene.get_num_instances(i) == 0) continue;
 
-        const auto& tmesh = ensure_triangulated(fmt::format("#{}", i), lmesh, options);
+        const auto& tmesh = ensure_triangulated(format("#{}", i), lmesh, options);
         model.meshes.push_back(create_gltf_mesh(model, tmesh, options));
 
         for (Index j = 0; j < lscene.get_num_instances(i); ++j) {
@@ -744,16 +745,15 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             llight.color_diffuse.y(),
             llight.color_diffuse.z()};
         light.intensity = 1 / llight.attenuation_constant;
-        auto light_label = llight.name.empty()
-                               ? fmt::format("light[{}]", light_idx)
-                               : fmt::format("'{}' (index {})", llight.name, light_idx);
+        auto light_label = llight.name.empty() ? format("light[{}]", light_idx)
+                                               : format("'{}' (index {})", llight.name, light_idx);
         switch (llight.type) {
         case scene::Light::Type::Directional: light.type = "directional"; break;
         case scene::Light::Type::Point: light.type = "point"; break;
         case scene::Light::Type::Spot:
             la_runtime_assert(
                 llight.angle_inner_cone.has_value() && llight.angle_outer_cone.has_value(),
-                fmt::format("Spot light {} must have inner and outer cone angles.", light_label));
+                format("Spot light {} must have inner and outer cone angles.", light_label));
             light.type = "spot";
             light.spot.innerConeAngle = llight.angle_inner_cone.value();
             light.spot.outerConeAngle = llight.angle_outer_cone.value();
@@ -962,15 +962,17 @@ tinygltf::Model lagrange_scene_to_gltf_model(
 
         if (!lnode.meshes.empty()) {
             // we treat multiple meshes in one lagrange node as one gltf mesh with multiple
-            // primitives. they must reference exactly one material.
+            // primitives. they must reference at most one material.
             tinygltf::Mesh mesh;
             for (const auto& mesh_instance : lnode.meshes) {
                 const auto& lmesh = lscene.meshes[mesh_instance.mesh];
                 const auto& tmesh = ensure_triangulated(node.name, lmesh, options);
                 tinygltf::Primitive prim = create_gltf_primitive(model, tmesh, options);
                 if (options.export_materials) {
-                    la_runtime_assert(mesh_instance.materials.size() == 1);
-                    prim.material = lagrange::safe_cast<int>(mesh_instance.materials.front());
+                    la_runtime_assert(mesh_instance.materials.size() <= 1);
+                    if (mesh_instance.materials.size() == 1) {
+                        prim.material = lagrange::safe_cast<int>(mesh_instance.materials.front());
+                    }
                 }
                 mesh.primitives.push_back(prim);
             }

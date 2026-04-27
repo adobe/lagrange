@@ -32,6 +32,7 @@
 #include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 namespace lagrange::python {
@@ -965,7 +966,7 @@ void bind_surface_mesh(nanobind::module_& m)
         [&](MeshType& self, AttributeId id, bool sharing) {
             la_runtime_assert(
                 !self.is_attribute_indexed(id),
-                fmt::format(
+                lagrange::format(
                     "Attribute {} is indexed!  Please use `indexed_attribute` property "
                     "instead.",
                     id));
@@ -985,7 +986,7 @@ void bind_surface_mesh(nanobind::module_& m)
         [&](MeshType& self, std::string_view name, bool sharing) {
             la_runtime_assert(
                 !self.is_attribute_indexed(name),
-                fmt::format(
+                lagrange::format(
                     "Attribute \"{}\" is indexed!  Please use `indexed_attribute` property "
                     "instead.",
                     name));
@@ -1005,7 +1006,7 @@ void bind_surface_mesh(nanobind::module_& m)
         [&](MeshType& self, AttributeId id, bool sharing) {
             la_runtime_assert(
                 self.is_attribute_indexed(id),
-                fmt::format(
+                lagrange::format(
                     "Attribute {} is not indexed!  Please use `attribute` property instead.",
                     id));
             if (!sharing) ensure_attribute_is_not_shared(self, id);
@@ -1024,7 +1025,7 @@ void bind_surface_mesh(nanobind::module_& m)
         [&](MeshType& self, std::string_view name, bool sharing) {
             la_runtime_assert(
                 self.is_attribute_indexed(name),
-                fmt::format(
+                lagrange::format(
                     "Attribute \"{}\" is not indexed!  Please use `attribute` property instead.",
                     name));
             if (!sharing) ensure_attribute_is_not_shared(self, self.get_attribute_id(name));
@@ -1745,7 +1746,7 @@ If not provided, the edges are initialized in an arbitrary order.
             auto value = self.mesh->get_metadata(id);
             fmt::format_to(std::back_inserter(r), "  {}: {},\n", name, value);
         }
-        return fmt::format("MetaData(\n{})", r);
+        return lagrange::format("MetaData(\n{})", r);
     });
 
     surface_mesh_class.def_prop_ro(

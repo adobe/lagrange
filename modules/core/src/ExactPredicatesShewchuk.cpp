@@ -34,32 +34,39 @@ ExactPredicatesShewchuk::ExactPredicatesShewchuk()
     std::call_once(once_flag, []() { lagrange::exactinit(); });
 }
 
-short ExactPredicatesShewchuk::orient2D(double p1[2], double p2[2], double p3[2]) const
+short ExactPredicatesShewchuk::orient2D(const double p1[2], const double p2[2], const double p3[2])
+    const
 {
     auto r = ::lagrange::orient2d(p1, p2, p3);
     return (r == 0) ? 0 : ((r > 0) ? 1 : -1);
 }
 
-short ExactPredicatesShewchuk::orient3D(double p1[3], double p2[3], double p3[3], double p4[3])
-    const
+short ExactPredicatesShewchuk::orient3D(
+    const double p1[3],
+    const double p2[3],
+    const double p3[3],
+    const double p4[3]) const
 {
     auto r = ::lagrange::orient3d(p1, p2, p3, p4);
     return (r == 0) ? 0 : ((r > 0) ? 1 : -1);
 }
 
-short ExactPredicatesShewchuk::incircle(double p1[2], double p2[2], double p3[2], double p4[2])
-    const
+short ExactPredicatesShewchuk::incircle(
+    const double p1[2],
+    const double p2[2],
+    const double p3[2],
+    const double p4[2]) const
 {
     auto r = ::lagrange::incircle(p1, p2, p3, p4);
     return (r == 0) ? 0 : ((r > 0) ? 1 : -1);
 }
 
 short ExactPredicatesShewchuk::insphere(
-    double p1[3],
-    double p2[3],
-    double p3[3],
-    double p4[3],
-    double p5[3]) const
+    const double p1[3],
+    const double p2[3],
+    const double p3[3],
+    const double p4[3],
+    const double p5[3]) const
 {
     auto r = ::lagrange::insphere(p1, p2, p3, p4, p5);
     return (r == 0) ? 0 : ((r > 0) ? 1 : -1);

@@ -18,8 +18,8 @@ message(STATUS "Third-party (external): creating target 'texture_signal_processi
 include(CPM)
 CPMAddPackage(
     NAME texture_signal_processing
-    GITHUB_REPOSITORY mkazhdan/TextureSignalProcessing
-    GIT_TAG dd7ab66cc0e75bec1e6eb6b704d240e8780f46e7
+    GITHUB_REPOSITORY jdumas/TextureSignalProcessing
+    GIT_TAG 4689f674deadde94511b6f4c00b6dedf3790527e # adobe/lagrange branch
 )
 
 add_library(texture_signal_processing::texture_signal_processing INTERFACE IMPORTED GLOBAL)

@@ -12,7 +12,6 @@ concurrency:
 env:
   CTEST_OUTPUT_ON_FAILURE: ON
   CTEST_PARALLEL_LEVEL: 1
-  SCCACHE_GHA_ENABLED: "true"
 
 jobs:
   ####################
@@ -198,6 +197,8 @@ jobs:
   Windows:
     name: windows-2025 (${{ matrix.config }})
     runs-on: windows-2025
+    env:
+      SCCACHE_GHA_ENABLED: "true"
     strategy:
       fail-fast: false
       matrix:

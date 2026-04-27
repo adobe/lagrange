@@ -26,7 +26,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
-#include <lagrange/internal/get_unique_attribute_name.h>
+#include <lagrange/get_unique_attribute_name.h>
 #include <lagrange/io/internal/scene_utils.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
@@ -114,8 +114,7 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
     if (opt.load_uvs) {
         for (size_t i = 0; i < mesh->uv_sets.count; ++i) {
             const ufbx_uv_set& uv_set = mesh->uv_sets[i];
-            std::string name =
-                lagrange::internal::get_unique_attribute_name(lmesh, uv_set.name.data);
+            std::string name = lagrange::get_unique_attribute_name(lmesh, uv_set.name.data);
 
             auto id = lmesh.template create_attribute<Scalar>(
                 name,

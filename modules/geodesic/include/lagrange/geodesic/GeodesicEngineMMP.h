@@ -62,6 +62,19 @@ public:
     SingleSourceGeodesicResult single_source_geodesic(
         const SingleSourceGeodesicOptions& options) override;
 
+    ///
+    /// Compute the exact geodesic path between two points using the MMP algorithm.
+    ///
+    /// This function computes the shortest path on the surface between two points.
+    ///
+    /// @param      options  The options for the path computation.
+    ///
+    /// @return     A GeodesicPathResult containing the ordered path points and segment facet
+    ///             indices. Returns an empty result if no path exists.
+    ///
+    GeodesicPathResult<Scalar, Index> point_to_point_geodesic_path(
+        const PointToPointGeodesicPathOptions& options) override;
+
 protected:
     struct Impl;
     lagrange::value_ptr<Impl> m_impl;

@@ -12,7 +12,6 @@
 #pragma once
 
 #include <lagrange/MeshTrait.h>
-#include <lagrange/compute_barycentric_coordinates.h>
 #include <lagrange/create_mesh.h>
 #include <lagrange/legacy/inline.h>
 #include <lagrange/raycasting/create_ray_caster.h>

@@ -30,6 +30,7 @@
 #include <lagrange/utils/warnoff.h>
 #include <happly.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 namespace lagrange::io {
@@ -51,14 +52,14 @@ void extract_normal(
     SurfaceMesh<Scalar, Index>& mesh)
 {
     std::string_view suffix = get_suffix(name);
-    auto nx = ply_element.getProperty<ValueType>(fmt::format("nx{}", suffix));
-    auto ny = ply_element.getProperty<ValueType>(fmt::format("ny{}", suffix));
-    auto nz = ply_element.getProperty<ValueType>(fmt::format("nz{}", suffix));
+    auto nx = ply_element.getProperty<ValueType>(format("nx{}", suffix));
+    auto ny = ply_element.getProperty<ValueType>(format("ny{}", suffix));
+    auto nz = ply_element.getProperty<ValueType>(format("nz{}", suffix));
 
     Index num_entries = static_cast<Index>(nx.size());
     auto usage = AttributeUsage::Normal;
     std::string attr_name =
-        fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
+        format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
 
     logger().debug("Reading normal attribute {} -> {}", name, attr_name);
 
@@ -79,14 +80,14 @@ void extract_vertex_uv(
     SurfaceMesh<Scalar, Index>& mesh)
 {
     std::string_view suffix = get_suffix(name);
-    auto u = vertex_element.getProperty<ValueType>(fmt::format("s{}", suffix));
-    auto v = vertex_element.getProperty<ValueType>(fmt::format("t{}", suffix));
+    auto u = vertex_element.getProperty<ValueType>(format("s{}", suffix));
+    auto v = vertex_element.getProperty<ValueType>(format("t{}", suffix));
 
     Index num_vertices = static_cast<Index>(u.size());
     auto element = AttributeElement::Vertex;
     auto usage = AttributeUsage::UV;
     std::string attr_name =
-        fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
+        format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
 
     logger().debug("Reading uv attribute {} -> {}", name, attr_name);
 
@@ -105,15 +106,15 @@ void extract_color(
     SurfaceMesh<Scalar, Index>& mesh)
 {
     std::string_view suffix = get_suffix(name);
-    auto red = ply_element.getProperty<ValueType>(fmt::format("red{}", suffix));
-    auto green = ply_element.getProperty<ValueType>(fmt::format("green{}", suffix));
-    auto blue = ply_element.getProperty<ValueType>(fmt::format("blue{}", suffix));
-    bool has_alpha = ply_element.hasPropertyType<ValueType>(fmt::format("alpha{}", suffix));
+    auto red = ply_element.getProperty<ValueType>(format("red{}", suffix));
+    auto green = ply_element.getProperty<ValueType>(format("green{}", suffix));
+    auto blue = ply_element.getProperty<ValueType>(format("blue{}", suffix));
+    bool has_alpha = ply_element.hasPropertyType<ValueType>(format("alpha{}", suffix));
 
     Index num_entries = static_cast<Index>(red.size());
     auto usage = AttributeUsage::Color;
     std::string attr_name =
-        fmt::format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
+        format("{}_{}{}", internal::to_string(element), internal::to_string(usage), suffix);
     Index num_channels = has_alpha ? 4 : 3;
 
     logger().debug("Reading color attribute {} -> {}", name, attr_name);
@@ -128,7 +129,7 @@ void extract_color(
     }
 
     if (has_alpha) {
-        auto alpha = ply_element.getProperty<ValueType>(fmt::format("alpha{}", suffix));
+        auto alpha = ply_element.getProperty<ValueType>(format("alpha{}", suffix));
         for (Index i = 0; i < num_entries; ++i) {
             attr[i * num_channels + 3] = alpha[i];
         }
@@ -356,7 +357,7 @@ template <typename MeshType>
 MeshType load_mesh_ply(const fs::path& filename, const LoadOptions& options)
 {
     fs::ifstream fin(filename, std::ios::binary);
-    la_runtime_assert(fin.good(), fmt::format("Unable to open file {}", filename.string()));
+    la_runtime_assert(fin.good(), format("Unable to open file {}", filename.string()));
     return load_mesh_ply<MeshType>(fin, options);
 }
 

@@ -17,6 +17,7 @@
 #include <lagrange/utils/warnoff.h>
 #include <catch2/catch_test_macros.hpp>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 TEST_CASE("Assert", "[next]")
@@ -25,12 +26,12 @@ TEST_CASE("Assert", "[next]")
     la_runtime_assert(true, "This is true");
     LA_REQUIRE_THROWS(la_runtime_assert(false));
     LA_REQUIRE_THROWS(la_runtime_assert(false, "This is false"));
-    LA_REQUIRE_THROWS(la_runtime_assert(false, fmt::format("Complex message: {}", 10)));
+    LA_REQUIRE_THROWS(la_runtime_assert(false, lagrange::format("Complex message: {}", 10)));
 
     // We want to prevent the macro from taking 3+ arguments:
     // la_runtime_assert(true, "This should not compile", 0);
 
-    la_runtime_assert(true, fmt::format("Hello {}", "world"));
+    la_runtime_assert(true, lagrange::format("Hello {}", "world"));
 
     // The assert macro can be used in an expression:
     int a = 2;

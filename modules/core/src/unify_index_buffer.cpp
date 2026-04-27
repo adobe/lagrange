@@ -222,7 +222,7 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
                 attr.get_num_channels());
 
             auto& out_attr = output_mesh.template ref_attribute<ValueType>(name);
-            out_attr.resize_elements(num_unique_corners);
+            out_attr.resize_elements(num_unique_corners + num_isolated_vertices);
 
             for (auto i : range(num_unique_corners)) {
                 auto cid = corner_groups[corner_group_indices[i]];
@@ -230,6 +230,8 @@ SurfaceMesh<Scalar, Index> unify_index_buffer(
                 auto target_value = out_attr.ref_row(i);
                 std::copy(source_value.begin(), source_value.end(), target_value.begin());
             }
+            // Note: isolated vertices are left at the default value since they
+            // have no corners to source indexed attribute values from.
         } else {
             // Copy over unselected index attribute.
             logger().debug(

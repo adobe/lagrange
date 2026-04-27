@@ -17,8 +17,14 @@
 #include <lagrange/testing/common.h>
 #include <lagrange/testing/create_test_mesh.h>
 #include <lagrange/testing/equivalence_check.h>
+#include <lagrange/views.h>
+
+#include <lagrange/attribute_names.h>
+#include <lagrange/views.h>
 
 #include <catch2/catch_approx.hpp>
+
+#include <algorithm>
 
 TEST_CASE("Grenade_H", "[mesh][io]" LA_CORP_FLAG)
 {
@@ -376,10 +382,10 @@ TEST_CASE("io/obj 2d mesh", "[io][obj]")
     std::string output = data.str();
     REQUIRE(!output.empty());
 
-    // Check that we have 2D vertices (only x and y coordinates)
-    REQUIRE(output.find("v 0 0") != std::string::npos);
-    REQUIRE(output.find("v 1 0") != std::string::npos);
-    REQUIRE(output.find("v 0.5 1") != std::string::npos);
+    // Check that 2D vertices are written with an explicit z=0 coordinate
+    REQUIRE(output.find("v 0 0 0\n") != std::string::npos);
+    REQUIRE(output.find("v 1 0 0\n") != std::string::npos);
+    REQUIRE(output.find("v 0.5 1 0\n") != std::string::npos);
 
     // Check that we have UV coordinates
     REQUIRE(output.find("vt ") != std::string::npos);
@@ -407,4 +413,561 @@ TEST_CASE("io/obj 2d mesh", "[io][obj]")
     REQUIRE(vertices(2, 0) == Catch::Approx(0.5));
     REQUIRE(vertices(2, 1) == Catch::Approx(1.0));
     REQUIRE(vertices(2, 2) == Catch::Approx(0.0));
+}
+
+TEST_CASE("io/obj stitch_vertices welds indexed attributes", "[io][obj]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // OBJ with two triangles sharing an edge, but with duplicated UV values along the seam.
+    // Vertices 2 and 4 are at the same position (1 0 0); vertices 3 and 5 are at the same
+    // position (0 1 0).
+    // UV coords 2 and 4 are identical (1 0); UV coords 3 and 5 are identical (0 1).
+    // After stitch_vertices, vertices should be merged AND the duplicate UV values should be
+    // welded.
+    const std::string obj_data = R"(v 0 0 0
+v 1 0 0
+v 0 1 0
+v 1 0 0
+v 0 1 0
+v 1 1 0
+vt 0 0
+vt 1 0
+vt 0 1
+vt 1 0
+vt 0 1
+vt 1 1
+f 1/1 2/2 3/3
+f 4/4 6/6 5/5
+)";
+
+    io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+
+    std::istringstream ss(obj_data);
+    auto mesh = io::load_mesh_obj<SurfaceMesh<Scalar, Index>>(ss, load_options);
+
+    // After stitching, duplicate vertices should be merged: 6 -> 4
+    CHECK(mesh.get_num_vertices() == 4);
+    CHECK(mesh.get_num_facets() == 2);
+
+    // The UV attribute should have duplicate values welded: 6 -> 4
+    REQUIRE(mesh.has_attribute("texcoord"));
+    auto& uv_attr = mesh.get_indexed_attribute<Scalar>("texcoord");
+    CHECK(uv_attr.values().get_num_elements() == 4);
+}
+
+TEST_CASE("io/obj line elements", "[io][obj]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+    using MeshType = SurfaceMesh<Scalar, Index>;
+
+    // OBJ with 2 triangles, 1 polyline (3 vertices = 2 segments), and 1 edge (2 vertices)
+    std::string obj_data = R"(
+v 0 0 0
+v 1 0 0
+v 1 1 0
+v 0 1 0
+v 2 0 0
+v 3 0 0
+v 4 0 0
+v 5 0 0
+v 6 0 0
+f 1 2 3
+f 1 3 4
+l 5 6 7
+l 8 9
+)";
+
+    SECTION("load line elements")
+    {
+        std::istringstream input(obj_data);
+        auto mesh = io::load_mesh_obj<MeshType>(input);
+        testing::check_mesh(mesh);
+
+        // 2 face facets + 2 line segments (polyline 5-6-7) + 1 line segment (edge 8-9) = 5
+        REQUIRE(mesh.get_num_vertices() == 9);
+        REQUIRE(mesh.get_num_facets() == 5);
+
+        // Check face facets have 3 vertices
+        REQUIRE(mesh.get_facet_size(0) == 3);
+        REQUIRE(mesh.get_facet_size(1) == 3);
+        // Check line segments have 2 vertices
+        REQUIRE(mesh.get_facet_size(2) == 2);
+        REQUIRE(mesh.get_facet_size(3) == 2);
+        REQUIRE(mesh.get_facet_size(4) == 2);
+
+        // Check line_id attribute exists
+        REQUIRE(mesh.has_attribute(AttributeName::line_id));
+        auto lid = mesh.get_attribute_id(AttributeName::line_id);
+        const auto& line_id_attr = mesh.get_attribute<Index>(lid);
+        auto line_ids = line_id_attr.get_all();
+
+        // Face facets have line_id == 0
+        REQUIRE(line_ids[0] == 0);
+        REQUIRE(line_ids[1] == 0);
+        // Polyline "l 5 6 7" produces 2 segments, both with line_id == 1
+        REQUIRE(line_ids[2] == 1);
+        REQUIRE(line_ids[3] == 1);
+        // Edge "l 8 9" produces 1 segment with line_id == 2
+        REQUIRE(line_ids[4] == 2);
+
+        // Verify line segment vertex connectivity
+        // Segment from polyline: 5-6 (0-indexed: 4-5)
+        auto seg0 = mesh.get_facet_vertices(2);
+        REQUIRE(seg0[0] == 4); // vertex 5 (0-indexed)
+        REQUIRE(seg0[1] == 5); // vertex 6 (0-indexed)
+        // Segment from polyline: 6-7 (0-indexed: 5-6)
+        auto seg1 = mesh.get_facet_vertices(3);
+        REQUIRE(seg1[0] == 5);
+        REQUIRE(seg1[1] == 6);
+        // Segment from edge: 8-9 (0-indexed: 7-8)
+        auto seg2 = mesh.get_facet_vertices(4);
+        REQUIRE(seg2[0] == 7);
+        REQUIRE(seg2[1] == 8);
+    }
+
+    SECTION("roundtrip preserves polylines")
+    {
+        std::istringstream input(obj_data);
+        auto mesh = io::load_mesh_obj<MeshType>(input);
+
+        // Save to OBJ
+        std::stringstream output;
+        io::SaveOptions save_options;
+        io::save_mesh_obj(output, mesh, save_options);
+        std::string saved = output.str();
+
+        // Output should contain face lines
+        REQUIRE(saved.find("f ") != std::string::npos);
+        // Output should contain line directives
+        REQUIRE(saved.find("l ") != std::string::npos);
+
+        // The polyline "l 5 6 7" should be saved as a single "l" command with 3 vertices
+        // (not split into two separate "l" commands)
+        // Find all "l " lines
+        std::vector<std::string> l_lines;
+        std::istringstream line_reader(saved);
+        std::string line;
+        while (std::getline(line_reader, line)) {
+            if (line.size() >= 2 && line[0] == 'l' && line[1] == ' ') {
+                l_lines.push_back(line);
+            }
+        }
+        REQUIRE(l_lines.size() == 2); // one polyline + one edge
+
+        // Count tokens in each line directive
+        auto count_tokens = [](const std::string& s) {
+            std::istringstream iss(s);
+            std::string token;
+            int count = 0;
+            while (iss >> token) count++;
+            return count;
+        };
+        // Expect one polyline with 3 vertices and one edge with 2 vertices
+        std::vector<int> counts;
+        for (auto& l : l_lines) counts.push_back(count_tokens(l));
+        std::sort(counts.begin(), counts.end());
+        REQUIRE(counts == std::vector<int>{3, 4});
+
+        // Reload and verify same topology
+        std::istringstream reload_input(saved);
+        auto mesh2 = io::load_mesh_obj<MeshType>(reload_input);
+        testing::check_mesh(mesh2);
+        REQUIRE(mesh2.get_num_vertices() == mesh.get_num_vertices());
+        REQUIRE(mesh2.get_num_facets() == mesh.get_num_facets());
+        REQUIRE(mesh2.has_attribute(AttributeName::line_id));
+    }
+
+    SECTION("faces only produces no line_id attribute")
+    {
+        std::string faces_only = R"(
+v 0 0 0
+v 1 0 0
+v 1 1 0
+f 1 2 3
+)";
+        std::istringstream input(faces_only);
+        auto mesh = io::load_mesh_obj<MeshType>(input);
+        REQUIRE(mesh.get_num_facets() == 1);
+        REQUIRE_FALSE(mesh.has_attribute(AttributeName::line_id));
+    }
+
+    SECTION("multiple shapes with lines")
+    {
+        // Two groups, each with faces and lines. Tests that facet ordering and
+        // ref_middle offsets are correct when line segments follow all faces.
+        std::string multi_shape = R"(
+v 0 0 0
+v 1 0 0
+v 1 1 0
+v 0 1 0
+v 2 0 0
+v 3 0 0
+v 4 0 0
+v 5 0 0
+g group1
+f 1 2 3
+l 5 6
+g group2
+f 1 3 4
+l 7 8
+)";
+        std::istringstream input(multi_shape);
+        io::LoadOptions load_options;
+        load_options.load_object_ids = true;
+        auto mesh = io::load_mesh_obj<MeshType>(input, load_options);
+        testing::check_mesh(mesh);
+
+        // 2 face facets + 2 line segments = 4 total facets
+        REQUIRE(mesh.get_num_facets() == 4);
+        // Faces come first (size 3), then line segments (size 2)
+        REQUIRE(mesh.get_facet_size(0) == 3);
+        REQUIRE(mesh.get_facet_size(1) == 3);
+        REQUIRE(mesh.get_facet_size(2) == 2);
+        REQUIRE(mesh.get_facet_size(3) == 2);
+
+        // Check line_id attribute
+        REQUIRE(mesh.has_attribute(AttributeName::line_id));
+        auto lid = mesh.get_attribute_id(AttributeName::line_id);
+        const auto& line_id_attr = mesh.get_attribute<Index>(lid);
+        auto line_ids = line_id_attr.get_all();
+        REQUIRE(line_ids[0] == 0); // face from group1
+        REQUIRE(line_ids[1] == 0); // face from group2
+        REQUIRE(line_ids[2] == 1); // line from group1
+        REQUIRE(line_ids[3] == 2); // line from group2
+
+        // Check object_id attribute: face and line from same group share same id
+        REQUIRE(mesh.has_attribute(AttributeName::object_id));
+        auto oid = mesh.get_attribute_id(AttributeName::object_id);
+        const auto& object_id_attr = mesh.get_attribute<Index>(oid);
+        auto object_ids = object_id_attr.get_all();
+        REQUIRE(object_ids[0] == 0); // face from group1
+        REQUIRE(object_ids[1] == 1); // face from group2
+        REQUIRE(object_ids[2] == 0); // line from group1
+        REQUIRE(object_ids[3] == 1); // line from group2
+
+        // Verify vertex connectivity of line segments
+        auto seg0 = mesh.get_facet_vertices(2);
+        REQUIRE(seg0[0] == 4); // v5 0-indexed
+        REQUIRE(seg0[1] == 5); // v6 0-indexed
+        auto seg1 = mesh.get_facet_vertices(3);
+        REQUIRE(seg1[0] == 6); // v7 0-indexed
+        REQUIRE(seg1[1] == 7); // v8 0-indexed
+
+        // Roundtrip should preserve topology
+        std::stringstream output;
+        io::save_mesh_obj(output, mesh);
+        std::istringstream reload_input(output.str());
+        auto mesh2 = io::load_mesh_obj<MeshType>(reload_input);
+        testing::check_mesh(mesh2);
+        REQUIRE(mesh2.get_num_facets() == mesh.get_num_facets());
+        REQUIRE(mesh2.get_num_vertices() == mesh.get_num_vertices());
+    }
+
+    SECTION("closed loop polyline roundtrip")
+    {
+        // A triangle (closed loop) represented as line segments.
+        // Tests close_loop_with_identical_vertices in the saver.
+        std::string loop_data = R"(
+v 0 0 0
+v 1 0 0
+v 0.5 1 0
+l 1 2 3 1
+)";
+        std::istringstream input(loop_data);
+        auto mesh = io::load_mesh_obj<MeshType>(input);
+        testing::check_mesh(mesh);
+
+        // 3 line segments from the closed polyline "l 1 2 3 1"
+        REQUIRE(mesh.get_num_facets() == 3);
+        for (Index f = 0; f < 3; ++f) {
+            REQUIRE(mesh.get_facet_size(f) == 2);
+        }
+
+        // Save and reload
+        std::stringstream output;
+        io::save_mesh_obj(output, mesh);
+        std::string saved = output.str();
+
+        // Should produce a single "l" directive with 4 tokens (closing vertex repeated)
+        std::vector<std::string> l_lines;
+        std::istringstream line_reader(saved);
+        std::string line;
+        while (std::getline(line_reader, line)) {
+            if (line.size() >= 2 && line[0] == 'l' && line[1] == ' ') {
+                l_lines.push_back(line);
+            }
+        }
+        REQUIRE(l_lines.size() == 1);
+
+        // Parse the vertex indices from the "l" line
+        std::istringstream iss(l_lines[0]);
+        std::string tok;
+        iss >> tok; // skip "l"
+        std::vector<int> verts;
+        while (iss >> tok) verts.push_back(std::stoi(tok));
+        // A closed loop should have 4 indices with first == last
+        REQUIRE(verts.size() == 4);
+        REQUIRE(verts.front() == verts.back());
+
+        // Reload and verify same facet count
+        std::istringstream reload_input(saved);
+        auto mesh2 = io::load_mesh_obj<MeshType>(reload_input);
+        testing::check_mesh(mesh2);
+        REQUIRE(mesh2.get_num_facets() == mesh.get_num_facets());
+    }
+
+    SECTION("deterministic output order")
+    {
+        // Multiple polylines should always be emitted in ascending line_id order.
+        std::istringstream input(obj_data);
+        auto mesh = io::load_mesh_obj<MeshType>(input);
+
+        // Save twice and compare
+        std::stringstream out1, out2;
+        io::save_mesh_obj(out1, mesh);
+        io::save_mesh_obj(out2, mesh);
+        REQUIRE(out1.str() == out2.str());
+
+        // Verify "l" directives appear in ascending vertex order
+        std::vector<std::string> l_lines;
+        std::istringstream reader(out1.str());
+        std::string line;
+        while (std::getline(reader, line)) {
+            if (line.size() >= 2 && line[0] == 'l' && line[1] == ' ') {
+                l_lines.push_back(line);
+            }
+        }
+        REQUIRE(l_lines.size() == 2);
+        // line_id 1 (polyline 5-6-7) should come before line_id 2 (edge 8-9)
+        // Parse first vertex of each line
+        auto first_vertex = [](const std::string& s) {
+            std::istringstream iss(s);
+            std::string tok;
+            iss >> tok; // skip "l"
+            iss >> tok;
+            return std::stoi(tok);
+        };
+        REQUIRE(first_vertex(l_lines[0]) < first_vertex(l_lines[1]));
+    }
+
+    SECTION("saver ignores wrong line_id attribute type")
+    {
+        // Create a mesh with a line_id attribute of the wrong type (Scalar instead of Index).
+        // The saver should ignore it and emit all facets as faces.
+        MeshType mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+
+        // Create a line_id attribute with float type (wrong)
+        mesh.template create_attribute<Scalar>(
+            AttributeName::line_id,
+            AttributeElement::Facet,
+            AttributeUsage::Scalar);
+
+        std::stringstream output;
+        REQUIRE_NOTHROW(io::save_mesh_obj(output, mesh));
+        std::string saved = output.str();
+
+        // Should contain a face but no line directives
+        REQUIRE(saved.find("f ") != std::string::npos);
+        REQUIRE(saved.find("l ") == std::string::npos);
+    }
+
+    SECTION("saver skips non-segment facets with nonzero line_id")
+    {
+        // Create a mesh with a triangle that has nonzero line_id.
+        // The saver should warn and skip it for line output.
+        MeshType mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({2, 0, 0});
+        mesh.add_vertex({3, 0, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 1, 2); // second triangle, will get nonzero line_id
+
+        auto lid = mesh.template create_attribute<Index>(
+            AttributeName::line_id,
+            AttributeElement::Facet,
+            AttributeUsage::Scalar);
+        auto& line_id_attr = mesh.template ref_attribute<Index>(lid);
+        line_id_attr.ref_all()[0] = 0; // regular face
+        line_id_attr.ref_all()[1] = 1; // erroneously tagged as line
+
+        std::stringstream output;
+        REQUIRE_NOTHROW(io::save_mesh_obj(output, mesh));
+        std::string saved = output.str();
+
+        // Only the first face should appear as "f", and no "l" directives
+        // (the triangle with line_id=1 is skipped for face AND line output)
+        int f_count = 0;
+        std::istringstream reader(saved);
+        std::string line;
+        while (std::getline(reader, line)) {
+            if (line.size() >= 2 && line[0] == 'f' && line[1] == ' ') ++f_count;
+        }
+        REQUIRE(f_count == 1);
+        REQUIRE(saved.find("l ") == std::string::npos);
+    }
+
+    SECTION("line elements with texcoords")
+    {
+        // OBJ with texcoords on both faces and line elements.
+        // Tests that UV indices are preserved for line segments during loading
+        // and that v/vt format is used during saving.
+        std::string obj_with_uv = R"(
+v 0 0 0
+v 1 0 0
+v 1 1 0
+v 2 0 0
+v 3 0 0
+v 4 0 0
+vt 0 0
+vt 1 0
+vt 1 1
+vt 0.5 0
+vt 0.5 1
+vt 0.75 0.5
+f 1/1 2/2 3/3
+l 4/4 5/5 6/6
+)";
+        std::istringstream input(obj_with_uv);
+        auto mesh = io::load_mesh_obj<MeshType>(input);
+        testing::check_mesh(mesh);
+
+        // 1 face + 2 line segments (polyline 4-5-6) = 3 facets
+        REQUIRE(mesh.get_num_facets() == 3);
+        REQUIRE(mesh.get_facet_size(0) == 3);
+        REQUIRE(mesh.get_facet_size(1) == 2);
+        REQUIRE(mesh.get_facet_size(2) == 2);
+
+        // Check that UV attribute exists
+        REQUIRE(mesh.has_attribute(AttributeName::texcoord));
+
+        // Verify line segment UV indices are valid (0-indexed: 3, 4, 5)
+        auto uv_id = mesh.get_attribute_id(AttributeName::texcoord);
+        const auto& uv_attr = mesh.get_indexed_attribute<Scalar>(uv_id);
+        auto uv_indices = uv_attr.indices().get_all();
+        // First line segment: corners of facet 1
+        Index c0 = mesh.get_facet_corner_begin(1);
+        REQUIRE(uv_indices[c0] == 3);
+        REQUIRE(uv_indices[c0 + 1] == 4);
+        // Second line segment: corners of facet 2
+        Index c1 = mesh.get_facet_corner_begin(2);
+        REQUIRE(uv_indices[c1] == 4);
+        REQUIRE(uv_indices[c1 + 1] == 5);
+
+        // Save and verify v/vt syntax is used for line elements
+        std::stringstream output;
+        io::SaveOptions save_options;
+        save_options.output_attributes = io::SaveOptions::OutputAttributes::All;
+        save_options.attribute_conversion_policy =
+            io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+        io::save_mesh_obj(output, mesh, save_options);
+        std::string saved = output.str();
+
+        // Find the "l" line and verify it uses v/vt format
+        std::vector<std::string> l_lines;
+        std::istringstream reader(saved);
+        std::string line;
+        while (std::getline(reader, line)) {
+            if (line.size() >= 2 && line[0] == 'l' && line[1] == ' ') {
+                l_lines.push_back(line);
+            }
+        }
+        REQUIRE(l_lines.size() == 1);
+        // Should contain '/' for texcoord indices
+        REQUIRE(l_lines[0].find('/') != std::string::npos);
+
+        // Roundtrip: reload and verify UVs are preserved
+        std::istringstream reload_input(saved);
+        auto mesh2 = io::load_mesh_obj<MeshType>(reload_input);
+        testing::check_mesh(mesh2);
+        REQUIRE(mesh2.get_num_facets() == mesh.get_num_facets());
+        REQUIRE(mesh2.has_attribute(AttributeName::texcoord));
+        REQUIRE(mesh2.has_attribute(AttributeName::line_id));
+
+        // Verify UV values match on the line segment corners
+        auto uv_id2 = mesh2.get_attribute_id(AttributeName::texcoord);
+        const auto& uv_attr2 = mesh2.get_indexed_attribute<Scalar>(uv_id2);
+        auto uv_values2 = uv_attr2.values().get_all();
+        auto uv_indices2 = uv_attr2.indices().get_all();
+        // First line segment of reloaded mesh
+        Index rc0 = mesh2.get_facet_corner_begin(1);
+        Index rc1 = mesh2.get_facet_corner_begin(2);
+        // UV values at these indices should match original (0.5,0), (0.5,1), (0.75,0.5)
+        auto check_uv = [&](Index idx, Scalar u, Scalar v) {
+            REQUIRE(uv_values2[2 * idx] == Catch::Approx(u));
+            REQUIRE(uv_values2[2 * idx + 1] == Catch::Approx(v));
+        };
+        check_uv(uv_indices2[rc0], 0.5, 0.0);
+        check_uv(uv_indices2[rc0 + 1], 0.5, 1.0);
+        check_uv(uv_indices2[rc1], 0.5, 1.0);
+        check_uv(uv_indices2[rc1 + 1], 0.75, 0.5);
+    }
+
+    SECTION("faces with UVs but lines without UVs")
+    {
+        // Mixed case: faces have texcoords but line elements don't.
+        // Line elements will still use v/vt format (pointing to infinity UV values
+        // created by set_invalid_indexed_values). This is acceptable.
+        std::string mixed_uv = R"(
+v 0 0 0
+v 1 0 0
+v 1 1 0
+v 2 0 0
+v 3 0 0
+vt 0 0
+vt 1 0
+vt 1 1
+f 1/1 2/2 3/3
+l 4 5
+)";
+        std::istringstream input(mixed_uv);
+        auto mesh = io::load_mesh_obj<MeshType>(input);
+        testing::check_mesh(mesh);
+
+        // 1 face + 1 line segment = 2 facets
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.has_attribute(AttributeName::line_id));
+
+        // Save to OBJ
+        std::stringstream output;
+        io::SaveOptions save_options;
+        save_options.output_attributes = io::SaveOptions::OutputAttributes::All;
+        save_options.attribute_conversion_policy =
+            io::SaveOptions::AttributeConversionPolicy::ConvertAsNeeded;
+        io::save_mesh_obj(output, mesh, save_options);
+        std::string saved = output.str();
+
+        // Find face and line directives
+        std::vector<std::string> f_lines, l_lines;
+        std::istringstream reader(saved);
+        std::string line;
+        while (std::getline(reader, line)) {
+            if (line.size() >= 2 && line[0] == 'f' && line[1] == ' ') f_lines.push_back(line);
+            if (line.size() >= 2 && line[0] == 'l' && line[1] == ' ') l_lines.push_back(line);
+        }
+        REQUIRE(f_lines.size() == 1);
+        REQUIRE(l_lines.size() == 1);
+
+        // Both face and line use v/vt format since mesh has UVs globally
+        REQUIRE(f_lines[0].find('/') != std::string::npos);
+        REQUIRE(l_lines[0].find('/') != std::string::npos);
+
+        // Roundtrip should preserve topology
+        std::istringstream reload_input(saved);
+        auto mesh2 = io::load_mesh_obj<MeshType>(reload_input);
+        testing::check_mesh(mesh2);
+        REQUIRE(mesh2.get_num_facets() == mesh.get_num_facets());
+        REQUIRE(mesh2.has_attribute(AttributeName::line_id));
+    }
 }

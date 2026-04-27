@@ -50,13 +50,23 @@ endif()
 # Set default compiler cache program based on available programs
 find_program(SCCACHE_PROGRAM sccache)
 find_program(CCACHE_PROGRAM ccache)
-if(SCCACHE_PROGRAM)
-    set(LAGRANGE_CCACHE_PROGRAM "sccache" CACHE STRING "Compiler cache program to use (none, ccache or sccache)")
+if(SCCACHE_PROGRAM AND CCACHE_PROGRAM)
+    # If both are available, we prefer sccache on Windows because it supports /Zi
+    if(WIN32)
+        set(LAGRANGE_CCACHE_PROGRAM_DEFAULT "sccache")
+    else()
+        set(LAGRANGE_CCACHE_PROGRAM_DEFAULT "ccache")
+    endif()
+elseif(SCCACHE_PROGRAM)
+    set(LAGRANGE_CCACHE_PROGRAM_DEFAULT "sccache")
 elseif(CCACHE_PROGRAM)
-    set(LAGRANGE_CCACHE_PROGRAM "ccache" CACHE STRING "Compiler cache program to use (none, ccache or sccache)")
+    set(LAGRANGE_CCACHE_PROGRAM_DEFAULT "ccache")
 else()
-    set(LAGRANGE_CCACHE_PROGRAM "none" CACHE STRING "Compiler cache program to use (none, ccache or sccache)")
+    set(LAGRANGE_CCACHE_PROGRAM_DEFAULT "none")
 endif()
+set(LAGRANGE_CCACHE_PROGRAM ${LAGRANGE_CCACHE_PROGRAM_DEFAULT}
+    CACHE STRING "Compiler cache program to use (none, ccache or sccache)"
+)
 
 set(LAGRANGE_CCACHE_PROGRAMS none ccache sccache)
 set_property(CACHE LAGRANGE_CCACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CCACHE_PROGRAMS})
@@ -64,18 +74,15 @@ set_property(CACHE LAGRANGE_CCACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CCACHE_PR
 # Enable sscache if available
 if((LAGRANGE_CCACHE_PROGRAM STREQUAL "sccache") AND SCCACHE_PROGRAM)
     message(STATUS "Using sccache: ${SCCACHE_PROGRAM}")
-    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:Embedded>")
     foreach(lang IN ITEMS C CXX)
-        set(CMAKE_${lang}_COMPILER_LAUNCHER
-            ${CMAKE_COMMAND} -E env ${ccacheEnv} ${SCCACHE_PROGRAM}
-        )
+        set(CMAKE_${lang}_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
     endforeach()
 endif()
 
 # Enable ccache if available
 if((LAGRANGE_CCACHE_PROGRAM STREQUAL "ccache") AND CCACHE_PROGRAM)
     set(ccacheEnv
-        CCACHE_BASEDIR=${CMAKE_BINARY_DIR}
+        CCACHE_BASEDIR=${CMAKE_SOURCE_DIR}
         CCACHE_SLOPPINESS=clang_index_store,include_file_ctime,include_file_mtime,locale,pch_defines,time_macros
     )
     message(STATUS "Using ccache: ${CCACHE_PROGRAM}")
@@ -100,6 +107,11 @@ endif()
 # we use CMAKE_TOOLCHAIN_FILE to detect if we use vcpkg...
 if(LAGRANGE_TOPLEVEL_PROJECT AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_OSX_DEPLOYMENT_TARGET "13.0" CACHE STRING "Minimum OS X deployment version")
+endif()
+
+# Generates a `compile_commands.json` that can be used for autocompletion
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Enable/Disable output of compile commands during generation.")
 endif()
 
 ################################################################################
@@ -370,6 +382,8 @@ include(lagrange_add_executable)
 include(lagrange_add_module)
 include(lagrange_add_performance)
 include(lagrange_add_python_binding)
+include(lagrange_add_js_binding)
+include(lagrange_js_emit_registry)
 include(lagrange_add_test)
 include(lagrange_cpm_cache)
 include(lagrange_download_data)

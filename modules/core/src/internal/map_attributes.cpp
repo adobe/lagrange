@@ -17,6 +17,7 @@
 #include <lagrange/internal/map_attributes.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/views.h>
 
@@ -173,10 +174,9 @@ void map_attributes(
                 map_attribute_injective(name, std::forward<const AttributeType>(attr));
                 break;
             default:
-                throw Error(
-                    fmt::format(
-                        "Unsupported collision policy {}",
-                        int(options.collision_policy_integral)));
+                throw Error(format(
+                    "Unsupported collision policy {}",
+                    int(options.collision_policy_integral)));
             }
         }
     };

@@ -16,6 +16,9 @@
 #endif
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/internal/constants.h>
+
+#include <string_view>
 
 namespace lagrange {
 
@@ -25,6 +28,29 @@ namespace lagrange {
 ///
 
 ///
+/// Options for remove_short_edges function.
+///
+struct RemoveShortEdgesOptions
+{
+    /// Edge length threshold for removal. Edges with length <= threshold will be removed.
+    double threshold = 0;
+
+    /// Optional: User-defined per-vertex importance attribute name.
+    /// If provided (non-empty) and exists, this attribute will be used to determine which vertex
+    /// to keep during edge collapse. Higher values = more important.
+    /// If empty or does not exist, importance will be computed from geometry
+    /// (dihedral angles, boundary status) and stored with a temporary name.
+    /// Type: Scalar (float or double)
+    std::string_view vertex_importance_attribute_name = "";
+
+    /// Maximum normal deviation (in radians) allowed for 1-ring facets of the removed vertex
+    /// after an edge collapse. A collapse is skipped if any surrounding facet's normal would
+    /// rotate by more than this angle. The default (pi/2) only rejects actual normal flips;
+    /// tighten this value (e.g. pi/6) for stricter geometric quality.
+    double max_normal_deviation_angle = lagrange::internal::pi / 2;
+};
+
+///
 /// Collapse all edges shorter than a given tolerance.
 ///
 /// @param mesh       Input mesh to be updated in place.
@@ -32,6 +58,15 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 void remove_short_edges(SurfaceMesh<Scalar, Index>& mesh, Scalar threshold = 0);
+
+///
+/// Collapse all edges shorter than a given tolerance.
+///
+/// @param mesh       Input mesh to be updated in place.
+/// @param options    Options for edge removal including threshold and importance attribute.
+///
+template <typename Scalar, typename Index>
+void remove_short_edges(SurfaceMesh<Scalar, Index>& mesh, const RemoveShortEdgesOptions& options);
 
 /// @}
 
