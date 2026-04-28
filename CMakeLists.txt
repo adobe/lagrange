@@ -74,6 +74,20 @@ set_property(CACHE LAGRANGE_CCACHE_PROGRAM PROPERTY STRINGS ${LAGRANGE_CCACHE_PR
 # Enable sscache if available
 if((LAGRANGE_CCACHE_PROGRAM STREQUAL "sccache") AND SCCACHE_PROGRAM)
     message(STATUS "Using sccache: ${SCCACHE_PROGRAM}")
+
+    if(MSVC)
+        # sccache cannot cache /Zi unless each cl.exe writes to its own PDB.
+        # Replace the per-target PDB in CMake's compile rule with a per-object PDB.
+        set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+        foreach(lang IN ITEMS C CXX)
+            string(REPLACE
+                "/Fd<TARGET_COMPILE_PDB>"
+                "/Fd<OBJECT>.pdb"
+                CMAKE_${lang}_COMPILE_OBJECT
+                "${CMAKE_${lang}_COMPILE_OBJECT}")
+        endforeach()
+    endif()
+
     foreach(lang IN ITEMS C CXX)
         set(CMAKE_${lang}_COMPILER_LAUNCHER ${SCCACHE_PROGRAM})
     endforeach()
