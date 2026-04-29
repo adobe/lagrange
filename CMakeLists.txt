@@ -136,6 +136,25 @@ project(Lagrange VERSION ${lagrange_version})
 
 ################################################################################
 
+# sccache cannot cache /Zi unless each cl.exe writes to its own PDB.
+# Replace the per-target PDB in CMake's compile rule with a per-object PDB.
+if(MSVC AND (LAGRANGE_CCACHE_PROGRAM STREQUAL "sccache") AND SCCACHE_PROGRAM)
+    set(CMAKE_MSVC_DEBUG_INFORMATION_FORMAT "$<$<CONFIG:Debug,RelWithDebInfo>:ProgramDatabase>")
+    foreach(lang IN ITEMS C CXX)
+        # Match either '/Fd...' or '-Fd...' (CMake/Ninja uses the dash form).
+        string(REGEX REPLACE
+            "[-/]Fd<TARGET_COMPILE_PDB>"
+            "-Fd<OBJECT>.pdb"
+            CMAKE_${lang}_COMPILE_OBJECT
+            "${CMAKE_${lang}_COMPILE_OBJECT}")
+        # /FS is no longer required once PDBs aren't shared; harmless to leave,
+        # but you can drop it too:
+        string(REGEX REPLACE "[-/]FS( |$)" "" CMAKE_${lang}_COMPILE_OBJECT
+            "${CMAKE_${lang}_COMPILE_OBJECT}")
+    endforeach()
+    message(STATUS "Patched CXX rule: ${CMAKE_CXX_COMPILE_OBJECT}")
+endif()
+
 if(MINGW)
     message(FATAL_ERROR "Please use the MSVC compiler on Windows")
 endif()
