@@ -15,6 +15,7 @@
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/warning.h>
 
+#include <cmath>
 #include <limits>
 
 namespace lagrange {

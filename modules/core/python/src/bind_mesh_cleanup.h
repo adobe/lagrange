@@ -130,13 +130,24 @@ E.g. quad (0,0,1,1) is degenerate, while (1,1,2,3) is not.
 
     m.def(
         "remove_short_edges",
-        &remove_short_edges<Scalar, Index>,
+        [](MeshType& mesh,
+           double threshold,
+           std::optional<std::string_view> vertex_importance_attribute) {
+            lagrange::RemoveShortEdgesOptions opts;
+            opts.threshold = threshold;
+            if (vertex_importance_attribute.has_value())
+                opts.vertex_importance_attribute_name = vertex_importance_attribute.value();
+            remove_short_edges(mesh, opts);
+        },
         "mesh"_a,
+        nb::kw_only(),
         "threshold"_a = 0,
+        "vertex_importance_attribute"_a = nb::none(),
         R"(Remove short edges from a mesh.
 
 :param mesh: Input mesh (modified in place).
-:param threshold: Minimum edge length below which edges are considered short.)");
+:param threshold: Minimum edge length below which edges are considered short.
+:param vertex_importance_attribute: Optional vertex attribute name for importance values used to determine which vertex to keep during edge collapse.)");
 
     m.def(
         "resolve_vertex_nonmanifoldness",

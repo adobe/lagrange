@@ -14,7 +14,9 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/geodesic/api.h>
 
+#include <array>
 #include <functional>
+#include <vector>
 
 namespace lagrange::geodesic {
 
@@ -93,6 +95,48 @@ struct LA_GEODESIC_API PointToPointGeodesicOptions
 };
 
 ///
+/// Options for point-to-point geodesic path computation.
+///
+struct LA_GEODESIC_API PointToPointGeodesicPathOptions
+{
+    /// Facet containing the source point.
+    size_t source_facet_id = 0;
+
+    /// Facet containing the target point.
+    size_t target_facet_id = 0;
+
+    /// Barycentric coordinates of the source point within the source facet. Given a triangle (p1,
+    /// p2, p3), the barycentric coordinates (u, v) are such that the surface point is represented
+    /// by p = (1 - u - v) * p1 + u * p2 + v * p3.
+    std::array<double, 2> source_facet_bc = {0.0f, 0.0f};
+
+    /// Barycentric coordinates of the target point within the target facet. Given a triangle (p1,
+    /// p2, p3), the barycentric coordinates (u, v) are such that the surface point is represented
+    /// by p = (1 - u - v) * p1 + u * p2 + v * p3.
+    std::array<double, 2> target_facet_bc = {0.0f, 0.0f};
+};
+
+
+///
+/// Result of a point-to-point geodesic path computation.
+///
+/// @tparam     Scalar  Mesh scalar type.
+/// @tparam     Index   Mesh index type.
+///
+template <typename Scalar, typename Index>
+struct GeodesicPathResult
+{
+    /// Ordered list of 3D points along the geodesic path from source to target.
+    /// The first point is the source and the last point is the target.
+    std::vector<std::array<Scalar, 3>> points;
+
+    /// Facet index for each path segment. The i-th entry is the facet that the segment from
+    /// points[i] to points[i+1] lies in. The size of this vector is points.size() - 1, or 0 if the
+    /// path is empty.
+    std::vector<Index> facet_ids;
+};
+
+///
 /// Engine that is used to compute geodesic distances on a surface mesh.
 ///
 /// @tparam     Scalar  Mesh scalar type.
@@ -137,6 +181,22 @@ public:
     /// @return     The geodesic distance between the source and target points.
     ///
     virtual Scalar point_to_point_geodesic(const PointToPointGeodesicOptions& options);
+
+    ///
+    /// Computes the geodesic path between two points on the mesh.
+    ///
+    /// @param[in]  options  Input options for point-to-point path computation.
+    ///
+    /// @return     A GeodesicPathResult containing the ordered path points and the facet index for
+    ///             each path segment.
+    ///
+    /// @throws     lagrange::Error if the engine does not support path extraction.
+    ///
+    /// @note       Not all engines support path extraction. The default implementation throws
+    ///             an exception. Currently, only GeodesicEngineMMP provides exact path extraction.
+    ///
+    virtual GeodesicPathResult<Scalar, Index> point_to_point_geodesic_path(
+        const PointToPointGeodesicPathOptions& options);
 
 protected:
     const Mesh& mesh() const { return m_mesh.get(); }

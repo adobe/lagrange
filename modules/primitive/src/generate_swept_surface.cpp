@@ -18,6 +18,7 @@
 #include <lagrange/primitive/generate_swept_surface.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/views.h>
 
 #include <Eigen/Core>
@@ -433,7 +434,7 @@ AttributeId generate_normal(
                 } else {
                     logger().debug("f0: {} row0: {} col0: {}", f0, row0, col0);
                     logger().debug("f1: {} row1: {} col1: {}", f1, row1, col1);
-                    throw Error(fmt::format("Facet {} and {} are not adjacent!", f0, f1));
+                    throw Error(format("Facet {} and {} are not adjacent!", f0, f1));
                 }
             }
         },

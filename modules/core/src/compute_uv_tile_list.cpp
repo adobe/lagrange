@@ -16,6 +16,7 @@
 #include <lagrange/foreach_attribute.h>
 
 #include <array>
+#include <cmath>
 #include <unordered_set>
 
 namespace lagrange {

@@ -22,6 +22,7 @@
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/views.h>
 
 #include <spdlog/spdlog.h>
@@ -50,8 +51,8 @@ void run_mesh_with_alpha_mask(const lagrange::fs::path& path)
 
     // retrieve mesh
     auto mesh = scene.meshes.at(instance.mesh);
-    const auto texcoord_id =
-        mesh.get_attribute_id(fmt::format("texcoord_{}", material.base_color_texture.texcoord));
+    const auto texcoord_id = mesh.get_attribute_id(
+        lagrange::format("texcoord_{}", material.base_color_texture.texcoord));
     REQUIRE(texcoord_id != lagrange::invalid_attribute_id());
     REQUIRE(mesh.is_attribute_indexed(texcoord_id));
     REQUIRE(mesh.is_triangle_mesh());

@@ -12,21 +12,22 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/bvh/compute_uv_overlap.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/compute_uv_charts.h>
+#include <lagrange/disconnect_uv_charts.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/packing/repack_uv_charts.h>
-#include <lagrange/polyscope/register_structure.h>
+#include <lagrange/polyscope/register_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
-#include <lagrange/utils/hash.h>
+#include <lagrange/utils/fmt/join.h>
 #include <lagrange/utils/timing.h>
 #include <lagrange/uv_mesh.h>
 #include <lagrange/views.h>
 
-#include <spdlog/fmt/ranges.h>
 #include <CLI/CLI.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
@@ -65,7 +66,7 @@ void prepare_mesh_for_display(SurfaceMesh& mesh)
         lagrange::logger().info(
             "Unifying index buffers for {} non-UV indexed attributes: {}",
             ids.size(),
-            fmt::join(attr_names, ", "));
+            lagrange::join(attr_names, ", "));
         mesh = lagrange::unify_index_buffer(mesh, ids);
     }
 
@@ -93,7 +94,7 @@ void repack_overlapping_charts(
     lagrange::UVChartOptions chart_options;
     chart_options.uv_attribute_name = uv_attribute_name;
     chart_options.output_attribute_name = "@chart_id";
-    size_t num_charts = lagrange::compute_uv_charts(mesh, chart_options);
+    lagrange::compute_uv_charts(mesh, chart_options);
 
     // 2. Combine chart ID and overlap color into a split chart attribute:
     //    split_id = chart_id * num_colors + overlap_color
@@ -115,49 +116,10 @@ void repack_overlapping_charts(
         split_ids);
 
     // 3. Split UV indices so that facets in different split charts don't share UV vertices
-    lagrange::AttributeMatcher uv_matcher;
-    uv_matcher.usages = lagrange::AttributeUsage::UV;
-    uv_matcher.element_types = lagrange::AttributeElement::Indexed;
-    auto uv_attr_id = lagrange::find_matching_attribute(mesh, uv_matcher);
-    la_runtime_assert(uv_attr_id.has_value(), "No indexed UV attribute found.");
-
-    auto& uv_attr = mesh.template ref_indexed_attribute<double>(*uv_attr_id);
-    auto old_values = lagrange::matrix_view(uv_attr.values());
-    auto uv_indices = lagrange::vector_ref(uv_attr.indices());
-
-    std::unordered_map<
-        std::pair<uint32_t, uint32_t>,
-        uint32_t,
-        lagrange::OrderedPairHash<std::pair<uint32_t, uint32_t>>>
-        remap;
-    std::vector<Eigen::RowVector2d> new_values;
-    new_values.reserve(old_values.rows());
-
-    for (uint32_t f = 0; f < num_facets; ++f) {
-        auto c_begin = mesh.get_facet_corner_begin(f);
-        auto c_end = mesh.get_facet_corner_end(f);
-        for (auto c = c_begin; c < c_end; ++c) {
-            auto key = std::make_pair(static_cast<uint32_t>(uv_indices[c]), split_ids[f]);
-            auto [it, inserted] = remap.emplace(key, static_cast<uint32_t>(new_values.size()));
-            if (inserted) {
-                new_values.push_back(old_values.row(key.first));
-            }
-            uv_indices[c] = it->second;
-        }
-    }
-
-    uv_attr.values().resize_elements(new_values.size());
-    auto new_val_ref = lagrange::matrix_ref(uv_attr.values());
-    for (size_t i = 0; i < new_values.size(); ++i) {
-        new_val_ref.row(i) = new_values[i];
-    }
-
-    lagrange::logger().info(
-        "Split UV vertices: {} -> {} (charts={}, colors={}).",
-        old_values.rows(),
-        new_values.size(),
-        num_charts,
-        num_colors);
+    lagrange::DisconnectUVChartsOptions disconnect_options;
+    disconnect_options.uv_attribute_name = uv_attribute_name;
+    disconnect_options.chart_id_attribute_name = "@split_chart_id";
+    lagrange::disconnect_uv_charts(mesh, disconnect_options);
 
     // 4. Repack using the split chart attribute
     lagrange::packing::RepackOptions repack_options;
@@ -214,16 +176,27 @@ void register_uv_mesh(
 {
     lagrange::UVMeshOptions uv_opts;
     uv_opts.uv_attribute_name = uv_attribute_name;
-    auto uv = lagrange::uv_mesh_view(mesh, uv_opts);
-    auto* ps =
-        static_cast<::polyscope::SurfaceMesh*>(lagrange::polyscope::register_structure(name, uv));
+    polyscope::SurfaceMesh* ps_mesh = [&] {
+        using Scalar = SurfaceMesh::Scalar;
+        using Index = SurfaceMesh::Index;
+        using OtherScalar = std::conditional_t<std::is_same_v<Scalar, float>, double, float>;
+        if (lagrange::uv_attribute_id<Scalar, Index, Scalar>(mesh, uv_opts)) {
+            auto uv = lagrange::uv_mesh_view<Scalar, Index, Scalar>(mesh, uv_opts);
+            return lagrange::polyscope::register_mesh(name, uv);
+        } else if (lagrange::uv_attribute_id<Scalar, Index, OtherScalar>(mesh, uv_opts)) {
+            auto uv = lagrange::uv_mesh_view<Scalar, Index, OtherScalar>(mesh, uv_opts);
+            return lagrange::polyscope::register_mesh(name, uv);
+        } else {
+            throw std::runtime_error("Unable to find a UV attribute for mesh: " + name);
+        }
+    }();
     if (x_offset != 0.0) {
         glm::mat4 T = glm::translate(glm::mat4(1.0f), glm::vec3(x_offset, 0, 0));
-        ps->setTransform(T);
+        ps_mesh->setTransform(T);
     }
     if (coloring_id != lagrange::invalid_attribute_id()) {
         auto& ca = mesh.template get_attribute<uint32_t>(coloring_id);
-        lagrange::polyscope::register_attribute(*ps, "uv_overlap_color", ca);
+        lagrange::polyscope::register_attribute(*ps_mesh, "uv_overlap_color", ca);
     }
 }
 
@@ -264,11 +237,11 @@ void register_view(DemoState& state)
         polyscope::view::setUpDir(polyscope::UpDir::YUp);
         polyscope::view::setNavigateStyle(polyscope::NavigateStyle::Planar);
     } else {
-        auto* ps3d = lagrange::polyscope::register_structure(state.mesh_name, state.mesh_display);
+        auto* ps3d = lagrange::polyscope::register_mesh(state.mesh_name, state.mesh_display);
         ps3d->setTransform(glm::mat4(1.0f));
         if (state.repacked) {
             auto* ps3d_repacked =
-                lagrange::polyscope::register_structure(repacked_name, state.repacked_mesh_display);
+                lagrange::polyscope::register_mesh(repacked_name, state.repacked_mesh_display);
             ps3d_repacked->setTransform(glm::mat4(1.0f));
         }
 
@@ -384,7 +357,9 @@ int main(int argc, char** argv)
 
     // Load and triangulate
     lagrange::logger().info("Loading input mesh: {}", args.input);
-    auto mesh = lagrange::io::load_mesh<SurfaceMesh>(args.input);
+    lagrange::io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+    auto mesh = lagrange::io::load_mesh<SurfaceMesh>(args.input, load_options);
     lagrange::triangulate_polygonal_facets(mesh);
     lagrange::logger().info(
         "Mesh has {} vertices and {} facets.",

@@ -23,8 +23,8 @@
 # Specify a custom install prefix path
 # set(CMAKE_INSTALL_PREFIX ${CMAKE_SOURCE_DIR}/install CACHE STRING "Install directory used by install().")
 
-# Generates a `compile_commands.json` that can be used for autocompletion
-# set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Enable/Disable output of compile commands during generation.")
+# Whether to generates a `compile_commands.json` that can be used for autocompletion
+# set(CMAKE_EXPORT_COMPILE_COMMANDS OFF CACHE BOOL "Enable/Disable output of compile commands during generation.")
 
 # Use a specific C/C++ compiler, e.g. llvm-clang on macOS (so we can use clangd)
 # set(CMAKE_C_COMPILER   "/usr/local/opt/llvm/bin/clang"   CACHE STRING "C compiler")
@@ -74,6 +74,7 @@
 # option(LAGRANGE_MODULE_WINDING        "Build module lagrange::winding"        ON)
 
 # General options
+# option(LAGRANGE_BINDINGS_JS        "Build JavaScript/WebAssembly bindings"                OFF)
 # option(LAGRANGE_COMPILE_TESTS      "Enable compilation tests"                             ON)
 # option(LAGRANGE_DOCUMENTATION      "Build Doxygen documentation"                          ON)
 # option(LAGRANGE_EXAMPLES           "Build all examples"                                   ON)

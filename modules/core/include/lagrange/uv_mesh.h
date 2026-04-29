@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 
+#include <optional>
 #include <string_view>
 
 namespace lagrange {
@@ -86,6 +87,25 @@ SurfaceMesh<UVScalar, Index> uv_mesh_ref(
  */
 template <typename Scalar, typename Index, typename UVScalar = Scalar>
 SurfaceMesh<UVScalar, Index> uv_mesh_view(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const UVMeshOptions& options = {});
+
+/**
+ * Check whether a UV attribute of a given scalar type exists on a mesh.
+ *
+ * @param      mesh      Input mesh.
+ * @param      options   Options to control UV attribute lookup.
+ *
+ * @tparam     Scalar    Mesh scalar type.
+ * @tparam     Index     Mesh index type.
+ * @tparam     UVScalar  Target UV attribute value type.
+ *
+ * @return     The attribute ID if a matching UV attribute is found, or @c std::nullopt otherwise.
+ *
+ * @see        @ref UVMeshOptions
+ */
+template <typename Scalar, typename Index, typename UVScalar = Scalar>
+std::optional<AttributeId> uv_attribute_id(
     const SurfaceMesh<Scalar, Index>& mesh,
     const UVMeshOptions& options = {});
 

@@ -151,8 +151,12 @@
 #define LA_IGNORE_RANGE_LOOP_ANALYSIS_END LA_DISABLE_WARNING_END
 
 /// Ignore warning "out of bounds subscripts or offsets into arrays"
-/// This is used to bypass the following GCC bug:
-/// https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106247
+/// This is used to bypass the following GCC bugs:
+/// - https://gcc.gnu.org/bugzilla/show_bug.cgi?id=106247
+/// - https://gcc.gnu.org/bugzilla/show_bug.cgi?id=109727
+///   False positive -Warray-bounds when using -fsanitize=address/undefined
+///   and single-element initializer lists in optimized builds (-O2/-O3).
+///   Affects GCC 13.1-13.3, fixed in GCC 13.4.0, 14.3.0, and 15.1.0.
 /// @hideinitializer
 #define LA_IGNORE_ARRAY_BOUNDS_BEGIN LA_DISABLE_WARNING_BEGIN \
     LA_DISABLE_WARNING_GCC(-Warray-bounds)

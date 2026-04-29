@@ -18,6 +18,7 @@
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/build.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/point_triangle_squared_distance.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
@@ -92,10 +93,9 @@ void check_errors_runtime(const RTCDevice& device)
     case RTC_ERROR_UNSUPPORTED_CPU: throw Error("Embree: your CPU does not support SSE2");
     case RTC_ERROR_CANCELLED: throw Error("Embree: cancelled");
     default:
-        throw Error(
-            fmt::format(
-                "Embree: unknown error code: {}",
-                static_cast<std::underlying_type_t<RTCError>>(err)));
+        throw Error(format(
+            "Embree: unknown error code: {}",
+            static_cast<std::underlying_type_t<RTCError>>(err)));
     }
 }
 

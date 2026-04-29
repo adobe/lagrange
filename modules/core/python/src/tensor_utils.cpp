@@ -16,6 +16,7 @@
 #include <lagrange/python/binding.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/span.h>
 
@@ -52,7 +53,7 @@ bool check_shape(const Shape& shape, size_t expected_size)
             return shape[0] == expected_size;
         else
             return false;
-    default: throw Error(fmt::format("{}-dimensional tensor is not supported", ndim));
+    default: throw Error(lagrange::format("{}-dimensional tensor is not supported", ndim));
     }
 }
 
@@ -70,7 +71,7 @@ bool check_shape(const Shape& shape, size_t expected_rows, size_t expected_cols)
     case 2:
         return (expected_rows == dynamic || expected_rows == shape[0]) &&
                (expected_cols == dynamic || expected_cols == shape[1]);
-    default: throw Error(fmt::format("{}-dimensional tensor is not supported", ndim));
+    default: throw Error(lagrange::format("{}-dimensional tensor is not supported", ndim));
     }
 }
 
@@ -81,7 +82,7 @@ bool is_dense(const Shape& shape, const Stride& stride)
     case 1: return static_cast<size_t>(shape[0]) == 0 || static_cast<size_t>(stride[0]) == 1;
     case 2:
         return static_cast<size_t>(stride[0]) == shape[1] && static_cast<size_t>(stride[1]) == 1;
-    default: throw Error(fmt::format("{}-dimensional tensor is not supported", ndim));
+    default: throw Error(lagrange::format("{}-dimensional tensor is not supported", ndim));
     }
 }
 

@@ -16,6 +16,7 @@
 #include <lagrange/io/api.h>
 #include <lagrange/io/load_mesh_stl.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include "stitch_mesh.h"
 
@@ -153,7 +154,7 @@ template <typename MeshType>
 MeshType load_mesh_stl(const fs::path& filename, const LoadOptions& options)
 {
     fs::ifstream fin(filename, std::ios::binary);
-    la_runtime_assert(fin.good(), fmt::format("Unable to open file {}", filename.string()));
+    la_runtime_assert(fin.good(), format("Unable to open file {}", filename.string()));
     return load_mesh_stl<MeshType>(fin, options);
 }
 

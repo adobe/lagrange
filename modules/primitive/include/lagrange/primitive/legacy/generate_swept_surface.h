@@ -30,6 +30,7 @@
 #include <tbb/parallel_for.h>
 
 #include <lagrange/internal/constants.h>
+#include <lagrange/utils/fmt/format.h>
 #include <limits>
 #include <vector>
 
@@ -279,7 +280,7 @@ void generate_normal(
             } else {
                 logger().debug("f0: {} quad0: {} row0: {} col0: {}", f0, quad0, row0, col0);
                 logger().debug("f1: {} quad1: {} row1: {} col1: {}", f1, quad1, row1, col1);
-                throw Error(fmt::format("Facet {} and {} are not adjacent!", f0, f1));
+                throw Error(format("Facet {} and {} are not adjacent!", f0, f1));
             }
         }
     });

@@ -12,6 +12,9 @@
 
 #include <lagrange/Logger.h>
 
+#include <algorithm>
+#include <cmath>
+
 namespace lagrange::poisson {
 namespace {
 

@@ -36,25 +36,25 @@ using Index = uint32_t;
 /// The 3-D vertex positions are set to (u, v, 0) for convenience; they are not
 /// used by compute_uv_overlap.
 ///
+template <typename UVScalar = Scalar>
 SurfaceMesh<Scalar, Index> make_uv_mesh(
-    const std::vector<std::array<Scalar, 2>>& uv_coords,
+    const std::vector<std::array<UVScalar, 2>>& uv_coords,
     const std::vector<std::array<Index, 3>>& faces)
 {
     SurfaceMesh<Scalar, Index> mesh;
     for (auto& uv : uv_coords) {
-        mesh.add_vertex({uv[0], uv[1], Scalar(0)});
+        mesh.add_vertex({Scalar(uv[0]), Scalar(uv[1]), Scalar(0)});
     }
     for (auto& f : faces) {
         mesh.add_triangle(f[0], f[1], f[2]);
     }
 
-    // Create a per-vertex UV attribute so that uv_mesh_view can extract UV positions.
-    const AttributeId uv_id = mesh.template create_attribute<Scalar>(
+    const AttributeId uv_id = mesh.template create_attribute<UVScalar>(
         "@uv",
         AttributeElement::Vertex,
         AttributeUsage::UV,
         2);
-    auto& attr = mesh.template ref_attribute<Scalar>(uv_id);
+    auto& attr = mesh.template ref_attribute<UVScalar>(uv_id);
     auto values = attr.ref_all();
     for (Index i = 0; i < static_cast<Index>(uv_coords.size()); ++i) {
         values[i * 2 + 0] = uv_coords[i][0];
@@ -488,6 +488,80 @@ TEST_CASE(
     auto result = run_all_methods_and_check_pairs(mesh);
     REQUIRE(result.overlap_area.has_value());
     REQUIRE(result.overlapping_pairs.size() > 0);
+}
+
+// ---------------------------------------------------------------------------
+// Different UV scalar type (double UVs on float mesh)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("compute_uv_overlap: double UVs on float mesh - no overlap", "[bvh][uv_overlap]")
+{
+    using namespace lagrange;
+
+    auto mesh = make_uv_mesh<double>(
+        {{0, 0}, {1, 0}, {0, 1}, {2, 0}, {3, 0}, {2, 1}},
+        {{{0, 1, 2}}, {{3, 4, 5}}});
+
+    auto result = bvh::compute_uv_overlap(mesh);
+    REQUIRE_FALSE(result.overlap_area.has_value());
+}
+
+TEST_CASE("compute_uv_overlap: double UVs on float mesh - full overlap", "[bvh][uv_overlap]")
+{
+    using namespace lagrange;
+
+    auto mesh = make_uv_mesh<double>(
+        {{0, 0}, {1, 0}, {0, 1}, {0, 0}, {1, 0}, {0, 1}},
+        {{{0, 1, 2}}, {{3, 4, 5}}});
+
+    auto result = bvh::compute_uv_overlap(mesh);
+    REQUIRE(result.overlap_area.has_value());
+    REQUIRE_THAT(*result.overlap_area, Catch::Matchers::WithinAbs(0.5f, 1e-5f));
+}
+
+TEST_CASE("compute_uv_overlap: double UVs on float mesh - partial overlap", "[bvh][uv_overlap]")
+{
+    using namespace lagrange;
+
+    auto mesh = make_uv_mesh<double>(
+        {{0, 0}, {1, 0}, {0, 1}, {0.5, 0}, {1.5, 0}, {0.5, 1}},
+        {{{0, 1, 2}}, {{3, 4, 5}}});
+
+    auto result = bvh::compute_uv_overlap(mesh);
+    REQUIRE(result.overlap_area.has_value());
+    REQUIRE_THAT(*result.overlap_area, Catch::Matchers::WithinAbs(0.125f, 1e-5f));
+}
+
+TEST_CASE("compute_uv_overlap: double UVs on float mesh - adjacent triangles", "[bvh][uv_overlap]")
+{
+    using namespace lagrange;
+
+    auto mesh = make_uv_mesh<double>({{0, 0}, {1, 0}, {0, 1}, {1, 1}}, {{{0, 1, 2}}, {{1, 3, 2}}});
+
+    auto result = bvh::compute_uv_overlap(mesh);
+    REQUIRE_FALSE(result.overlap_area.has_value());
+}
+
+TEST_CASE("compute_uv_overlap: double UVs on float mesh - coloring", "[bvh][uv_overlap]")
+{
+    using namespace lagrange;
+
+    auto mesh = make_uv_mesh<double>(
+        {{0, 0}, {1, 0}, {0, 1}, {0.5, 0}, {1.5, 0}, {0.5, 1}, {1.0, 0}, {2.0, 0}, {1.0, 1}},
+        {{{0, 1, 2}}, {{3, 4, 5}}, {{6, 7, 8}}});
+
+    bvh::UVOverlapOptions opts;
+    opts.compute_overlap_coloring = true;
+    auto result = bvh::compute_uv_overlap(mesh, opts);
+
+    REQUIRE(result.overlap_area.has_value());
+    REQUIRE(result.overlap_coloring_id != invalid_attribute_id());
+
+    auto colors = attribute_vector_view<Index>(mesh, result.overlap_coloring_id);
+    REQUIRE(colors.size() == 3);
+    REQUIRE(colors[0] != colors[1]);
+    REQUIRE(colors[1] != colors[2]);
+    REQUIRE(colors[0] == colors[2]);
 }
 
 // ---------------------------------------------------------------------------

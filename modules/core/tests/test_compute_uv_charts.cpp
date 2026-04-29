@@ -62,3 +62,67 @@ TEST_CASE("compute_uv_charts", "[surface][utilities]")
         REQUIRE(num_charts == 2);
     }
 }
+
+TEST_CASE("compute_uv_charts: different UV scalar type", "[surface][utilities]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+    using UVScalar = float;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_vertex({1, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(1, 3, 2);
+
+    SECTION("Single chart with float UVs on double mesh")
+    {
+        std::vector<UVScalar> uv_values = {0, 0, 1, 0, 0, 1, 1, 1};
+        std::vector<Index> uv_indices = {0, 1, 2, 1, 3, 2};
+
+        mesh.template create_attribute<UVScalar>(
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
+            {uv_values.data(), uv_values.size()},
+            {uv_indices.data(), uv_indices.size()});
+
+        auto num_charts = compute_uv_charts(mesh);
+        REQUIRE(num_charts == 1);
+    }
+
+    SECTION("Two charts with float UVs on double mesh")
+    {
+        std::vector<UVScalar> uv_values = {0, 0, 1, 0, 0, 1, 1, 0, 1, 1, 0, 1};
+        std::vector<Index> uv_indices = {0, 1, 2, 3, 4, 5};
+
+        mesh.template create_attribute<UVScalar>(
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
+            {uv_values.data(), uv_values.size()},
+            {uv_indices.data(), uv_indices.size()});
+
+        auto num_charts = compute_uv_charts(mesh);
+        REQUIRE(num_charts == 2);
+    }
+
+    SECTION("Single chart with float vertex UVs on double mesh")
+    {
+        std::vector<UVScalar> uv_values = {0, 0, 1, 0, 0, 1, 1, 1};
+
+        mesh.template create_attribute<UVScalar>(
+            "uv",
+            AttributeElement::Vertex,
+            AttributeUsage::UV,
+            2,
+            uv_values);
+
+        auto num_charts = compute_uv_charts(mesh);
+        REQUIRE(num_charts == 1);
+    }
+}

@@ -128,12 +128,31 @@ SurfaceMesh<UVScalar, Index> uv_mesh_view(
     return uv_mesh;
 }
 
-#define LA_X_uv_mesh_view(UVScalar, Scalar, Index)                                           \
-    template LA_CORE_API SurfaceMesh<UVScalar, Index> uv_mesh_ref<Scalar, Index, UVScalar>(  \
-        SurfaceMesh<Scalar, Index>&,                                                         \
-        const UVMeshOptions&);                                                               \
-    template LA_CORE_API SurfaceMesh<UVScalar, Index> uv_mesh_view<Scalar, Index, UVScalar>( \
-        const SurfaceMesh<Scalar, Index>&,                                                   \
+template <typename Scalar, typename Index, typename UVScalar>
+std::optional<AttributeId> uv_attribute_id(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const UVMeshOptions& options)
+{
+    AttributeId uv_attr_id = internal::get_uv_id<Scalar, Index, UVScalar>(
+        mesh,
+        options.uv_attribute_name,
+        options.element_types,
+        internal::TypeMismatchPolicy::Graceful);
+    if (uv_attr_id == invalid_attribute_id()) {
+        return std::nullopt;
+    }
+    return uv_attr_id;
+}
+
+#define LA_X_uv_mesh_view(UVScalar, Scalar, Index)                                            \
+    template LA_CORE_API SurfaceMesh<UVScalar, Index> uv_mesh_ref<Scalar, Index, UVScalar>(   \
+        SurfaceMesh<Scalar, Index>&,                                                          \
+        const UVMeshOptions&);                                                                \
+    template LA_CORE_API SurfaceMesh<UVScalar, Index> uv_mesh_view<Scalar, Index, UVScalar>(  \
+        const SurfaceMesh<Scalar, Index>&,                                                    \
+        const UVMeshOptions&);                                                                \
+    template LA_CORE_API std::optional<AttributeId> uv_attribute_id<Scalar, Index, UVScalar>( \
+        const SurfaceMesh<Scalar, Index>&,                                                    \
         const UVMeshOptions&);
 #define LA_X_uv_mesh_view_aux(_, UVScalar) LA_SURFACE_MESH_X(uv_mesh_view, UVScalar)
 LA_SURFACE_MESH_SCALAR_X(uv_mesh_view_aux, 0)

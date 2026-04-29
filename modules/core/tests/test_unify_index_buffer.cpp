@@ -521,4 +521,26 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
         mesh2.initialize_edges();
         check_for_consistency(mesh, mesh2);
     }
+
+    SECTION("Isolated vertices with selected indexed attribute")
+    {
+        // Regression test: unify_index_buffer used to under-allocate the output
+        // vertex attribute when mapping a selected indexed attribute on a mesh
+        // with isolated vertices.
+        lagrange::SurfaceMesh<Scalar, Index> mesh = generate_rectangle<Scalar, Index>();
+        mesh.add_vertex({-1, -1, -1}); // isolated vertex
+        REQUIRE(mesh.get_num_vertices() == 7);
+
+        std::vector<Scalar> values = {0, 1, 2};
+        std::vector<Index> indices = {0, 0, 0, 1, 1, 1, 2, 2, 2, 2};
+        auto attr_id = add_indexed_attribute(mesh, "facet_id", values, indices);
+
+        // Pass the attribute id so it gets mapped to a vertex attribute.
+        auto mesh2 = unify_index_buffer(mesh, {attr_id});
+        REQUIRE(mesh2.get_num_vertices() == 11);
+        REQUIRE(mesh2.has_attribute("facet_id"));
+        REQUIRE_FALSE(mesh2.is_attribute_indexed("facet_id"));
+        mesh2.initialize_edges();
+        check_for_consistency(mesh, mesh2);
+    }
 }

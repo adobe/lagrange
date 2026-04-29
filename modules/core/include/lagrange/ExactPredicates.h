@@ -52,7 +52,7 @@ public:
     ///
     /// @return     1 if the points are collinear, 0 otherwise.
     ///
-    virtual short collinear3D(double p1[3], double p2[3], double p3[3]) const;
+    virtual short collinear3D(const double p1[3], const double p2[3], const double p3[3]) const;
 
     ///
     /// Exact 2D orientation test.
@@ -65,7 +65,7 @@ public:
     ///             order; a negative value if they occur in clockwise order; and zero if they are
     ///             collinear.
     ///
-    virtual short orient2D(double p1[2], double p2[2], double p3[2]) const = 0;
+    virtual short orient2D(const double p1[2], const double p2[2], const double p3[2]) const = 0;
 
     ///
     /// Exact 3D orientation test.
@@ -80,7 +80,11 @@ public:
     ///             order when viewed from above the plane.  Returns a negative value if p4 lies
     ///             above the plane.  Returns zero if the points are coplanar.
     ///
-    virtual short orient3D(double p1[3], double p2[3], double p3[3], double p4[3]) const = 0;
+    virtual short orient3D(
+        const double p1[3],
+        const double p2[3],
+        const double p3[3],
+        const double p4[3]) const = 0;
 
     ///
     /// Exact 2D incircle test.
@@ -95,7 +99,11 @@ public:
     ///             are cocircular. The points p1, p2, and p3 must be in counterclockwise order, or
     ///             the sign of the result will be reversed.
     ///
-    virtual short incircle(double p1[2], double p2[2], double p3[2], double p4[2]) const = 0;
+    virtual short incircle(
+        const double p1[2],
+        const double p2[2],
+        const double p3[2],
+        const double p4[2]) const = 0;
 
     ///
     /// Exact 3D insphere test.
@@ -112,8 +120,12 @@ public:
     ///             they have a positive orientation (as defined by orient3d()), or the sign of the
     ///             result will be reversed.
     ///
-    virtual short insphere(double p1[3], double p2[3], double p3[3], double p4[3], double p5[3])
-        const = 0;
+    virtual short insphere(
+        const double p1[3],
+        const double p2[3],
+        const double p3[3],
+        const double p4[3],
+        const double p5[3]) const = 0;
 };
 /// @}
 

@@ -15,11 +15,11 @@ import lagrange
 class TestRemoveShortEdges:
     def test_triangle(self, single_triangle):
         mesh = single_triangle
-        lagrange.remove_short_edges(mesh, 0.1)
+        lagrange.remove_short_edges(mesh, threshold=0.1)
         assert mesh.num_vertices == 3
         assert mesh.num_facets == 1
 
-        lagrange.remove_short_edges(mesh, 10)
+        lagrange.remove_short_edges(mesh, threshold=10)
         assert mesh.num_vertices == 0
         assert mesh.num_facets == 0
 
@@ -38,6 +38,6 @@ class TestRemoveShortEdges:
         mesh.add_quad(4, 5, 7, 6)
         mesh.add_triangle(0, 1, 4)
         mesh.add_triangle(4, 1, 5)
-        lagrange.remove_short_edges(mesh, 0.2)
+        lagrange.remove_short_edges(mesh, threshold=0.2)
         assert mesh.num_facets == 2
         assert mesh.num_vertices == 6

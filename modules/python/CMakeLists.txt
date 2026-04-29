@@ -224,13 +224,17 @@ function(lagrange_generate_python_binding_module)
         # Generate stubs for python binding within the install location.
         get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
         foreach(module_name IN ITEMS ${active_modules})
-            message(STATUS "Generating stub for lagrange.${module_name}")
-            file(APPEND ${init_pyi_file} "from . import ${module_name}\n")
+            get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
+            if(NOT python_name)
+                set(python_name ${module_name})
+            endif()
+            message(STATUS "Generating stub for lagrange.${python_name}")
+            file(APPEND ${init_pyi_file} "from . import ${python_name}\n")
             nanobind_add_stub(
                 lagrange_python_stubgen_${module_name}
                 INSTALL_TIME
-                MODULE lagrange.${module_name}
-                OUTPUT ${SKBUILD_PLATLIB_DIR}/lagrange/${module_name}.pyi
+                MODULE lagrange.${python_name}
+                OUTPUT ${SKBUILD_PLATLIB_DIR}/lagrange/${python_name}.pyi
                 DEPENDS lagrange_python
                 COMPONENT Lagrange_Python_Runtime
                 PYTHON_PATH ${SKBUILD_PLATLIB_DIR}/lagrange/

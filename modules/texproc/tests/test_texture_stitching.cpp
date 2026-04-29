@@ -21,6 +21,7 @@
 #include <lagrange/views.h>
 
 #include <lagrange/testing/common.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -104,7 +105,7 @@ TEST_CASE("texture stitching", "[texproc][stitching]" LA_SLOW_DEBUG_FLAG)
         auto subfolder = get_platform_subfolder();
         auto expected = load_image(
             lagrange::testing::get_data_path(
-                fmt::format("open/texproc/{}/blub_stitched.exr", subfolder)));
+                lagrange::format("open/texproc/{}/blub_stitched.exr", subfolder)));
         require_approx_mdspan(img.to_mdspan(), expected.to_mdspan());
     }
 
@@ -121,7 +122,7 @@ TEST_CASE("texture stitching", "[texproc][stitching]" LA_SLOW_DEBUG_FLAG)
         auto subfolder = get_platform_subfolder();
         auto expected = load_image(
             lagrange::testing::get_data_path(
-                fmt::format("open/texproc/{}/blub_stitched_rnd.exr", subfolder)));
+                lagrange::format("open/texproc/{}/blub_stitched_rnd.exr", subfolder)));
         require_approx_mdspan(img.to_mdspan(), expected.to_mdspan());
     }
 }

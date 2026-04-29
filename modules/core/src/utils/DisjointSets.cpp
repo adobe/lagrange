@@ -17,6 +17,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/utils/DisjointSets.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/safe_cast.h>
@@ -74,7 +75,7 @@ size_t DisjointSets<IndexType>::extract_disjoint_set_indices(span<IndexType> ind
     const size_t num_entries = size();
     la_runtime_assert(
         index_map.size() >= num_entries,
-        fmt::format("Index map must be large enough to hold {} entries!", num_entries));
+        format("Index map must be large enough to hold {} entries!", num_entries));
     constexpr IndexType invalid_index = invalid<IndexType>();
     std::fill(index_map.begin(), index_map.end(), invalid_index);
     IndexType counter = 0;

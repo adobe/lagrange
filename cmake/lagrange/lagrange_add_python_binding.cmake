@@ -31,7 +31,7 @@ function(lagrange_add_python_binding)
         if (EXISTS ${CMAKE_CURRENT_LIST_DIR}/scripts)
             message(STATUS "Adding scripts for module ${module_name}")
             message(STATUS ${SKBUILD_SCRIPTS_DIR})
-            file(GLOB_RECURSE SCRIPTS ${CMAKE_CURRENT_LIST_DIR}/scripts/*)
+            file(GLOB_RECURSE SCRIPTS ${CMAKE_CURRENT_LIST_DIR}/scripts/*.py)
             install(PROGRAMS ${SCRIPTS}
                 DESTINATION ${SKBUILD_SCRIPTS_DIR}
                 COMPONENT Lagrange_Python_Runtime

@@ -58,7 +58,28 @@ Eigen::Affine3f compute_global_node_transform(const Scene<Scalar, Index>& scene,
 }
 
 ///
-/// Computes the (extrinsic) view matrix transform (world space -> camera space)
+/// Computes the (extrinsic) view matrix transform (world space -> camera space).
+///
+/// Following glTF 2.0 §3.10.2, the view matrix is derived from the node's global transform with
+/// scaling ignored. This overload extracts the closest proper rotation from the linear part of
+/// @p world_from_local via polar decomposition (SVD), correctly handling scale and shear. For
+/// scale-free transforms, prefer the Isometry3f overload to avoid the SVD cost.
+///
+/// @param[in]  camera            Camera object.
+/// @param[in]  world_from_local  Local -> world transform of the node containing the camera
+///                               instance. Any scale/shear component is stripped before use.
+///
+/// @return     The view transform mapping world space -> camera space.
+///
+LA_SCENE_API Eigen::Affine3f camera_view_transform(
+    const Camera& camera,
+    const Eigen::Affine3f& world_from_local = Eigen::Affine3f::Identity());
+
+///
+/// @overload
+///
+/// Overload accepting an isometry (rotation + translation, no scale). Use this when the transform
+/// is known to have no scale component, to skip the SVD decomposition.
 ///
 /// @param[in]  camera            Camera object.
 /// @param[in]  world_from_local  Local -> world transform of the node containing the camera
@@ -68,7 +89,7 @@ Eigen::Affine3f compute_global_node_transform(const Scene<Scalar, Index>& scene,
 ///
 LA_SCENE_API Eigen::Affine3f camera_view_transform(
     const Camera& camera,
-    const Eigen::Affine3f& world_from_local = Eigen::Affine3f::Identity());
+    const Eigen::Isometry3f& world_from_local);
 
 ///
 /// Computes the (intrinsic) projection matrix projection (camera space -> clip space)

@@ -20,6 +20,7 @@
 #include <lagrange/utils/DisjointSets.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/StackVector.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/views.h>
 
 #include <tbb/enumerable_thread_specific.h>
@@ -286,10 +287,9 @@ SurfaceMesh<Scalar, Index> isoline_internal(
         using ValueType = typename AttributeType::ValueType;
         if (!(attr.get_element_type() == AttributeElement::Vertex ||
               attr.get_element_type() == AttributeElement::Indexed)) {
-            throw Error(
-                fmt::format(
-                    "Isoline attribute element type should be Vertex or Indexed, not {}",
-                    internal::to_string(attr.get_element_type())));
+            throw Error(format(
+                "Isoline attribute element type should be Vertex or Indexed, not {}",
+                internal::to_string(attr.get_element_type())));
         }
         if constexpr (AttributeType::IsIndexed) {
             if constexpr (std::is_same_v<ValueType, double>) {

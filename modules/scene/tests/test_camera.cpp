@@ -11,18 +11,12 @@
  */
 #include <lagrange/scene/scene_utils.h>
 
-#include <lagrange/Logger.h>
-#include <lagrange/io/load_scene.h>
-#include <lagrange/utils/fmt_eigen.h>
-
 #include <catch2/catch_test_macros.hpp>
-
-#include <iostream>
 
 TEST_CASE("camera matrices", "[scene]")
 {
     // clang-format off
-    Eigen::Affine3f world_from_camera;
+    Eigen::Isometry3f world_from_camera = Eigen::Isometry3f::Identity();
     world_from_camera.linear() <<
         0.0, -0.859127402305603, 0.5117617249488831,
         0.0, 0.5117617249488831, 0.859127402305603,
@@ -47,8 +41,8 @@ TEST_CASE("camera matrices", "[scene]")
         Eigen::Matrix4f expected_view;
         expected_view <<
                     0x0p+0,          0x0p+0,         -0x1p+0,          0x0p+0,
-            -0x1.b7df8ep-1,   0x1.0605a2p-1,          0x0p+0, -0x1.50aee2p-27,
-             0x1.0605a2p-1,   0x1.b7df8ep-1,          0x0p+0,  -0x1.800002p+1,
+            -0x1.b7df8cp-1,   0x1.0605a2p-1,          0x0p+0,  -0x1.50aeep-27,
+             0x1.0605a2p-1,   0x1.b7df8cp-1,          0x0p+0,     -0x1.8p+1,
                     0x0p+0,          0x0p+0,          0x0p+0,          0x1p+0;
         Eigen::Matrix4f expected_proj;
         expected_proj <<
@@ -74,8 +68,8 @@ TEST_CASE("camera matrices", "[scene]")
         Eigen::Matrix4f expected_view;
         expected_view <<
                     0x0p+0,          0x0p+0,         -0x1p+0,          0x0p+0,
-            -0x1.b7df8ep-1,   0x1.0605a2p-1,          0x0p+0, -0x1.50aee2p-27,
-             0x1.0605a2p-1,   0x1.b7df8ep-1,          0x0p+0,  -0x1.800002p+1,
+            -0x1.b7df8cp-1,   0x1.0605a2p-1,          0x0p+0,  -0x1.50aeep-27,
+             0x1.0605a2p-1,   0x1.b7df8cp-1,          0x0p+0,     -0x1.8p+1,
                     0x0p+0,          0x0p+0,          0x0p+0,          0x1p+0;
         Eigen::Matrix4f expected_proj;
         expected_proj <<
@@ -102,18 +96,71 @@ TEST_CASE("camera matrices", "[scene]")
         Eigen::Matrix4f expected_view;
         expected_view <<
                     0x0p+0,          0x0p+0,         -0x1p+0,          0x0p+0,
-            -0x1.b7df8ep-1,   0x1.0605a2p-1,          0x0p+0, -0x1.50aee2p-27,
-             0x1.0605a2p-1,   0x1.b7df8ep-1,          0x0p+0,  -0x1.800002p+1,
+            -0x1.b7df8cp-1,   0x1.0605a2p-1,          0x0p+0,  -0x1.50aeep-27,
+             0x1.0605a2p-1,   0x1.b7df8cp-1,          0x0p+0,     -0x1.8p+1,
                     0x0p+0,          0x0p+0,          0x0p+0,          0x1p+0;
         Eigen::Matrix4f expected_proj;
         expected_proj <<
-                    0x1p+1,         0x0p+0,         0x0p+0,        -0x0p+0,
-                    0x0p+0,         0x1p+1,         0x0p+0,        -0x0p+0,
+                    0x1p+0,         0x0p+0,         0x0p+0,        -0x0p+0,
+                    0x0p+0,         0x1p+0,         0x0p+0,        -0x0p+0,
                     0x0p+0,         0x0p+0, -0x1.062b94p-9, -0x1.000d1cp+0,
                     0x0p+0,         0x0p+0,         0x0p+0,         0x1p+0;
         // clang-format on
 
         REQUIRE(view_transform.matrix() == expected_view);
         REQUIRE(proj_transform.matrix() == expected_proj);
+    }
+
+    SECTION("affine view transform without scale")
+    {
+        camera.far_plane = 1000.f;
+
+        // Convert the Isometry3f to Affine3f (no scale added)
+        Eigen::Affine3f world_affine = Eigen::Affine3f::Identity();
+        world_affine.linear() = world_from_camera.linear();
+        world_affine.translation() = world_from_camera.translation();
+
+        namespace utils = lagrange::scene::utils;
+        auto view_isometry = utils::camera_view_transform(camera, world_from_camera);
+        auto view_affine = utils::camera_view_transform(camera, world_affine);
+
+        REQUIRE(view_affine.matrix().isApprox(view_isometry.matrix()));
+    }
+
+    SECTION("affine view transform with uniform scale")
+    {
+        camera.far_plane = 1000.f;
+
+        // Add a uniform scale factor (e.g. Blender's unit conversion)
+        Eigen::Affine3f world_scaled = Eigen::Affine3f::Identity();
+        world_scaled.linear() = 0.403f * world_from_camera.linear();
+        world_scaled.translation() = world_from_camera.translation();
+
+        namespace utils = lagrange::scene::utils;
+        auto view_isometry = utils::camera_view_transform(camera, world_from_camera);
+        auto view_scaled = utils::camera_view_transform(camera, world_scaled);
+
+        // Scale should be stripped per glTF §3.10.2, so results must match
+        REQUIRE(view_scaled.matrix().isApprox(view_isometry.matrix()));
+    }
+
+    SECTION("affine view transform with non-uniform scale")
+    {
+        camera.far_plane = 1000.f;
+
+        // Non-uniform scale on each axis
+        Eigen::Affine3f world_scaled = Eigen::Affine3f::Identity();
+        world_scaled.linear() = world_from_camera.linear();
+        world_scaled.linear().col(0) *= 2.0f;
+        world_scaled.linear().col(1) *= 0.5f;
+        world_scaled.linear().col(2) *= 3.0f;
+        world_scaled.translation() = world_from_camera.translation();
+
+        namespace utils = lagrange::scene::utils;
+        auto view_isometry = utils::camera_view_transform(camera, world_from_camera);
+        auto view_scaled = utils::camera_view_transform(camera, world_scaled);
+
+        // Scale should be stripped per glTF §3.10.2, so results must match
+        REQUIRE(view_scaled.matrix().isApprox(view_isometry.matrix()));
     }
 }

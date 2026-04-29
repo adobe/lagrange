@@ -28,6 +28,7 @@
 #include <lagrange/MeshTrait.h>
 #include <lagrange/legacy/inline.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/range.h>
 
 namespace lagrange {
@@ -47,7 +48,7 @@ void condense_indexed_attribute(
     static_assert(MeshTrait<MeshType>::is_mesh(), "MeshType is not a mesh");
     la_runtime_assert(
         mesh.has_indexed_attribute(attr_name),
-        fmt::format("Missing attribute '{}'", attr_name));
+        format("Missing attribute '{}'", attr_name));
 
     using Index = typename MeshType::Index;
     using AttributeArray = typename MeshType::AttributeArray;

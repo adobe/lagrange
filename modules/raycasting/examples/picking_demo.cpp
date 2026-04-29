@@ -259,8 +259,11 @@ int main(int argc, char** argv)
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.log_level));
 
     // Initialize Polyscope
+    polyscope::options::configureImGuiStyleCallback = []() {
+        ImGui::Spectrum::StyleColorsSpectrum();
+        ImGui::Spectrum::LoadFont();
+    };
     polyscope::init();
-    polyscope::options::configureImGuiStyleCallback = []() { ImGui::StyleColorsLight(); };
 
     // Load mesh
     lagrange::logger().info("Loading mesh: {}", args.input.string());

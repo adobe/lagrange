@@ -12,6 +12,7 @@
 #include <lagrange/geodesic/GeodesicEngine.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/views.h>
 
 namespace lagrange::geodesic {
@@ -47,6 +48,17 @@ Scalar GeodesicEngine<Scalar, Index>::point_to_point_geodesic(
                (1.0 - options.target_facet_bc[0] - options.target_facet_bc[1]) +
            geo_dists(facets(options.target_facet_id, 1)) * options.target_facet_bc[0] +
            geo_dists(facets(options.target_facet_id, 2)) * options.target_facet_bc[1];
+}
+
+template <typename Scalar, typename Index>
+GeodesicPathResult<Scalar, Index> GeodesicEngine<Scalar, Index>::point_to_point_geodesic_path(
+    const PointToPointGeodesicPathOptions& /*options*/)
+{
+    // Default implementation throws an exception
+    // Derived classes should override this method to provide actual path computation
+    throw Error(
+        "Geodesic path extraction is not supported by this engine. "
+        "Use GeodesicEngineMMP for exact path computation.");
 }
 
 #define LA_X_GeodesicEngine(_, Scalar, Index) \

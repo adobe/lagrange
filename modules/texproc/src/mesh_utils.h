@@ -40,6 +40,8 @@ using namespace lagrange::texproc::threadpool;
 #include <Src/PreProcessing.h>
 #include <Src/GradientDomain.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/fmt/join.h>
 // clang-format on
 
 #include <Eigen/Sparse>
@@ -213,14 +215,13 @@ void check_for_flipped_uv(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id
         Eigen::RowVector2d p2 = uv_mesh.first.row(uv_index(f, 2)).template cast<double>();
         auto r = predicates.orient2D(p0.data(), p1.data(), p2.data());
         if (r <= 0) {
-            throw Error(
-                fmt::format(
-                    "The input mesh has flipped UVs:\n  p0=({:.3g})\n  p1=({:.3g})\n  p2=("
-                    "{:.3g})\n"
-                    "Please fix the input mesh before proceeding.",
-                    fmt::join(p0, ", "),
-                    fmt::join(p1, ", "),
-                    fmt::join(p2, ", ")));
+            throw Error(format(
+                "The input mesh has flipped UVs:\n  p0=({:.3g})\n  p1=({:.3g})\n  p2=("
+                "{:.3g})\n"
+                "Please fix the input mesh before proceeding.",
+                join(p0, ", "),
+                join(p1, ", "),
+                join(p2, ", ")));
         }
     }
 }

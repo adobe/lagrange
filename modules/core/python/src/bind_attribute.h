@@ -21,6 +21,7 @@
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 
 namespace lagrange::python {
@@ -140,7 +141,7 @@ void bind_attribute(nanobind::module_& m)
                 if (nb::try_cast(value, tensor)) {
                     if (tensor.dtype() != nb::dtype<ValueType>()) {
                         throw nb::type_error(
-                            fmt::format(
+                            lagrange::format(
                                 "Tensor has a unexpected dtype.  Expecting {}.",
                                 internal::string_from_scalar<ValueType>())
                                 .c_str());
@@ -199,7 +200,7 @@ void bind_attribute(nanobind::module_& m)
                 if (nb::try_cast(value, tensor)) {
                     if (tensor.dtype() != nb::dtype<ValueType>()) {
                         throw nb::type_error(
-                            fmt::format(
+                            lagrange::format(
                                 "Tensor has a unexpected dtype.  Expecting {}.",
                                 internal::string_from_scalar<ValueType>())
                                 .c_str());

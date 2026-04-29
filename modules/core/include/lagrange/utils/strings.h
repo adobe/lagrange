@@ -12,12 +12,8 @@
 #pragma once
 
 #include <lagrange/api.h>
+#include <lagrange/utils/fmt/format.h>
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <spdlog/fmt/fmt.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 #include <string>
 #include <string_view>
@@ -100,10 +96,12 @@ LA_CORE_API std::string to_upper(std::string str);
 /// @return     A string object holding the formatted result.
 ///
 template <typename... Args>
-std::string string_format(fmt::format_string<Args...> format, Args&&... args)
+std::string string_format(lagrange::format_string<Args...> format, Args&&... args)
 {
 // TODO: Remove this string_format in our next major release...
-#if FMT_VERSION >= 90100
+#ifdef SPDLOG_USE_STD_FORMAT
+    return std::format(format, std::forward<Args>(args)...);
+#elif FMT_VERSION >= 90100
     return fmt::format(fmt::runtime(format), std::forward<Args>(args)...);
 #else
     return fmt::format(format, std::forward<Args>(args)...);

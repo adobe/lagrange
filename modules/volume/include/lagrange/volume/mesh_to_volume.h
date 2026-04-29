@@ -44,10 +44,13 @@ struct MeshToVolumeOptions
 };
 
 ///
-/// Converts a triangle mesh to a OpenVDB sparse voxel grid.
+/// Converts a mesh to an OpenVDB sparse voxel grid.
 ///
-/// @param[in]  mesh        Input mesh. Must be a triangle mesh, a quad mesh, or a quad-dominant
-///                         mesh.
+/// @param[in]  mesh        Input mesh. Must be a triangle mesh, a quad mesh, a quad-dominant
+///                         mesh, or contain edges (size-2 facets) and/or points (size-1 facets).
+///                         For hybrid meshes, facet sizes 1-4 are supported. Size-1 and size-2
+///                         facets are forwarded to the OpenVDB adapter as degenerate triangles for
+///                         all signing methods (FloodFill, WindingNumber, Unsigned).
 /// @param[in]  options     Conversion options.
 ///
 /// @tparam     GridScalar  Output OpenVDB Grid scalar type. Only float or double are supported.

@@ -17,6 +17,7 @@
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/internal/get_uv_attribute.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/views.h>
 
 namespace lagrange::internal {
@@ -25,7 +26,8 @@ template <typename Scalar, typename Index, typename UVScalar>
 AttributeId get_uv_id(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name,
-    UVMeshOptions::ElementTypes element_types)
+    UVMeshOptions::ElementTypes element_types,
+    internal::TypeMismatchPolicy type_mismatch)
 {
     AttributeId uv_attr_id;
     if (uv_attribute_name.empty()) {
@@ -67,10 +69,18 @@ AttributeId get_uv_id(
         }
     } else {
         uv_attr_id = mesh.get_attribute_id(uv_attribute_name);
-        const auto& attr = mesh.get_attribute_base(uv_attr_id);
         la_runtime_assert(
-            attr.get_value_type() == make_attribute_value_type<UVScalar>(),
-            "UV attribute value type does not match the requested UVScalar type.");
+            uv_attr_id != invalid_attribute_id(),
+            format("Specified UV attribute does not exist: {}", uv_attribute_name));
+        const auto& attr = mesh.get_attribute_base(uv_attr_id);
+        if (attr.get_value_type() != make_attribute_value_type<UVScalar>()) {
+            if (type_mismatch == internal::TypeMismatchPolicy::Graceful) {
+                return invalid_attribute_id();
+            }
+            la_runtime_assert(
+                false,
+                "UV attribute value type does not match the requested UVScalar type.");
+        }
         la_runtime_assert(
             attr.get_num_channels() == 2,
             "UV attribute must have exactly 2 channels.");
@@ -141,7 +151,8 @@ std::tuple<RowMatrixView<UVScalar>, VectorView<Index>> ref_uv_attribute(
     template LA_CORE_API AttributeId get_uv_id<Scalar, Index, UVScalar>(                  \
         const SurfaceMesh<Scalar, Index>&,                                                \
         std::string_view,                                                                 \
-        UVMeshOptions::ElementTypes);                                                     \
+        UVMeshOptions::ElementTypes,                                                      \
+        TypeMismatchPolicy);                                                              \
     template LA_CORE_API std::tuple<ConstRowMatrixView<UVScalar>, ConstVectorView<Index>> \
     get_uv_attribute<Scalar, Index, UVScalar>(                                            \
         const SurfaceMesh<Scalar, Index>&,                                                \

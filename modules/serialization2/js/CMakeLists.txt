@@ -1,0 +1,1 @@
+lagrange_add_js_binding(serialization SerializationModule)

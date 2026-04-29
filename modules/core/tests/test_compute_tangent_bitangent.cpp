@@ -40,6 +40,7 @@
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     #include <lagrange/mesh_convert.h>
+    #include <lagrange/utils/fmt/format.h>
 #endif
 
 
@@ -600,7 +601,7 @@ TEST_CASE("compute_tangent_bitangent nmtest", "[core][tangent]" LA_CORP_FLAG)
             mesh = lagrange::unify_index_buffer(mesh, {nrm_id, t_id, bt_id});
             mesh.rename_attribute(nrm_name, "Vertex_Normal"); // match ply attribute name
 
-            auto filename = fmt::format(
+            auto filename = lagrange::format(
                 "nmtest_{}_{}.ply",
                 lagrange::internal::to_string(output_element_type),
                 angle_threshold_deg);
@@ -609,7 +610,7 @@ TEST_CASE("compute_tangent_bitangent nmtest", "[core][tangent]" LA_CORP_FLAG)
             // lagrange::io::save_mesh(filename, mesh);
 
             auto expected = lagrange::testing::load_surface_mesh<Scalar, Index>(
-                fmt::format("corp/core/regression/{}", filename));
+                lagrange::format("corp/core/regression/{}", filename));
 
             lagrange::seq_foreach_named_attribute_read<lagrange::AttributeElement::Vertex>(
                 mesh,

@@ -21,6 +21,7 @@
 #include <lagrange/internal/string_from_scalar.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 
 
 namespace lagrange::internal {
@@ -45,26 +46,26 @@ CheckAttributeResult check_attribute(
 {
     check_that(
         mesh.template is_attribute_type<ExpectedValueType>(id),
-        fmt::format("Attribute type should be {}", string_from_scalar<ExpectedValueType>()));
+        format("Attribute type should be {}", string_from_scalar<ExpectedValueType>()));
 
     {
         const auto& attr = mesh.get_attribute_base(id);
         check_that(
             attr.get_usage() == expected_usage,
-            fmt::format(
+            format(
                 "Attribute usage should be {}, not {}",
                 to_string(expected_usage),
                 to_string(attr.get_usage())));
         check_that(
             expected_element.test(attr.get_element_type()),
-            fmt::format(
+            format(
                 "Attribute element type should be {}, not {}",
                 to_string(expected_element),
                 to_string(attr.get_element_type())));
         if (expected_channels != 0) {
             check_that(
                 attr.get_num_channels() == expected_channels,
-                fmt::format(
+                format(
                     "Attribute should have {} channels, not {}",
                     expected_channels,
                     attr.get_num_channels()));

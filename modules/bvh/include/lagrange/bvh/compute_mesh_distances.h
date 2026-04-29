@@ -34,10 +34,12 @@ struct MeshDistancesOptions
 /// Compute the distance from each vertex in @p source to the closest point on @p target,
 /// and store the result as a per-vertex scalar attribute on @p source.
 ///
-/// Both meshes must have the same spatial dimension. @p target must be a triangle mesh.
+/// Both meshes must have the same spatial dimension. @p target must be either a triangle mesh
+/// or a point cloud (no facets). If @p target is a point cloud, distances are computed to the
+/// nearest vertex rather than to the nearest point on a triangle.
 ///
 /// @param[in,out] source   Mesh whose vertices are queried. The output attribute is added here.
-/// @param[in]     target   Triangle mesh against which distances are computed.
+/// @param[in]     target   Triangle mesh or point cloud against which distances are computed.
 /// @param[in]     options  Options controlling the name of the output attribute.
 ///
 /// @return  AttributeId of the newly created (or overwritten) distance attribute on @p source.
@@ -62,12 +64,14 @@ LA_BVH_API AttributeId compute_mesh_distances(
 ///   \right)
 /// @f]
 /// where @f$ \mathrm{dist}(v, M) @f$ is the distance from vertex @f$ v @f$ to the closest
-/// point on mesh @f$ M @f$.
+/// point on @f$ M @f$. For triangle meshes the closest point may lie on a triangle face or
+/// edge; for point clouds (no facets) it is the nearest vertex.
 ///
-/// Both meshes must have the same spatial dimension and must be triangle meshes.
+/// Both meshes must have the same spatial dimension. Each mesh must be either a triangle mesh
+/// or a point cloud (no facets).
 ///
-/// @param[in] source  First mesh.
-/// @param[in] target  Second mesh.
+/// @param[in] source  First mesh or point cloud.
+/// @param[in] target  Second mesh or point cloud.
 ///
 /// @return Hausdorff distance.
 ///
@@ -88,12 +92,14 @@ LA_BVH_API Scalar compute_hausdorff(
 ///           + \frac{1}{|B|} \sum_{b \in B} \mathrm{dist}(b, A)^2
 /// @f]
 /// where @f$ \mathrm{dist}(v, M) @f$ is the distance from vertex @f$ v @f$ to the closest
-/// point on mesh @f$ M @f$.
+/// point on @f$ M @f$. For triangle meshes the closest point may lie on a triangle face or
+/// edge; for point clouds (no facets) it is the nearest vertex.
 ///
-/// Both meshes must have the same spatial dimension and must be triangle meshes.
+/// Both meshes must have the same spatial dimension. Each mesh must be either a triangle mesh
+/// or a point cloud (no facets).
 ///
-/// @param[in] source  First mesh.
-/// @param[in] target  Second mesh.
+/// @param[in] source  First mesh or point cloud.
+/// @param[in] target  Second mesh or point cloud.
 ///
 /// @return Chamfer distance.
 ///

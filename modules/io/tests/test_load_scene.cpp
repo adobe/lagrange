@@ -20,11 +20,13 @@
 #include <lagrange/io/load_scene_fbx.h>
 #include <lagrange/io/load_scene_gltf.h>
 #include <lagrange/io/load_scene_obj.h>
+#include <lagrange/io/save_mesh_gltf.h>
 #include <lagrange/io/save_mesh_obj.h>
 #include <lagrange/io/save_scene_gltf.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/utils/utils.h>
+#include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 
 #include <catch2/catch_approx.hpp>
@@ -339,7 +341,11 @@ TEST_CASE("scene_extension_user", "[scene]" LA_CORP_FLAG)
 
     MyConverter converter;
     io::LoadOptions load_opt;
+    // GCC 13.1-13.3 -Warray-bounds false positive with -fsanitize=undefined
+    // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=109727
+    LA_IGNORE_ARRAY_BOUNDS_BEGIN
     load_opt.extension_converters = {&converter};
+    LA_IGNORE_ARRAY_BOUNDS_END
     auto scene = io::load_scene_gltf<scene::Scene32f>(
         testing::get_data_path("corp/io/neural_assets/High_Heel.gltf"),
         load_opt);
@@ -362,4 +368,32 @@ TEST_CASE("load_gltf_non_triangle", "[io][gltf]" LA_CORP_FLAG)
     REQUIRE(scene.meshes.at(0).get_num_facets() == 0);
     REQUIRE(scene.meshes.at(1).get_num_vertices() == 198);
     REQUIRE(scene.meshes.at(1).get_num_facets() == 130);
+}
+
+TEST_CASE("scene without material", "[io][gltf]")
+{
+    lagrange::SurfaceMesh32f mesh;
+    mesh.add_vertices(3);
+    mesh.add_triangle(0, 1, 2);
+
+    // save_mesh() uses a SimpleScene without material
+    auto tmp_mesh_path = testing::get_test_output_path("test_load_scene/mesh_no_material.gltf");
+    io::save_mesh_gltf(tmp_mesh_path, mesh);
+
+    auto scene_from_mesh = io::load_scene_gltf<scene::Scene32f>(tmp_mesh_path);
+    REQUIRE(scene_from_mesh.nodes.size() == 1);
+    REQUIRE(scene_from_mesh.meshes.size() == 1);
+    REQUIRE(scene_from_mesh.nodes[0].meshes.size() == 1);
+    REQUIRE(scene_from_mesh.nodes[0].meshes[0].materials.empty());
+
+    // We also need to test saving a full scene without material via save_scene(), and then load it
+    // again
+    auto tmp_scene_path = testing::get_test_output_path("test_load_scene/scene_no_material.gltf");
+    io::save_scene_gltf(tmp_scene_path, scene_from_mesh);
+
+    auto scene_from_scene = io::load_scene_gltf<scene::Scene32f>(tmp_scene_path);
+    REQUIRE(scene_from_scene.nodes.size() == 1);
+    REQUIRE(scene_from_scene.meshes.size() == 1);
+    REQUIRE(scene_from_scene.nodes[0].meshes.size() == 1);
+    REQUIRE(scene_from_scene.nodes[0].meshes[0].materials.empty());
 }

@@ -177,3 +177,7 @@ endif()
 if(LAGRANGE_MODULE_PYTHON)
     add_subdirectory(python)
 endif()
+
+if(LAGRANGE_BINDINGS_JS)
+    add_subdirectory(js)
+endif()

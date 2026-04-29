@@ -12,6 +12,7 @@
 
 #include <lagrange/bvh/EdgeAABBTree.h>
 #include <lagrange/bvh/TriangleAABBTree.h>
+#include <lagrange/bvh/compute_intersecting_pairs.h>
 #include <lagrange/bvh/compute_mesh_distances.h>
 #include <lagrange/bvh/compute_uv_overlap.h>
 #include <lagrange/bvh/remove_interior_shells.h>
@@ -558,6 +559,41 @@ overlapping.
 :param method: Candidate detection algorithm (default: UVOverlapMethod.Hybrid).
 
 :return: UVOverlapResult containing overlap detection results.)");
+
+    m.def(
+        "compute_intersecting_pairs",
+        [](const MeshType& mesh) {
+            auto adj = bvh::compute_intersecting_pairs<Scalar, Index>(mesh);
+            // Convert AdjacencyList to list of tuples for Python
+            std::vector<std::pair<Index, Index>> result;
+            for (Index i = 0; i < adj.get_num_entries(); ++i) {
+                auto neighbors = adj.get_neighbors(i);
+                for (Index j : neighbors) {
+                    // Only add each pair once (i < j)
+                    if (i < j) {
+                        result.emplace_back(i, j);
+                    }
+                }
+            }
+            return result;
+        },
+        "mesh"_a,
+        R"(Compute all pairs of intersecting facets in a triangle mesh using BVH acceleration.
+
+Detects facet pairs whose interiors intersect using exact geometric predicates. Only facets
+that do not share vertices are tested (vertex-adjacent facets are skipped).
+
+:param mesh: The input triangle mesh. Must contain only triangular facets.
+
+:returns: A list of tuples (i, j) where i < j representing non-vertex-adjacent facets
+          whose interiors intersect.
+
+:raises RuntimeError: If the mesh is not a triangle mesh or if the mesh is not 3D.
+
+.. note::
+   Vertex-adjacent facets are filtered before testing. The geometric test uses
+   include_boundary=false (interior intersection only).
+)");
 }
 
 } // namespace lagrange::python

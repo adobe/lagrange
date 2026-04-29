@@ -29,7 +29,7 @@ TEST_CASE("Format Matrix", "[fmt]")
            -4.f, 5.17f, 6.f,
             7.f, 8.000000002f, 9.999999999f;
     // clang-format on
-#if FMT_VERSION >= 100200
+#if defined(SPDLOG_USE_STD_FORMAT) || FMT_VERSION >= 100200
     // This will format without error
     spdlog::info("{:.2f}\n", test);
 #elif (FMT_VERSION >= 100000) || (FMT_VERSION >= 90000 && !defined(FMT_DEPRECATED_OSTREAM)) || \

@@ -27,6 +27,7 @@
 #include <lagrange/utils/warnoff.h>
 #include <catch2/catch_test_macros.hpp>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <numeric>
@@ -1034,13 +1035,13 @@ void test_normal_attribute()
         for (size_t num_channels = kmin; num_channels <= kmax; ++num_channels) {
             if (num_channels == dim || num_channels == dim + 1) {
                 REQUIRE_NOTHROW(mesh.template create_attribute<ValueType>(
-                    fmt::format("normals_{}", num_channels),
+                    lagrange::format("normals_{}", num_channels),
                     AttributeElement::Vertex,
                     AttributeUsage::Normal,
                     num_channels));
             } else {
                 LA_REQUIRE_THROWS(mesh.template create_attribute<ValueType>(
-                    fmt::format("normals_{}", num_channels),
+                    lagrange::format("normals_{}", num_channels),
                     AttributeElement::Vertex,
                     AttributeUsage::Normal,
                     num_channels));
@@ -2284,7 +2285,7 @@ void test_element_index_type()
     };
 
     int cnt = 0;
-    auto get_name = [&cnt]() { return fmt::format("id_{}", cnt++); };
+    auto get_name = [&cnt]() { return lagrange::format("id_{}", cnt++); };
     for (auto usage : usages) {
         if constexpr (std::is_same_v<Index, ValueType>) {
             REQUIRE_NOTHROW(mesh.template create_attribute<ValueType>(get_name(), elem, usage));
@@ -3070,6 +3071,30 @@ void test_foreach_facet_around_facet()
     }
 }
 
+template <typename Scalar, typename Index>
+void test_edge_data()
+{
+    lagrange::SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertices(4);
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(0, 2, 3);
+
+    REQUIRE_NOTHROW(mesh.clear_edges());
+
+    mesh.initialize_edges();
+    REQUIRE(mesh.has_edges());
+    REQUIRE_NOTHROW(mesh.initialize_edges());
+
+    mesh.template create_attribute<Index>("edge_id", lagrange::AttributeElement::Edge);
+    REQUIRE(mesh.has_attribute("edge_id"));
+
+    mesh.clear_edges();
+    REQUIRE_NOTHROW(mesh.clear_edges());
+
+    REQUIRE(mesh.has_attribute("edge_id"));
+    REQUIRE(mesh.template get_attribute<Index>("edge_id").get_num_elements() == 0);
+}
+
 } // namespace
 
 TEST_CASE("SurfaceMesh Construction", "[mesh]")
@@ -3292,4 +3317,10 @@ TEST_CASE("SurfaceMesh: foreach_facet_around_facet", "[mesh]")
 #define LA_X_test_foreach_facet_around_facet(_, Scalar, Index) \
     test_foreach_facet_around_facet<Scalar, Index>();
     LA_SURFACE_MESH_X(test_foreach_facet_around_facet, 0)
+}
+
+TEST_CASE("SurfaceMesh: edge data", "[mesh]")
+{
+#define LA_X_test_edge_data(_, Scalar, Index) test_edge_data<Scalar, Index>();
+    LA_SURFACE_MESH_X(test_edge_data, 0)
 }

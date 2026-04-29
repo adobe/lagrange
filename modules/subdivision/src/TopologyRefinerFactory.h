@@ -15,6 +15,7 @@
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/internal/visit_attribute.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 
 namespace OpenSubdiv {
 namespace OPENSUBDIV_VERSION {
@@ -87,7 +88,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                 la_runtime_assert(attr.get_num_channels() == 1);
                 la_runtime_assert(
                     std::is_floating_point_v<ValueType>,
-                    fmt::format(
+                    lagrange::format(
                         "Edge sharpness attribute must use a floating point type. Received: {}",
                         lagrange::internal::value_type_name<ValueType>()));
                 la_runtime_assert(attr.get_element_type() == lagrange::AttributeElement::Edge);
@@ -133,7 +134,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                 la_runtime_assert(attr.get_element_type() == lagrange::AttributeElement::Vertex);
                 la_runtime_assert(
                     std::is_floating_point_v<ValueType>,
-                    fmt::format(
+                    lagrange::format(
                         "Vertex sharpness attribute must use a floating point type. Received: {}",
                         lagrange::internal::value_type_name<ValueType>()));
                 if constexpr (AttributeType::IsIndexed) {
@@ -159,7 +160,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                 la_runtime_assert(attr.get_num_channels() == 1);
                 la_runtime_assert(
                     std::is_integral_v<ValueType>,
-                    fmt::format(
+                    lagrange::format(
                         "Face holes attribute must use an integral type. Received: {}",
                         lagrange::internal::value_type_name<ValueType>()));
                 if constexpr (AttributeType::IsIndexed) {
@@ -197,7 +198,7 @@ bool TopologyRefinerFactory<ConverterType>::assignFaceVaryingTopology(
             if constexpr (!AttributeType::IsIndexed) {
                 la_runtime_assert(
                     false,
-                    fmt::format(
+                    lagrange::format(
                         "Face varying attributes must indexed attributes. Received: {}",
                         lagrange::internal::to_string(attr.get_element_type())));
             } else {

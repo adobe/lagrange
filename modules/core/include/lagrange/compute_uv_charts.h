@@ -26,7 +26,7 @@ struct UVChartOptions
     using ConnectivityType = lagrange::ConnectivityType;
 
     /// Input UV attribute name.
-    /// If empty, the first indexed UV attribute will be used.
+    /// If empty, the first vertex/indexed UV attribute will be used.
     std::string_view uv_attribute_name = "";
 
     /// Output chart id attribute name.

@@ -24,6 +24,7 @@
 #include <tbb/parallel_for.h>
 #include <catch2/catch_test_macros.hpp>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <fstream>
@@ -72,10 +73,10 @@ void test_foreach_attribute()
 
     std::atomic_int cnt = 0;
     for (auto elem : attribute_elements) {
-        std::string name = fmt::format("attr_{}", cnt++);
+        std::string name = lagrange::format("attr_{}", cnt++);
         mesh.template create_attribute<double>(name, elem);
         for (size_t i = 0; i < 50; ++i) {
-            mesh.duplicate_attribute(name, fmt::format("attr_{}", cnt++));
+            mesh.duplicate_attribute(name, lagrange::format("attr_{}", cnt++));
         }
     }
 
@@ -312,9 +313,11 @@ void test_foreach_cow()
 
         for (int i = 0; i < N; ++i) {
             mesh.template create_attribute<double>(
-                fmt::format("attr_{}_1", i),
+                lagrange::format("attr_{}_1", i),
                 AttributeElement::Vertex);
-            mesh.duplicate_attribute(fmt::format("attr_{}_1", i), fmt::format("attr_{}_2", i));
+            mesh.duplicate_attribute(
+                lagrange::format("attr_{}_1", i),
+                lagrange::format("attr_{}_2", i));
         }
 
         std::map<std::string, std::pair<const void*, const void*>> ptr;
@@ -337,8 +340,11 @@ void test_foreach_cow()
             const void* after1 = kv.second.second;
             if (starts_with(name, "attr_")) {
                 auto tokens = string_split(std::string(name), '_');
-                std::string other =
-                    fmt::format("{}_{}_{}", tokens[0], tokens[1], tokens.back() == "1" ? "2" : "1");
+                std::string other = lagrange::format(
+                    "{}_{}_{}",
+                    tokens[0],
+                    tokens[1],
+                    tokens.back() == "1" ? "2" : "1");
                 const void* before2 = ptr.at(other).first;
                 const void* after2 = ptr.at(other).second;
                 CAPTURE(name, before1, after1, before2, after2);
@@ -362,9 +368,11 @@ void test_foreach_cow()
 
         for (int i = 0; i < N; ++i) {
             mesh.template create_attribute<double>(
-                fmt::format("attr_{}_1", i),
+                lagrange::format("attr_{}_1", i),
                 AttributeElement::Vertex);
-            mesh.duplicate_attribute(fmt::format("attr_{}_1", i), fmt::format("attr_{}_2", i));
+            mesh.duplicate_attribute(
+                lagrange::format("attr_{}_1", i),
+                lagrange::format("attr_{}_2", i));
         }
 
         std::map<std::string, std::pair<const void*, const void*>> ptr;
@@ -387,8 +395,11 @@ void test_foreach_cow()
             const void* after1 = kv.second.second;
             if (starts_with(name, "attr_")) {
                 auto tokens = string_split(std::string(name), '_');
-                std::string other =
-                    fmt::format("{}_{}_{}", tokens[0], tokens[1], tokens.back() == "1" ? "2" : "1");
+                std::string other = lagrange::format(
+                    "{}_{}_{}",
+                    tokens[0],
+                    tokens[1],
+                    tokens.back() == "1" ? "2" : "1");
                 const void* before2 = ptr.at(other).first;
                 const void* after2 = ptr.at(other).second;
                 CAPTURE(name, before1, after1, before2, after2);
@@ -423,9 +434,11 @@ void test_foreach_cow()
             });
         for (int i = 0; i < N; ++i) {
             mesh.template create_attribute<double>(
-                fmt::format("attr_{}_1", i),
+                lagrange::format("attr_{}_1", i),
                 AttributeElement::Vertex);
-            mesh.duplicate_attribute(fmt::format("attr_{}_1", i), fmt::format("attr_{}_2", i));
+            mesh.duplicate_attribute(
+                lagrange::format("attr_{}_1", i),
+                lagrange::format("attr_{}_2", i));
         }
         seq_foreach_named_attribute_read<~AttributeElement::Indexed>(
             mesh,
