@@ -12,8 +12,6 @@
 import lagrange
 import pytest
 
-from .assets import cube  # noqa: F401
-
 
 class TestTriangulatePolygonalFacets:
     def test_empty_mesh(self):

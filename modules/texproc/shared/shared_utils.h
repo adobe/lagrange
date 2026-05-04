@@ -11,155 +11,41 @@
  */
 #pragma once
 
-#include <lagrange/AttributeValueType.h>
-#include <lagrange/Logger.h>
-#include <lagrange/image/Array3D.h>
-#include <lagrange/image/View3D.h>
-#include <lagrange/scene/Scene.h>
-#include <lagrange/scene/scene_utils.h>
-#include <lagrange/texproc/TextureRasterizer.h>
-#include <lagrange/transform_mesh.h>
-
-#include <tbb/parallel_for.h>
-
-// NOTE: These shared utils are used in our cli examples and Python bindings. They depend on the
+// NOTE: These shared utils are used in our CLI examples and Python bindings. They depend on the
 // lagrange::scene module. But we do not want to create a strong dependency between
 // lagrange::texproc and lagrange::scene, so this file is included directly via relative path in the
 // examples and Python bindings C++ files. To avoid confusion with internal src/ files, we place
-// this file is a separate "shared/" folder.
+// this file in a separate "shared/" folder.
+
+#include <lagrange/Logger.h>
+#include <lagrange/scene/internal/shared_utils.h>
+#include <lagrange/texproc/TextureRasterizer.h>
+#include <lagrange/utils/fmt/format.h>
+
+#include <tbb/parallel_for.h>
 
 namespace lagrange::texproc {
-
-using Array3Df = image::experimental::Array3D<float>;
-using View3Df = image::experimental::View3D<float>;
-
-// FIXME this strips non-color channel, other variants of this function don't.
-Array3Df convert_from(const scene::ImageBufferExperimental& image)
-{
-    size_t nc = std::min(image.num_channels, size_t(3));
-    auto result = image::experimental::create_image<float>(image.width, image.height, nc);
-
-    auto copy_buffer = [&](auto scalar) {
-        using T = std::decay_t<decltype(scalar)>;
-        constexpr bool IsChar = std::is_integral_v<T> && sizeof(T) == 1;
-        la_runtime_assert(sizeof(T) * 8 == image.get_bits_per_element());
-        auto rawbuf = reinterpret_cast<const T*>(image.data.data());
-        for (size_t y = 0, i = 0; y < image.height; ++y) {
-            for (size_t x = 0; x < image.width; ++x) {
-                for (size_t c = 0; c < image.num_channels; ++c) {
-                    if (c >= nc) {
-                        ++i;
-                        continue;
-                    }
-                    if constexpr (IsChar) {
-                        result(x, y, c) = static_cast<float>(rawbuf[i++]) / 255.f;
-                    } else {
-                        result(x, y, c) = rawbuf[i++];
-                    }
-                }
-            }
-        }
-    };
-
-    switch (image.element_type) {
-    case AttributeValueType::e_uint8_t: copy_buffer(uint8_t()); break;
-    case AttributeValueType::e_int8_t: copy_buffer(int8_t()); break;
-    case AttributeValueType::e_uint32_t: copy_buffer(uint32_t()); break;
-    case AttributeValueType::e_int32_t: copy_buffer(int32_t()); break;
-    case AttributeValueType::e_float: copy_buffer(float()); break;
-    case AttributeValueType::e_double: copy_buffer(double()); break;
-    default: throw std::runtime_error("Unsupported image scalar type");
-    }
-
-    return result;
-}
-
-// Extract a single uv unwrapped mesh and optionally its base color tensor from a scene.
-template <typename Scalar, typename Index>
-std::tuple<SurfaceMesh<Scalar, Index>, std::optional<Array3Df>> single_mesh_from_scene(
-    const scene::Scene<Scalar, Index>& scene)
-{
-    using ElementId = scene::ElementId;
-
-    // Find mesh nodes in the scene
-    std::vector<ElementId> mesh_node_ids;
-    for (ElementId node_id = 0; node_id < scene.nodes.size(); ++node_id) {
-        const auto& node = scene.nodes[node_id];
-        if (!node.meshes.empty()) {
-            mesh_node_ids.push_back(node_id);
-        }
-    }
-
-    if (mesh_node_ids.size() != 1) {
-        throw std::runtime_error(
-            fmt::format(
-                "Input scene contains {} mesh nodes. Expected exactly 1 mesh node.",
-                mesh_node_ids.size()));
-    }
-    const auto& mesh_node = scene.nodes[mesh_node_ids.front()];
-
-    if (mesh_node.meshes.size() != 1) {
-        throw std::runtime_error(
-            fmt::format(
-                "Input scene has a mesh node with {} instance per node. Expected "
-                "exactly 1 instance per node",
-                mesh_node.meshes.size()));
-    }
-    const auto& mesh_instance = mesh_node.meshes.front();
-
-    [[maybe_unused]] const auto mesh_id = mesh_instance.mesh;
-    la_debug_assert(mesh_id < scene.meshes.size());
-    SurfaceMesh<Scalar, Index> mesh = scene.meshes[mesh_instance.mesh];
-    {
-        // Apply node local->world transform
-        auto world_from_mesh =
-            scene::utils::compute_global_node_transform(scene, mesh_node_ids.front())
-                .template cast<Scalar>();
-        transform_mesh(mesh, world_from_mesh);
-    }
-
-    // Find base texture if available
-    if (auto num_mats = mesh_instance.materials.size(); num_mats != 1) {
-        logger().warn(
-            "Mesh node has {} materials. Expected exactly 1 material. Ignoring materials.",
-            num_mats);
-        return {mesh, std::nullopt};
-    }
-    const auto& material = scene.materials[mesh_instance.materials.front()];
-    if (material.base_color_texture.texcoord != 0) {
-        logger().warn(
-            "Mesh node material texcoord is {} != 0. Expected 0. Ignoring texcoord.",
-            material.base_color_texture.texcoord);
-    }
-    const auto texture_id = material.base_color_texture.index;
-    la_debug_assert(texture_id < scene.textures.size());
-    const auto& texture = scene.textures[texture_id];
-
-    const auto image_id = texture.image;
-    la_debug_assert(image_id < scene.images.size());
-    const auto& image_ = scene.images[image_id].image;
-    Array3Df image = convert_from(image_);
-
-    return {mesh, image};
-}
+using scene::internal::Array3Df;
+using scene::internal::ConstView3Df;
+using scene::internal::View3Df;
 
 template <typename Scalar, typename Index>
 std::vector<CameraOptions> cameras_from_scene(const scene::Scene<Scalar, Index>& scene)
 {
     using ElementId = scene::ElementId;
 
-    // Find cameras in the scene
     std::vector<CameraOptions> cameras;
     for (ElementId node_id = 0; node_id < scene.nodes.size(); ++node_id) {
-        using namespace scene::utils;
         const auto& node = scene.nodes[node_id];
         if (!node.cameras.empty()) {
-            auto world_from_node = compute_global_node_transform(scene, node_id);
+            auto world_from_node = scene::utils::compute_global_node_transform(scene, node_id);
             for (auto camera_id : node.cameras) {
                 const auto& scene_camera = scene.cameras[camera_id];
                 CameraOptions camera;
-                camera.view_transform = camera_view_transform(scene_camera, world_from_node);
-                camera.projection_transform = camera_projection_transform(scene_camera);
+                camera.view_transform =
+                    scene::utils::camera_view_transform(scene_camera, world_from_node);
+                camera.projection_transform =
+                    scene::utils::camera_projection_transform(scene_camera);
                 cameras.push_back(camera);
             }
         }
@@ -172,14 +58,14 @@ template <typename Scalar, typename Index>
 std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
     const lagrange::scene::Scene<Scalar, Index>& scene,
     std::optional<Array3Df> base_texture_in,
-    const std::vector<View3Df>& renders,
+    const std::vector<ConstView3Df>& renders,
     const std::optional<size_t> tex_width,
     const std::optional<size_t> tex_height,
     const float low_confidence_ratio,
     const std::optional<float> base_confidence)
 {
     // Load mesh, base texture and cameras from input scene
-    auto [mesh, base_texture] = single_mesh_from_scene(scene);
+    auto [mesh, base_texture] = scene::internal::single_mesh_from_scene(scene);
     auto cameras = cameras_from_scene(scene);
     lagrange::logger().info("Found {} cameras in the input scene", cameras.size());
 
@@ -262,8 +148,9 @@ std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
         rasterizer_options.height = base_image.extent(1);
         la_runtime_assert(
             renders.front().extent(2) == base_image.extent(2),
-            fmt::format(
-                "Input render image num channels (={}) must match base texture num channels (={})",
+            format(
+                "Input render image num channels (={}) must match base texture num channels "
+                "(={})",
                 renders.front().extent(2),
                 base_image.extent(2)));
         lagrange::logger().info(
@@ -289,6 +176,106 @@ std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
     filter_low_confidences(textures_and_weights, low_confidence_ratio);
 
     return textures_and_weights;
+}
+
+///
+/// Overload of rasterize_textures_from_renders that takes a single grid image instead of a vector
+/// of renders. The grid image is split into individual render views based on the number of cameras
+/// in the scene.
+///
+/// @param[in]  scene                 Input scene with mesh, UVs and cameras.
+/// @param[in]  base_texture_in       Optional base texture override.
+/// @param[in]  render_grid           Single image containing a grid of renders.
+/// @param[in]  tex_width             Optional rasterization texture width.
+/// @param[in]  tex_height            Optional rasterization texture height.
+/// @param[in]  low_confidence_ratio  Ratio threshold for low confidence filtering.
+/// @param[in]  base_confidence       Optional uniform confidence for the base texture.
+///
+/// @return     Vector of (texture, weight) pairs.
+///
+template <typename Scalar, typename Index>
+std::vector<std::pair<Array3Df, Array3Df>> rasterize_textures_from_renders(
+    const lagrange::scene::Scene<Scalar, Index>& scene,
+    std::optional<Array3Df> base_texture_in,
+    const ConstView3Df& render_grid,
+    const std::optional<size_t> tex_width,
+    const std::optional<size_t> tex_height,
+    const float low_confidence_ratio,
+    const std::optional<float> base_confidence)
+{
+    // Determine number of cameras in the scene
+    auto cameras = cameras_from_scene(scene);
+    const size_t num_cameras = cameras.size();
+    la_runtime_assert(num_cameras > 0, "No cameras found in the input scene");
+
+    const size_t grid_width = render_grid.extent(0);
+    const size_t grid_height = render_grid.extent(1);
+    const size_t num_channels = render_grid.extent(2);
+
+    // Find the best grid layout (rows x cols = num_cameras) such that the grid image can be evenly
+    // divided into cells. The heuristic picks the factorization whose cells are closest to square.
+    // This assumes the grid was rendered with approximately square (or at least uniform aspect
+    // ratio) cameras. Use the std::vector<ConstView3Df> overload for grids with non-square cells.
+    size_t best_cols = 0;
+    size_t best_rows = 0;
+    double best_aspect_diff = std::numeric_limits<double>::max();
+    for (size_t cols = 1; cols <= num_cameras; ++cols) {
+        if (num_cameras % cols != 0) continue;
+        size_t rows = num_cameras / cols;
+        if (grid_width % cols != 0 || grid_height % rows != 0) continue;
+        size_t cell_w = grid_width / cols;
+        size_t cell_h = grid_height / rows;
+        double aspect_diff = std::abs(static_cast<double>(cell_w) / cell_h - 1.0);
+        if (aspect_diff < best_aspect_diff) {
+            best_aspect_diff = aspect_diff;
+            best_cols = cols;
+            best_rows = rows;
+        }
+    }
+    la_runtime_assert(
+        best_cols > 0,
+        format(
+            "Cannot evenly divide grid image ({}x{}) into {} cells",
+            grid_width,
+            grid_height,
+            num_cameras));
+
+    const size_t cell_width = grid_width / best_cols;
+    const size_t cell_height = grid_height / best_rows;
+    lagrange::logger().info(
+        "Splitting {}x{} grid image into {}x{} cells of size {}x{}",
+        grid_width,
+        grid_height,
+        best_cols,
+        best_rows,
+        cell_width,
+        cell_height);
+
+    // Create views into the grid image for each cell (row-major order)
+    using namespace image::experimental;
+    std::vector<ConstView3Df> views;
+    views.reserve(num_cameras);
+    const dextents<size_t, 3> cell_shape{cell_width, cell_height, num_channels};
+    const std::array<size_t, 3> cell_strides{
+        render_grid.stride(0),
+        render_grid.stride(1),
+        render_grid.stride(2)};
+    const layout_stride::mapping<dextents<size_t, 3>> cell_mapping{cell_shape, cell_strides};
+    for (size_t row = 0; row < best_rows; ++row) {
+        for (size_t col = 0; col < best_cols; ++col) {
+            const float* cell_ptr = &render_grid(col * cell_width, row * cell_height, 0);
+            views.emplace_back(cell_ptr, cell_mapping);
+        }
+    }
+
+    return rasterize_textures_from_renders(
+        scene,
+        std::move(base_texture_in),
+        views,
+        tex_width,
+        tex_height,
+        low_confidence_ratio,
+        base_confidence);
 }
 
 } // namespace lagrange::texproc

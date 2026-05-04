@@ -15,7 +15,6 @@ import numpy as np
 import pytest
 import sys
 
-from .assets import single_triangle, single_triangle_with_index, cube  # noqa: F401
 from .utils import address, assert_sharing_raw_data
 
 

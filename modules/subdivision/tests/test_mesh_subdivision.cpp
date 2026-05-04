@@ -22,15 +22,20 @@
 #include <lagrange/internal/constants.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
+#include <lagrange/separate_by_components.h>
 #include <lagrange/subdivision/compute_sharpness.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/subdivision/midpoint_subdivision.h>
 #include <lagrange/subdivision/sqrt_subdivision.h>
 #include <lagrange/topology.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
+
+#include <lagrange/bvh/compute_mesh_distances.h>
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
+#include <lagrange/weld_indexed_attribute.h>
 
 #include <lagrange/testing/common.h>
 
@@ -163,6 +168,9 @@ TEST_CASE("mesh_subdivision", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
                     options.refinement = refinement;
                     options.num_levels = level;
                     options.validate_topology = true;
+                    if (refinement == lagrange::subdivision::RefinementType::EdgeAdaptive) {
+                        options.use_limit_surface = true;
+                    }
 
                     auto mesh = lagrange::testing::load_surface_mesh<double, uint32_t>(filename);
                     if (scheme == lagrange::subdivision::SchemeType::Loop &&
@@ -296,7 +304,6 @@ TEST_CASE("mesh_subdivision_limit_uniform", "[mesh][subdivision]" LA_SLOW_DEBUG_
     options.output_limit_tangents = "tangent";
     options.output_limit_bitangents = "bitangent";
     auto limit_mesh = lagrange::subdivision::subdivide_mesh(mesh, options);
-    lagrange::io::save_mesh("limit_uniform.obj", limit_mesh);
 
     // Check limit positions
     auto V_refined = vertex_view(refined_mesh);
@@ -557,6 +564,74 @@ TEST_CASE("mesh_subdivision_empty", "[mesh][subdivision]")
     }
 }
 
+TEST_CASE("mesh_subdivision_zero_levels", "[mesh][subdivision]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+    auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/subdivision/cube.obj");
+
+    lagrange::subdivision::SubdivisionOptions options;
+    options.num_levels = 0;
+
+    SECTION("without limit surface")
+    {
+        auto result = lagrange::subdivision::subdivide_mesh(mesh, options);
+        REQUIRE(result.get_num_vertices() == mesh.get_num_vertices());
+        REQUIRE(result.get_num_facets() == mesh.get_num_facets());
+
+        // Verify vertex positions are preserved (not all zeros)
+        auto V_input = vertex_view(mesh);
+        auto V_result = vertex_view(result);
+        REQUIRE(V_input.isApprox(V_result));
+    }
+
+    SECTION("with limit surface")
+    {
+        options.use_limit_surface = true;
+        auto result = lagrange::subdivision::subdivide_mesh(mesh, options);
+        REQUIRE(result.get_num_vertices() == mesh.get_num_vertices());
+        REQUIRE(result.get_num_facets() == mesh.get_num_facets());
+
+        // Limit positions should differ from the original (shrinkage towards limit surface)
+        auto V_input = vertex_view(mesh);
+        auto V_result = vertex_view(result);
+        REQUIRE(!V_result.isZero());
+        bool any_different = false;
+        for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
+            if ((V_input.row(v) - V_result.row(v)).norm() > 1e-10) {
+                any_different = true;
+                break;
+            }
+        }
+        REQUIRE(any_different);
+    }
+
+    SECTION("with limit surface and face-varying attributes")
+    {
+        // This tests the LimitFaceVarying workaround at level 0
+        options.use_limit_surface = true;
+        auto nrm_id = lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5);
+        std::string nrm_name(mesh.get_attribute_name(nrm_id));
+        auto result = lagrange::subdivision::subdivide_mesh(mesh, options);
+        REQUIRE(result.has_attribute(nrm_name));
+        REQUIRE(result.get_num_vertices() == mesh.get_num_vertices());
+        REQUIRE(result.get_num_facets() == mesh.get_num_facets());
+    }
+
+    SECTION("with limit normals")
+    {
+        // This tests the LimitFaceVarying workaround at level 0
+        options.use_limit_surface = true;
+        options.output_limit_normals = "@limit_normal";
+        auto nrm_id = lagrange::compute_normal(mesh, lagrange::internal::pi * 0.5);
+        std::string nrm_name(mesh.get_attribute_name(nrm_id));
+        auto result = lagrange::subdivision::subdivide_mesh(mesh, options);
+        REQUIRE(result.has_attribute(nrm_name));
+        REQUIRE(result.get_num_vertices() == mesh.get_num_vertices());
+        REQUIRE(result.get_num_facets() == mesh.get_num_facets());
+    }
+}
+
 TEST_CASE("compute_sharpness", "[mesh][subdivision][sharpness]")
 {
     using Scalar = double;
@@ -768,4 +843,304 @@ TEST_CASE("compute_sharpness", "[mesh][subdivision][sharpness]")
         // Just verify the attribute is populated
         REQUIRE(vertex_sharpness.size() == mesh.get_num_vertices());
     }
+}
+
+namespace {
+
+template <typename Scalar, typename Index>
+lagrange::subdivision::SubdivisionOptions prepare_subdiv_mesh(
+    lagrange::SurfaceMesh<Scalar, Index>& mesh)
+{
+    // Compute sharpness based on input normals
+    lagrange::AttributeMatcher matcher;
+    matcher.element_types = lagrange::AttributeElement::Indexed;
+    matcher.usages = lagrange::AttributeUsage::Normal;
+    lagrange::AttributeId nrm_id = lagrange::find_matching_attribute<Scalar>(mesh, matcher).value();
+    lagrange::WeldOptions weld_options;
+    weld_options.epsilon_abs = 1e-3;
+    weld_options.epsilon_rel = 1e-3;
+    lagrange::weld_indexed_attribute(mesh, nrm_id, weld_options);
+
+    lagrange::subdivision::SharpnessOptions sharpness_options;
+    sharpness_options.normal_attribute_name = mesh.get_attribute_name(nrm_id);
+    auto sharpness_results = lagrange::subdivision::compute_sharpness(mesh, sharpness_options);
+    REQUIRE(sharpness_results.normal_attr.has_value());
+    mesh.delete_attribute(sharpness_results.normal_attr.value());
+
+    lagrange::subdivision::SubdivisionOptions subdiv_options;
+    subdiv_options.refinement = lagrange::subdivision::RefinementType::EdgeAdaptive;
+    subdiv_options.use_limit_surface = true;
+
+    REQUIRE(sharpness_results.edge_sharpness_attr.has_value());
+    subdiv_options.edge_sharpness_attr = sharpness_results.edge_sharpness_attr;
+
+    REQUIRE(sharpness_results.vertex_sharpness_attr.has_value());
+    subdiv_options.vertex_sharpness_attr = sharpness_results.vertex_sharpness_attr;
+
+    return subdiv_options;
+}
+
+} // namespace
+
+
+TEST_CASE("mesh_subdivision_chordal_deviation closed", "[mesh][subdivision]" LA_CORP_FLAG)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // Load a mesh with curved features
+    lagrange::io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh<Scalar, Index>>(
+        lagrange::testing::get_data_path("corp/subdivision/cgt_ratchet_wrench_001.fbx"),
+        load_options);
+    REQUIRE(mesh.get_num_vertices() == 506);
+    REQUIRE(mesh.get_num_facets() == 500);
+
+    lagrange::SeparateByComponentsOptions split_options;
+    split_options.map_attributes = true;
+    auto meshes = lagrange::separate_by_components(mesh, split_options);
+    REQUIRE(meshes.size() == 2);
+    if (meshes[0].get_num_vertices() < meshes[1].get_num_vertices()) {
+        std::swap(meshes[0], meshes[1]);
+    }
+    // Use the largest component, which we know to be closed.
+    mesh = std::move(meshes[0]);
+
+    auto subdiv_options = prepare_subdiv_mesh(mesh);
+
+    const float voxel_size = 1e-3f;
+    const int euler_input = lagrange::compute_euler(mesh);
+    REQUIRE(is_closed(mesh));
+    REQUIRE(is_manifold(mesh));
+
+    SECTION("edge length")
+    {
+        // Set up adaptive subdivision with max edge length
+        subdiv_options.max_edge_length =
+            voxel_size * std::sqrt(3.f) / 2.f; // Half diagonal of a voxel
+
+        auto subdivided_mesh = lagrange::subdivision::subdivide_mesh(mesh, subdiv_options);
+        REQUIRE(subdivided_mesh.get_num_vertices() > mesh.get_num_vertices());
+        REQUIRE(subdivided_mesh.get_num_facets() > mesh.get_num_facets());
+
+        REQUIRE(compute_euler(subdivided_mesh) == euler_input);
+        REQUIRE(is_closed(subdivided_mesh));
+        REQUIRE(is_manifold(subdivided_mesh));
+    }
+
+    SECTION("chordal deviation")
+    {
+        // Set up adaptive subdivision with chordal deviation
+        subdiv_options.max_chordal_deviation = 0.5f * voxel_size; // Half voxel size
+
+        auto subdivided_mesh = lagrange::subdivision::subdivide_mesh(mesh, subdiv_options);
+        REQUIRE(subdivided_mesh.get_num_vertices() > mesh.get_num_vertices());
+        REQUIRE(subdivided_mesh.get_num_facets() > mesh.get_num_facets());
+
+        REQUIRE(compute_euler(subdivided_mesh) == euler_input);
+        REQUIRE(is_closed(subdivided_mesh));
+        REQUIRE(is_manifold(subdivided_mesh));
+
+        // Verify that tighter tolerance produces more tessellation
+        lagrange::subdivision::SubdivisionOptions options_tight = subdiv_options;
+        options_tight.max_chordal_deviation = subdiv_options.max_chordal_deviation.value() * 0.1f;
+        auto subdivided_tight = lagrange::subdivision::subdivide_mesh(mesh, options_tight);
+        REQUIRE(subdivided_tight.get_num_facets() >= subdivided_mesh.get_num_facets());
+    }
+}
+
+TEST_CASE("mesh_subdivision_chordal_deviation open", "[mesh][subdivision]" LA_CORP_FLAG)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // Load a mesh with curved features
+    lagrange::io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh<Scalar, Index>>(
+        lagrange::testing::get_data_path("corp/subdivision/cgt_ratchet_wrench_001.fbx"),
+        load_options);
+    REQUIRE(mesh.get_num_vertices() == 506);
+    REQUIRE(mesh.get_num_facets() == 500);
+
+    auto subdiv_options = prepare_subdiv_mesh(mesh);
+
+    const float voxel_size = 1e-3f;
+    const int euler_input = lagrange::compute_euler(mesh);
+    REQUIRE(!is_closed(mesh));
+    REQUIRE(is_manifold(mesh));
+
+    SECTION("edge length")
+    {
+        // Set up adaptive subdivision with max edge length
+        subdiv_options.max_edge_length =
+            voxel_size * std::sqrt(3.f) / 2.f; // Half diagonal of a voxel
+
+        auto subdivided_mesh = lagrange::subdivision::subdivide_mesh(mesh, subdiv_options);
+        // Uncomment to inspect the result:
+        // lagrange::io::save_mesh("subdivided_mesh_edge_length.obj", subdivided_mesh);
+        REQUIRE(subdivided_mesh.get_num_vertices() > mesh.get_num_vertices());
+        REQUIRE(subdivided_mesh.get_num_facets() > mesh.get_num_facets());
+
+        REQUIRE(compute_euler(subdivided_mesh) == euler_input);
+        REQUIRE(is_manifold(subdivided_mesh));
+    }
+
+    SECTION("chordal deviation")
+    {
+        // Set up adaptive subdivision with chordal deviation
+        subdiv_options.max_chordal_deviation = 0.1f * voxel_size; // 10% of voxel size
+
+        auto subdivided_mesh = lagrange::subdivision::subdivide_mesh(mesh, subdiv_options);
+        // Uncomment to inspect the result:
+        // lagrange::io::save_mesh("subdivided_mesh_chordal_deviation.obj", subdivided_mesh);
+        REQUIRE(subdivided_mesh.get_num_vertices() > mesh.get_num_vertices());
+        REQUIRE(subdivided_mesh.get_num_facets() > mesh.get_num_facets());
+
+        REQUIRE(compute_euler(subdivided_mesh) == euler_input);
+        REQUIRE(is_manifold(subdivided_mesh));
+
+        // Verify that tighter tolerance produces more tessellation
+        lagrange::subdivision::SubdivisionOptions options_tight = subdiv_options;
+        options_tight.max_chordal_deviation = subdiv_options.max_chordal_deviation.value() * 0.1f;
+        auto subdivided_tight = lagrange::subdivision::subdivide_mesh(mesh, options_tight);
+        REQUIRE(subdivided_tight.get_num_facets() >= subdivided_mesh.get_num_facets());
+    }
+
+    SECTION("both")
+    {
+        // Verify mutual exclusion of max_edge_length and max_chordal_deviation
+        subdiv_options.max_edge_length = 1.0f;
+        subdiv_options.max_chordal_deviation = 1e-4f;
+        LA_REQUIRE_THROWS(lagrange::subdivision::subdivide_mesh(mesh, subdiv_options));
+    }
+}
+
+TEST_CASE("mesh_subdivision_chordal_deviation_accuracy", "[mesh][subdivision]" LA_CORP_FLAG)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // Load test mesh
+    lagrange::io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh<Scalar, Index>>(
+        lagrange::testing::get_data_path("corp/subdivision/cgt_ratchet_wrench_001.fbx"),
+        load_options);
+    REQUIRE(mesh.get_num_vertices() == 506);
+    REQUIRE(mesh.get_num_facets() == 500);
+
+    auto subdiv_options = prepare_subdiv_mesh(mesh);
+    const float voxel_size = 1e-3f;
+    const float max_chordal_deviation = 0.1f * voxel_size;
+    subdiv_options.max_chordal_deviation = max_chordal_deviation;
+
+    // Create a face-varying attribute encoding the local parametric position of each corner within
+    // its face. For a quad face with OpenSubdiv's parameterization, the corners are at
+    // (0,0), (1,0), (1,1), (0,1). After linear FV interpolation through subdivision, boundary
+    // sub-edges (lying on coarse mesh edges) can be identified: they have one parametric coordinate
+    // pinned to 0 or 1 at both endpoints.
+    mesh.initialize_edges();
+    const Index num_corners = mesh.get_num_corners();
+
+    // Build the per-corner UV values. Each corner gets the OpenSubdiv parametric coordinate of
+    // its vertex within the face. For quads: vertex 0→(0,0), 1→(1,0), 2→(1,1), 3→(0,1).
+    std::vector<Scalar> corner_uv_values(num_corners * 2);
+    for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+        Index N = mesh.get_facet_size(f);
+        Index c0 = mesh.get_facet_corner_begin(f);
+        REQUIRE((N == 3 || N == 4)); // Test mesh should only have triangles and quads
+        for (Index lv = 0; lv < N; ++lv) {
+            Scalar u, v;
+            if (N == 4) {
+                // QUAD parameterization
+                u = static_cast<Scalar>((lv != 0) && (lv < 3));
+                v = static_cast<Scalar>(lv > 1);
+            } else {
+                // TRI parameterization
+                u = static_cast<Scalar>(lv == 1);
+                v = static_cast<Scalar>(lv == 2);
+            }
+            corner_uv_values[(c0 + lv) * 2 + 0] = u;
+            corner_uv_values[(c0 + lv) * 2 + 1] = v;
+        }
+    }
+    // Each corner has its own unique value (no sharing between corners)
+    std::vector<Index> corner_uv_indices(num_corners);
+    std::iota(corner_uv_indices.begin(), corner_uv_indices.end(), Index(0));
+
+    mesh.template create_attribute<Scalar>(
+        "face_uv",
+        lagrange::AttributeElement::Indexed,
+        lagrange::AttributeUsage::UV,
+        2,
+        corner_uv_values,
+        corner_uv_indices);
+
+    // Subdivide with chordal deviation and linear face-varying interpolation so the parametric
+    // UV attribute is linearly interpolated.
+    subdiv_options.face_varying_interpolation =
+        lagrange::subdivision::FaceVaryingInterpolation::All;
+    subdiv_options.interpolated_attributes.set_all();
+    auto subdivided_mesh = lagrange::subdivision::subdivide_mesh(mesh, subdiv_options);
+
+    // Identify output face-edges lying on coarse mesh edges using the face-varying UV attribute.
+    // For quads, a face-edge is on a coarse boundary if one UV coordinate is pinned to 0 or 1
+    // at both corners.
+    const auto& uv_attr = subdivided_mesh.template get_indexed_attribute<Scalar>("face_uv");
+    auto uv_values = uv_attr.values().get_all();
+    auto uv_indices = uv_attr.indices().get_all();
+    auto V = vertex_view(subdivided_mesh);
+    constexpr Scalar eps = 1e-8;
+
+    lagrange::SurfaceMesh<Scalar, Index> edge_midpoints;
+    for (Index f = 0; f < subdivided_mesh.get_num_facets(); ++f) {
+        Index fsize = subdivided_mesh.get_facet_size(f);
+        Index c0 = subdivided_mesh.get_facet_corner_begin(f);
+        for (Index lv = 0; lv < fsize; ++lv) {
+            Index ca = c0 + lv;
+            Index cb = c0 + (lv + 1) % fsize;
+            Index ia = uv_indices[ca];
+            Index ib = uv_indices[cb];
+            Scalar ua = uv_values[ia * 2 + 0], va = uv_values[ia * 2 + 1];
+            Scalar ub = uv_values[ib * 2 + 0], vb = uv_values[ib * 2 + 1];
+
+            // Check if one parametric coordinate is pinned to 0 or 1 at both endpoints.
+            bool on_boundary = false;
+            for (int ch = 0; ch < 2; ++ch) {
+                Scalar a = (ch == 0) ? ua : va;
+                Scalar b = (ch == 0) ? ub : vb;
+                if ((std::abs(a) < eps && std::abs(b) < eps) ||
+                    (std::abs(a - 1.0) < eps && std::abs(b - 1.0) < eps)) {
+                    on_boundary = true;
+                    break;
+                }
+            }
+            if (!on_boundary) continue;
+
+            // This edge lies on a coarse mesh edge. Compute its midpoint.
+            Index va_idx = subdivided_mesh.get_corner_vertex(ca);
+            Index vb_idx = subdivided_mesh.get_corner_vertex(cb);
+            Eigen::RowVector3d p = (V.row(va_idx) + V.row(vb_idx)) * 0.5;
+            edge_midpoints.add_vertex({p[0], p[1], p[2]});
+        }
+    }
+    REQUIRE(edge_midpoints.get_num_vertices() > 0);
+    INFO("Number of boundary sub-edge midpoints: " << edge_midpoints.get_num_vertices());
+
+    // Build a dense reference mesh by subdividing with a much tighter tolerance.
+    lagrange::subdivision::SubdivisionOptions tight_options = subdiv_options;
+    tight_options.max_chordal_deviation = max_chordal_deviation * 0.1f;
+    tight_options.interpolated_attributes = lagrange::subdivision::InterpolatedAttributes::none();
+    auto reference = lagrange::subdivision::subdivide_mesh(mesh, tight_options);
+    lagrange::triangulate_polygonal_facets(reference);
+
+    // Measure one-sided Hausdorff distance from coarse-edge sub-segment midpoints to the reference.
+    auto dist_id = lagrange::bvh::compute_mesh_distances(edge_midpoints, reference);
+    auto distances = lagrange::attribute_vector_view<Scalar>(edge_midpoints, dist_id);
+    Scalar max_dist = *std::max_element(distances.begin(), distances.end());
+    INFO("Max distance: " << max_dist << " vs threshold: " << max_chordal_deviation);
+    CHECK(max_dist <= static_cast<Scalar>(max_chordal_deviation));
+    CHECK(2. * max_dist >= static_cast<Scalar>(max_chordal_deviation));
 }

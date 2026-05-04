@@ -86,11 +86,28 @@ public:
     Eigen::SparseMatrix<Scalar> star0() const;
 
     ///
-    /// Compute the discrete Hodge star operator for 1-forms (diagonal mass matrix, size #E x #E).
+    /// Compute the discrete Hodge star operator for 1-forms (size #E x #E).
     ///
-    /// @return A diagonal sparse matrix of size #E x #E.
+    /// Following de Goes, Butts and Desbrun (ACM Trans. Graph. 2020, Section 4.4), the 1-form
+    /// Hodge star is the VEM-stabilized inner product
     ///
-    Eigen::SparseMatrix<Scalar> star1() const;
+    /// @f[
+    ///   M_1 = \sum_f \text{area}^f U_f^T U_f + \lambda P_f^T P_f
+    /// @f]
+    ///
+    /// where @f$ U_f @f$ is the per-face sharp operator and @f$ P_f = I - V_f U_f @f$ is the projection onto the
+    /// kernel of @f$ U_f @f$.  This matrix is symmetric positive-definite, scale-invariant, and
+    /// constant-precise for arbitrary polygons (including non-planar faces).
+    ///
+    /// This mirrors the convention used for star0() and star2(), which also delegate to their
+    /// respective inner-product operators.  For triangulated meshes, λ=1 is recommended
+    /// and coincides with the standard cotangent Laplacian construction.
+    ///
+    /// @param[in] lambda  Stabilization weight for the VEM projection term (default 1).
+    ///
+    /// @return A symmetric positive-definite sparse matrix of size #E x #E.
+    ///
+    Eigen::SparseMatrix<Scalar> star1(Scalar lambda = 1) const;
 
     ///
     /// Compute the discrete Hodge star operator for 2-forms (diagonal mass matrix, size #F x #F).
@@ -186,16 +203,78 @@ public:
     Eigen::SparseMatrix<Scalar> curl() const;
 
     ///
-    /// Compute the discrete Laplacian operator.
+    /// Compute the discrete weak-form Laplacian operator (@f$ \Delta : \Omega^0 \to \tilde{\Omega}^2 @f$).
     ///
-    /// The Laplacian operator computes the Laplacian of a 0-form (i.e. scalar field).
-    /// The discrete Laplacian operator is a matrix of size #V by #V.
+    /// Maps a primal 0-form (per-vertex scalar) to a dual 2-form (integrated value over each dual
+    /// cell, also per-vertex). This is the weak-form (Galerkin) Laplacian: @f$ \Delta = d_0^T \cdot M_1 \cdot d_0 @f$,
+    /// so the right-hand side of @f$ \Delta u = f @f$ must be assembled as a dual 2-form (i.e. @f$ \int f \varphi_v dA @f$ per
+    /// vertex), not as pointwise vertex values. The matrix is of size #V by #V.
     ///
     /// @param[in] lambda Weight of projection term for the 1-form inner product (default: 1).
     ///
     /// @return A sparse matrix representing the discrete Laplacian operator.
     ///
     Eigen::SparseMatrix<Scalar> laplacian(Scalar lambda = 1) const;
+
+    ///
+    /// Compute the discrete weak-form co-differential operator (@f$ \delta_1 : \Omega^1 \to \tilde{\Omega}^2 @f$).
+    ///
+    /// This is a weak-form (Galerkin) operator. It maps a primal 1-form (per-edge scalar, size #E)
+    /// to a dual 2-form (integrated value over each dual cell, per-vertex, size #V). The output is
+    /// NOT a primal 0-form; to recover a primal 0-form one would need to apply the inverse vertex
+    /// mass matrix @f$ M_0^{-1} @f$ (strong form: @f$ M_0^{-1} d_0^T M_1 @f$).
+    ///
+    /// Equals divergence(lambda): @f$ \delta_1 = d_0^T \cdot M_1(\lambda) @f$. The matrix is of size #V by #E.
+    ///
+    /// @param[in] lambda Weight of projection term for the 1-form inner product (default: 1).
+    ///
+    /// @return A sparse matrix representing the weak-form 1-form co-differential operator.
+    ///
+    Eigen::SparseMatrix<Scalar> delta1(Scalar lambda = 1) const;
+
+    ///
+    /// Compute the discrete weak-form co-differential operator (@f$ \delta_2 : \Omega^2 \to \tilde{\Omega}^1 @f$).
+    ///
+    /// This is a weak-form (Galerkin) operator. It maps a primal 2-form (per-facet scalar, size #F)
+    /// to a dual 1-form (integrated value over each dual edge, per-edge, size #E). The output is
+    /// NOT a primal 1-form; to recover a primal 1-form one would need to apply the inverse edge
+    /// mass matrix @f$ M_1^{-1} @f$ (strong form: @f$ M_1^{-1} d_1^T M_2 @f$).
+    ///
+    /// @f$ \delta_2 = d_1^T \cdot M_2 @f$ where @f$ M_2 = @f$ inner_product_2_form(). The matrix is of size #E by #F.
+    ///
+    /// @return A sparse matrix representing the weak-form 2-form co-differential operator.
+    ///
+    Eigen::SparseMatrix<Scalar> delta2() const;
+
+    ///
+    /// Compute the discrete weak-form Laplacian operator on 2-forms (@f$ \Delta_2 : \Omega^2 \to \tilde{\Omega}^0 @f$).
+    ///
+    /// Maps a primal 2-form (per-facet scalar, size #F) to a dual 0-form (integrated value over
+    /// each dual vertex, per-facet, size #F). This is a weak-form operator: @f$ \Delta_2 = d_1 \cdot \delta_2 = d_1 \cdot d_1^T \cdot M_2 @f$.
+    /// The matrix is of size #F by #F.
+    ///
+    /// @return A sparse matrix representing the weak-form 2-form Laplacian operator.
+    ///
+    Eigen::SparseMatrix<Scalar> laplacian2() const;
+
+    ///
+    /// Compute the discrete weak-form Hodge Laplacian on 1-forms (@f$ \Delta_1 : \Omega^1 \to \tilde{\Omega}^1 @f$).
+    ///
+    /// Maps a primal 1-form (per-edge scalar, size #E) to a dual 1-form (per-edge, size #E).
+    /// Decomposes into an exact part (@f$ d_0 \delta_1 @f$) and a co-exact part (@f$ \delta_2 d_1 @f$), both weak-form:
+    /// @f[
+    ///   \Delta_1 = d_0 \cdot \delta_1(\lambda) + \delta_2 \cdot d_1
+    /// @f]
+    ///
+    /// This operator is required for Helmholtz-Hodge decomposition of 1-forms and is distinct
+    /// from connection_laplacian(), which operates on tangent vector fields at vertices.
+    /// The matrix is of size #E by #E.
+    ///
+    /// @param[in] lambda Weight of projection term for the 1-form inner product (default: 1).
+    ///
+    /// @return A sparse matrix representing the weak-form Hodge Laplacian on 1-forms.
+    ///
+    Eigen::SparseMatrix<Scalar> laplacian1(Scalar lambda = 1) const;
 
     ///
     /// Compute the coordinate transformation that maps a per-vertex tangent vector field expressed
@@ -245,7 +324,8 @@ public:
     /// setting, both vector fields are defined on the vertices. The output covariant derivative is
     /// a flattened 2x2 matrix defined on each facet.
     ///
-    /// @return A sparse matrix representing the discrete covariant derivative operator.
+    /// @return A sparse matrix of size (#F * 4) x (#V * 2) representing the discrete covariant
+    ///         derivative operator.
     ///
     Eigen::SparseMatrix<Scalar> covariant_derivative() const;
 

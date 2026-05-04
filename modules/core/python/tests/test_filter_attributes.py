@@ -12,9 +12,6 @@
 import lagrange
 
 
-from .assets import cube, cube_with_uv  # noqa: F401
-
-
 class TestFilterAttributes:
     def test_included(self, cube_with_uv):
         mesh = cube_with_uv

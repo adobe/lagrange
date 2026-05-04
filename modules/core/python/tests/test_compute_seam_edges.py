@@ -13,8 +13,6 @@ import lagrange
 
 import numpy as np
 
-from .assets import cube_with_uv, cube  # noqa: F401
-
 
 class TestComputeCentroid:
     def test_cube(self, cube_with_uv):

@@ -25,6 +25,7 @@
     #error Platform not supported
 #endif
 
+#include <cstring>
 #include <fstream>
 #include <regex>
 

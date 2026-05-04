@@ -33,6 +33,14 @@ struct TriangulationOptions
     };
 
     Scheme scheme = Scheme::Earcut; ///< Triangulation scheme to use
+
+    /// If true, facets with exactly 2 vertices (edges) are preserved as-is instead of being removed
+    /// during triangulation.
+    bool preserve_edges = false;
+
+    /// If true, facets with exactly 1 vertex (points) are preserved as-is instead of being removed
+    /// during triangulation.
+    bool preserve_points = false;
 };
 
 ///

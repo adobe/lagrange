@@ -21,6 +21,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
+///
 /// Options struct for computing mesh covariance.
 ///
 struct MeshCovarianceOptions
@@ -51,5 +56,7 @@ template <typename Scalar, typename Index>
 std::array<std::array<Scalar, 3>, 3> compute_mesh_covariance(
     const SurfaceMesh<Scalar, Index>& mesh,
     const MeshCovarianceOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

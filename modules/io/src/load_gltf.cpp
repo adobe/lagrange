@@ -32,6 +32,7 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/strings.h>
 
@@ -185,7 +186,7 @@ span<const ValueType> load_buffer(
 
     size_t num_channels = get_num_channels(accessor.type);
     if (num_channels == invalid<size_t>())
-        throw Error(fmt::format("Unsupported accessor type {}", accessor.type));
+        throw Error(format("Unsupported accessor type {}", accessor.type));
 
     const size_t start = accessor.byteOffset + buffer_view.byteOffset;
 
@@ -339,7 +340,12 @@ void accessor_to_attribute_internal(
     } else if (accessor.count == mesh.get_num_facets()) {
         element = AttributeElement::Facet;
     } else {
-        logger().error("Unknown mesh property {}!", name);
+        logger().error(
+            "Unknown mesh property {}! Has {} values, but mesh has {} vertices and {} facets",
+            name,
+            accessor.count,
+            mesh.get_num_vertices(),
+            mesh.get_num_facets());
         return;
     }
 
@@ -359,7 +365,12 @@ void accessor_to_attribute_internal(
             // Matrices are flattened as vectors for now.
             usage = AttributeUsage::Vector;
             break;
-        default: logger().error("Unknown mesh property {}!", name); return;
+        default:
+            logger().error(
+                "Unknown mesh property {}! Accessor type not supported: {}",
+                name,
+                accessor.type);
+            return;
         }
     }
 
@@ -557,10 +568,8 @@ Eigen::Transform<Scalar, 3, 2> get_node_transform(const tinygltf::Node& node)
                 Scalar(node.rotation[2]));
         }
         if (!node.scale.empty()) {
-            scale = Eigen::Scaling<Scalar>(
-                Scalar(node.scale[0]),
-                Scalar(node.scale[1]),
-                Scalar(node.scale[2]));
+            scale =
+                Eigen::Scaling(Scalar(node.scale[0]), Scalar(node.scale[1]), Scalar(node.scale[2]));
         }
         t = translation * rotation * scale;
     }
@@ -871,8 +880,24 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
             const tinygltf::Mesh& mesh = model.meshes[node.mesh];
             for (size_t i = 0; i < mesh.primitives.size(); ++i) {
                 size_t mesh_idx = primitive_count[node.mesh] + i;
-                size_t material_idx = mesh.primitives[i].material;
-                lnode.meshes.push_back({mesh_idx, {material_idx}});
+                int material_idx = mesh.primitives[i].material;
+                if (material_idx < -1 || material_idx >= static_cast<int>(model.materials.size())) {
+                    if (!options.quiet) {
+                        logger().warn(
+                            "Mesh {} primitive {} references material {} which is out of range. "
+                            "Ignoring material.",
+                            node.mesh,
+                            i,
+                            material_idx);
+                    }
+                    material_idx = -1;
+                }
+                if (material_idx == -1) {
+                    lnode.meshes.push_back({mesh_idx, {}});
+                } else {
+                    size_t mat_idx = static_cast<size_t>(material_idx);
+                    lnode.meshes.push_back({mesh_idx, {mat_idx}});
+                }
             }
         }
         if (!node.extensions.empty()) {

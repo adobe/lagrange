@@ -21,10 +21,10 @@
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
-#include <spdlog/fmt/fmt.h>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/benchmark/catch_benchmark.hpp>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <fstream>
@@ -45,7 +45,7 @@ void test_load_save()
     std::uniform_real_distribution<S> dist(0, 1);
 
     for (int i = 0; i < 8; ++i) {
-        fs::path filename = fmt::format("semi{}.obj", i + 1);
+        fs::path filename = lagrange::format("semi{}.obj", i + 1);
         auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
         logger().info(
             "Loaded tiling with {} vertices and {} facets",
@@ -62,7 +62,7 @@ void test_load_save()
     std::array<std::pair<std::string, int>, 3> test_cases = {
         {{"hexagon", 6}, {"square", 4}, {"triangle", 3}}};
     for (auto kv : test_cases) {
-        fs::path filename = fmt::format("{}.obj", kv.first);
+        fs::path filename = lagrange::format("{}.obj", kv.first);
         auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
         logger().info(
             "Loaded tiling with {} vertices and {} facets",
@@ -90,7 +90,7 @@ void test_benchmark_tiles()
         int n = 0;
 
         for (int i = 0; i < 8; ++i) {
-            fs::path filename = fmt::format("semi{}.obj", i + 1);
+            fs::path filename = lagrange::format("semi{}.obj", i + 1);
             auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_hybrid());
@@ -101,7 +101,7 @@ void test_benchmark_tiles()
         std::array<std::pair<std::string, int>, 3> test_cases = {
             {{"hexagon", 6}, {"square", 4}, {"triangle", 3}}};
         for (auto kv : test_cases) {
-            fs::path filename = fmt::format("{}.obj", kv.first);
+            fs::path filename = lagrange::format("{}.obj", kv.first);
             auto mesh = lagrange::testing::load_surface_mesh<S, I>("open/core/tilings" / filename);
             n += safe_cast<int>(mesh.get_num_vertices());
             REQUIRE(mesh.is_regular());

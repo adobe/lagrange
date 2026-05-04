@@ -30,8 +30,8 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
-#include <spdlog/fmt/fmt.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <algorithm>
@@ -93,7 +93,7 @@ void project_directional(
                     3,
                     internal::ShouldBeWritable::No);
                 if (!res.success) {
-                    throw Error(fmt::format("Invalid direction attribute: {}", res.msg));
+                    throw Error(format("Invalid direction attribute: {}", res.msg));
                 }
             } else {
                 // std::monostate: find existing vertex normal or compute one.
@@ -134,11 +134,11 @@ void project_directional(
         auto name = source.get_attribute_name(src_id);
         la_runtime_assert(
             source.has_attribute(name),
-            fmt::format("Source mesh missing attribute: {}", name));
+            format("Source mesh missing attribute: {}", name));
         const auto& src_base = source.get_attribute_base(src_id);
         la_runtime_assert(
             src_base.get_element_type() == AttributeElement::Vertex,
-            fmt::format("Only vertex attributes are supported: {}", name));
+            format("Only vertex attributes are supported: {}", name));
 
         size_t num_channels = src_base.get_num_channels();
 

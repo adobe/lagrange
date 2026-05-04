@@ -28,7 +28,7 @@ std::unique_ptr<ExactPredicates> ExactPredicates::create(const std::string& engi
     }
 }
 
-short ExactPredicates::collinear3D(double p1[3], double p2[3], double p3[3]) const
+short ExactPredicates::collinear3D(const double p1[3], const double p2[3], const double p3[3]) const
 {
     for (int k = 0; k < 3; ++k) {
         double q1[2];

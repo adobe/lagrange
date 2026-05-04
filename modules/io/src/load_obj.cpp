@@ -25,6 +25,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
+#include <lagrange/internal/set_invalid_indexed_values.h>
 #include <lagrange/io/internal/scene_utils.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SceneTypes.h>
@@ -44,6 +45,7 @@
 #include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 namespace lagrange::io {
@@ -163,14 +165,32 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
     // Reserve facet indices
     logger().trace("[load_mesh_obj] Reserve facet indices");
     std::vector<Index> facet_sizes;
-    std::vector<Index> facet_counts;
+    std::vector<Index> num_facets_per_shape;
+    std::vector<Index> num_segments_per_shape;
+    std::vector<Index> num_polylines_per_shape;
+    bool has_any_lines = false;
+    // First pass: append all face facet sizes
     for (const auto& shape : shapes) {
         facet_sizes.insert(
             facet_sizes.end(),
             shape.mesh.num_face_vertices.begin(),
             shape.mesh.num_face_vertices.end());
-        facet_counts.push_back(static_cast<Index>(shape.mesh.num_face_vertices.size()));
+        num_facets_per_shape.push_back(static_cast<Index>(shape.mesh.num_face_vertices.size()));
+        Index num_line_segments = 0;
+        for (auto nv : shape.lines.num_line_vertices) {
+            la_runtime_assert(nv >= 2, "Line element must have at least 2 vertices");
+            num_line_segments += static_cast<Index>(nv - 1);
+        }
+        num_segments_per_shape.push_back(num_line_segments);
+        num_polylines_per_shape.push_back(static_cast<Index>(shape.lines.num_line_vertices.size()));
+        if (num_line_segments > 0) has_any_lines = true;
         result.names.push_back(shape.name);
+    }
+    // Second pass: append all line segment facet sizes (after all faces)
+    for (const auto& shape : shapes) {
+        for (auto nv : shape.lines.num_line_vertices) {
+            facet_sizes.insert(facet_sizes.end(), nv - 1, 2);
+        }
     }
     if (!facet_sizes.empty()) {
         mesh.add_hybrid(facet_sizes);
@@ -196,16 +216,40 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
         id_attr = &mesh.template ref_attribute<Index>(id);
     }
 
+    // Initialize line id (0 for regular faces, 1-based for line element segments)
+    Attribute<Index>* line_id_attr = nullptr;
+    if (has_any_lines) {
+        auto id = mesh.template create_attribute<Index>(
+            AttributeName::line_id,
+            AttributeElement::Facet,
+            AttributeUsage::Scalar);
+        line_id_attr = &mesh.template ref_attribute<Index>(id);
+    }
+
     span<Index> vtx_indices = mesh.ref_corner_to_vertex().ref_all();
     span<Index> uv_indices = (uv_attr ? uv_attr->indices().ref_all() : span<Index>{});
     span<Index> nrm_indices = (nrm_attr ? nrm_attr->indices().ref_all() : span<Index>{});
 
     logger().trace("[load_mesh_obj] Copy facet indices");
-    std::partial_sum(facet_counts.begin(), facet_counts.end(), facet_counts.begin());
+    // Compute cumulative sums for facets, line segments, and polyline ids
+    std::partial_sum(
+        num_facets_per_shape.begin(),
+        num_facets_per_shape.end(),
+        num_facets_per_shape.begin());
+    std::partial_sum(
+        num_segments_per_shape.begin(),
+        num_segments_per_shape.end(),
+        num_segments_per_shape.begin());
+    std::partial_sum(
+        num_polylines_per_shape.begin(),
+        num_polylines_per_shape.end(),
+        num_polylines_per_shape.begin());
+    const Index total_facets = num_facets_per_shape.empty() ? 0 : num_facets_per_shape.back();
     std::atomic_size_t num_invalid_uv = 0;
+    std::atomic_size_t num_invalid_nrm = 0;
     tbb::parallel_for(Index(0), Index(shapes.size()), [&](Index i) {
         const auto& shape = shapes[i];
-        const Index first_facet = (i == 0 ? 0 : facet_counts[i - 1]);
+        const Index first_facet = (i == 0 ? 0 : num_facets_per_shape[i - 1]);
         const auto local_num_facets = safe_cast<Index>(shape.mesh.num_face_vertices.size());
 
         // Copy material id
@@ -231,7 +275,7 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
             std::fill(span.begin(), span.end(), i);
         }
 
-        // Copy indices
+        // Copy face indices
         for (Index f = 0, local_corner = 0; f < local_num_facets; ++f) {
             const Index first_corner = mesh.get_facet_corner_begin(first_facet + f);
             const Index last_corner = mesh.get_facet_corner_end(first_facet + f);
@@ -248,20 +292,86 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
                     }
                 }
                 if (!nrm_indices.empty()) {
-                    nrm_indices[c] = safe_cast<Index>(index.normal_index);
+                    if (index.normal_index < 0) {
+                        nrm_indices[c] = invalid<Index>();
+                        ++num_invalid_nrm;
+                    } else {
+                        nrm_indices[c] = safe_cast<Index>(index.normal_index);
+                    }
                 }
+            }
+        }
+
+        // Copy line element indices as 2-vertex facets
+        if (!shape.lines.indices.empty()) {
+            const Index first_line_facet =
+                total_facets + (i == 0 ? 0 : num_segments_per_shape[i - 1]);
+            const Index first_polyline_id = (i == 0 ? 0 : num_polylines_per_shape[i - 1]);
+            Index line_facet = 0;
+            Index line_idx = 0;
+            Index local_polyline = 0;
+            for (auto nv : shape.lines.num_line_vertices) {
+                const Index global_line_id = first_polyline_id + local_polyline + 1; // 1-based
+                for (int e = 0; e < nv - 1; ++e) {
+                    const Index fid = first_line_facet + line_facet;
+                    const Index c0 = mesh.get_facet_corner_begin(fid);
+                    vtx_indices[c0] =
+                        safe_cast<Index>(shape.lines.indices[line_idx + e].vertex_index);
+                    vtx_indices[c0 + 1] =
+                        safe_cast<Index>(shape.lines.indices[line_idx + e + 1].vertex_index);
+                    if (!uv_indices.empty()) {
+                        auto ti0 = shape.lines.indices[line_idx + e].texcoord_index;
+                        auto ti1 = shape.lines.indices[line_idx + e + 1].texcoord_index;
+                        uv_indices[c0] = ti0 < 0 ? invalid<Index>() : safe_cast<Index>(ti0);
+                        uv_indices[c0 + 1] = ti1 < 0 ? invalid<Index>() : safe_cast<Index>(ti1);
+                        if (ti0 < 0) ++num_invalid_uv;
+                        if (ti1 < 0) ++num_invalid_uv;
+                    }
+                    if (!nrm_indices.empty()) {
+                        auto ni0 = shape.lines.indices[line_idx + e].normal_index;
+                        auto ni1 = shape.lines.indices[line_idx + e + 1].normal_index;
+                        nrm_indices[c0] = ni0 < 0 ? invalid<Index>() : safe_cast<Index>(ni0);
+                        nrm_indices[c0 + 1] = ni1 < 0 ? invalid<Index>() : safe_cast<Index>(ni1);
+                        if (ni0 < 0) ++num_invalid_nrm;
+                        if (ni1 < 0) ++num_invalid_nrm;
+                    }
+                    if (line_id_attr) {
+                        line_id_attr->ref_all()[fid] = global_line_id;
+                    }
+                    ++line_facet;
+                }
+                line_idx += nv;
+                ++local_polyline;
+            }
+
+            // Set material and object ids for line facets
+            const Index local_num_segments =
+                num_segments_per_shape[i] - (i == 0 ? 0 : num_segments_per_shape[i - 1]);
+            if (mat_attr) {
+                auto span = mat_attr->ref_middle(first_line_facet, local_num_segments);
+                std::fill(span.begin(), span.end(), SignedIndex(-1));
+            }
+            if (id_attr) {
+                auto span = id_attr->ref_middle(first_line_facet, local_num_segments);
+                std::fill(span.begin(), span.end(), i);
             }
         }
 
         // TODO: Support smoothing groups + subd tags
     });
 
-    if (num_invalid_uv) {
-        // This one is a legit warning, so we do not silence it even in quiet mode.
-        logger().warn(
-            "Found {} vertices without UV indices. UV attribute will have invalid values.",
-            num_invalid_uv.load());
-    }
+    auto handle_invalid_indices = [&](std::atomic_size_t& num_invalid,
+                                      std::string_view attr_name,
+                                      IndexedAttribute<Scalar, Index>* attr_ptr) {
+        if (!attr_ptr) return;
+        if (!num_invalid) return;
+        if (!options.quiet) {
+            logger().warn("Found {} corners without {} indices.", num_invalid.load(), attr_name);
+        }
+        lagrange::internal::set_invalid_indexed_values(*attr_ptr);
+    };
+    handle_invalid_indices(num_invalid_uv, AttributeName::texcoord, uv_attr);
+    handle_invalid_indices(num_invalid_nrm, AttributeName::normal, nrm_attr);
     logger().trace("[load_mesh_obj] Loading complete");
 
     if (options.stitch_vertices) {
@@ -484,7 +594,7 @@ MeshType load_mesh_obj(const fs::path& filename, const LoadOptions& options)
 {
     auto ret = internal::load_mesh_obj<MeshType>(filename, options);
     if (!ret.success) {
-        throw Error(fmt::format("Failed to load mesh from file: '{}'", filename.string()));
+        throw Error(format("Failed to load mesh from file: '{}'", filename.string()));
     }
     return std::move(ret.mesh);
 }

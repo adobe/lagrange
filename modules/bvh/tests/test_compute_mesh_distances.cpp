@@ -65,6 +65,13 @@ make_concentric_spheres(Scalar r1, Scalar r2, size_t num_sections = 64)
     return {sphere_a, sphere_b};
 }
 
+// Strip facets from a mesh to create a point cloud.
+SurfaceMesh<Scalar, Index> to_point_cloud(SurfaceMesh<Scalar, Index> mesh)
+{
+    mesh.clear_facets();
+    return mesh;
+}
+
 } // namespace
 
 // ---------------------------------------------------------------------------
@@ -157,6 +164,50 @@ TEST_CASE("compute_mesh_distances", "[bvh][mesh_distances]")
         REQUIRE(empty_source.get_num_vertices() == 0);
         REQUIRE(dist.size() == 0);
     }
+
+    SECTION("point cloud: mesh to point cloud")
+    {
+        const Scalar d = 1.5f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_b = to_point_cloud(sq_b);
+
+        auto attr_id = bvh::compute_mesh_distances(sq_a, pc_b);
+        auto dist = attribute_matrix_view<Scalar>(sq_a, attr_id);
+
+        // Vertices of sq_a are directly below vertices of pc_b, so distance = d.
+        for (Index vi = 0; vi < sq_a.get_num_vertices(); ++vi) {
+            REQUIRE_THAT(dist(vi, 0), Catch::Matchers::WithinAbs(d, 1e-5f));
+        }
+    }
+
+    SECTION("point cloud: point cloud to mesh")
+    {
+        const Scalar d = 1.5f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_a = to_point_cloud(sq_a);
+
+        auto attr_id = bvh::compute_mesh_distances(pc_a, sq_b);
+        auto dist = attribute_matrix_view<Scalar>(pc_a, attr_id);
+
+        for (Index vi = 0; vi < pc_a.get_num_vertices(); ++vi) {
+            REQUIRE_THAT(dist(vi, 0), Catch::Matchers::WithinAbs(d, 1e-5f));
+        }
+    }
+
+    SECTION("point cloud: point cloud to point cloud")
+    {
+        const Scalar d = 1.5f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_a = to_point_cloud(sq_a);
+        auto pc_b = to_point_cloud(sq_b);
+
+        auto attr_id = bvh::compute_mesh_distances(pc_a, pc_b);
+        auto dist = attribute_matrix_view<Scalar>(pc_a, attr_id);
+
+        for (Index vi = 0; vi < pc_a.get_num_vertices(); ++vi) {
+            REQUIRE_THAT(dist(vi, 0), Catch::Matchers::WithinAbs(d, 1e-5f));
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -244,6 +295,37 @@ TEST_CASE("compute_hausdorff", "[bvh][mesh_distances]")
         Scalar h = bvh::compute_hausdorff(empty_a, empty_b);
         REQUIRE_THAT(h, Catch::Matchers::WithinAbs(0.0f, 1e-6f));
     }
+
+    SECTION("point cloud: point cloud to point cloud")
+    {
+        const Scalar d = 2.0f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_a = to_point_cloud(sq_a);
+        auto pc_b = to_point_cloud(sq_b);
+
+        Scalar h = bvh::compute_hausdorff(pc_a, pc_b);
+        REQUIRE_THAT(h, Catch::Matchers::WithinAbs(d, 1e-5f));
+    }
+
+    SECTION("point cloud: mesh to point cloud")
+    {
+        const Scalar d = 2.0f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_b = to_point_cloud(sq_b);
+
+        Scalar h = bvh::compute_hausdorff(sq_a, pc_b);
+        REQUIRE_THAT(h, Catch::Matchers::WithinAbs(d, 1e-5f));
+    }
+
+    SECTION("point cloud: point cloud to mesh")
+    {
+        const Scalar d = 2.0f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_a = to_point_cloud(sq_a);
+
+        Scalar h = bvh::compute_hausdorff(pc_a, sq_b);
+        REQUIRE_THAT(h, Catch::Matchers::WithinAbs(d, 1e-5f));
+    }
 }
 
 // ---------------------------------------------------------------------------
@@ -330,5 +412,36 @@ TEST_CASE("compute_chamfer", "[bvh][mesh_distances]")
 
         Scalar c = bvh::compute_chamfer(empty_a, empty_b);
         REQUIRE_THAT(c, Catch::Matchers::WithinAbs(0.0f, 1e-6f));
+    }
+
+    SECTION("point cloud: point cloud to point cloud")
+    {
+        const Scalar d = 1.5f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_a = to_point_cloud(sq_a);
+        auto pc_b = to_point_cloud(sq_b);
+
+        Scalar c = bvh::compute_chamfer(pc_a, pc_b);
+        REQUIRE_THAT(c, Catch::Matchers::WithinAbs(2.0f * d * d, 1e-4f));
+    }
+
+    SECTION("point cloud: mesh to point cloud")
+    {
+        const Scalar d = 1.5f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_b = to_point_cloud(sq_b);
+
+        Scalar c = bvh::compute_chamfer(sq_a, pc_b);
+        REQUIRE_THAT(c, Catch::Matchers::WithinAbs(2.0f * d * d, 1e-4f));
+    }
+
+    SECTION("point cloud: point cloud to mesh")
+    {
+        const Scalar d = 1.5f;
+        auto [sq_a, sq_b] = make_parallel_squares(d);
+        auto pc_a = to_point_cloud(sq_a);
+
+        Scalar c = bvh::compute_chamfer(pc_a, sq_b);
+        REQUIRE_THAT(c, Catch::Matchers::WithinAbs(2.0f * d * d, 1e-4f));
     }
 }

@@ -22,6 +22,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Option struct for remove_duplicate_vertices.
 ///
 struct RemoveDuplicateVerticesOptions
@@ -47,5 +52,7 @@ template <typename Scalar, typename Index>
 void remove_duplicate_vertices(
     SurfaceMesh<Scalar, Index>& mesh,
     const RemoveDuplicateVerticesOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

@@ -19,6 +19,7 @@
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/strings.h>
@@ -143,7 +144,7 @@ void extract_attribute(
     for (auto special_usage : {AttributeUsage::Normal, AttributeUsage::UV, AttributeUsage::Color}) {
         if (starts_with(
                 attr_name,
-                fmt::format(
+                format(
                     "{}_{}",
                     internal::to_string(element_type),
                     internal::to_string(special_usage)))) {
@@ -268,7 +269,7 @@ template <typename MeshType>
 MeshType load_mesh_msh(const fs::path& filename, const LoadOptions& options)
 {
     fs::ifstream fin(filename, std::ios::binary);
-    la_runtime_assert(fin.good(), fmt::format("Unable to open file {}", filename.string()));
+    la_runtime_assert(fin.good(), format("Unable to open file {}", filename.string()));
     return load_mesh_msh<MeshType>(fin, options);
 }
 

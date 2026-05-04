@@ -54,13 +54,15 @@ public:
 
     void build(const VertexArray& vertices) override
     {
-        // Nanoflann stores a const ref to vertices, we need to make sure
-        // vertices outlives the BVH.  Storing a local copy for now.
         m_vertices = vertices;
+        build_index();
+    }
 
-        constexpr int max_leaf = 10; // TODO: Experiment with different values.
-        m_tree = std::make_unique<KDTree>(m_vertices.cols(), m_vertices, max_leaf);
-        m_tree->index_->buildIndex();
+    /// Overload that moves vertices in to avoid an extra copy.
+    void build(VertexArray&& vertices)
+    {
+        m_vertices = std::move(vertices);
+        build_index();
     }
 
     bool does_support_query_closest_point() const override { return true; }
@@ -136,6 +138,13 @@ public:
 
 
 private:
+    void build_index()
+    {
+        constexpr int max_leaf = 10;
+        m_tree = std::make_unique<KDTree>(m_vertices.cols(), m_vertices, max_leaf);
+        m_tree->index_->buildIndex();
+    }
+
     VertexArray m_vertices;
     std::unique_ptr<KDTree> m_tree;
 };

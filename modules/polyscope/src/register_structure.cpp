@@ -15,6 +15,7 @@
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/polyscope/api.h>
 #include <lagrange/polyscope/register_edge_network.h>
 #include <lagrange/polyscope/register_mesh.h>
 #include <lagrange/polyscope/register_point_cloud.h>
@@ -60,16 +61,16 @@ template <typename ValueType>
     }
 }
 
-#define LA_X_register_structure(_, Scalar, Index)                       \
-    template ::polyscope::Structure* register_structure<Scalar, Index>( \
-        std::string_view name,                                          \
+#define LA_X_register_structure(_, Scalar, Index)                                        \
+    template LA_POLYSCOPE_API ::polyscope::Structure* register_structure<Scalar, Index>( \
+        std::string_view name,                                                           \
         const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(register_structure, 0)
 
-#define LA_X_register_attribute(_, ValueType)                      \
-    template ::polyscope::Quantity* register_attribute<ValueType>( \
-        ::polyscope::Structure & ps_structure,                     \
-        std::string_view name,                                     \
+#define LA_X_register_attribute(_, ValueType)                                       \
+    template LA_POLYSCOPE_API ::polyscope::Quantity* register_attribute<ValueType>( \
+        ::polyscope::Structure & ps_structure,                                      \
+        std::string_view name,                                                      \
         const lagrange::Attribute<ValueType>& attr);
 LA_ATTRIBUTE_X(register_attribute, 0)
 

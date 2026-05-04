@@ -119,6 +119,26 @@ ortho(double left, double right, double bottom, double top, double z_near, doubl
 
 Eigen::Affine3f camera_view_transform(const Camera& camera, const Eigen::Affine3f& world_from_local)
 {
+    // We follow the glTF 2.0 specification. §3.10.2: "The view matrix is derived from the global
+    // transform of the node containing the camera with the scaling ignored."
+    //
+    // Extract the closest proper rotation via polar decomposition (SVD internally).
+    Eigen::Affine3d wfl = world_from_local.cast<double>();
+    Eigen::Isometry3d world_no_scale = Eigen::Isometry3d::Identity();
+    world_no_scale.linear() = wfl.rotation();
+    world_no_scale.translation() = wfl.translation();
+
+    Eigen::Affine3d camera_from_local = look_at(
+        camera.position.cast<double>(),
+        camera.look_at.cast<double>(),
+        camera.up.cast<double>());
+    return (camera_from_local * world_no_scale.inverse()).cast<float>();
+}
+
+Eigen::Affine3f camera_view_transform(
+    const Camera& camera,
+    const Eigen::Isometry3f& world_from_local)
+{
     Eigen::Affine3d camera_from_local = look_at(
         camera.position.cast<double>(),
         camera.look_at.cast<double>(),
@@ -140,10 +160,11 @@ Eigen::Projective3f camera_projection_transform(const Camera& camera)
                 .cast<float>();
         }
     } else if (camera.type == Camera::Type::Orthographic) {
+        // orthographic_width is the half-width (xmag), so the view spans [-w, w]
         const double w = camera.orthographic_width;
         const double h = w / camera.aspect_ratio;
         const double far = camera.far_plane.value();
-        return ortho(w / -2.0, w / 2.0, h / -2.0, h / 2.0, near, far).cast<float>();
+        return ortho(-w, w, -h, h, near, far).cast<float>();
     } else {
         throw Error("Unrecognized camera type");
     }

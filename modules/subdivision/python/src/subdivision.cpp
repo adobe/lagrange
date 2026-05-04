@@ -143,6 +143,7 @@ void populate_subdivision_module(nb::module_& m)
            std::optional<lagrange::subdivision::SchemeType> scheme,
            bool adaptive,
            std::optional<float> max_edge_length,
+           std::optional<float> max_chordal_deviation,
            lagrange::subdivision::VertexBoundaryInterpolation vertex_boundary_interpolation,
            lagrange::subdivision::FaceVaryingInterpolation face_varying_interpolation,
            bool use_limit_surface,
@@ -162,6 +163,9 @@ void populate_subdivision_module(nb::module_& m)
                 options.refinement = lagrange::subdivision::RefinementType::EdgeAdaptive;
                 if (max_edge_length.has_value()) {
                     options.max_edge_length = max_edge_length.value();
+                }
+                if (max_chordal_deviation.has_value()) {
+                    options.max_chordal_deviation = max_chordal_deviation.value();
                 }
             }
             options.num_levels = num_levels;
@@ -196,6 +200,7 @@ void populate_subdivision_module(nb::module_& m)
         "scheme"_a = nb::none(),
         "adaptive"_a = false,
         "max_edge_length"_a = nb::none(),
+        "max_chordal_deviation"_a = nb::none(),
         "vertex_boundary_interpolation"_a = SubdivOptions{}.vertex_boundary_interpolation,
         "face_varying_interpolation"_a = SubdivOptions{}.face_varying_interpolation,
         "use_limit_surface"_a = SubdivOptions{}.use_limit_surface,
@@ -215,7 +220,8 @@ void populate_subdivision_module(nb::module_& m)
 :param num_levels: The number of levels of subdivision to apply.
 :param scheme: Subdivision scheme. If None, uses Loop for triangle meshes and CatmullClark for quad-dominant meshes.
 :param adaptive: Whether to use edge-adaptive refinement.
-:param max_edge_length: Maximum edge length for adaptive refinement. If None, uses longest edge / num_levels. Ignored when adaptive is False.
+:param max_edge_length: Maximum edge length for adaptive refinement. If None, uses longest edge / num_levels. Ignored when adaptive is False. Mutually exclusive with max_chordal_deviation.
+:param max_chordal_deviation: Maximum chordal deviation for adaptive refinement. This controls the maximum distance between the limit surface and its piecewise-linear approximation. For each edge, the peak deviation is found using Newton's method on the squared-distance function, and the tessellation rate is chosen so that all sub-segment deviations stay below this threshold. Only supported for meshes with 3D vertex positions. The value must be strictly positive. Ignored when adaptive is False. Mutually exclusive with max_edge_length.
 :param vertex_boundary_interpolation: Vertex boundary interpolation rule.
 :param face_varying_interpolation: Face-varying interpolation rule.
 :param use_limit_surface: Interpolate all data to the limit surface.

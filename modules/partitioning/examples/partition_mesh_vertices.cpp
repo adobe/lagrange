@@ -16,6 +16,7 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/partitioning/partition_mesh_vertices.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/timing.h>
 
@@ -107,7 +108,8 @@ int main(int argc, char const* argv[])
             "Writing output to file: {}_*.obj",
             fs::path(args.output).stem().string());
         for (size_t i = 0; i < res.size(); ++i) {
-            std::string name = fs::path(args.output).stem().string() + fmt::format("_{}.obj", i);
+            std::string name =
+                fs::path(args.output).stem().string() + lagrange::format("_{}.obj", i);
             lagrange::io::save_mesh(name, *res[i]);
         }
     } catch (std::exception& e) {

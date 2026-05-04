@@ -14,6 +14,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 
 namespace lagrange::scene::internal {
 
@@ -72,7 +73,7 @@ SimpleScene<Scalar, Index, Dimension> unbake_scaling(SimpleScene<Scalar, Index, 
             Data* data = std::any_cast<Data>(&instance.user_data);
             la_runtime_assert(
                 data,
-                fmt::format(
+                format(
                     "Cannot unbake scaling for instance {} of mesh {}. No previous transform was "
                     "found.",
                     instance_index,

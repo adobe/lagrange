@@ -15,8 +15,6 @@ import numpy as np
 import math
 import pytest
 
-from .assets import single_triangle, cube, single_triangle_with_uv  # noqa: F401
-
 
 class TestComputeFacetArea:
     def test_cube(self, cube):

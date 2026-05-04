@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/api.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <string_view>
 
@@ -44,15 +45,15 @@
 ///
 /// Finally, our assertion macros can take either 1 or 2 arguments, the second argument being an
 /// optional error message. To conveniently format assertion messages with a printf-like syntax, use
-/// `fmt::format`:
+/// `lagrange::format`:
 ///
 /// @code
 /// #include <lagrange/utils/assert.h>
-/// #include <spdlog/fmt/fmt.h>
+/// #include <lagrange/utils/fmt/format.h>
 ///
 /// la_debug_assert(x == 3);
 /// la_debug_assert(x == 3, "Error message");
-/// la_debug_assert(x == 3, fmt::format("Incorrect value of x: {}", x));
+/// la_debug_assert(x == 3, lagrange::format("Incorrect value of x: {}", x));
 /// @endcode
 ///
 /// @{

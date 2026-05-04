@@ -23,6 +23,7 @@
 #include <lagrange/map_attribute.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/views.h>
 
@@ -52,21 +53,21 @@ get_attribute_name(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Attri
 
     switch (usage) {
     case AttributeUsage::UV:
-        name = fmt::format(
+        name = format(
             "{}_{}_{}",
             internal::to_string(element),
             internal::to_string(usage),
             counts.uv_count++);
         break;
     case AttributeUsage::Normal:
-        name = fmt::format(
+        name = format(
             "{}_{}_{}",
             internal::to_string(element),
             internal::to_string(usage),
             counts.normal_count++);
         break;
     case AttributeUsage::Color:
-        name = fmt::format(
+        name = format(
             "{}_{}_{}",
             internal::to_string(element),
             internal::to_string(usage),
@@ -450,7 +451,7 @@ void save_mesh_msh(
 
     if (!fout) {
         throw std::runtime_error(
-            fmt::format("Failed to open MSH file for writing: {}", filename.string()));
+            format("Failed to open MSH file for writing: {}", filename.string()));
     }
 
     save_mesh_msh(fout, mesh, options);

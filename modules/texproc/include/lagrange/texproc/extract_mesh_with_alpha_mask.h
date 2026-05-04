@@ -26,7 +26,7 @@ struct ExtractMeshWithAlphaMaskOptions
     /// Must be a valid attribute of the input mesh.
     AttributeId texcoord_id = invalid_attribute_id();
 
-    /// Opaque mask theshold.
+    /// Opaque mask threshold.
     float alpha_threshold = 0.5f;
 };
 
@@ -40,7 +40,7 @@ struct ExtractMeshWithAlphaMaskOptions
 /// @tparam     Scalar      Mesh scalar type.
 /// @tparam     Index       Mesh index type.
 ///
-/// @return     Tesselated mesh.
+/// @return     Tessellated triangle mesh, quad mesh or quad-dominant mesh.
 ///
 template <typename Scalar, typename Index>
 auto extract_mesh_with_alpha_mask(

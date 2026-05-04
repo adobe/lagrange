@@ -20,6 +20,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Options for remove_duplicate_facets
 ///
 struct RemoveDuplicateFacetOptions
@@ -47,5 +52,7 @@ template <typename Scalar, typename Index>
 void remove_duplicate_facets(
     SurfaceMesh<Scalar, Index>& mesh,
     const RemoveDuplicateFacetOptions& opts = {});
+
+/// @}
 
 } // namespace lagrange

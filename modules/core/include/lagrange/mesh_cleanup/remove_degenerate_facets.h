@@ -16,6 +16,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Removes degenerate facets from a mesh.
 ///
 /// @note This method currently only works with triangular meshes.
@@ -30,5 +35,7 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 void remove_degenerate_facets(SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange

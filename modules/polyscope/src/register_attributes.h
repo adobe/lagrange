@@ -14,6 +14,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/attribute_string_utils.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -95,36 +96,45 @@ auto register_attribute(
     constexpr bool IsMesh = std::is_same_v<PolyscopeType, ::polyscope::SurfaceMesh>;
     constexpr bool IsEdge = std::is_same_v<PolyscopeType, ::polyscope::CurveNetwork>;
 
+    constexpr auto scalar_data_type = std::is_integral_v<ValueType>
+                                          ? ::polyscope::DataType::CATEGORICAL
+                                          : ::polyscope::DataType::STANDARD;
+
     switch (attr.get_element_type()) {
     case lagrange::AttributeElement::Vertex:
         if (attr.get_usage() == Usage::Scalar) {
             lagrange::logger().info("Registering scalar vertex attribute: {}", name);
             if constexpr (IsMesh) {
-                return ps_struct->addVertexScalarQuantity(name, vector_view(attr));
+                return ps_struct->addVertexScalarQuantity(
+                    name,
+                    vector_view(attr),
+                    scalar_data_type);
             } else if constexpr (IsEdge) {
-                return ps_struct->addNodeScalarQuantity(name, vector_view(attr));
+                return ps_struct->addNodeScalarQuantity(name, vector_view(attr), scalar_data_type);
             } else {
-                return ps_struct->addScalarQuantity(name, vector_view(attr));
+                return ps_struct->addScalarQuantity(name, vector_view(attr), scalar_data_type);
             }
-        } else if (attr.get_num_channels() == 3) {
+        } else if (attr.get_num_channels() == 3 || attr.get_num_channels() == 4) {
             if (show_as_vector(attr.get_usage())) {
                 lagrange::logger().info("Registering vector vertex attribute: {}", name);
                 ::polyscope::VectorType vt = vector_type(attr.get_usage());
+                auto matrix = matrix_view(attr).template leftCols<3>();
                 if constexpr (IsMesh) {
-                    return ps_struct->addVertexVectorQuantity(name, matrix_view(attr), vt);
+                    return ps_struct->addVertexVectorQuantity(name, matrix, vt);
                 } else if constexpr (IsEdge) {
-                    return ps_struct->addNodeVectorQuantity(name, matrix_view(attr), vt);
+                    return ps_struct->addNodeVectorQuantity(name, matrix, vt);
                 } else {
-                    return ps_struct->addVectorQuantity(name, matrix_view(attr), vt);
+                    return ps_struct->addVectorQuantity(name, matrix, vt);
                 }
             } else if (attr.get_usage() == Usage::Color) {
                 lagrange::logger().info("Registering color vertex attribute: {}", name);
+                auto matrix = as_color_matrix(attr).template leftCols<3>();
                 if constexpr (IsMesh) {
-                    return ps_struct->addVertexColorQuantity(name, as_color_matrix(attr));
+                    return ps_struct->addVertexColorQuantity(name, matrix);
                 } else if constexpr (IsEdge) {
-                    return ps_struct->addNodeColorQuantity(name, as_color_matrix(attr));
+                    return ps_struct->addNodeColorQuantity(name, matrix);
                 } else {
-                    return ps_struct->addColorQuantity(name, as_color_matrix(attr));
+                    return ps_struct->addColorQuantity(name, matrix);
                 }
             }
         } else if (attr.get_num_channels() == 2) {
@@ -152,25 +162,27 @@ auto register_attribute(
         if (attr.get_usage() == Usage::Scalar) {
             lagrange::logger().info("Registering scalar facet attribute: {}", name);
             if constexpr (IsMesh) {
-                return ps_struct->addFaceScalarQuantity(name, vector_view(attr));
+                return ps_struct->addFaceScalarQuantity(name, vector_view(attr), scalar_data_type);
             } else if constexpr (IsEdge) {
-                return ps_struct->addEdgeScalarQuantity(name, vector_view(attr));
+                return ps_struct->addEdgeScalarQuantity(name, vector_view(attr), scalar_data_type);
             }
-        } else if (attr.get_num_channels() == 3) {
+        } else if (attr.get_num_channels() == 3 || attr.get_num_channels() == 4) {
             if (show_as_vector(attr.get_usage())) {
                 lagrange::logger().info("Registering vector facet attribute: {}", name);
                 ::polyscope::VectorType vt = vector_type(attr.get_usage());
+                auto matrix = matrix_view(attr).template leftCols<3>();
                 if constexpr (IsMesh) {
-                    return ps_struct->addFaceVectorQuantity(name, matrix_view(attr), vt);
+                    return ps_struct->addFaceVectorQuantity(name, matrix, vt);
                 } else if constexpr (IsEdge) {
-                    return ps_struct->addEdgeVectorQuantity(name, matrix_view(attr), vt);
+                    return ps_struct->addEdgeVectorQuantity(name, matrix, vt);
                 }
             } else if (attr.get_usage() == Usage::Color) {
                 lagrange::logger().info("Registering color facet attribute: {}", name);
+                auto matrix = as_color_matrix(attr).template leftCols<3>();
                 if constexpr (IsMesh) {
-                    return ps_struct->addFaceColorQuantity(name, as_color_matrix(attr));
+                    return ps_struct->addFaceColorQuantity(name, matrix);
                 } else if constexpr (IsEdge) {
-                    return ps_struct->addEdgeColorQuantity(name, as_color_matrix(attr));
+                    return ps_struct->addEdgeColorQuantity(name, matrix);
                 }
             }
         } else if (attr.get_num_channels() == 2) {
@@ -189,7 +201,7 @@ auto register_attribute(
         if constexpr (IsMesh) {
             if (attr.get_usage() == Usage::Scalar) {
                 lagrange::logger().info("Registering scalar edge attribute: {}", name);
-                return ps_struct->addEdgeScalarQuantity(name, vector_view(attr));
+                return ps_struct->addEdgeScalarQuantity(name, vector_view(attr), scalar_data_type);
             }
         }
         break;
@@ -220,7 +232,13 @@ void register_attributes(PolyscopeStructure* ps_struct, const SurfaceMesh<Scalar
             lagrange::logger().warn("Skipping indexed attribute: {}", name);
         } else {
             if (!register_attribute(ps_struct, name, attr)) {
-                lagrange::logger().warn("Skipping unsupported attribute: {}", name);
+                lagrange::logger().warn(
+                    "Skipping unsupported attribute: {}, element type: {}, usage: {}, num "
+                    "channels: {}",
+                    name,
+                    lagrange::internal::to_string(attr.get_element_type()),
+                    lagrange::internal::to_string(attr.get_usage()),
+                    attr.get_num_channels());
             }
         }
     });

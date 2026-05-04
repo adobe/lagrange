@@ -97,22 +97,9 @@ Eigen::Projective3f ortho(float left, float right, float bottom, float top, floa
     return Eigen::Projective3f(result);
 }
 
-Eigen::Vector3f unproject_point(
-    const Eigen::Vector3f& v,
-    const Eigen::Matrix4f& view,
-    const Eigen::Matrix4f& perspective,
-    const Eigen::Vector4f& viewport)
-{
-    Eigen::Vector4f tmp = Eigen::Vector4f(v.x(), v.y(), v.z(), 1.0f);
-    tmp.x() = (tmp.x() - viewport(0)) / viewport(2);
-    tmp.y() = (tmp.y() - viewport(1)) / viewport(3);
-    tmp = tmp * 2.0f - Eigen::Vector4f::Ones();
+// unproject_point() moved to math_xcode264_workaround.cpp
+// to work around Xcode 26.4 compiler bug
 
-    Eigen::Vector4f obj = (perspective * view).inverse() * tmp;
-    obj *= 1.0f / obj.w();
-
-    return obj.head<3>();
-}
 
 float pi()
 {

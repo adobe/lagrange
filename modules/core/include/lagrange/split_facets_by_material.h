@@ -19,6 +19,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
+///
 /// Split mesh facets based on material labels.
 ///
 /// @param mesh                    Mesh on which material segmentation will be applied in place.
@@ -36,5 +41,7 @@ template <typename Scalar, typename Index>
 void split_facets_by_material(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view material_attribute_name);
+
+/// @}
 
 } // namespace lagrange

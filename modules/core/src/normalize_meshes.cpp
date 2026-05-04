@@ -10,7 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/utils/warning.h>
+
+LA_IGNORE_MAYBE_UNINITIALIZED_START
 #include <Eigen/Geometry>
+LA_IGNORE_MAYBE_UNINITIALIZED_END
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/SurfaceMeshTypes.h>

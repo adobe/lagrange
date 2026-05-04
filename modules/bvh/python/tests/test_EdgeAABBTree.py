@@ -13,8 +13,6 @@ import lagrange
 import numpy as np
 import pytest
 
-from .asset import cube, square  # noqa: F401
-
 
 class TestEdgeAABBTree:
     def test_closest_point_3D(self, cube):

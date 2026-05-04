@@ -18,6 +18,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/SurfaceMeshInfo.h>
 #include <lagrange/internal/attribute_string_utils.h>
 #include <lagrange/internal/fast_edge_sort.h>
 #include <lagrange/utils/Error.h>
@@ -33,6 +34,7 @@
 #include <tbb/parallel_for.h>
 #include <tbb/parallel_sort.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <array>
@@ -178,10 +180,10 @@ struct SurfaceMesh<Scalar, Index>::AttributeManager
         auto it_old = m_name_to_id.find(old_key);
         auto it_new = m_name_to_id.find(new_key);
         if (it_old == m_name_to_id.end()) {
-            throw Error(fmt::format("Source attribute '{}' does not exist", old_name));
+            throw Error(format("Source attribute '{}' does not exist", old_name));
         }
         if (it_new != m_name_to_id.end()) {
-            throw Error(fmt::format("Target attribute '{}' already exist", new_name));
+            throw Error(format("Target attribute '{}' already exist", new_name));
         } else {
             AttributeId id = it_old->second;
             m_name_to_id.erase(it_old);
@@ -289,7 +291,7 @@ protected:
                 m_attributes.emplace_back();
             }
         } else {
-            la_runtime_assert(false, fmt::format("Attribute '{}' already exist!", name));
+            la_runtime_assert(false, format("Attribute '{}' already exist!", name));
         }
         return it->second;
     }
@@ -347,7 +349,7 @@ AttributeId SurfaceMesh<Scalar, Index>::get_attribute_id(std::string_view name) 
 {
     auto ret = m_attributes->get_id(name);
     if (ret == invalid_attribute_id()) {
-        throw Error(fmt::format("Attribute '{}' does not exist.", name));
+        throw Error(format("Attribute '{}' does not exist.", name));
     }
     return ret;
 }
@@ -394,9 +396,7 @@ void SurfaceMesh<Scalar, Index>::set_attribute_default_internal(std::string_view
                 attr.set_default_value(invalid<ValueType>());
             } else {
                 throw Error(
-                    fmt::format(
-                        "Attribute name '{}' is not a valid reserved attribute name",
-                        name));
+                    format("Attribute name '{}' is not a valid reserved attribute name", name));
             }
         }
     }
@@ -414,9 +414,7 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute(
     AttributeCreatePolicy policy)
 {
     if (policy == AttributeCreatePolicy::ErrorIfReserved) {
-        la_runtime_assert(
-            !starts_with(name, "$"),
-            fmt::format("Attribute name is reserved: {}", name));
+        la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     }
     return create_attribute_internal(
         name,
@@ -462,7 +460,7 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
     if (usage == AttributeUsage::Position) {
         la_runtime_assert(
             num_channels == get_dimension(),
-            fmt::format(
+            format(
                 "Invalid number of channels for {} attribute: should be {}.",
                 internal::to_string(usage),
                 get_dimension()));
@@ -472,7 +470,7 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_internal(
         usage == AttributeUsage::Bitangent) {
         la_runtime_assert(
             num_channels == get_dimension() || num_channels == get_dimension() + 1,
-            fmt::format(
+            format(
                 "Invalid number of channels for {} attribute: should be {} or {} + 1.",
                 internal::to_string(usage),
                 get_dimension(),
@@ -535,7 +533,7 @@ AttributeId SurfaceMesh<Scalar, Index>::create_attribute_from(
     const SurfaceMesh<OtherScalar, OtherIndex>& source_mesh,
     std::string_view source_name)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     if (source_name.empty()) source_name = name;
     const AttributeId source_id = source_mesh.get_attribute_id(source_name);
     const AttributeBase& source_attr = source_mesh.m_attributes->read_base(source_id);
@@ -558,7 +556,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(
     span<ValueType> values_view)
 {
     la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
 
     const size_t num_elements = get_num_elements_internal(element);
     return wrap_as_attribute_internal(
@@ -580,7 +578,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute(
     SharedSpan<ValueType> shared_values)
 {
     la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
 
     const size_t num_elements = get_num_elements_internal(element);
     return wrap_as_attribute_internal(
@@ -602,7 +600,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(
     span<const ValueType> values_view)
 {
     la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
 
     const size_t num_elements = get_num_elements_internal(element);
     return wrap_as_attribute_internal(
@@ -624,7 +622,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_attribute(
     SharedSpan<const ValueType> shared_values)
 {
     la_runtime_assert(element != AttributeElement::Indexed, "Element type must not be Indexed");
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
 
     const size_t num_elements = get_num_elements_internal(element);
     return wrap_as_attribute_internal(
@@ -646,7 +644,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
     span<ValueType> values_view,
     span<Index> indices_view)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -667,7 +665,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
     SharedSpan<ValueType> shared_values,
     SharedSpan<Index> shared_indices)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -688,7 +686,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
     span<ValueType> values_view,
     SharedSpan<Index> shared_indices)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -709,7 +707,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_indexed_attribute(
     SharedSpan<ValueType> shared_values,
     span<Index> indices_view)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -730,7 +728,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
     span<const ValueType> values_view,
     span<const Index> indices_view)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -751,7 +749,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
     SharedSpan<const ValueType> shared_values,
     SharedSpan<const Index> shared_indices)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -772,7 +770,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
     span<const ValueType> values_view,
     SharedSpan<const Index> shared_indices)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -793,7 +791,7 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_const_indexed_attribute(
     SharedSpan<const ValueType> shared_values,
     span<const Index> indices_view)
 {
-    la_runtime_assert(!starts_with(name, "$"), fmt::format("Attribute name is reserved: {}", name));
+    la_runtime_assert(!starts_with(name, "$"), format("Attribute name is reserved: {}", name));
     return wrap_as_attribute_internal(
         name,
         AttributeElement::Indexed,
@@ -1023,7 +1021,7 @@ AttributeId SurfaceMesh<Scalar, Index>::duplicate_attribute(
 {
     la_runtime_assert(
         !starts_with(new_name, "$"),
-        fmt::format("Attribute name is reserved: {}", new_name));
+        format("Attribute name is reserved: {}", new_name));
     return create_attribute_from(new_name, *this, old_name);
 }
 
@@ -1034,7 +1032,7 @@ void SurfaceMesh<Scalar, Index>::rename_attribute(
 {
     la_runtime_assert(
         !starts_with(new_name, "$"),
-        fmt::format("Attribute name is reserved: {}", new_name));
+        format("Attribute name is reserved: {}", new_name));
     m_attributes->rename(old_name, new_name);
 }
 
@@ -1067,12 +1065,11 @@ void SurfaceMesh<Scalar, Index>::delete_attribute(
         } else if (name == s_reserved_names.next_corner_around_vertex()) {
             m_reserved_ids.next_corner_around_vertex() = invalid_attribute_id();
         } else {
-            throw Error(
-                fmt::format("Attribute name '{}' is not a valid reserved attribute name", name));
+            throw Error(format("Attribute name '{}' is not a valid reserved attribute name", name));
         }
     }
     size_t num_deleted = m_attributes->erase(name);
-    la_runtime_assert(num_deleted == 1, fmt::format("Attribute {} does not exist", name));
+    la_runtime_assert(num_deleted == 1, format("Attribute {} does not exist", name));
 }
 
 template <typename Scalar, typename Index>
@@ -2307,8 +2304,8 @@ void SurfaceMesh<Scalar, Index>::compress_if_regular()
         delete_attribute(s_reserved_names.facet_to_first_corner(), AttributeDeletePolicy::Force);
         delete_attribute(s_reserved_names.corner_to_facet(), AttributeDeletePolicy::Force);
         m_vertex_per_facet = nvpf;
+        la_debug_assert(is_regular());
     }
-    la_debug_assert(is_regular());
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -2650,6 +2647,11 @@ void SurfaceMesh<Scalar, Index>::update_edges_range_internal(
 template <typename Scalar, typename Index>
 void SurfaceMesh<Scalar, Index>::clear_edges()
 {
+    if (!has_edges()) {
+        la_debug_assert(m_num_edges == 0);
+        logger().trace("Mesh already has no edge information, skipping clear_edges()");
+        return;
+    }
     delete_attribute(s_reserved_names.corner_to_edge(), AttributeDeletePolicy::Force);
     delete_attribute(s_reserved_names.edge_to_first_corner(), AttributeDeletePolicy::Force);
     delete_attribute(s_reserved_names.next_corner_around_edge(), AttributeDeletePolicy::Force);
@@ -2686,7 +2688,7 @@ auto SurfaceMesh<Scalar, Index>::get_edge_vertices(Index e) const -> std::array<
     la_debug_assert(m_reserved_ids.edge_to_first_corner() != invalid_attribute_id());
     const Index c = get_attribute<Index>(m_reserved_ids.edge_to_first_corner()).get(e);
     if (c == invalid<Index>()) {
-        throw Error(fmt::format("Invalid corner id for edge: {}", e));
+        throw Error(format("Invalid corner id for edge: {}", e));
     }
     Index f = get_corner_facet(c);
     Index lv = c - get_facet_corner_begin(f);
@@ -3589,6 +3591,175 @@ AttributeId SurfaceMesh<Scalar, Index>::wrap_as_attribute_internal(
         return id;
     }
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// SurfaceMeshInfo conversion
+////////////////////////////////////////////////////////////////////////////////
+
+namespace internal {
+
+template <typename Scalar, typename Index>
+SurfaceMeshInfo from_surface_mesh(const SurfaceMesh<Scalar, Index>& mesh)
+{
+    SurfaceMeshInfo info;
+    info.scalar_type_size = sizeof(Scalar);
+    info.index_type_size = sizeof(Index);
+    info.num_vertices = mesh.m_num_vertices;
+    info.num_facets = mesh.m_num_facets;
+    info.num_corners = mesh.m_num_corners;
+    info.num_edges = mesh.m_num_edges;
+    info.dimension = mesh.m_dimension;
+    info.vertex_per_facet = mesh.m_vertex_per_facet;
+
+    seq_foreach_named_attribute_read(mesh, [&](std::string_view name, auto&& attr) {
+        using AttributeType = std::decay_t<decltype(attr)>;
+
+        AttributeInfo ai;
+        ai.name = name;
+        ai.attribute_id = mesh.get_attribute_id(name);
+        ai.value_type = static_cast<decltype(ai.value_type)>(attr.get_value_type());
+        ai.element_type = static_cast<decltype(ai.element_type)>(attr.get_element_type());
+        ai.usage = static_cast<decltype(ai.usage)>(attr.get_usage());
+        ai.num_channels = attr.get_num_channels();
+
+        if constexpr (AttributeType::IsIndexed) {
+            ai.is_indexed = true;
+            const auto& values = attr.values();
+            const auto& indices = attr.indices();
+            ai.num_elements = 0;
+            ai.values_num_elements = values.get_num_elements();
+            ai.values_num_channels = values.get_num_channels();
+            ai.indices_num_elements = indices.get_num_elements();
+            ai.index_type_size = sizeof(Index);
+
+            auto vals = values.get_all();
+            ai.values_bytes = span<const uint8_t>(
+                reinterpret_cast<const uint8_t*>(vals.data()),
+                vals.size() * sizeof(typename AttributeType::ValueType));
+            auto inds = indices.get_all();
+            ai.indices_bytes = span<const uint8_t>(
+                reinterpret_cast<const uint8_t*>(inds.data()),
+                inds.size() * sizeof(Index));
+        } else {
+            ai.is_indexed = false;
+            ai.num_elements = attr.get_num_elements();
+
+            auto data = attr.get_all();
+            ai.data_bytes = span<const uint8_t>(
+                reinterpret_cast<const uint8_t*>(data.data()),
+                data.size() * sizeof(typename AttributeType::ValueType));
+        }
+
+        info.attributes.push_back(std::move(ai));
+    });
+
+    return info;
+}
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> to_surface_mesh(const SurfaceMeshInfo& info)
+{
+    la_runtime_assert(
+        info.scalar_type_size == sizeof(Scalar),
+        "Scalar type size mismatch: expected " + std::to_string(sizeof(Scalar)) + ", got " +
+            std::to_string(info.scalar_type_size));
+    la_runtime_assert(
+        info.index_type_size == sizeof(Index),
+        "Index type size mismatch: expected " + std::to_string(sizeof(Index)) + ", got " +
+            std::to_string(info.index_type_size));
+
+    using MeshType = SurfaceMesh<Scalar, Index>;
+    MeshType mesh(typename MeshType::BareMeshTag{});
+
+    mesh.m_num_vertices = static_cast<Index>(info.num_vertices);
+    mesh.m_num_facets = static_cast<Index>(info.num_facets);
+    mesh.m_num_corners = static_cast<Index>(info.num_corners);
+    mesh.m_num_edges = static_cast<Index>(info.num_edges);
+    mesh.m_dimension = static_cast<Index>(info.dimension);
+    mesh.m_vertex_per_facet = static_cast<Index>(info.vertex_per_facet);
+
+    // Sort attributes by attribute_id to restore original creation order
+    std::vector<const AttributeInfo*> sorted_attrs;
+    sorted_attrs.reserve(info.attributes.size());
+    for (const auto& ai : info.attributes) {
+        sorted_attrs.push_back(&ai);
+    }
+    std::sort(sorted_attrs.begin(), sorted_attrs.end(), [](const auto* a, const auto* b) {
+        return a->attribute_id < b->attribute_id;
+    });
+
+    for (const auto* ai : sorted_attrs) {
+        auto value_type = static_cast<AttributeValueType>(ai->value_type);
+        auto element = static_cast<AttributeElement>(ai->element_type);
+        auto usage = static_cast<AttributeUsage>(ai->usage);
+
+        AttributeId id = invalid_attribute_id();
+
+        if (ai->is_indexed) {
+            switch (value_type) {
+#define LA_X_restore_indexed(_, ValueType)                               \
+    case make_attribute_value_type<ValueType>(): {                       \
+        auto values = span<const ValueType>(                             \
+            reinterpret_cast<const ValueType*>(ai->values_bytes.data()), \
+            ai->values_bytes.size() / sizeof(ValueType));                \
+        auto indices = span<const Index>(                                \
+            reinterpret_cast<const Index*>(ai->indices_bytes.data()),    \
+            ai->indices_bytes.size() / sizeof(Index));                   \
+        id = mesh.template create_attribute_internal<ValueType>(         \
+            ai->name,                                                    \
+            element,                                                     \
+            usage,                                                       \
+            ai->values_num_channels,                                     \
+            values,                                                      \
+            indices);                                                    \
+        break;                                                           \
+    }
+                LA_ATTRIBUTE_X(restore_indexed, 0)
+#undef LA_X_restore_indexed
+            }
+        } else {
+            switch (value_type) {
+#define LA_X_restore_attr(_, ValueType)                                \
+    case make_attribute_value_type<ValueType>(): {                     \
+        auto data = span<const ValueType>(                             \
+            reinterpret_cast<const ValueType*>(ai->data_bytes.data()), \
+            ai->data_bytes.size() / sizeof(ValueType));                \
+        id = mesh.template create_attribute_internal<ValueType>(       \
+            ai->name,                                                  \
+            element,                                                   \
+            usage,                                                     \
+            ai->num_channels,                                          \
+            data);                                                     \
+        break;                                                         \
+    }
+                LA_ATTRIBUTE_X(restore_attr, 0)
+#undef LA_X_restore_attr
+            }
+        }
+
+        // Set reserved attribute IDs
+        constexpr int N = MeshType::ReservedAttributeIds::size();
+        for (int i = 0; i < N; ++i) {
+            if (ai->name == MeshType::s_reserved_names.items[i]) {
+                mesh.m_reserved_ids.items[i] = id;
+                break;
+            }
+        }
+    }
+
+    return mesh;
+}
+
+// Explicit instantiations for from_surface_mesh / to_surface_mesh
+#define LA_X_mesh_info(_, Scalar, Index)                                            \
+    template LA_CORE_API SurfaceMeshInfo from_surface_mesh<Scalar, Index>(          \
+        const SurfaceMesh<Scalar, Index>&);                                         \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> to_surface_mesh<Scalar, Index>( \
+        const SurfaceMeshInfo&);
+LA_SURFACE_MESH_X(mesh_info, 0)
+#undef LA_X_mesh_info
+
+} // namespace internal
 
 ////////////////////////////////////////////////////////////////////////////////
 // Explicit template instantiations

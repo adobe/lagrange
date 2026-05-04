@@ -14,6 +14,7 @@
 #include <lagrange/common.h>
 #include <lagrange/ui/panels/LoggerPanel.h>
 #include <lagrange/ui/utils/uipanel.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <imgui.h>
 #include <misc/cpp/imgui_stdlib.h>
@@ -77,7 +78,7 @@ protected:
         if (m_data.data.size() > LOGUI_LIMIT) {
             m_data.data.pop_front();
         }
-        m_data.data.emplace_back(color, fmt::to_string(formatted));
+        m_data.data.emplace_back(color, std::string(formatted.data(), formatted.size()));
     }
 
     void flush_() override

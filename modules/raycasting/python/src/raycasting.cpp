@@ -16,6 +16,7 @@
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/raycasting/Options.h>
 #include <lagrange/raycasting/RayCaster.h>
+#include <lagrange/raycasting/compute_local_feature_size.h>
 #include <lagrange/raycasting/project.h>
 #include <lagrange/raycasting/project_closest_point.h>
 #include <lagrange/raycasting/project_closest_vertex.h>
@@ -666,6 +667,68 @@ source mesh, vertex positions are set from the hit.
 :param ray_caster:      Optional pre-built :class:`RayCaster` for caching.
 
 :return: (N, 3) NumPy array of projected positions (float64).)");
+
+    // =========================================================================
+    // compute_local_feature_size
+    // =========================================================================
+
+    m.def(
+        "compute_local_feature_size",
+        [](MeshType& mesh,
+           std::string_view output_attribute_name,
+           std::string_view direction_mode,
+           float ray_offset,
+           float default_lfs,
+           float medial_axis_tolerance,
+           const raycasting::RayCaster* ray_caster) -> AttributeId {
+            raycasting::LocalFeatureSizeOptions opts;
+            opts.output_attribute_name = output_attribute_name;
+
+            if (direction_mode == "interior") {
+                opts.direction_mode = raycasting::RayDirectionMode::Interior;
+            } else if (direction_mode == "exterior") {
+                opts.direction_mode = raycasting::RayDirectionMode::Exterior;
+            } else if (direction_mode == "both") {
+                opts.direction_mode = raycasting::RayDirectionMode::Both;
+            } else {
+                throw std::runtime_error(
+                    "Invalid direction_mode. Use 'interior', 'exterior', or 'both'.");
+            }
+
+            opts.ray_offset = ray_offset;
+            opts.default_lfs = default_lfs;
+            opts.medial_axis_tolerance = medial_axis_tolerance;
+            return raycasting::compute_local_feature_size(mesh, opts, ray_caster);
+        },
+        "mesh"_a,
+        nb::kw_only(),
+        "output_attribute_name"_a = "@lfs",
+        "direction_mode"_a = "interior",
+        "ray_offset"_a = 1e-4f,
+        "default_lfs"_a = std::numeric_limits<float>::infinity(),
+        "medial_axis_tolerance"_a = 1e-4f,
+        "ray_caster"_a = nullptr,
+        R"(Compute local feature size for each vertex using medial axis approximation.
+
+The local feature size is stored as a per-vertex attribute on the mesh.
+
+:param mesh:                    Triangle mesh (modified in place to add the LFS attribute).
+:param output_attribute_name:   Name of the output LFS attribute (default: ``"@lfs"``).
+:param direction_mode:          Ray direction mode -- ``"interior"``, ``"exterior"``, or
+                                ``"both"`` (default: ``"interior"``).
+:param ray_offset:              Ray offset along the vertex normal to avoid self-intersection
+                                (relative to bounding box diagonal). The actual offset distance
+                                is ``ray_offset * bbox_diagonal`` (default: 1e-4).
+:param default_lfs:             Default local feature size value used when raycasting fails
+                                to find valid hits (default: infinity).
+:param medial_axis_tolerance:   Error tolerance for medial axis binary search convergence
+                                (relative to bounding box diagonal). The binary search stops
+                                when ``|distance_to_surface - depth_along_ray| < tolerance *
+                                bbox_diagonal``. Smaller values produce more accurate results
+                                but require more iterations (default: 1e-4).
+:param ray_caster:              Optional pre-built :class:`RayCaster` for caching.
+:return: Attribute id of the newly added LFS attribute.
+:rtype: int)");
 }
 
 } // namespace lagrange::python

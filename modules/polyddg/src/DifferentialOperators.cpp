@@ -239,48 +239,11 @@ Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::star0() const
     return inner_product_0_form();
 }
 
-// star1 operator
+// star1 operator — delegates to inner_product_1_form, consistent with star0 and star2.
 template <typename Scalar, typename Index>
-Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::star1() const
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::star1(Scalar lambda) const
 {
-    const Index num_edges = m_mesh.get_num_edges();
-
-    auto vertices = vertex_view(m_mesh);
-    auto facet_centroids = attribute_matrix_view<Scalar>(m_mesh, m_centroid_id);
-
-    std::vector<Eigen::Triplet<Scalar>> entries(num_edges);
-    for (Index eid = 0; eid < num_edges; eid++) {
-        auto [v0, v1] = m_mesh.get_edge_vertices(eid);
-        Scalar primal_edge_length = (vertices.row(v1) - vertices.row(v0)).norm();
-
-        Vector c0, c1;
-
-        auto cid = m_mesh.get_first_corner_around_edge(eid);
-        la_debug_assert(cid != invalid<Index>(), "Invalid corner index for boundary edge.");
-        auto fid = m_mesh.get_corner_facet(cid);
-        c0 = facet_centroids.row(fid).template head<3>();
-        auto edge_valence = m_mesh.count_num_corners_around_edge(eid);
-        la_debug_assert(edge_valence > 0, "Edge valence must be positive.");
-
-        if (edge_valence == 1) {
-            c1 = (vertices.row(v0) + vertices.row(v1)) / 2;
-        } else if (edge_valence == 2) {
-            auto cid2 = m_mesh.get_next_corner_around_edge(cid);
-            auto fid2 = m_mesh.get_corner_facet(cid2);
-            c1 = facet_centroids.row(fid2).template head<3>();
-        } else {
-            throw std::runtime_error("star1 is only implemented for manifold meshes.");
-        }
-        Scalar dual_edge_length = (c1 - c0).norm();
-        entries[eid] = Eigen::Triplet<Scalar>(
-            static_cast<Eigen::Index>(eid),
-            static_cast<Eigen::Index>(eid),
-            dual_edge_length / primal_edge_length);
-    }
-
-    Eigen::SparseMatrix<Scalar> M(num_edges, num_edges);
-    M.setFromTriplets(entries.begin(), entries.end());
-    return M;
+    return inner_product_1_form(lambda);
 }
 
 // star2 operator
@@ -540,6 +503,50 @@ Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::laplacian(Scal
     auto D0 = d0();
     auto M = inner_product_1_form(lambda);
     return D0.transpose() * M * D0;
+}
+
+// co-differential δ₁ : Ω¹ → Ω⁰  (size #V × #E)
+// δ₁ = d0ᵀ · M₁(λ),  the adjoint of d0 w.r.t. the 1-form inner product.
+// Identical to divergence(lambda).
+template <typename Scalar, typename Index>
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::delta1(Scalar lambda) const
+{
+    return divergence(lambda);
+}
+
+// co-differential δ₂ : Ω² → Ω¹  (size #E × #F)
+// δ₂ = d1ᵀ · M₂,  the adjoint of d1 w.r.t. the 2-form inner product.
+// Consistent with delta1 = d0ᵀ · M₁ (both omit the left-hand mass-matrix inverse).
+template <typename Scalar, typename Index>
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::delta2() const
+{
+    auto D1 = d1();
+    auto M2 = inner_product_2_form();
+    return D1.transpose() * M2;
+}
+
+// 2-form Laplacian Δ₂ : Ω² → Ω²  (size #F × #F)
+// Δ₂ = d1 · δ₂ = d1 · d1ᵀ · M₂.
+// Analogous to laplacian() = d0ᵀ · M₁ · d0, but for 2-forms.
+template <typename Scalar, typename Index>
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::laplacian2() const
+{
+    auto D1 = d1();
+    auto Cd = delta2();
+    return D1 * Cd;
+}
+
+// Hodge Laplacian on 1-forms Δ₁ : Ω¹ → Ω¹  (size #E × #E)
+// Δ₁ = d0 · d0ᵀ · M₁(λ)  +  d1ᵀ · M₂ · d1
+//      ╰── exact / downward ──╯  ╰── co-exact / upward ──╯
+template <typename Scalar, typename Index>
+Eigen::SparseMatrix<Scalar> DifferentialOperators<Scalar, Index>::laplacian1(Scalar lambda) const
+{
+    auto D0 = d0();
+    auto D1 = d1();
+    auto M1 = inner_product_1_form(lambda);
+    auto M2 = inner_product_2_form();
+    return D0 * (D0.transpose() * M1) + D1.transpose() * M2 * D1;
 }
 
 // Vertex tangent bases
@@ -1029,17 +1036,22 @@ DifferentialOperators<Scalar, Index>::levi_civita_nrosy(Index fid, Index lv, Ind
     Vector nv = vertex_normal.row(vid);
     auto Q = Eigen::Quaternion<Scalar>::FromTwoVectors(nv, nf).matrix();
 
-    if (n != 1) {
-        la_debug_assert(n > 1, "n should be positive.");
+    // Compute the n=1 connection in the 2D tangent plane, then raise the 2D
+    // rotation to the n-th power. This correctly multiplies the tangent-plane
+    // rotation angle by n for the n-rosy connection.
+    Eigen::Matrix<Scalar, 2, 2> R2d = Tf.transpose() * Q * Tv;
 
-        Eigen::Matrix<Scalar, 3, 3> R = Q;
+    la_runtime_assert(n >= 1, "levi_civita_nrosy: n must be >= 1.");
+
+    if (n != 1) {
+        Eigen::Matrix<Scalar, 2, 2> R2d_n = R2d;
         for (Index i = 1; i < n; i++) {
-            R = R * Q;
+            R2d_n = R2d_n * R2d;
         }
-        Q = R;
+        return R2d_n;
     }
 
-    return Tf.transpose() * Q * Tv;
+    return R2d;
 }
 
 // Per-facet Levi-Civita operator
@@ -1562,6 +1574,9 @@ Eigen::Matrix<Scalar, 3, 2> DifferentialOperators<Scalar, Index>::vertex_basis(I
     if (c == invalid<Index>()) {
         // All incident edges are degenerate, pick arbitrary u
         u = n.unitOrthogonal();
+    } else {
+        // Project u onto the tangent plane so both basis vectors are orthogonal to n.
+        u = (u - u.dot(n) * n).stableNormalized();
     }
     Vector v = n.cross(u);
 

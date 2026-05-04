@@ -15,6 +15,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
 struct FacetCircumcenterOptions
 {
     /// Output facet circumcenter attribute name.
@@ -33,5 +38,7 @@ template <typename Scalar, typename Index>
 AttributeId compute_facet_circumcenter(
     SurfaceMesh<Scalar, Index>& mesh,
     FacetCircumcenterOptions options = {});
+
+/// @}
 
 } // namespace lagrange

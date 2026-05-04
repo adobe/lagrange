@@ -71,13 +71,30 @@ int main(int argc, char** argv)
         "Project vertex attributes to the limit surface");
     app.add_option("--refinement", subdivision_options.refinement, "Mesh refinement method")
         ->transform(CLI::CheckedTransformer(map, CLI::ignore_case));
-    app.add_option(
+    auto edge_length_option = app.add_option(
         "--edge-length",
         subdivision_options.max_edge_length,
         "Max edge length target for adaptive refinement");
+    auto chordal_deviation_option = app.add_option(
+        "--chordal-deviation",
+        subdivision_options.max_chordal_deviation,
+        "Max chordal deviation for adaptive refinement");
+    edge_length_option->excludes(chordal_deviation_option);
+    chordal_deviation_option->excludes(edge_length_option);
     app.add_flag("--normal", args.output_btn, "Compute limit normal as a vertex attribute");
     app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
     CLI11_PARSE(app, argc, argv);
+
+    if ((*edge_length_option || *chordal_deviation_option) &&
+        subdivision_options.refinement != lagrange::subdivision::RefinementType::EdgeAdaptive) {
+        lagrange::logger().error(
+            "--edge-length and --chordal-deviation require --refinement EdgeAdaptive: {} (Uniform: "
+            "{}, EdgeAdaptive: {})",
+            static_cast<int>(subdivision_options.refinement),
+            static_cast<int>(lagrange::subdivision::RefinementType::Uniform),
+            static_cast<int>(lagrange::subdivision::RefinementType::EdgeAdaptive));
+        return 1;
+    }
 
     args.log_level = std::max(0, std::min(6, args.log_level));
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.log_level));

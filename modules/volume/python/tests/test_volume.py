@@ -10,12 +10,10 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-from lagrange.lagrange.volume import Grid  # why??
+from lagrange.volume import Grid
 import numpy as np
 import tempfile
 import pathlib
-
-from .assets import cube  # noqa: F401
 
 
 class TestMeshToVolume:

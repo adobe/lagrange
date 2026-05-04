@@ -14,6 +14,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/image_io/common.h>
 #include <lagrange/image_io/exr.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <stb_image_write.h>
 
@@ -37,7 +38,7 @@ bool save_image(
             "save_image error: invalid input (fn, data, width, height, precision, "
             "channel): {}, {}, {}, {}, {}, {}",
             input_path.string(),
-            fmt::ptr(data),
+            ptr(data),
             width,
             height,
             static_cast<unsigned int>(precision),

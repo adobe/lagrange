@@ -12,7 +12,9 @@
 
 #include <lagrange/bvh/EdgeAABBTree.h>
 #include <lagrange/bvh/TriangleAABBTree.h>
+#include <lagrange/bvh/compute_intersecting_pairs.h>
 #include <lagrange/bvh/compute_mesh_distances.h>
+#include <lagrange/bvh/compute_uv_overlap.h>
 #include <lagrange/bvh/remove_interior_shells.h>
 #include <lagrange/bvh/weld_vertices.h>
 #include <lagrange/python/binding.h>
@@ -469,6 +471,129 @@ Both meshes must have the same spatial dimension and must be triangle meshes.
 
 :param mesh: Input mesh to process.
 :return: A new mesh with interior shells removed.)");
+
+    // UV overlap enum
+    nb::enum_<bvh::UVOverlapMethod>(m, "UVOverlapMethod")
+        .value(
+            "SweepAndPrune",
+            bvh::UVOverlapMethod::SweepAndPrune,
+            "Zomorodian-Edelsbrunner sweep-and-prune.")
+        .value("BVH", bvh::UVOverlapMethod::BVH, "AABB tree per-triangle query.")
+        .value(
+            "Hybrid",
+            bvh::UVOverlapMethod::Hybrid,
+            "Zomorodian-Edelsbrunner HYBRID algorithm (recursive divide-and-conquer).");
+
+    // UV overlap result (Python NamedTuple)
+    // Note: No direct nanobind support for NamedTuple yet, see:
+    // https://github.com/wjakob/nanobind/discussions/1279
+    nb::object typing = nb::module_::import_("typing");
+    nb::object builtins = nb::module_::import_("builtins");
+    nb::object UVOverlapResult = typing.attr("NamedTuple")(
+        "UVOverlapResult",
+        nb::make_tuple(
+            nb::make_tuple("has_overlap", builtins.attr("bool")),
+            nb::make_tuple("overlap_area", typing.attr("Optional")[builtins.attr("float")]),
+            nb::make_tuple("overlapping_pairs", builtins.attr("list")),
+            nb::make_tuple("overlap_coloring_id", builtins.attr("int"))));
+    m.attr("UVOverlapResult") = UVOverlapResult;
+
+    // compute_uv_overlap function
+    m.def(
+        "compute_uv_overlap",
+        [UVOverlapResult](
+            MeshType& mesh,
+            std::string uv_attribute_name,
+            bool compute_overlap_area,
+            bool compute_overlap_coloring,
+            std::string overlap_coloring_attribute_name,
+            bool compute_overlapping_pairs,
+            bvh::UVOverlapMethod method) -> nb::object {
+            bvh::UVOverlapOptions opts;
+            opts.uv_attribute_name = std::move(uv_attribute_name);
+            opts.compute_overlap_area = compute_overlap_area;
+            opts.compute_overlap_coloring = compute_overlap_coloring;
+            opts.overlap_coloring_attribute_name = std::move(overlap_coloring_attribute_name);
+            opts.compute_overlapping_pairs = compute_overlapping_pairs;
+            opts.method = method;
+            auto result = bvh::compute_uv_overlap(mesh, opts);
+
+            nb::object area = result.overlap_area.has_value()
+                                  ? nb::cast(result.overlap_area.value())
+                                  : nb::none();
+
+            nb::list pairs;
+            for (auto& [i, j] : result.overlapping_pairs) {
+                pairs.append(nb::make_tuple(i, j));
+            }
+
+            return UVOverlapResult(
+                nb::cast(result.has_overlap),
+                area,
+                pairs,
+                nb::cast(result.overlap_coloring_id));
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = bvh::UVOverlapOptions{}.uv_attribute_name,
+        "compute_overlap_area"_a = bvh::UVOverlapOptions{}.compute_overlap_area,
+        "compute_overlap_coloring"_a = bvh::UVOverlapOptions{}.compute_overlap_coloring,
+        "overlap_coloring_attribute_name"_a =
+            bvh::UVOverlapOptions{}.overlap_coloring_attribute_name,
+        "compute_overlapping_pairs"_a = bvh::UVOverlapOptions{}.compute_overlapping_pairs,
+        "method"_a = bvh::UVOverlapOptions{}.method,
+        R"(Compute pairwise UV triangle overlap.
+
+For every pair of UV-space triangles whose 2-D bounding boxes intersect, an exact
+separating-axis test using orient2D predicates confirms a genuine interior intersection
+before computing the intersection area via Sutherland-Hodgman clipping.
+
+Triangles that share only a boundary edge or a single vertex are never counted as
+overlapping.
+
+:param mesh: Input triangle mesh with a UV attribute.
+:param uv_attribute_name: UV attribute name. Empty string uses the first UV attribute found. Vertex, indexed and corner attributes are supported.
+:param compute_overlap_area: If True, compute the total overlap area (default: True).
+:param compute_overlap_coloring: If True, compute a per-facet coloring attribute (default: False).
+:param overlap_coloring_attribute_name: Name of the coloring attribute (default: "@uv_overlap_color").
+:param compute_overlapping_pairs: If True, return the list of overlapping pairs (default: False).
+:param method: Candidate detection algorithm (default: UVOverlapMethod.Hybrid).
+
+:return: UVOverlapResult containing overlap detection results.)");
+
+    m.def(
+        "compute_intersecting_pairs",
+        [](const MeshType& mesh) {
+            auto adj = bvh::compute_intersecting_pairs<Scalar, Index>(mesh);
+            // Convert AdjacencyList to list of tuples for Python
+            std::vector<std::pair<Index, Index>> result;
+            for (Index i = 0; i < adj.get_num_entries(); ++i) {
+                auto neighbors = adj.get_neighbors(i);
+                for (Index j : neighbors) {
+                    // Only add each pair once (i < j)
+                    if (i < j) {
+                        result.emplace_back(i, j);
+                    }
+                }
+            }
+            return result;
+        },
+        "mesh"_a,
+        R"(Compute all pairs of intersecting facets in a triangle mesh using BVH acceleration.
+
+Detects facet pairs whose interiors intersect using exact geometric predicates. Only facets
+that do not share vertices are tested (vertex-adjacent facets are skipped).
+
+:param mesh: The input triangle mesh. Must contain only triangular facets.
+
+:returns: A list of tuples (i, j) where i < j representing non-vertex-adjacent facets
+          whose interiors intersect.
+
+:raises RuntimeError: If the mesh is not a triangle mesh or if the mesh is not 3D.
+
+.. note::
+   Vertex-adjacent facets are filtered before testing. The geometric test uses
+   include_boundary=false (interior intersection only).
+)");
 }
 
 } // namespace lagrange::python

@@ -43,6 +43,10 @@ uv.lock
 *.out
 *.app
 
+# Lagrange serialized mesh/scene
+*.lgs
+*.lgm
+
 # Mesh files
 *.obj
 *.off
@@ -57,6 +61,9 @@ uv.lock
 *.png
 *.jpg
 *.jpeg
+
+# Init files
+*.ini
 
 # Openvdb files
 tensor_*.json
@@ -96,3 +103,14 @@ keyfile.txt
 
 # ctags
 tags
+
+# Claude
+.claude/agent-memory/
+/.tmp/
+.claude/settings.local.json
+
+# Javascript bindings
+bindings/js/adobe-lagrange-*.tgz
+bindings/js/dist
+bindings/js/node_modules
+bindings/js/package-lock.json

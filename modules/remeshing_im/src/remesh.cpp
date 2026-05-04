@@ -18,9 +18,9 @@
 #include <lagrange/eigen_convert.h>
 #include <lagrange/remeshing_im/api.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/scope_guard.h>
 #include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
-#include <lagrange/utils/scope_guard.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>

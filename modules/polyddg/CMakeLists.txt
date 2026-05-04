@@ -16,7 +16,11 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 # 2. dependencies
-target_link_libraries(lagrange_polyddg PUBLIC lagrange::core)
+lagrange_include_modules(solver)
+target_link_libraries(lagrange_polyddg
+    PUBLIC lagrange::core
+    PRIVATE lagrange::solver
+)
 
 # 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)

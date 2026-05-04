@@ -185,22 +185,50 @@ def print_extra_info(mesh, info):
     print_property("num isolated vertices", num_isolated_vertices, 0)
 
     # UV check
-    if (
-        mesh.is_triangle_mesh
-        and mesh.get_matching_attribute_ids(usage=lagrange.AttributeUsage.UV) != []
-    ):
-        uv_attr_id = mesh.get_matching_attribute_id(usage=lagrange.AttributeUsage.UV)
-        if not mesh.is_attribute_indexed(uv_attr_id):
-            uv_attr_id = lagrange.map_attribute(
-                mesh, uv_attr_id, "_indexed_uv", lagrange.AttributeElement.Indexed
+    uv_ids = mesh.get_matching_attribute_ids(usage=lagrange.AttributeUsage.UV)
+    if mesh.is_triangle_mesh and len(uv_ids) > 0:
+        for uv_attr_id in uv_ids:
+            uv_attr_name = mesh.get_attribute_name(uv_attr_id)
+            if not mesh.is_attribute_indexed(uv_attr_id):
+                indexed_uv_attr_name = lagrange.get_unique_attribute_name(
+                    mesh, f"{uv_attr_name}_indexed", emit_warning=False
+                )
+                uv_attr_id = lagrange.map_attribute(
+                    mesh, uv_attr_id, indexed_uv_attr_name, lagrange.AttributeElement.Indexed
+                )
+            distortion_id = lagrange.compute_uv_distortion(
+                mesh,
+                mesh.get_attribute_name(uv_attr_id),
+                metric=lagrange.DistortionMetric.AreaRatio,
             )
-        distortion_id = lagrange.compute_uv_distortion(
-            mesh, mesh.get_attribute_name(uv_attr_id), metric=lagrange.DistortionMetric.AreaRatio
-        )
-        distortion = mesh.attribute(distortion_id).data
-        num_flipped_uv = int(np.sum(distortion < 0))
-        print_property("num flipped UV facets", num_flipped_uv, 0)
-        info["num_flipped_uv"] = num_flipped_uv
+            distortion = mesh.attribute(distortion_id).data
+            num_flipped_uv = int(np.sum(distortion < 0))
+            print_property(f"{uv_attr_name}: num flipped UV facets", num_flipped_uv, 0)
+            info[f"{uv_attr_name}:num_flipped_uv"] = num_flipped_uv
+
+            if mesh.indexed_attribute(uv_attr_id).values.dtype != np.float64:
+                new_uv_attr_name = lagrange.get_unique_attribute_name(
+                    mesh, f"{uv_attr_name}_float64", emit_warning=False
+                )
+                uv_attr_id = lagrange.cast_attribute(mesh, uv_attr_id, np.float64, new_uv_attr_name)
+            uv_mesh = lagrange.uv_mesh_view(mesh, mesh.get_attribute_name(uv_attr_id))
+            charts = lagrange.separate_by_components(uv_mesh)
+            print_property(f"{uv_attr_name}: num charts", len(charts))
+            info[f"{uv_attr_name}:num_charts"] = len(charts)
+
+    # Intersecting pairs check
+    if mesh.dimension == 3:
+        # Triangulate mesh if needed for intersection check
+        if mesh.is_triangle_mesh:
+            mesh_to_check = mesh
+        else:
+            mesh_to_check = mesh.clone()
+            lagrange.triangulate_polygonal_facets(mesh_to_check)
+
+        intersecting_pairs = lagrange.bvh.compute_intersecting_pairs(mesh_to_check)
+        num_intersecting_pairs = len(intersecting_pairs)
+        info["num_intersecting_pairs"] = num_intersecting_pairs
+        print_property("num intersecting pairs", num_intersecting_pairs, 0)
 
 
 def usage_to_str(usage):

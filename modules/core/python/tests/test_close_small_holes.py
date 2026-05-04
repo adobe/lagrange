@@ -11,8 +11,6 @@
 #
 import lagrange
 
-from .assets import cube, cube_with_uv  # noqa: F401
-
 
 class TestCloseSmallHoles:
     def test_close_small_holes(self, cube):

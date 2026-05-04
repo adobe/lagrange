@@ -13,8 +13,6 @@ import lagrange
 
 import numpy as np
 
-from .assets import cube_triangular  # noqa: F401
-
 
 class TestComputeFacetCircumcenter:
     def check_centroid(self, mesh, centroid_attr_id):

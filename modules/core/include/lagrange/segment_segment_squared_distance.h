@@ -19,6 +19,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
+///
 /// Computes the squared distance between two N-d line segments, and the closest pair of points
 /// whose separation is this distance.
 ///
@@ -135,5 +140,7 @@ auto segment_segment_squared_distance(
     closest_pointV = V0 + lambdaV * d2;
     return (closest_pointU - closest_pointV).squaredNorm();
 }
+
+/// @}
 
 } // namespace lagrange

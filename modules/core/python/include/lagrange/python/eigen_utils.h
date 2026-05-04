@@ -12,6 +12,7 @@
 #pragma once
 #include <lagrange/Logger.h>
 #include <lagrange/python/binding.h>
+#include <lagrange/utils/fmt/format.h>
 
 #include <Eigen/Core>
 
@@ -41,7 +42,8 @@ Point<Scalar, Dim> to_eigen_point(const GenericPoint<Scalar, Dim>& p)
     if (std::holds_alternative<nb::list>(p)) {
         auto lst = std::get<nb::list>(p);
         if (lst.size() != Dim) {
-            throw std::runtime_error(fmt::format("Point list must have exactly {} elements.", Dim));
+            throw std::runtime_error(
+                lagrange::format("Point list must have exactly {} elements.", Dim));
         }
         for (int i = 0; i < Dim; ++i) {
             q(i) = nb::cast<Scalar>(lst[i]);

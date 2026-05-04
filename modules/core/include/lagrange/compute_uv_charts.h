@@ -16,12 +16,17 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
 struct UVChartOptions
 {
     using ConnectivityType = lagrange::ConnectivityType;
 
     /// Input UV attribute name.
-    /// If empty, the first indexed UV attribute will be used.
+    /// If empty, the first vertex/indexed UV attribute will be used.
     std::string_view uv_attribute_name = "";
 
     /// Output chart id attribute name.
@@ -49,5 +54,7 @@ struct UVChartOptions
  */
 template <typename Scalar, typename Index>
 size_t compute_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const UVChartOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

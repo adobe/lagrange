@@ -17,6 +17,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
 struct RescaleUVOptions
 {
     /**
@@ -50,5 +55,7 @@ struct RescaleUVOptions
 ///
 template <typename Scalar, typename Index>
 void rescale_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const RescaleUVOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

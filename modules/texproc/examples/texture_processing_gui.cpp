@@ -37,6 +37,7 @@
 #include <polyscope/polyscope.h>
 #include <polyscope/curve_network.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <CLI/CLI.hpp>
@@ -233,9 +234,9 @@ bool UiState::has_valid_inputs() const
 }
 
 template <typename... Args>
-void ImGui_FmtText(fmt::format_string<Args...> text, Args&&... args)
+void ImGui_FmtText(lagrange::format_string<Args...> text, Args&&... args)
 {
-    ImGui::Text("%s", fmt::format(text, std::forward<Args>(args)...).c_str());
+    ImGui::Text("%s", lagrange::format(text, std::forward<Args>(args)...).c_str());
 }
 
 void UiState::main_panel()

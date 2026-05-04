@@ -11,10 +11,12 @@
  */
 #include <lagrange/Logger.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/mesh_bbox.h>
+#include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/fmt/join.h>
 #include <lagrange/views.h>
 #include <lagrange/winding/FastWindingNumber.h>
 
-#include <spdlog/fmt/ranges.h>
 #include <CLI/CLI.hpp>
 #include <Eigen/Geometry>
 
@@ -56,10 +58,7 @@ int main(int argc, char** argv)
     auto mesh = lagrange::io::load_mesh<SurfaceMeshType>(args.input);
 
     // Compute bbox
-    Eigen::AlignedBox<Scalar, 3> bbox;
-    for (auto p : vertex_view(mesh).rowwise()) {
-        bbox.extend(p.transpose());
-    }
+    auto bbox = lagrange::mesh_bbox<3>(mesh);
     std::uniform_real_distribution<Scalar> px(bbox.min().x(), bbox.max().x());
     std::uniform_real_distribution<Scalar> py(bbox.min().y(), bbox.max().y());
     std::uniform_real_distribution<Scalar> pz(bbox.min().z(), bbox.max().z());
@@ -81,7 +80,7 @@ int main(int argc, char** argv)
     lagrange::logger().info("Saving filtered sample points: {}", args.output);
     fs::ofstream out(args.output);
     for (auto p : points) {
-        out << fmt::format("{}\n", fmt::join(p, " "));
+        out << lagrange::format("{}\n", lagrange::join(p, " "));
     }
 
     return 0;

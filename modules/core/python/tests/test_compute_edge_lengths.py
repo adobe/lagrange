@@ -14,8 +14,6 @@ import lagrange
 import numpy as np
 import pytest
 
-from .assets import cube  # noqa: F401
-
 
 class TestComputeEdgeLengths:
     def test_cube(self, cube):

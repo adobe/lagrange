@@ -18,6 +18,7 @@
 #include <lagrange/primitive/generate_subdivided_sphere.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/views.h>
 
 #include "primitive_utils.h"
@@ -40,12 +41,10 @@ SurfaceMesh<Scalar, Index> generate_subdivided_sphere(
     if (setting.uv_attribute_name != "") {
         la_runtime_assert(
             base_shape.has_attribute(setting.uv_attribute_name),
-            fmt::format(
-                "UV attribute '{}' not found in the base shape.",
-                setting.uv_attribute_name));
+            format("UV attribute '{}' not found in the base shape.", setting.uv_attribute_name));
         la_runtime_assert(
             base_shape.is_attribute_indexed(setting.uv_attribute_name),
-            fmt::format("UV attribute '{}' must be indexed.", setting.uv_attribute_name));
+            format("UV attribute '{}' must be indexed.", setting.uv_attribute_name));
         subdiv_options.face_varying_interpolation = subdivision::FaceVaryingInterpolation::All;
     }
 

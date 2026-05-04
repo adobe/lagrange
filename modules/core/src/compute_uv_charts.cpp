@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_components.h>
 #include <lagrange/compute_uv_charts.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/uv_mesh.h>
 
@@ -24,16 +25,25 @@ size_t compute_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const UVChartOptions&
 {
     UVMeshOptions uv_mesh_options;
     uv_mesh_options.uv_attribute_name = options.uv_attribute_name;
-    SurfaceMesh<Scalar, Index> uv_mesh = uv_mesh_view(mesh, uv_mesh_options);
 
     ComponentOptions component_options;
     component_options.connectivity_type = options.connectivity_type;
     component_options.output_attribute_name = options.output_attribute_name;
 
-    auto num_charts = compute_components(uv_mesh, component_options);
+    using OtherScalar = std::conditional_t<std::is_same_v<Scalar, float>, double, float>;
 
-    // Transfer chart ids back to the input mesh
-    mesh.create_attribute_from(options.output_attribute_name, uv_mesh);
+    size_t num_charts;
+    if (uv_attribute_id<Scalar, Index, Scalar>(mesh, uv_mesh_options)) {
+        auto uv_mesh = uv_mesh_view<Scalar, Index, Scalar>(mesh, uv_mesh_options);
+        num_charts = compute_components(uv_mesh, component_options);
+        mesh.create_attribute_from(options.output_attribute_name, uv_mesh);
+    } else if (uv_attribute_id<Scalar, Index, OtherScalar>(mesh, uv_mesh_options)) {
+        auto uv_mesh = uv_mesh_view<Scalar, Index, OtherScalar>(mesh, uv_mesh_options);
+        num_charts = compute_components(uv_mesh, component_options);
+        mesh.create_attribute_from(options.output_attribute_name, uv_mesh);
+    } else {
+        throw Error("compute_uv_charts: no suitable UV attribute found.");
+    }
 
     return num_charts;
 }

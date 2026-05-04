@@ -12,8 +12,6 @@
 import lagrange
 import numpy as np
 
-from .assets import cube  # noqa: F401
-
 
 class TestComputeComponents:
     def test_empty(self):

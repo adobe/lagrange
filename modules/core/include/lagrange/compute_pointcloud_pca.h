@@ -19,6 +19,11 @@
 
 namespace lagrange {
 
+///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
 struct ComputePointcloudPCAOptions
 {
     /**
@@ -74,5 +79,7 @@ template <typename Scalar>
 PointcloudPCAOutput<Scalar> compute_pointcloud_pca(
     span<const Scalar> points,
     ComputePointcloudPCAOptions options = {});
+
+/// @}
 
 } // namespace lagrange

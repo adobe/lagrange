@@ -14,8 +14,6 @@ import lagrange
 import numpy as np
 import pytest
 
-from .assets import single_triangle, cube  # noqa: F401
-
 
 class TestComputeDihedralAngles:
     def test_cube(self, cube):

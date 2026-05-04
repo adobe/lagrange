@@ -16,11 +16,12 @@ set_target_properties(lagrange_testing PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}
 
 # 2. dependencies
 include(catch2)
-lagrange_include_modules(io)
+lagrange_include_modules(io scene)
 target_link_libraries(lagrange_testing PUBLIC
     Catch2::Catch2
     Threads::Threads
     lagrange::io
+    lagrange::scene
 )
 
 # 3. test-specific properties

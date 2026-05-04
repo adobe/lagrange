@@ -128,7 +128,7 @@ public:
     /// cannot be interpolated (because of an incompatible value type or element type).
     ///
     /// @param[in]  smooth  Per-vertex or indexed attribute ids to smoothly interpolate.
-    /// @param[in]  linear  Per-vertex attribute ids to smoothly interpolate.
+    /// @param[in]  linear  Per-vertex attribute ids to linearly interpolate.
     ///
     /// @return     The interpolated attributes configuration.
     ///
@@ -150,10 +150,10 @@ public:
     void set_none() { *this = none(); }
 
     ///
-    /// Set selection to a specific list of attribte ids.
+    /// Set selection to a specific list of attribute ids.
     ///
     /// @param[in]  smooth  Per-vertex or indexed attribute ids to smoothly interpolate.
-    /// @param[in]  linear  Per-vertex attribute ids to smoothly interpolate.
+    /// @param[in]  linear  Per-vertex attribute ids to linearly interpolate.
     ///
     void set_selected(std::vector<AttributeId> smooth, std::vector<AttributeId> linear = {})
     {
@@ -199,9 +199,28 @@ struct SubdivisionOptions
     /// @name Adaptive tessellation options
     /// @{
 
+    ///
     /// Maximum edge length for adaptive tessellation. If not specified, it is set to the longest
     /// edge length divided by num_levels.
+    ///
+    /// @note       Mutually exclusive with max_chordal_deviation.
+    ///
     std::optional<float> max_edge_length;
+
+    ///
+    /// Maximum chordal deviation for adaptive tessellation. This controls the maximum distance
+    /// between the limit surface and its piecewise-linear approximation. For each edge, the peak
+    /// deviation is found using Newton's method on the squared-distance function, and the
+    /// tessellation rate is chosen so that all sub-segment deviations stay below this threshold.
+    /// Rates are defined intrinsically per edge (shared consistently across adjacent faces).
+    ///
+    /// @note       This option is only supported for meshes with 3D vertex positions; using it with
+    ///             other dimensionalities will trigger runtime assertions. The value must be
+    ///             strictly positive (greater than zero).
+    ///
+    /// @note       Mutually exclusive with max_edge_length.
+    ///
+    std::optional<float> max_chordal_deviation;
 
     /// @}
     /// @name Interpolation Rules

@@ -20,6 +20,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Resolve nonmanifold vertices by pulling disconnected 1-ring
 /// neighborhood apart.
 ///
@@ -33,5 +38,7 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 void resolve_vertex_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange

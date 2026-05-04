@@ -21,6 +21,7 @@
 #include <lagrange/common.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
+#include <lagrange/utils/warning.h>
 
 namespace lagrange {
 
@@ -181,7 +182,11 @@ EdgeFacetMap<MeshType> compute_edge_facet_map_in_active_facets(
             const EdgeType<Index> edge(v1, v2);
             auto it = edge_facet_map.find(edge);
             if (it == edge_facet_map.end()) {
+                // GCC 13.1-13.3 -Warray-bounds false positive with -fsanitize=undefined
+                // https://gcc.gnu.org/bugzilla/show_bug.cgi?id=109727
+                LA_IGNORE_ARRAY_BOUNDS_BEGIN
                 edge_facet_map[edge] = {i};
+                LA_IGNORE_ARRAY_BOUNDS_END
             } else {
                 it->second.push_back(i);
             }

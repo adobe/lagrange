@@ -13,8 +13,6 @@ import lagrange
 
 import numpy as np
 
-from .assets import cube  # noqa: F401
-
 
 class TestCombineMeshes:
     def test_empty(self):

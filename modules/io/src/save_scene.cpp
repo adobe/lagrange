@@ -16,6 +16,7 @@
 #include <lagrange/io/save_scene_gltf.h>
 #include <lagrange/io/save_scene_obj.h>
 #include <lagrange/scene/SceneTypes.h>
+#include <lagrange/serialization/serialize_scene.h>
 #include <lagrange/utils/strings.h>
 
 #include <ostream>
@@ -30,7 +31,9 @@ void save_scene(
 {
     std::string ext = to_lower(filename.extension().string());
 
-    if (ext == ".gltf" || ext == ".glb") {
+    if (ext == ".lgs") {
+        serialization::save_scene(filename, scene);
+    } else if (ext == ".gltf" || ext == ".glb") {
         save_scene_gltf(filename, scene, options);
     } else if (ext == ".obj") {
         save_scene_obj(filename, scene, options);

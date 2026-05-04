@@ -11,8 +11,6 @@
 #
 import lagrange
 
-from .assets import cube  # noqa: F401
-
 
 class TestUnifyIndexBuffer:
     def test_empty_mesh(self):

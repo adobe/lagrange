@@ -18,6 +18,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Detects degenerate facets in a mesh.
 ///
 /// @param mesh Input mesh.
@@ -34,5 +39,7 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 std::vector<Index> detect_degenerate_facets(const SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange

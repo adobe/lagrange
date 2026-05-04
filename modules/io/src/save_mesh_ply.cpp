@@ -27,6 +27,7 @@
 #include <lagrange/utils/warnoff.h>
 #include <happly.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 #include <algorithm>
@@ -90,22 +91,22 @@ void register_normal(happly::Element& element, std::string_view name, T&& attr, 
     using ValueType = typename AttributeType::ValueType;
     logger().debug("Writing normal attribute '{}'", name);
     auto nrm = matrix_view(attr);
-    std::string suffix = count == 0 ? "" : fmt::format("_{}", count);
+    std::string suffix = count == 0 ? "" : format("_{}", count);
     if constexpr (is_valid_ply_type<ValueType>()) {
         auto nx = to_vector<ValueType>(nrm.col(0));
         auto ny = to_vector<ValueType>(nrm.col(1));
         auto nz = to_vector<ValueType>(nrm.col(2));
-        element.addProperty<ValueType>(fmt::format("nx{}", suffix), nx);
-        element.addProperty<ValueType>(fmt::format("ny{}", suffix), ny);
-        element.addProperty<ValueType>(fmt::format("nz{}", suffix), nz);
+        element.addProperty<ValueType>(format("nx{}", suffix), nx);
+        element.addProperty<ValueType>(format("ny{}", suffix), ny);
+        element.addProperty<ValueType>(format("nz{}", suffix), nz);
     } else {
         using ValueType2 = std::conditional_t<std::is_signed_v<ValueType>, int32_t, uint32_t>;
         auto nx = to_vector<ValueType2>(nrm.col(0));
         auto ny = to_vector<ValueType2>(nrm.col(1));
         auto nz = to_vector<ValueType2>(nrm.col(2));
-        element.addProperty<ValueType2>(fmt::format("nx{}", suffix), nx);
-        element.addProperty<ValueType2>(fmt::format("ny{}", suffix), ny);
-        element.addProperty<ValueType2>(fmt::format("nz{}", suffix), nz);
+        element.addProperty<ValueType2>(format("nx{}", suffix), nx);
+        element.addProperty<ValueType2>(format("ny{}", suffix), ny);
+        element.addProperty<ValueType2>(format("nz{}", suffix), nz);
     }
     ++count;
 }
@@ -117,18 +118,18 @@ void register_uv(happly::Element& element, std::string_view name, T&& attr, size
     using ValueType = typename AttributeType::ValueType;
     logger().debug("Writing uv attribute '{}'", name);
     auto uv = matrix_view(attr);
-    std::string suffix = count == 0 ? "" : fmt::format("_{}", count);
+    std::string suffix = count == 0 ? "" : format("_{}", count);
     if constexpr (is_valid_ply_type<ValueType>()) {
         auto s = to_vector<ValueType>(uv.col(0));
         auto t = to_vector<ValueType>(uv.col(1));
-        element.addProperty<ValueType>(fmt::format("s{}", suffix), s);
-        element.addProperty<ValueType>(fmt::format("t{}", suffix), t);
+        element.addProperty<ValueType>(format("s{}", suffix), s);
+        element.addProperty<ValueType>(format("t{}", suffix), t);
     } else {
         using ValueType2 = std::conditional_t<std::is_signed_v<ValueType>, int32_t, uint32_t>;
         auto s = to_vector<ValueType2>(uv.col(0));
         auto t = to_vector<ValueType2>(uv.col(1));
-        element.addProperty<ValueType2>(fmt::format("s{}", suffix), s);
-        element.addProperty<ValueType2>(fmt::format("t{}", suffix), t);
+        element.addProperty<ValueType2>(format("s{}", suffix), s);
+        element.addProperty<ValueType2>(format("t{}", suffix), t);
     }
     ++count;
 }
@@ -141,7 +142,7 @@ void register_color(happly::Element& element, std::string_view name, T&& attr, s
     auto num_channels = attr.get_num_channels();
     if (num_channels != 3 && num_channels != 4) return;
     auto num_elements = attr.get_num_elements();
-    std::string suffix = count == 0 ? "" : fmt::format("_{}", count);
+    std::string suffix = count == 0 ? "" : format("_{}", count);
 
     logger().debug("Writing color attribute '{}'", name);
 
@@ -160,20 +161,20 @@ void register_color(happly::Element& element, std::string_view name, T&& attr, s
 
     if constexpr (is_valid_ply_type<ValueType>()) {
         std::vector<ValueType> buf;
-        add_channel(fmt::format("red{}", suffix), 0, buf);
-        add_channel(fmt::format("green{}", suffix), 1, buf);
-        add_channel(fmt::format("blue{}", suffix), 2, buf);
+        add_channel(format("red{}", suffix), 0, buf);
+        add_channel(format("green{}", suffix), 1, buf);
+        add_channel(format("blue{}", suffix), 2, buf);
         if (num_channels == 4) {
-            add_channel(fmt::format("alpha{}", suffix), 3, buf);
+            add_channel(format("alpha{}", suffix), 3, buf);
         }
     } else {
         using ValueType2 = std::conditional_t<std::is_signed_v<ValueType>, int32_t, uint32_t>;
         std::vector<ValueType2> buf;
-        add_channel(fmt::format("red{}", suffix), 0, buf);
-        add_channel(fmt::format("green{}", suffix), 1, buf);
-        add_channel(fmt::format("blue{}", suffix), 2, buf);
+        add_channel(format("red{}", suffix), 0, buf);
+        add_channel(format("green{}", suffix), 1, buf);
+        add_channel(format("blue{}", suffix), 2, buf);
         if (num_channels == 4) {
-            add_channel(fmt::format("alpha{}", suffix), 3, buf);
+            add_channel(format("alpha{}", suffix), 3, buf);
         }
     }
 
@@ -390,7 +391,7 @@ void save_mesh_ply(
 
     if (!fout) {
         throw std::runtime_error(
-            fmt::format("Failed to open PLY file for writing: {}", filename.string()));
+            format("Failed to open PLY file for writing: {}", filename.string()));
     }
 
     save_mesh_ply(fout, mesh, options);

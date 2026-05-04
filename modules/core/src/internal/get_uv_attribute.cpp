@@ -10,18 +10,24 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/Attribute.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/internal/get_uv_attribute.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/views.h>
 
 namespace lagrange::internal {
 
 template <typename Scalar, typename Index, typename UVScalar>
-AttributeId get_uv_id(const SurfaceMesh<Scalar, Index>& mesh, std::string_view uv_attribute_name)
+AttributeId get_uv_id(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    std::string_view uv_attribute_name,
+    UVMeshOptions::ElementTypes element_types,
+    internal::TypeMismatchPolicy type_mismatch)
 {
     AttributeId uv_attr_id;
     if (uv_attribute_name.empty()) {
@@ -42,28 +48,53 @@ AttributeId get_uv_id(const SurfaceMesh<Scalar, Index>& mesh, std::string_view u
                 2);
         }
         if (uv_attr_id == invalid_attribute_id()) {
-            // Still no UV attribute found. Look for a corner attribute and issue a warning if one
-            // is found.
+            // Still no UV attribute found. Look for a corner attribute.
             auto corner_attr_id = internal::find_matching_attribute<UVScalar>(
                 mesh,
                 "",
                 AttributeElement::Corner,
                 AttributeUsage::UV,
                 2);
-            // Ideally we would be able to extract a proxy mesh from a corner attribute, but this
-            // requires creating a temporary buffer for indices (since corner indices are implicit
-            // for pure triangle or pure quad meshes). But maybe we should bite the bullet and do
-            // this?
             if (corner_attr_id != invalid_attribute_id()) {
-                logger().warn(
-                    "Unable to find an indexed or per-vertex UV attribute to extract a mesh from. "
-                    "Instead, we found a corner UV attribute '{}'. Consider converting it to a "
-                    "vertex or indexed attribute for compatibility.",
-                    mesh.get_attribute_name(corner_attr_id));
+                if (element_types == UVMeshOptions::ElementTypes::All) {
+                    uv_attr_id = corner_attr_id;
+                } else {
+                    uv_attr_id = invalid_attribute_id();
+                    logger().warn(
+                        "Unable to find an indexed or per-vertex UV attribute. Found a corner UV "
+                        "attribute instead. Set element_types to UVMeshOptions::ElementTypes::All "
+                        "to enable corner attribute support.");
+                }
             }
         }
     } else {
         uv_attr_id = mesh.get_attribute_id(uv_attribute_name);
+        la_runtime_assert(
+            uv_attr_id != invalid_attribute_id(),
+            format("Specified UV attribute does not exist: {}", uv_attribute_name));
+        const auto& attr = mesh.get_attribute_base(uv_attr_id);
+        if (attr.get_value_type() != make_attribute_value_type<UVScalar>()) {
+            if (type_mismatch == internal::TypeMismatchPolicy::Graceful) {
+                return invalid_attribute_id();
+            }
+            la_runtime_assert(
+                false,
+                "UV attribute value type does not match the requested UVScalar type.");
+        }
+        la_runtime_assert(
+            attr.get_num_channels() == 2,
+            "UV attribute must have exactly 2 channels.");
+        la_runtime_assert(
+            attr.get_element_type() == AttributeElement::Vertex ||
+                attr.get_element_type() == AttributeElement::Indexed ||
+                attr.get_element_type() == AttributeElement::Corner,
+            "UV attribute must be a vertex, indexed, or corner attribute.");
+        if (element_types != UVMeshOptions::ElementTypes::All) {
+            la_runtime_assert(
+                attr.get_element_type() != AttributeElement::Corner,
+                "UV attribute is a corner attribute. Set element_types to "
+                "UVMeshOptions::ElementTypes::All to enable corner attribute support.");
+        }
     }
     return uv_attr_id;
 }
@@ -119,7 +150,9 @@ std::tuple<RowMatrixView<UVScalar>, VectorView<Index>> ref_uv_attribute(
 #define LA_X_get_uv_attribute(UVScalar, Scalar, Index)                                    \
     template LA_CORE_API AttributeId get_uv_id<Scalar, Index, UVScalar>(                  \
         const SurfaceMesh<Scalar, Index>&,                                                \
-        std::string_view);                                                                \
+        std::string_view,                                                                 \
+        UVMeshOptions::ElementTypes,                                                      \
+        TypeMismatchPolicy);                                                              \
     template LA_CORE_API std::tuple<ConstRowMatrixView<UVScalar>, ConstVectorView<Index>> \
     get_uv_attribute<Scalar, Index, UVScalar>(                                            \
         const SurfaceMesh<Scalar, Index>&,                                                \

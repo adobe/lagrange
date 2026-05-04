@@ -20,6 +20,7 @@
 #include <lagrange/utils/BitField.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/compute_normal_cotransform.h>
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
@@ -27,73 +28,11 @@
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <tbb/parallel_for.h>
-#include <spdlog/fmt/fmt.h>
 #include <lagrange/utils/warnon.h>
+#include <lagrange/utils/fmt/format.h>
 // clang-format on
 
 namespace lagrange {
-
-namespace {
-
-template <typename Scalar>
-Scalar sub(const Eigen::Matrix4<Scalar>& matrix, int i1, int i2, int i3, int j1, int j2, int j3)
-{
-    return matrix(i1, j1) * (matrix(i2, j2) * matrix(i3, j3) - matrix(i2, j3) * matrix(i3, j2));
-}
-
-template <int i, int j, typename Scalar>
-inline Scalar minor4x4(const Eigen::Matrix4<Scalar>& matrix)
-{
-    int i1 = (i == 0 ? 1 : 0);
-    int i2 = (i <= 1 ? 2 : 1);
-    int i3 = (i == 3 ? 2 : 3);
-    int j1 = (j == 0 ? 1 : 0);
-    int j2 = (j <= 1 ? 2 : 1);
-    int j3 = (j == 3 ? 2 : 3);
-    return sub(matrix, i1, i2, i3, j1, j2, j3) + sub(matrix, i2, i3, i1, j1, j2, j3) +
-           sub(matrix, i3, i1, i2, j1, j2, j3);
-}
-
-template <typename Scalar>
-Eigen::Matrix4<Scalar> cofactor(const Eigen::Matrix4<Scalar>& matrix)
-{
-    Eigen::Matrix4<Scalar> result;
-    result(0, 0) = minor4x4<0, 0>(matrix);
-    result(0, 1) = -minor4x4<0, 1>(matrix);
-    result(0, 2) = minor4x4<0, 2>(matrix);
-    result(0, 3) = -minor4x4<0, 3>(matrix);
-    result(2, 0) = minor4x4<2, 0>(matrix);
-    result(2, 1) = -minor4x4<2, 1>(matrix);
-    result(2, 2) = minor4x4<2, 2>(matrix);
-    result(2, 3) = -minor4x4<2, 3>(matrix);
-    result(1, 0) = -minor4x4<1, 0>(matrix);
-    result(1, 1) = minor4x4<1, 1>(matrix);
-    result(1, 2) = -minor4x4<1, 2>(matrix);
-    result(1, 3) = minor4x4<1, 3>(matrix);
-    result(3, 0) = -minor4x4<3, 0>(matrix);
-    result(3, 1) = minor4x4<3, 1>(matrix);
-    result(3, 2) = -minor4x4<3, 2>(matrix);
-    result(3, 3) = minor4x4<3, 3>(matrix);
-    return result;
-}
-
-template <typename Scalar>
-Eigen::Matrix3<Scalar> compute_cotransform(
-    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transform)
-{
-    return cofactor(transform.matrix()).template topLeftCorner<3, 3>();
-}
-
-template <typename Scalar>
-Eigen::Matrix2<Scalar> compute_cotransform(
-    const Eigen::Transform<Scalar, 2, Eigen::Affine>& transform)
-{
-    Eigen::Matrix4<Scalar> matrix = Eigen::Matrix4<Scalar>::Identity();
-    matrix.template topLeftCorner<3, 3>() = transform.matrix().template topLeftCorner<3, 3>();
-    return cofactor(matrix).template topLeftCorner<2, 2>();
-}
-
-} // namespace
 
 template <typename Scalar, typename Index, int Dimension>
 void transform_mesh_internal(
@@ -104,7 +43,7 @@ void transform_mesh_internal(
 {
     la_runtime_assert(mesh.get_dimension() == Dimension, "Mesh dimension doesn't match transform");
 
-    auto cotransform = compute_cotransform(transform);
+    auto cotransform = compute_normal_cotransform(transform);
 
     bool is_reflection = (transform.linear().determinant() < 0);
 
@@ -180,11 +119,10 @@ void transform_mesh_internal(
             } else {
                 type_name = internal::value_type_name(attr_read);
             }
-            throw Error(
-                fmt::format(
-                    "Invalid attribute value type ({}) for attribute usage: {}",
-                    type_name,
-                    internal::to_string(attr_read.get_usage())));
+            throw Error(format(
+                "Invalid attribute value type ({}) for attribute usage: {}",
+                type_name,
+                internal::to_string(attr_read.get_usage())));
         }
     });
 

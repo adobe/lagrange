@@ -553,6 +553,236 @@ void eval_patch_btn(
     }
 }
 
+///
+/// Compute per-edge tessellation rates for a face based on chordal deviation (3D only).
+///
+/// For each edge, the algorithm proceeds in three steps:
+///
+/// 1. **Peak detection (Newton's method):** Finds the parameter t that maximizes the squared
+///    deviation g(t) = ||L(t) - S(t)||² between the linear interpolation L(t) of the corner limit
+///    positions and the limit surface S(t). Newton iterations solve g'(t) = 0 using the gradient
+///    and Hessian of g, computed from 1st and 2nd derivatives of the surface via the chain rule.
+///    The peak squared deviation from Newton is compared against the squared midpoint deviation (t
+///    = 0.5), and the maximum is taken as the edge's peak squared deviation.
+///
+/// 2. **Initial rate estimate:** An initial tessellation rate is computed from the peak deviation
+///    using the 1/n² scaling model: rate = ceil(sqrt(peak_deviation / max_deviation)).
+///
+/// 3. **Verification:** The rate is verified by evaluating the limit surface at sub-segment
+///    midpoints. For rate n, sub-segment k spans [k/n, (k+1)/n]; the deviation at each midpoint is
+///    measured against the linear interpolation of the limit surface at the sub-segment endpoints
+///    (not the corner positions). The S(t_hi) evaluation from segment k is reused as S(t_lo) for
+///    segment k+1 to reduce the number of surface evaluations. If any sub-segment exceeds the
+///    tolerance, the rate is incremented and re-verified.
+///
+/// @note       Per-edge rates depend only on the edge itself (not on the face), because two
+///             adjacent faces sharing an edge must agree on its tessellation rate. Edge deviations
+///             are intrinsically consistent across adjacent faces since the limit surface is
+///             continuous.
+///
+template <typename Scalar>
+void get_facet_tess_rates_chordal(
+    OpenSubdiv::Bfr::Surface<Scalar>& facet_surface,
+    span<const Scalar> patch_values_in,
+    span<const Scalar> corner_positions,
+    Scalar max_deviation,
+    int tess_rate_max,
+    int* edge_rates)
+{
+    la_debug_assert(max_deviation > Scalar(0), "max_chordal_deviation must be positive");
+
+    constexpr int dimension = 3;
+    using Vector3s = Eigen::Vector3<Scalar>;
+    using ConstMap3s = Eigen::Map<const Vector3s>;
+
+    int N = facet_surface.GetFaceSize();
+    OpenSubdiv::Bfr::Parameterization face_param = facet_surface.GetParameterization();
+
+    Vector3s S; // limit surface position
+    Vector3s dSdu; // dS/du
+    Vector3s dSdv; // dS/dv
+    Vector3s d2Sdu2; // d²S/du²
+    Vector3s d2Sduv; // d²S/dudv
+    Vector3s d2Sdv2; // d²S/dv²
+
+    // Compute the edge UV direction: d(uv)/dt is constant along each edge since GetEdgeCoord
+    // is (piecewise) linear. For QUAD_SUBFACES parameterizations the mapping is piecewise linear
+    // with breaks at sub-face boundaries, so we identify which sub-face t lies in and compute the
+    // derivative within that linear segment.
+    auto get_edge_uv_dir = [&](int edge_idx, Scalar t) {
+        Scalar uv0[2], uv1[2];
+        if (!face_param.HasSubFaces()) {
+            // For QUAD and TRI, GetEdgeCoord is linear: d(uv)/dt is constant.
+            face_param.GetEdgeCoord(edge_idx, Scalar(0), uv0);
+            face_param.GetEdgeCoord(edge_idx, Scalar(1), uv1);
+            return std::make_pair(uv1[0] - uv0[0], uv1[1] - uv0[1]);
+        }
+        // For QUAD_SUBFACES, the edge parameterization is piecewise-linear across sub-faces.
+        // Use GetSubFace to determine which sub-face t lies in, then compute d(uv)/dt from
+        // two sample points guaranteed to be within the same linear segment.
+        Scalar uv_t[2];
+        face_param.GetEdgeCoord(edge_idx, t, uv_t);
+        int sub_face_t = face_param.GetSubFace(uv_t);
+
+        face_param.GetEdgeCoord(edge_idx, Scalar(0), uv0);
+        if (face_param.GetSubFace(uv0) == sub_face_t) {
+            // t is in the first sub-face segment (same as edge start).
+            face_param.GetEdgeCoord(edge_idx, Scalar(0.25), uv1);
+            return std::make_pair((uv1[0] - uv0[0]) * Scalar(4), (uv1[1] - uv0[1]) * Scalar(4));
+        } else {
+            // t is in the second sub-face segment (same as edge end).
+            face_param.GetEdgeCoord(edge_idx, Scalar(0.75), uv0);
+            face_param.GetEdgeCoord(edge_idx, Scalar(1), uv1);
+            return std::make_pair((uv1[0] - uv0[0]) * Scalar(4), (uv1[1] - uv0[1]) * Scalar(4));
+        }
+    };
+
+    // Evaluate the squared deviation g(t) = ||L(t) - S(t)||^2 and its derivatives g'(t), g''(t).
+    // L(t) is the linear interpolation of corner positions, S(t) is the limit surface.
+    // e(t) = L(t) - S(t), so:
+    //   g'(t)  = 2 * e · e'
+    //   g''(t) = 2 * (e' · e' + e · e'')
+    // where e'(t) = dL/dt - dS/dt and e''(t) = -d²S/dt².
+    auto eval_sq_deviation =
+        [&](int edge_idx, int next_idx, Scalar t, Scalar& g, Scalar& gp, Scalar& gpp) {
+            Scalar uv[2];
+            face_param.GetEdgeCoord(edge_idx, t, uv);
+            facet_surface.Evaluate(
+                uv,
+                patch_values_in.data(),
+                dimension,
+                S.data(),
+                dSdu.data(),
+                dSdv.data(),
+                d2Sdu2.data(),
+                d2Sduv.data(),
+                d2Sdv2.data());
+
+            auto [du_dt, dv_dt] = get_edge_uv_dir(edge_idx, t);
+
+            ConstMap3s P0(&corner_positions[edge_idx * dimension]);
+            ConstMap3s P1(&corner_positions[next_idx * dimension]);
+            Vector3s L_vec = P0 * (Scalar(1) - t) + P1 * t;
+            Vector3s dL_dt = P1 - P0;
+
+            Vector3s dS_dt = dSdu * du_dt + dSdv * dv_dt;
+            Vector3s d2S_dt2 = d2Sdu2 * (du_dt * du_dt) + d2Sduv * (Scalar(2) * du_dt * dv_dt) +
+                               d2Sdv2 * (dv_dt * dv_dt);
+
+            Vector3s e = L_vec - S;
+            Vector3s ep = dL_dt - dS_dt;
+            Vector3s epp = -d2S_dt2;
+
+            g = e.squaredNorm();
+            gp = Scalar(2) * e.dot(ep);
+            gpp = Scalar(2) * (ep.squaredNorm() + e.dot(epp));
+        };
+
+    // Evaluate the squared chordal deviation at parameter t (position-only, no derivatives needed).
+    auto sq_deviation_at = [&](int edge_idx, int next_idx, Scalar t) -> Scalar {
+        Scalar uv[2];
+        face_param.GetEdgeCoord(edge_idx, t, uv);
+        facet_surface.Evaluate(uv, patch_values_in.data(), dimension, S.data());
+        ConstMap3s P0(&corner_positions[edge_idx * dimension]);
+        ConstMap3s P1(&corner_positions[next_idx * dimension]);
+        return (S - (P0 * (Scalar(1) - t) + P1 * t)).squaredNorm();
+    };
+
+    // Check if all sub-segments at the given rate have deviation <= max_deviation.
+    // For rate n, sub-segment k spans [k/n, (k+1)/n]. The sub-segment's "linear approximation"
+    // interpolates the limit surface at its endpoints. We check the midpoint of each sub-segment.
+    auto verify_rate = [&](int edge_idx, int rate) -> bool {
+        Scalar max_dev_sq = max_deviation * max_deviation;
+        Vector3s S_mid;
+        Vector3s S_lo;
+        Vector3s S_hi;
+
+        // Evaluate S at t=0 for the first segment
+        Scalar uv_lo[2];
+        face_param.GetEdgeCoord(edge_idx, Scalar(0), uv_lo);
+        facet_surface.Evaluate(uv_lo, patch_values_in.data(), dimension, S_lo.data());
+
+        for (int k = 0; k < rate; ++k) {
+            Scalar t_hi = Scalar(k + 1) / Scalar(rate);
+            Scalar t_mid = (Scalar(k) / Scalar(rate) + t_hi) * Scalar(0.5);
+
+            Scalar uv_hi[2], uv_mid[2];
+            face_param.GetEdgeCoord(edge_idx, t_hi, uv_hi);
+            face_param.GetEdgeCoord(edge_idx, t_mid, uv_mid);
+
+            facet_surface.Evaluate(uv_hi, patch_values_in.data(), dimension, S_hi.data());
+            facet_surface.Evaluate(uv_mid, patch_values_in.data(), dimension, S_mid.data());
+
+            // Sub-segment midpoint deviation: distance from S(t_mid) to linear interp of
+            // S(t_lo) and S(t_hi)
+            Scalar dev_sq = (S_mid - (S_lo + S_hi) * Scalar(0.5)).squaredNorm();
+            if (dev_sq > max_dev_sq) return false;
+
+            std::swap(S_lo, S_hi);
+        }
+        return true;
+    };
+
+    constexpr int num_newton_iters = 4;
+
+    // Run Newton's method on [t_lo, t_hi] to find peak squared deviation g(t).
+    // Returns the maximum g value encountered during the iterations.
+    auto newton_peak = [&](int edge_idx, int next_idx, Scalar t_lo, Scalar t_hi) {
+        Scalar g_best = Scalar(0);
+        Scalar t = (t_lo + t_hi) * Scalar(0.5);
+        for (int iter = 0; iter < num_newton_iters; ++iter) {
+            Scalar g, gp, gpp;
+            eval_sq_deviation(edge_idx, next_idx, t, g, gp, gpp);
+            g_best = std::max(g_best, g);
+
+            if (std::abs(gpp) > std::abs(gp) * Scalar(1e-10)) {
+                t -= gp / gpp;
+            }
+            t = std::max(t_lo, std::min(t_hi, t));
+        }
+        return g_best;
+    };
+
+    bool has_sub_faces = face_param.HasSubFaces();
+
+    for (int i = 0; i < N; ++i) {
+        int j = (i + 1) % N;
+
+        // Step 1: Find the peak deviation along the coarse edge using Newton's method.
+        // Maximize g(t) = ||L(t) - S(t)||^2 by solving g'(t) = 0.
+        //
+        // For QUAD_SUBFACES, the UV parameterization has a discontinuity at t=0.5 (the
+        // 3D surface is continuous but derivatives are not). Run Newton separately on each
+        // half to avoid crossing the discontinuity, and also sample at the quarter-points.
+        Scalar peak_sq_dev;
+        if (has_sub_faces) {
+            Scalar g1 = newton_peak(i, j, Scalar(0), Scalar(0.5));
+            Scalar g2 = newton_peak(i, j, Scalar(0.5), Scalar(1));
+            Scalar sq_q1 = sq_deviation_at(i, j, Scalar(0.25));
+            Scalar sq_q2 = sq_deviation_at(i, j, Scalar(0.75));
+            peak_sq_dev = std::max({g1, g2, sq_q1, sq_q2});
+        } else {
+            Scalar g_newton = newton_peak(i, j, Scalar(0), Scalar(1));
+            Scalar sq_dev_mid = sq_deviation_at(i, j, Scalar(0.5));
+            peak_sq_dev = std::max(g_newton, sq_dev_mid);
+        }
+        Scalar edge_deviation = std::sqrt(peak_sq_dev);
+
+        // Step 2: Compute initial rate estimate from 1/n² scaling model.
+        int rate = 1;
+        if (edge_deviation > max_deviation) {
+            rate = static_cast<int>(std::ceil(std::sqrt(edge_deviation / max_deviation)));
+        }
+
+        // Step 3: Verify by checking sub-segment midpoint deviations. Increment if needed.
+        while (rate < tess_rate_max && !verify_rate(i, rate)) {
+            ++rate;
+        }
+
+        edge_rates[i] = std::min(rate, tess_rate_max);
+    }
+}
+
 template <typename Scalar>
 void compute_facet_tess_rates(
     const OpenSubdiv::Far::TopologyRefiner& mesh_topology,
@@ -565,6 +795,7 @@ void compute_facet_tess_rates(
     bool use_limit_positions,
     Scalar tess_interval,
     int tess_rate_max,
+    std::optional<Scalar> max_chordal_deviation,
     std::vector<int>& facet_tess_rates)
 {
     //
@@ -598,17 +829,9 @@ void compute_facet_tess_rates(
 
     patch_values_out.resize(N * dimension);
 
-    if (!use_limit_positions) {
-        OpenSubdiv::Far::ConstIndexArray verts =
-            mesh_topology.GetLevel(0).GetFaceVertices(face_index);
-
-        for (int i = 0, j = 0; i < N; ++i, j += dimension) {
-            const Scalar* v_pos = &mesh_vertex_positions[verts[i] * dimension];
-            patch_values_out[j] = v_pos[0];
-            patch_values_out[j + 1] = v_pos[1];
-            patch_values_out[j + 2] = v_pos[2];
-        }
-    } else {
+    // Evaluate limit positions at corners (needed for chordal deviation mode, and
+    // optionally for edge-length mode when use_limit_positions is true).
+    if (use_limit_positions || max_chordal_deviation.has_value()) {
         OpenSubdiv::Bfr::Parameterization face_param = facet_surface.GetParameterization();
 
         for (int i = 0, j = 0; i < N; ++i, j += dimension) {
@@ -619,12 +842,38 @@ void compute_facet_tess_rates(
     }
 
     facet_tess_rates.resize(N);
-    get_edge_tess_rates<Scalar>(
-        patch_values_out,
-        dimension,
-        tess_interval,
-        tess_rate_max,
-        facet_tess_rates.data());
+
+    if (max_chordal_deviation.has_value()) {
+        // Chordal deviation mode: rates based on max distance between limit surface and
+        // piecewise-linear approximation, measured at edge midpoints.
+        get_facet_tess_rates_chordal<Scalar>(
+            facet_surface,
+            patch_values_in,
+            patch_values_out,
+            max_chordal_deviation.value(),
+            tess_rate_max,
+            facet_tess_rates.data());
+    } else {
+        // Edge-length mode: optionally use control hull positions instead of limit positions
+        if (!use_limit_positions) {
+            OpenSubdiv::Far::ConstIndexArray verts =
+                mesh_topology.GetLevel(0).GetFaceVertices(face_index);
+
+            for (int i = 0, j = 0; i < N; ++i, j += dimension) {
+                const Scalar* v_pos = &mesh_vertex_positions[verts[i] * dimension];
+                patch_values_out[j] = v_pos[0];
+                patch_values_out[j + 1] = v_pos[1];
+                patch_values_out[j + 2] = v_pos[2];
+            }
+        }
+
+        get_edge_tess_rates<Scalar>(
+            patch_values_out,
+            dimension,
+            tess_interval,
+            tess_rate_max,
+            facet_tess_rates.data());
+    }
 }
 
 using FVarId = OpenSubdiv::Bfr::SurfaceFactory::FVarID;
@@ -710,6 +959,7 @@ void interpolate_attributes(
     bool use_limit_positions,
     Scalar tess_interval,
     int tess_rate_max,
+    std::optional<Scalar> max_chordal_deviation,
     bool preserve_shared_indices)
 {
     const bool need_limit_btn =
@@ -1033,6 +1283,7 @@ void interpolate_attributes(
             use_limit_positions,
             tess_interval,
             tess_rate_max,
+            max_chordal_deviation,
             tmp.facet_tess_rates);
 
         // Interpolate all attributes. The first attribute in this list is the vertex position, and
@@ -1109,6 +1360,7 @@ SurfaceMesh<Scalar, Index> extract_adaptive_mesh_topology(
     bool use_limit_positions,
     Scalar tess_interval,
     int tess_rate_max,
+    std::optional<Scalar> max_chordal_deviation,
     bool preserve_shared_indices)
 {
     //
@@ -1190,6 +1442,7 @@ SurfaceMesh<Scalar, Index> extract_adaptive_mesh_topology(
         use_limit_positions,
         tess_interval,
         tess_rate_max,
+        max_chordal_deviation,
         preserve_shared_indices);
 
     return tessellated_mesh;
@@ -1212,28 +1465,46 @@ SurfaceMesh<Scalar, Index> subdivide_edge_adaptive(
             "warning, please set 'use_limit_surface' to 'true' in your subdivision options.");
     }
 
+    la_runtime_assert(
+        !(options.max_edge_length.has_value() && options.max_chordal_deviation.has_value()),
+        "max_edge_length and max_chordal_deviation are mutually exclusive");
+    la_runtime_assert(
+        !options.max_chordal_deviation.has_value() || options.max_chordal_deviation.value() > 0,
+        "max_chordal_deviation must be positive");
+    la_runtime_assert(
+        !options.max_chordal_deviation.has_value() || input_mesh.get_dimension() == 3,
+        "Chordal deviation only supported for 3D meshes");
+
     // Extract mesh facet topology
     bool output_quads = !input_mesh.is_triangle_mesh();
     bool use_limit_positions = true;
-    Scalar tess_interval;
+    Scalar tess_interval = 1; // Default; unused in chordal deviation mode
+
+    // Chordal deviation mode
+    std::optional<Scalar> max_chordal_deviation;
+    if (options.max_chordal_deviation.has_value()) {
+        max_chordal_deviation = static_cast<Scalar>(options.max_chordal_deviation.value());
+    }
 
     // Only limit max edge tessellation if no target edge length is specified
     int tess_rate_max =
-        (options.max_edge_length.has_value() ? std::numeric_limits<int>::max()
-                                             : std::max(1u, options.num_levels));
+        ((options.max_edge_length.has_value() || max_chordal_deviation.has_value())
+             ? std::numeric_limits<int>::max()
+             : std::max(1u, options.num_levels));
 
     logger().debug("Output quads? {}", output_quads);
 
     if (options.max_edge_length.has_value()) {
         tess_interval = options.max_edge_length.value();
-    } else {
+    } else if (!max_chordal_deviation.has_value()) {
         auto [min_len, max_len, avg_len] = find_min_max_avg_edges(
             topology_refiner,
             input_mesh.get_vertex_to_position().get_all(),
             input_mesh.get_dimension());
         tess_interval = max_len / static_cast<float>(tess_rate_max);
         logger().info(
-            "Adaptive tessellation.\n\t- Max edge len: {},\n\t- Min edge len: {},\n\t- Avg edge "
+            "Adaptive tessellation.\n\t- Max edge len: {},\n\t- Min edge len: {},\n\t- Avg "
+            "edge "
             "len: {},\n\t- Max rate: {},\n\t- Tess interval: {}",
             max_len,
             min_len,
@@ -1252,6 +1523,7 @@ SurfaceMesh<Scalar, Index> subdivide_edge_adaptive(
         use_limit_positions,
         tess_interval,
         tess_rate_max,
+        max_chordal_deviation,
         options.preserve_shared_indices);
 
     return output_mesh;

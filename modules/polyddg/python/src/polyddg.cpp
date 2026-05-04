@@ -12,6 +12,8 @@
 
 #include <lagrange/polyddg/DifferentialOperators.h>
 #include <lagrange/polyddg/compute_principal_curvatures.h>
+#include <lagrange/polyddg/compute_smooth_direction_field.h>
+#include <lagrange/polyddg/hodge_decomposition.h>
 #include <lagrange/python/binding.h>
 #include <lagrange/python/polyddg.h>
 
@@ -63,10 +65,26 @@ void populate_polyddg_module(nb::module_& m)
 :return: A diagonal sparse matrix of size (#V, #V).)")
         .def(
             "star1",
-            [](const polyddg::DifferentialOperators<Scalar, Index>& self) { return self.star1(); },
-            R"(Compute the discrete Hodge star operator for 1-forms (diagonal mass matrix, size #E x #E).
+            [](const polyddg::DifferentialOperators<Scalar, Index>& self, Scalar lambda) {
+                return self.star1(lambda);
+            },
+            "beta"_a = Scalar(1),
+            R"(Compute the discrete Hodge star operator for 1-forms (size #E x #E).
 
-:return: A diagonal sparse matrix of size (#E, #E).)")
+Following de Goes, Butts and Desbrun (ACM Trans. Graph. 2020, Section 4.4), this is the
+VEM-stabilized 1-form inner product assembled from per-face Gram matrices::
+
+    M_f = area_f * U_f^T U_f  +  beta * P_f^T P_f
+
+where ``U_f`` is the per-face sharp operator and ``P_f = I - V_f U_f`` projects onto the
+kernel of ``U_f``.  The result is a symmetric positive-definite sparse matrix (non-diagonal
+for polygonal meshes).  ``beta = 1`` is recommended and gives the best accuracy.
+
+This is consistent with :meth:`star0` and :meth:`star2`, which also delegate to their
+respective inner-product operators.
+
+:param beta: Stabilization weight for the VEM projection term (default 1).
+:return: A symmetric positive-definite sparse matrix of size (#E, #E).)")
         .def(
             "star2",
             [](const polyddg::DifferentialOperators<Scalar, Index>& self) { return self.star2(); },
@@ -132,6 +150,17 @@ void populate_polyddg_module(nb::module_& m)
 
 :return: A sparse matrix representing the sharp operator.)")
         .def(
+            "projection",
+            [](const polyddg::DifferentialOperators<Scalar, Index>& self) {
+                return self.projection();
+            },
+            R"(Compute the projection operator.
+
+The projection operator measures the information loss when extracting the part of the
+1-form associated with a vector field. It is a matrix of size #E by #E.
+
+:return: A sparse matrix representing the projection operator.)")
+        .def(
             "laplacian",
             [](const polyddg::DifferentialOperators<Scalar, Index>& self, Scalar beta) {
                 return self.laplacian(beta);
@@ -143,6 +172,62 @@ void populate_polyddg_module(nb::module_& m)
 :param beta: Weight of projection term for the 1-form inner product (default: 1).
 
 :return: A sparse matrix representing the Laplacian operator.)")
+        .def(
+            "delta1",
+            [](const polyddg::DifferentialOperators<Scalar, Index>& self, Scalar beta) {
+                return self.delta1(beta);
+            },
+            nb::kw_only(),
+            "beta"_a = 1,
+            R"(Compute the discrete co-differential operator :math:`\delta_1` in weak form.
+
+The co-differential is the formal adjoint of ``d0`` with respect to the 1-form inner product.
+In this implementation ``delta1`` returns the weak-form operator :math:`d_0^T \cdot M_1`: when applied to a
+primal per-edge scalar 1-form it produces a dual 0-form (an integrated scalar per vertex star),
+not a pointwise primal per-vertex quantity. To obtain a primal 0-form one must apply the inverse
+vertex mass matrix, e.g. :math:`M_0^{-1} \cdot \text{delta1}(\text{beta}) \cdot \alpha` for a 1-form :math:`\alpha`.
+
+Equal to ``divergence(beta)`` in weak form.
+
+:param beta: Weight of projection term for the 1-form inner product (default: 1).
+
+:return: A sparse matrix of size (#V, #E) implementing :math:`d_0^T \cdot M_1`.)")
+        .def(
+            "delta2",
+            [](const polyddg::DifferentialOperators<Scalar, Index>& self) { return self.delta2(); },
+            R"(Compute the discrete co-differential operator (:math:`\delta_2 : \Omega^2 \to \Omega^1`).
+
+The co-differential is the formal adjoint of ``d1`` with respect to the 2-form inner product.
+It maps a per-facet scalar 2-form to a per-edge scalar 1-form.
+
+:return: A sparse matrix of size (#E, #F).)")
+        .def(
+            "laplacian2",
+            [](const polyddg::DifferentialOperators<Scalar, Index>& self) {
+                return self.laplacian2();
+            },
+            R"(Compute the discrete Laplacian on 2-forms (:math:`\Delta_2 : \Omega^2 \to \Omega^2`).
+
+Equal to ``d1 · delta2()``. Analogous to ``laplacian()`` but acting on per-facet
+scalar 2-forms. Required for computing the co-exact component in Helmholtz-Hodge decomposition.
+
+:return: A sparse matrix of size (#F, #F).)")
+        .def(
+            "laplacian1",
+            [](const polyddg::DifferentialOperators<Scalar, Index>& self, Scalar beta) {
+                return self.laplacian1(beta);
+            },
+            nb::kw_only(),
+            "beta"_a = 1,
+            R"(Compute the discrete Hodge Laplacian on 1-forms (:math:`\Delta_1 : \Omega^1 \to \Omega^1`).
+
+Combines the exact part (``d0 · delta1(beta)``) and the co-exact part
+(``delta2() · d1()``). Required for full Helmholtz-Hodge decomposition.
+Distinct from ``connection_laplacian()``, which acts on tangent vector fields at vertices.
+
+:param beta: Weight of projection term for the 1-form inner product (default: 1).
+
+:return: A sparse matrix of size (#E, #E).)")
         .def(
             "vertex_tangent_coordinates",
             [](const polyddg::DifferentialOperators<Scalar, Index>& self) {
@@ -580,11 +665,27 @@ determinant gives the Gaussian curvature.
         .def_prop_ro(
             "vertex_normal_attribute_id",
             &polyddg::DifferentialOperators<Scalar, Index>::get_vertex_normal_attribute_id,
-            "Attribute ID of the per-vertex normal attribute.");
+            "Attribute ID of the per-vertex normal attribute.")
+        .def(
+            "vertex_basis",
+            &polyddg::DifferentialOperators<Scalar, Index>::vertex_basis,
+            "vid"_a,
+            R"(Compute the local tangent basis for a single vertex.
+
+:param vid: Vertex index.
+:return: A 3x2 matrix whose columns are orthonormal tangent vectors.)")
+        .def(
+            "facet_basis",
+            &polyddg::DifferentialOperators<Scalar, Index>::facet_basis,
+            "fid"_a,
+            R"(Compute the local tangent basis for a single facet.
+
+:param fid: Facet index.
+:return: A 3x2 matrix whose columns are orthonormal tangent vectors.)");
 
     // Default attribute names are taken directly from PrincipalCurvaturesOptions to avoid
     // duplication if the defaults change.
-    static const polyddg::PrincipalCurvaturesOptions default_pc_opts{};
+    const polyddg::PrincipalCurvaturesOptions default_pc_opts{};
 
     m.def(
         "compute_principal_curvatures",
@@ -676,6 +777,267 @@ are the principal directions. All four quantities are stored as vertex attribute
     (default: ``"@principal_direction_max"``).
 
 :return: A tuple ``(kappa_min_id, kappa_max_id, direction_min_id, direction_max_id)`` of attribute IDs.)");
+
+    // ---- compute_smooth_direction_field ----
+    const polyddg::SmoothDirectionFieldOptions default_sdf_opts{};
+
+    m.def(
+        "compute_smooth_direction_field",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           const polyddg::DifferentialOperators<Scalar, Index>& ops,
+           uint8_t nrosy,
+           double beta,
+           std::string_view alignment_attribute,
+           double alignment_weight,
+           std::string_view direction_field_attribute) {
+            polyddg::SmoothDirectionFieldOptions opts;
+            opts.nrosy = nrosy;
+            opts.lambda = beta;
+            opts.alignment_attribute = alignment_attribute;
+            opts.alignment_weight = alignment_weight;
+            opts.direction_field_attribute = direction_field_attribute;
+            return polyddg::compute_smooth_direction_field(mesh, ops, opts);
+        },
+        "mesh"_a,
+        "ops"_a,
+        nb::kw_only(),
+        "nrosy"_a = default_sdf_opts.nrosy,
+        "beta"_a = default_sdf_opts.lambda,
+        "alignment_attribute"_a = default_sdf_opts.alignment_attribute,
+        "alignment_weight"_a = default_sdf_opts.alignment_weight,
+        "direction_field_attribute"_a = default_sdf_opts.direction_field_attribute,
+        R"(Compute the globally smoothest n-direction field on a surface mesh.
+
+Based on: Knöppel et al., "Globally optimal direction fields", ACM ToG 32(4), 2013.
+
+Without alignment constraints (``alignment_attribute`` is empty), solves the generalized
+eigenvalue problem :math:`L u = \sigma M u` for the smallest eigenvector. The result
+minimizes the Dirichlet energy of the connection.
+
+With alignment constraints, reads per-vertex prescribed 3-D tangent vectors from the given
+attribute (zero-length vectors are unconstrained) and solves the shifted linear system
+:math:`(L - \alpha M) u = M q`, where :math:`q` is the M-normalized prescribed field and
+:math:`\alpha = \texttt{alignment\_lambda} \cdot \sigma_{\min}`.
+
+:param mesh: Input surface mesh (modified in place with the new attribute).
+:param ops: Precomputed :class:`DifferentialOperators` for the mesh.
+:param nrosy: Symmetry order of the direction field (1 = vector field, 2 = line field,
+    4 = cross field, default: 4).
+:param beta: Stabilization weight for the VEM projection term in the connection Laplacian
+    (default: 1).
+:param alignment_attribute: Name of a per-vertex 3-D alignment vector attribute (zero =
+    unconstrained). If empty, the unconstrained smoothest field is computed.
+:param alignment_weight: Scaling factor for the spectral shift (default: 1). The actual
+    shift is ``alignment_weight * sigma_min``, where ``sigma_min`` is the smallest eigenvalue
+    of the connection Laplacian (computed automatically). Values in (0, 1) give weaker
+    alignment (more smoothness).
+:param direction_field_attribute: Output attribute name for the per-vertex 3-D direction
+    field (default: ``"@smooth_direction_field"``).
+
+:return: Attribute ID of the output per-vertex direction field.)");
+
+    // ---- hodge_decomposition_1_form ----
+    constexpr polyddg::HodgeDecompositionOptions default_hd_1form_opts{};
+
+    m.def(
+        "hodge_decomposition_1_form",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           const polyddg::DifferentialOperators<Scalar, Index>& ops,
+           std::string_view input_attribute,
+           std::string_view exact_attribute,
+           std::string_view coexact_attribute,
+           std::string_view harmonic_attribute,
+           Scalar beta) {
+            polyddg::HodgeDecompositionOptions opts;
+            opts.input_attribute = input_attribute;
+            opts.exact_attribute = exact_attribute;
+            opts.coexact_attribute = coexact_attribute;
+            opts.harmonic_attribute = harmonic_attribute;
+            opts.lambda = beta;
+            auto r = polyddg::hodge_decomposition_1_form(mesh, ops, opts);
+            return std::make_tuple(r.exact_id, r.coexact_id, r.harmonic_id);
+        },
+        "mesh"_a,
+        "ops"_a,
+        nb::kw_only(),
+        "input_attribute"_a = default_hd_1form_opts.input_attribute,
+        "exact_attribute"_a = default_hd_1form_opts.exact_attribute,
+        "coexact_attribute"_a = default_hd_1form_opts.coexact_attribute,
+        "harmonic_attribute"_a = default_hd_1form_opts.harmonic_attribute,
+        "beta"_a = Scalar(1),
+        R"(Compute the Helmholtz-Hodge decomposition of a 1-form on a closed surface mesh.
+
+Takes a discrete 1-form (per-edge scalar) and decomposes it into three orthogonal
+components, each stored as a per-edge scalar attribute:
+
+.. math::
+    \omega = \omega_{\text{exact}} + \omega_{\text{coexact}} + \omega_{\text{harmonic}}
+
+:param mesh: Input surface mesh (modified in place with new attributes). The input attribute
+    (per-edge scalar) must already exist on the mesh.
+:param ops: Precomputed :class:`DifferentialOperators` for the mesh.
+:param input_attribute: Edge attribute name of the input 1-form
+    (default: ``"@hodge_1form_input"``).
+:param exact_attribute: Output edge attribute name for the exact component
+    (default: ``"@hodge_1form_exact"``).
+:param coexact_attribute: Output edge attribute name for the co-exact component
+    (default: ``"@hodge_1form_coexact"``).
+:param harmonic_attribute: Output edge attribute name for the harmonic component
+    (default: ``"@hodge_1form_harmonic"``).
+:param beta: Stabilization weight for the VEM 1-form inner product (default: 1).
+
+:return: A tuple ``(exact_id, coexact_id, harmonic_id)`` of edge attribute IDs.)");
+
+    m.def(
+        "hodge_decomposition_1_form",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           std::string_view input_attribute,
+           std::string_view exact_attribute,
+           std::string_view coexact_attribute,
+           std::string_view harmonic_attribute,
+           Scalar beta) {
+            polyddg::HodgeDecompositionOptions opts;
+            opts.input_attribute = input_attribute;
+            opts.exact_attribute = exact_attribute;
+            opts.coexact_attribute = coexact_attribute;
+            opts.harmonic_attribute = harmonic_attribute;
+            opts.lambda = beta;
+            auto r = polyddg::hodge_decomposition_1_form(mesh, opts);
+            return std::make_tuple(r.exact_id, r.coexact_id, r.harmonic_id);
+        },
+        "mesh"_a,
+        nb::kw_only(),
+        "input_attribute"_a = default_hd_1form_opts.input_attribute,
+        "exact_attribute"_a = default_hd_1form_opts.exact_attribute,
+        "coexact_attribute"_a = default_hd_1form_opts.coexact_attribute,
+        "harmonic_attribute"_a = default_hd_1form_opts.harmonic_attribute,
+        "beta"_a = Scalar(1),
+        R"(Compute the Helmholtz-Hodge decomposition of a 1-form on a closed surface mesh.
+
+Convenience overload that constructs a :class:`DifferentialOperators` instance internally.
+
+:param mesh: Input surface mesh (modified in place with new attributes). The input attribute
+    (per-edge scalar) must already exist on the mesh.
+:param input_attribute: Edge attribute name of the input 1-form
+    (default: ``"@hodge_1form_input"``).
+:param exact_attribute: Output edge attribute name for the exact component
+    (default: ``"@hodge_1form_exact"``).
+:param coexact_attribute: Output edge attribute name for the co-exact component
+    (default: ``"@hodge_1form_coexact"``).
+:param harmonic_attribute: Output edge attribute name for the harmonic component
+    (default: ``"@hodge_1form_harmonic"``).
+:param beta: Stabilization weight for the VEM 1-form inner product (default: 1).
+
+:return: A tuple ``(exact_id, coexact_id, harmonic_id)`` of edge attribute IDs.)");
+
+    // ---- hodge_decomposition_vector_field ----
+    constexpr polyddg::HodgeDecompositionOptions default_hd_vf_opts{};
+
+    m.def(
+        "hodge_decomposition_vector_field",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           const polyddg::DifferentialOperators<Scalar, Index>& ops,
+           std::string_view input_attribute,
+           std::string_view exact_attribute,
+           std::string_view coexact_attribute,
+           std::string_view harmonic_attribute,
+           Scalar beta,
+           uint8_t nrosy) {
+            polyddg::HodgeDecompositionOptions opts;
+            opts.input_attribute = input_attribute;
+            opts.exact_attribute = exact_attribute;
+            opts.coexact_attribute = coexact_attribute;
+            opts.harmonic_attribute = harmonic_attribute;
+            opts.lambda = beta;
+            opts.nrosy = nrosy;
+            auto r = polyddg::hodge_decomposition_vector_field(mesh, ops, opts);
+            return std::make_tuple(r.exact_id, r.coexact_id, r.harmonic_id);
+        },
+        "mesh"_a,
+        "ops"_a,
+        nb::kw_only(),
+        "input_attribute"_a = default_hd_vf_opts.input_attribute,
+        "exact_attribute"_a = default_hd_vf_opts.exact_attribute,
+        "coexact_attribute"_a = default_hd_vf_opts.coexact_attribute,
+        "harmonic_attribute"_a = default_hd_vf_opts.harmonic_attribute,
+        "beta"_a = Scalar(1),
+        "nrosy"_a = uint8_t(1),
+        R"(Compute the Helmholtz-Hodge decomposition of a per-vertex vector field on a surface mesh.
+
+Takes a per-vertex vector field in global 3D coordinates and decomposes it into three
+orthogonal components, each stored as a per-vertex 3D vector attribute:
+
+.. math::
+    V = V_{\text{exact}} + V_{\text{coexact}} + V_{\text{harmonic}}
+
+Internally, the vector field is converted to a 1-form and decomposed via
+:func:`hodge_decomposition_1_form`, then each component is converted back.
+
+When ``nrosy > 1``, the input is treated as one representative vector of an n-rosy field.
+
+:param mesh: Input surface mesh (modified in place with new attributes). The input attribute
+    (per-vertex 3D vector) must already exist on the mesh.
+:param ops: Precomputed :class:`DifferentialOperators` for the mesh.
+:param input_attribute: Vertex attribute name of the input vector field
+    (default: ``"@hodge_input"``).
+:param exact_attribute: Output vertex attribute name for the exact component
+    (default: ``"@hodge_exact"``).
+:param coexact_attribute: Output vertex attribute name for the co-exact component
+    (default: ``"@hodge_coexact"``).
+:param harmonic_attribute: Output vertex attribute name for the harmonic component
+    (default: ``"@hodge_harmonic"``).
+:param beta: Stabilization weight for the VEM 1-form inner product (default: 1).
+:param nrosy: N-rosy symmetry order (default: 1 for plain vector fields).
+
+:return: A tuple ``(exact_id, coexact_id, harmonic_id)`` of vertex attribute IDs.)");
+
+    m.def(
+        "hodge_decomposition_vector_field",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           std::string_view input_attribute,
+           std::string_view exact_attribute,
+           std::string_view coexact_attribute,
+           std::string_view harmonic_attribute,
+           Scalar beta,
+           uint8_t nrosy) {
+            polyddg::HodgeDecompositionOptions opts;
+            opts.input_attribute = input_attribute;
+            opts.exact_attribute = exact_attribute;
+            opts.coexact_attribute = coexact_attribute;
+            opts.harmonic_attribute = harmonic_attribute;
+            opts.lambda = beta;
+            opts.nrosy = nrosy;
+            auto r = polyddg::hodge_decomposition_vector_field(mesh, opts);
+            return std::make_tuple(r.exact_id, r.coexact_id, r.harmonic_id);
+        },
+        "mesh"_a,
+        nb::kw_only(),
+        "input_attribute"_a = default_hd_vf_opts.input_attribute,
+        "exact_attribute"_a = default_hd_vf_opts.exact_attribute,
+        "coexact_attribute"_a = default_hd_vf_opts.coexact_attribute,
+        "harmonic_attribute"_a = default_hd_vf_opts.harmonic_attribute,
+        "beta"_a = Scalar(1),
+        "nrosy"_a = uint8_t(1),
+        R"(Compute the Helmholtz-Hodge decomposition of a per-vertex vector field on a surface mesh.
+
+Convenience overload that constructs a :class:`DifferentialOperators` instance internally.
+
+When ``nrosy > 1``, the input is treated as one representative vector of an n-rosy field.
+
+:param mesh: Input surface mesh (modified in place with new attributes). The input attribute
+    (per-vertex 3D vector) must already exist on the mesh.
+:param input_attribute: Vertex attribute name of the input vector field
+    (default: ``"@hodge_input"``).
+:param exact_attribute: Output vertex attribute name for the exact component
+    (default: ``"@hodge_exact"``).
+:param coexact_attribute: Output vertex attribute name for the co-exact component
+    (default: ``"@hodge_coexact"``).
+:param harmonic_attribute: Output vertex attribute name for the harmonic component
+    (default: ``"@hodge_harmonic"``).
+:param beta: Stabilization weight for the VEM 1-form inner product (default: 1).
+:param nrosy: N-rosy symmetry order (default: 1 for plain vector fields).
+
+:return: A tuple ``(exact_id, coexact_id, harmonic_id)`` of vertex attribute IDs.)");
 }
 
 } // namespace lagrange::python

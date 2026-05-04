@@ -16,6 +16,9 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'cpptrace::cpptrace'")
 
+lagrange_find_package(zstd CONFIG REQUIRED GLOBAL)
+include(miniz)
+
 include(CPM)
 CPMAddPackage(
     NAME cpptrace

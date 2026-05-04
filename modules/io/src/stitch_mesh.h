@@ -15,6 +15,7 @@
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
+#include <lagrange/weld_indexed_attribute.h>
 
 namespace lagrange::io {
 
@@ -30,6 +31,14 @@ void stitch_mesh(SurfaceMesh<Scalar, Index>& mesh)
     RemoveDuplicateVerticesOptions rm_opts;
     rm_opts.boundary_only = true;
     remove_duplicate_vertices(mesh, rm_opts);
+
+    // Weld indexed attributes
+    WeldOptions weld_opts;
+    weld_opts.epsilon_abs = 0;
+    weld_opts.epsilon_rel = 0;
+    for (auto id : find_matching_attributes(mesh, AttributeElement::Indexed)) {
+        weld_indexed_attribute(mesh, id, weld_opts);
+    }
 }
 
 } // namespace lagrange::io

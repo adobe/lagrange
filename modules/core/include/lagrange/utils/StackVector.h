@@ -35,7 +35,7 @@ template <typename T, size_t N>
 struct StackVector
 {
 private:
-    std::array<T, N> m_array;
+    std::array<T, N> m_array = {};
     size_t m_size = 0;
 
 public:

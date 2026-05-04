@@ -11,8 +11,6 @@
 #
 import lagrange
 
-from .assets import single_triangle  # noqa: F401
-
 
 class TestSelectFacetsByNormalSimilarity:
     def test_cube(self, single_triangle):

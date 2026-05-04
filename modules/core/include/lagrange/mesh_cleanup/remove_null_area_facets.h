@@ -16,6 +16,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Option struct for remove_null_area_facets.
 ///
 struct RemoveNullAreaFacetsOptions
@@ -40,5 +45,7 @@ template <typename Scalar, typename Index>
 void remove_null_area_facets(
     SurfaceMesh<Scalar, Index>& mesh,
     const RemoveNullAreaFacetsOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

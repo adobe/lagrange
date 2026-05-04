@@ -10,45 +10,8 @@
 # governing permissions and limitations under the License.
 #
 import lagrange
-import pytest
+import lagrange.polyddg
 import numpy as np
-
-
-@pytest.fixture
-def triangle():
-    mesh = lagrange.SurfaceMesh()
-    mesh.add_vertices(np.eye(3))
-    mesh.add_triangle(0, 1, 2)
-    assert mesh.num_vertices == 3
-    assert mesh.num_facets == 1
-    return mesh
-
-
-@pytest.fixture
-def nonplanar_quad():
-    mesh = lagrange.SurfaceMesh()
-    mesh.add_vertex([0, 0, 0])
-    mesh.add_vertex([1, 0, 1])
-    mesh.add_vertex([1, 1, 0])
-    mesh.add_vertex([0, 1, 1])
-    mesh.add_quad(0, 1, 2, 3)
-    return mesh
-
-
-@pytest.fixture
-def pyramid():
-    mesh = lagrange.SurfaceMesh()
-    mesh.add_vertex([0, 0, 0])
-    mesh.add_vertex([1, 0, 0])
-    mesh.add_vertex([1, 1, 0])
-    mesh.add_vertex([0, 1, 0])
-    mesh.add_vertex([0.5, 0.5, 1])
-    mesh.add_triangle(0, 1, 4)
-    mesh.add_triangle(1, 2, 4)
-    mesh.add_triangle(2, 3, 4)
-    mesh.add_triangle(3, 0, 4)
-    mesh.add_quad(0, 3, 2, 1)
-    return mesh
 
 
 class TestPolyDDG:
@@ -150,3 +113,192 @@ class TestPolyDDG:
         self.lemma_5(pyramid)
         self.lemma_6(pyramid)
         self.lemma_7(pyramid)
+
+
+class TestHodgeDecomposition:
+    """Tests for Hodge decomposition functions."""
+
+    def test_hodge_decomposition_vector_field_basic(self, octahedron):
+        """Test basic vector field decomposition - reconstruction property."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+
+        # Create random vector field
+        np.random.seed(42)
+        nv = octahedron.num_vertices
+        V_input = np.random.randn(nv, 3)
+
+        # Store as attribute
+        input_attr = "@test_vf_input"
+        octahedron.create_attribute(
+            input_attr,
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Vector,
+            initial_values=V_input,
+        )
+
+        # Decompose
+        exact_id, coexact_id, harmonic_id = lagrange.polyddg.hodge_decomposition_vector_field(
+            octahedron,
+            ops,
+            input_attribute=input_attr,
+            exact_attribute="@test_exact",
+            coexact_attribute="@test_coexact",
+            harmonic_attribute="@test_harmonic",
+        )
+
+        # Get results
+        V_exact = np.array(octahedron.attribute("@test_exact").data).reshape(-1, 3)
+        V_coexact = np.array(octahedron.attribute("@test_coexact").data).reshape(-1, 3)
+        V_harmonic = np.array(octahedron.attribute("@test_harmonic").data).reshape(-1, 3)
+
+        # Verify reconstruction: V = V_exact + V_coexact + V_harmonic
+        residual = V_input - V_exact - V_coexact - V_harmonic
+        assert np.linalg.norm(residual) < 1e-12
+
+    def test_hodge_decomposition_vector_field_decompose_and_reconstruct(self, octahedron):
+        """Test that decomposition components can be accessed."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+
+        np.random.seed(123)
+        nv = octahedron.num_vertices
+        V_input = np.random.randn(nv, 3)
+
+        input_attr = "@test_vf_genus0"
+        octahedron.create_attribute(
+            input_attr,
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Vector,
+            initial_values=V_input,
+        )
+
+        exact_id, coexact_id, harmonic_id = lagrange.polyddg.hodge_decomposition_vector_field(
+            octahedron,
+            ops,
+            input_attribute=input_attr,
+            exact_attribute="@test_exact_g0",
+            coexact_attribute="@test_coexact_g0",
+            harmonic_attribute="@test_harmonic_g0",
+        )
+
+        # Verify all three components are created
+        assert octahedron.has_attribute("@test_exact_g0")
+        assert octahedron.has_attribute("@test_coexact_g0")
+        assert octahedron.has_attribute("@test_harmonic_g0")
+
+        # Verify they are vertex vector attributes
+        V_exact = np.array(octahedron.attribute("@test_exact_g0").data).reshape(-1, 3)
+        V_coexact = np.array(octahedron.attribute("@test_coexact_g0").data).reshape(-1, 3)
+        V_harmonic = np.array(octahedron.attribute("@test_harmonic_g0").data).reshape(-1, 3)
+
+        assert V_exact.shape == (nv, 3)
+        assert V_coexact.shape == (nv, 3)
+        assert V_harmonic.shape == (nv, 3)
+
+        # Verify reconstruction holds
+        residual = V_input - V_exact - V_coexact - V_harmonic
+        assert np.linalg.norm(residual) < 1e-12
+
+    def test_hodge_decomposition_vector_field_nrosy(self, octahedron):
+        """Test n-rosy decomposition (n=4) creates valid output."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+
+        np.random.seed(456)
+        nv = octahedron.num_vertices
+        V_input = np.random.randn(nv, 3)
+
+        input_attr = "@test_vf_4rosy"
+        octahedron.create_attribute(
+            input_attr,
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Vector,
+            initial_values=V_input,
+        )
+
+        exact_id, coexact_id, harmonic_id = lagrange.polyddg.hodge_decomposition_vector_field(
+            octahedron,
+            ops,
+            input_attribute=input_attr,
+            exact_attribute="@test_exact_4",
+            coexact_attribute="@test_coexact_4",
+            harmonic_attribute="@test_harmonic_4",
+            nrosy=4,
+        )
+
+        # Verify all three components are created
+        assert octahedron.has_attribute("@test_exact_4")
+        assert octahedron.has_attribute("@test_coexact_4")
+        assert octahedron.has_attribute("@test_harmonic_4")
+
+        # Verify they are vertex vector attributes
+        V_exact = np.array(octahedron.attribute("@test_exact_4").data).reshape(-1, 3)
+        V_coexact = np.array(octahedron.attribute("@test_coexact_4").data).reshape(-1, 3)
+        V_harmonic = np.array(octahedron.attribute("@test_harmonic_4").data).reshape(-1, 3)
+
+        assert V_exact.shape == (nv, 3)
+        assert V_coexact.shape == (nv, 3)
+        assert V_harmonic.shape == (nv, 3)
+
+    def test_hodge_decomposition_1_form_basic(self, octahedron):
+        """Test basic 1-form decomposition - reconstruction property."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+
+        # Create random 1-form (per-edge scalar)
+        np.random.seed(789)
+        ne = octahedron.num_edges
+        omega_input = np.random.randn(ne)
+
+        # Store as attribute
+        input_attr = "@test_1form_input"
+        octahedron.create_attribute(
+            input_attr,
+            element=lagrange.AttributeElement.Edge,
+            usage=lagrange.AttributeUsage.Scalar,
+            initial_values=omega_input,
+        )
+
+        # Decompose
+        exact_id, coexact_id, harmonic_id = lagrange.polyddg.hodge_decomposition_1_form(
+            octahedron,
+            ops,
+            input_attribute=input_attr,
+            exact_attribute="@test_1form_exact",
+            coexact_attribute="@test_1form_coexact",
+            harmonic_attribute="@test_1form_harmonic",
+        )
+
+        # Get results
+        omega_exact = np.array(octahedron.attribute("@test_1form_exact").data)
+        omega_coexact = np.array(octahedron.attribute("@test_1form_coexact").data)
+        omega_harmonic = np.array(octahedron.attribute("@test_1form_harmonic").data)
+
+        # Verify reconstruction: omega = omega_exact + omega_coexact + omega_harmonic
+        residual = omega_input - omega_exact - omega_coexact - omega_harmonic
+        assert np.linalg.norm(residual) < 1e-12
+
+    def test_hodge_decomposition_1_form_harmonic_vanishes_genus_0(self, octahedron):
+        """Test that harmonic 1-form vanishes on genus-0 surfaces."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+
+        np.random.seed(101)
+        ne = octahedron.num_edges
+        omega_input = np.random.randn(ne)
+
+        input_attr = "@test_1form_genus0"
+        octahedron.create_attribute(
+            input_attr,
+            element=lagrange.AttributeElement.Edge,
+            usage=lagrange.AttributeUsage.Scalar,
+            initial_values=omega_input,
+        )
+
+        lagrange.polyddg.hodge_decomposition_1_form(
+            octahedron,
+            ops,
+            input_attribute=input_attr,
+            exact_attribute="@test_1form_exact_g0",
+            coexact_attribute="@test_1form_coexact_g0",
+            harmonic_attribute="@test_1form_harmonic_g0",
+        )
+
+        omega_harmonic = np.array(octahedron.attribute("@test_1form_harmonic_g0").data)
+        assert np.linalg.norm(omega_harmonic) < 1e-10

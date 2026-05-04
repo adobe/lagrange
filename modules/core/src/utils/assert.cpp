@@ -13,6 +13,7 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/warning.h>
 
 #if !defined(LA_ASSERT_DEBUG_BREAK)
@@ -78,7 +79,7 @@ bool assertion_failed(
     std::string_view message)
 {
     // Insert a breakpoint programmatically to automatically step into the debugger
-    auto msg = fmt::format(
+    auto msg = format(
         "Assertion failed: \"{}\"{}{}\n"
         "\tIn file: {}, line {};\n"
         "\tIn function: {};",

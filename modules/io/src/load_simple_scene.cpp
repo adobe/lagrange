@@ -18,6 +18,7 @@
 #include <lagrange/io/load_simple_scene_gltf.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/serialization/serialize_simple_scene.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/strings.h>
 
@@ -30,8 +31,15 @@ namespace lagrange::io {
 template <typename SceneType>
 SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options)
 {
+    // TODO: load .obj as simple scene
     std::string ext = to_lower(filename.extension().string());
-    if (ext == ".gltf" || ext == ".glb") {
+    if (ext == ".lgm" || ext == ".lgs") {
+        serialization::DeserializeOptions enc_options;
+        enc_options.allow_scene_conversion = true;
+        enc_options.allow_type_cast = true;
+        enc_options.quiet = options.quiet;
+        return serialization::load_simple_scene<SceneType>(filename, enc_options);
+    } else if (ext == ".gltf" || ext == ".glb") {
         return load_simple_scene_gltf<SceneType>(filename, options);
     } else if (ext == ".fbx") {
         return load_simple_scene_fbx<SceneType>(filename, options);

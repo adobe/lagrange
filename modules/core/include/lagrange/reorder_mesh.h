@@ -16,6 +16,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
+///
 /// Mesh reordering method to apply before decimation.
 ///
 enum class ReorderingMethod {
@@ -36,5 +41,7 @@ enum class ReorderingMethod {
 ///
 template <typename Scalar, typename Index>
 void reorder_mesh(SurfaceMesh<Scalar, Index>& mesh, ReorderingMethod method);
+
+/// @}
 
 } // namespace lagrange

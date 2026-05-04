@@ -14,8 +14,6 @@ import lagrange
 import numpy as np
 import pytest
 
-from .assets import cube, cube_with_uv  # noqa: F401
-
 
 class TestRemapVertices:
     def test_cube(self, cube):

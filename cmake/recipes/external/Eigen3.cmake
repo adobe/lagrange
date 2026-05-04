@@ -16,25 +16,19 @@ endif()
 option(EIGEN_WITH_MKL "Use Eigen with MKL" OFF)
 option(EIGEN_DONT_VECTORIZE "Disable Eigen vectorization" OFF)
 
-if(EIGEN_ROOT)
-    message(STATUS "Third-party (external): creating target 'Eigen3::Eigen' for external path: ${EIGEN_ROOT}")
-    set(EIGEN_INCLUDE_DIRS ${EIGEN_ROOT})
-else()
-    message(STATUS "Third-party (external): creating target 'Eigen3::Eigen'")
+message(STATUS "Third-party (external): creating target 'Eigen3::Eigen'")
 
-    include(CPM)
-    CPMAddPackage(
-        NAME eigen
-        GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
-        GIT_TAG 3.4.1
-        DOWNLOAD_ONLY ON
-    )
-    set(EIGEN_INCLUDE_DIRS ${eigen_SOURCE_DIR})
+set(EIGEN_VERSION "5.0.1" CACHE STRING "Version of Eigen to use")
 
-    install(DIRECTORY ${EIGEN_INCLUDE_DIRS}/Eigen
-        DESTINATION include
-    )
-endif()
+include(CPM)
+CPMAddPackage(
+    NAME eigen
+    GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+    GIT_TAG ${EIGEN_VERSION}
+    DOWNLOAD_ONLY ON
+)
+FetchContent_GetProperties(eigen)
+set(EIGEN_INCLUDE_DIRS ${eigen_SOURCE_DIR})
 
 add_library(Eigen3_Eigen INTERFACE)
 add_library(Eigen3::Eigen ALIAS Eigen3_Eigen)
@@ -44,6 +38,8 @@ target_include_directories(Eigen3_Eigen SYSTEM INTERFACE
     $<BUILD_INTERFACE:${EIGEN_INCLUDE_DIRS}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
+
+# Not necessary after Eigen 5, but required for older versions. Doesn't hurt to keep it.
 target_compile_definitions(Eigen3_Eigen INTERFACE EIGEN_MPL2_ONLY)
 
 if(EIGEN_DONT_VECTORIZE)

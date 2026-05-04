@@ -23,6 +23,7 @@
 
 using Array3Df = lagrange::image::experimental::Array3D<float>;
 using View3Df = lagrange::image::experimental::View3D<float>;
+using ConstView3Df = lagrange::image::experimental::View3D<const float>;
 
 template <size_t NumChannels, typename Precision>
 Array3Df convert_from(const lagrange::image_io::LoadImageResult& img)
@@ -94,7 +95,7 @@ inline Array3Df load_image(const lagrange::fs::path& path)
     }
 }
 
-inline void save_image(lagrange::fs::path path, View3Df image)
+inline void save_image(lagrange::fs::path path, ConstView3Df image)
 {
     if (path.extension() != ".exr") {
         lagrange::logger().warn("Only .exr output files are supported. Saving as .exr.");

@@ -18,6 +18,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-cleanup
+/// @{
+///
+
+///
 /// Resolve both non-manifold vertices and non-manifold edges in the input mesh.
 ///
 /// @tparam Scalar  Mesh scalar type
@@ -27,5 +32,7 @@ namespace lagrange {
 ///
 template <typename Scalar, typename Index>
 void resolve_nonmanifoldness(SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange

@@ -330,73 +330,8 @@ void Camera::rotate_turntable(float yaw_delta, float pitch_delta, Eigen::Vector3
 }
 
 
-void Camera::rotate_arcball(
-    const Eigen::Vector3f& camera_pos_start,
-    const Eigen::Vector3f& camera_up_start,
-    const Eigen::Vector2f& mouse_start,
-    const Eigen::Vector2f& mouse_current)
-{
-    // No change of camera
-    if (mouse_start.x() == mouse_current.x() && mouse_start.y() == mouse_current.y()) return;
-
-
-    const auto map_to_sphere = [&](const Eigen::Vector2f& pos) -> Eigen::Vector3f {
-        Eigen::Vector3f p = Eigen::Vector3f::Zero();
-        // Map to fullscreen ellipse
-        p.x() = (2 * pos.x() / get_window_width() - 1.0f);
-        p.y() = (2 * (pos.y() / get_window_height()) - 1.0f);
-
-        float lensq = p.x() * p.x() + p.y() * p.y();
-
-        if (lensq <= 1.0f) {
-            p.z() = std::sqrt(1 - lensq);
-        } else {
-            p = p.normalized();
-        }
-        return p;
-    };
-
-    const auto decompose =
-        [](const Eigen::Matrix4f& m, Eigen::Vector3f& T, Eigen::Matrix3f& R, Eigen::Vector3f& S) {
-            T = m.col(3).head<3>();
-            S = Eigen::Vector3f((m.col(0).norm()), (m.col(1).norm()), (m.col(2).norm()));
-            R.col(0) = m.col(0).head<3>() * (1.0f / S(0));
-            R.col(1) = m.col(1).head<3>() * (1.0f / S(1));
-            R.col(2) = m.col(2).head<3>() * (1.0f / S(2));
-        };
-
-
-    //Calculate points on sphere and rotation axis/angle
-    const Eigen::Vector3f p0 = map_to_sphere(mouse_start);
-    const Eigen::Vector3f p1 = map_to_sphere(mouse_current);
-
-    // Axis is in default coord system
-    const Eigen::Vector3f axis = p0.cross(p1).normalized();
-    const float angle = vector_angle(p0, p1);
-
-    // Initial rotation
-    const Eigen::Matrix4f r_0 = look_at(camera_pos_start, m_lookat, camera_up_start);
-    // Rotate axis to current frame and rotate around it
-    const Eigen::Vector3f rotated_axis = (r_0.inverse().block<3, 3>(0, 0) * axis);
-    Eigen::Matrix4f r_arc = Eigen::Matrix4f::Identity();
-    r_arc.block<3, 3>(0, 0) = Eigen::AngleAxisf(angle, rotated_axis).matrix();
-
-    // Get inverse new view matrix
-    const Eigen::Matrix4f r = (r_0 * r_arc).inverse().matrix();
-
-    Eigen::Vector3f new_pos, new_scale;
-    Eigen::Matrix3f r_decomp;
-
-    // Decompose new position and new rotation
-    decompose(r, new_pos, r_decomp, new_scale);
-
-    // Rotate default up axis
-    const Eigen::Vector3f up = r_decomp * Eigen::Vector3f(0, 1, 0);
-
-    // Set new camera properties
-    set_position(new_pos);
-    set_up(up);
-}
+// rotate_arcball() moved to Camera_xcode264_workaround.cpp
+// to work around Xcode 26.4 compiler bug
 
 
 void Camera::zoom(float delta)

@@ -15,6 +15,7 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/serialization/serialize_simple_scene.h>
 
 #include <lagrange/io/api.h>
 #include <lagrange/io/save_simple_scene_gltf.h>
@@ -32,7 +33,9 @@ void save_simple_scene(
     const SaveOptions& options)
 {
     std::string ext = to_lower(filename.extension().string());
-    if (ext == ".obj") {
+    if (ext == ".lgs") {
+        serialization::save_simple_scene(filename, scene);
+    } else if (ext == ".obj") {
         save_simple_scene_obj(filename, scene, options);
     } else if (ext == ".ply") {
         // todo

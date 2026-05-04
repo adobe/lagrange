@@ -15,8 +15,6 @@ import numpy as np
 import math
 import pytest
 
-from .assets import cube  # noqa: F401
-
 
 class TestComputeVertexNormal:
     def test_cube(self, cube):

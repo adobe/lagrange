@@ -13,6 +13,7 @@
 #include <lagrange/io/save_mesh.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/serialization/serialize_mesh.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/strings.h>
 
@@ -49,7 +50,9 @@ void save_mesh(
     const SaveOptions& options)
 {
     std::string ext = to_lower(filename.extension().string());
-    if (ext == ".obj") {
+    if (ext == ".lgm") {
+        serialization::save_mesh(filename, mesh);
+    } else if (ext == ".obj") {
         save_mesh_obj(filename, mesh, options);
     } else if (ext == ".ply") {
         save_mesh_ply(filename, mesh, options);

@@ -25,10 +25,17 @@ namespace lagrange {
 
 /// @cond LA_INTERNAL_DOCS
 /// Forward declarations
+template <typename Scalar_, typename Index_>
+class SurfaceMesh;
 namespace internal {
 template <typename T>
 class weak_ptr;
-}
+struct SurfaceMeshInfo;
+template <typename Scalar, typename Index>
+SurfaceMeshInfo from_surface_mesh(const SurfaceMesh<Scalar, Index>&);
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> to_surface_mesh(const SurfaceMeshInfo&);
+} // namespace internal
 /// @endcond
 
 /// @defgroup group-surfacemesh SurfaceMesh
@@ -2788,6 +2795,12 @@ protected:
     /// It's ok to be friend with meshes of different types.
     template <typename, typename>
     friend class SurfaceMesh;
+
+    /// Allow from_surface_mesh/to_surface_mesh to access internal data.
+    template <typename S, typename I>
+    friend internal::SurfaceMeshInfo internal::from_surface_mesh(const SurfaceMesh<S, I>&);
+    template <typename S, typename I>
+    friend SurfaceMesh<S, I> internal::to_surface_mesh(const internal::SurfaceMeshInfo&);
 
     ///
     /// Hidden attribute manager class.

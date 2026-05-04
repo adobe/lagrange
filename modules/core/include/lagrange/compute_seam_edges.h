@@ -14,6 +14,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup group-surfacemesh-utils
+/// @{
+///
+
+///
 /// Options for computing seam edges.
 ///
 struct SeamEdgesOptions
@@ -43,5 +48,7 @@ AttributeId compute_seam_edges(
     SurfaceMesh<Scalar, Index>& mesh,
     AttributeId indexed_attribute_id,
     const SeamEdgesOptions& options = {});
+
+/// @}
 
 } // namespace lagrange

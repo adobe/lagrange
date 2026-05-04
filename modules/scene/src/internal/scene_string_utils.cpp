@@ -14,8 +14,9 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/scene/internal/scene_string_utils.h>
+#include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/fmt/join.h>
 
-#include <spdlog/fmt/ranges.h>
 // Support for std::optional<> added in fmt 10.0.0
 // Uncomment after updating fmt version in our vcpkg registry...
 // #include <spdlog/fmt/std.h>
@@ -24,9 +25,23 @@
 
 namespace lagrange::scene::internal {
 
+namespace {
+
+template <typename T>
+std::string fmt_optional(const std::optional<T>& value)
+{
+    if (value.has_value()) {
+        return format("{}", value.value());
+    } else {
+        return "<null>";
+    }
+}
+
+} // namespace
+
 std::string to_string(const std::vector<ElementId>& ids)
 {
-    return fmt::format("[{}]", fmt::join(ids, ", "));
+    return format("[{}]", join(ids, ", "));
 }
 
 std::string to_string(ElementId id)
@@ -57,16 +72,16 @@ std::string to_string(AttributeValueType t)
 
 std::string to_string(const SceneMeshInstance& mesh_instance, size_t indent)
 {
-    return fmt::format("{:{}s}mesh: {}\n", "", indent, to_string(mesh_instance.mesh)) +
-           fmt::format("{:{}s}materials: {}\n", "", indent, to_string(mesh_instance.materials));
+    return format("{:{}s}mesh: {}\n", "", indent, to_string(mesh_instance.mesh)) +
+           format("{:{}s}materials: {}\n", "", indent, to_string(mesh_instance.materials));
 }
 
 std::string to_string(const Node& node, size_t indent)
 {
     auto M = node.transform.matrix();
-    std::string r = fmt::format("{:{}s}name: {}\n", "", indent, node.name) +
-                    fmt::format("{:{}s}transform:\n", "", indent) +
-                    fmt::format(
+    std::string r = format("{:{}s}name: {}\n", "", indent, node.name) +
+                    format("{:{}s}transform:\n", "", indent) +
+                    format(
                         "{:{}s}- [ {: 8.3f}, {: 8.3f}, {: 8.3f}, {: 8.3f} ]\n",
                         "",
                         indent,
@@ -74,7 +89,7 @@ std::string to_string(const Node& node, size_t indent)
                         M(0, 1),
                         M(0, 2),
                         M(0, 3)) +
-                    fmt::format(
+                    format(
                         "{:{}s}- [ {: 8.3f}, {: 8.3f}, {: 8.3f}, {: 8.3f} ]\n",
                         "",
                         indent,
@@ -82,7 +97,7 @@ std::string to_string(const Node& node, size_t indent)
                         M(1, 1),
                         M(1, 2),
                         M(1, 3)) +
-                    fmt::format(
+                    format(
                         "{:{}s}- [ {: 8.3f}, {: 8.3f}, {: 8.3f}, {: 8.3f} ]\n",
                         "",
                         indent,
@@ -90,7 +105,7 @@ std::string to_string(const Node& node, size_t indent)
                         M(2, 1),
                         M(2, 2),
                         M(2, 3)) +
-                    fmt::format(
+                    format(
                         "{:{}s}- [ {: 8.3f}, {: 8.3f}, {: 8.3f}, {: 8.3f} ]\n",
                         "",
                         indent,
@@ -98,20 +113,19 @@ std::string to_string(const Node& node, size_t indent)
                         M(3, 1),
                         M(3, 2),
                         M(3, 3)) +
-                    fmt::format("{:{}s}parent: {}\n", "", indent, to_string(node.parent)) +
-                    fmt::format("{:{}s}children: {}\n", "", indent, to_string(node.children)) +
-                    fmt::format("{:{}s}meshes:\n", "", indent);
+                    format("{:{}s}parent: {}\n", "", indent, to_string(node.parent)) +
+                    format("{:{}s}children: {}\n", "", indent, to_string(node.children)) +
+                    format("{:{}s}meshes:\n", "", indent);
 
     for (const auto& mesh_instance : node.meshes) {
         auto s = to_string(mesh_instance, indent + 2);
         s[indent] = '-';
         r += s;
     }
-    r += fmt::format("{:{}s}cameras: {}\n", "", indent, to_string(node.cameras)) +
-         fmt::format("{:{}s}lights: {}\n", "", indent, to_string(node.lights));
+    r += format("{:{}s}cameras: {}\n", "", indent, to_string(node.cameras)) +
+         format("{:{}s}lights: {}\n", "", indent, to_string(node.lights));
     if (!node.extensions.empty()) {
-        r +=
-            fmt::format("{:{}s}extensions:\n", "", indent) + to_string(node.extensions, indent + 2);
+        r += format("{:{}s}extensions:\n", "", indent) + to_string(node.extensions, indent + 2);
     }
     return r;
 }
@@ -119,30 +133,29 @@ std::string to_string(const Node& node, size_t indent)
 std::string to_string(const ImageBufferExperimental& img_buf, size_t indent)
 {
     std::string r =
-        fmt::format("{:{}s}width: {}\n", "", indent, img_buf.width) +
-        fmt::format("{:{}s}height: {}\n", "", indent, img_buf.height) +
-        fmt::format("{:{}s}num_channels: {}\n", "", indent, img_buf.num_channels) +
-        fmt::format("{:{}s}element_type: {}\n", "", indent, to_string(img_buf.element_type)) +
-        fmt::format("{:{}s}data: \"<binary: {} bytes>\"\n", "", indent, img_buf.data.size());
+        format("{:{}s}width: {}\n", "", indent, img_buf.width) +
+        format("{:{}s}height: {}\n", "", indent, img_buf.height) +
+        format("{:{}s}num_channels: {}\n", "", indent, img_buf.num_channels) +
+        format("{:{}s}element_type: {}\n", "", indent, to_string(img_buf.element_type)) +
+        format("{:{}s}data: \"<binary: {} bytes>\"\n", "", indent, img_buf.data.size());
     return r;
 }
 
 std::string to_string(const ImageExperimental& img, size_t indent)
 {
-    std::string r = fmt::format("{:{}s}name: {}\n", "", indent, img.name) +
-                    fmt::format("{:{}s}image:\n{}", "", indent, to_string(img.image, indent + 2)) +
-                    fmt::format("{:{}s}uri: {}\n", "", indent, img.uri.string());
+    std::string r = format("{:{}s}name: {}\n", "", indent, img.name) +
+                    format("{:{}s}image:\n{}", "", indent, to_string(img.image, indent + 2)) +
+                    format("{:{}s}uri: {}\n", "", indent, img.uri.string());
     if (!img.extensions.empty()) {
-        r +=
-            fmt::format("{:{}s}extensions:\n{}", "", indent, to_string(img.extensions, indent + 2));
+        r += format("{:{}s}extensions:\n{}", "", indent, to_string(img.extensions, indent + 2));
     }
     return r;
 }
 
 std::string to_string(const TextureInfo& tex_info, size_t indent)
 {
-    return fmt::format("{:{}s}index: {}\n", "", indent, to_string(tex_info.index)) +
-           fmt::format("{:{}s}texcoord: {}\n", "", indent, tex_info.texcoord);
+    return format("{:{}s}index: {}\n", "", indent, to_string(tex_info.index)) +
+           format("{:{}s}texcoord: {}\n", "", indent, tex_info.texcoord);
 }
 
 std::string to_string(const MaterialExperimental::AlphaMode& mode)
@@ -157,65 +170,61 @@ std::string to_string(const MaterialExperimental::AlphaMode& mode)
 
 std::string to_string(const MaterialExperimental& material, size_t indent)
 {
-    std::string r =
-        fmt::format("{:{}s}name: {}\n", "", indent, material.name) +
-        fmt::format(
-            "{:{}s}base_color_value: [{}, {}, {}, {}]\n",
-            "",
-            indent,
-            material.base_color_value[0],
-            material.base_color_value[1],
-            material.base_color_value[2],
-            material.base_color_value[3]) +
-        fmt::format(
-            "{:{}s}base_color_texture:\n{}",
-            "",
-            indent,
-            to_string(material.base_color_texture, indent + 2)) +
-        fmt::format(
-            "{:{}s}emissive_value: [{}, {}, {}]\n",
-            "",
-            indent,
-            material.emissive_value[0],
-            material.emissive_value[1],
-            material.emissive_value[2]) +
-        fmt::format(
-            "{:{}s}emissive_texture:\n{}",
-            "",
-            indent,
-            to_string(material.emissive_texture, indent + 2)) +
-        fmt::format(
-            "{:{}s}metallic_roughness_texture:\n{}",
-            "",
-            indent,
-            to_string(material.metallic_roughness_texture, indent + 2)) +
-        fmt::format("{:{}s}metallic_value: {}\n", "", indent, material.metallic_value) +
-        fmt::format("{:{}s}roughness_value: {}\n", "", indent, material.roughness_value) +
-        fmt::format("{:{}s}alpha_mode: {}\n", "", indent, to_string(material.alpha_mode)) +
-        fmt::format("{:{}s}alpha_cutoff: {}\n", "", indent, material.alpha_cutoff) +
-        fmt::format("{:{}s}normal_scale: {}\n", "", indent, material.normal_scale) +
-        fmt::format(
-            "{:{}s}normal_texture:\n{}",
-            "",
-            indent,
-            to_string(material.normal_texture, indent + 2)) +
-        fmt::format(
-            "{:{}s}occlusion_strength: {}\n",
-            "",
-            indent,
-            to_string(material.occlusion_strength)) +
-        fmt::format(
-            "{:{}s}occlusion_texture:\n{}",
-            "",
-            indent,
-            to_string(material.occlusion_texture, indent + 2)) +
-        fmt::format("{:{}s}double_sided: {}\n", "", indent, material.double_sided);
+    std::string r = format("{:{}s}name: {}\n", "", indent, material.name) +
+                    format(
+                        "{:{}s}base_color_value: [{}, {}, {}, {}]\n",
+                        "",
+                        indent,
+                        material.base_color_value[0],
+                        material.base_color_value[1],
+                        material.base_color_value[2],
+                        material.base_color_value[3]) +
+                    format(
+                        "{:{}s}base_color_texture:\n{}",
+                        "",
+                        indent,
+                        to_string(material.base_color_texture, indent + 2)) +
+                    format(
+                        "{:{}s}emissive_value: [{}, {}, {}]\n",
+                        "",
+                        indent,
+                        material.emissive_value[0],
+                        material.emissive_value[1],
+                        material.emissive_value[2]) +
+                    format(
+                        "{:{}s}emissive_texture:\n{}",
+                        "",
+                        indent,
+                        to_string(material.emissive_texture, indent + 2)) +
+                    format(
+                        "{:{}s}metallic_roughness_texture:\n{}",
+                        "",
+                        indent,
+                        to_string(material.metallic_roughness_texture, indent + 2)) +
+                    format("{:{}s}metallic_value: {}\n", "", indent, material.metallic_value) +
+                    format("{:{}s}roughness_value: {}\n", "", indent, material.roughness_value) +
+                    format("{:{}s}alpha_mode: {}\n", "", indent, to_string(material.alpha_mode)) +
+                    format("{:{}s}alpha_cutoff: {}\n", "", indent, material.alpha_cutoff) +
+                    format("{:{}s}normal_scale: {}\n", "", indent, material.normal_scale) +
+                    format(
+                        "{:{}s}normal_texture:\n{}",
+                        "",
+                        indent,
+                        to_string(material.normal_texture, indent + 2)) +
+                    format(
+                        "{:{}s}occlusion_strength: {}\n",
+                        "",
+                        indent,
+                        to_string(material.occlusion_strength)) +
+                    format(
+                        "{:{}s}occlusion_texture:\n{}",
+                        "",
+                        indent,
+                        to_string(material.occlusion_texture, indent + 2)) +
+                    format("{:{}s}double_sided: {}\n", "", indent, material.double_sided);
     if (!material.extensions.empty()) {
-        r += fmt::format(
-            "{:{}s}extensions:\n{}",
-            "",
-            indent,
-            to_string(material.extensions, indent + 2));
+        r +=
+            format("{:{}s}extensions:\n{}", "", indent, to_string(material.extensions, indent + 2));
     }
     return r;
 }
@@ -248,21 +257,17 @@ std::string to_string(const Texture::WrapMode& mode)
 std::string to_string(const Texture& texture, size_t indent)
 {
     std::string r =
-        fmt::format("{:{}s}name: {}\n", "", indent, texture.name) +
-        fmt::format("{:{}s}image: {}\n", "", indent, to_string(texture.image)) +
-        fmt::format("{:{}s}mag_filter: {}\n", "", indent, to_string(texture.mag_filter)) +
-        fmt::format("{:{}s}min_filter: {}\n", "", indent, to_string(texture.min_filter)) +
-        fmt::format("{:{}s}wrap_u: {}\n", "", indent, to_string(texture.wrap_u)) +
-        fmt::format("{:{}s}wrap_v: {}\n", "", indent, to_string(texture.wrap_v)) +
-        fmt::format("{:{}s}scale: [{}, {}]\n", "", indent, texture.scale[0], texture.scale[1]) +
-        fmt::format("{:{}s}offset: [{}, {}]\n", "", indent, texture.offset[0], texture.offset[1]) +
-        fmt::format("{:{}s}rotation: {}\n", "", indent, texture.rotation);
+        format("{:{}s}name: {}\n", "", indent, texture.name) +
+        format("{:{}s}image: {}\n", "", indent, to_string(texture.image)) +
+        format("{:{}s}mag_filter: {}\n", "", indent, to_string(texture.mag_filter)) +
+        format("{:{}s}min_filter: {}\n", "", indent, to_string(texture.min_filter)) +
+        format("{:{}s}wrap_u: {}\n", "", indent, to_string(texture.wrap_u)) +
+        format("{:{}s}wrap_v: {}\n", "", indent, to_string(texture.wrap_v)) +
+        format("{:{}s}scale: [{}, {}]\n", "", indent, texture.scale[0], texture.scale[1]) +
+        format("{:{}s}offset: [{}, {}]\n", "", indent, texture.offset[0], texture.offset[1]) +
+        format("{:{}s}rotation: {}\n", "", indent, texture.rotation);
     if (!texture.extensions.empty()) {
-        r += fmt::format(
-            "{:{}s}extensions:\n{}",
-            "",
-            indent,
-            to_string(texture.extensions, indent + 2));
+        r += format("{:{}s}extensions:\n{}", "", indent, to_string(texture.extensions, indent + 2));
     }
     return r;
 }
@@ -283,59 +288,55 @@ std::string to_string(const Light::Type& type)
 std::string to_string(const Light& light, size_t indent)
 {
     std::string r =
-        fmt::format("{:{}s}name: {}\n", "", indent, light.name) +
-        fmt::format("{:{}s}type: {}\n", "", indent, to_string(light.type)) +
-        fmt::format(
+        format("{:{}s}name: {}\n", "", indent, light.name) +
+        format("{:{}s}type: {}\n", "", indent, to_string(light.type)) +
+        format(
             "{:{}s}position: [{}, {}, {}]\n",
             "",
             indent,
             light.position[0],
             light.position[1],
             light.position[2]) +
-        fmt::format(
+        format(
             "{:{}s}direction: [{}, {}, {}]\n",
             "",
             indent,
             light.direction[0],
             light.direction[1],
             light.direction[2]) +
-        fmt::format("{:{}s}up: [{}, {}, {}]\n", "", indent, light.up[0], light.up[1], light.up[2]) +
-        fmt::format("{:{}s}intensity: {}\n", "", indent, light.intensity) +
-        fmt::format("{:{}s}attenuation_constant: {}\n", "", indent, light.attenuation_constant) +
-        fmt::format("{:{}s}attenuation_linear: {}\n", "", indent, light.attenuation_linear) +
-        fmt::format("{:{}s}attenuation_quadratic: {}\n", "", indent, light.attenuation_quadratic) +
-        fmt::format("{:{}s}attenuation_cubic: {}\n", "", indent, light.attenuation_cubic) +
-        fmt::format("{:{}s}range: {}\n", "", indent, light.range) +
-        fmt::format(
+        format("{:{}s}up: [{}, {}, {}]\n", "", indent, light.up[0], light.up[1], light.up[2]) +
+        format("{:{}s}intensity: {}\n", "", indent, light.intensity) +
+        format("{:{}s}attenuation_constant: {}\n", "", indent, light.attenuation_constant) +
+        format("{:{}s}attenuation_linear: {}\n", "", indent, light.attenuation_linear) +
+        format("{:{}s}attenuation_quadratic: {}\n", "", indent, light.attenuation_quadratic) +
+        format("{:{}s}attenuation_cubic: {}\n", "", indent, light.attenuation_cubic) +
+        format("{:{}s}range: {}\n", "", indent, light.range) +
+        format(
             "{:{}s}color_diffuse: [{}, {}, {}]\n",
             "",
             indent,
             light.color_diffuse[0],
             light.color_diffuse[1],
             light.color_diffuse[2]) +
-        fmt::format(
+        format(
             "{:{}s}color_specular: [{}, {}, {}]\n",
             "",
             indent,
             light.color_specular[0],
             light.color_specular[1],
             light.color_specular[2]) +
-        fmt::format(
+        format(
             "{:{}s}color_ambient: [{}, {}, {}]\n",
             "",
             indent,
             light.color_ambient[0],
             light.color_ambient[1],
             light.color_ambient[2]) +
-        fmt::format("{:{}s}angle_inner_cone: {}\n", "", indent, light.angle_inner_cone) +
-        fmt::format("{:{}s}angle_outer_cone: {}\n", "", indent, light.angle_outer_cone) +
-        fmt::format("{:{}s}size: [{}, {}]\n", "", indent, light.size[0], light.size[1]);
+        format("{:{}s}angle_inner_cone: {}\n", "", indent, fmt_optional(light.angle_inner_cone)) +
+        format("{:{}s}angle_outer_cone: {}\n", "", indent, fmt_optional(light.angle_outer_cone)) +
+        format("{:{}s}size: [{}, {}]\n", "", indent, light.size[0], light.size[1]);
     if (!light.extensions.empty()) {
-        r += fmt::format(
-            "{:{}s}extensions:\n{}",
-            "",
-            indent,
-            to_string(light.extensions, indent + 2));
+        r += format("{:{}s}extensions:\n{}", "", indent, to_string(light.extensions, indent + 2));
     }
     return r;
 }
@@ -352,53 +353,43 @@ std::string to_string(const Camera::Type& type)
 std::string to_string(const Camera& camera, size_t indent)
 {
     std::string r =
-        fmt::format("{:{}s}name: {}\n", "", indent, camera.name) +
-        fmt::format(
+        format("{:{}s}name: {}\n", "", indent, camera.name) +
+        format(
             "{:{}s}position: [{}, {}, {}]\n",
             "",
             indent,
             camera.position[0],
             camera.position[1],
             camera.position[2]) +
-        fmt::format(
-            "{:{}s}up: [{}, {}, {}]\n",
-            "",
-            indent,
-            camera.up[0],
-            camera.up[1],
-            camera.up[2]) +
-        fmt::format(
+        format("{:{}s}up: [{}, {}, {}]\n", "", indent, camera.up[0], camera.up[1], camera.up[2]) +
+        format(
             "{:{}s}look_at: [{}, {}, {}]\n",
             "",
             indent,
             camera.look_at[0],
             camera.look_at[1],
             camera.look_at[2]) +
-        fmt::format("{:{}s}near_plane: {}\n", "", indent, camera.near_plane) +
-        fmt::format(
+        format("{:{}s}near_plane: {}\n", "", indent, camera.near_plane) +
+        format(
             "{:{}s}far_plane: {}\n",
             "",
             indent,
             camera.far_plane.value_or(std::numeric_limits<float>::infinity())) +
-        fmt::format("{:{}s}type: {}\n", "", indent, to_string(camera.type)) +
-        fmt::format("{:{}s}orthographic_width: {}\n", "", indent, camera.orthographic_width) +
-        fmt::format("{:{}s}aspect_ratio: {}\n", "", indent, camera.aspect_ratio) +
-        fmt::format("{:{}s}horizontal_fov: {}\n", "", indent, camera.horizontal_fov);
+        format("{:{}s}type: {}\n", "", indent, to_string(camera.type)) +
+        format("{:{}s}orthographic_width: {}\n", "", indent, camera.orthographic_width) +
+        format("{:{}s}aspect_ratio: {}\n", "", indent, camera.aspect_ratio) +
+        format("{:{}s}horizontal_fov: {}\n", "", indent, camera.horizontal_fov);
     if (!camera.extensions.empty()) {
-        r += fmt::format(
-            "{:{}s}extensions:\n{}",
-            "",
-            indent,
-            to_string(camera.extensions, indent + 2));
+        r += format("{:{}s}extensions:\n{}", "", indent, to_string(camera.extensions, indent + 2));
     }
     return r;
 }
 
 std::string to_string(const Animation& animation, size_t indent)
 {
-    std::string r = fmt::format("{:{}s}name: {}\n", "", indent, animation.name);
+    std::string r = format("{:{}s}name: {}\n", "", indent, animation.name);
     if (!animation.extensions.empty()) {
-        r += fmt::format(
+        r += format(
             "{:{}s}extensions:\n{}",
             "",
             indent,
@@ -409,13 +400,10 @@ std::string to_string(const Animation& animation, size_t indent)
 
 std::string to_string(const Skeleton& skeleton, size_t indent)
 {
-    std::string r = fmt::format("{:{}s}meshes: {}\n", "", indent, to_string(skeleton.meshes));
+    std::string r = format("{:{}s}meshes: {}\n", "", indent, to_string(skeleton.meshes));
     if (!skeleton.extensions.empty()) {
-        r += fmt::format(
-            "{:{}s}extensions:\n{}",
-            "",
-            indent,
-            to_string(skeleton.extensions, indent + 2));
+        r +=
+            format("{:{}s}extensions:\n{}", "", indent, to_string(skeleton.extensions, indent + 2));
     }
     return r;
 }
@@ -423,10 +411,10 @@ std::string to_string(const Skeleton& skeleton, size_t indent)
 template <typename Scalar, typename Index>
 std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
 {
-    std::string r = fmt::format("{:{}s}name: {}\n", "", indent, scene.name);
+    std::string r = format("{:{}s}name: {}\n", "", indent, scene.name);
 
     if (!scene.nodes.empty()) {
-        r += fmt::format("{:{}s}nodes:\n", "", indent);
+        r += format("{:{}s}nodes:\n", "", indent);
         for (const auto& node : scene.nodes) {
             std::string node_str = to_string(node, indent + 2);
             node_str[indent] = '-';
@@ -435,13 +423,13 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.root_nodes.empty()) {
-        r += fmt::format("{:{}s}root_nodes: {}\n", "", indent, to_string(scene.root_nodes));
+        r += format("{:{}s}root_nodes: {}\n", "", indent, to_string(scene.root_nodes));
     }
 
     if (!scene.meshes.empty()) {
-        r += fmt::format("{:{}s}meshes:\n", "", indent);
+        r += format("{:{}s}meshes:\n", "", indent);
         for (const auto& mesh : scene.meshes) {
-            r += fmt::format(
+            r += format(
                 "{:{}s}- \"<SurfaceMesh: {} vertices, {} facets>\"\n",
                 "",
                 indent + 2,
@@ -451,7 +439,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.images.empty()) {
-        r += fmt::format("{:{}s}images:\n", "", indent);
+        r += format("{:{}s}images:\n", "", indent);
         for (const auto& img : scene.images) {
             std::string img_str = to_string(img, indent + 2);
             img_str[indent] = '-';
@@ -460,7 +448,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.textures.empty()) {
-        r += fmt::format("{:{}s}textures:\n", "", indent);
+        r += format("{:{}s}textures:\n", "", indent);
         for (const auto& tex : scene.textures) {
             std::string tex_str = to_string(tex, indent + 2);
             tex_str[indent] = '-';
@@ -469,7 +457,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.materials.empty()) {
-        r += fmt::format("{:{}s}materials:\n", "", indent);
+        r += format("{:{}s}materials:\n", "", indent);
         for (const auto& mat : scene.materials) {
             std::string mat_str = to_string(mat, indent + 2);
             mat_str[indent] = '-';
@@ -478,7 +466,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.lights.empty()) {
-        r += fmt::format("{:{}s}lights:\n", "", indent);
+        r += format("{:{}s}lights:\n", "", indent);
         for (const auto& light : scene.lights) {
             std::string light_str = to_string(light, indent + 2);
             light_str[indent] = '-';
@@ -487,7 +475,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.cameras.empty()) {
-        r += fmt::format("{:{}s}cameras:\n", "", indent);
+        r += format("{:{}s}cameras:\n", "", indent);
         for (const auto& camera : scene.cameras) {
             std::string camera_str = to_string(camera, indent + 2);
             camera_str[indent] = '-';
@@ -496,7 +484,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.skeletons.empty()) {
-        r += fmt::format("{:{}s}skeletons:\n", "", indent);
+        r += format("{:{}s}skeletons:\n", "", indent);
         for (const auto& skeleton : scene.skeletons) {
             std::string skeleton_str = to_string(skeleton, indent + 2);
             skeleton_str[indent] = '-';
@@ -505,7 +493,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.animations.empty()) {
-        r += fmt::format("{:{}s}animations:\n", "", indent);
+        r += format("{:{}s}animations:\n", "", indent);
         for (const auto& animation : scene.animations) {
             std::string animation_str = to_string(animation, indent + 2);
             animation_str[indent] = '-';
@@ -514,8 +502,7 @@ std::string to_string(const Scene<Scalar, Index>& scene, size_t indent)
     }
 
     if (!scene.extensions.empty()) {
-        r += fmt::format("{:{}s}extensions:\n", "", indent) +
-             to_string(scene.extensions, indent + 2);
+        r += format("{:{}s}extensions:\n", "", indent) + to_string(scene.extensions, indent + 2);
     }
     return r;
 }
@@ -531,7 +518,7 @@ std::string to_string(const Value& value, size_t indent)
     } else if (value.is_string()) {
         return value.get_string();
     } else if (value.is_buffer()) {
-        return fmt::format("\"<binary: {} bytes>\"", value.get_buffer().size());
+        return format("\"<binary: {} bytes>\"", value.get_buffer().size());
     } else if (value.is_array()) {
         const auto& arr = value.get_array();
         if (arr.empty()) {
@@ -551,7 +538,7 @@ std::string to_string(const Value& value, size_t indent)
                 std::string r = "\n";
                 for (size_t i = 0; i < value_strs.size(); i++) {
                     if (value_strs[i].find('\n') != std::string::npos) {
-                        r += fmt::format("{:{}s}- {}\n", "", indent, value_strs[i]);
+                        r += format("{:{}s}- {}\n", "", indent, value_strs[i]);
                     } else {
                         value_strs[i][indent] = '-';
                         r += value_strs[i];
@@ -562,13 +549,13 @@ std::string to_string(const Value& value, size_t indent)
                 }
                 return r;
             } else {
-                return fmt::format("[{}]", fmt::join(value_strs, ", "));
+                return format("[{}]", join(value_strs, ", "));
             }
         }
     } else if (value.is_object()) {
         std::string r = "\n";
         for (const auto& [key, val] : value.get_object()) {
-            r += fmt::format("{:{}s}{}: {}\n", "", indent, key, to_string(val, indent + 2));
+            r += format("{:{}s}{}: {}\n", "", indent, key, to_string(val, indent + 2));
         }
         while (!r.empty() && r.back() == '\n') {
             r.pop_back();
@@ -583,7 +570,7 @@ std::string to_string(const Extensions& extensions, size_t indent)
 {
     std::string r;
     for (const auto& [key, value] : extensions.data) {
-        r += fmt::format("{:{}s}{}: {}\n", "", indent, key, to_string(value, indent + 2));
+        r += format("{:{}s}{}: {}\n", "", indent, key, to_string(value, indent + 2));
     }
     return r;
 }

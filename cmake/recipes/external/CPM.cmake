@@ -6,7 +6,9 @@
 # accordance with the terms of the Adobe license agreement accompanying
 # it.
 #
-set(CPM_DOWNLOAD_VERSION 0.42.1)
+
+# we use a fork slightly ahead of this until https://github.com/cpm-cmake/CPM.cmake/pull/688 is merged
+set(CPM_DOWNLOAD_VERSION 0.42.1-f50a6c0)
 
 if(CPM_SOURCE_CACHE)
   set(CPM_DOWNLOAD_LOCATION "${CPM_SOURCE_CACHE}/cpm/CPM_${CPM_DOWNLOAD_VERSION}.cmake")
@@ -22,8 +24,10 @@ get_filename_component(CPM_DOWNLOAD_LOCATION ${CPM_DOWNLOAD_LOCATION} ABSOLUTE)
 function(download_cpm)
   message(STATUS "Downloading CPM.cmake to ${CPM_DOWNLOAD_LOCATION}")
   file(DOWNLOAD
-       https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
-       ${CPM_DOWNLOAD_LOCATION}
+      # Revert to upstream URL once https://github.com/cpm-cmake/CPM.cmake/pull/688 is merged:
+      # https://github.com/cpm-cmake/CPM.cmake/releases/download/v${CPM_DOWNLOAD_VERSION}/CPM.cmake
+      https://raw.githubusercontent.com/jdumas/CPM.cmake/f50a6c0ad986fdd407ae14a46f08b38716f36bc8/cmake/CPM.cmake
+      ${CPM_DOWNLOAD_LOCATION}
   )
 endfunction()
 

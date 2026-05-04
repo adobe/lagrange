@@ -11,10 +11,17 @@
 #
 lagrange_add_python_binding()
 
-target_link_libraries(lagrange_python PRIVATE OpenVDB::nanovdb)
+if(TARGET OpenVDB::nanovdb)
+    target_link_libraries(lagrange_python PRIVATE OpenVDB::nanovdb)
+    target_compile_definitions(lagrange_python PRIVATE NANOVDB_ENABLED)
+endif()
 
 if(SKBUILD)
-    foreach(vdb_target IN ITEMS OpenVDB::openvdb OpenVDB::nanovdb)
+    set(_vdb_targets OpenVDB::openvdb)
+    if(TARGET OpenVDB::nanovdb)
+        list(APPEND _vdb_targets OpenVDB::nanovdb)
+    endif()
+    foreach(vdb_target IN LISTS _vdb_targets)
         get_target_property(_aliased ${vdb_target} ALIASED_TARGET)
 
         if(_aliased)

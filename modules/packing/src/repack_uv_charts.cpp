@@ -14,26 +14,94 @@
 #include <lagrange/map_attribute.h>
 #include <lagrange/packing/api.h>
 #include <lagrange/packing/repack_uv_charts.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/uv_mesh.h>
 #include <lagrange/views.h>
 
 #include "pack_boxes.h"
 
+#include <algorithm>
 #include <limits>
+#include <type_traits>
 
 namespace lagrange::packing {
+
+namespace {
+
+template <typename UVScalar, typename Index>
+void repack_uv_charts_impl(
+    SurfaceMesh<UVScalar, Index>& uv_mesh,
+    span<const Index> chart_ids,
+    const RepackOptions& options)
+{
+    if (chart_ids.empty()) return;
+    Index num_charts = *std::max_element(chart_ids.begin(), chart_ids.end()) + 1;
+
+    uv_mesh.template create_attribute<Index>(
+        "chart_id",
+        AttributeElement::Facet,
+        AttributeUsage::Scalar,
+        1,
+        chart_ids);
+    map_attribute_in_place(uv_mesh, "chart_id", AttributeElement::Vertex);
+    auto vertex_chart_ids = attribute_vector_view<Index>(uv_mesh, "chart_id");
+
+    auto uv_values = vertex_ref(uv_mesh);
+    la_runtime_assert(uv_values.array().isFinite().all());
+
+    Eigen::Matrix<UVScalar, Eigen::Dynamic, 2, Eigen::RowMajor> bbox_mins(num_charts, 2);
+    Eigen::Matrix<UVScalar, Eigen::Dynamic, 2, Eigen::RowMajor> bbox_maxs(num_charts, 2);
+    bbox_mins.setConstant(std::numeric_limits<UVScalar>::max());
+    bbox_maxs.setConstant(std::numeric_limits<UVScalar>::lowest());
+
+    Index num_uvs = uv_mesh.get_num_vertices();
+    for (Index uv_id = 0; uv_id < num_uvs; uv_id++) {
+        Index chart_id = vertex_chart_ids[uv_id];
+        bbox_mins(chart_id, 0) = std::min(bbox_mins(chart_id, 0), uv_values(uv_id, 0));
+        bbox_mins(chart_id, 1) = std::min(bbox_mins(chart_id, 1), uv_values(uv_id, 1));
+        bbox_maxs(chart_id, 0) = std::max(bbox_maxs(chart_id, 0), uv_values(uv_id, 0));
+        bbox_maxs(chart_id, 1) = std::max(bbox_maxs(chart_id, 1), uv_values(uv_id, 1));
+    }
+
+    Eigen::Matrix<UVScalar, Eigen::Dynamic, 2, Eigen::RowMajor> centers(num_charts, 2);
+    std::vector<bool> rotated(num_charts);
+    UVScalar canvas_size;
+#ifdef RECTANGLE_BIN_PACK_OSS
+    bool allow_rotation = true;
+#else
+    bool allow_rotation = options.allow_rotation;
+#endif
+    std::tie(centers, rotated, canvas_size) =
+        pack_boxes(bbox_mins, bbox_maxs, allow_rotation, options.margin);
+
+    Eigen::Matrix<UVScalar, 2, 2> rot90;
+    rot90 << 0, -1, 1, 0;
+
+    for (Index uv_id = 0; uv_id < num_uvs; uv_id++) {
+        Index chart_id = vertex_chart_ids[uv_id];
+        const Eigen::Matrix<UVScalar, 1, 2> comp_center =
+            (bbox_mins.row(chart_id) + bbox_maxs.row(chart_id)) * 0.5;
+        if (!rotated[chart_id]) {
+            uv_values.row(uv_id) = (uv_values.row(uv_id) - comp_center) + centers.row(chart_id);
+        } else {
+            uv_values.row(uv_id) =
+                (uv_values.row(uv_id) - comp_center) * rot90 + centers.row(chart_id);
+        }
+    }
+
+    const auto all_bbox_min = uv_values.colwise().minCoeff().eval();
+    uv_values = (uv_values.rowwise() - all_bbox_min) / canvas_size;
+}
+
+} // namespace
 
 template <typename Scalar, typename Index>
 void repack_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const RepackOptions& options)
 {
-    UVMeshOptions uv_options;
-    uv_options.uv_attribute_name = options.uv_attribute_name;
-    auto uv_mesh = uv_mesh_ref(mesh, uv_options);
-
+    // Compute or retrieve chart ids.
     AttributeId chart_attr_id = invalid_attribute_id();
     if (options.chart_attribute_name.empty()) {
-        // Compute chart id attribute name.
         UVChartOptions chart_options;
         chart_options.uv_attribute_name = options.uv_attribute_name;
         chart_options.output_attribute_name = "@patch_id";
@@ -46,64 +114,29 @@ void repack_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const RepackOptions& opt
             "Chart id attribute not found.");
         chart_attr_id = mesh.get_attribute_id(options.chart_attribute_name);
     }
-    // Map chart id attribute to vertex element.
     auto chart_ids = attribute_vector_view<Index>(mesh, chart_attr_id);
-    Index num_charts = chart_ids.maxCoeff() + 1;
 
-    uv_mesh.template create_attribute<Index>(
-        "chart_id",
-        AttributeElement::Facet,
-        AttributeUsage::Scalar,
-        1,
-        {chart_ids.data(), static_cast<size_t>(chart_ids.size())});
-    map_attribute_in_place(uv_mesh, "chart_id", AttributeElement::Vertex);
-    auto vertex_chart_ids = attribute_vector_view<Index>(uv_mesh, "chart_id");
+    // Extract UV mesh and dispatch based on UV scalar type.
+    UVMeshOptions uv_options;
+    uv_options.uv_attribute_name = options.uv_attribute_name;
+    uv_options.element_types = UVMeshOptions::ElementTypes::All;
 
-    auto uv_values = vertex_ref(uv_mesh);
-    la_runtime_assert(uv_values.array().isFinite().all());
-
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor> bbox_mins(num_charts, 2);
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor> bbox_maxs(num_charts, 2);
-    bbox_mins.setConstant(std::numeric_limits<Scalar>::max());
-    bbox_maxs.setConstant(std::numeric_limits<Scalar>::lowest());
-
-    Index num_uvs = uv_mesh.get_num_vertices();
-    for (Index uv_id = 0; uv_id < num_uvs; uv_id++) {
-        Index chart_id = vertex_chart_ids[uv_id];
-        bbox_mins(chart_id, 0) = std::min(bbox_mins(chart_id, 0), uv_values(uv_id, 0));
-        bbox_mins(chart_id, 1) = std::min(bbox_mins(chart_id, 1), uv_values(uv_id, 1));
-        bbox_maxs(chart_id, 0) = std::max(bbox_maxs(chart_id, 0), uv_values(uv_id, 0));
-        bbox_maxs(chart_id, 1) = std::max(bbox_maxs(chart_id, 1), uv_values(uv_id, 1));
+    using OtherScalar = std::conditional_t<std::is_same_v<Scalar, float>, double, float>;
+    if (uv_attribute_id<Scalar, Index, Scalar>(mesh, uv_options)) {
+        auto uv_mesh = uv_mesh_ref<Scalar, Index, Scalar>(mesh, uv_options);
+        repack_uv_charts_impl<Scalar>(
+            uv_mesh,
+            {chart_ids.data(), static_cast<size_t>(chart_ids.size())},
+            options);
+    } else if (uv_attribute_id<Scalar, Index, OtherScalar>(mesh, uv_options)) {
+        auto uv_mesh = uv_mesh_ref<Scalar, Index, OtherScalar>(mesh, uv_options);
+        repack_uv_charts_impl<OtherScalar>(
+            uv_mesh,
+            {chart_ids.data(), static_cast<size_t>(chart_ids.size())},
+            options);
+    } else {
+        throw Error("repack_uv_charts: no suitable UV attribute found.");
     }
-
-    Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor> centers(num_charts, 2);
-    std::vector<bool> rotated(num_charts);
-    Scalar canvas_size;
-#ifdef RECTANGLE_BIN_PACK_OSS
-    bool allow_rotation = true;
-#else
-    bool allow_rotation = options.allow_rotation;
-#endif
-    std::tie(centers, rotated, canvas_size) =
-        pack_boxes(bbox_mins, bbox_maxs, allow_rotation, options.margin);
-
-    Eigen::Matrix<Scalar, 2, 2> rot90;
-    rot90 << 0, -1, 1, 0;
-
-    for (Index uv_id = 0; uv_id < num_uvs; uv_id++) {
-        Index chart_id = vertex_chart_ids[uv_id];
-        const Eigen::Matrix<Scalar, 1, 2> comp_center =
-            (bbox_mins.row(chart_id) + bbox_maxs.row(chart_id)) * 0.5;
-        if (!rotated[chart_id]) {
-            uv_values.row(uv_id) = (uv_values.row(uv_id) - comp_center) + centers.row(chart_id);
-        } else {
-            uv_values.row(uv_id) =
-                (uv_values.row(uv_id) - comp_center) * rot90 + centers.row(chart_id);
-        }
-    }
-
-    const auto all_bbox_min = uv_values.colwise().minCoeff().eval();
-    uv_values = (uv_values.rowwise() - all_bbox_min) / canvas_size;
 }
 
 #define LA_X_repack_uv_charts(_, Scalar, Index)    \

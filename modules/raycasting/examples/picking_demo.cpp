@@ -14,6 +14,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/io/load_mesh.h>
+#include <lagrange/mesh_bbox.h>
 #include <lagrange/polyscope/register_mesh.h>
 #include <lagrange/polyscope/register_point_cloud.h>
 #include <lagrange/raycasting/RayCaster.h>
@@ -258,8 +259,11 @@ int main(int argc, char** argv)
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.log_level));
 
     // Initialize Polyscope
+    polyscope::options::configureImGuiStyleCallback = []() {
+        ImGui::Spectrum::StyleColorsSpectrum();
+        ImGui::Spectrum::LoadFont();
+    };
     polyscope::init();
-    polyscope::options::configureImGuiStyleCallback = []() { ImGui::StyleColorsLight(); };
 
     // Load mesh
     lagrange::logger().info("Loading mesh: {}", args.input.string());
@@ -296,10 +300,7 @@ int main(int argc, char** argv)
     lagrange::logger().info("Acceleration structure built");
 
     // Compute scene extent for normal length
-    Eigen::AlignedBox3f bbox;
-    for (const auto& p : lagrange::vertex_view(state.mesh).rowwise()) {
-        bbox.extend(p.transpose());
-    }
+    auto bbox = lagrange::mesh_bbox<3>(state.mesh);
     state.normal_length = 0.1f * bbox.diagonal().norm();
 
     // Set up user callback

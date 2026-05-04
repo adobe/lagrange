@@ -18,8 +18,8 @@ message(STATUS "Third-party (external): creating target 'quadprog::quadprog'")
 include(CPM)
 CPMAddPackage(
     NAME quadprog
-    GITHUB_REPOSITORY ggael/QuadProg
-    GIT_TAG c031c027671488fd13ef3569f9d6319b4e2fec5c
+    GITHUB_REPOSITORY jdumas/QuadProg
+    GIT_TAG 8e6e38ad5b257d1795a9ef995e4fd7db72ccf551
 )
 
 add_library(quadprog

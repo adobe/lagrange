@@ -15,6 +15,8 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/fmt/join.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/views.h>
 #include <lagrange/winding/FastWindingNumber.h>
@@ -90,8 +92,8 @@ int main(int argc, char** argv)
         const Eigen::Vector3f cc = vvs.row(input_mesh.get_facet_vertex(ff, 2));
         const auto normal = (bb - aa).cross(cc - aa).normalized();
         const auto barycenter = (aa + bb + cc) / 3;
-        // logger.debug("normal [{}]", fmt::join(normal, ", "));
-        // logger.debug("barycenter [{}]", fmt::join(barycenter, ", "));
+        // logger.debug("normal [{}]", lagrange::join(normal, ", "));
+        // logger.debug("barycenter [{}]", lagrange::join(barycenter, ", "));
 
         const auto pp_ = barycenter + options.epsilon * normal;
         const auto qq_ = barycenter - options.epsilon * normal;

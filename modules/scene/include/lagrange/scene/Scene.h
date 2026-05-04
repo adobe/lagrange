@@ -261,8 +261,8 @@ struct LA_SCENE_API Light
 
     // inner and outer angle of a spot light's light cone
     // they are both 2PI for point lights, and undefined for directional lights.
-    float angle_inner_cone;
-    float angle_outer_cone;
+    std::optional<float> angle_inner_cone;
+    std::optional<float> angle_outer_cone;
 
     // size of area light source
     Eigen::Vector2f size = Eigen::Vector2f::Zero();

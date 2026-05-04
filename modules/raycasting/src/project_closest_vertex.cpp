@@ -12,6 +12,7 @@
 
 #include <lagrange/raycasting/project_closest_vertex.h>
 
+#include "closest_vertex_from_barycentric.h"
 #include "prepare_attribute_ids.h"
 #include "prepare_ray_caster.h"
 
@@ -129,18 +130,10 @@ void project_closest_vertex(
             // largest barycentric weight.
             float u = result.barycentric_coords(0, static_cast<Eigen::Index>(b));
             float v = result.barycentric_coords(1, static_cast<Eigen::Index>(b));
-            float w = 1.0f - u - v;
 
             auto face = source_facets.row(result.facet_indices(static_cast<Eigen::Index>(b)));
-
-            Index closest_vi;
-            if (w >= u && w >= v) {
-                closest_vi = face[0];
-            } else if (u >= v) {
-                closest_vi = face[1];
-            } else {
-                closest_vi = face[2];
-            }
+            int local_vi = closest_vertex_from_barycentric(u, v);
+            Index closest_vi = face[local_vi];
 
             // Copy attribute values from the closest source vertex.
             for (const auto& info : attrs) {

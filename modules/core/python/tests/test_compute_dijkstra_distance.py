@@ -12,9 +12,6 @@
 import lagrange
 
 
-from .assets import single_triangle, cube  # noqa: F401
-
-
 class TestComputeDijkstraDistance:
     def test_cube(self, cube):
         mesh = cube

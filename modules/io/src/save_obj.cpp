@@ -16,25 +16,23 @@
 #include <lagrange/io/save_simple_scene_obj.h>
 
 #include <lagrange/Attribute.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/image_io/save_image.h>
 #include <lagrange/io/api.h>
 #include <lagrange/scene/SceneTypes.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/chain_edges.h>
+#include <lagrange/utils/fmt/print.h>
 
 #include <fstream>
 #include <functional>
 #include <ostream>
 #include <set>
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <spdlog/fmt/ostr.h>
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 namespace lagrange {
 namespace io {
@@ -48,7 +46,7 @@ namespace {
 template <typename Scalar, typename Index>
 void write_obj_header(std::ostream& output_stream, Index num_vertices, Index num_facets)
 {
-    fmt::print(
+    print(
         output_stream,
         R"(####
 #
@@ -132,7 +130,7 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
             result.uv_values_written = static_cast<Index>(values->get_num_elements());
             for (Index vt = 0; vt < values->get_num_elements(); ++vt) {
                 auto p = values->get_row(vt);
-                fmt::print(output_stream, "vt {} {}\n", p[0], p[1]);
+                print(output_stream, "vt {} {}\n", p[0], p[1]);
             }
         }
 
@@ -184,7 +182,7 @@ AttributeWriteResult<Scalar, Index> write_mesh_attributes(
             result.normal_values_written = static_cast<Index>(values->get_num_elements());
             for (Index vn = 0; vn < values->get_num_elements(); ++vn) {
                 auto p = values->get_row(vn);
-                fmt::print(output_stream, "vn {} {} {}\n", p[0], p[1], p[2]);
+                print(output_stream, "vn {} {} {}\n", p[0], p[1], p[2]);
             }
         }
     });
@@ -212,11 +210,11 @@ void write_mesh_vertices(
         if constexpr (Dim == 2) {
             Eigen::Matrix<Scalar, Dim, 1> p{pos_span[0], pos_span[1]};
             p = transform * p;
-            fmt::print(output_stream, "v {} {}\n", p[0], p[1]);
+            print(output_stream, "v {} {} 0\n", p[0], p[1]);
         } else if constexpr (Dim == 3) {
             Eigen::Matrix<Scalar, Dim, 1> p{pos_span[0], pos_span[1], pos_span[2]};
             p = transform * p;
-            fmt::print(output_stream, "v {} {} {}\n", p[0], p[1], p[2]);
+            print(output_stream, "v {} {} {}\n", p[0], p[1], p[2]);
         }
     }
 }
@@ -232,12 +230,31 @@ void write_mesh_facets(
 {
     const Index num_facets = mesh.get_num_facets();
 
+    // Check for line_id attribute (must be a facet-scalar attribute of type Index)
+    span<const Index> line_ids;
+    if (mesh.has_attribute(AttributeName::line_id)) {
+        auto lid = mesh.get_attribute_id(AttributeName::line_id);
+        const auto& base = mesh.get_attribute_base(lid);
+        if (base.get_element_type() == AttributeElement::Facet && base.get_num_channels() == 1 &&
+            base.get_value_type() == make_attribute_value_type<Index>()) {
+            const auto& line_id_attr = mesh.template get_attribute<Index>(lid);
+            line_ids = line_id_attr.get_all();
+        } else {
+            logger().warn(
+                "Ignoring attribute '{}': expected facet scalar of type Index",
+                AttributeName::line_id);
+        }
+    }
+
+    // Write regular faces (line_id == 0 or no line_id attribute)
     for (Index f = 0; f < num_facets; ++f) {
+        if (!line_ids.empty() && line_ids[f] != 0) continue;
+
         const Index first_corner = mesh.get_facet_corner_begin(f);
         const auto vtx_indices = mesh.get_facet_vertices(f);
         la_runtime_assert(
             vtx_indices.size() >= 3,
-            fmt::format("Mesh facet {} should have >= 3 vertices", f));
+            format("Mesh facet {} should have >= 3 vertices", f));
         output_stream << "f";
         for (Index lv = 0; lv < vtx_indices.size(); ++lv) {
             // vertex_index/texture_index/normal_index (OBJ indices are 1-based)
@@ -251,16 +268,87 @@ void write_mesh_facets(
                 1 + normal_offset;
 
             if (attr_result.uv_indices.empty() && attr_result.normal_indices.empty()) {
-                fmt::print(output_stream, " {}", v);
+                print(output_stream, " {}", v);
             } else if (!attr_result.uv_indices.empty() && attr_result.normal_indices.empty()) {
-                fmt::print(output_stream, " {}/{}", v, vt);
+                print(output_stream, " {}/{}", v, vt);
             } else if (!attr_result.uv_indices.empty() && !attr_result.normal_indices.empty()) {
-                fmt::print(output_stream, " {}/{}/{}", v, vt, vn);
+                print(output_stream, " {}/{}/{}", v, vt, vn);
             } else if (attr_result.uv_indices.empty() && !attr_result.normal_indices.empty()) {
-                fmt::print(output_stream, " {}//{}", v, vn);
+                print(output_stream, " {}//{}", v, vn);
             }
         }
         output_stream << "\n";
+    }
+
+    // Write line elements grouped by line_id
+    if (!line_ids.empty()) {
+        const bool has_uv = !attr_result.uv_indices.empty();
+
+        // Find max line_id to size the vector
+        Index max_line_id = 0;
+        for (Index f = 0; f < num_facets; ++f) {
+            if (line_ids[f] > max_line_id) max_line_id = line_ids[f];
+        }
+        la_runtime_assert(
+            max_line_id <= num_facets + 1,
+            "line_id is not a dense mapping and has unexpected large values");
+
+        // Collect directed edges and UV indices per line_id (1-based, so index 0 is unused)
+        std::vector<std::vector<Index>> edges_per_line(max_line_id + 1);
+        std::vector<std::vector<Index>> uv_per_line(has_uv ? max_line_id + 1 : 0);
+        for (Index f = 0; f < num_facets; ++f) {
+            if (line_ids[f] != 0) {
+                auto seg = mesh.get_facet_vertices(f);
+                if (seg.size() != 2) {
+                    logger().warn(
+                        "OBJ saver: facet {} with nonzero line_id {} has {} vertices; "
+                        "expected 2. Skipping this facet.",
+                        f,
+                        line_ids[f],
+                        seg.size());
+                    continue;
+                }
+                Index lid = line_ids[f];
+                edges_per_line[lid].push_back(seg[0]);
+                edges_per_line[lid].push_back(seg[1]);
+                if (has_uv) {
+                    Index c0 = mesh.get_facet_corner_begin(f);
+                    uv_per_line[lid].push_back(attr_result.uv_indices[c0]);
+                    uv_per_line[lid].push_back(attr_result.uv_indices[c0 + 1]);
+                }
+            }
+        }
+
+        // Write a single line vertex token (v or v/vt)
+        auto write_line_vertex = [&](Index vi, Index uvi) {
+            if (has_uv) {
+                print(output_stream, " {}/{}", vi + 1 + vertex_offset, uvi + 1 + uv_offset);
+            } else {
+                print(output_stream, " {}", vi + 1 + vertex_offset);
+            }
+        };
+
+        // Chain edges and write polylines. Use edge-index output so we can
+        // reconstruct both vertex and UV sequences from the original edge arrays.
+        ChainEdgesOptions chain_options;
+        chain_options.output_edge_index = true;
+
+        for (Index lid = 1; lid <= max_line_id; ++lid) {
+            auto& edges = edges_per_line[lid];
+            if (edges.empty()) continue;
+            auto& uvs = has_uv ? uv_per_line[lid] : edges;
+            auto result = chain_directed_edges<Index>({edges.data(), edges.size()}, chain_options);
+            for (auto& chain : {&result.chains, &result.loops}) {
+                for (auto& edge_indices : *chain) {
+                    output_stream << "l";
+                    write_line_vertex(edges[2 * edge_indices[0]], uvs[2 * edge_indices[0]]);
+                    for (Index ei : edge_indices) {
+                        write_line_vertex(edges[2 * ei + 1], uvs[2 * ei + 1]);
+                    }
+                    output_stream << "\n";
+                }
+            }
+        }
     }
 }
 
@@ -286,7 +374,7 @@ void write_texture_to_mtl(
     if (!image.image.data.empty()) {
         // Image data is available, save it to a file
         if (image.uri.empty()) {
-            image_filename = fmt::format("texture_{}.png", texture_info.index);
+            image_filename = format("texture_{}.png", texture_info.index);
         } else {
             image_filename = image.uri;
         }
@@ -300,7 +388,7 @@ void write_texture_to_mtl(
             static_cast<lagrange::image::ImageChannel>(image.image.num_channels));
 
         // Write the texture map directive
-        fmt::print(mtl_stream, "{} {}\n", map_directive, image_filename.string());
+        print(mtl_stream, "{} {}\n", map_directive, image_filename.string());
     } else if (!image.uri.empty()) {
         // No image data but URI exists, copy the file from URI
         fs::path source_path = image.uri;
@@ -318,7 +406,7 @@ void write_texture_to_mtl(
             fs::copy_file(source_path, dest_path, fs::copy_options::overwrite_existing);
 
             // Write the texture map directive
-            fmt::print(mtl_stream, "{} {}\n", map_directive, image_filename.string());
+            print(mtl_stream, "{} {}\n", map_directive, image_filename.string());
         } else if (!quiet) {
             // Allow saving scenes with invalid texture paths
             logger().warn(
@@ -328,7 +416,7 @@ void write_texture_to_mtl(
     } else {
         // Neither image data nor URI exists
         throw std::runtime_error(
-            fmt::format("Texture {} has no image data and no URI", texture_info.index));
+            format("Texture {} has no image data and no URI", texture_info.index));
     }
 }
 
@@ -341,28 +429,28 @@ void write_mtl_file(
     fs::ofstream mtl_stream(mtl_filename);
     if (!mtl_stream) {
         throw std::runtime_error(
-            fmt::format("Failed to open MTL file for writing: {}", mtl_filename.string()));
+            format("Failed to open MTL file for writing: {}", mtl_filename.string()));
     }
 
     const fs::path base_dir = mtl_filename.parent_path();
 
-    fmt::print(mtl_stream, "# MTL File Generated by Lagrange\n");
-    fmt::print(mtl_stream, "# Materials: {}\n\n", scene.materials.size());
+    print(mtl_stream, "# MTL File Generated by Lagrange\n");
+    print(mtl_stream, "# Materials: {}\n\n", scene.materials.size());
 
     for (size_t mat_idx = 0; mat_idx < scene.materials.size(); ++mat_idx) {
         const auto& material = scene.materials[mat_idx];
 
         // Create a unique material name
         std::string mat_name =
-            material.name.empty() ? fmt::format("material_{}", mat_idx) : material.name;
+            material.name.empty() ? format("material_{}", mat_idx) : material.name;
 
-        fmt::print(mtl_stream, "newmtl {}\n", mat_name);
+        print(mtl_stream, "newmtl {}\n", mat_name);
 
         // Note: PBR to Phong material conversion is not fully implemented
         // The following values provide basic material properties for compatibility
 
         // Use base color as diffuse color
-        fmt::print(
+        print(
             mtl_stream,
             "Kd {} {} {}\n",
             material.base_color_value[0],
@@ -370,7 +458,7 @@ void write_mtl_file(
             material.base_color_value[2]);
 
         // Use base color with reduced intensity for ambient
-        fmt::print(
+        print(
             mtl_stream,
             "Ka {} {} {}\n",
             material.base_color_value[0] * 0.1f,
@@ -378,16 +466,16 @@ void write_mtl_file(
             material.base_color_value[2] * 0.1f);
 
         // Use low specular for non-metallic appearance
-        fmt::print(mtl_stream, "Ks 0.04 0.04 0.04\n");
+        print(mtl_stream, "Ks 0.04 0.04 0.04\n");
 
         // Set moderate shininess
-        fmt::print(mtl_stream, "Ns 32\n");
+        print(mtl_stream, "Ns 32\n");
 
         // Transparency (alpha)
-        fmt::print(mtl_stream, "d {}\n", material.base_color_value[3]);
+        print(mtl_stream, "d {}\n", material.base_color_value[3]);
 
         // Standard illumination model
-        fmt::print(mtl_stream, "illum 2\n");
+        print(mtl_stream, "illum 2\n");
 
         // Handle base color texture
         if (material.base_color_texture.index != scene::invalid_element) {
@@ -411,7 +499,7 @@ void write_mtl_file(
                 quiet);
         }
 
-        fmt::print(mtl_stream, "\n");
+        print(mtl_stream, "\n");
     }
 }
 
@@ -458,7 +546,7 @@ void save_scene_obj_impl(
     if (should_export_materials) {
         fs::path mtl_filename = obj_filename;
         mtl_filename.replace_extension(".mtl");
-        fmt::print(output_stream, "mtllib {}\n\n", mtl_filename.filename().string());
+        print(output_stream, "mtllib {}\n\n", mtl_filename.filename().string());
 
         // Write the MTL file
         write_mtl_file(mtl_filename, scene, options.quiet);
@@ -495,10 +583,9 @@ void save_scene_obj_impl(
                     }
 
                     std::string obj_name =
-                        node.name.empty()
-                            ? fmt::format("node_{}_mesh_{}", node_id, mesh_instance.mesh)
-                            : fmt::format("{}_{}", node.name, mesh_instance.mesh);
-                    fmt::print(output_stream, "o {}\n", obj_name);
+                        node.name.empty() ? format("node_{}_mesh_{}", node_id, mesh_instance.mesh)
+                                          : format("{}_{}", node.name, mesh_instance.mesh);
+                    print(output_stream, "o {}\n", obj_name);
 
                     // Set material if available
                     if (should_export_materials && !mesh_instance.materials.empty()) {
@@ -506,9 +593,9 @@ void save_scene_obj_impl(
                         if (mat_idx < scene.materials.size()) {
                             const auto& material = scene.materials[mat_idx];
                             std::string mat_name = material.name.empty()
-                                                       ? fmt::format("material_{}", mat_idx)
+                                                       ? format("material_{}", mat_idx)
                                                        : material.name;
-                            fmt::print(output_stream, "usemtl {}\n", mat_name);
+                            print(output_stream, "usemtl {}\n", mat_name);
                         }
                     }
 
@@ -573,7 +660,7 @@ void save_mesh_obj(
     write_obj_header<Scalar, Index>(output_stream, num_vertices, num_facets);
 
     // Add object name for the mesh
-    fmt::print(output_stream, "o mesh\n");
+    print(output_stream, "o mesh\n");
 
     // Write positions
     if (dim == 2) {
@@ -581,16 +668,14 @@ void save_mesh_obj(
     } else if (dim == 3) {
         write_mesh_vertices<Scalar, Index, 3>(output_stream, mesh);
     } else {
-        throw std::runtime_error(fmt::format("Unsupported mesh dimension: {}", dim));
+        throw std::runtime_error(format("Unsupported mesh dimension: {}", dim));
     }
 
     // Write normals and texcoords
     auto attr_result = write_mesh_attributes(output_stream, mesh, options);
 
-    // Write facets
+    // Write facets (and line elements if line_id attribute is present)
     write_mesh_facets(output_stream, mesh, attr_result);
-
-    // TODO: Write edges
 }
 
 template <typename Scalar, typename Index>
@@ -605,7 +690,7 @@ void save_mesh_obj(
     fs::ofstream output_stream(filename);
     if (!output_stream) {
         throw std::runtime_error(
-            fmt::format("Failed to open OBJ file for writing: {}", filename.string()));
+            format("Failed to open OBJ file for writing: {}", filename.string()));
     }
     save_mesh_obj(output_stream, mesh, options);
 }
@@ -649,7 +734,7 @@ void save_simple_scene_obj(
     write_obj_header<Scalar, Index>(output_stream, total_vertices, total_facets);
 
     // Write comment about the scene structure
-    fmt::print(
+    print(
         output_stream,
         "# Simple scene with {} meshes and {} total instances\n",
         lscene.get_num_meshes(),
@@ -672,7 +757,7 @@ void save_simple_scene_obj(
 
         // Process each instance of this mesh
         lscene.foreach_instances_for_mesh(mesh_idx, [&](const auto& instance) {
-            fmt::print(output_stream, "o mesh_{}_instance_{}\n", mesh_idx, instance_idx);
+            print(output_stream, "o mesh_{}_instance_{}\n", mesh_idx, instance_idx);
 
             // Write transformed vertices
             const Index num_vertices = mesh.get_num_vertices();
@@ -716,7 +801,7 @@ void save_simple_scene_obj(
     fs::ofstream output_stream(filename);
     if (!output_stream) {
         throw std::runtime_error(
-            fmt::format("Failed to open OBJ file for writing: {}", filename.string()));
+            format("Failed to open OBJ file for writing: {}", filename.string()));
     }
     save_simple_scene_obj(output_stream, lscene, options);
 }
@@ -757,7 +842,7 @@ void save_scene_obj(
     fs::ofstream output_stream(filename);
     if (!output_stream) {
         throw std::runtime_error(
-            fmt::format("Failed to open OBJ file for writing: {}", filename.string()));
+            format("Failed to open OBJ file for writing: {}", filename.string()));
     }
     save_scene_obj_impl(output_stream, filename, scene, options);
 }

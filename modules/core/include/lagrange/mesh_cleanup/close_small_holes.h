@@ -17,6 +17,13 @@
 #include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
+///
+/// @defgroup   group-surfacemesh-cleanup Mesh cleanup
+/// @ingroup    group-surfacemesh
+///
+/// Mesh cleanup and repair utilities.
+///
+/// @{
 
 ///
 /// Option struct for closing small holes.
@@ -38,5 +45,7 @@ struct CloseSmallHolesOptions
 ///
 template <typename Scalar, typename Index>
 void close_small_holes(SurfaceMesh<Scalar, Index>& mesh, CloseSmallHolesOptions options = {});
+
+/// @}
 
 } // namespace lagrange

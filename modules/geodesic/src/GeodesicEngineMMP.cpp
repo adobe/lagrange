@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/geodesic/api.h>
 #include <lagrange/internal/find_attribute_utils.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/views.h>
 
 #include "geometry_central_utils.h"
@@ -26,6 +27,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace lagrange::geodesic {
 
@@ -91,6 +93,67 @@ SingleSourceGeodesicResult GeodesicEngineMMP<Scalar, Index>::single_source_geode
 
     return {geodesic_distance_id, invalid_attribute_id()};
 }
+
+template <typename Scalar, typename Index>
+GeodesicPathResult<Scalar, Index> GeodesicEngineMMP<Scalar, Index>::point_to_point_geodesic_path(
+    const PointToPointGeodesicPathOptions& options)
+{
+    // Create source and target surface points
+    gcSurfacePoint source_point(
+        m_impl->m_gc_mesh->face(options.source_facet_id),
+        geometrycentral::Vector3{
+            1.0 - options.source_facet_bc[0] - options.source_facet_bc[1],
+            options.source_facet_bc[0],
+            options.source_facet_bc[1]});
+
+    gcSurfacePoint target_point(
+        m_impl->m_gc_mesh->face(options.target_facet_id),
+        geometrycentral::Vector3{
+            1.0 - options.target_facet_bc[0] - options.target_facet_bc[1],
+            options.target_facet_bc[0],
+            options.target_facet_bc[1]});
+
+    // Propagate from source
+    m_impl->m_solver->propagate(source_point);
+
+    // Trace back path from target to source
+    std::vector<gcSurfacePoint> gc_path = m_impl->m_solver->traceBack(target_point);
+
+    GeodesicPathResult<Scalar, Index> result;
+
+    if (gc_path.empty()) {
+        return result;
+    }
+
+    // Convert geometry-central path to result vectors
+    // Note: geometry-central returns path from target to source, so we reverse it
+    const size_t n = gc_path.size();
+    result.points.resize(n);
+    result.facet_ids.resize(n - 1);
+
+    for (size_t i = 0; i < n; ++i) {
+        const auto& sp = gc_path[n - 1 - i];
+        geometrycentral::Vector3 pos = sp.interpolate(m_impl->m_gc_geom->inputVertexPositions);
+        result.points[i] = {
+            static_cast<Scalar>(pos.x),
+            static_cast<Scalar>(pos.y),
+            static_cast<Scalar>(pos.z)};
+    }
+
+    // Determine the facet for each path segment using the shared face between consecutive points
+    for (size_t i = 0; i + 1 < n; ++i) {
+        const auto& sp_a = gc_path[n - 1 - i];
+        const auto& sp_b = gc_path[n - 2 - i];
+        auto f = geometrycentral::surface::sharedFace(sp_a, sp_b);
+        la_runtime_assert(
+            f != geometrycentral::surface::Face(),
+            "No shared face found for path segment");
+        result.facet_ids[i] = static_cast<Index>(f.getIndex());
+    }
+
+    return result;
+}
+
 #define LA_X_GeodesicEngineMMP(_, Scalar, Index) \
     template class LA_GEODESIC_API GeodesicEngineMMP<Scalar, Index>;
 LA_SURFACE_MESH_X(GeodesicEngineMMP, 0)

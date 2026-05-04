@@ -11,6 +11,7 @@
  */
 #include <lagrange/polyddg/compute_principal_curvatures.h>
 
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/warning.h>
@@ -27,6 +28,7 @@ LA_IGNORE_MAYBE_UNINITIALIZED_START
 #include <Eigen/Eigenvalues>
 LA_IGNORE_MAYBE_UNINITIALIZED_END
 
+#include <limits>
 #include <utility>
 
 namespace lagrange::polyddg {
@@ -81,15 +83,29 @@ PrincipalCurvaturesResult compute_principal_curvatures(
         Eigen::Matrix<Scalar, 2, 2> S = ops.adjoint_shape_operator(vid);
         Eigen::SelfAdjointEigenSolver<Eigen::Matrix<Scalar, 2, 2>> solver(S);
 
-        kappa_min_data(vid, 0) = solver.eigenvalues()(0);
-        kappa_max_data(vid, 0) = solver.eigenvalues()(1);
+        if (solver.info() != Eigen::Success) {
+            // Eigen-decomposition failed (e.g. NaN/Inf in S from degenerate geometry).
+            // Write sentinel NaNs and skip normalization.
+            logger().warn(
+                "compute_principal_curvatures: eigen-decomposition failed for vertex {}",
+                vid);
+            kappa_min_data(vid, 0) = std::numeric_limits<Scalar>::quiet_NaN();
+            kappa_max_data(vid, 0) = std::numeric_limits<Scalar>::quiet_NaN();
+            direction_min_data.row(vid).setConstant(std::numeric_limits<Scalar>::quiet_NaN());
+            direction_max_data.row(vid).setConstant(std::numeric_limits<Scalar>::quiet_NaN());
+        } else {
+            kappa_min_data(vid, 0) = solver.eigenvalues()(0);
+            kappa_max_data(vid, 0) = solver.eigenvalues()(1);
 
-        // Map 2-D eigenvectors back to 3-D through the vertex tangent basis.
-        Eigen::Matrix<Scalar, 3, 2> B = ops.vertex_basis(vid);
-        LA_IGNORE_ARRAY_BOUNDS_BEGIN
-        direction_min_data.row(vid) = (B * solver.eigenvectors().col(0)).normalized().transpose();
-        direction_max_data.row(vid) = (B * solver.eigenvectors().col(1)).normalized().transpose();
-        LA_IGNORE_ARRAY_BOUNDS_END
+            // Map 2-D eigenvectors back to 3-D through the vertex tangent basis.
+            Eigen::Matrix<Scalar, 3, 2> B = ops.vertex_basis(vid);
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
+            direction_min_data.row(vid) =
+                (B * solver.eigenvectors().col(0)).normalized().transpose();
+            direction_max_data.row(vid) =
+                (B * solver.eigenvectors().col(1)).normalized().transpose();
+            LA_IGNORE_ARRAY_BOUNDS_END
+        }
     });
 
     return {kappa_min_id, kappa_max_id, direction_min_id, direction_max_id};

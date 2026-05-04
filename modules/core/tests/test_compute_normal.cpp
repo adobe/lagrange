@@ -27,6 +27,7 @@
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
@@ -353,13 +354,13 @@ TEST_CASE("compute_normal nmtest", "[core][normal]" LA_CORP_FLAG)
         mesh = lagrange::unify_index_buffer(mesh, {nrm_id});
         mesh.rename_attribute(nrm_name, "Vertex_Normal"); // match ply attribute name
 
-        auto filename = fmt::format("nmtest_normal_{}.ply", angle_threshold_deg);
+        auto filename = lagrange::format("nmtest_normal_{}.ply", angle_threshold_deg);
 
         // Uncomment to save a new output
         // lagrange::io::save_mesh(filename, mesh);
 
         auto expected = lagrange::testing::load_surface_mesh<Scalar, Index>(
-            fmt::format("corp/core/regression/{}", filename));
+            lagrange::format("corp/core/regression/{}", filename));
 
         lagrange::seq_foreach_named_attribute_read<lagrange::AttributeElement::Vertex>(
             mesh,
@@ -616,8 +617,10 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
             lagrange::testing::FloatPointBehavior::XcodeGreaterThan14) {
             // For some reason x.cross(x) is not zero on arm64 Xcode 14+. It's around 1e-17, which
             // is enough for stableNormalize() to produce a non-zero first row.
-            REQUIRE(normal_values(Eigen::seq(1, Eigen::last), Eigen::all).isZero(0));
-            REQUIRE(triangle_normals(Eigen::seq(1, Eigen::last), Eigen::all).isZero(0));
+            REQUIRE(normal_values(Eigen::seq(1, Eigen::indexing::last), Eigen::indexing::all)
+                        .isZero(0));
+            REQUIRE(triangle_normals(Eigen::seq(1, Eigen::indexing::last), Eigen::indexing::all)
+                        .isZero(0));
         } else {
             REQUIRE(normal_values.isZero(0));
             REQUIRE(triangle_normals.isZero(0));

@@ -491,3 +491,142 @@ class TestProjectNumpy:
         )
         assert isinstance(result, np.ndarray)
         np.testing.assert_allclose(result[0, 2], 1.0, atol=1e-5)
+
+
+# ---------------------------------------------------------------------------
+# compute_local_feature_size
+# ---------------------------------------------------------------------------
+
+
+class TestComputeLocalFeatureSize:
+    def test_default_parameters(self, unit_cube):
+        """Test compute_local_feature_size with default parameters."""
+        attr_id = lagrange.raycasting.compute_local_feature_size(unit_cube)
+        assert unit_cube.has_attribute("@lfs")
+        lfs_data = unit_cube.attribute(attr_id).data
+        assert lfs_data.shape == (unit_cube.num_vertices,)
+        # All LFS values should be finite for a closed cube
+        assert np.all(np.isfinite(lfs_data))
+
+    def test_interior_mode(self, unit_cube):
+        """Test with interior ray casting mode."""
+        # Test with string
+        attr_id = lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_interior",
+            direction_mode="interior",
+        )
+        assert unit_cube.has_attribute("@lfs_interior")
+        lfs_data = unit_cube.attribute(attr_id).data
+        assert np.all(np.isfinite(lfs_data))
+        assert np.all(lfs_data > 0)
+
+        # Test with enum
+        attr_id_enum = lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_interior_enum",
+            direction_mode="interior",
+        )
+        assert unit_cube.has_attribute("@lfs_interior_enum")
+        lfs_data_enum = unit_cube.attribute(attr_id_enum).data
+        assert np.all(np.isfinite(lfs_data_enum))
+
+    def test_exterior_mode(self, unit_cube):
+        """Test with exterior ray casting mode using string."""
+        lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_exterior",
+            direction_mode="exterior",
+        )
+        assert unit_cube.has_attribute("@lfs_exterior")
+        # Note: exterior rays may not always hit for a finite mesh
+        # so we just check that the attribute was created
+
+    def test_both_mode(self, unit_cube):
+        """Test with both directions ray casting mode using string."""
+        attr_id = lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_both",
+            direction_mode="both",
+        )
+        assert unit_cube.has_attribute("@lfs_both")
+        lfs_data = unit_cube.attribute(attr_id).data
+        assert np.all(np.isfinite(lfs_data))
+
+    def test_with_cached_raycaster(self, unit_cube):
+        """Test using a pre-built RayCaster."""
+        rc = lagrange.raycasting.RayCaster()
+        rc.add_mesh(unit_cube)
+        rc.commit_updates()
+
+        attr_id = lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_cached",
+            direction_mode="interior",
+            ray_caster=rc,
+        )
+        assert unit_cube.has_attribute("@lfs_cached")
+        lfs_data = unit_cube.attribute(attr_id).data
+        assert np.all(np.isfinite(lfs_data))
+
+    def test_medial_axis_tolerance(self, unit_cube):
+        """Test the medial axis tolerance parameter."""
+        # With loose tolerance
+        attr_id_loose = lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_loose",
+            direction_mode="interior",
+            medial_axis_tolerance=1e-3,
+        )
+        assert unit_cube.has_attribute("@lfs_loose")
+        lfs_loose = unit_cube.attribute(attr_id_loose).data
+        assert np.all(np.isfinite(lfs_loose))
+
+        # With tight tolerance
+        attr_id_tight = lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_tight",
+            direction_mode="interior",
+            medial_axis_tolerance=1e-5,
+        )
+        assert unit_cube.has_attribute("@lfs_tight")
+        lfs_tight = unit_cube.attribute(attr_id_tight).data
+        assert np.all(np.isfinite(lfs_tight))
+
+        # Both should produce valid results
+        # (values may differ slightly due to different convergence)
+
+    def test_default_lfs(self, unit_cube):
+        """Test the default_lfs parameter as fallback value."""
+        attr_id = lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            output_attribute_name="@lfs_default",
+            default_lfs=999.0,
+        )
+        assert unit_cube.has_attribute("@lfs_default")
+        lfs_data = unit_cube.attribute(attr_id).data
+        # For a closed cube with interior mode, all rays should hit
+        # so we should get valid computed values (not the default)
+        assert np.all(lfs_data < 999.0)
+        assert lfs_data.shape == (unit_cube.num_vertices,)
+
+    def test_invalid_direction_mode(self, unit_cube):
+        """Test that invalid direction mode string raises an error."""
+        with pytest.raises(RuntimeError, match="Invalid direction_mode"):
+            lagrange.raycasting.compute_local_feature_size(
+                unit_cube,
+                direction_mode="invalid_mode",
+            )
+
+    def test_keyword_only_arguments(self, unit_cube):
+        """Test that optional arguments are keyword-only."""
+        # This should work
+        lagrange.raycasting.compute_local_feature_size(
+            unit_cube,
+            medial_axis_tolerance=1e-4,
+        )
+        assert unit_cube.has_attribute("@lfs")
+
+        # This should fail because we're passing positional args after mesh
+        with pytest.raises(TypeError):
+            lagrange.raycasting.compute_local_feature_size(unit_cube, 1e-4)
