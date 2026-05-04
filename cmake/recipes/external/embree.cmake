@@ -120,9 +120,14 @@ function(embree_import_target)
         # https://github.com/RenderKit/embree/issues/486
         set(EMBREE_PATCHES PATCHES embree.patch)
     endif()
+    set(EMBREE_URL RenderKit/embree)
+    if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND EMBREE_VERSION STREQUAL "v4.4.0")
+        set(EMBREE_VERSION 03d8ec87213176a7e91c92a18d42e15a8a9bbbc8)
+        set(EMBREE_URL dousse-adobe/embree)
+    endif()
     CPMAddPackage(
         NAME embree
-        GITHUB_REPOSITORY RenderKit/embree
+        GITHUB_REPOSITORY ${EMBREE_URL}
         GIT_TAG ${EMBREE_VERSION}
         ${EMBREE_PATCHES}
     )
