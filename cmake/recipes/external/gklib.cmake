@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME gklib
     GITHUB_REPOSITORY KarypisLab/GKlib
-    GIT_TAG 67c6e4322bb326a04727995775c3eafc47d7a252
+    GIT_TAG e2856c2f595b153ca1ce9258c5301dbabc4f39f5
     DOWNLOAD_ONLY ON
 )
 
