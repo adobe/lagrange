@@ -35,6 +35,13 @@ add_library(GKlib::GKlib ALIAS GKlib)
 if(MSVC)
     target_compile_definitions(GKlib PUBLIC USE_GKREGEX)
     target_compile_definitions(GKlib PUBLIC "__thread=__declspec(thread)")
+    # gk_ms_stdint.h / gk_ms_inttypes.h are 2006-era polyfills for pre-VS2010 MSVC.
+    # Modern MSVC (VS2010+) ships <stdint.h> natively, but on ARM64 it defines
+    # int_fast16_t as 'int' (32-bit) while the polyfill defines it as 'int16_t',
+    # causing a redefinition error. Suppress the polyfills via their include guards
+    # and force-include the real system header so the types are still available.
+    target_compile_definitions(GKlib PUBLIC _MSC_STDINT_H_ _MSC_INTTYPES_H_)
+    target_compile_options(GKlib PUBLIC "/FIstdint.h" "/FIinttypes.h")
 endif()
 
 include(GNUInstallDirs)
