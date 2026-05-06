@@ -215,8 +215,19 @@ jobs:
           fetch-depth: 0
 
       - uses: actions/setup-python@v5
+        if: matrix.os != 'windows-11-arm'
         with:
           python-version: 3.13
+
+        # Explicitly request arm64 architecture so that the Python dev files
+        # (headers + python313.lib) are installed for ARM64, not just the interpreter.
+        # Without this, CMake falls back to the x64 Python for Development.Module,
+        # which the ARM64 MSVC toolchain cannot link against.
+      - uses: actions/setup-python@v5
+        if: matrix.os == 'windows-11-arm'
+        with:
+          python-version: 3.13
+          architecture: arm64
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -254,29 +265,12 @@ jobs:
 
         # Cmd uses ^ to break commands into multiple lines, powershell uses `
       - name: Configure
-        if: matrix.os != 'windows-11-arm'
         run: |
           cmake --version
           cmake -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
             -DLAGRANGE_JENKINS=ON `
             -DLAGRANGE_ALL=ON `
-            -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
-            -B ${{ env.BUILD_DIR }} `
-            -S .
-
-        # Python bindings are disabled on ARM64: the hostedtoolcache ARM64 Python lacks
-        # development files, causing CMake to fall back to x64 Python headers that the
-        # ARM64 MSVC toolchain cannot link against.
-      - name: Configure (ARM64)
-        if: matrix.os == 'windows-11-arm'
-        run: |
-          cmake --version
-          cmake -G Ninja `
-            -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
-            -DLAGRANGE_JENKINS=ON `
-            -DLAGRANGE_ALL=ON `
-            -DLAGRANGE_MODULE_PYTHON=OFF `
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
             -B ${{ env.BUILD_DIR }} `
             -S .
