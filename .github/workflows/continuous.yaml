@@ -254,12 +254,29 @@ jobs:
 
         # Cmd uses ^ to break commands into multiple lines, powershell uses `
       - name: Configure
+        if: matrix.os != 'windows-11-arm'
         run: |
           cmake --version
           cmake -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
             -DLAGRANGE_JENKINS=ON `
             -DLAGRANGE_ALL=ON `
+            -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
+            -B ${{ env.BUILD_DIR }} `
+            -S .
+
+        # Python bindings are disabled on ARM64: the hostedtoolcache ARM64 Python lacks
+        # development files, causing CMake to fall back to x64 Python headers that the
+        # ARM64 MSVC toolchain cannot link against.
+      - name: Configure (ARM64)
+        if: matrix.os == 'windows-11-arm'
+        run: |
+          cmake --version
+          cmake -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
+            -DLAGRANGE_JENKINS=ON `
+            -DLAGRANGE_ALL=ON `
+            -DLAGRANGE_MODULE_PYTHON=OFF `
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
             -B ${{ env.BUILD_DIR }} `
             -S .
