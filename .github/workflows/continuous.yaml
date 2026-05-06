@@ -219,15 +219,21 @@ jobs:
         with:
           python-version: 3.13
 
-        # Explicitly request arm64 architecture so that the Python dev files
-        # (headers + python313.lib) are installed for ARM64, not just the interpreter.
-        # Without this, CMake falls back to the x64 Python for Development.Module,
-        # which the ARM64 MSVC toolchain cannot link against.
-      - uses: actions/setup-python@v5
+        # On windows-11-arm the hostedtoolcache Python ships only the interpreter binary;
+        # it lacks include/ headers and libs/python3XX.lib, so CMake cannot satisfy the
+        # Development.Module component. Use uv instead: it pulls python-build-standalone
+        # distributions which include full dev files. uv defaults to x64-emulated Python
+        # on ARM64 Windows (uv PR #13724), so we must pin the aarch64 specifier.
+      - uses: astral-sh/setup-uv@v6
         if: matrix.os == 'windows-11-arm'
-        with:
-          python-version: 3.13
-          architecture: arm64
+
+      - name: Install native ARM64 Python via uv
+        if: matrix.os == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          uv python install cpython-3.13-windows-aarch64
+          $pyExe = (uv python find cpython-3.13-windows-aarch64).Trim()
+          echo "PYTHON_ARM64_EXE=$($pyExe -replace '\\', '/')" >> $env:GITHUB_ENV
 
       - name: Install Ninja
         uses: seanmiddleditch/gha-setup-ninja@master
@@ -262,51 +268,6 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: ${{ env.ARCH }}
-
-        # The windows-11-arm hostedtoolcache Python ships only the interpreter; it lacks
-        # python3XX.lib and headers. We synthesize the import library from the ARM64 DLL
-        # using MSVC lib.exe (available after msvc-dev-cmd), and copy arch-neutral headers
-        # from the x64 Python if the arm64 install doesn't have them.
-      - name: Fix Python ARM64 development files
-        if: matrix.os == 'windows-11-arm'
-        shell: pwsh
-        run: |
-          $pyDir = $env:pythonLocation
-
-          # Locate the Python DLL (e.g. python313.dll)
-          $dll = Get-ChildItem -Path $pyDir -Filter "python3*.dll" | Select-Object -First 1
-          if (-not $dll) { Write-Error "No python3*.dll in $pyDir"; exit 1 }
-          $dllBase = $dll.BaseName
-
-          # Generate ARM64 import library if missing
-          $libsDir = Join-Path $pyDir "libs"
-          $libFile  = Join-Path $libsDir "$dllBase.lib"
-          if (-not (Test-Path $libFile)) {
-            New-Item -ItemType Directory -Force -Path $libsDir | Out-Null
-            $raw     = & dumpbin /EXPORTS $dll.FullName 2>&1
-            $exports = $raw | Where-Object { $_ -match '^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+\w' } |
-                       ForEach-Object { if ($_ -match '^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+(\S+)') { $Matches[1] } }
-            $defPath = "$env:TEMP\$dllBase.def"
-            @("LIBRARY $dllBase", "EXPORTS") + $exports | Set-Content $defPath -Encoding ASCII
-            & lib /DEF:$defPath /MACHINE:ARM64 /OUT:$libFile
-            if ($LASTEXITCODE -ne 0) { Write-Error "lib.exe failed"; exit 1 }
-            Write-Host "Generated $libFile"
-          } else { Write-Host "$libFile already present" }
-
-          # Ensure Python headers exist (they are architecture-neutral)
-          $includeDir = Join-Path $pyDir "include"
-          if (-not (Test-Path $includeDir)) {
-            $ver        = Split-Path (Split-Path $pyDir -Parent) -Leaf
-            $x64Include = "C:\hostedtoolcache\windows\Python\$ver\x64\include"
-            if (Test-Path $x64Include) {
-              Copy-Item -Recurse $x64Include $includeDir
-              Write-Host "Copied headers from x64 to $includeDir"
-            } else { Write-Error "No Python headers found at $x64Include"; exit 1 }
-          } else { Write-Host "Headers already present at $includeDir" }
-
-          # Expose the ARM64 Python executable path for the CMake configure step
-          $exePath = (Join-Path $pyDir "python.exe") -replace "\\", "/"
-          echo "PYTHON_ARM64_EXE=$exePath" >> $env:GITHUB_ENV
 
         # Cmd uses ^ to break commands into multiple lines, powershell uses `
       - name: Configure
