@@ -23,10 +23,10 @@ CPMAddPackage(
     DOWNLOAD_ONLY ON
 )
 
-file(GLOB INC_FILES "${gklib_SOURCE_DIR}/*.h" )
-file(GLOB SRC_FILES "${gklib_SOURCE_DIR}/*.c" )
+file(GLOB INC_FILES "${gklib_SOURCE_DIR}/include/*.h" )
+file(GLOB SRC_FILES "${gklib_SOURCE_DIR}/src/*.c" )
 if(NOT MSVC)
-    list(REMOVE_ITEM SRC_FILES "${gklib_SOURCE_DIR}/gkregex.c")
+    list(REMOVE_ITEM SRC_FILES "${gklib_SOURCE_DIR}/src/gkregex.c")
 endif()
 
 add_library(GKlib STATIC ${INC_FILES} ${SRC_FILES})
@@ -39,7 +39,7 @@ endif()
 
 include(GNUInstallDirs)
 target_include_directories(GKlib SYSTEM PUBLIC
-    "$<BUILD_INTERFACE:${gklib_SOURCE_DIR}>"
+    "$<BUILD_INTERFACE:${gklib_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
