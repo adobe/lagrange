@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME simde
     GITHUB_REPOSITORY simd-everywhere/simde
-    GIT_TAG 48edfa906d835525e2061fbf6062b7c326d66840
+    GIT_TAG 1747b2482589fe894d49989159421da08c2a8bcd
 )
 
 add_library(simde::simde INTERFACE IMPORTED GLOBAL)
