@@ -127,6 +127,9 @@ function(embree_import_target)
         message(STATUS "Testing winarm version of embree 4")
         set(EMBREE_VERSION 03d8ec87213176a7e91c92a18d42e15a8a9bbbc8)
         set(EMBREE_URL dousse-adobe/embree)
+        # intrinsics.h guards x86 BMI/LZCNT intrinsics with !defined(__aarch64__) but misses
+        # _M_ARM64 (the MSVC macro for ARM64), causing build failures on Windows ARM64.
+        set(EMBREE_PATCHES PATCHES embree-winarm.patch)
     endif()
     CPMAddPackage(
         NAME embree
