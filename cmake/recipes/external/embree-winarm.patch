@@ -1,7 +1,7 @@
 diff --git i/common/sys/intrinsics.h w/common/sys/intrinsics.h
 --- i/common/sys/intrinsics.h
 +++ w/common/sys/intrinsics.h
-@@ -91,7 +91,7 @@
+@@ -91,6 +91,6 @@
  #if defined(__X86_64__) || defined (__aarch64__) || defined(_M_ARM64)
    __forceinline size_t bsf(size_t v) {
 -#if defined(__AVX2__) 
@@ -9,14 +9,14 @@ diff --git i/common/sys/intrinsics.h w/common/sys/intrinsics.h
      return _tzcnt_u64(v);
  #else
      unsigned long r = 0; _BitScanForward64(&r,v); return r;
-@@ -141,7 +141,7 @@
+@@ -141,5 +141,5 @@
    __forceinline size_t bsr(size_t v) {
 -#if defined(__AVX2__) 
 +#if defined(__AVX2__) && !defined(_M_ARM64)
      return 63 -_lzcnt_u64(v);
  #else
      unsigned long r = 0; _BitScanReverse64(&r, v); return r;
-@@ -534,7 +534,7 @@
+@@ -534,4 +534,4 @@
 -#if defined(__AVX2__) && !defined(__aarch64__)
 +#if defined(__AVX2__) && !defined(__aarch64__) && !defined(_M_ARM64)
     __forceinline unsigned int pext(unsigned int a, unsigned int b) { return _pext_u32(a, b); }
