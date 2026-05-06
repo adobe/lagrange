@@ -48,6 +48,14 @@ foreach(name IN ITEMS ${module_names})
     string(TOUPPER ${name} MODULE_FLAG)
     set(MODULE_OPTION LAGRANGE_MODULE_${MODULE_FLAG})
 
+    # Capture whether the user explicitly disabled this module before option() materializes
+    # the cache variable (the default-OFF cache value would otherwise be indistinguishable
+    # from an explicit -DLAGRANGE_MODULE_X=OFF on the command line).
+    set(_user_disabled_module FALSE)
+    if(DEFINED CACHE{${MODULE_OPTION}} AND NOT ${${MODULE_OPTION}})
+        set(_user_disabled_module TRUE)
+    endif()
+
     # Allows setting the option
     option(${MODULE_OPTION} "Build module lagrange::${name}" OFF)
 
@@ -61,7 +69,7 @@ foreach(name IN ITEMS ${module_names})
                            "Please use the helper function lagrange_include_modules() instead.")
     endif()
 
-    if(${MODULE_OPTION} OR LAGRANGE_ALL)
+    if(${MODULE_OPTION} OR (LAGRANGE_ALL AND NOT _user_disabled_module))
         lagrange_include_modules(${name})
     endif()
 endforeach()
