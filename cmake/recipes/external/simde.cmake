@@ -22,11 +22,8 @@ CPMAddPackage(
     GIT_TAG 1747b2482589fe894d49989159421da08c2a8bcd
 )
 
-add_library(simde::simde INTERFACE IMPORTED GLOBAL)
-target_include_directories(simde::simde INTERFACE "${simde_SOURCE_DIR}")
-
 # Enables native aliases. Not ideal but makes it easier to convert old code.
-target_compile_definitions(simde::simde INTERFACE SIMDE_ENABLE_NATIVE_ALIASES)
+target_compile_definitions(simde INTERFACE SIMDE_ENABLE_NATIVE_ALIASES)
 
 # Uncomment this line to ensure code can be compiled without native SIMD (i.e. emulates everything)
-# target_compile_definitions(simde::simde INTERFACE SIMDE_NO_NATIVE)
+# target_compile_definitions(simde INTERFACE SIMDE_NO_NATIVE)
