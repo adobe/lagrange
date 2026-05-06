@@ -263,8 +263,54 @@ jobs:
         with:
           arch: ${{ env.ARCH }}
 
+        # The windows-11-arm hostedtoolcache Python ships only the interpreter; it lacks
+        # python3XX.lib and headers. We synthesize the import library from the ARM64 DLL
+        # using MSVC lib.exe (available after msvc-dev-cmd), and copy arch-neutral headers
+        # from the x64 Python if the arm64 install doesn't have them.
+      - name: Fix Python ARM64 development files
+        if: matrix.os == 'windows-11-arm'
+        shell: pwsh
+        run: |
+          $pyDir = $env:pythonLocation
+
+          # Locate the Python DLL (e.g. python313.dll)
+          $dll = Get-ChildItem -Path $pyDir -Filter "python3*.dll" | Select-Object -First 1
+          if (-not $dll) { Write-Error "No python3*.dll in $pyDir"; exit 1 }
+          $dllBase = $dll.BaseName
+
+          # Generate ARM64 import library if missing
+          $libsDir = Join-Path $pyDir "libs"
+          $libFile  = Join-Path $libsDir "$dllBase.lib"
+          if (-not (Test-Path $libFile)) {
+            New-Item -ItemType Directory -Force -Path $libsDir | Out-Null
+            $raw     = & dumpbin /EXPORTS $dll.FullName 2>&1
+            $exports = $raw | Where-Object { $_ -match '^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+\w' } |
+                       ForEach-Object { if ($_ -match '^\s+\d+\s+[0-9A-F]+\s+[0-9A-F]+\s+(\S+)') { $Matches[1] } }
+            $defPath = "$env:TEMP\$dllBase.def"
+            @("LIBRARY $dllBase", "EXPORTS") + $exports | Set-Content $defPath -Encoding ASCII
+            & lib /DEF:$defPath /MACHINE:ARM64 /OUT:$libFile
+            if ($LASTEXITCODE -ne 0) { Write-Error "lib.exe failed"; exit 1 }
+            Write-Host "Generated $libFile"
+          } else { Write-Host "$libFile already present" }
+
+          # Ensure Python headers exist (they are architecture-neutral)
+          $includeDir = Join-Path $pyDir "include"
+          if (-not (Test-Path $includeDir)) {
+            $ver        = Split-Path (Split-Path $pyDir -Parent) -Leaf
+            $x64Include = "C:\hostedtoolcache\windows\Python\$ver\x64\include"
+            if (Test-Path $x64Include) {
+              Copy-Item -Recurse $x64Include $includeDir
+              Write-Host "Copied headers from x64 to $includeDir"
+            } else { Write-Error "No Python headers found at $x64Include"; exit 1 }
+          } else { Write-Host "Headers already present at $includeDir" }
+
+          # Expose the ARM64 Python executable path for the CMake configure step
+          $exePath = (Join-Path $pyDir "python.exe") -replace "\\", "/"
+          echo "PYTHON_ARM64_EXE=$exePath" >> $env:GITHUB_ENV
+
         # Cmd uses ^ to break commands into multiple lines, powershell uses `
       - name: Configure
+        if: matrix.os != 'windows-11-arm'
         run: |
           cmake --version
           cmake -G Ninja `
@@ -272,6 +318,22 @@ jobs:
             -DLAGRANGE_JENKINS=ON `
             -DLAGRANGE_ALL=ON `
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
+            -B ${{ env.BUILD_DIR }} `
+            -S .
+
+        # Force CMake to use the ARM64 Python (now complete with dev files)
+        # and skip the Windows registry so it doesn't fall back to x64 Python.
+      - name: Configure (ARM64)
+        if: matrix.os == 'windows-11-arm'
+        run: |
+          cmake --version
+          cmake -G Ninja `
+            -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
+            -DLAGRANGE_JENKINS=ON `
+            -DLAGRANGE_ALL=ON `
+            -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
+            -DPython_EXECUTABLE="$env:PYTHON_ARM64_EXE" `
+            -DPython_FIND_REGISTRY=NEVER `
             -B ${{ env.BUILD_DIR }} `
             -S .
 
