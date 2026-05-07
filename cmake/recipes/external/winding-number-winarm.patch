@@ -39,3 +39,12 @@ diff --git i/VM_SSEFunc.h w/VM_SSEFunc.h
  
  static SYS_FORCE_INLINE v4sf
  vm_v4sf(const v4si &a)
+@@ -249,6 +267,6 @@
+ vm_splats(float a, float b, float c, float d)
+ {
+     return vm_shuffle<0,2,0,2>(
+-	    vm_shuffle<0>(simde_mm_set_ss(a), simde_mm_set_ss(b)),
+-	    vm_shuffle<0>(simde_mm_set_ss(c), simde_mm_set_ss(d)));
++	    vm_shuffle<0>(V4SF(simde_mm_set_ss(a)), V4SF(simde_mm_set_ss(b))),
++	    vm_shuffle<0>(V4SF(simde_mm_set_ss(c)), V4SF(simde_mm_set_ss(d))));
+ }
