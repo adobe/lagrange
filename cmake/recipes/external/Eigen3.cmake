@@ -46,13 +46,29 @@ if(EIGEN_DONT_VECTORIZE)
     target_compile_definitions(Eigen3_Eigen INTERFACE EIGEN_DONT_VECTORIZE)
 endif()
 
-# Diagnostic only — TEMPORARY: force-include a header that replaces eigen_assert with a
-# non-fatal logger so we can capture every Eigen alignment failure on Windows ARM64 Debug
-# (the runtime dialog otherwise hangs CI). Remove once the underlying issue is fixed.
-if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND MSVC)
+# Diagnostic only — TEMPORARY: on Windows ARM64 Debug, force-include a header that overrides
+# eigen_assert with a non-fatal handler. When the assertion comes from DenseStorage.h (i.e. the
+# plain_array<> alignment check) we capture a cpptrace stack trace so we can pinpoint the call
+# site that constructs a misaligned fixed-size Eigen object. All other eigen_assert failures
+# still abort, so unrelated invariants are not masked.
+#
+# The cpptrace dependency stays in a separate static library (lagrange_eigen_align_diag) so it
+# does not leak into every Eigen consumer's interface.
+if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND MSVC AND CMAKE_BUILD_TYPE STREQUAL "Debug")
+    include(cpptrace)
+    add_library(lagrange_eigen_align_diag STATIC
+        ${CMAKE_CURRENT_LIST_DIR}/eigen_alignment_diag.cpp
+        ${CMAKE_CURRENT_LIST_DIR}/eigen_alignment_diag.h
+    )
+    target_include_directories(lagrange_eigen_align_diag PUBLIC ${CMAKE_CURRENT_LIST_DIR})
+    target_compile_definitions(lagrange_eigen_align_diag PUBLIC LAGRANGE_DIAG_EIGEN_ALIGN=1)
+    target_link_libraries(lagrange_eigen_align_diag PRIVATE cpptrace::cpptrace)
+    set_target_properties(lagrange_eigen_align_diag PROPERTIES FOLDER third_party)
+
     set(_lagrange_eigen_diag_header "${CMAKE_CURRENT_LIST_DIR}/eigen_alignment_diag.h")
     target_compile_options(Eigen3_Eigen INTERFACE "/FI${_lagrange_eigen_diag_header}")
     target_compile_definitions(Eigen3_Eigen INTERFACE LAGRANGE_DIAG_EIGEN_ALIGN=1)
+    target_link_libraries(Eigen3_Eigen INTERFACE lagrange_eigen_align_diag)
 endif()
 
 if(EIGEN_WITH_MKL)

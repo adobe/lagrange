@@ -1,39 +1,25 @@
-// Diagnostic eigen_assert override for Windows ARM64 investigation.
-// Prints the address, alignment, and call site, then continues so we can see
-// every misaligned construction without aborting the process.
+// Diagnostic Eigen assertion override for Windows ARM64 Debug investigation.
+// Replaces eigen_assert with a non-fatal handler that captures a stack trace
+// via cpptrace whenever the failing call originates from DenseStorage.h (i.e.
+// the alignment check on plain_array<>). The actual cpptrace call lives in
+// eigen_alignment_diag.cpp so this header has no dependency on cpptrace.
+//
+// Force-included via /FI on MSVC (see cmake/recipes/external/Eigen3.cmake).
+// Pre-defining eigen_assert here works because Eigen/src/Core/util/Macros.h
+// guards its own definition with #ifndef eigen_assert.
 #pragma once
 
 #ifdef LAGRANGE_DIAG_EIGEN_ALIGN
 
-#include <atomic>
-#include <cstdio>
-#include <cstdint>
-#include <cstring>
-
 namespace lagrange_diag {
-inline std::atomic<int>& eigen_diag_count()
-{
-    static std::atomic<int> n{0};
-    return n;
-}
-
-inline void log_eigen_assert(const char* expr, const char* file, int line)
-{
-    int n = eigen_diag_count().fetch_add(1);
-    if (n < 30) {
-        std::fprintf(stderr, "[EIGEN_DIAG #%d] %s:%d  %s\n", n, file, line, expr);
-        std::fflush(stderr);
-    }
-}
+void eigen_assert_handler(const char* expr, const char* file, int line);
 } // namespace lagrange_diag
 
-// Replace eigen_assert with a non-fatal diagnostic version. We must define this BEFORE
-// any Eigen header is included; this file is force-included via /FI on MSVC and -include on GCC/Clang.
-#define eigen_assert(x)                                                             \
-    do {                                                                            \
-        if (!(x)) {                                                                 \
-            ::lagrange_diag::log_eigen_assert(#x, __FILE__, __LINE__);              \
-        }                                                                           \
+#define eigen_assert(x)                                                              \
+    do {                                                                             \
+        if (!(x)) {                                                                  \
+            ::lagrange_diag::eigen_assert_handler(#x, __FILE__, __LINE__);           \
+        }                                                                            \
     } while (0)
 
 #endif // LAGRANGE_DIAG_EIGEN_ALIGN
