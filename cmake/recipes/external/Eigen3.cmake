@@ -66,9 +66,14 @@ if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND MSVC AND CMAKE_BUILD_TY
     set_target_properties(lagrange_eigen_align_diag PROPERTIES FOLDER third_party)
 
     set(_lagrange_eigen_diag_header "${CMAKE_CURRENT_LIST_DIR}/eigen_alignment_diag.h")
-    target_compile_options(Eigen3_Eigen INTERFACE "/FI${_lagrange_eigen_diag_header}")
-    target_compile_definitions(Eigen3_Eigen INTERFACE LAGRANGE_DIAG_EIGEN_ALIGN=1)
-    target_link_libraries(Eigen3_Eigen INTERFACE lagrange_eigen_align_diag)
+    # Wrap with $<BUILD_INTERFACE:> so install(EXPORT Eigen_Targets) does not see the
+    # diagnostic target (which is intentionally not part of the export set).
+    target_compile_options(Eigen3_Eigen INTERFACE
+        "$<BUILD_INTERFACE:/FI${_lagrange_eigen_diag_header}>")
+    target_compile_definitions(Eigen3_Eigen INTERFACE
+        $<BUILD_INTERFACE:LAGRANGE_DIAG_EIGEN_ALIGN=1>)
+    target_link_libraries(Eigen3_Eigen INTERFACE
+        $<BUILD_INTERFACE:lagrange_eigen_align_diag>)
 endif()
 
 if(EIGEN_WITH_MKL)
