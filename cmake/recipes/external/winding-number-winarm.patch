@@ -1,0 +1,42 @@
+diff --git i/VM_SSEFunc.h w/VM_SSEFunc.h
+--- i/VM_SSEFunc.h
++++ w/VM_SSEFunc.h
+@@ -39,8 +39,26 @@
+ #include <simde/x86/sse.h>
+ #include <simde/x86/sse4.1.h>
+
+-typedef simde__m128 v4sf;
+-typedef simde__m128i v4si;
++#if defined(_MSC_VER) && defined(_M_ARM64)
++// On MSVC ARM64, simde__m128 and simde__m128i are both __n128 (the native NEON type).
++// Plain typedefs make v4sf==v4si, breaking all overloaded functions (vm_shuffle, vm_extract,
++// etc.). Use distinct wrapper structs with implicit conversions to/from the simde types.
++struct v4sf {
++    simde__m128 _v;
++    v4sf() = default;
++    SYS_FORCE_INLINE v4sf(simde__m128 v) noexcept : _v(v) {}
++    SYS_FORCE_INLINE operator simde__m128() const noexcept { return _v; }
++};
++struct v4si {
++    simde__m128i _v;
++    v4si() = default;
++    SYS_FORCE_INLINE v4si(simde__m128i v) noexcept : _v(v) {}
++    SYS_FORCE_INLINE operator simde__m128i() const noexcept { return _v; }
++};
++#else
++typedef simde__m128 v4sf;
++typedef simde__m128i v4si;
++#endif
+
+ #define CPU_HAS_SIMD_INSTR	1
+ #define VM_SSE_STYLE		1
+@@ -59,7 +77,7 @@
+ // Plain casting (no conversion)
+ // MSVC has problems casting between __m128 and __m128i, so we implement a
+ // custom casting routine specifically for windows.
+
+-#if defined(_MSC_VER)
++#if defined(_MSC_VER) && !defined(_M_ARM64)
+
+ static SYS_FORCE_INLINE v4sf
+ vm_v4sf(const v4si &a)

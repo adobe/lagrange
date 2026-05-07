@@ -24,11 +24,3 @@ CPMAddPackage(
 
 # Enables native aliases. Not ideal but makes it easier to convert old code.
 target_compile_definitions(simde INTERFACE SIMDE_ENABLE_NATIVE_ALIASES)
-
-# On MSVC ARM64, all NEON vector types (float32x4_t, int64x2_t, ...) are typedefs of the same
-# __n128 type, so simde__m128 and simde__m128i would be identical to the type system. This breaks
-# code that overloads on __m128 vs __m128i (e.g. WindingNumber's VM_SSEFunc.h). Disabling native
-# NEON forces SIMDe to use its own distinct union types instead.
-if(MSVC AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
-    target_compile_definitions(simde INTERFACE SIMDE_NO_NATIVE)
-endif()

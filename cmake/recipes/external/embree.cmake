@@ -127,6 +127,13 @@ function(embree_import_target)
         message(STATUS "Testing winarm version of embree 4")
         set(EMBREE_VERSION 03d8ec87213176a7e91c92a18d42e15a8a9bbbc8)
         set(EMBREE_URL dousse-adobe/embree)
+        # The dousse-adobe fork guards x86 BMI/LZCNT/PEXT intrinsics with !defined(__aarch64__)
+        # (GCC/Clang macro) but misses _M_ARM64 (MSVC macro), causing build failures on Windows
+        # ARM64. We use git apply --ignore-whitespace instead of CPM's PATCHES (patch -p1) because
+        # git-cloned files may have CRLF line endings on Windows, which confuses patch.exe.
+        find_package(Git REQUIRED QUIET)
+        set(EMBREE_ARM64_PATCH "${CMAKE_CURRENT_LIST_DIR}/embree-winarm.patch")
+        set(EMBREE_PATCHES PATCH_COMMAND "${GIT_EXECUTABLE}" apply --ignore-whitespace "${EMBREE_ARM64_PATCH}")
     endif()
     CPMAddPackage(
         NAME embree
@@ -134,35 +141,6 @@ function(embree_import_target)
         GIT_TAG ${EMBREE_VERSION}
         ${EMBREE_PATCHES}
     )
-
-    # Fix intrinsics.h for MSVC ARM64: the dousse-adobe fork defines __AVX2__ on ARM64 to trigger
-    # SIMDe, but uses !defined(__aarch64__) (GCC/Clang) instead of !defined(_M_ARM64) (MSVC) to
-    # guard x86 BMI/LZCNT/PEXT intrinsics, causing build failures. We apply this fix via CMake
-    # string replacement rather than a patch file to avoid dependency on Strawberry's patch.exe,
-    # which is strict about unified-diff line counts and offsets.
-    if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND DEFINED embree_SOURCE_DIR)
-        set(_intrinsics "${embree_SOURCE_DIR}/common/sys/intrinsics.h")
-        if(EXISTS "${_intrinsics}")
-            file(READ "${_intrinsics}" _content)
-            string(ASCII 13 _cr)
-            string(ASCII 10 _lf)
-            # Two bsf/bsr instances end with a trailing space before the newline.
-            string(REGEX REPLACE
-                "#if defined\\(__AVX2__\\) ([${_cr}${_lf}])"
-                "#if defined(__AVX2__) && !defined(_M_ARM64)\\1"
-                _content "${_content}")
-            # pext/pdep instance uses the __aarch64__ guard without the trailing space.
-            string(REPLACE
-                "#if defined(__AVX2__) && !defined(__aarch64__)"
-                "#if defined(__AVX2__) && !defined(__aarch64__) && !defined(_M_ARM64)"
-                _content "${_content}")
-            file(WRITE "${_intrinsics}" "${_content}")
-            unset(_content)
-        endif()
-        unset(_intrinsics)
-        unset(_cr)
-        unset(_lf)
-    endif()
 
     unignore_package(TBB)
 
