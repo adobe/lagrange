@@ -11,6 +11,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 #include <mutex>
 
 namespace lagrange_diag {
