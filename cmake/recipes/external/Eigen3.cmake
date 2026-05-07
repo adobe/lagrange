@@ -46,6 +46,15 @@ if(EIGEN_DONT_VECTORIZE)
     target_compile_definitions(Eigen3_Eigen INTERFACE EIGEN_DONT_VECTORIZE)
 endif()
 
+# Diagnostic only — TEMPORARY: force-include a header that replaces eigen_assert with a
+# non-fatal logger so we can capture every Eigen alignment failure on Windows ARM64 Debug
+# (the runtime dialog otherwise hangs CI). Remove once the underlying issue is fixed.
+if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND MSVC)
+    set(_lagrange_eigen_diag_header "${CMAKE_CURRENT_LIST_DIR}/eigen_alignment_diag.h")
+    target_compile_options(Eigen3_Eigen INTERFACE "/FI${_lagrange_eigen_diag_header}")
+    target_compile_definitions(Eigen3_Eigen INTERFACE LAGRANGE_DIAG_EIGEN_ALIGN=1)
+endif()
+
 if(EIGEN_WITH_MKL)
     # TODO: Checks that, on 64bits systems, `MKL::MKL` is using the LP64 interface
     # (by looking at the compile definition of the target)

@@ -21,6 +21,7 @@ jobs:
   Unix:
     name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
     runs-on: ${{ matrix.os }}
+    if: false  # TEMPORARY: disabled while iterating on Windows ARM64 Eigen alignment diagnostics
     strategy:
       fail-fast: false
       matrix:
@@ -202,8 +203,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2025, windows-11-arm]
-        config: [Release, Debug]
+        # TEMPORARY: only windows-11-arm Debug while iterating on Eigen alignment diagnostics
+        os: [windows-11-arm]
+        config: [Debug]
     steps:
       - name: Show disk space
         run: Get-PSDrive
