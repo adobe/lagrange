@@ -11,8 +11,9 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
-#include <iostream>
+#include <exception>
 #include <mutex>
+#include <string>
 
 namespace lagrange_diag {
 
@@ -52,7 +53,17 @@ void eigen_assert_handler(const char* expr, const char* file, int line)
                 file,
                 line,
                 expr ? expr : "(null)");
-            cpptrace::generate_trace(/*skip*/ 1, /*max*/ 64).print(std::cerr);
+            std::fflush(stderr);
+            try {
+                auto trace = cpptrace::generate_trace(/*skip*/ 1, /*max*/ 64);
+                std::string s = trace.to_string(/*color*/ false);
+                std::fprintf(stderr, "%s\n", s.c_str());
+                std::fprintf(stderr, "[EIGEN_DIAG #%d] frames=%zu\n", n, trace.frames.size());
+            } catch (const std::exception& e) {
+                std::fprintf(stderr, "[EIGEN_DIAG #%d] cpptrace exception: %s\n", n, e.what());
+            } catch (...) {
+                std::fprintf(stderr, "[EIGEN_DIAG #%d] cpptrace unknown exception\n", n);
+            }
             std::fflush(stderr);
         }
         return;
