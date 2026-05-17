@@ -311,7 +311,10 @@ void Camera::rotate_tumble(float yaw_delta, float pitch_delta)
 }
 
 
-void Camera::rotate_turntable(float yaw_delta, float pitch_delta, Eigen::Vector3f primary_axis)
+void Camera::rotate_turntable(
+    float yaw_delta,
+    float pitch_delta,
+    const Eigen::Vector3f& primary_axis)
 {
     if (primary_axis.x() != 0 || primary_axis.y() != 0 || primary_axis.z() != 0) {
         set_up(primary_axis);
@@ -400,7 +403,7 @@ void Camera::move_up(float delta)
     update_view();
 }
 
-void Camera::set_ortho_viewport(Eigen::Vector4f viewport)
+void Camera::set_ortho_viewport(const Eigen::Vector4f& viewport)
 {
     if (std::isnan(viewport.x()) || std::isnan(viewport.y()) || std::isnan(viewport.z()) ||
         std::isnan(viewport.w()))
@@ -514,7 +517,7 @@ Frustum Camera::get_frustum() const
     return get_frustum(Eigen::Vector2f(0), Eigen::Vector2f(get_window_size()));
 }
 
-Frustum Camera::get_frustum(Eigen::Vector2f min, Eigen::Vector2f max) const
+Frustum Camera::get_frustum(const Eigen::Vector2f& min, const Eigen::Vector2f& max) const
 {
     auto ray_bottom_left = cast_ray(min);
     auto ray_top_left = cast_ray({min.x(), max.y()});

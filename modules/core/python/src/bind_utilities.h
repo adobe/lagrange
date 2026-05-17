@@ -1620,7 +1620,7 @@ oriented.
     m.def(
         "transform_mesh",
         [](MeshType& mesh,
-           Eigen::Matrix<Scalar, 4, 4> affine_transform,
+           const Eigen::Matrix<Scalar, 4, 4>& affine_transform,
            bool normalize_normals,
            bool normalize_tangents_bitangents,
            bool in_place) -> std::optional<MeshType> {

@@ -199,7 +199,7 @@ public:
     void rotate_turntable(
         float yaw_delta,
         float pitch_delta,
-        Eigen::Vector3f primary_axis = Eigen::Vector3f::Zero());
+        const Eigen::Vector3f& primary_axis = Eigen::Vector3f::Zero());
 
 
     void rotate_arcball(
@@ -227,7 +227,7 @@ public:
     ///
     /// @param viewport Orthographic rectangle
     ///
-    void set_ortho_viewport(Eigen::Vector4f viewport);
+    void set_ortho_viewport(const Eigen::Vector4f& viewport);
 
     Eigen::Vector4f get_ortho_viewport() const;
 
@@ -314,7 +314,7 @@ public:
     ///
     /// @return Frustum planes of a region
     ///
-    Frustum get_frustum(Eigen::Vector2f min, Eigen::Vector2f max) const;
+    Frustum get_frustum(const Eigen::Vector2f& min, const Eigen::Vector2f& max) const;
 
 protected:
     void update_view();

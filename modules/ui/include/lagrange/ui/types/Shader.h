@@ -153,15 +153,15 @@ struct LA_UI_API ShaderValue
     int size;
     GLenum type;
     ShaderInterface shaderInterface;
-    const ShaderValue& operator=(Eigen::Vector2f val) const;
-    const ShaderValue& operator=(Eigen::Vector3f val) const;
-    const ShaderValue& operator=(Eigen::Vector4f val) const;
+    const ShaderValue& operator=(const Eigen::Vector2f& val) const;
+    const ShaderValue& operator=(const Eigen::Vector3f& val) const;
+    const ShaderValue& operator=(const Eigen::Vector4f& val) const;
 
-    const ShaderValue& operator=(Eigen::Matrix2f val) const;
-    const ShaderValue& operator=(Eigen::Matrix3f val) const;
-    const ShaderValue& operator=(Eigen::Matrix4f val) const;
-    const ShaderValue& operator=(Eigen::Affine3f val) const;
-    const ShaderValue& operator=(Eigen::Projective3f val) const;
+    const ShaderValue& operator=(const Eigen::Matrix2f& val) const;
+    const ShaderValue& operator=(const Eigen::Matrix3f& val) const;
+    const ShaderValue& operator=(const Eigen::Matrix4f& val) const;
+    const ShaderValue& operator=(const Eigen::Affine3f& val) const;
+    const ShaderValue& operator=(const Eigen::Projective3f& val) const;
 
 
     const ShaderValue& operator=(double val) const;

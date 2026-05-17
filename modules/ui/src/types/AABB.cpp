@@ -43,8 +43,8 @@ Eigen::Affine3f AABB::get_normalization_transform(bool preserve_aspect) const
 }
 
 bool AABB::intersects_ray(
-    Eigen::Vector3f origin,
-    Eigen::Vector3f dir,
+    const Eigen::Vector3f& origin,
+    const Eigen::Vector3f& dir,
     float* tmin_out /* = nullptr*/,
     float* tmax_out /* = nullptr*/) const
 {

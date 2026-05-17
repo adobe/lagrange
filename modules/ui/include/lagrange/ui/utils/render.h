@@ -54,7 +54,7 @@ LA_UI_API void set_render_pass_defaults(GLScope& scope);
 ///
 /// Returns a pair of orthogonal directions, that together with direction form a orthogonal basis
 LA_UI_API std::pair<Eigen::Vector3f, Eigen::Vector3f> compute_perpendicular_plane(
-    Eigen::Vector3f direction);
+    const Eigen::Vector3f& direction);
 
 
 } // namespace render
