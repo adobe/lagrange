@@ -19,7 +19,6 @@ jobs:
   ####################
 
   Unix:
-    if: false  # DIAGNOSTIC: temporarily disabled to iterate fast on Windows ARM64 Debug Eigen alignment investigation
     name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
     runs-on: ${{ matrix.os }}
     strategy:
@@ -203,10 +202,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # DIAGNOSTIC: only the failing config (Win ARM64 Debug) while we hunt the
-        # Eigen alignment issue in serialization2.
-        os: [windows-11-arm]
-        config: [Debug]
+        os: [windows-2025, windows-11-arm]
+        config: [Release, Debug]
     steps:
       - name: Show disk space
         run: Get-PSDrive
@@ -285,9 +282,8 @@ jobs:
             -B ${{ env.BUILD_DIR }} `
             -S .
 
-        # DIAGNOSTIC: minimal configure for Win ARM64 — enable only the failing module
-        # (serialization2) so we get a fast iteration loop while we capture cpptrace
-        # stack traces for the Eigen alignment assertion. LAGRANGE_ALL=OFF, no Python.
+        # Force CMake to use the ARM64 Python (now complete with dev files)
+        # and skip the Windows registry so it doesn't fall back to x64 Python.
       - name: Configure (ARM64)
         if: matrix.os == 'windows-11-arm'
         run: |
@@ -295,9 +291,10 @@ jobs:
           cmake -G Ninja `
             -DCMAKE_BUILD_TYPE=${{ matrix.config }} `
             -DLAGRANGE_JENKINS=ON `
-            -DLAGRANGE_ALL=OFF `
-            -DLAGRANGE_MODULE_SERIALIZATION2=ON `
-            -DLAGRANGE_MODULE_PYTHON=OFF `
+            -DLAGRANGE_ALL=ON `
+            -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
+            -DPython_EXECUTABLE="$env:PYTHON_ARM64_EXE" `
+            -DPython_FIND_REGISTRY=NEVER `
             -B ${{ env.BUILD_DIR }} `
             -S .
 
@@ -314,6 +311,4 @@ jobs:
         run: Get-PSDrive
 
       - name: Tests
-        # DIAGNOSTIC: scope ctest to the serialization2 suite (the only one firing the assert).
-        # --verbose is critical: cpptrace writes to stderr and we need it captured in the log.
-        run: cd ${{ env.BUILD_DIR }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }} -R "serialization2|serialize_"
+        run: cd ${{ env.BUILD_DIR }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
