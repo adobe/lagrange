@@ -11,6 +11,7 @@
  */
 #include <lagrange/common.h>
 #include <lagrange/compute_euler.h>
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/primitive/generate_sphere.h>
 #include <lagrange/testing/common.h>
@@ -61,6 +62,45 @@ TEST_CASE("generate_sphere", "[primitive][surface]")
         setting.radius = 0.0;
         auto mesh = lagrange::primitive::generate_sphere<Scalar, Index>(setting);
         REQUIRE(mesh.get_num_facets() == 0);
+    }
+
+    SECTION("no uv attribute")
+    {
+        setting.uv_attribute_name = "";
+        auto mesh = lagrange::primitive::generate_sphere<Scalar, Index>(setting);
+        primitive_test_utils::validate_primitive(mesh);
+        primitive_test_utils::check_degeneracy(mesh);
+        REQUIRE(!find_matching_attribute(mesh, AttributeUsage::UV).has_value());
+    }
+
+    SECTION("no optional attributes")
+    {
+        setting.uv_attribute_name = "";
+        setting.normal_attribute_name = "";
+        setting.semantic_label_attribute_name = "";
+        auto mesh = lagrange::primitive::generate_sphere<Scalar, Index>(setting);
+        primitive_test_utils::validate_primitive(mesh);
+        primitive_test_utils::check_degeneracy(mesh);
+        REQUIRE(!find_matching_attribute(mesh, AttributeUsage::UV).has_value());
+        REQUIRE(!find_matching_attribute(mesh, AttributeUsage::Normal).has_value());
+        REQUIRE(!mesh.has_attribute(""));
+    }
+
+    SECTION("no optional attributes with open sweep")
+    {
+        // Open sweep exercises the cross-section disc path, which should also honor
+        // empty attribute names.
+        setting.start_sweep_angle = 0.0;
+        setting.end_sweep_angle = static_cast<Scalar>(3);
+        setting.uv_attribute_name = "";
+        setting.normal_attribute_name = "";
+        setting.semantic_label_attribute_name = "";
+        auto mesh = lagrange::primitive::generate_sphere<Scalar, Index>(setting);
+        primitive_test_utils::validate_primitive(mesh);
+        primitive_test_utils::check_degeneracy(mesh);
+        REQUIRE(!find_matching_attribute(mesh, AttributeUsage::UV).has_value());
+        REQUIRE(!find_matching_attribute(mesh, AttributeUsage::Normal).has_value());
+        REQUIRE(!mesh.has_attribute(""));
     }
 
     SECTION("fixed vs non-fixed UV")

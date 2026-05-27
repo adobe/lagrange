@@ -23,8 +23,6 @@ void populate_scene_module(nb::module_& m)
     using Scalar = double;
     using Index = uint32_t;
 
-    bind_simple_scene<Scalar, Index>(m);
-
     nb::enum_<lagrange::scene::FacetAllocationStrategy>(
         m,
         "FacetAllocationStrategy",
@@ -84,6 +82,8 @@ void populate_scene_module(nb::module_& m)
             "per_instance_importance",
             &lagrange::scene::RemeshingOptions::per_instance_importance,
             "Optional per-instance weights/importance. Must be > 0.");
+
+    bind_simple_scene<Scalar, Index>(m);
 
     bind_scene(m);
 }

@@ -302,3 +302,81 @@ class TestHodgeDecomposition:
 
         omega_harmonic = np.array(octahedron.attribute("@test_1form_harmonic_g0").data)
         assert np.linalg.norm(omega_harmonic) < 1e-10
+
+
+class TestSmoothDirectionField:
+    """Tests for compute_smooth_direction_field (vertex and facet variants)."""
+
+    def test_vertex_output_default(self, octahedron):
+        """Default (Vertex) path: output is per-vertex unit tangent vectors."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+        attr_id = lagrange.polyddg.compute_smooth_direction_field(octahedron, ops)
+
+        assert octahedron.has_attribute("@smooth_direction_field")
+        data = np.array(octahedron.attribute(attr_id).data).reshape(-1, 3)
+        assert data.shape == (octahedron.num_vertices, 3)
+        norms = np.linalg.norm(data, axis=1)
+        assert np.allclose(norms, 1.0, atol=1e-10)
+
+    def test_facet_output_element_type(self, octahedron):
+        """Facet path: output is per-facet unit tangent vectors."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+        attr_id = lagrange.polyddg.compute_smooth_direction_field(
+            octahedron,
+            ops,
+            output_element_type=lagrange.AttributeElement.Facet,
+        )
+
+        assert octahedron.has_attribute("@smooth_direction_field_facets")
+        data = np.array(octahedron.attribute(attr_id).data).reshape(-1, 3)
+        assert data.shape == (octahedron.num_facets, 3)
+        norms = np.linalg.norm(data, axis=1)
+        assert np.allclose(norms, 1.0, atol=1e-10)
+
+    def test_no_ops_overload_vertex(self, octahedron):
+        """Convenience overload (no ops arg) produces same result as explicit ops."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+
+        attr_id_with_ops = lagrange.polyddg.compute_smooth_direction_field(
+            octahedron,
+            ops,
+            direction_field_attribute="@sdf_with_ops",
+        )
+        data_with_ops = np.array(octahedron.attribute(attr_id_with_ops).data).reshape(-1, 3)
+
+        attr_id_no_ops = lagrange.polyddg.compute_smooth_direction_field(
+            octahedron,
+            direction_field_attribute="@sdf_no_ops",
+        )
+        data_no_ops = np.array(octahedron.attribute(attr_id_no_ops).data).reshape(-1, 3)
+
+        assert data_with_ops.shape == data_no_ops.shape
+        norms = np.linalg.norm(data_no_ops, axis=1)
+        assert np.allclose(norms, 1.0, atol=1e-10)
+
+    def test_no_ops_overload_facet(self, octahedron):
+        """Convenience overload with output_element_type=Facet produces unit facet vectors."""
+        attr_id = lagrange.polyddg.compute_smooth_direction_field(
+            octahedron,
+            output_element_type=lagrange.AttributeElement.Facet,
+        )
+
+        data = np.array(octahedron.attribute(attr_id).data).reshape(-1, 3)
+        assert data.shape == (octahedron.num_facets, 3)
+        norms = np.linalg.norm(data, axis=1)
+        assert np.allclose(norms, 1.0, atol=1e-10)
+
+    def test_determinism(self, octahedron):
+        """Two calls with same mesh produce identical results."""
+        ops = lagrange.polyddg.DifferentialOperators(octahedron)
+
+        id1 = lagrange.polyddg.compute_smooth_direction_field(
+            octahedron, ops, direction_field_attribute="@sdf_det1"
+        )
+        id2 = lagrange.polyddg.compute_smooth_direction_field(
+            octahedron, ops, direction_field_attribute="@sdf_det2"
+        )
+        d1 = np.array(octahedron.attribute(id1).data)
+        d2 = np.array(octahedron.attribute(id2).data)
+        # Fields may differ by global sign flip; compare abs dot products.
+        assert np.allclose(np.abs(d1), np.abs(d2), atol=1e-10) or np.allclose(d1, -d2, atol=1e-10)

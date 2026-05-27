@@ -11,6 +11,7 @@
  */
 #include <lagrange/Attribute.h>
 #include <lagrange/common.h>
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/mesh_cleanup/detect_degenerate_triangles.h>
 #include <lagrange/primitive/SemanticLabel.h>
@@ -141,6 +142,102 @@ TEST_CASE("generate_rounded_cone", "[primitive][surface]")
         auto mesh = primitive::generate_rounded_cone<Scalar, Index>(setting);
         REQUIRE(mesh.get_num_vertices() == 0);
     }
+}
+
+TEST_CASE("generate_rounded_cone: empty attribute names skip output", "[primitive][surface]")
+{
+    using namespace lagrange;
+    using Scalar = float;
+    using Index = uint32_t;
+
+    primitive::RoundedConeOptions setting;
+    setting.radius_top = 1.0f;
+    setting.radius_bottom = 1.0f;
+    setting.height = 2.0f;
+    setting.with_top_cap = false;
+    setting.with_bottom_cap = false;
+    setting.triangulate = true;
+    setting.normal_attribute_name = "";
+    setting.uv_attribute_name = "";
+    setting.semantic_label_attribute_name = "";
+
+    auto mesh = primitive::generate_rounded_cone<Scalar, Index>(setting);
+
+    REQUIRE(mesh.get_num_vertices() > 0);
+    REQUIRE(mesh.get_num_facets() > 0);
+    REQUIRE_FALSE(mesh.has_attribute("@normal"));
+    REQUIRE_FALSE(mesh.has_attribute("@uv"));
+    REQUIRE_FALSE(mesh.has_attribute("@semantic_label"));
+    REQUIRE_FALSE(find_matching_attribute(mesh, AttributeUsage::UV).has_value());
+    REQUIRE_FALSE(find_matching_attribute(mesh, AttributeUsage::Normal).has_value());
+}
+
+TEST_CASE("generate_rounded_cone: custom attribute names", "[primitive][surface]")
+{
+    // Ensure that non-default UV/normal/semantic-label attribute names are honored
+    // across all sub-meshes (side sweep, caps, cross sections).
+    using namespace lagrange;
+    using Scalar = float;
+    using Index = uint32_t;
+
+    primitive::RoundedConeOptions setting;
+    setting.radius_top = 1.0f;
+    setting.radius_bottom = 1.0f;
+    setting.height = 2.0f;
+    setting.with_top_cap = true;
+    setting.with_bottom_cap = true;
+    setting.with_cross_section = true;
+    setting.start_sweep_angle = 0.0f;
+    setting.end_sweep_angle = static_cast<float>(3); // Open sweep to exercise cross sections
+    setting.triangulate = true;
+    setting.uv_attribute_name = "my_uv";
+    setting.normal_attribute_name = "my_normal";
+    setting.semantic_label_attribute_name = "my_semantic_label";
+
+    auto mesh = primitive::generate_rounded_cone<Scalar, Index>(setting);
+
+    REQUIRE(mesh.get_num_vertices() > 0);
+    REQUIRE(mesh.get_num_facets() > 0);
+    REQUIRE(mesh.has_attribute("my_uv"));
+    REQUIRE(mesh.has_attribute("my_normal"));
+    REQUIRE(mesh.has_attribute("my_semantic_label"));
+    // Default names should not have been created.
+    REQUIRE_FALSE(mesh.has_attribute("@uv"));
+    REQUIRE_FALSE(mesh.has_attribute("@normal"));
+    REQUIRE_FALSE(mesh.has_attribute("@semantic_label"));
+}
+
+TEST_CASE(
+    "generate_rounded_cone: empty attribute names skip output (caps + open sweep)",
+    "[primitive][surface]")
+{
+    // Regression: ensure that the cap (disc) and cross-section paths also honor
+    // empty UV/normal attribute names, not just the side sweep.
+    using namespace lagrange;
+    using Scalar = float;
+    using Index = uint32_t;
+
+    primitive::RoundedConeOptions setting;
+    setting.radius_top = 1.0f;
+    setting.radius_bottom = 1.0f;
+    setting.height = 2.0f;
+    setting.with_top_cap = true;
+    setting.with_bottom_cap = true;
+    setting.with_cross_section = true;
+    setting.start_sweep_angle = 0.0f;
+    setting.end_sweep_angle = static_cast<float>(3); // Open sweep (less than 2*pi)
+    setting.triangulate = true;
+    setting.normal_attribute_name = "";
+    setting.uv_attribute_name = "";
+    setting.semantic_label_attribute_name = "";
+
+    auto mesh = primitive::generate_rounded_cone<Scalar, Index>(setting);
+
+    REQUIRE(mesh.get_num_vertices() > 0);
+    REQUIRE(mesh.get_num_facets() > 0);
+    REQUIRE_FALSE(mesh.has_attribute(""));
+    REQUIRE_FALSE(find_matching_attribute(mesh, AttributeUsage::UV).has_value());
+    REQUIRE_FALSE(find_matching_attribute(mesh, AttributeUsage::Normal).has_value());
 }
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS

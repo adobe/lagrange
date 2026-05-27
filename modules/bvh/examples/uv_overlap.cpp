@@ -14,14 +14,17 @@
 #include <lagrange/bvh/compute_uv_overlap.h>
 #include <lagrange/cast_attribute.h>
 #include <lagrange/compute_uv_charts.h>
+#include <lagrange/compute_uv_orientation.h>
 #include <lagrange/disconnect_uv_charts.h>
 #include <lagrange/find_matching_attributes.h>
+#include <lagrange/internal/compact_chart_ids.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/packing/repack_uv_charts.h>
 #include <lagrange/polyscope/register_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/unflip_uv_charts.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/fmt/join.h>
 #include <lagrange/utils/timing.h>
@@ -108,12 +111,17 @@ void repack_overlapping_charts(
     for (uint32_t f = 0; f < num_facets; ++f) {
         split_ids[f] = static_cast<uint32_t>(chart_ids[f] * num_colors + color_ids[f]);
     }
+
+    // Compact per-facet ids so the downstream packer doesn't allocate empty slots for unused
+    // combinations.
+    auto compacted = lagrange::internal::compact_chart_ids<uint32_t>(
+        lagrange::span<const uint32_t>(split_ids.data(), split_ids.size()));
     mesh.template create_attribute<uint32_t>(
         "@split_chart_id",
         lagrange::AttributeElement::Facet,
         lagrange::AttributeUsage::Scalar,
         1,
-        split_ids);
+        compacted.first);
 
     // 3. Split UV indices so that facets in different split charts don't share UV vertices
     lagrange::DisconnectUVChartsOptions disconnect_options;
@@ -125,6 +133,44 @@ void repack_overlapping_charts(
     lagrange::packing::RepackOptions repack_options;
     repack_options.chart_attribute_name = "@split_chart_id";
     lagrange::packing::repack_uv_charts(mesh, repack_options);
+}
+
+size_t apply_unflip(SurfaceMesh& mesh, const std::string& uv_attribute_name)
+{
+    // Resolve the target UV attribute before any mapping so the selection is stable.
+    // map_attribute_in_place() can delete/recreate attributes and alter iteration order,
+    // which would cause the default "first UV" selection to pick a different attribute.
+    std::string resolved_name = uv_attribute_name;
+    if (resolved_name.empty()) {
+        lagrange::AttributeMatcher matcher;
+        matcher.usages = lagrange::AttributeUsage::UV;
+        auto uv_id = lagrange::find_matching_attribute(mesh, matcher);
+        if (uv_id.has_value()) {
+            resolved_name = std::string(mesh.get_attribute_name(uv_id.value()));
+        }
+    }
+
+    // unflip_uv_charts requires an indexed UV attribute; map only the target attribute if needed.
+    if (!resolved_name.empty() && mesh.has_attribute(resolved_name)) {
+        auto id = mesh.get_attribute_id(resolved_name);
+        if (mesh.get_attribute_base(id).get_element_type() != lagrange::AttributeElement::Indexed) {
+            lagrange::logger().info(
+                "Mapping non-indexed UV attribute '{}' to indexed for unflipping.",
+                resolved_name);
+            map_attribute_in_place(mesh, id, lagrange::AttributeElement::Indexed);
+        }
+    }
+
+    lagrange::UnflipUVChartsOptions unflip_options;
+    unflip_options.uv_attribute_name = resolved_name;
+    size_t n = lagrange::unflip_uv_charts(mesh, unflip_options);
+    lagrange::UVOrientationOptions flip_options;
+    flip_options.uv_attribute_name = resolved_name;
+    size_t still_flipped = lagrange::compute_uv_orientation(mesh, flip_options).negative;
+    lagrange::logger().info(
+        "Number of flipped triangles after unflipping charts: {}.",
+        still_flipped);
+    return n;
 }
 
 // ============================================================================
@@ -197,6 +243,10 @@ void register_uv_mesh(
     if (coloring_id != lagrange::invalid_attribute_id()) {
         auto& ca = mesh.template get_attribute<uint32_t>(coloring_id);
         lagrange::polyscope::register_attribute(*ps_mesh, "uv_overlap_color", ca);
+    }
+    if (mesh.has_attribute("@uv_orientation")) {
+        auto& fa = mesh.template get_attribute<int8_t>(mesh.get_attribute_id("@uv_orientation"));
+        lagrange::polyscope::register_attribute(*ps_mesh, "uv_orientation", fa);
     }
 }
 
@@ -290,6 +340,17 @@ void user_callback(DemoState& state)
         toggle_uv_view(state);
     }
 
+    if (ImGui::Button("Unflip UV Charts")) {
+        size_t n = apply_unflip(state.mesh_original, state.uv_attribute_name);
+        lagrange::logger().info("Unflipped {} chart(s).", n);
+        state.mesh_display = state.mesh_original;
+        prepare_mesh_for_display(state.mesh_display);
+
+        auto camera_json = polyscope::view::getViewAsJson();
+        register_view(state);
+        polyscope::view::setViewFromJson(camera_json, false);
+    }
+
     if (state.has_coloring()) {
         ImGui::BeginDisabled(state.repacked);
         if (ImGui::Button("Repack UV Charts")) {
@@ -332,6 +393,7 @@ int main(int argc, char** argv)
         bool gui = false;
         bool uv_view = false;
         bool repack = false;
+        bool unflip = false;
         int log_level = 2;
     } args;
 
@@ -345,6 +407,10 @@ int main(int argc, char** argv)
     app.add_flag("--gui", args.gui, "Launch the Polyscope GUI to visualize results.");
     app.add_flag("--uv-view", args.uv_view, "Start in the 2D UV layout view (implies --gui).");
     app.add_flag("--repack", args.repack, "Repack UV charts per overlap color layer.");
+    app.add_flag(
+        "--unflip",
+        args.unflip,
+        "Reverse winding of any UV chart with negative signed area.");
     app.add_option("-l,--level", args.log_level, "Log level (0 = most verbose, 6 = off).");
     CLI11_PARSE(app, argc, argv)
 
@@ -392,6 +458,18 @@ int main(int argc, char** argv)
         }
     } else {
         lagrange::logger().info("No UV overlap detected.");
+    }
+
+    if (args.gui || args.unflip) {
+        lagrange::UVOrientationOptions orient_options;
+        orient_options.uv_attribute_name = args.uv_attribute_name;
+        size_t num_flipped = lagrange::compute_uv_orientation(mesh, orient_options).negative;
+        lagrange::logger().info("Flipped UV triangles: {}", num_flipped);
+
+        if (args.unflip && num_flipped > 0) {
+            size_t num_unflipped = apply_unflip(mesh, args.uv_attribute_name);
+            lagrange::logger().info("Unflipped {} chart(s).", num_unflipped);
+        }
     }
 
     // GUI or CLI output

@@ -63,8 +63,9 @@ std::vector<double> compute_mesh_weights(
 
     switch (facet_allocation_strategy) {
     case FacetAllocationStrategy::EvenSplit: {
-        const auto weight = 1. / static_cast<double>(scene.get_num_meshes());
-        weights.resize(scene.get_num_meshes(), weight);
+        const Index num = scene.get_num_meshes();
+        const auto weight = 1. / static_cast<double>(num ? num : 1);
+        weights.resize(num, weight);
         break;
     }
     case FacetAllocationStrategy::RelativeToMeshArea: {
@@ -73,7 +74,12 @@ std::vector<double> compute_mesh_weights(
                 static_cast<double>(compute_mesh_max_surface_area(scene, mesh_index)));
         }
         Eigen::Map<Eigen::VectorXd> weights_map(weights.data(), weights.size());
-        weights_map /= weights_map.sum();
+        const double total_area = weights_map.sum();
+        // If the scene has meshes but no instances (or only degenerate transforms),
+        // the total area is zero. Return all-zero weights instead of producing NaNs.
+        if (total_area > 0) {
+            weights_map /= total_area;
+        }
         break;
     }
     case FacetAllocationStrategy::RelativeToNumFacets: {
@@ -81,7 +87,10 @@ std::vector<double> compute_mesh_weights(
             weights.emplace_back(static_cast<double>(scene.get_mesh(mesh_index).get_num_facets()));
         }
         Eigen::Map<Eigen::VectorXd> weights_map(weights.data(), weights.size());
-        weights_map /= weights_map.sum();
+        const double total_facets = weights_map.sum();
+        if (total_facets > 0) {
+            weights_map /= total_facets;
+        }
         break;
     }
     case FacetAllocationStrategy::Synchronized:

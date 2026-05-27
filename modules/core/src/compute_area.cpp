@@ -363,6 +363,47 @@ AttributeId compute_facet_vector_area(
 }
 
 template <typename Scalar, typename Index>
+AttributeId compute_facet_vector_area(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transformation,
+    FacetVectorAreaOptions options)
+{
+    const auto dim = mesh.get_dimension();
+    la_runtime_assert(dim == 3, "Facet vector area only supports 3D meshes.");
+    const auto num_facets = mesh.get_num_facets();
+
+    AttributeId id = internal::find_or_create_attribute<Scalar>(
+        mesh,
+        options.output_attribute_name,
+        Facet,
+        AttributeUsage::Vector,
+        dim,
+        internal::ResetToDefault::No);
+    auto vector_area = attribute_matrix_ref<Scalar>(mesh, id);
+    vector_area.setZero();
+
+    auto vertices = vertex_view(mesh);
+
+    tbb::parallel_for(Index(0), num_facets, [&](Index fid) {
+        auto f_size = mesh.get_facet_size(fid);
+        auto f = mesh.get_facet_vertices(fid);
+        for (Index lv = 0; lv < f_size; lv++) {
+            Index lv_next = (lv + 1) % f_size;
+            LA_IGNORE_ARRAY_BOUNDS_BEGIN
+            const Eigen::Vector3<Scalar> v0 =
+                transformation * vertices.row(f[lv]).template head<3>().transpose();
+            const Eigen::Vector3<Scalar> v1 =
+                transformation * vertices.row(f[lv_next]).template head<3>().transpose();
+            vector_area.row(fid) += v0.cross(v1).transpose();
+            LA_IGNORE_ARRAY_BOUNDS_END
+        }
+    });
+    vector_area /= 2;
+
+    return id;
+}
+
+template <typename Scalar, typename Index>
 Scalar compute_mesh_area(const SurfaceMesh<Scalar, Index>& mesh, MeshAreaOptions options)
 {
     SurfaceMesh<Scalar, Index> shallow_copy = mesh;
@@ -406,6 +447,10 @@ Scalar compute_uv_area(const SurfaceMesh<Scalar, Index>& mesh, MeshAreaOptions o
         FacetAreaOptions);                                                     \
     template LA_CORE_API AttributeId compute_facet_vector_area<Scalar, Index>( \
         SurfaceMesh<Scalar, Index>&,                                           \
+        FacetVectorAreaOptions);                                               \
+    template LA_CORE_API AttributeId compute_facet_vector_area<Scalar, Index>( \
+        SurfaceMesh<Scalar, Index>&,                                           \
+        const Eigen::Transform<Scalar, 3, Eigen::Affine>&,                     \
         FacetVectorAreaOptions);                                               \
     template LA_CORE_API Scalar compute_mesh_area<Scalar, Index>(              \
         const SurfaceMesh<Scalar, Index>&,                                     \

@@ -253,7 +253,7 @@ export interface CoreModule {
    * (different attribute values on the two sides). Adds a per-edge
    * boolean attribute. In-place.
    */
-  computeSeamEdges(mesh: SurfaceMesh, indexedAttributeId: number): void;
+  computeSeamEdges(mesh: SurfaceMesh, indexedAttributeId: number, opts?: SeamEdgesOptions): void;
   /** Attach a per-vertex valence (incident-edge count) attribute. In-place. */
   computeVertexValence(mesh: SurfaceMesh): void;
   /**
@@ -389,7 +389,10 @@ export interface OrientOptions {
   positive?: boolean;
 }
 
-export interface SeamEdgesOptions {}
+export interface SeamEdgesOptions {
+  /** If `true`, boundary edges are also marked as seam edges. Default: `false`. */
+  includeBoundaryEdges?: boolean;
+}
 
 export interface VertexValenceOptions {}
 

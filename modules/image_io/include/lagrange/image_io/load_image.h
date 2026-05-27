@@ -85,13 +85,21 @@ bool load_image_as(const fs::path& path, image::ImageView<T>& img)
         valid_conversion = img.convert_from(temp_image_view, 1); \
     }
 #define LAGRANGE_TMP_COMMA ,
+    // clang-format off
     LAGRANGE_TMP(uint8, one, unsigned char)
-    else LAGRANGE_TMP(uint8, three, Eigen::Matrix<unsigned char LAGRANGE_TMP_COMMA 3 LAGRANGE_TMP_COMMA 1>) else LAGRANGE_TMP(
-        uint8,
-        four,
-        Eigen::
-            Matrix<
-                unsigned char LAGRANGE_TMP_COMMA 4 LAGRANGE_TMP_COMMA 1>) else LAGRANGE_TMP(float32, one, float) else LAGRANGE_TMP(float32, three, Eigen::Vector3f) else LAGRANGE_TMP(float32, four, Eigen::Vector4f) else LAGRANGE_TMP(float64, one, double) else LAGRANGE_TMP(float64, three, Eigen::Vector3d) else LAGRANGE_TMP(float64, four, Eigen::Vector4d) return valid_conversion;
+    else LAGRANGE_TMP(uint8, three, Eigen::Matrix<unsigned char LAGRANGE_TMP_COMMA 3 LAGRANGE_TMP_COMMA 1>)
+    else LAGRANGE_TMP(uint8, four, Eigen::Matrix<unsigned char LAGRANGE_TMP_COMMA 4 LAGRANGE_TMP_COMMA 1>)
+    else LAGRANGE_TMP(uint16, one, uint16_t)
+    else LAGRANGE_TMP(uint16, three, Eigen::Matrix<uint16_t LAGRANGE_TMP_COMMA 3 LAGRANGE_TMP_COMMA 1>)
+    else LAGRANGE_TMP(uint16, four, Eigen::Matrix<uint16_t LAGRANGE_TMP_COMMA 4 LAGRANGE_TMP_COMMA 1>)
+    else LAGRANGE_TMP(float32, one, float)
+    else LAGRANGE_TMP(float32, three, Eigen::Vector3f)
+    else LAGRANGE_TMP(float32, four, Eigen::Vector4f)
+    else LAGRANGE_TMP(float64, one, double)
+    else LAGRANGE_TMP(float64, three, Eigen::Vector3d)
+    else LAGRANGE_TMP(float64, four, Eigen::Vector4d)
+        // clang-format on
+        return valid_conversion;
 #undef LAGRANGE_TMP
 #undef LAGRANGE_TMP_COMMA
 }

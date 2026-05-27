@@ -69,4 +69,51 @@ TEST_CASE("compute_seam_edges", "[core][seam]")
         auto normal_seam_id = lagrange::compute_seam_edges(mesh, normal_id);
         REQUIRE(count_seam_edges(mesh, normal_seam_id) == 0);
     }
+
+    SECTION("Quad with boundary")
+    {
+        // Two triangles sharing one interior edge. The indexed UV uses distinct
+        // indices on each side of that shared edge, so the interior edge is a seam.
+        // The four other edges are boundary edges.
+        lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({0, 0});
+        mesh.add_vertex({1, 0});
+        mesh.add_vertex({1, 1});
+        mesh.add_vertex({0, 1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 2, 3);
+
+        // 6 distinct UV values (one per corner) so the shared interior edge is a seam.
+        Scalar uv_values[] = {
+            0,
+            0,
+            1,
+            0,
+            2,
+            0, // Triangle 0 corners
+            3,
+            0,
+            4,
+            0,
+            5,
+            0, // Triangle 1 corners
+        };
+        Index uv_indices[] = {0, 1, 2, 3, 4, 5};
+        auto uv_id = mesh.template create_attribute<Scalar>(
+            "uv",
+            lagrange::AttributeElement::Indexed,
+            2,
+            lagrange::AttributeUsage::UV,
+            {uv_values, 12},
+            {uv_indices, 6});
+
+        auto seam_id = lagrange::compute_seam_edges(mesh, uv_id);
+        REQUIRE(count_seam_edges(mesh, seam_id) == 1);
+
+        lagrange::SeamEdgesOptions opts;
+        opts.include_boundary_edges = true;
+        opts.output_attribute_name = "@seam_edges_with_boundary";
+        auto seam_with_boundary_id = lagrange::compute_seam_edges(mesh, uv_id, opts);
+        REQUIRE(count_seam_edges(mesh, seam_with_boundary_id) == 5);
+    }
 }

@@ -94,10 +94,12 @@ SurfaceMesh<Scalar, Index> generate_sphere(SphereOptions setting)
             sweep_options);
         add_semantic_label(side, setting.semantic_label_attribute_name, SemanticLabel::Side);
 
-        if (setting.fixed_uv) {
-            normalize_uv(side, {0, 0}, {1, 0.5});
-        } else {
-            normalize_uv(side, {1 - t_end, 0}, {1 - t_begin, 0.5});
+        if (setting.uv_attribute_name != "") {
+            if (setting.fixed_uv) {
+                normalize_uv(side, {0, 0}, {1, 0.5});
+            } else {
+                normalize_uv(side, {1 - t_end, 0}, {1 - t_begin, 0.5});
+            }
         }
 
         parts.push_back(std::move(side));
@@ -115,6 +117,8 @@ SurfaceMesh<Scalar, Index> generate_sphere(SphereOptions setting)
             static_cast<PrimitiveOptions::Scalar>(-lagrange::internal::pi / 2);
         disc_setting.end_angle = static_cast<PrimitiveOptions::Scalar>(lagrange::internal::pi / 2);
         disc_setting.radial_sections = setting.num_longitude_sections;
+        disc_setting.uv_attribute_name = setting.uv_attribute_name;
+        disc_setting.normal_attribute_name = setting.normal_attribute_name;
 
         auto cross_section_end = generate_disc<Scalar, Index>(disc_setting);
         transform_mesh(cross_section_end, transform_end);
@@ -130,14 +134,16 @@ SurfaceMesh<Scalar, Index> generate_sphere(SphereOptions setting)
                 Eigen::Matrix<Scalar, 3, 1>::UnitY()));
         transform_mesh(cross_section_begin, transform_begin);
 
-        normalize_uv(
-            cross_section_end,
-            {0.5, 0.5 + setting.uv_padding},
-            {0.75 - setting.uv_padding, 1 - setting.uv_padding});
-        normalize_uv(
-            cross_section_begin,
-            {0.25 + setting.uv_padding, 0.5 + setting.uv_padding},
-            {0.5, 1 - setting.uv_padding});
+        if (!setting.uv_attribute_name.empty()) {
+            normalize_uv(
+                cross_section_end,
+                {0.5, 0.5 + setting.uv_padding},
+                {0.75 - setting.uv_padding, 1 - setting.uv_padding});
+            normalize_uv(
+                cross_section_begin,
+                {0.25 + setting.uv_padding, 0.5 + setting.uv_padding},
+                {0.5, 1 - setting.uv_padding});
+        }
 
         add_semantic_label(
             cross_section_begin,
@@ -160,13 +166,15 @@ SurfaceMesh<Scalar, Index> generate_sphere(SphereOptions setting)
     bvh::weld_vertices(mesh, weld_options);
 
     // Weld indexed normals
-    WeldOptions attr_weld_options;
-    attr_weld_options.epsilon_abs = 1; // Disable distance-based check
-    attr_weld_options.angle_abs = setting.angle_threshold;
-    weld_indexed_attribute(
-        mesh,
-        mesh.get_attribute_id(setting.normal_attribute_name),
-        attr_weld_options);
+    if (setting.normal_attribute_name != "") {
+        WeldOptions attr_weld_options;
+        attr_weld_options.epsilon_abs = 1; // Disable distance-based check
+        attr_weld_options.angle_abs = setting.angle_threshold;
+        weld_indexed_attribute(
+            mesh,
+            mesh.get_attribute_id(setting.normal_attribute_name),
+            attr_weld_options);
+    }
 
     if (setting.triangulate) {
         remove_degenerate_facets(mesh);

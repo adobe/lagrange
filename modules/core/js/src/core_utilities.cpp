@@ -192,8 +192,12 @@ EMSCRIPTEN_BINDINGS(lagrange_core_utilities)
 
     function(
         "computeSeamEdges",
-        +[](MeshType& mesh, unsigned indexed_attribute_id) {
-            compute_seam_edges(mesh, static_cast<AttributeId>(indexed_attribute_id));
+        +[](MeshType& mesh, unsigned indexed_attribute_id, val opts) {
+            SeamEdgesOptions o;
+            if (!opts.isUndefined()) {
+                apply_opt(opts, "includeBoundaryEdges", o.include_boundary_edges);
+            }
+            compute_seam_edges(mesh, static_cast<AttributeId>(indexed_attribute_id), o);
         });
 
     function("computeVertexValence", +[](MeshType& mesh) { compute_vertex_valence(mesh); });

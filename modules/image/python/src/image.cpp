@@ -12,12 +12,15 @@
 
 #include <lagrange/image/ImageStorage.h>
 #include <lagrange/image/ImageType.h>
+#include <lagrange/image/split_grid.h>
 #include <lagrange/python/binding.h>
+#include <lagrange/python/image_utils.h>
 #include <lagrange/python/tensor_utils.h>
 
 namespace lagrange::python {
 
 namespace nb = nanobind;
+using namespace nb::literals;
 
 void populate_image_module(nb::module_& m)
 {
@@ -60,6 +63,58 @@ void populate_image_module(nb::module_& m)
                 return span_to_tensor<unsigned char>(s, nb::find(&img));
             },
             "Raw image data");
+
+    m.def(
+        "split_grid",
+        [](ImageTensor<float> grid, size_t num_cells, size_t rows, size_t cols) {
+            image::experimental::SplitGridOptions options;
+            options.num_cells = num_cells;
+            options.rows = rows;
+            options.cols = cols;
+            const auto cells = image::experimental::split_grid(tensor_to_image_view(grid), options);
+
+            nb::object owner = nb::cast(grid);
+            std::vector<nb::object> tensors;
+            tensors.reserve(cells.size());
+            for (const auto& cell : cells) {
+                const size_t shape[3] = {cell.extent(1), cell.extent(0), cell.extent(2)};
+                const int64_t strides[3] = {
+                    static_cast<int64_t>(cell.stride(1)),
+                    static_cast<int64_t>(cell.stride(0)),
+                    static_cast<int64_t>(cell.stride(2)),
+                };
+                nb::ndarray<nb::numpy, float, ImageShape> tensor(
+                    cell.data_handle(),
+                    3,
+                    shape,
+                    owner,
+                    strides);
+                tensors.emplace_back(nb::cast(tensor));
+            }
+            return tensors;
+        },
+        "grid"_a,
+        "num_cells"_a,
+        "rows"_a = 0,
+        "cols"_a = 0,
+        R"(Split a grid image into ``num_cells`` row-major sub-images.
+
+The grid is split into ``rows`` x ``cols`` cells. A value of zero on either dimension means
+auto-detect:
+
+- ``rows=0, cols=0``: pick the factorization producing cells closest to square.
+- ``rows=R, cols=0``: derive ``cols = num_cells / R``.
+- ``rows=0, cols=C``: derive ``rows = num_cells / C``.
+- ``rows=R, cols=C``: validate ``R * C == num_cells``.
+
+Returned views share memory with the input grid (no copy).
+
+:param grid: HxWxC grid image as a numpy array.
+:param num_cells: Number of cells to split the grid into.
+:param rows: Number of cell rows in the grid (0 = auto).
+:param cols: Number of cell columns in the grid (0 = auto).
+
+:return: List of ``num_cells`` numpy views into the grid, in row-major order.)");
 }
 
 } // namespace lagrange::python

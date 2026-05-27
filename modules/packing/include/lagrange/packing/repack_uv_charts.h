@@ -35,10 +35,14 @@ struct RepackOptions
     bool allow_rotation = true;
 #endif
 
-    /// Should the output be normalized to fit into a unit box.
+    /// Whether the output should be normalized to fit into a unit box. When false, the
+    /// packed charts preserve their original scale but are still translated so the
+    /// minimum UV is at the origin.
     bool normalize = true;
 
-    /// Minimum allowed distance between two boxes normalized within [0, 1] domain.
+    /// Minimum allowed distance between two boxes. When @c normalize is true, this value
+    /// is measured in the normalized [0, 1] output domain. When @c normalize is false,
+    /// it is interpreted as an absolute distance in the original UV units.
     float margin = 1e-3f;
 };
 

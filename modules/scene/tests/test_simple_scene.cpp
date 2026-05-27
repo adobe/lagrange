@@ -13,8 +13,11 @@
 
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/SimpleSceneTypes.h>
+#include <lagrange/scene/compute_mesh_weights.h>
 #include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/views.h>
+
+#include <catch2/catch_approx.hpp>
 
 #include <random>
 #include <unordered_set>
@@ -112,4 +115,94 @@ TEST_CASE("SimpleScene: convert", "[scene]")
 {
     test_simple_scene_convert<double, uint32_t, 2u>();
     test_simple_scene_convert<double, uint32_t, 3u>();
+}
+
+TEST_CASE("compute_mesh_weights: meshes without instances", "[scene]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+    using SceneType = lagrange::scene::SimpleScene<Scalar, Index, 3>;
+    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
+
+    SceneType scene;
+    MeshType mesh(3);
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+    scene.add_mesh(mesh);
+
+    REQUIRE(scene.get_num_meshes() == 1);
+    REQUIRE(scene.compute_num_instances() == 0);
+
+    // EvenSplit and RelativeToNumFacets do not depend on instances and must succeed.
+    {
+        const auto weights = lagrange::scene::compute_mesh_weights(
+            scene,
+            lagrange::scene::FacetAllocationStrategy::EvenSplit);
+        REQUIRE(weights.size() == 1);
+        REQUIRE(weights[0] == Catch::Approx(1.0));
+    }
+    {
+        const auto weights = lagrange::scene::compute_mesh_weights(
+            scene,
+            lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets);
+        REQUIRE(weights.size() == 1);
+        REQUIRE(weights[0] == Catch::Approx(1.0));
+    }
+
+    // RelativeToMeshArea relies on per-instance transformed areas; without any
+    // instances the total area is zero, so all weights must be zero (rather than
+    // non-finite from a division by zero).
+    {
+        const auto weights = lagrange::scene::compute_mesh_weights(
+            scene,
+            lagrange::scene::FacetAllocationStrategy::RelativeToMeshArea);
+        REQUIRE(weights.size() == 1);
+        REQUIRE(weights[0] == Catch::Approx(0.0));
+    }
+}
+
+TEST_CASE("compute_mesh_weights: empty scene", "[scene]")
+{
+    using SceneType = lagrange::scene::SimpleScene<double, uint32_t, 3>;
+
+    SceneType scene;
+    REQUIRE(scene.get_num_meshes() == 0);
+
+    // No meshes: every strategy must return an empty weight vector without
+    // dividing by zero.
+    for (const auto strategy : {
+             lagrange::scene::FacetAllocationStrategy::EvenSplit,
+             lagrange::scene::FacetAllocationStrategy::RelativeToMeshArea,
+             lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets,
+         }) {
+        const auto weights = lagrange::scene::compute_mesh_weights(scene, strategy);
+        REQUIRE(weights.empty());
+    }
+}
+
+TEST_CASE("compute_mesh_weights: meshes without facets", "[scene]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+    using SceneType = lagrange::scene::SimpleScene<Scalar, Index, 3>;
+    using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
+
+    SceneType scene;
+    MeshType mesh(3);
+    mesh.add_vertex({0, 0, 0});
+    scene.add_mesh(mesh);
+    scene.add_instance({0, {}, {}});
+
+    REQUIRE(scene.get_num_meshes() == 1);
+    REQUIRE(scene.get_mesh(0).get_num_facets() == 0);
+
+    // No facets in the scene: RelativeToNumFacets cannot normalize, so all
+    // weights must be zero rather than non-finite.
+    const auto weights = lagrange::scene::compute_mesh_weights(
+        scene,
+        lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets);
+    REQUIRE(weights.size() == 1);
+    REQUIRE(weights[0] == Catch::Approx(0.0));
 }

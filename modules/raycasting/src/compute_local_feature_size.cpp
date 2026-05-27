@@ -127,13 +127,13 @@ AttributeId compute_local_feature_size(
     const Index num_vertices = mesh.get_num_vertices();
 
     // Create output attribute
-    AttributeId lfs_id = internal::find_or_create_attribute<Scalar>(
+    AttributeId lfs_id = ::lagrange::internal::find_or_create_attribute<Scalar>(
         mesh,
         options.output_attribute_name,
         Vertex,
         AttributeUsage::Scalar,
         1,
-        internal::ResetToDefault::Yes);
+        ::lagrange::internal::ResetToDefault::Yes);
 
     if (num_vertices == 0) {
         // Nothing to do for empty mesh

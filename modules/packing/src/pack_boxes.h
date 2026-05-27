@@ -129,8 +129,11 @@ pack_boxes(
         boxes.emplace_back();
         auto& box = boxes.back();
         if (bbox_maxs(i, 0) < bbox_mins(i, 0) || bbox_maxs(i, 1) < bbox_mins(i, 1)) {
-            // Invalid bounding box.
-            logger().warn("Skipping invalid bounding box (index {})!", i);
+            // Degenerate bounding box (max < min in at least one dimension). Most often this
+            // means the caller reserved a slot for a chart id that has no geometry
+            logger().warn(
+                "Skipping degenerate bounding box at index {} (chart id with no geometry)",
+                i);
             box.width = 0;
             box.height = 0;
         } else {

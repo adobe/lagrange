@@ -124,10 +124,12 @@ struct Rendering
     CameraParameters camera_parameters;
     RegularGrid<2, T> render_map;
 
-    Rendering(const CameraOptions& options, image::experimental::View3D<const float> rendered_image)
+    Rendering(
+        const CameraTransforms& transforms,
+        image::experimental::View3D<const float> rendered_image)
         : camera_parameters(
-              options.view_transform.cast<double>(),
-              options.projection_transform.cast<double>(),
+              transforms.view.cast<double>(),
+              transforms.projection.cast<double>(),
               static_cast<unsigned int>(rendered_image.extent(0)),
               static_cast<unsigned int>(rendered_image.extent(1)))
     {
@@ -615,10 +617,10 @@ std::pair<image::experimental::Array3D<float>, image::experimental::Array3D<floa
 weighted_texture_from_render_impl(
     TextureAndConfidenceFromRender from_render,
     image::experimental::View3D<const float> rendered_image,
-    const CameraOptions& camera_options,
+    const CameraTransforms& camera_transforms,
     const TextureRasterizerOptions& rasterizer_options)
 {
-    Rendering<Vector<double, NumChannels>> in_rendering(camera_options, rendered_image);
+    Rendering<Vector<double, NumChannels>> in_rendering(camera_transforms, rendered_image);
     RegularGrid<2, Vector<double, NumChannels>> texture;
     RegularGrid<2, double> confidence;
 
@@ -679,7 +681,7 @@ TextureRasterizer<Scalar, Index>::~TextureRasterizer() = default;
 template <typename Scalar, typename Index>
 auto TextureRasterizer<Scalar, Index>::weighted_texture_from_render(
     image::experimental::View3D<const float> image,
-    const CameraOptions& options) const -> std::pair<Array3Df, Array3Df>
+    const CameraTransforms& transforms) const -> std::pair<Array3Df, Array3Df>
 {
     unsigned int num_channels = static_cast<unsigned int>(image.extent(2));
     switch (num_channels) {
@@ -687,25 +689,25 @@ auto TextureRasterizer<Scalar, Index>::weighted_texture_from_render(
         return weighted_texture_from_render_impl<1>(
             m_impl->from_render,
             image,
-            options,
+            transforms,
             m_impl->options);
     case 2:
         return weighted_texture_from_render_impl<2>(
             m_impl->from_render,
             image,
-            options,
+            transforms,
             m_impl->options);
     case 3:
         return weighted_texture_from_render_impl<3>(
             m_impl->from_render,
             image,
-            options,
+            transforms,
             m_impl->options);
     case 4:
         return weighted_texture_from_render_impl<4>(
             m_impl->from_render,
             image,
-            options,
+            transforms,
             m_impl->options);
     default:
         throw Error(format(

@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+#include "GridWrapper.h"
+
 #include <lagrange/Logger.h>
 #include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
@@ -30,6 +32,8 @@
 #include <nanovdb/io/IO.h>
 #endif
 #include <openvdb/io/Stream.h>
+#include <openvdb/tools/ChangeBackground.h>
+#include <openvdb/tools/Composite.h>
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
@@ -79,13 +83,10 @@ auto apply_or_fail_(GridPtrType&& grid, Func&& func)
     using ReturnType = std::invoke_result_t<Func, FloatGridRef>;
     if constexpr (std::is_void_v<ReturnType>) {
         // Void return type
-        bool ok = grid->template apply<AllGrids>([&](auto&& real_grid) {
-            func(std::forward<decltype(real_grid)>(real_grid));
-            return true;
-        });
-        if (!ok) {
-            throw Error("Unsupported grid type.");
-        }
+        const bool apply_ok = AllGrids::apply(
+            [&](auto&& real_grid) -> void { func(std::forward<decltype(real_grid)>(real_grid)); },
+            *grid);
+        if (!apply_ok) throw Error("Unsupported grid type.");
         return;
     } else {
         // Non-void return type. To make it work with non-default-constructible types, we
@@ -140,22 +141,19 @@ nanovdb::io::Codec to_nanovdb_compression(Compression compression)
 }
 #endif
 
-struct GridWrapper
-{
-    GridWrapper(openvdb::GridBase::Ptr grid)
-        : m_grid(std::move(grid))
-    {}
-    GridWrapper() = default;
-    GridWrapper(const GridWrapper&) = default;
-    GridWrapper(GridWrapper&&) = default;
-    GridWrapper& operator=(const GridWrapper&) = default;
-    GridWrapper& operator=(GridWrapper&&) = default;
-    openvdb::GridBase::ConstPtr grid() const { return m_grid; }
-    openvdb::GridBase::Ptr& grid() { return m_grid; }
 
-private:
-    openvdb::GridBase::Ptr m_grid;
-};
+template <typename Op>
+void apply_binary_op(openvdb::GridBase::Ptr& a, openvdb::GridBase::Ptr& b, Op&& op)
+{
+    apply_or_fail(a, [&](auto&& a_typed) {
+        using GridType = std::decay_t<decltype(a_typed)>;
+        auto b_typed = openvdb::gridPtrCast<GridType>(b);
+        if (!b_typed) {
+            throw Error("Both grids must have the same scalar type.");
+        }
+        op(a_typed, *b_typed);
+    });
+}
 
 template <typename GridType>
 struct GridSampler
@@ -353,12 +351,25 @@ void populate_volume_module(nb::module_& m)
         .value("Zip", Compression::Zip, "Zip compression.")
         .value("Blosc", Compression::Blosc, "Blosc compression.");
 
+    nb::enum_<openvdb::GridClass>(
+        m,
+        "GridClass",
+        "Grid class tag indicating the semantic interpretation of voxel values")
+        .value("Unknown", openvdb::GRID_UNKNOWN, "Unknown or generic grid class.")
+        .value("LevelSet", openvdb::GRID_LEVEL_SET, "Narrow-band signed distance field.")
+        .value("FogVolume", openvdb::GRID_FOG_VOLUME, "Fog volume (density values).")
+        .value("Staggered", openvdb::GRID_STAGGERED, "Staggered vector field.");
+
     auto float_type = [] {
         auto np = nb::module_::import_("numpy");
         return np.attr("float32");
     }();
 
     nb::class_<GridWrapper> g(m, "Grid");
+
+    //////////////////////////////////////////////
+    // IO
+    //////////////////////////////////////////////
 
     g.def_static(
         "load",
@@ -398,6 +409,77 @@ void populate_volume_module(nb::module_& m)
             "def to_buffer(ext: typing.Literal['vdb', 'nvdb'], compression: Compression = "
             "Compression.Blosc) -> bytes"));
 
+    //////////////////////////////////////////////
+    // RW properties
+    //////////////////////////////////////////////
+
+    g.def_prop_rw(
+        "name",
+        [](const GridWrapper& self) { return self.grid()->getName(); },
+        [](GridWrapper& self, std::string_view name) { self.grid()->setName(std::string(name)); },
+        "The grid name.");
+
+
+    g.def_prop_rw(
+        "grid_class",
+        [](GridWrapper& self) { return self.grid()->getGridClass(); },
+        [](GridWrapper& self, openvdb::GridClass grid_class) {
+            self.grid()->setGridClass(grid_class);
+        },
+        "The grid class tag.");
+
+    using ConstMatrix4f = nb::ndarray<const float, nb::shape<4, 4>, nb::device::cpu>;
+    using ConstMatrix4d = nb::ndarray<const double, nb::shape<4, 4>, nb::device::cpu>;
+
+    g.def_prop_rw(
+        "transform",
+        [](const GridWrapper& self) {
+            // OpenVDB uses row-vector convention (applyMap(x) = x * M).
+            // Return column-vector convention (translation in last column), so transpose.
+            auto mat = self.grid()->transform().baseMap()->getAffineMap()->getMat4();
+            Eigen::Matrix4d result;
+            for (int i = 0; i < 4; ++i)
+                for (int j = 0; j < 4; ++j) result(i, j) = mat(j, i);
+            return result;
+        },
+        [](GridWrapper& self, std::variant<ConstMatrix4f, ConstMatrix4d> matrix) {
+            // Input matrix uses column-vector convention (translation in last column).
+            // OpenVDB uses row-vector convention (applyMap(x) = x * M), so transpose.
+            std::visit(
+                [&](auto&& mat_in) {
+                    auto t = mat_in.view();
+                    // clang-format off
+                    openvdb::math::Mat4d mat(
+                        t(0, 0), t(1, 0), t(2, 0), t(3, 0),
+                        t(0, 1), t(1, 1), t(2, 1), t(3, 1),
+                        t(0, 2), t(1, 2), t(2, 2), t(3, 2),
+                        t(0, 3), t(1, 3), t(2, 3), t(3, 3));
+                    // clang-format on
+                    self.grid()->setTransform(openvdb::math::Transform::createLinearTransform(mat));
+                },
+                matrix);
+        },
+        "The grid's index-to-world 4x4 affine transform matrix (column-vector convention).");
+
+    g.def_prop_rw(
+        "background",
+        [](const GridWrapper& self) {
+            std::variant<float, double> result;
+            apply_or_fail(self.grid(), [&](auto&& grid) { result = grid.background(); });
+            return result;
+        },
+        [](GridWrapper& self, double value) {
+            apply_or_fail(self.grid(), [&](auto&& grid) {
+                using GridScalar = typename std::decay_t<decltype(grid)>::ValueType;
+                openvdb::tools::changeBackground(grid.tree(), static_cast<GridScalar>(value));
+            });
+        },
+        "The grid background value.");
+
+    //////////////////////////////////////////////
+    // RO properties
+    //////////////////////////////////////////////
+
     g.def_prop_ro(
         "voxel_size",
         [](const GridWrapper& self) {
@@ -412,15 +494,6 @@ void populate_volume_module(nb::module_& m)
         "num_active_voxels",
         [](const GridWrapper& self) { return self.grid()->activeVoxelCount(); },
         "Return the number of active voxels in the grid.");
-
-    g.def_prop_ro(
-        "background",
-        [](const GridWrapper& self) {
-            std::variant<float, double> result;
-            apply_or_fail(self.grid(), [&](auto&& grid) { result = grid.background(); });
-            return result;
-        },
-        "Return the grid background value.");
 
     g.def_prop_ro(
         "bbox_index",
@@ -446,6 +519,10 @@ void populate_volume_module(nb::module_& m)
         },
         "Return the axis-aligned bounding box of all active voxels in world space. If the grid is "
         "empty a default bbox is returned.");
+
+    //////////////////////////////////////////////
+    // Methods
+    //////////////////////////////////////////////
 
     g.def(
         "index_to_world",
@@ -574,6 +651,14 @@ void populate_volume_module(nb::module_& m)
 :param relative: Whether the offset radius is relative to the grid voxel size.)");
 
     g.def(
+        "prune",
+        [](GridWrapper& self, const float tolerance) { self.grid()->pruneGrid(tolerance); },
+        "tolerance"_a = 0.0f,
+        R"(Remove nodes whose values all equal the background value within the given tolerance.
+
+:param tolerance: Tolerance for pruning. Default is 0.)");
+
+    g.def(
         "sample_trilinear_index_space",
         [](const GridWrapper& self, std::variant<ConstArray3i, ConstArray3f, ConstArray3d> indices)
             -> std::variant<Eigen::VectorXf, Eigen::VectorXd> {
@@ -633,45 +718,6 @@ void populate_volume_module(nb::module_& m)
 
 :returns: Sampled values as an (N,) array of double.)");
 
-    using MeshToVolumeOptions = lagrange::volume::MeshToVolumeOptions;
-    g.def_static(
-        "from_mesh",
-        [](const SurfaceMesh<Scalar, Index>& mesh,
-           double voxel_size,
-           Sign signing_method,
-           nb::type_object dtype) {
-            lagrange::volume::MeshToVolumeOptions options;
-            options.voxel_size = voxel_size;
-            options.signing_method = signing_method;
-
-            auto run = [&](auto&& grid_scalar) -> GridWrapper {
-                using GridScalar = std::decay_t<decltype(grid_scalar)>;
-                auto grid = lagrange::volume::mesh_to_volume<GridScalar>(mesh, options);
-                return GridWrapper{grid};
-            };
-
-            auto np = nb::module_::import_("numpy");
-            if (dtype.is(np.attr("float32"))) {
-                return run(float(0));
-            } else if (dtype.is(np.attr("float64")) || dtype.is(&PyLong_Type)) {
-                return run(double(0));
-            } else {
-                throw nb::type_error("Unsupported grid `dtype`!");
-            }
-        },
-        "mesh"_a,
-        "voxel_size"_a = MeshToVolumeOptions().voxel_size,
-        "signing_method"_a = MeshToVolumeOptions().signing_method,
-        "dtype"_a = float_type,
-        R"(Convert a triangle mesh to a sparse voxel grid, writing the result to a file.
-
-:param mesh: Input mesh. Must be a triangle mesh, a quad-mesh, or a quad-dominant mesh.
-:param voxel_size: Voxel size. Negative means relative to bbox diagonal (`vs -> -vs * bbox_diag`).
-:param signing_method: Method used to compute the sign of the distance field.
-:param dtype: Scalar type of the output grid (float32 or float64).
-
-:returns: Generated sparse voxel grid.)");
-
     g.def(
         "to_mesh",
         [](const GridWrapper& self,
@@ -709,6 +755,170 @@ void populate_volume_module(nb::module_& m)
 :param normal_attribute_name: If provided, computes vertex normals from the volume and store them in the appropriately named attribute.
 
 :returns: Meshed isosurface.)");
+
+    //////////////////////////////////////////////
+    // Binary operations
+    //////////////////////////////////////////////
+
+    auto bind_binary_op = [&](const char* name, auto&& op, const char* doc) {
+        g.def(
+            name,
+            [captured_op = std::forward<decltype(op)>(op)](GridWrapper& self, GridWrapper& other) {
+                apply_binary_op(self.grid(), other.grid(), captured_op);
+            },
+            "other"_a,
+            doc);
+    };
+
+    bind_binary_op(
+        "csg_union",
+        [](auto& a, auto& b) { openvdb::tools::csgUnion(a, b); },
+        R"(Replace this level set grid with the CSG union of itself and ``other``.
+
+:param other: Level set grid of the same scalar type. Left empty after the call.)");
+
+    bind_binary_op(
+        "csg_intersection",
+        [](auto& a, auto& b) { openvdb::tools::csgIntersection(a, b); },
+        R"(Replace this level set grid with the CSG intersection of itself and ``other``.
+
+:param other: Level set grid of the same scalar type. Left empty after the call.)");
+
+    bind_binary_op(
+        "csg_difference",
+        [](auto& a, auto& b) { openvdb::tools::csgDifference(a, b); },
+        R"(Replace this level set grid with the CSG difference ``self`` minus ``other``.
+
+:param other: Level set grid of the same scalar type. Left empty after the call.)");
+
+    bind_binary_op(
+        "comp_min",
+        [](auto& a, auto& b) { openvdb::tools::compMin(a, b); },
+        R"(Per-voxel ``min(self, other)``, stored in ``self``. ``other`` is left empty.
+
+:param other: Grid of the same scalar type.)");
+
+    bind_binary_op(
+        "comp_max",
+        [](auto& a, auto& b) { openvdb::tools::compMax(a, b); },
+        R"(Per-voxel ``max(self, other)``, stored in ``self``. ``other`` is left empty.
+
+:param other: Grid of the same scalar type.)");
+
+    bind_binary_op(
+        "comp_sum",
+        [](auto& a, auto& b) { openvdb::tools::compSum(a, b); },
+        R"(Per-voxel ``self + other``, stored in ``self``. ``other`` is left empty.
+
+:param other: Grid of the same scalar type.)");
+
+    bind_binary_op(
+        "comp_mul",
+        [](auto& a, auto& b) { openvdb::tools::compMul(a, b); },
+        R"(Per-voxel ``self * other``, stored in ``self``. ``other`` is left empty.
+
+:param other: Grid of the same scalar type.)");
+
+    bind_binary_op(
+        "comp_div",
+        [](auto& a, auto& b) { openvdb::tools::compDiv(a, b); },
+        R"(Per-voxel ``self / other``, stored in ``self``. ``other`` is left empty.
+
+:param other: Grid of the same scalar type.)");
+
+    //////////////////////////////////////////////
+    // Factory methods
+    //////////////////////////////////////////////
+
+    using ConstVectorF = nb::ndarray<const float, nb::ndim<1>, nb::c_contig, nb::device::cpu>;
+    using ConstVectorD = nb::ndarray<const double, nb::ndim<1>, nb::c_contig, nb::device::cpu>;
+
+    g.def_static(
+        "from_points",
+        [](ConstArray3i points,
+           std::variant<ConstVectorF, ConstVectorD> values,
+           nb::type_object dtype) -> GridWrapper {
+            auto p = points.view();
+
+            auto run = [&](auto grid_scalar) -> GridWrapper {
+                using GridScalar = decltype(grid_scalar);
+                using GridType = lagrange::volume::Grid<GridScalar>;
+                auto grid = GridType::create();
+                auto accessor = grid->getAccessor();
+                std::visit(
+                    [&](auto&& vals) {
+                        auto vv = vals.view();
+                        la_runtime_assert(
+                            p.shape(0) == vv.shape(0),
+                            "points and values must have the same length");
+                        for (size_t i = 0; i < p.shape(0); ++i) {
+                            accessor.setValue(
+                                openvdb::Coord(p(i, 0), p(i, 1), p(i, 2)),
+                                static_cast<GridScalar>(vv(i)));
+                        }
+                    },
+                    values);
+                return GridWrapper{grid};
+            };
+
+            auto np = nb::module_::import_("numpy");
+            if (dtype.is(np.attr("float32"))) {
+                return run(float(0));
+            } else if (dtype.is(np.attr("float64")) || dtype.is(&PyFloat_Type)) {
+                return run(double(0));
+            } else {
+                throw nb::type_error("Unsupported grid `dtype`!");
+            }
+        },
+        "points"_a,
+        "values"_a,
+        "dtype"_a = float_type,
+        R"(Create a sparse voxel grid from a list of voxel index coordinates and values.
+
+:param points: Voxel index-space coordinates as an (N, 3) array of int32.
+:param values: Values at each voxel as a 1D array of float32 or float64 of length N.
+:param dtype: Scalar type of the output grid (float32 or float64).
+
+:returns: Sparse voxel grid with the given values active at the given index coordinates.)");
+
+    using MeshToVolumeOptions = lagrange::volume::MeshToVolumeOptions;
+    g.def_static(
+        "from_mesh",
+        [](const SurfaceMesh<Scalar, Index>& mesh,
+           double voxel_size,
+           Sign signing_method,
+           nb::type_object dtype) {
+            lagrange::volume::MeshToVolumeOptions options;
+            options.voxel_size = voxel_size;
+            options.signing_method = signing_method;
+
+            auto run = [&](auto&& grid_scalar) -> GridWrapper {
+                using GridScalar = std::decay_t<decltype(grid_scalar)>;
+                auto grid = lagrange::volume::mesh_to_volume<GridScalar>(mesh, options);
+                return GridWrapper{grid};
+            };
+
+            auto np = nb::module_::import_("numpy");
+            if (dtype.is(np.attr("float32"))) {
+                return run(float(0));
+            } else if (dtype.is(np.attr("float64")) || dtype.is(&PyFloat_Type)) {
+                return run(double(0));
+            } else {
+                throw nb::type_error("Unsupported grid `dtype`!");
+            }
+        },
+        "mesh"_a,
+        "voxel_size"_a = MeshToVolumeOptions().voxel_size,
+        "signing_method"_a = MeshToVolumeOptions().signing_method,
+        "dtype"_a = float_type,
+        R"(Convert a triangle mesh to a sparse voxel grid, writing the result to a file.
+
+:param mesh: Input mesh. Must be a triangle mesh, a quad-mesh, or a quad-dominant mesh.
+:param voxel_size: Voxel size. Negative means relative to bbox diagonal (`vs -> -vs * bbox_diag`).
+:param signing_method: Method used to compute the sign of the distance field.
+:param dtype: Scalar type of the output grid (float32 or float64).
+
+:returns: Generated sparse voxel grid.)");
 }
 
 } // namespace lagrange::python

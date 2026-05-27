@@ -110,11 +110,13 @@ auto vector_between(const MeshType& mesh, typename MeshType::Index v1, typename 
 }
 
 ///
-/// Build an orthogonal frame given a single vector.
+/// Build an orthogonal frame given a single vector. Implements the branchless basis from
+/// Duff et al., "Building an Orthonormal Basis, Revisited", JCGT 2017
+/// (https://jcgt.org/published/0006/01/01/).
 ///
-/// @param[in]  x       First vector of the frame.
-/// @param[out] y       Second vector of the frame.
-/// @param[out] z       Third vector of the frame.
+/// @param[in]  x       First vector of the frame, may be non-unit.
+/// @param[out] y       Second vector of the frame, normalized.
+/// @param[out] z       Third vector of the frame, normalized.
 ///
 /// @tparam     Scalar  Scalar type.
 ///
@@ -124,23 +126,13 @@ void orthogonal_frame(
     Eigen::Matrix<Scalar, 3, 1>& y,
     Eigen::Matrix<Scalar, 3, 1>& z)
 {
-    int imin;
-    x.array().abs().minCoeff(&imin);
-    Eigen::Matrix<Scalar, 3, 1> u;
-    for (int i = 0, s = -1; i < 3; ++i) {
-        if (i == imin) {
-            u[i] = 0;
-        } else {
-            int j = (i + 1) % 3;
-            if (j == imin) {
-                j = (i + 2) % 3;
-            }
-            u[i] = s * x[j];
-            s *= -1;
-        }
-    }
-    z = x.cross(u).stableNormalized();
-    y = z.cross(x).stableNormalized();
+    constexpr Scalar one(1);
+    const Eigen::Matrix<Scalar, 3, 1> n = x.stableNormalized();
+    const Scalar sign = std::copysign(one, n.z());
+    const Scalar a = -one / (sign + n.z());
+    const Scalar b = n.x() * n.y() * a;
+    y = Eigen::Matrix<Scalar, 3, 1>(one + sign * n.x() * n.x() * a, sign * b, -sign * n.x());
+    z = Eigen::Matrix<Scalar, 3, 1>(b, sign + n.y() * n.y() * a, -n.y());
 }
 
 /// Returns the circumcenter of a 3D triangle.

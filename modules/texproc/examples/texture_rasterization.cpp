@@ -13,6 +13,7 @@
 #include "io_helpers.h"
 
 #include <lagrange/find_matching_attributes.h>
+#include <lagrange/image/split_grid.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/load_scene.h>
 #include <lagrange/io/save_mesh.h>
@@ -123,11 +124,23 @@ int main(int argc, char** argv)
     auto scene =
         lagrange::io::load_scene<lagrange::scene::Scene32f>(args.input_scene, load_options);
 
-    // Load (optional) base texture
+    // Extract mesh, base texture, and cameras from scene
+    auto [mesh, scene_base_texture] = lagrange::scene::internal::single_mesh_from_scene(scene);
+    const auto cameras = lagrange::scene::internal::camera_transforms_from_scene(scene);
+    lagrange::logger().info("Found {} cameras in the input scene", cameras.size());
+
+    // Load (optional) base texture — overrides any texture embedded in the scene
     std::optional<Array3Df> base_texture;
     if (!args.input_texture.empty()) {
         lagrange::logger().info("Loading base texture: {}", args.input_texture.string());
         base_texture = load_image(args.input_texture);
+        if (scene_base_texture.has_value()) {
+            lagrange::logger().warn(
+                "Input scene already contains a base texture. Overriding with user-provided "
+                "texture.");
+        }
+    } else {
+        base_texture = std::move(scene_base_texture);
     }
 
     la_runtime_assert(
@@ -137,42 +150,35 @@ int main(int argc, char** argv)
         args.input_renders.empty() || args.input_render_grid.empty(),
         "--renders-in and --render-grid-in are mutually exclusive");
 
-    std::vector<std::pair<Array3Df, Array3Df>> textures_and_weights;
+    // `render_grid` and `renders` own the image data referenced by `views`.
+    Array3Df render_grid;
+    std::vector<Array3Df> renders;
+    std::vector<ConstView3Df> views;
     if (!args.input_render_grid.empty()) {
-        // Load single grid image and split based on camera count
         lagrange::logger().info("Loading render grid: {}", args.input_render_grid.string());
-        Array3Df render_grid = load_image(args.input_render_grid);
-
-        textures_and_weights = lagrange::texproc::rasterize_textures_from_renders(
-            scene,
-            base_texture,
-            render_grid.to_mdspan(),
-            args.width,
-            args.height,
-            args.low_confidence_ratio,
-            args.base_confidence);
+        render_grid = load_image(args.input_render_grid);
+        la_runtime_assert(!cameras.empty(), "No cameras found in the input scene");
+        views = lagrange::image::experimental::split_grid(
+            ConstView3Df(render_grid.to_mdspan()),
+            {cameras.size()});
     } else {
-        // Sort input renders
         sort_paths(args.input_renders);
-
-        // Load rendered images to unproject
         lagrange::logger().info("Loading input {} renders", args.input_renders.size());
-        std::vector<Array3Df> renders;
-        std::vector<ConstView3Df> views;
         for (const auto& render : args.input_renders) {
             renders.push_back(load_image(render));
             views.push_back(renders.back().to_mdspan());
         }
-
-        textures_and_weights = lagrange::texproc::rasterize_textures_from_renders(
-            scene,
-            base_texture,
-            views,
-            args.width,
-            args.height,
-            args.low_confidence_ratio,
-            args.base_confidence);
     }
+
+    auto textures_and_weights = lagrange::texproc::rasterize_textures_from_renders(
+        mesh,
+        std::move(base_texture),
+        cameras,
+        views,
+        args.width,
+        args.height,
+        args.low_confidence_ratio,
+        args.base_confidence);
 
     // Save textures and confidences
     tbb::parallel_for(size_t(0), textures_and_weights.size(), [&](size_t i) {
