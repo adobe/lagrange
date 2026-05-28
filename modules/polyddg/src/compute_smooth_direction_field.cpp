@@ -175,8 +175,11 @@ AttributeId compute_smooth_direction_field_on_facets(
         const Index f1 = s1.fid, lv0_in_f1 = s1.lv_v0;
 
         // n-fold Levi-Civita transport: f0's frame → f1's frame, via shared vertex v0.
-        const auto R01 = ops.levi_civita_nrosy(f1, lv0_in_f1, n) *
-                         ops.levi_civita_nrosy(f0, lv0_in_f0, n).transpose();
+        // Eager-evaluate to a concrete matrix: levi_civita_nrosy returns by value, so the
+        // product expression would otherwise hold references to destroyed temporaries.
+        const Eigen::Matrix<Scalar, 2, 2> R01 =
+            ops.levi_civita_nrosy(f1, lv0_in_f1, n) *
+            ops.levi_civita_nrosy(f0, lv0_in_f0, n).transpose();
 
         // Weight = primal edge length.
         auto [v0, v1] = mesh.get_edge_vertices(eid);

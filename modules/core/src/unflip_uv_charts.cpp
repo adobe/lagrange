@@ -33,6 +33,7 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <atomic>
 #include <vector>
 
 namespace lagrange {
@@ -127,18 +128,25 @@ size_t unflip_uv_charts_impl(
     // Mark every UV vertex referenced by a facet in a flipped chart, then negate its U coordinate.
     // Assumes UV vertices are not shared across charts (the typical case for charts produced by
     // disconnect_uv_charts or compute_uv_charts on indexed UV attributes).
+    // Atomic flags: multiple facets can share a UV vertex, so concurrent writes of the same
+    // value are benign but flagged by ThreadSanitizer without atomic accesses.
     const Index num_uv_vertices = static_cast<Index>(uv_values.rows());
-    std::vector<uint8_t> uv_vertex_flipped(num_uv_vertices, 0);
+    std::vector<std::atomic<uint8_t>> uv_vertex_flipped(num_uv_vertices);
+    tbb::parallel_for(Index(0), num_uv_vertices, [&](Index v) {
+        uv_vertex_flipped[v].store(0, std::memory_order_relaxed);
+    });
     tbb::parallel_for(Index(0), num_facets, [&](Index f) {
         if (!chart_flipped[dense_chart_ids[f]]) return;
         const auto c_begin = mesh.get_facet_corner_begin(f);
         const auto c_end = mesh.get_facet_corner_end(f);
         for (auto c = c_begin; c != c_end; ++c) {
-            uv_vertex_flipped[uv_indices[c]] = 1;
+            uv_vertex_flipped[uv_indices[c]].store(1, std::memory_order_relaxed);
         }
     });
     tbb::parallel_for(Index(0), num_uv_vertices, [&](Index v) {
-        if (uv_vertex_flipped[v]) uv_values(v, 0) = -uv_values(v, 0);
+        if (uv_vertex_flipped[v].load(std::memory_order_relaxed)) {
+            uv_values(v, 0) = -uv_values(v, 0);
+        }
     });
 
     logger().info("Unflipped {} UV chart(s).", num_flipped);
