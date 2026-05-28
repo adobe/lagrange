@@ -53,7 +53,9 @@ template <typename Scalar, typename Index>
 AttributeId compute_facet_area(SurfaceMesh<Scalar, Index>& mesh, FacetAreaOptions options = {});
 
 ///
-/// Compute per-facet area.
+/// @overload
+///
+/// Also applies an affine transformation to the mesh geometry before computing areas.
 ///
 /// @param[in,out] mesh            The input mesh.
 /// @param[in]     transformation  Affine transformation to apply on mesh geometry.
@@ -72,6 +74,9 @@ AttributeId compute_facet_area(
     const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transformation,
     FacetAreaOptions options = {});
 
+///
+/// Option struct for computing per-facet vector area.
+///
 struct FacetVectorAreaOptions
 {
     /// Output attribute name for facet vector area.
@@ -96,17 +101,39 @@ struct FacetVectorAreaOptions
 /// [2] Alexa, Marc, and Max Wardetzky. "Discrete Laplacians on general polygonal meshes." ACM
 /// SIGGRAPH 2011 papers. 2011. 1-10.
 ///
-/// @tparam        Scalar   Mesh scalar type.
-/// @tparam        Index    Mesh index type.
+/// @note Only 3D meshes are supported.
 ///
 /// @param[in,out] mesh     The input mesh.
 /// @param[in]     options  The options controlling the computation.
+///
+/// @tparam        Scalar   Mesh scalar type.
+/// @tparam        Index    Mesh index type.
 ///
 /// @return        The attribute id of the facet vector area attribute.
 ///
 template <typename Scalar, typename Index>
 AttributeId compute_facet_vector_area(
     SurfaceMesh<Scalar, Index>& mesh,
+    FacetVectorAreaOptions options = {});
+
+///
+/// @overload
+///
+/// Also applies an affine transformation to the mesh geometry before computing vector areas.
+///
+/// @param[in,out] mesh            The input mesh.
+/// @param[in]     transformation  Affine transformation to apply on mesh geometry.
+/// @param[in]     options         The options controlling the computation.
+///
+/// @tparam        Scalar          Mesh scalar type.
+/// @tparam        Index           Mesh index type.
+///
+/// @return        The attribute id of the facet vector area attribute.
+///
+template <typename Scalar, typename Index>
+AttributeId compute_facet_vector_area(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const Eigen::Transform<Scalar, 3, Eigen::Affine>& transformation,
     FacetVectorAreaOptions options = {});
 
 ///
@@ -138,7 +165,9 @@ template <typename Scalar, typename Index>
 Scalar compute_mesh_area(const SurfaceMesh<Scalar, Index>& mesh, MeshAreaOptions options = {});
 
 ///
-/// Compute mesh area.
+/// @overload
+///
+/// Also applies an affine transformation to the mesh geometry before computing the total area.
 ///
 /// @param[in]  mesh            The input mesh.
 /// @param[in]  transformation  Affine transformation to apply on mesh geometry.

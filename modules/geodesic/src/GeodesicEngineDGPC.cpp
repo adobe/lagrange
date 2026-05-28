@@ -367,6 +367,7 @@ SingleSourceGeodesicResult GeodesicEngineDGPC<Scalar, Index>::single_source_geod
     auto valence_attr_id = compute_vertex_valence(this->mesh());
     const auto& valence = attribute_matrix_view<Index>(this->mesh(), valence_attr_id);
     la_runtime_assert(!Q.empty());
+    std::vector<Index> adj_facets;
     while (!Q.empty()) {
         const auto entry = Q.top();
         const auto v = entry.first;
@@ -380,7 +381,7 @@ SingleSourceGeodesicResult GeodesicEngineDGPC<Scalar, Index>::single_source_geod
         counters[v]++;
         if (counters[v] > valence(v, 0)) continue;
 
-        std::vector<Index> adj_facets;
+        adj_facets.clear();
         this->mesh().foreach_facet_around_vertex(v, [&](Index fi) { adj_facets.push_back(fi); });
         for (const auto fi : adj_facets) {
             const Eigen::Matrix<Index, 3, 1> f = facets.row(fi);

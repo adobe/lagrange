@@ -58,8 +58,10 @@ SharpnessResults compute_sharpness(
     if (normal_id.has_value()) {
         logger().debug("Using mesh normals to set sharpness flag.");
         results.normal_attr = normal_id;
+        SeamEdgesOptions seam_opts;
+        seam_opts.include_boundary_edges = true;
 
-        auto seam_id = compute_seam_edges(mesh, normal_id.value());
+        auto seam_id = compute_seam_edges(mesh, normal_id.value(), seam_opts);
         auto edge_sharpness_id = cast_attribute<float>(mesh, seam_id, "edge_sharpness");
         results.edge_sharpness_attr = edge_sharpness_id;
 

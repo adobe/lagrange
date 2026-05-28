@@ -63,25 +63,24 @@ std::optional<std::vector<Index>> compute_dijkstra_distance(
         involved_vts = std::vector<Index>();
     }
 
-    std::function<bool(Index, Scalar)> process;
+    std::function<void(Index, Scalar)> process;
     if (options.output_involved_vertices) {
         process = [&](Index vi, Scalar d) {
             dist_data[vi] = d;
             involved_vts->push_back(vi);
-            return false;
         };
     } else {
-        process = [&](Index vi, Scalar d) {
-            dist_data[vi] = d;
-            return false;
-        };
+        process = [&](Index vi, Scalar d) { dist_data[vi] = d; };
     }
+
+    internal::DijkstraOptions<Scalar> dijkstra_opts;
+    dijkstra_opts.geodesic_radius = options.radius;
 
     internal::dijkstra<Scalar, Index>(
         mesh,
         seed_vertices,
         span<const Scalar>(initial_dist.data(), static_cast<size_t>(initial_dist.size())),
-        options.radius,
+        dijkstra_opts,
         dist,
         process);
 

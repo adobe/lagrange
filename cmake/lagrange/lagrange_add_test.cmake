@@ -44,9 +44,10 @@ function(lagrange_add_test)
     include(FetchContent)
     target_code_coverage(${test_target} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
 
-    # TSan suppression file to be passed to catch_discover_tests
+    # Sanitizer suppression files to be passed to catch_discover_tests
     set(LAGRANGE_TESTS_ENVIRONMENT
         "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/tsan.suppressions.ini"
+        "LSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/lsan.suppressions.ini"
         "ASAN_SAVE_DUMPS=${module_name}.dmp"
     )
 
@@ -65,6 +66,31 @@ function(lagrange_add_test)
         set(_discovery_mode PRE_TEST)
     else()
         set(_discovery_mode POST_BUILD)
+    endif()
+
+    # On Linux, ThreadSanitizer can fail with "FATAL: ThreadSanitizer: unexpected memory mapping" on
+    # kernels with high ASLR entropy (e.g. kernel 6.x with vm.mmap_rnd_bits > 28). LLVM 18+ / GCC 15+
+    # include an auto-retry that re-executes the process with ASLR disabled
+    # (https://github.com/llvm/llvm-project/pull/78351). For older compilers, we work around this by
+    # wrapping test discovery and execution with `setarch --addr-no-randomize`.
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux" AND USE_SANITIZER MATCHES "([Tt]hread)")
+        set(_tsan_needs_aslr_workaround FALSE)
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "15")
+            set(_tsan_needs_aslr_workaround TRUE)
+        elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "18")
+            set(_tsan_needs_aslr_workaround TRUE)
+        endif()
+        if(_tsan_needs_aslr_workaround)
+            find_program(_setarch setarch)
+            if(_setarch)
+                set_target_properties(${test_target} PROPERTIES
+                    CROSSCOMPILING_EMULATOR "${_setarch};${CMAKE_HOST_SYSTEM_PROCESSOR};--addr-no-randomize"
+                )
+                set(_discovery_mode PRE_TEST)
+            else()
+                message(WARNING "setarch not found — TSan tests may fail with 'unexpected memory mapping' on high-ASLR kernels")
+            endif()
+        endif()
     endif()
 
     if(LAGRANGE_TOPLEVEL_PROJECT AND NOT USE_SANITIZER MATCHES "([Tt]hread)")

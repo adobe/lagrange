@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/AttributeValueType.h>
+#include <lagrange/CameraTransforms.h>
 #include <lagrange/Logger.h>
 #include <lagrange/image/Array3D.h>
 #include <lagrange/image/View3D.h>
@@ -21,6 +22,7 @@
 #include <lagrange/utils/fmt/format.h>
 
 #include <algorithm>
+#include <vector>
 
 namespace lagrange::scene::internal {
 
@@ -207,6 +209,29 @@ std::tuple<SurfaceMesh<Scalar, Index>, std::optional<Array3Df>> single_mesh_from
     Array3Df image = convert_from(image_);
 
     return {mesh, image};
+}
+
+// Extract camera view + projection transforms for every camera referenced by a node in the scene.
+template <typename Scalar, typename Index>
+std::vector<CameraTransforms> camera_transforms_from_scene(const Scene<Scalar, Index>& scene)
+{
+    using ElementId = scene::ElementId;
+    std::vector<CameraTransforms> cameras;
+    for (ElementId node_id = 0; node_id < scene.nodes.size(); ++node_id) {
+        const auto& node = scene.nodes[node_id];
+        if (!node.cameras.empty()) {
+            auto world_from_node = utils::compute_global_node_transform(scene, node_id);
+            for (auto camera_id : node.cameras) {
+                const auto& scene_camera = scene.cameras[camera_id];
+                CameraTransforms camera;
+                camera.view = utils::camera_view_transform(scene_camera, world_from_node);
+                camera.projection = utils::camera_projection_transform(scene_camera);
+                cameras.push_back(camera);
+            }
+        }
+    }
+
+    return cameras;
 }
 
 } // namespace lagrange::scene::internal

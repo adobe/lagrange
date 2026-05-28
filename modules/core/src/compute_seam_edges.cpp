@@ -51,6 +51,10 @@ AttributeId compute_seam_edges(
     auto process_attribute = [&](auto&& attr) {
         auto indices = attr.indices().get_all();
         tbb::parallel_for(Index(0), mesh.get_num_edges(), [&](Index e) {
+            if (options.include_boundary_edges && mesh.is_boundary_edge(e)) {
+                output_is_seam[e] = 1;
+                return;
+            }
             auto v = mesh.get_edge_vertices(e);
             std::optional<std::array<Index, 2>> prev_indices;
             mesh.foreach_corner_around_edge(e, [&](Index c0) {

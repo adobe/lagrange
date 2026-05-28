@@ -33,7 +33,6 @@
 
 #include <tbb/parallel_for.h>
 
-#include <iostream>
 #include <numeric>
 
 namespace lagrange::python {
@@ -279,55 +278,125 @@ void populate_texproc_module(nb::module_& m)
 
 :return: The composited texture image.)");
 
-    m.def(
-        "rasterize_textures_from_renders",
-        [](const scene::Scene<Scalar, Index>& scene,
-           const std::vector<ImageTensor<float>>& renders,
-           const std::optional<size_t> width,
-           const std::optional<size_t> height,
-           const float low_confidence_ratio,
-           const std::optional<float> base_confidence) {
-            std::vector<tp::ConstView3Df> views;
-            for (const auto& render : renders) {
-                views.push_back(tensor_to_image_view(render));
-            }
-
-            auto textures_and_weights = tp::rasterize_textures_from_renders(
-                scene,
-                std::nullopt,
-                views,
-                width,
-                height,
-                low_confidence_ratio,
-                base_confidence);
-
+    auto pack_textures_and_weights =
+        [](std::vector<std::pair<tp::Array3Df, tp::Array3Df>>& textures_and_weights) {
             std::vector<nb::object> textures;
             std::vector<nb::object> weights;
+            textures.reserve(textures_and_weights.size());
+            weights.reserve(textures_and_weights.size());
             for (auto& [texture_, weight_] : textures_and_weights) {
                 auto texture = image_array_to_tensor(texture_);
                 auto weight = image_array_to_tensor(weight_);
                 textures.emplace_back(texture);
                 weights.emplace_back(weight);
             }
-
             return std::make_tuple(textures, weights);
+        };
+
+    auto convert_renders = [](const std::vector<ImageTensor<float>>& renders) {
+        std::vector<tp::ConstView3Df> views;
+        views.reserve(renders.size());
+        for (const auto& render : renders) {
+            views.push_back(tensor_to_image_view(render));
+        }
+        return views;
+    };
+
+    auto convert_base_texture =
+        [](const std::optional<ImageTensor<float>>& base_texture) -> std::optional<tp::Array3Df> {
+        if (!base_texture.has_value()) return std::nullopt;
+        const auto view = tensor_to_image_view(*base_texture);
+        auto image = image::experimental::create_image<float>(
+            view.extent(0),
+            view.extent(1),
+            view.extent(2));
+        copy_tensor_to_image_view(*base_texture, image.to_mdspan());
+        return image;
+    };
+
+    constexpr auto rasterize_doc =
+        R"(Rasterize one (color, weight) per (render, camera) and filter out low-confidence weights.
+
+This function has two overloads:
+
+1. ``rasterize_textures_from_renders(scene, renders, *, base_texture=None, ...)``: extract mesh,
+   base texture, and cameras from a scene. ``base_texture`` (if provided) overrides any base texture
+   in the scene.
+2. ``rasterize_textures_from_renders(mesh, cameras, renders, *, base_texture=None, ...)``: take an
+   explicit mesh and a list of CameraTransforms.
+
+:param scene: Scene containing a single mesh (possibly with a base texture), and multiple cameras.
+:param mesh: Input mesh with UVs (alternative to scene).
+:param cameras: List of CameraTransforms (alternative to scene).
+:param renders: List of rendered images, one per camera.
+:param base_texture: Optional base texture override. Takes precedence over any texture in the scene.
+:param width: Width of the rasterized textures. Must match the width of the base texture if present. Otherwise, defaults to 1024.
+:param height: Height of the rasterized textures. Must match the height of the base texture if present. Otherwise, defaults to 1024.
+:param low_confidence_ratio: Discard low confidence texels whose weights are < ratio * max_weight.
+:param base_confidence: Confidence value for the base texture if present. If set to 0, ignore the base texture. Defaults to 0.3 otherwise.
+
+:return: A pair of lists (textures, weights), one per camera.)";
+
+    m.def(
+        "rasterize_textures_from_renders",
+        [=](const scene::Scene<Scalar, Index>& scene,
+            const std::vector<ImageTensor<float>>& renders,
+            const std::optional<ImageTensor<float>>& base_texture,
+            const std::optional<size_t> width,
+            const std::optional<size_t> height,
+            const float low_confidence_ratio,
+            const std::optional<float> base_confidence) {
+            auto textures_and_weights = tp::rasterize_textures_from_renders(
+                scene,
+                convert_base_texture(base_texture),
+                convert_renders(renders),
+                width,
+                height,
+                low_confidence_ratio,
+                base_confidence);
+            return pack_textures_and_weights(textures_and_weights);
         },
         "scene"_a,
         "renders"_a,
+        nb::kw_only(),
+        "base_texture"_a = nb::none(),
         "width"_a = nb::none(),
         "height"_a = nb::none(),
         "low_confidence_ratio"_a = 0.75,
         "base_confidence"_a = nb::none(),
-        R"(Rasterize one (color, weight) per (render, camera) and filter our low-confidence weights.
+        rasterize_doc);
 
-:param scene: Scene containing a single mesh (possibly with a base texture), and multiple cameras.
-:param renders: List of rendered images, one per camera.
-:param width: Width of the rasterized textures. Must match the width of the base texture if present. Otherwise, defaults to 1024.
-:param height: Height of the rasterized textures. Must match the height of the base texture if present. Otherwise, defaults to 1024.
-:param low_confidence_ratio: Discard low confidence texels whose weights are < ratio * max_weight.
-:param base_confidence: Confidence value for the base texture if present in the scene. If set to 0, ignore the base texture of the mesh. Defaults to 0.3 otherwise.
-
-:return: A pair of lists (textures, weights), one per camera.)");
+    m.def(
+        "rasterize_textures_from_renders",
+        [=](const SurfaceMesh<Scalar, Index>& mesh,
+            const std::vector<CameraTransforms>& cameras,
+            const std::vector<ImageTensor<float>>& renders,
+            const std::optional<ImageTensor<float>>& base_texture,
+            const std::optional<size_t> width,
+            const std::optional<size_t> height,
+            const float low_confidence_ratio,
+            const std::optional<float> base_confidence) {
+            auto textures_and_weights = tp::rasterize_textures_from_renders(
+                mesh,
+                convert_base_texture(base_texture),
+                cameras,
+                convert_renders(renders),
+                width,
+                height,
+                low_confidence_ratio,
+                base_confidence);
+            return pack_textures_and_weights(textures_and_weights);
+        },
+        "mesh"_a,
+        "cameras"_a,
+        "renders"_a,
+        nb::kw_only(),
+        "base_texture"_a = nb::none(),
+        "width"_a = nb::none(),
+        "height"_a = nb::none(),
+        "low_confidence_ratio"_a = 0.75,
+        "base_confidence"_a = nb::none(),
+        rasterize_doc);
 
     m.def(
         "extract_mesh_with_alpha_mask",

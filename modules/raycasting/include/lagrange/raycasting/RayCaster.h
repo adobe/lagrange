@@ -15,6 +15,7 @@
 #include <lagrange/raycasting/api.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/BitField.h>
+#include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/value_ptr.h>
 
 #include <Eigen/Core>
@@ -27,6 +28,11 @@
 #include <variant>
 
 namespace lagrange::raycasting {
+
+namespace internal {
+struct RayCasterOBBAccess;
+} // namespace internal
+
 
 ///
 /// Shared base struct for ray and closest point hits.
@@ -769,6 +775,37 @@ public:
 
 private:
     /// @cond LA_INTERNAL_DOCS
+    friend struct internal::RayCasterOBBAccess;
+
+    ///
+    /// Oriented bounding box used by the raycaster's internal overlap query. Constructed and
+    /// consumed via the `internal::RayCasterOBBAccess` friend.
+    ///
+    struct OrientedBox
+    {
+        Eigen::Vector3f center = Eigen::Vector3f::Zero();
+        Eigen::Matrix3f axes = Eigen::Matrix3f::Identity(); ///< Column i = i-th axis (unit).
+        Eigen::Vector3f half_extents = Eigen::Vector3f::Zero();
+    };
+
+    void overlap_obb_internal(
+        const OrientedBox& obb,
+        function_ref<bool(uint32_t mesh_index, uint32_t instance_index, uint32_t facet_index)>
+            callback) const;
+
+    ///
+    /// Packet variant of overlap_obb_internal: queries up to 16 OBBs in a single SIMD
+    /// rtcPointQuery16 dispatch. The callback receives the originating lane index in addition to
+    /// the hit mesh/instance/facet indices, so callers can route hits back to the OBB that
+    /// produced them.
+    ///
+    void overlap_obb16_internal(
+        span<const OrientedBox> obbs,
+        std::variant<Mask16, size_t> active,
+        function_ref<
+            bool(uint32_t lane, uint32_t mesh_index, uint32_t instance_index, uint32_t facet_index)>
+            callback) const;
+
     struct Impl;
     value_ptr<Impl> m_impl;
     /// @endcond

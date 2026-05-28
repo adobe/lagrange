@@ -31,6 +31,7 @@
 #include <lagrange/compute_tangent_bitangent.h>
 #include <lagrange/compute_uv_charts.h>
 #include <lagrange/compute_uv_distortion.h>
+#include <lagrange/compute_uv_orientation.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/compute_vertex_valence.h>
 #include <lagrange/disconnect_uv_charts.h>
@@ -59,6 +60,7 @@
 #include <lagrange/topology.h>
 #include <lagrange/transform_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/unflip_uv_charts.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
@@ -531,19 +533,23 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         "compute_seam_edges",
         [](MeshType& mesh,
            AttributeId indexed_attribute_id,
-           std::optional<std::string_view> output_attribute_name) {
+           std::optional<std::string_view> output_attribute_name,
+           bool include_boundary_edges) {
             SeamEdgesOptions options;
             if (output_attribute_name) options.output_attribute_name = *output_attribute_name;
+            options.include_boundary_edges = include_boundary_edges;
             return compute_seam_edges<Scalar, Index>(mesh, indexed_attribute_id, options);
         },
         "mesh"_a,
         "indexed_attribute_id"_a,
         "output_attribute_name"_a = nb::none(),
+        "include_boundary_edges"_a = SeamEdgesOptions().include_boundary_edges,
         R"(Compute seam edges for a given indexed attribute.
 
 :param mesh: Input mesh.
 :param indexed_attribute_id: Input indexed attribute id.
 :param output_attribute_name: Output attribute name.
+:param include_boundary_edges: If true, boundary edges are also marked as seam edges.
 
 :returns: Attribute id for the output per-edge seam attribute (1 is a seam, 0 is not).)");
 
@@ -2139,12 +2145,77 @@ found after ``max_increment`` attempts.
         "connectivity_type"_a = "Edge",
         R"(Compute UV charts.
 
-@param mesh: Input mesh.
-@param uv_attribute_name: Name of the UV attribute.
-@param output_attribute_name: Name of the output attribute to store the chart ids.
-@param connectivity_type: Type of connectivity to use for chart computation. Can be "Vertex" or "Edge".
+:param mesh: Input mesh.
+:param uv_attribute_name: Name of the UV attribute.
+:param output_attribute_name: Name of the output attribute to store the chart ids.
+:param connectivity_type: Type of connectivity to use for chart computation. Can be "Vertex" or "Edge".
 
-@returns: A list of chart ids for each vertex.)");
+:returns: The number of charts.)");
+
+    nb::class_<UVOrientationCount>(m, "UVOrientationCount", "Counts of per-facet UV orientations.")
+        .def(nb::init<>())
+        .def_rw(
+            "positive",
+            &UVOrientationCount::positive,
+            "Number of CCW (positively oriented) facets.")
+        .def_rw(
+            "degenerate",
+            &UVOrientationCount::degenerate,
+            "Number of degenerate (zero-area) facets.")
+        .def_rw(
+            "negative",
+            &UVOrientationCount::negative,
+            "Number of CW (negatively oriented / flipped) facets.");
+
+    m.def(
+        "compute_uv_orientation",
+        [](MeshType& mesh,
+           std::string_view uv_attribute_name,
+           std::string_view output_attribute_name) {
+            UVOrientationOptions options;
+            options.uv_attribute_name = uv_attribute_name;
+            options.output_attribute_name = output_attribute_name;
+            return compute_uv_orientation(mesh, options);
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = UVOrientationOptions().uv_attribute_name,
+        "output_attribute_name"_a = UVOrientationOptions().output_attribute_name,
+        R"(Compute a per-facet orientation attribute using Shewchuk's exact ``orient2D`` predicate.
+
+Each facet is assigned an ``int8`` value: ``+1`` for CCW (positively oriented), ``0`` for
+degenerate, ``-1`` for CW (negatively oriented / flipped).
+
+:param mesh: Input triangle mesh.
+:param uv_attribute_name: Name of the UV attribute. If empty, uses the first UV attribute.
+:param output_attribute_name: Name of the output per-facet attribute (int8).
+
+:returns: A :class:`UVOrientationCount` with counts of positive, degenerate, and negative facets.)");
+
+    m.def(
+        "unflip_uv_charts",
+        [](MeshType& mesh,
+           std::string_view uv_attribute_name,
+           std::string_view chart_id_attribute_name) {
+            UnflipUVChartsOptions options;
+            options.uv_attribute_name = uv_attribute_name;
+            options.chart_id_attribute_name = chart_id_attribute_name;
+            return unflip_uv_charts(mesh, options);
+        },
+        "mesh"_a,
+        "uv_attribute_name"_a = UnflipUVChartsOptions().uv_attribute_name,
+        "chart_id_attribute_name"_a = UnflipUVChartsOptions().chart_id_attribute_name,
+        R"(Mirror the UV positions of every UV vertex in any chart that is "flipped" by negating
+its U coordinate. A chart is considered flipped when either its total signed UV area is negative,
+OR every triangle in the chart is individually flipped (per :func:`compute_uv_orientation`); the
+latter rule catches charts whose floating-point area sum is non-negative due to nearly-degenerate
+triangles. Assumes UV vertices are not shared across charts.
+
+:param mesh: Input triangle mesh. The UV attribute must be indexed.
+:param uv_attribute_name: Name of the UV attribute. If empty, uses the first indexed UV attribute.
+:param chart_id_attribute_name: Optional per-facet chart id attribute name. If empty, charts are
+                                computed automatically using edge connectivity on the UV mesh.
+
+:returns: The number of charts that were unflipped.)");
 
     m.def(
         "disconnect_uv_charts",

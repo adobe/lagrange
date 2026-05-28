@@ -108,3 +108,49 @@ class TestTextureProcessing:
         )
 
         assert final_color.shape == (128, 128, 4)
+
+    def test_camera_transforms_property(self):
+        ct = lagrange.CameraTransforms()
+
+        # 4x4 setter: full matrix with last row [0, 0, 0, 1]
+        view = np.eye(4, dtype=np.float32)
+        view[0, 3] = 1.5
+        view[1, 3] = -2.5
+        ct.view = view
+        assert np.array_equal(ct.view, view)
+
+        # 3x4 setter: compact [R|t] form; getter returns 4x4 with last row [0,0,0,1] appended
+        view34 = view[:3, :]  # shape (3, 4)
+        ct.view = view34
+        expected = np.eye(4, dtype=np.float32)
+        expected[:3, :] = view34
+        assert np.allclose(ct.view, expected)
+
+        proj = np.arange(16, dtype=np.float32).reshape(4, 4)
+        ct.projection = proj
+        assert np.array_equal(ct.projection, proj)
+
+    def test_rasterize_with_mesh_and_cameras(self, quad_scene, quad_tex):
+        mesh = lagrange.scene.scene_to_mesh(quad_scene)
+        cameras = lagrange.scene.camera_transforms_from_scene(quad_scene)
+        assert len(cameras) == 8
+        for cam in cameras:
+            assert cam.view.shape == (4, 4)
+            assert cam.projection.shape == (4, 4)
+
+        views = [quad_tex.copy() for _ in range(len(cameras))]
+
+        colors, weights = lagrange.texproc.rasterize_textures_from_renders(
+            mesh,
+            cameras,
+            views,
+            width=128,
+            height=128,
+            base_confidence=0,
+        )
+
+        assert len(colors) == len(cameras)
+        assert len(weights) == len(cameras)
+        for color, weight in zip(colors, weights):
+            assert color.shape == (128, 128, 4)
+            assert weight.shape == (128, 128, 1)

@@ -16,6 +16,7 @@
 #include <lagrange/polyddg/api.h>
 
 #include <cstdint>
+#include <optional>
 #include <string_view>
 
 namespace lagrange::polyddg {
@@ -32,43 +33,56 @@ struct SmoothDirectionFieldOptions
     /// 4 = cross field).
     uint8_t nrosy = 4;
 
-    /// Stabilization weight for the VEM projection term in the connection Laplacian.
+    /// Controls where the output direction field is stored.
+    ///
+    /// - @c AttributeElement::Vertex (default): stores a per-vertex 3-D tangent vector
+    ///   attribute using the vertex-based connection Laplacian (Knöppel et al. 2013).
+    /// - @c AttributeElement::Facet: stores a per-facet 3-D tangent vector attribute using
+    ///   the face-based connection Laplacian.
+    AttributeElement output_element_type = AttributeElement::Vertex;
+
+    /// Stabilization weight for the VEM projection term in the connection Laplacian
+    /// (vertex-based path only).
     double lambda = 1.0;
 
-    /// Name of a per-vertex 3-D tangent vector field attribute used as alignment constraints.
-    /// Each vertex with a non-zero vector is softly constrained to align to that direction.
-    /// Vertices with a zero vector are unconstrained. If empty (the default), no alignment
-    /// constraints are applied and the globally smoothest field is computed via inverse power
-    /// iteration.
+    /// Name of an alignment constraint attribute used as soft constraints.
+    /// Each non-zero entry is softly constrained to align to that direction; zero entries are
+    /// unconstrained. If empty (the default), no constraints are applied and the globally
+    /// smoothest field is computed.
+    ///
+    /// Must match the element type selected by @c output_element_type:
+    /// - @c AttributeElement::Vertex: a per-vertex 3-D tangent vector attribute
+    ///   (AttributeElement::Vertex, AttributeUsage::Vector, 3 channels).
+    /// - @c AttributeElement::Facet: a per-facet 3-D tangent vector attribute
+    ///   (AttributeElement::Facet, AttributeUsage::Vector, 3 channels).
     std::string_view alignment_attribute = "";
 
-    /// Scaling factor for the spectral shift in the alignment solve, following the fieldgen
-    /// formulation (Knöppel et al. 2013). The actual shift is @f$ \alpha = s \cdot
-    /// \sigma_{\min} @f$, where @f$ s @f$ is this value and @f$ \sigma_{\min} @f$ is the
-    /// smallest eigenvalue of the connection Laplacian (computed automatically). At the
-    /// default value of 1.0, the shift equals @f$ \sigma_{\min} @f$, giving maximum
-    /// alignment. Values in (0, 1) give weaker alignment (more smoothness).
-    double alignment_weight = 1.0;
-
-    /// Output attribute name for the smooth direction field (3-D vector, per vertex).
-    std::string_view direction_field_attribute = "@smooth_direction_field";
+    /// Output attribute name for the smooth direction field. If not set (std::nullopt, the
+    /// default), the canonical name depends on @c output_element_type:
+    ///
+    /// - @c AttributeElement::Vertex: @c \@smooth_direction_field
+    /// - @c AttributeElement::Facet: @c \@smooth_direction_field_facets
+    std::optional<std::string_view> direction_field_attribute;
 };
 
 ///
 /// Compute the globally smoothest n-direction field on a surface mesh.
 ///
-/// This function is based on the following paper:
+/// Dispatches to a vertex-based or facet-based implementation depending on
+/// @c options.output_element_type:
 ///
-/// Knöppel, Felix, et al. "Globally optimal direction fields." ACM Transactions on Graphics (ToG)
-/// 32.4 (2013): 1-10.
-///
-/// The solution is stored as a per-vertex 3-D tangent vector attribute in world-space
-/// coordinates, obtained by mapping the local 2-D solution through the vertex tangent basis.
+/// - @c AttributeElement::Vertex (default): solves the vertex-based connection Laplacian
+///   (Knöppel et al., "Globally optimal direction fields", ACM ToG 32(4), 2013).  The result
+///   is stored as a per-vertex 3-D tangent vector attribute.
+/// - @c AttributeElement::Facet: solves the face-based connection Laplacian, minimizing
+///   @f$ E(u) = \sum_{e=(f,g)} w_e \| R_{f \to g}^n u_f - u_g \|^2 @f$.  The result is
+///   stored as a per-facet 3-D tangent vector attribute.
 ///
 /// @param[in,out] mesh    Input surface mesh. The output attribute is added or overwritten.
 /// @param[in]     ops     Precomputed differential operators for the mesh.
-/// @param[in]     options Options controlling the rosy order, stabilization weight,
-///                        optional alignment constraints, and output attribute name.
+/// @param[in]     options Options controlling the rosy order, output element type,
+///                        stabilization weight, optional alignment constraints, and output
+///                        attribute name.
 ///
 /// @return Attribute ID of the output direction field attribute.
 ///
@@ -76,6 +90,14 @@ template <typename Scalar, typename Index>
 LA_POLYDDG_API AttributeId compute_smooth_direction_field(
     SurfaceMesh<Scalar, Index>& mesh,
     const DifferentialOperators<Scalar, Index>& ops,
+    SmoothDirectionFieldOptions options = {});
+
+///
+/// Convenience overload that constructs a DifferentialOperators object internally.
+///
+template <typename Scalar, typename Index>
+LA_POLYDDG_API AttributeId compute_smooth_direction_field(
+    SurfaceMesh<Scalar, Index>& mesh,
     SmoothDirectionFieldOptions options = {});
 
 /// @}

@@ -311,6 +311,160 @@ TEST_CASE("disconnect_uv_charts", "[surface][utilities]")
         CHECK(indices[2] != indices[6]);
     }
 
+    SECTION("Bowtie within a single user-supplied chart")
+    {
+        // Two triangles touching at UV vertex 2 only (no shared UV edge). The user labels both
+        // facets as the same chart, so the chart-split alone would not duplicate vertex 2. The
+        // bowtie pass must still split the pinch point so that the two wedges get independent
+        // UV indices, leaving the UV mesh manifold for downstream consumers (e.g. repack).
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0.5, 0.5, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 3, 4);
+
+        add_indexed_uv(mesh, {0, 0, 1, 0, 0.5, 0.5, 0, 1, 1, 1}, {0, 1, 2, 2, 3, 4});
+
+        mesh.template create_attribute<Index>(
+            "@chart_id",
+            AttributeElement::Facet,
+            AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 0}); // both facets in the same chart
+
+        DisconnectUVChartsOptions opts;
+        opts.chart_id_attribute_name = "@chart_id";
+        auto num_duped = disconnect_uv_charts(mesh, opts);
+        CHECK(num_duped == 1);
+        CHECK(get_num_uv_values(mesh) == 6);
+
+        auto indices = get_uv_indices(mesh);
+        // The two corners that previously shared UV index 2 must now reference different indices.
+        CHECK(indices[2] != indices[3]);
+    }
+
+    SECTION("Multiple wedges within a single user-supplied chart")
+    {
+        // Four triangles meeting at UV vertex 0, forming two wedges of two triangles each:
+        //   wedge A: triangles 0,1 connected via UV edge 0-2
+        //   wedge B: triangles 2,3 connected via UV edge 0-5
+        // Wedge A and wedge B share only UV vertex 0 (no UV edge between them).
+        // With all facets labeled as chart 0, the bowtie pass should produce exactly one
+        // duplicate of vertex 0 (the second wedge gets a new index, the first keeps the original).
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({-1, 0, 0});
+        mesh.add_vertex({-1, -1, 0});
+        mesh.add_vertex({0, -1, 0});
+        mesh.add_triangle(0, 1, 2); // wedge A
+        mesh.add_triangle(0, 2, 3); // wedge A
+        mesh.add_triangle(0, 4, 5); // wedge B
+        mesh.add_triangle(0, 5, 6); // wedge B
+
+        add_indexed_uv(
+            mesh,
+            {0, 0, 1, 0, 1, 1, 0, 1, -1, 0, -1, -1, 0, -1},
+            {0, 1, 2, 0, 2, 3, 0, 4, 5, 0, 5, 6});
+
+        mesh.template create_attribute<Index>(
+            "@chart_id",
+            AttributeElement::Facet,
+            AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 0, 0, 0});
+
+        DisconnectUVChartsOptions opts;
+        opts.chart_id_attribute_name = "@chart_id";
+        auto num_duped = disconnect_uv_charts(mesh, opts);
+        CHECK(num_duped == 1); // one extra wedge → one duplicate
+        CHECK(get_num_uv_values(mesh) == 8);
+
+        auto indices = get_uv_indices(mesh);
+        // Wedge A facets (f0, f1) keep a single shared index for vertex 0.
+        CHECK(indices[0] == indices[3]);
+        // Wedge B facets (f2, f3) keep a single shared (different) index for vertex 0.
+        CHECK(indices[6] == indices[9]);
+        // Wedge A and wedge B must use different indices for vertex 0.
+        CHECK(indices[0] != indices[6]);
+    }
+
+    SECTION("Bowtie split combined with chart split")
+    {
+        // Three triangles meeting at UV vertex 0 with no shared UV edges. The user supplies
+        // chart_id = {0, 0, 1}. The first two facets are a single chart with an internal
+        // bowtie (1 bowtie duplicate). The third facet is in a different chart and triggers a
+        // chart-level duplicate (1 chart duplicate). Total: 2 duplicates of vertex 0.
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0.5, 1, 0});
+        mesh.add_vertex({-1, 0, 0});
+        mesh.add_vertex({-0.5, 1, 0});
+        mesh.add_vertex({0, -1, 0});
+        mesh.add_vertex({1, -1, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(0, 3, 4);
+        mesh.add_triangle(0, 5, 6);
+
+        add_indexed_uv(
+            mesh,
+            {0, 0, 1, 0, 0.5, 1, -1, 0, -0.5, 1, 0, -1, 1, -1},
+            {0, 1, 2, 0, 3, 4, 0, 5, 6});
+
+        mesh.template create_attribute<Index>(
+            "@chart_id",
+            AttributeElement::Facet,
+            AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 0, 1});
+
+        DisconnectUVChartsOptions opts;
+        opts.chart_id_attribute_name = "@chart_id";
+        auto num_duped = disconnect_uv_charts(mesh, opts);
+        CHECK(num_duped == 2);
+        CHECK(get_num_uv_values(mesh) == 9);
+
+        auto indices = get_uv_indices(mesh);
+        // All three facets must reference different indices for the formerly-shared vertex 0.
+        CHECK(indices[0] != indices[3]);
+        CHECK(indices[0] != indices[6]);
+        CHECK(indices[3] != indices[6]);
+    }
+
+    SECTION("Bowtie pass leaves manifold input untouched")
+    {
+        // Two triangles connected by a real UV edge form a single wedge at every shared
+        // vertex. The bowtie pass must not introduce spurious duplicates.
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 3, 2);
+
+        add_indexed_uv(mesh, {0, 0, 1, 0, 0, 1, 1, 1}, {0, 1, 2, 1, 3, 2});
+
+        mesh.template create_attribute<Index>(
+            "@chart_id",
+            AttributeElement::Facet,
+            AttributeUsage::Scalar,
+            1,
+            std::vector<Index>{0, 0});
+
+        DisconnectUVChartsOptions opts;
+        opts.chart_id_attribute_name = "@chart_id";
+        auto num_duped = disconnect_uv_charts(mesh, opts);
+        CHECK(num_duped == 0);
+        CHECK(get_num_uv_values(mesh) == 4);
+    }
+
     SECTION("Interleaved chart ordering")
     {
         // Facets from two charts are interleaved: A, B, A, B.
@@ -350,16 +504,16 @@ TEST_CASE("disconnect_uv_charts", "[surface][utilities]")
         DisconnectUVChartsOptions opts;
         opts.chart_id_attribute_name = "@chart_id";
         auto num_duped = disconnect_uv_charts(mesh, opts);
-        CHECK(num_duped == 1); // vertex 0 duplicated once for chart B
-        CHECK(get_num_uv_values(mesh) == 10); // 9 original + 1 duplicate
+        // 1 chart-split duplicate (vertex 0 between chart A and chart B), plus 2 bowtie
+        // duplicates (one within chart A for f0/f2, one within chart B for f1/f3).
+        CHECK(num_duped == 3);
+        CHECK(get_num_uv_values(mesh) == 12);
 
         auto indices = get_uv_indices(mesh);
-        // Chart A facets (f0, f2) should share the same index for vertex 0
-        CHECK(indices[0] == indices[6]);
-        // Chart B facets (f1, f3) should share the same index for vertex 0
-        CHECK(indices[3] == indices[9]);
-        // Chart A and B should have different indices for vertex 0
-        CHECK(indices[0] != indices[3]);
+        // After bowtie disconnection, all four facets should reference distinct indices for the
+        // formerly-shared UV vertex 0.
+        std::set<Index> v0_refs{indices[0], indices[3], indices[6], indices[9]};
+        CHECK(v0_refs.size() == 4);
     }
 }
 

@@ -144,9 +144,9 @@ TEST_CASE("TextureRasterizer perspective camera", "[texproc]")
     TextureRasterizer<float, uint32_t> rasterizer(mesh, opts);
 
     // Camera at (0.5, 0.5, 2) looking at quad center (0.5, 0.5, 0)
-    CameraOptions camera;
-    camera.view_transform = look_at({0.5f, 0.5f, 2.0f}, {0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f});
-    camera.projection_transform = perspective(
+    CameraTransforms camera;
+    camera.view = look_at({0.5f, 0.5f, 2.0f}, {0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f});
+    camera.projection = perspective(
         static_cast<float>(2.0 * std::atan(0.5 / 2.0)), // fov to see ~unit width at z=2
         1.0f,
         0.1f,
@@ -188,9 +188,9 @@ TEST_CASE("TextureRasterizer orthographic camera", "[texproc]")
     TextureRasterizer<float, uint32_t> rasterizer(mesh, opts);
 
     // Orthographic camera at (0.5, 0.5, 2) looking at quad center
-    CameraOptions camera;
-    camera.view_transform = look_at({0.5f, 0.5f, 2.0f}, {0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f});
-    camera.projection_transform = ortho(
+    CameraTransforms camera;
+    camera.view = look_at({0.5f, 0.5f, 2.0f}, {0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f});
+    camera.projection = ortho(
         1.5f, // width large enough to see the whole quad
         1.0f,
         0.1f,
@@ -238,14 +238,14 @@ TEST_CASE("TextureRasterizer ortho vs perspective confidence consistency", "[tex
     Eigen::Vector3f up(0.0f, 1.0f, 0.0f);
     auto view = look_at(eye, center, up);
 
-    CameraOptions persp_camera;
-    persp_camera.view_transform = view;
-    persp_camera.projection_transform =
+    CameraTransforms persp_camera;
+    persp_camera.view = view;
+    persp_camera.projection =
         perspective(static_cast<float>(2.0 * std::atan(0.5 / 2.0)), 1.0f, 0.1f, 10.0f);
 
-    CameraOptions ortho_camera;
-    ortho_camera.view_transform = view;
-    ortho_camera.projection_transform = ortho(1.5f, 1.0f, 0.1f, 10.0f);
+    CameraTransforms ortho_camera;
+    ortho_camera.view = view;
+    ortho_camera.projection = ortho(1.5f, 1.0f, 0.1f, 10.0f);
 
     auto render = create_solid_render(render_size, render_size);
     auto [persp_tex, persp_w] = rasterizer.weighted_texture_from_render(render, persp_camera);
@@ -288,9 +288,9 @@ TEST_CASE("TextureRasterizer invalid projection matrix", "[texproc]")
     P(3, 2) = 0.5f;
     P(3, 3) = 0.5f;
 
-    CameraOptions camera;
-    camera.view_transform = look_at({0.5f, 0.5f, 2.0f}, {0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f});
-    camera.projection_transform = Eigen::Projective3f(P);
+    CameraTransforms camera;
+    camera.view = look_at({0.5f, 0.5f, 2.0f}, {0.5f, 0.5f, 0.0f}, {0.0f, 1.0f, 0.0f});
+    camera.projection = Eigen::Projective3f(P);
 
     auto render = create_solid_render(render_size, render_size);
     LA_REQUIRE_THROWS(rasterizer.weighted_texture_from_render(render, camera));

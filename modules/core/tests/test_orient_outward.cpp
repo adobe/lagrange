@@ -12,12 +12,16 @@
 #include <lagrange/testing/common.h>
 
 #include <lagrange/Logger.h>
+#include <lagrange/compute_components.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/internal/attribute_string_utils.h>
+#include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/orient_outward.h>
+#include <lagrange/orientation.h>
 #include <lagrange/testing/check_mesh.h>
+#include <lagrange/topology.h>
 #include <lagrange/utils/fmt_eigen.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
@@ -168,6 +172,66 @@ TEST_CASE("orient_outward: double flip", "[mesh][orient]" LA_CORP_FLAG)
             CHECK(normals.row(i).y() > 0); // pointing upward
         }
     }
+}
+
+TEST_CASE("orient_outward: bear", "[mesh][orient]" LA_CORP_FLAG)
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    // bear.obj is stored as a triangle soup: 36606 vertex entries, only 6103 unique
+    // positions, every triangle has its own copies of its corners. Loading with
+    // `stitch_vertices = true` welds positions so that adjacent triangles share
+    // vertex indices.
+    auto path = lagrange::testing::get_data_path("corp/core/bear.obj");
+    lagrange::io::LoadOptions options;
+    options.quiet = true;
+    options.stitch_vertices = true;
+    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh<Scalar, Index>>(path, options);
+
+    // Sanity: stitching should bring the vertex count down to the unique-position count.
+    REQUIRE(mesh.get_num_vertices() == 6103);
+
+    // After stitching, the mesh is closed: no boundary edges remain.
+    REQUIRE(is_closed(mesh));
+
+    // The stitched mesh is a single connected component.
+    {
+        auto copy = mesh;
+        auto num_components = compute_components(copy);
+        REQUIRE(num_components == 1);
+    }
+
+    CHECK(!is_oriented(mesh));
+
+    // Orient outward should orient the mesh
+    orient_outward(mesh);
+
+    // The oriented mesh is a single connected component.
+    {
+        auto copy = mesh;
+        auto num_components = compute_components(copy);
+        REQUIRE(num_components == 1);
+    }
+
+    // (a) Edges should be oriented (each interior edge traversed once in each direction).
+    CHECK(is_oriented(mesh));
+
+    // (b) With `positive = true`, the resulting closed mesh should enclose a positive
+    // signed volume. Using the same tetra-from-origin formula as orient_outward.cpp.
+    auto vertices = vertex_view(mesh).leftCols<3>().template cast<double>();
+    double total_signed_volume = 0.0;
+    for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+        auto facet = mesh.get_facet_vertices(f);
+        Eigen::RowVector3d p1 = vertices.row(facet[0]);
+        Eigen::RowVector3d p2 = vertices.row(facet[1]);
+        Eigen::RowVector3d p3 = vertices.row(facet[2]);
+        total_signed_volume += p1.dot(p2.cross(p3)) / 6.0;
+    }
+    CAPTURE(total_signed_volume);
+    CHECK(total_signed_volume > 0.0);
+
+    // TODO: Add support for disconnected triangle soups in orient_outward.
 }
 
 TEST_CASE("orient_outward: poly", "[mesh][orient]")

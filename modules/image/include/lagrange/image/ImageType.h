@@ -22,6 +22,7 @@ namespace image {
 enum class ImagePrecision : unsigned int {
     uint8,
     int8,
+    uint16,
     uint32,
     int32,
     float32,
@@ -77,6 +78,19 @@ static_assert(false, "LAGRANGE_IMAGE_COMMA was defined somewhere else")
         };
 
     #define LAGRANGE_IMAGE_COMMA ,
+LAGRANGE_IMAGE_TRAITS(uint16_t, uint16_t, 1, uint16, one)
+LAGRANGE_IMAGE_TRAITS(
+    Eigen::Matrix<uint16_t LAGRANGE_IMAGE_COMMA 3 LAGRANGE_IMAGE_COMMA 1>,
+    uint16_t,
+    3,
+    uint16,
+    three)
+LAGRANGE_IMAGE_TRAITS(
+    Eigen::Matrix<uint16_t LAGRANGE_IMAGE_COMMA 4 LAGRANGE_IMAGE_COMMA 1>,
+    uint16_t,
+    4,
+    uint16,
+    four)
 LAGRANGE_IMAGE_TRAITS(unsigned char, unsigned char, 1, uint8, one)
 LAGRANGE_IMAGE_TRAITS(
     Eigen::Matrix<unsigned char LAGRANGE_IMAGE_COMMA 3 LAGRANGE_IMAGE_COMMA 1>,
@@ -162,6 +176,19 @@ LAGRANGE_IMAGE_TRAITS(
         return static_cast<unsigned char>(
             std::clamp(val, static_cast<VALUE_SRC>(0), static_cast<VALUE_SRC>(1)) *
             static_cast<VALUE_SRC>(std::numeric_limits<unsigned char>::max()));
+    }
+    // convert from uint16_t to float/double: normalize [0, 65535] -> [0, 1]
+    else if constexpr (
+        std::is_same<VALUE_SRC, uint16_t>::value && std::is_floating_point<VALUE_DST>::value) {
+        return static_cast<VALUE_DST>(val) /
+               static_cast<VALUE_DST>(std::numeric_limits<uint16_t>::max());
+    }
+    // convert from float/double to uint16_t: [0, 1] -> [0, 65535]
+    else if constexpr (
+        std::is_floating_point<VALUE_SRC>::value && std::is_same<VALUE_DST, uint16_t>::value) {
+        return static_cast<uint16_t>(
+            std::clamp(val, static_cast<VALUE_SRC>(0), static_cast<VALUE_SRC>(1)) *
+            static_cast<VALUE_SRC>(std::numeric_limits<uint16_t>::max()));
     } else {
         // clamping, prepare to convert from signed to unsigned
         if constexpr (std::is_signed<VALUE_SRC>::value && !std::is_signed<VALUE_DST>::value) {
