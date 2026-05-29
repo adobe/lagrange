@@ -12,11 +12,14 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/utils/Error.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/uv_mesh.h>
 #include <lagrange/views.h>
 
 #include <string_view>
 #include <tuple>
+#include <type_traits>
 
 namespace lagrange::internal {
 
@@ -84,5 +87,50 @@ template <typename Scalar, typename Index, typename UVScalar = Scalar>
 std::tuple<RowMatrixView<UVScalar>, VectorView<Index>> ref_uv_attribute(
     SurfaceMesh<Scalar, Index>& mesh,
     std::string_view uv_attribute_name = "");
+
+/// Tag carrying a UV scalar type, used to disambiguate the type passed back to
+/// `dispatch_uv_scalar_type` callers without relying on C++20 template lambdas.
+template <typename T>
+struct UVScalarTag
+{
+    using type = T;
+};
+
+///
+/// Dispatch on the scalar type of a UV attribute.
+///
+/// Locates the (indexed or vertex) UV attribute on @p mesh, then invokes @p visitor with a
+/// `UVScalarTag<UVScalar>` and the resolved attribute id. UVScalar is either the mesh scalar
+/// type, or its float/double counterpart if the UV attribute uses the other type.
+///
+/// @param      mesh     The mesh to look up the UV attribute on.
+/// @param      options  UV attribute lookup options.
+/// @param      caller   Name of the calling function, used in the error message when no UV
+///                      attribute is found.
+/// @param      visitor  A callable of the form
+///                      `auto(UVScalarTag<UVScalar>, AttributeId) -> R`.
+///
+/// @tparam     Scalar   Mesh scalar type.
+/// @tparam     Index    Mesh index type.
+/// @tparam     F        Visitor type.
+///
+/// @return     Whatever @p visitor returns.
+///
+template <typename Scalar, typename Index, typename F>
+auto dispatch_uv_scalar_type(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const UVMeshOptions& options,
+    std::string_view caller,
+    F&& visitor)
+{
+    using OtherScalar = std::conditional_t<std::is_same_v<Scalar, float>, double, float>;
+    if (auto id = uv_attribute_id<Scalar, Index, Scalar>(mesh, options)) {
+        return visitor(UVScalarTag<Scalar>{}, *id);
+    }
+    if (auto id = uv_attribute_id<Scalar, Index, OtherScalar>(mesh, options)) {
+        return visitor(UVScalarTag<OtherScalar>{}, *id);
+    }
+    throw Error(format("{}: no suitable UV attribute found.", caller));
+}
 
 } // namespace lagrange::internal

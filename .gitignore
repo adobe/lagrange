@@ -76,6 +76,8 @@ func_*.json
 /.idea
 /.clangd
 /.cache
+/.intent
+/.scout
 /3rdparty
 /cmake-build-*
 /build*

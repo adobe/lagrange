@@ -35,7 +35,7 @@ namespace {
 
 std::vector<std::pair<Array3Df, Array3Df>> test_rasterization(
     const lagrange::SurfaceMesh32f& mesh,
-    const std::vector<lagrange::texproc::CameraOptions>& cameras,
+    const std::vector<lagrange::CameraTransforms>& cameras,
     const std::vector<Array3Df>& views,
     size_t width,
     size_t height)
@@ -94,7 +94,7 @@ TEST_CASE("Grid bounds", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
         scene_options);
 
     const auto& [mesh, _] = lagrange::scene::internal::single_mesh_from_scene(scene);
-    const auto cameras = lagrange::texproc::cameras_from_scene(scene);
+    const auto cameras = lagrange::scene::internal::camera_transforms_from_scene(scene);
     REQUIRE(cameras.size() == 16);
 
     std::vector<Array3Df> views;
@@ -127,7 +127,7 @@ TEST_CASE("Pumpkin pipeline", "[texproc]" LA_SLOW_DEBUG_FLAG LA_CORP_FLAG)
         scene_options);
 
     const auto& [mesh, _] = lagrange::scene::internal::single_mesh_from_scene(scene);
-    const auto cameras = lagrange::texproc::cameras_from_scene(scene);
+    const auto cameras = lagrange::scene::internal::camera_transforms_from_scene(scene);
     REQUIRE(cameras.size() == 16);
 
     std::vector<Array3Df> views;
@@ -168,7 +168,7 @@ TEST_CASE("Check benchmark", "[texproc][!benchmark]" LA_CORP_FLAG)
         scene_options);
 
     const auto mesh = std::get<0>(lagrange::scene::internal::single_mesh_from_scene(scene));
-    const auto cameras = lagrange::texproc::cameras_from_scene(scene);
+    const auto cameras = lagrange::scene::internal::camera_transforms_from_scene(scene);
     REQUIRE(cameras.size() == 16);
 
     std::vector<Array3Df> views;

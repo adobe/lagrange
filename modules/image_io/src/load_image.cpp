@@ -65,24 +65,51 @@ LoadImageResult load_image_stb(const fs::path& path, spdlog::level::level_enum e
     LA_IGNORE(error_lvl);
 
     LoadImageResult rtn;
-    rtn.precision = image::ImagePrecision::uint8;
     int w, h, ch;
 
-    unsigned char* data = stbi_load(path.string().c_str(), &w, &h, &ch, STBI_default);
-    if (data == nullptr) return rtn;
+    if (stbi_is_16_bit(path.string().c_str())) {
+        rtn.precision = image::ImagePrecision::uint16;
+        uint16_t* data = stbi_load_16(path.string().c_str(), &w, &h, &ch, STBI_default);
+        if (data == nullptr) return rtn;
+        if (ch != 1 && ch != 3 && ch != 4) {
+            logger().warn("load_image_stb: unsupported channel count {}: {}", ch, path.string());
+            stbi_image_free(data);
+            return rtn;
+        }
 
-    size_t _w = static_cast<size_t>(w);
-    size_t _h = static_cast<size_t>(h);
-    size_t _ch = static_cast<size_t>(ch);
+        size_t _w = static_cast<size_t>(w);
+        size_t _h = static_cast<size_t>(h);
+        size_t _ch = static_cast<size_t>(ch);
 
-    rtn.valid = true;
-    rtn.width = _w;
-    rtn.height = _h;
-    rtn.channel = static_cast<image::ImageChannel>(ch);
-    rtn.storage = std::make_shared<image::ImageStorage>(_ch * _w, _h, 1);
-    std::copy_n(data, _ch * _w * _h, rtn.storage->data());
-    stbi_image_free(data);
-    data = nullptr;
+        rtn.valid = true;
+        rtn.width = _w;
+        rtn.height = _h;
+        rtn.channel = static_cast<image::ImageChannel>(ch);
+        rtn.storage = std::make_shared<image::ImageStorage>(sizeof(uint16_t) * _ch * _w, _h, 1);
+        std::copy_n(data, _ch * _w * _h, reinterpret_cast<uint16_t*>(rtn.storage->data()));
+        stbi_image_free(data);
+    } else {
+        rtn.precision = image::ImagePrecision::uint8;
+        unsigned char* data = stbi_load(path.string().c_str(), &w, &h, &ch, STBI_default);
+        if (data == nullptr) return rtn;
+        if (ch != 1 && ch != 3 && ch != 4) {
+            logger().warn("load_image_stb: unsupported channel count {}: {}", ch, path.string());
+            stbi_image_free(data);
+            return rtn;
+        }
+
+        size_t _w = static_cast<size_t>(w);
+        size_t _h = static_cast<size_t>(h);
+        size_t _ch = static_cast<size_t>(ch);
+
+        rtn.valid = true;
+        rtn.width = _w;
+        rtn.height = _h;
+        rtn.channel = static_cast<image::ImageChannel>(ch);
+        rtn.storage = std::make_shared<image::ImageStorage>(_ch * _w, _h, 1);
+        std::copy_n(data, _ch * _w * _h, rtn.storage->data());
+        stbi_image_free(data);
+    }
     return rtn;
 }
 

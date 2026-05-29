@@ -780,22 +780,22 @@ are the principal directions. All four quantities are stored as vertex attribute
 
     // ---- compute_smooth_direction_field ----
     const polyddg::SmoothDirectionFieldOptions default_sdf_opts{};
-
     m.def(
         "compute_smooth_direction_field",
         [](SurfaceMesh<Scalar, Index>& mesh,
            const polyddg::DifferentialOperators<Scalar, Index>& ops,
            uint8_t nrosy,
            double beta,
+           lagrange::AttributeElement output_element_type,
            std::string_view alignment_attribute,
-           double alignment_weight,
            std::string_view direction_field_attribute) {
             polyddg::SmoothDirectionFieldOptions opts;
             opts.nrosy = nrosy;
             opts.lambda = beta;
+            opts.output_element_type = output_element_type;
             opts.alignment_attribute = alignment_attribute;
-            opts.alignment_weight = alignment_weight;
-            opts.direction_field_attribute = direction_field_attribute;
+            if (!direction_field_attribute.empty())
+                opts.direction_field_attribute = direction_field_attribute;
             return polyddg::compute_smooth_direction_field(mesh, ops, opts);
         },
         "mesh"_a,
@@ -803,38 +803,94 @@ are the principal directions. All four quantities are stored as vertex attribute
         nb::kw_only(),
         "nrosy"_a = default_sdf_opts.nrosy,
         "beta"_a = default_sdf_opts.lambda,
+        "output_element_type"_a = default_sdf_opts.output_element_type,
         "alignment_attribute"_a = default_sdf_opts.alignment_attribute,
-        "alignment_weight"_a = default_sdf_opts.alignment_weight,
-        "direction_field_attribute"_a = default_sdf_opts.direction_field_attribute,
+        "direction_field_attribute"_a = "",
         R"(Compute the globally smoothest n-direction field on a surface mesh.
 
-Based on: Knöppel et al., "Globally optimal direction fields", ACM ToG 32(4), 2013.
+Dispatches to a vertex-based or facet-based implementation depending on
+``output_element_type``:
+
+- ``AttributeElement.Vertex`` (default): solves the vertex-based connection Laplacian
+  (Knöppel et al., "Globally optimal direction fields", ACM ToG 32(4), 2013).  The result
+  is stored as a per-vertex 3-D tangent vector attribute (default name
+  ``"@smooth_direction_field"``).
+- ``AttributeElement.Facet``: solves the face-based connection Laplacian, minimizing
+  the face-based connection-Laplacian energy.  The result is stored as a per-facet 3-D
+  tangent vector attribute (default name ``"@smooth_direction_field_facets"``).
 
 Without alignment constraints (``alignment_attribute`` is empty), solves the generalized
-eigenvalue problem :math:`L u = \sigma M u` for the smallest eigenvector. The result
-minimizes the Dirichlet energy of the connection.
+eigenvalue problem for the smallest eigenvector.
 
-With alignment constraints, reads per-vertex prescribed 3-D tangent vectors from the given
-attribute (zero-length vectors are unconstrained) and solves the shifted linear system
-:math:`(L - \alpha M) u = M q`, where :math:`q` is the M-normalized prescribed field and
-:math:`\alpha = \texttt{alignment\_lambda} \cdot \sigma_{\min}`.
+With alignment constraints, reads prescribed 3-D tangent vectors from the given attribute
+(zero-length vectors are unconstrained). The attribute must match ``output_element_type``:
+per-vertex for ``Vertex``, per-facet for ``Facet``.
 
 :param mesh: Input surface mesh (modified in place with the new attribute).
 :param ops: Precomputed :class:`DifferentialOperators` for the mesh.
 :param nrosy: Symmetry order of the direction field (1 = vector field, 2 = line field,
     4 = cross field, default: 4).
 :param beta: Stabilization weight for the VEM projection term in the connection Laplacian
-    (default: 1).
-:param alignment_attribute: Name of a per-vertex 3-D alignment vector attribute (zero =
-    unconstrained). If empty, the unconstrained smoothest field is computed.
-:param alignment_weight: Scaling factor for the spectral shift (default: 1). The actual
-    shift is ``alignment_weight * sigma_min``, where ``sigma_min`` is the smallest eigenvalue
-    of the connection Laplacian (computed automatically). Values in (0, 1) give weaker
-    alignment (more smoothness).
-:param direction_field_attribute: Output attribute name for the per-vertex 3-D direction
-    field (default: ``"@smooth_direction_field"``).
+    (vertex-based path only, default: 1).
+:param output_element_type: Where to store the result — ``AttributeElement.Vertex``
+    (default) for per-vertex output, or ``AttributeElement.Facet`` for per-facet output.
+:param alignment_attribute: Name of an alignment vector attribute (zero = unconstrained).
+    Must match ``output_element_type``. If empty, the unconstrained smoothest field is computed.
+:param direction_field_attribute: Output attribute name. Pass ``""`` (the default) to use
+    the canonical name (``"@smooth_direction_field"`` for Vertex,
+    ``"@smooth_direction_field_facets"`` for Facet).
 
-:return: Attribute ID of the output per-vertex direction field.)");
+:return: Attribute ID of the output direction field.)");
+
+    m.def(
+        "compute_smooth_direction_field",
+        [](SurfaceMesh<Scalar, Index>& mesh,
+           uint8_t nrosy,
+           double beta,
+           lagrange::AttributeElement output_element_type,
+           std::string_view alignment_attribute,
+           std::string_view direction_field_attribute) {
+            polyddg::SmoothDirectionFieldOptions opts;
+            opts.nrosy = nrosy;
+            opts.lambda = beta;
+            opts.output_element_type = output_element_type;
+            opts.alignment_attribute = alignment_attribute;
+            if (!direction_field_attribute.empty())
+                opts.direction_field_attribute = direction_field_attribute;
+            return polyddg::compute_smooth_direction_field(mesh, opts);
+        },
+        "mesh"_a,
+        nb::kw_only(),
+        "nrosy"_a = default_sdf_opts.nrosy,
+        "beta"_a = default_sdf_opts.lambda,
+        "output_element_type"_a = default_sdf_opts.output_element_type,
+        "alignment_attribute"_a = default_sdf_opts.alignment_attribute,
+        "direction_field_attribute"_a = "",
+        R"(Compute the globally smoothest n-direction field on a surface mesh.
+
+Convenience overload that constructs a :class:`DifferentialOperators` instance internally.
+
+Dispatches to a vertex-based or facet-based implementation depending on
+``output_element_type``:
+
+- ``AttributeElement.Vertex`` (default): stores a per-vertex 3-D tangent vector attribute
+  (default name ``"@smooth_direction_field"``).
+- ``AttributeElement.Facet``: stores a per-facet 3-D tangent vector attribute (default name
+  ``"@smooth_direction_field_facets"``).
+
+:param mesh: Input surface mesh (modified in place with the new attribute).
+:param nrosy: Symmetry order of the direction field (1 = vector field, 2 = line field,
+    4 = cross field, default: 4).
+:param beta: Stabilization weight for the VEM projection term in the connection Laplacian
+    (vertex-based path only, default: 1).
+:param output_element_type: Where to store the result — ``AttributeElement.Vertex``
+    (default) for per-vertex output, or ``AttributeElement.Facet`` for per-facet output.
+:param alignment_attribute: Name of an alignment vector attribute (zero = unconstrained).
+    Must match ``output_element_type``. If empty, the unconstrained smoothest field is computed.
+:param direction_field_attribute: Output attribute name. Pass ``""`` (the default) to use
+    the canonical name.
+
+:return: Attribute ID of the output direction field.)");
 
     // ---- hodge_decomposition_1_form ----
     constexpr polyddg::HodgeDecompositionOptions default_hd_1form_opts{};

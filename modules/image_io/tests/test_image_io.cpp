@@ -102,6 +102,35 @@ TEST_CASE("load exr", "[image_io]")
     check_pixel(image.width - 1, image.height - 1, 1.f, 1.f, 0.f, 0.f);
 }
 
+TEST_CASE("load 16bit png", "[image_io]")
+{
+    auto image = lagrange::image_io::load_image(
+        lagrange::testing::get_data_path("open/image_io/disparity16.png"));
+    REQUIRE(image.valid);
+    REQUIRE(image.width == 880);
+    REQUIRE(image.height == 576);
+    REQUIRE(image.channel == lagrange::image::ImageChannel::one);
+    REQUIRE(image.precision == lagrange::image::ImagePrecision::uint16);
+
+    uint16_t* data = reinterpret_cast<uint16_t*>(image.storage->data());
+
+    // top row is black
+    for (size_t x = 0; x < image.width; ++x) {
+        REQUIRE(data[x] < 256);
+    }
+    // bottom row is white
+    for (size_t x = 0; x < image.width; ++x) {
+        REQUIRE(data[(image.height - 1) * image.width + x] > 64000);
+    }
+
+    // load_image_as float conversion
+    lagrange::image::ImageView<float> float_img;
+    REQUIRE(
+        lagrange::image_io::load_image_as(
+            lagrange::testing::get_data_path("open/image_io/disparity16.png"),
+            float_img));
+}
+
 TEST_CASE("Exr IO", "[image_io]")
 {
     size_t width = 2, height = 2;

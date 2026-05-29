@@ -25,6 +25,9 @@ struct SeamEdgesOptions
 {
     /// Output attribute name.
     std::string_view output_attribute_name = "@seam_edges";
+
+    /// If true, boundary edges are also marked as seam edges.
+    bool include_boundary_edges = false;
 };
 
 ///

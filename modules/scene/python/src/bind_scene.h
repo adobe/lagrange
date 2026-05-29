@@ -12,12 +12,14 @@
 #pragma once
 
 #include <lagrange/AttributeValueType.h>
+#include <lagrange/CameraTransforms.h>
 #include <lagrange/Logger.h>
 #include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/internal/scene_string_utils.h>
+#include <lagrange/scene/internal/shared_utils.h>
 #include <lagrange/scene/scene_convert.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/utils/assert.h>
@@ -679,6 +681,18 @@ void bind_scene(nb::module_& m)
 
 :returns: The global transform of the target node, which is the combination of transforms from this node all the way to the root.
     )");
+
+    m.def(
+        "camera_transforms_from_scene",
+        [](const SceneType& scene) {
+            return scene::internal::camera_transforms_from_scene<Scalar, Index>(scene);
+        },
+        "scene"_a,
+        R"(Extract view and projection transforms for every camera referenced by a node in the scene.
+
+:param scene: The input scene.
+
+:returns: A list of CameraTransforms, one per camera instance in the scene.)");
 
     m.def(
         "scene_to_mesh",

@@ -211,6 +211,55 @@ TEST_CASE("repack_uv_charts: multiple charts", "[packing][repack]")
     }
 }
 
+TEST_CASE("repack_uv_charts: normalize option", "[packing][repack]")
+{
+    SECTION("normalize=false preserves original chart scale")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+
+        // Chart bbox is 5x5; with normalize=false it must remain that size.
+        add_indexed_uv(mesh, {0, 0, 5, 0, 0, 5}, {0, 1, 2});
+
+        packing::RepackOptions opts;
+        opts.normalize = false;
+        packing::repack_uv_charts(mesh, opts);
+
+        auto bbox = get_uv_bbox(mesh);
+        // Min still shifted to origin even when normalization is disabled.
+        CHECK_THAT(bbox[0], Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK_THAT(bbox[1], Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK_THAT(bbox[2] - bbox[0], Catch::Matchers::WithinAbs(5.0, 1e-6));
+        CHECK_THAT(bbox[3] - bbox[1], Catch::Matchers::WithinAbs(5.0, 1e-6));
+    }
+
+    SECTION("normalize=true (default) rescales to unit box")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+
+        add_indexed_uv(mesh, {0, 0, 5, 0, 0, 5}, {0, 1, 2});
+
+        packing::RepackOptions opts;
+        opts.normalize = true;
+        packing::repack_uv_charts(mesh, opts);
+
+        auto bbox = get_uv_bbox(mesh);
+        CHECK_THAT(bbox[0], Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK_THAT(bbox[1], Catch::Matchers::WithinAbs(0.0, 1e-6));
+        CHECK(bbox[2] <= 1.0 + 1e-6);
+        CHECK(bbox[3] <= 1.0 + 1e-6);
+        CHECK(bbox[2] > 0.99);
+        CHECK(bbox[3] > 0.99);
+    }
+}
+
 TEST_CASE("repack_uv_charts: different UV scalar type", "[packing][repack]")
 {
     using UVScalar = float;

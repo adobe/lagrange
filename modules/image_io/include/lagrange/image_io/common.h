@@ -49,6 +49,7 @@ inline FileType precision_to_file_type(image::ImagePrecision precision)
 {
     switch (precision) {
     case lagrange::image::ImagePrecision::uint8: return FileType::png;
+    case lagrange::image::ImagePrecision::uint16: return FileType::unknown;
     case lagrange::image::ImagePrecision::uint32:
     case lagrange::image::ImagePrecision::float32: return FileType::exr;
     case lagrange::image::ImagePrecision::int8:
@@ -64,6 +65,7 @@ inline size_t size_of_precision(image::ImagePrecision precision)
     switch (precision) {
     case lagrange::image::ImagePrecision::uint8:
     case lagrange::image::ImagePrecision::int8: return 1;
+    case lagrange::image::ImagePrecision::uint16: return 2;
     case lagrange::image::ImagePrecision::uint32:
     case lagrange::image::ImagePrecision::int32:
     case lagrange::image::ImagePrecision::float32: return 4;

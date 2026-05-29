@@ -11,31 +11,15 @@
  */
 #pragma once
 
+#include <lagrange/CameraTransforms.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/Array3D.h>
 #include <lagrange/image/View3D.h>
-
-#include <Eigen/Geometry>
 
 namespace lagrange::texproc {
 
 /// @addtogroup module-texproc
 /// @{
-
-///
-/// Parameters for computing the rendering of a mesh.
-///
-struct CameraOptions
-{
-    /// Camera view transform (world space -> view space).
-    Eigen::Affine3f view_transform = Eigen::Affine3f::Identity();
-
-    /// Camera projection transform (view space -> NDC space).
-    ///
-    /// This is the standard glTF/OpenGL projection matrix, where depth is remapped to [-1, 1] (near
-    /// plane to -1, far plane to 1).
-    Eigen::Projective3f projection_transform = Eigen::Projective3f::Identity();
-};
 
 ///
 /// Options for computing the texture map and confidence from a rendering.
@@ -92,14 +76,14 @@ public:
     ///
     /// Unproject a rendered image into a UV texture and confidence map.
     ///
-    /// @param[in]  image    Input rendered color image.
-    /// @param[in]  options  Camera option.
+    /// @param[in]  image       Input rendered color image.
+    /// @param[in]  transforms  Camera view and projection transforms.
     ///
     /// @return     A pair of (texture, weight) images.
     ///
     std::pair<Array3Df, Array3Df> weighted_texture_from_render(
         image::experimental::View3D<const float> image,
-        const CameraOptions& options) const;
+        const CameraTransforms& transforms) const;
 
 private:
     /// @cond LA_INTERNAL_DOCS

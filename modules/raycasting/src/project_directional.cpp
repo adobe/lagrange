@@ -85,13 +85,13 @@ void project_directional(
                 uniform_dir = arg.normalized();
             } else if constexpr (std::is_same_v<T, AttributeId>) {
                 direction_attr_id = arg;
-                auto res = internal::check_attribute<Scalar>(
+                auto res = ::lagrange::internal::check_attribute<Scalar>(
                     target,
                     direction_attr_id,
                     AttributeElement::Vertex,
                     AttributeUsage::Normal,
                     3,
-                    internal::ShouldBeWritable::No);
+                    ::lagrange::internal::ShouldBeWritable::No);
                 if (!res.success) {
                     throw Error(format("Invalid direction attribute: {}", res.msg));
                 }

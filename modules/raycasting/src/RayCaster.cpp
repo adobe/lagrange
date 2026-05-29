@@ -339,6 +339,121 @@ bool embree_closest_point_callback(RTCPointQueryFunctionArguments* args)
 }
 
 // ============================================================================
+// OBB overlap helpers
+// ============================================================================
+
+/// Standard 15-axis separating axis test for OBB vs AABB overlap.
+/// Reference: Real-Time Collision Detection, Ch. 4.4.1.
+bool obb_overlaps_aabb(
+    const Eigen::Vector3f& obb_center,
+    const Eigen::Matrix3f& obb_axes,
+    const Eigen::Vector3f& obb_half_extents,
+    const Eigen::Vector3f& aabb_min,
+    const Eigen::Vector3f& aabb_max)
+{
+    Eigen::Vector3f aabb_center = (aabb_min + aabb_max) * 0.5f;
+    Eigen::Vector3f aabb_half = (aabb_max - aabb_min) * 0.5f;
+    Eigen::Vector3f t = obb_center - aabb_center;
+
+    constexpr float eps = 1e-6f;
+    Eigen::Matrix3f abs_axes = obb_axes.cwiseAbs().array() + eps;
+
+    // 3 AABB face normals (world axes)
+    for (int i = 0; i < 3; ++i) {
+        float ra = aabb_half[i];
+        float rb = obb_half_extents.dot(abs_axes.row(i).transpose());
+        if (std::abs(t[i]) > ra + rb) return false;
+    }
+
+    // 3 OBB face normals
+    for (int i = 0; i < 3; ++i) {
+        float ra = aabb_half.dot(abs_axes.col(i));
+        float rb = obb_half_extents[i];
+        if (std::abs(t.dot(obb_axes.col(i))) > ra + rb) return false;
+    }
+
+    // 9 edge-edge cross products: AABB axis i x OBB axis j
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < 3; ++j) {
+            int i1 = (i + 1) % 3, i2 = (i + 2) % 3;
+            int j1 = (j + 1) % 3, j2 = (j + 2) % 3;
+            float ra = aabb_half[i1] * abs_axes(i2, j) + aabb_half[i2] * abs_axes(i1, j);
+            float rb =
+                obb_half_extents[j1] * abs_axes(i, j2) + obb_half_extents[j2] * abs_axes(i, j1);
+            float proj = t[i2] * obb_axes(i1, j) - t[i1] * obb_axes(i2, j);
+            if (std::abs(proj) > ra + rb) return false;
+        }
+    }
+
+    return true;
+}
+
+struct OBBOverlapUserData
+{
+    Eigen::Vector3f obb_center;
+    Eigen::Matrix3f obb_axes;
+    Eigen::Vector3f obb_half_extents;
+    const SimpleScene32f* scene = nullptr;
+    const std::vector<InstanceIndices>* instance_indices = nullptr;
+    std::function<bool(uint32_t, uint32_t, uint32_t)> callback;
+    bool stopped = false;
+};
+
+bool embree_obb_overlap_callback(RTCPointQueryFunctionArguments* args)
+{
+    auto* data = reinterpret_cast<OBBOverlapUserData*>(args->userPtr);
+    if (data->stopped) return false;
+
+    const unsigned int prim_id = args->primID;
+    RTCPointQueryContext* context = args->context;
+    la_debug_assert(context->instStackSize > 0);
+    const unsigned int stack_ptr = context->instStackSize - 1;
+    unsigned int inst_geom_id = context->instID[stack_ptr];
+
+    auto& indices = (*data->instance_indices)[inst_geom_id];
+    uint32_t mesh_idx = indices.mesh_index;
+
+    const auto& mesh = data->scene->get_mesh(mesh_idx);
+    auto facets_data = mesh.get_corner_to_vertex().get_all();
+    auto positions_data = mesh.get_vertex_to_position().get_all();
+
+    uint32_t i0 = facets_data[prim_id * 3 + 0];
+    uint32_t i1 = facets_data[prim_id * 3 + 1];
+    uint32_t i2 = facets_data[prim_id * 3 + 2];
+
+    Eigen::Vector3f v0(
+        positions_data[i0 * 3],
+        positions_data[i0 * 3 + 1],
+        positions_data[i0 * 3 + 2]);
+    Eigen::Vector3f v1(
+        positions_data[i1 * 3],
+        positions_data[i1 * 3 + 1],
+        positions_data[i1 * 3 + 2]);
+    Eigen::Vector3f v2(
+        positions_data[i2 * 3],
+        positions_data[i2 * 3 + 1],
+        positions_data[i2 * 3 + 2]);
+
+    // Compute triangle AABB
+    Eigen::Vector3f tri_min = v0.cwiseMin(v1).cwiseMin(v2);
+    Eigen::Vector3f tri_max = v0.cwiseMax(v1).cwiseMax(v2);
+
+    if (obb_overlaps_aabb(
+            data->obb_center,
+            data->obb_axes,
+            data->obb_half_extents,
+            tri_min,
+            tri_max)) {
+        bool keep_going = data->callback(mesh_idx, indices.instance_index, prim_id);
+        if (!keep_going) {
+            data->stopped = true;
+        }
+    }
+
+    return false; // Never shrink the query radius
+}
+
+// ============================================================================
 // Impl
 // ============================================================================
 
@@ -1530,6 +1645,122 @@ uint32_t RayCaster::occluded16(
     const Float16& tmax) const
 {
     return occludedN<16>(*m_impl, origins, directions, active, tmin, tmax);
+}
+
+// ============================================================================
+// OBB overlap query
+// ============================================================================
+
+void RayCaster::overlap_obb_internal(
+    const OrientedBox& obb,
+    function_ref<bool(uint32_t, uint32_t, uint32_t)> callback) const
+{
+    m_impl->check_no_pending_updates();
+
+    la_runtime_assert(
+        m_impl->m_instance_indices.size() == 1,
+        "OBB overlap only supports raycasters with a single instance.");
+    la_runtime_assert(
+        m_impl->m_instance_indices[0].mesh_index == 0,
+        "OBB overlap only supports raycasters containing a single mesh.");
+    la_runtime_assert(
+        m_impl->m_instance_indices[0].instance_index == 0,
+        "OBB overlap only supports raycasters with an identity instance.");
+
+    float sphere_radius = obb.half_extents.norm();
+
+    RTCPointQuery query;
+    query.x = obb.center.x();
+    query.y = obb.center.y();
+    query.z = obb.center.z();
+    query.radius = sphere_radius;
+    query.time = 0.f;
+
+    OBBOverlapUserData data;
+    data.obb_center = obb.center;
+    data.obb_axes = obb.axes;
+    data.obb_half_extents = obb.half_extents;
+    data.scene = &m_impl->m_scene;
+    data.instance_indices = &m_impl->m_instance_indices;
+    data.callback = callback;
+
+    RTCPointQueryContext context;
+    rtcInitPointQueryContext(&context);
+    rtcPointQuery(
+        m_impl->m_world_scene,
+        &query,
+        &context,
+        &embree_obb_overlap_callback,
+        reinterpret_cast<void*>(&data));
+    check_errors_debug(m_impl->m_device);
+}
+
+void RayCaster::overlap_obb16_internal(
+    span<const OrientedBox> obbs,
+    std::variant<Mask16, size_t> active,
+    function_ref<
+        bool(uint32_t lane, uint32_t mesh_index, uint32_t instance_index, uint32_t facet_index)>
+        callback) const
+{
+    m_impl->check_no_pending_updates();
+    la_runtime_assert(obbs.size() <= 16, "overlap_obb16 packet size must be <= 16.");
+
+    la_runtime_assert(
+        m_impl->m_instance_indices.size() == 1,
+        "OBB overlap only supports raycasters with a single instance.");
+    la_runtime_assert(
+        m_impl->m_instance_indices[0].mesh_index == 0,
+        "OBB overlap only supports raycasters containing a single mesh.");
+    la_runtime_assert(
+        m_impl->m_instance_indices[0].instance_index == 0,
+        "OBB overlap only supports raycasters with an identity instance.");
+
+    constexpr size_t N = 16;
+    alignas(64) std::array<int, N> active_mask;
+    resolve_active_mask<static_cast<int>(N)>(active, active_mask);
+
+    // Lanes past the end of `obbs` cannot be active even if the caller's mask says so.
+    for (size_t i = obbs.size(); i < N; ++i) {
+        active_mask[i] = 0;
+    }
+
+    std::array<OBBOverlapUserData, N> lane_data;
+    std::array<void*, N> user_ptrs;
+
+    RTCPointQuery16 query{};
+    for (size_t i = 0; i < N; ++i) {
+        if (active_mask[i] != 0) {
+            const auto& obb = obbs[i];
+            query.x[i] = obb.center.x();
+            query.y[i] = obb.center.y();
+            query.z[i] = obb.center.z();
+            query.radius[i] = obb.half_extents.norm();
+
+            lane_data[i].obb_center = obb.center;
+            lane_data[i].obb_axes = obb.axes;
+            lane_data[i].obb_half_extents = obb.half_extents;
+            lane_data[i].scene = &m_impl->m_scene;
+            lane_data[i].instance_indices = &m_impl->m_instance_indices;
+            const uint32_t lane = static_cast<uint32_t>(i);
+            lane_data[i].callback = [&callback, lane](uint32_t m, uint32_t inst, uint32_t f) {
+                return callback(lane, m, inst, f);
+            };
+            user_ptrs[i] = &lane_data[i];
+        } else {
+            user_ptrs[i] = nullptr;
+        }
+    }
+
+    RTCPointQueryContext context;
+    rtcInitPointQueryContext(&context);
+    rtcPointQuery16(
+        active_mask.data(),
+        m_impl->m_world_scene,
+        &query,
+        &context,
+        &embree_obb_overlap_callback,
+        user_ptrs.data());
+    check_errors_debug(m_impl->m_device);
 }
 
 // ============================================================================

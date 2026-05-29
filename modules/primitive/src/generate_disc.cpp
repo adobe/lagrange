@@ -85,50 +85,56 @@ SurfaceMesh<Scalar, Index> generate_disc(DiscOptions setting)
     }
 
     // Generate UV coordinates
-    auto uv_attr_id = mesh.template create_attribute<Scalar>(
-        setting.uv_attribute_name,
-        AttributeElement::Indexed,
-        2,
-        AttributeUsage::UV);
-    auto& uv_attr = mesh.template ref_indexed_attribute<Scalar>(uv_attr_id);
-    auto& uv_values = uv_attr.values();
-    auto& uv_indices = uv_attr.indices();
-    uv_values.resize_elements(vertices_per_ring * num_rings + 1);
+    if (!setting.uv_attribute_name.empty()) {
+        auto uv_attr_id = mesh.template create_attribute<Scalar>(
+            setting.uv_attribute_name,
+            AttributeElement::Indexed,
+            2,
+            AttributeUsage::UV);
+        auto& uv_attr = mesh.template ref_indexed_attribute<Scalar>(uv_attr_id);
+        auto& uv_values = uv_attr.values();
+        auto& uv_indices = uv_attr.indices();
+        uv_values.resize_elements(vertices_per_ring * num_rings + 1);
 
-    if (!setting.fixed_uv) {
-        matrix_ref(uv_values) = vertices.template leftCols<2>();
-        vector_ref(uv_indices) =
-            attribute_vector_view<Index>(mesh, mesh.attr_id_corner_to_vertex());
-    } else {
-        // Always map UVs to a complete disc
-        auto uvs = matrix_ref(uv_values);
-        uvs.row(0).setZero();
-        for (size_t l = 0; l < num_rings; l++) {
-            Scalar r = setting.radius * static_cast<Scalar>(l + 1) / static_cast<Scalar>(num_rings);
-            size_t offset = l * vertices_per_ring + 1; // +1 for the center vertex
-            for (size_t i = 0; i < vertices_per_ring; ++i) {
-                Scalar t = static_cast<Scalar>(i) / static_cast<Scalar>(setting.radial_sections);
-                Scalar angle = 2 * lagrange::internal::pi * t;
-                uvs.row(offset + i) << r * std::cos(angle), r * std::sin(angle);
+        if (!setting.fixed_uv) {
+            matrix_ref(uv_values) = vertices.template leftCols<2>();
+            vector_ref(uv_indices) =
+                attribute_vector_view<Index>(mesh, mesh.attr_id_corner_to_vertex());
+        } else {
+            // Always map UVs to a complete disc
+            auto uvs = matrix_ref(uv_values);
+            uvs.row(0).setZero();
+            for (size_t l = 0; l < num_rings; l++) {
+                Scalar r =
+                    setting.radius * static_cast<Scalar>(l + 1) / static_cast<Scalar>(num_rings);
+                size_t offset = l * vertices_per_ring + 1; // +1 for the center vertex
+                for (size_t i = 0; i < vertices_per_ring; ++i) {
+                    Scalar t =
+                        static_cast<Scalar>(i) / static_cast<Scalar>(setting.radial_sections);
+                    Scalar angle = 2 * lagrange::internal::pi * t;
+                    uvs.row(offset + i) << r * std::cos(angle), r * std::sin(angle);
+                }
             }
+            vector_ref(uv_indices) =
+                attribute_vector_view<Index>(mesh, mesh.attr_id_corner_to_vertex());
         }
-        vector_ref(uv_indices) =
-            attribute_vector_view<Index>(mesh, mesh.attr_id_corner_to_vertex());
     }
 
     // Generate normals
-    auto normal_attr_id = mesh.template create_attribute<Scalar>(
-        setting.normal_attribute_name,
-        AttributeElement::Indexed,
-        3,
-        AttributeUsage::Normal);
-    auto& normal_attr = mesh.template ref_indexed_attribute<Scalar>(normal_attr_id);
-    auto& normal_values = normal_attr.values();
-    auto& normal_indices = normal_attr.indices();
-    normal_values.resize_elements(1);
+    if (!setting.normal_attribute_name.empty()) {
+        auto normal_attr_id = mesh.template create_attribute<Scalar>(
+            setting.normal_attribute_name,
+            AttributeElement::Indexed,
+            3,
+            AttributeUsage::Normal);
+        auto& normal_attr = mesh.template ref_indexed_attribute<Scalar>(normal_attr_id);
+        auto& normal_values = normal_attr.values();
+        auto& normal_indices = normal_attr.indices();
+        normal_values.resize_elements(1);
 
-    matrix_ref(normal_values).row(0) << 0, 0, 1;
-    vector_ref(normal_indices).setZero(); // All facets share the same normal
+        matrix_ref(normal_values).row(0) << 0, 0, 1;
+        vector_ref(normal_indices).setZero(); // All facets share the same normal
+    }
 
     if (setting.triangulate) {
         TriangulationOptions triangulation_options;

@@ -19,3 +19,6 @@ target_link_libraries(uv_image lagrange::raycasting lagrange::io lagrange::image
 
 lagrange_add_example(picking_demo picking_demo.cpp)
 target_link_libraries(picking_demo lagrange::raycasting lagrange::io lagrange::polyscope CLI11::CLI11)
+
+lagrange_add_example(remove_occluded remove_occluded.cpp)
+target_link_libraries(remove_occluded lagrange::raycasting lagrange::io lagrange::polyscope CLI11::CLI11)

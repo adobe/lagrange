@@ -15,11 +15,11 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/AttributeTypes.h>
-#include <lagrange/ExactPredicatesShewchuk.h>
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/cast_attribute.h>
+#include <lagrange/compute_uv_orientation.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/map_attribute.h>
 #include <lagrange/solver/DirectSolver.h>
@@ -172,57 +172,6 @@ void clamp_out_of_range(
             "{} interior and {} exterior texels were out of range and have been clamped.",
             num_interior_out_of_range,
             num_exterior_out_of_range);
-    }
-}
-
-template <typename Scalar, typename Index>
-void check_for_flipped_uv(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
-{
-    auto uv_mesh =
-        [&]() -> std::pair<ConstRowMatrixView<Scalar>, std::optional<ConstRowMatrixView<Index>>> {
-        if (mesh.is_attribute_indexed(id)) {
-            const auto& uv_attr = mesh.template get_indexed_attribute<Scalar>(id);
-            auto uv_values = matrix_view(uv_attr.values());
-            auto uv_indices = reshaped_view(uv_attr.indices(), 3);
-            return {uv_values, uv_indices};
-        } else {
-            const auto& uv_attr = mesh.template get_attribute<Scalar>(id);
-            la_runtime_assert(
-                uv_attr.get_element_type() == AttributeElement::Vertex ||
-                    uv_attr.get_element_type() == AttributeElement::Corner,
-                "UV attribute must be per-vertex or per-corner.");
-            auto uv_values = matrix_view(uv_attr);
-            return {
-                uv_values,
-                uv_attr.get_element_type() == AttributeElement::Vertex
-                    ? std::nullopt
-                    : std::optional<ConstRowMatrixView<Index>>(facet_view(mesh))};
-        }
-    }();
-
-    auto uv_index = [&](Index f, unsigned int k) {
-        if (uv_mesh.second.has_value()) {
-            return (*uv_mesh.second)(f, k);
-        } else {
-            return f * 3 + k;
-        }
-    };
-
-    ExactPredicatesShewchuk predicates;
-    for (Index f = 0; f < mesh.get_num_facets(); ++f) {
-        Eigen::RowVector2d p0 = uv_mesh.first.row(uv_index(f, 0)).template cast<double>();
-        Eigen::RowVector2d p1 = uv_mesh.first.row(uv_index(f, 1)).template cast<double>();
-        Eigen::RowVector2d p2 = uv_mesh.first.row(uv_index(f, 2)).template cast<double>();
-        auto r = predicates.orient2D(p0.data(), p1.data(), p2.data());
-        if (r <= 0) {
-            throw Error(format(
-                "The input mesh has flipped UVs:\n  p0=({:.3g})\n  p1=({:.3g})\n  p2=("
-                "{:.3g})\n"
-                "Please fix the input mesh before proceeding.",
-                join(p0, ", "),
-                join(p1, ", "),
-                join(p2, ", ")));
-        }
     }
 }
 
@@ -430,13 +379,22 @@ MeshWrapper<Scalar, Index> create_mesh_wrapper(
         weld_indexed_attribute(_mesh, texcoord_id);
     }
 
-    // Make sure that the number of corners is equal to (K+1) time sthe number of simplices
+    // Make sure that the number of corners is equal to (K+1) times the number of simplices
     la_runtime_assert(
         _mesh.get_num_corners() == _mesh.get_num_facets() * (K + 1),
-        "Numer of corners doesn't match the number of simplices");
+        "Number of corners doesn't match the number of simplices");
 
     if (check_flipped_uv == CheckFlippedUV::Yes) {
-        check_for_flipped_uv(_mesh, texcoord_id);
+        const std::string uv_name(_mesh.get_attribute_name(texcoord_id));
+        UVOrientationOptions orient_options;
+        orient_options.uv_attribute_name = uv_name;
+        const auto orient_counts = compute_uv_orientation(_mesh, orient_options);
+        if (orient_counts.negative > 0) {
+            throw Error(format(
+                "The input mesh has {} flipped UV triangle(s). Please fix the input mesh "
+                "before proceeding.",
+                orient_counts.negative));
+        }
     }
 
     wrapper.vertices = _mesh.get_vertex_to_position().get_all();

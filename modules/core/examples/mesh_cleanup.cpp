@@ -12,24 +12,15 @@
 #include <lagrange/common.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
+#include <lagrange/mesh_bbox.h>
 #include <lagrange/mesh_cleanup/close_small_holes.h>
-#include <lagrange/mesh_cleanup/remove_degenerate_triangles.h>
+#include <lagrange/mesh_cleanup/remove_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
+#include <lagrange/triangulate_polygonal_facets.h>
 
 #include <CLI/CLI.hpp>
 #include <Eigen/Core>
-
-Eigen::AlignedBox3d mesh_bbox(const lagrange::TriangleMesh3D& mesh)
-{
-    using Index = typename lagrange::TriangleMesh3D::Index;
-    Eigen::AlignedBox3d bbox;
-    la_runtime_assert(mesh.get_vertices().cols() == 3);
-    for (Index v = 0; v < mesh.get_num_vertices(); ++v) {
-        bbox.extend(mesh.get_vertices().row(v).transpose());
-    }
-    return bbox;
-}
 
 int main(int argc, char** argv)
 {
@@ -37,7 +28,7 @@ int main(int argc, char** argv)
     {
         std::string input;
         std::string output = "output.obj";
-        double tol = 0.001;
+        float tol = 0.01f;
         size_t max_holes = 0;
         bool holes_only = false;
         bool relative = true;
@@ -59,10 +50,10 @@ int main(int argc, char** argv)
     lagrange::logger().set_level(spdlog::level::trace);
 
     lagrange::logger().info("Loading input mesh: {}", args.input);
-    auto mesh = lagrange::io::load_mesh<lagrange::TriangleMesh3D>(args.input);
+    auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32d>(args.input);
 
-    if (args.relative) {
-        double diag = mesh_bbox(*mesh).diagonal().norm();
+    if (args.relative && mesh.get_num_vertices() > 0) {
+        float diag = static_cast<float>(lagrange::mesh_bbox<3>(mesh).diagonal().norm());
         lagrange::logger().info(
             "Using a relative tolerance of {:.3f} x {:.3f} = {:.3f}",
             args.tol,
@@ -73,20 +64,27 @@ int main(int argc, char** argv)
 
     if (args.max_holes) {
         lagrange::logger().info("Closing small holes");
-        mesh = lagrange::close_small_holes(*mesh, args.max_holes);
+        lagrange::CloseSmallHolesOptions holes_options;
+        holes_options.max_hole_size = args.max_holes;
+        lagrange::close_small_holes(mesh, holes_options);
     }
 
     if (!args.holes_only) {
-        lagrange::logger().info("Removing degenerate triangles");
-        mesh = lagrange::remove_degenerate_triangles(*mesh);
+        lagrange::logger().info("Triangulating polygonal facets");
+        lagrange::triangulate_polygonal_facets(mesh);
         lagrange::logger().info("Removing duplicate vertices");
-        mesh = lagrange::remove_duplicate_vertices(*mesh);
+        lagrange::remove_duplicate_vertices(mesh);
+        lagrange::logger().info("Removing degenerate facets");
+        lagrange::remove_degenerate_facets(mesh);
         lagrange::logger().info("Splitting long edges");
-        mesh = lagrange::split_long_edges(*mesh, args.tol * args.tol, true);
+        lagrange::SplitLongEdgesOptions split_options;
+        split_options.max_edge_length = args.tol;
+        split_options.recursive = true;
+        lagrange::split_long_edges(mesh, split_options);
     }
 
     lagrange::logger().info("Saving result: {}", args.output);
-    lagrange::io::save_mesh(args.output, *mesh);
+    lagrange::io::save_mesh(args.output, mesh);
 
     return 0;
 }

@@ -24,3 +24,7 @@ target_link_libraries(lagrange_packing
 if(LAGRANGE_UNIT_TESTS)
     add_subdirectory(tests)
 endif()
+
+if(LAGRANGE_MODULE_PYTHON)
+    add_subdirectory(python)
+endif()

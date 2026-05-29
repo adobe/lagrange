@@ -11,6 +11,7 @@
  */
 
 #include "bind_attribute.h"
+#include "bind_camera_transforms.h"
 #include "bind_enum.h"
 #include "bind_indexed_attribute.h"
 #include "bind_mesh_cleanup.h"
@@ -41,6 +42,7 @@ void populate_core_module(nb::module_& m)
     lagrange::python::bind_indexed_attribute(m);
     lagrange::python::bind_utilities<Scalar, Index>(m);
     lagrange::python::bind_mesh_cleanup<Scalar, Index>(m);
+    lagrange::python::bind_camera_transforms(m);
 }
 
 } // namespace lagrange::python

@@ -130,6 +130,10 @@ void orient_outward(lagrange::SurfaceMesh<Scalar, Index>& mesh, const OrientOpti
     bool had_edges = mesh.has_edges();
     mesh.initialize_edges();
 
+    if (mesh.get_num_vertices() == 0) {
+        return;
+    }
+
     // Orient facets consistently within a connected component (if possible)
     auto should_flip = bfs_orient(mesh);
 
@@ -151,7 +155,7 @@ void orient_outward(lagrange::SurfaceMesh<Scalar, Index>& mesh, const OrientOpti
     std::vector<Scalar> signed_volumes(num_components, 0);
     {
         auto vertices = vertex_view(mesh).template leftCols<3>().template cast<double>();
-        Eigen::RowVector3d zero = Eigen::RowVector3d::Zero();
+        Eigen::RowVector3d anchor = vertices.colwise().mean();
         for (Index f = 0; f < mesh.get_num_facets(); ++f) {
             auto facet = mesh.get_facet_vertices(f);
             Index nv = mesh.get_facet_size(f);
@@ -163,9 +167,9 @@ void orient_outward(lagrange::SurfaceMesh<Scalar, Index>& mesh, const OrientOpti
                                                             vertices.row(facet[0]),
                                                             vertices.row(facet[1]),
                                                             vertices.row(facet[2]),
-                                                            zero);
+                                                            anchor);
             } else {
-                Eigen::RowVector3d bary = zero;
+                Eigen::RowVector3d bary = Eigen::RowVector3d::Zero();
                 for (Index lv = 0; lv < nv; ++lv) {
                     bary += vertices.row(facet[lv]);
                 }
@@ -175,7 +179,7 @@ void orient_outward(lagrange::SurfaceMesh<Scalar, Index>& mesh, const OrientOpti
                                                                 vertices.row(facet[lv]),
                                                                 vertices.row(facet[(lv + 1) % nv]),
                                                                 bary,
-                                                                zero);
+                                                                anchor);
                 }
             }
         }

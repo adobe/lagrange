@@ -91,7 +91,11 @@ void repack_uv_charts_impl(
     }
 
     const auto all_bbox_min = uv_values.colwise().minCoeff().eval();
-    uv_values = (uv_values.rowwise() - all_bbox_min) / canvas_size;
+    if (options.normalize) {
+        uv_values = (uv_values.rowwise() - all_bbox_min) / canvas_size;
+    } else {
+        uv_values = uv_values.rowwise() - all_bbox_min;
+    }
 }
 
 } // namespace

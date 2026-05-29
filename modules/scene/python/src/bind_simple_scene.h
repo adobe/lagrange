@@ -13,11 +13,14 @@
 
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/scene/SimpleScene.h>
+#include <lagrange/scene/compute_mesh_weights.h>
+#include <lagrange/scene/filter_instances.h>
 #include <lagrange/scene/simple_scene_convert.h>
 #include <lagrange/utils/assert.h>
 
 #include <Eigen/Core>
 
+#include <functional>
 #include <type_traits>
 
 namespace lagrange::python {
@@ -235,6 +238,41 @@ input tensors are supported for setting the transform.)");
 :param meshes: Input meshes to convert.
 
 :return: Simple scene containing the input meshes.)");
+
+    m.def(
+        "compute_mesh_weights",
+        [](const SimpleScene3D& scene, scene::FacetAllocationStrategy facet_allocation_strategy) {
+            return scene::compute_mesh_weights(scene, facet_allocation_strategy);
+        },
+        "scene"_a,
+        "facet_allocation_strategy"_a = scene::FacetAllocationStrategy::EvenSplit,
+        R"(Computes mesh weights of a scene.
+
+:param scene: Input scene. Must contain at least one mesh. For
+    ``RelativeToMeshArea``, if the scene contains no instances (or only
+    degenerate transforms) the total transformed area is zero and all returned
+    weights are zero. For ``RelativeToNumFacets`` the total facet count must be
+    positive, otherwise the returned weights will contain non-finite values.
+:param facet_allocation_strategy: Strategy used to compute the weights distribution. Defaults to
+    ``FacetAllocationStrategy.EvenSplit``. ``FacetAllocationStrategy.Synchronized``
+    is not supported by this function and will raise :class:`RuntimeError`.
+
+:return: Weights for each mesh of the scene that sum to unity, each in [0, 1].)");
+
+    m.def(
+        "filter_instances",
+        [](const SimpleScene3D& s, std::function<bool(Index, Index)> keep) {
+            return lagrange::scene::filter_instances<Scalar, Index, 3>(s, keep);
+        },
+        "scene"_a,
+        "keep"_a,
+        R"(Build a new scene keeping only instances for which ``keep(mesh_index, instance_index)``
+returns True. Meshes with no remaining instances are dropped; mesh indices are compacted.
+
+:param scene: Input scene.
+:param keep:  Callable ``(mesh_index, instance_index) -> bool``.
+
+:return: Filtered scene.)");
 }
 
 } // namespace lagrange::python

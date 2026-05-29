@@ -70,6 +70,9 @@ void add_semantic_label(
     std::string_view name,
     const SemanticLabel label)
 {
+    if (name.empty()) {
+        return;
+    }
     mesh.template create_attribute<uint8_t>(
         name,
         AttributeElement::Facet,
@@ -172,36 +175,40 @@ SurfaceMesh<Scalar, Index> boundary_to_mesh(
     mesh.add_polygon({indices.data(), indices.size()});
 
     // Generate UV coordinates
-    auto uv_attr_id = mesh.template create_attribute<Scalar>(
-        uv_attribute_name,
-        AttributeElement::Indexed,
-        2,
-        AttributeUsage::UV);
-    auto& uv_attr = mesh.template ref_indexed_attribute<Scalar>(uv_attr_id);
-    auto& uv_values = uv_attr.values();
-    auto& uv_indices = uv_attr.indices();
-    uv_values.resize_elements(num_vertices);
-    auto uv_indices_ref = uv_indices.ref_all();
+    if (!uv_attribute_name.empty()) {
+        auto uv_attr_id = mesh.template create_attribute<Scalar>(
+            uv_attribute_name,
+            AttributeElement::Indexed,
+            2,
+            AttributeUsage::UV);
+        auto& uv_attr = mesh.template ref_indexed_attribute<Scalar>(uv_attr_id);
+        auto& uv_values = uv_attr.values();
+        auto& uv_indices = uv_attr.indices();
+        uv_values.resize_elements(num_vertices);
+        auto uv_indices_ref = uv_indices.ref_all();
 
-    matrix_ref(uv_values) = vertices.template leftCols<2>();
-    if (flipped) {
-        matrix_ref(uv_values).col(0) *= -1; // Flip UVs if the mesh is flipped
+        matrix_ref(uv_values) = vertices.template leftCols<2>();
+        if (flipped) {
+            matrix_ref(uv_values).col(0) *= -1; // Flip UVs if the mesh is flipped
+        }
+        std::copy(indices.begin(), indices.end(), uv_indices_ref.begin());
     }
-    std::copy(indices.begin(), indices.end(), uv_indices_ref.begin());
 
     // Generate normals
-    auto normal_attr_id = mesh.template create_attribute<Scalar>(
-        normal_attribute_name,
-        AttributeElement::Indexed,
-        3,
-        AttributeUsage::Normal);
-    auto& normal_attr = mesh.template ref_indexed_attribute<Scalar>(normal_attr_id);
-    auto& normal_values = normal_attr.values();
-    auto& normal_indices = normal_attr.indices();
-    normal_values.resize_elements(1);
+    if (!normal_attribute_name.empty()) {
+        auto normal_attr_id = mesh.template create_attribute<Scalar>(
+            normal_attribute_name,
+            AttributeElement::Indexed,
+            3,
+            AttributeUsage::Normal);
+        auto& normal_attr = mesh.template ref_indexed_attribute<Scalar>(normal_attr_id);
+        auto& normal_values = normal_attr.values();
+        auto& normal_indices = normal_attr.indices();
+        normal_values.resize_elements(1);
 
-    matrix_ref(normal_values).row(0) << 0, 0, (flipped ? -1 : 1);
-    vector_ref(normal_indices).setZero(); // All facets share the same normal
+        matrix_ref(normal_values).row(0) << 0, 0, (flipped ? -1 : 1);
+        vector_ref(normal_indices).setZero(); // All facets share the same normal
+    }
 
     return mesh;
 }

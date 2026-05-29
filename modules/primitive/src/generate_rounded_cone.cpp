@@ -230,7 +230,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
                 sweep_setting,
                 sweep_options);
             transform_mesh(bottom_bevel, transform);
-            if (setting.fixed_uv) {
+            if (setting.fixed_uv && !setting.uv_attribute_name.empty()) {
                 Scalar max_v = 0.5 * (bottom_bevel_arc_length / total_length);
                 normalize_uv(bottom_bevel, {0, 0}, {0.5, max_v});
             }
@@ -248,7 +248,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
                 sweep_setting,
                 sweep_options);
             transform_mesh(side, transform);
-            if (setting.fixed_uv) {
+            if (setting.fixed_uv && !setting.uv_attribute_name.empty()) {
                 Scalar min_v = 0.5 * (bottom_bevel_arc_length / total_length);
                 Scalar max_v = 0.5 * ((bottom_bevel_arc_length + side_length) / total_length);
                 normalize_uv(side, {0, min_v}, {0.5, max_v});
@@ -262,7 +262,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
                 sweep_setting,
                 sweep_options);
             transform_mesh(top_bevel, transform);
-            if (setting.fixed_uv) {
+            if (setting.fixed_uv && !setting.uv_attribute_name.empty()) {
                 Scalar min_v = 0.5 * ((bottom_bevel_arc_length + side_length) / total_length);
                 normalize_uv(top_bevel, {0, min_v}, {0.5, 0.5});
             }
@@ -284,6 +284,8 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
         disc_setting.radial_sections = setting.radial_sections;
         disc_setting.fixed_uv = setting.fixed_uv;
         disc_setting.triangulate = setting.triangulate;
+        disc_setting.uv_attribute_name = setting.uv_attribute_name;
+        disc_setting.normal_attribute_name = setting.normal_attribute_name;
         auto disc = generate_disc<Scalar, Index>(disc_setting);
 
         AffineTransform transform;
@@ -295,7 +297,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
         transform.translate(Eigen::Matrix<Scalar, 3, 1>(0, 0, setting.height));
         auto top_cap = transformed_mesh(disc, transform);
 
-        if (setting.fixed_uv) {
+        if (setting.fixed_uv && !setting.uv_attribute_name.empty()) {
             normalize_uv(
                 top_cap,
                 {setting.uv_padding, 0.5 + setting.uv_padding},
@@ -316,6 +318,8 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
         disc_setting.radial_sections = setting.radial_sections;
         disc_setting.fixed_uv = setting.fixed_uv;
         disc_setting.triangulate = setting.triangulate;
+        disc_setting.uv_attribute_name = setting.uv_attribute_name;
+        disc_setting.normal_attribute_name = setting.normal_attribute_name;
         auto disc = generate_disc<Scalar, Index>(disc_setting);
 
         AffineTransform transform;
@@ -326,7 +330,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
                 Eigen::Matrix<Scalar, 3, 1>::UnitX()));
         auto bottom_cap = transformed_mesh(disc, transform);
 
-        if (setting.fixed_uv) {
+        if (setting.fixed_uv && !setting.uv_attribute_name.empty()) {
             normalize_uv(
                 bottom_cap,
                 {0.5 + setting.uv_padding, 0.5 + setting.uv_padding},
@@ -378,7 +382,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
         auto cross_section_begin = transformed_mesh(flipped_profile_mesh, transform_begin);
         auto cross_section_end = transformed_mesh(profile_mesh, transform_end);
 
-        if (setting.fixed_uv) {
+        if (setting.fixed_uv && !setting.uv_attribute_name.empty()) {
             normalize_uv(
                 cross_section_begin,
                 {0.5 + setting.uv_padding, setting.uv_padding},
@@ -412,23 +416,26 @@ SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting)
     auto cone_vertices = extract_cone_vertices(mesh, static_cast<Scalar>(setting.dist_threshold));
 
     // Weld indexed normals
-    WeldOptions attr_weld_options;
-    attr_weld_options.epsilon_abs = 1; // Disable distance-based check
-    attr_weld_options.angle_abs = setting.angle_threshold;
-    attr_weld_options.exclude_vertices = {cone_vertices.data(), cone_vertices.size()};
-    weld_indexed_attribute(
-        mesh,
-        mesh.get_attribute_id(setting.normal_attribute_name),
-        attr_weld_options);
+    if (!setting.normal_attribute_name.empty()) {
+        WeldOptions attr_weld_options;
+        attr_weld_options.epsilon_abs = 1; // Disable distance-based check
+        attr_weld_options.angle_abs = setting.angle_threshold;
+        attr_weld_options.exclude_vertices = {cone_vertices.data(), cone_vertices.size()};
+        weld_indexed_attribute(
+            mesh,
+            mesh.get_attribute_id(setting.normal_attribute_name),
+            attr_weld_options);
+    }
 
     if (setting.triangulate) {
         remove_degenerate_facets(mesh);
     }
 
-    if (!setting.fixed_uv) {
+    if (!setting.fixed_uv && !setting.uv_attribute_name.empty()) {
         packing::RepackOptions repack_options;
         repack_options.margin = setting.uv_padding;
-        packing::repack_uv_charts(mesh);
+        repack_options.uv_attribute_name = setting.uv_attribute_name;
+        packing::repack_uv_charts(mesh, repack_options);
     }
 
     // Translate the mesh so that the origin is at the center of the cone.

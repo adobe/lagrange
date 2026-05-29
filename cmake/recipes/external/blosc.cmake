@@ -63,6 +63,8 @@ block()
     set(BUILD_BENCHMARKS OFF)
     set(PREFER_EXTERNAL_ZLIB ON)
     set(ZLIB_FOUND ON)
+    set(PREFER_EXTERNAL_ZSTD ON)
+    set(ZSTD_FOUND ON)
 
     ignore_package(ZLIB)
     include(miniz)
@@ -72,6 +74,11 @@ block()
     endif()
     set(ZLIB_INCLUDE_DIR "")
     set(ZLIB_LIBRARY ZLIB::ZLIB)
+
+    ignore_package(Zstd)
+    include(zstd)
+    set(ZSTD_INCLUDE_DIR "")
+    set(ZSTD_LIBRARY zstd::libzstd)
 
     # Copy miniz.h as zlib.h to have blosc use miniz symbols (which are aliased through #define in miniz.h)
     FetchContent_GetProperties(miniz)
@@ -94,6 +101,7 @@ block()
     endforeach()
 
     unignore_package(ZLIB)
+    unignore_package(Zstd)
 endblock()
 
 set_target_properties(blosc_static PROPERTIES POSITION_INDEPENDENT_CODE ON)

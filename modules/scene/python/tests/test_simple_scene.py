@@ -11,6 +11,7 @@
 #
 import lagrange
 import numpy as np
+import pytest
 
 
 class TestSimpleScene:
@@ -81,3 +82,78 @@ class TestSimpleScene:
         assert np.all(mesh2.vertices == mesh2_alt.vertices) and np.all(
             mesh2.facets == mesh2_alt.facets
         )
+
+
+class TestComputeMeshWeights:
+    def make_scene(self):
+        """Scene with two meshes: m1 has 1 facet (area 0.5), m2 has 2 facets (area 4.0)."""
+        m1 = lagrange.SurfaceMesh()
+        m1.vertices = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0]], dtype=np.float64)
+        m1.add_triangle(0, 1, 2)
+
+        m2 = lagrange.SurfaceMesh()
+        m2.vertices = np.array([[0, 0, 0], [2, 0, 0], [0, 2, 0], [2, 2, 0]], dtype=np.float64)
+        m2.add_triangle(0, 1, 2)
+        m2.add_triangle(1, 3, 2)
+
+        scene = lagrange.scene.SimpleScene3D()
+        idx0 = scene.add_mesh(m1)
+        idx1 = scene.add_mesh(m2)
+
+        inst0 = lagrange.scene.MeshInstance3D()
+        inst0.mesh_index = idx0
+        scene.add_instance(inst0)
+
+        inst1 = lagrange.scene.MeshInstance3D()
+        inst1.mesh_index = idx1
+        scene.add_instance(inst1)
+
+        return scene
+
+    def test_even_split(self):
+        scene = self.make_scene()
+        weights = lagrange.scene.compute_mesh_weights(
+            scene, lagrange.scene.FacetAllocationStrategy.EvenSplit
+        )
+        assert len(weights) == 2
+        assert sum(weights) == pytest.approx(1.0, abs=1e-10)
+        assert weights[0] == pytest.approx(0.5, abs=1e-10)
+        assert weights[1] == pytest.approx(0.5, abs=1e-10)
+
+    def test_default_strategy_is_even_split(self):
+        scene = self.make_scene()
+        weights = lagrange.scene.compute_mesh_weights(scene)
+        assert len(weights) == 2
+        assert weights[0] == pytest.approx(0.5, abs=1e-10)
+        assert weights[1] == pytest.approx(0.5, abs=1e-10)
+
+    def test_relative_to_num_facets(self):
+        scene = self.make_scene()
+        weights = lagrange.scene.compute_mesh_weights(
+            scene, lagrange.scene.FacetAllocationStrategy.RelativeToNumFacets
+        )
+        assert len(weights) == 2
+        assert sum(weights) == pytest.approx(1.0, abs=1e-10)
+        # m1 has 1 facet, m2 has 2 → weights 1/3 and 2/3
+        assert weights[0] == pytest.approx(1.0 / 3.0, abs=1e-10)
+        assert weights[1] == pytest.approx(2.0 / 3.0, abs=1e-10)
+
+    def test_relative_to_mesh_area(self):
+        scene = self.make_scene()
+        weights = lagrange.scene.compute_mesh_weights(
+            scene, lagrange.scene.FacetAllocationStrategy.RelativeToMeshArea
+        )
+        assert len(weights) == 2
+        assert sum(weights) == pytest.approx(1.0, abs=1e-10)
+        # m1: right triangle legs 1,1 → area 0.5
+        # m2: two right triangles legs 2,2 each → area 4.0
+        total = 4.5
+        assert weights[0] == pytest.approx(0.5 / total, abs=1e-10)
+        assert weights[1] == pytest.approx(4.0 / total, abs=1e-10)
+
+    def test_synchronized_raises(self):
+        scene = self.make_scene()
+        with pytest.raises(RuntimeError):
+            lagrange.scene.compute_mesh_weights(
+                scene, lagrange.scene.FacetAllocationStrategy.Synchronized
+            )

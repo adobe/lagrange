@@ -21,8 +21,15 @@
 #include <lagrange/raycasting/project_closest_point.h>
 #include <lagrange/raycasting/project_closest_vertex.h>
 #include <lagrange/raycasting/project_directional.h>
+#include <lagrange/raycasting/remove_occluded_facets.h>
+#include <lagrange/raycasting/remove_occluded_instances.h>
 #include <lagrange/utils/BitField.h>
+#include <lagrange/utils/ProgressCallback.h>
+#include <lagrange/utils/assert.h>
 
+#include <functional>
+#include <optional>
+#include <utility>
 #include <vector>
 
 namespace nb = nanobind;
@@ -729,6 +736,171 @@ The local feature size is stored as a per-vertex attribute on the mesh.
 :param ray_caster:              Optional pre-built :class:`RayCaster` for caching.
 :return: Attribute id of the newly added LFS attribute.
 :rtype: int)");
+
+    // =========================================================================
+    // Occluded-facet / occluded-instance samplers
+    // =========================================================================
+
+    using SimpleScene3D = scene::SimpleScene<Scalar, Index, 3>;
+    using IsOccluderFn = std::function<bool(Index, Index)>;
+    constexpr raycasting::OccludedFacetEstimateOptions facet_defaults{};
+    constexpr raycasting::OccludedFacetSamplerOptions facet_sampler_defaults{};
+    constexpr raycasting::OccludedInstanceEstimateOptions instance_defaults{};
+
+    m.def(
+        "remove_occluded_facets",
+        [](const SimpleScene3D& scene,
+           uint64_t num_rays,
+           uint64_t batch_size,
+           uint64_t num_adaptive_per_normal,
+           bool brute_force,
+           bool until_converged,
+           double jitter_sigma,
+           int visibility_threshold,
+           std::optional<IsOccluderFn> is_occluder) {
+            la_runtime_assert(
+                visibility_threshold >= 1 && visibility_threshold <= 255,
+                "visibility_threshold must be in [1, 255]");
+            raycasting::RemoveOccludedFacetsOptions options;
+            options.estimate_options.num_rays = num_rays;
+            options.estimate_options.batch_size = batch_size;
+            options.estimate_options.num_adaptive_per_normal = num_adaptive_per_normal;
+            options.estimate_options.brute_force = brute_force;
+            options.estimate_options.until_converged = until_converged;
+            options.sampler_options.jitter_sigma = jitter_sigma;
+            options.sampler_options.visibility_threshold =
+                static_cast<uint8_t>(visibility_threshold);
+            ProgressCallback progress;
+            if (is_occluder) {
+                return raycasting::remove_occluded_facets<Scalar, Index>(
+                    scene,
+                    options,
+                    progress,
+                    *is_occluder);
+            }
+            return raycasting::remove_occluded_facets<Scalar, Index>(scene, options, progress);
+        },
+        "scene"_a,
+        nb::kw_only(),
+        "num_rays"_a = facet_defaults.num_rays,
+        "batch_size"_a = facet_defaults.batch_size,
+        "num_adaptive_per_normal"_a = facet_defaults.num_adaptive_per_normal,
+        "brute_force"_a = facet_defaults.brute_force,
+        "until_converged"_a = facet_defaults.until_converged,
+        "jitter_sigma"_a = facet_sampler_defaults.jitter_sigma,
+        "visibility_threshold"_a = facet_sampler_defaults.visibility_threshold,
+        "is_occluder"_a = nb::none(),
+        R"(Build a new scene with facets not visible from the outside removed.
+
+The output contains one unique mesh per input instance: instances of the same source mesh can
+end up with different facets culled, so the input's instancing cannot be preserved.
+
+:param scene:                   Input scene.
+:param num_rays:                Total ray budget. Must be > 0 unless ``until_converged`` is True.
+:param batch_size:              Rays per batch.
+:param num_adaptive_per_normal: Adaptive batches per normal batch (0 = pure cosine sampling).
+                                Ignored when ``brute_force`` is True.
+:param brute_force:             Run brute-force batches only — baseline for benchmarking.
+:param until_converged:         Stop early when a cycle finds no new visible facets.
+:param jitter_sigma:            Std-dev of Gaussian jitter applied to adaptive seed directions.
+:param visibility_threshold:    Number of independent escapes required to mark a facet visible
+                                (>= 1). 1 = first-escape-wins (original); 2-3 dampens hairline-
+                                gap shrapnel.
+:param is_occluder:             Optional callable ``(mesh_index, instance_index) -> bool``
+                                returning whether an instance should block rays. Non-occluders
+                                are still tested for visibility but do not contribute to the
+                                ray-caster scene. Defaults to None (every instance is an
+                                occluder).
+:return: Scene with occluded facets removed.)");
+
+    m.def(
+        "remove_occluded_instances",
+        [](const SimpleScene3D& scene,
+           uint64_t num_rays,
+           uint64_t batch_size,
+           bool until_converged,
+           std::optional<IsOccluderFn> is_occluder) {
+            raycasting::OccludedInstanceEstimateOptions options;
+            options.num_rays = num_rays;
+            options.batch_size = batch_size;
+            options.until_converged = until_converged;
+            ProgressCallback progress;
+            // Explicit template args bypass deduction — function_ref is constructed from
+            // std::function via the implicit conversion only after deduction is settled.
+            if (is_occluder) {
+                return raycasting::remove_occluded_instances<Scalar, Index>(
+                    scene,
+                    options,
+                    progress,
+                    *is_occluder);
+            }
+            return raycasting::remove_occluded_instances<Scalar, Index>(scene, options, progress);
+        },
+        "scene"_a,
+        nb::kw_only(),
+        "num_rays"_a = instance_defaults.num_rays,
+        "batch_size"_a = instance_defaults.batch_size,
+        "until_converged"_a = instance_defaults.until_converged,
+        "is_occluder"_a = nb::none(),
+        R"(Remove fully-occluded mesh instances from a scene.
+
+:param scene:           Input scene.
+:param num_rays:        Total ray budget. Must be > 0 unless ``until_converged`` is True.
+:param batch_size:      Rays per batch.
+:param until_converged: Stop early when a batch finds no new visible instances.
+:param is_occluder:     Optional callable ``(mesh_index, instance_index) -> bool`` returning
+                        whether an instance should block rays. Non-occluders are still tested
+                        for visibility but do not contribute to the ray-caster scene. Defaults
+                        to None (every instance is an occluder).
+
+:return: Scene with occluded instances removed.)");
+
+    m.def(
+        "estimate_occluded_instances",
+        [](const SimpleScene3D& scene,
+           uint64_t num_rays,
+           uint64_t batch_size,
+           bool until_converged,
+           std::optional<IsOccluderFn> is_occluder) {
+            raycasting::OccludedInstanceEstimateOptions options;
+            options.num_rays = num_rays;
+            options.batch_size = batch_size;
+            options.until_converged = until_converged;
+            ProgressCallback progress;
+            std::vector<std::pair<Index, Index>> occluded;
+            auto callback = [&](Index mi, Index ii) { occluded.emplace_back(mi, ii); };
+            if (is_occluder) {
+                raycasting::estimate_occluded_instances<Scalar, Index>(
+                    scene,
+                    callback,
+                    options,
+                    progress,
+                    *is_occluder);
+            } else {
+                raycasting::estimate_occluded_instances<Scalar, Index>(
+                    scene,
+                    callback,
+                    options,
+                    progress);
+            }
+            return occluded;
+        },
+        "scene"_a,
+        nb::kw_only(),
+        "num_rays"_a = instance_defaults.num_rays,
+        "batch_size"_a = instance_defaults.batch_size,
+        "until_converged"_a = instance_defaults.until_converged,
+        "is_occluder"_a = nb::none(),
+        R"(Find mesh instances that are fully occluded by other geometry.
+
+:param scene:           Input scene.
+:param num_rays:        Total ray budget. Must be > 0 unless ``until_converged`` is True.
+:param batch_size:      Rays per batch.
+:param until_converged: Stop early when a batch finds no new visible instances.
+:param is_occluder:     Optional callable ``(mesh_index, instance_index) -> bool``. See
+                        :py:func:`remove_occluded_instances`.
+
+:return: List of ``(mesh_index, instance_index)`` pairs for occluded instances.)");
 }
 
 } // namespace lagrange::python
