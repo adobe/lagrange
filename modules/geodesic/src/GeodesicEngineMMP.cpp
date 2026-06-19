@@ -54,6 +54,7 @@ GeodesicEngineMMP<Scalar, Index>::GeodesicEngineMMP(Mesh& mesh)
     m_impl->m_solver.emplace(*m_impl->m_gc_mesh, *m_impl->m_gc_geom);
 }
 
+/// @cond LA_INTERNAL_DOCS
 template <typename Scalar, typename Index>
 GeodesicEngineMMP<Scalar, Index>::~GeodesicEngineMMP() = default;
 template <typename Scalar, typename Index>
@@ -61,6 +62,7 @@ GeodesicEngineMMP<Scalar, Index>::GeodesicEngineMMP(GeodesicEngineMMP<Scalar, In
 template <typename Scalar, typename Index>
 GeodesicEngineMMP<Scalar, Index>& GeodesicEngineMMP<Scalar, Index>::operator=(
     GeodesicEngineMMP<Scalar, Index>&&) = default;
+/// @endcond
 
 template <typename Scalar, typename Index>
 SingleSourceGeodesicResult GeodesicEngineMMP<Scalar, Index>::single_source_geodesic(

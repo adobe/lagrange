@@ -74,7 +74,7 @@ void populate_texproc_module(nb::module_& m)
 
             tp::texture_filtering(mesh, image.to_mdspan(), options);
 
-            return image_array_to_tensor(image);
+            return image_array_to_tensor(std::move(image));
         },
         "mesh"_a,
         "image"_a,
@@ -124,7 +124,7 @@ void populate_texproc_module(nb::module_& m)
 
             tp::texture_stitching(mesh, image.to_mdspan(), options);
 
-            return image_array_to_tensor(image);
+            return image_array_to_tensor(std::move(image));
         },
         "mesh"_a,
         "image"_a,
@@ -162,7 +162,7 @@ void populate_texproc_module(nb::module_& m)
 
             tp::geodesic_dilation(mesh, image.to_mdspan(), options);
 
-            return image_array_to_tensor(image);
+            return image_array_to_tensor(std::move(image));
         },
         "mesh"_a,
         "image"_a,
@@ -193,7 +193,7 @@ void populate_texproc_module(nb::module_& m)
 
             tp::geodesic_dilation(mesh, image.to_mdspan(), options);
 
-            return image_array_to_tensor(image);
+            return image_array_to_tensor(std::move(image));
         },
         "mesh"_a,
         "width"_a,
@@ -248,7 +248,7 @@ void populate_texproc_module(nb::module_& m)
 
             auto image = tp::texture_compositing(mesh, weighted_textures, options);
 
-            return image_array_to_tensor(image);
+            return image_array_to_tensor(std::move(image));
         },
         "mesh"_a,
         "colors"_a,
@@ -280,15 +280,13 @@ void populate_texproc_module(nb::module_& m)
 
     auto pack_textures_and_weights =
         [](std::vector<std::pair<tp::Array3Df, tp::Array3Df>>& textures_and_weights) {
-            std::vector<nb::object> textures;
-            std::vector<nb::object> weights;
+            std::vector<Tensor<float>> textures;
+            std::vector<Tensor<float>> weights;
             textures.reserve(textures_and_weights.size());
             weights.reserve(textures_and_weights.size());
             for (auto& [texture_, weight_] : textures_and_weights) {
-                auto texture = image_array_to_tensor(texture_);
-                auto weight = image_array_to_tensor(weight_);
-                textures.emplace_back(texture);
-                weights.emplace_back(weight);
+                textures.emplace_back(image_array_to_tensor(std::move(texture_)));
+                weights.emplace_back(image_array_to_tensor(std::move(weight_)));
             }
             return std::make_tuple(textures, weights);
         };

@@ -176,6 +176,7 @@ struct fmt::is_range<
     #include <lagrange/utils/warnon.h>
 // clang-format on
 
+/// @cond LA_INTERNAL_DOCS
 template <typename Derived>
 struct fmt::is_range<
     Derived,
@@ -183,6 +184,7 @@ struct fmt::is_range<
     : std::false_type
 {
 };
+    /// @endcond
 
     #endif
 

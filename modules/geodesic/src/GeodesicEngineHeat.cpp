@@ -52,6 +52,7 @@ GeodesicEngineHeat<Scalar, Index>::GeodesicEngineHeat(Mesh& mesh)
     m_impl->m_solver.emplace(*m_impl->m_gc_geom);
 }
 
+/// @cond LA_INTERNAL_DOCS
 template <typename Scalar, typename Index>
 GeodesicEngineHeat<Scalar, Index>::~GeodesicEngineHeat() = default;
 template <typename Scalar, typename Index>
@@ -60,6 +61,7 @@ GeodesicEngineHeat<Scalar, Index>::GeodesicEngineHeat(GeodesicEngineHeat<Scalar,
 template <typename Scalar, typename Index>
 GeodesicEngineHeat<Scalar, Index>& GeodesicEngineHeat<Scalar, Index>::operator=(
     GeodesicEngineHeat<Scalar, Index>&&) = default;
+/// @endcond
 
 template <typename Scalar, typename Index>
 SingleSourceGeodesicResult GeodesicEngineHeat<Scalar, Index>::single_source_geodesic(

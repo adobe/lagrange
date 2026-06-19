@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/Attribute.h>
 #include <lagrange/polyscope/register_edge_network.h>
 #include <lagrange/polyscope/register_mesh.h>
 #include <lagrange/polyscope/register_point_cloud.h>
@@ -218,6 +219,64 @@ TEST_CASE("register_edges_2d", "[polyscope]")
 
     auto ps_struct = lagrange::polyscope::register_structure("edge_network_struct", uv_mesh);
     REQUIRE(dynamic_cast<polyscope::CurveNetwork*>(ps_struct) != nullptr);
+}
+
+TEST_CASE("register_edge_attribute", "[polyscope]")
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    polyscope::init(g_backend);
+
+    // A triangle mesh with initialized edges supports edge-valued quantities: register_mesh sets
+    // up polyscope's edge permutation, so an edge scalar attribute registers successfully.
+    {
+        auto mesh =
+            lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/simple/cube.obj");
+        REQUIRE(mesh.is_triangle_mesh());
+        mesh.initialize_edges();
+        REQUIRE(mesh.get_num_edges() > 0);
+
+        auto edge_scalar_id = mesh.template create_attribute<Scalar>(
+            "edge_scalar",
+            lagrange::AttributeElement::Edge,
+            lagrange::AttributeUsage::Scalar,
+            1);
+        auto& edge_scalar = mesh.template ref_attribute<Scalar>(edge_scalar_id);
+        auto data = edge_scalar.ref_all();
+        for (Index e = 0; e < mesh.get_num_edges(); ++e) {
+            data[e] = static_cast<Scalar>(e);
+        }
+
+        auto ps_mesh = lagrange::polyscope::register_mesh("mesh_edge_tri", mesh);
+        REQUIRE(ps_mesh != nullptr);
+
+        auto attr = lagrange::polyscope::register_attribute(*ps_mesh, "edge_scalar", edge_scalar);
+        REQUIRE(attr != nullptr);
+    }
+
+    // A non-triangle mesh has no polyscope edge ordering, so edge attributes are skipped (the call
+    // returns nullptr) rather than crashing.
+    {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>(
+            "open/core/simple/quad_meshes/cube.obj");
+        REQUIRE_FALSE(mesh.is_triangle_mesh());
+        mesh.initialize_edges();
+        REQUIRE(mesh.get_num_edges() > 0);
+
+        auto edge_scalar_id = mesh.template create_attribute<Scalar>(
+            "edge_scalar",
+            lagrange::AttributeElement::Edge,
+            lagrange::AttributeUsage::Scalar,
+            1);
+        auto& edge_scalar = mesh.template ref_attribute<Scalar>(edge_scalar_id);
+
+        auto ps_mesh = lagrange::polyscope::register_mesh("mesh_edge_quad", mesh);
+        REQUIRE(ps_mesh != nullptr);
+
+        auto attr = lagrange::polyscope::register_attribute(*ps_mesh, "edge_scalar", edge_scalar);
+        REQUIRE(attr == nullptr);
+    }
 }
 
 TEST_CASE("register_4channel_attributes", "[polyscope]")

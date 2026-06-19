@@ -18,9 +18,7 @@
 namespace lagrange {
 
 ///
-/// @defgroup group-utils Utilites
-/// @ingroup module-core
-///
+/// @addtogroup group-utils
 /// @{
 ///
 /// A simple loop is defined as a set of connected edges whose starting and ending vertex is the

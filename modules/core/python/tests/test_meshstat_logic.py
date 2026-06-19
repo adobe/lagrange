@@ -67,6 +67,7 @@ class TestCollectBasicInfo:
         assert basic["bbox_extent"] == [1.0, 1.0, 1.0]
         assert basic["max_extent"] == 1.0
         assert basic["bbox_diagonal"] == pytest.approx(np.sqrt(3))
+        assert basic["facet_counts"] == {"two_gons": 0, "triangles": 0, "quads": 6, "polygons": 0}
 
     def test_initializes_edges(self, cube_with_uv):
         """``num_edges`` must be reported correctly even when the caller has
@@ -91,6 +92,23 @@ class TestCollectBasicInfo:
         assert basic["bbox_diagonal"] == 0.0
         assert basic["max_extent"] == 0.0
         assert "empty mesh" in capsys.readouterr().out
+
+
+class TestCollectExtendedInfo:
+    def test_euler_characteristic_closed_cube(self, cube):
+        cube.initialize_edges()
+        info: dict = {}
+        meshstat.collect_extended_info(cube, info)
+        # closed quad cube: V=8, E=12, F=6 → χ=2
+        assert info["extended"]["euler_characteristic"] == 2
+
+    def test_euler_characteristic_in_json(self, cube_with_uv, tmp_path):
+        mesh_path = tmp_path / "cube.obj"
+        lagrange.io.save_mesh(str(mesh_path), cube_with_uv)
+        meshstat.main(["--export", "--extended", str(mesh_path)])
+        info = json.loads(mesh_path.with_suffix(".json").read_text())
+        assert "euler_characteristic" in info["extended"]
+        assert info["extended"]["euler_characteristic"] == 2
 
 
 class TestCollectUVInfo:
@@ -140,6 +158,16 @@ class TestCollectUVInfo:
             meshstat.collect_uv_info(cube, info, [lagrange.DistortionMetric.MIPS])
         assert info["uv"] == {}
         assert any("No UV attributes" in rec.message for rec in caplog.records)
+
+    def test_no_temp_attributes_left(self, cube_with_uv):
+        mesh = cube_with_uv
+        mesh.initialize_edges()
+        lagrange.triangulate_polygonal_facets(mesh)
+        attr_names_before = {mesh.get_attribute_name(i) for i in mesh.get_matching_attribute_ids()}
+        info: dict = {"basic": {"max_extent": 1.0}}
+        meshstat.collect_uv_info(mesh, info, [lagrange.DistortionMetric.MIPS])
+        attr_names_after = {mesh.get_attribute_name(i) for i in mesh.get_matching_attribute_ids()}
+        assert attr_names_after == attr_names_before
 
     def test_idempotent(self, cube_with_uv):
         """Calling ``collect_uv_info`` twice on the same mesh must not crash:

@@ -28,6 +28,8 @@
 #include <lagrange/utils/fmt/join.h>
 // clang-format on
 
+#include <imgui_spectrum.h>
+
 #include <CLI/CLI.hpp>
 
 using Scalar = double;

@@ -259,6 +259,59 @@ TEST_CASE("save_scene with float images", "[io]")
 }
 
 
+TEST_CASE("save_scene embedded image does not leak external uri", "[io]")
+{
+    // A uri-only image (no decoded pixels) must not leak its uri into an
+    // embedded output, or the "self-contained" .glb references a missing sibling.
+    using SceneType = scene::Scene32f;
+
+    scene::ImageExperimental image;
+    image.name = "uv_grid";
+    image.uri = "uv_grid_opengl.jpg";
+    // Valid element_type so save doesn't reject the image; data stays empty
+    // (uri-only), which is what made the writer fall back to the external uri.
+    image.image.element_type = make_attribute_value_type<uint8_t>();
+
+    SceneType scene;
+    scene.add(SurfaceMesh32f());
+    scene.add(image);
+
+    auto leaks_uri = [](const std::string& bytes) {
+        return bytes.find("uv_grid_opengl.jpg") != std::string::npos;
+    };
+
+    SECTION("file (.glb) export - embed_images=true")
+    {
+        io::SaveOptions options;
+        options.export_materials = true;
+        options.embed_images = true;
+
+        fs::path glb_path = testing::get_test_output_path("test_save_scene/embedded_image.glb");
+        fs::path sidecar = glb_path.parent_path() / "uv_grid_opengl.jpg";
+        fs::remove(sidecar); // clear any stale sidecar from a previous run
+        REQUIRE_NOTHROW(io::save_scene(glb_path, scene, options));
+
+        REQUIRE_FALSE(fs::exists(sidecar)); // no external sibling texture written
+        std::ifstream f(glb_path, std::ios::binary);
+        std::string bytes((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+        REQUIRE_FALSE(leaks_uri(bytes));
+    }
+
+    SECTION("stream export - always embeds")
+    {
+        // Stream output always embeds, so the uri must be dropped even with the
+        // default embed_images=false.
+        io::SaveOptions options;
+        options.export_materials = true;
+        REQUIRE_FALSE(options.embed_images);
+
+        std::stringstream output;
+        REQUIRE_NOTHROW(io::save_scene(output, scene, io::FileFormat::Gltf, options));
+        REQUIRE_FALSE(leaks_uri(output.str()));
+    }
+}
+
+
 TEST_CASE("save_scene with new root node", "[io]")
 {
     using Scene = scene::Scene32f;

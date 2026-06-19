@@ -17,6 +17,7 @@
 #include <lagrange/utils/fmt/format.h>
 
 #include <imgui.h>
+#include <imgui_spectrum.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <spdlog/details/null_mutex.h>
 #include <spdlog/sinks/base_sink.h>
@@ -36,7 +37,7 @@ struct LoggerPanel
 class LogData
 {
 public:
-    using ColorType = std::remove_const_t<decltype(ImGui::Spectrum::GRAY800)>;
+    using ColorType = unsigned int;
     std::deque<std::pair<ColorType, std::string>> data;
     std::mutex mutex;
 };
@@ -57,14 +58,14 @@ public:
 protected:
     void sink_it_(const spdlog::details::log_msg& msg) override
     {
-        LogData::ColorType color = ImGui::Spectrum::GRAY800;
+        LogData::ColorType color = ImGui::Spectrum::Static::GRAY800;
         switch (msg.level) {
-        case spdlog::level::trace: color = ImGui::Spectrum::GRAY500; break;
-        case spdlog::level::debug: color = ImGui::Spectrum::BLUE400; break;
-        case spdlog::level::info: color = ImGui::Spectrum::GREEN500; break;
-        case spdlog::level::warn: color = ImGui::Spectrum::YELLOW500; break;
-        case spdlog::level::err: color = ImGui::Spectrum::RED500; break;
-        case spdlog::level::critical: color = ImGui::Spectrum::PURPLE500; break;
+        case spdlog::level::trace: color = ImGui::Spectrum::Static::GRAY500; break;
+        case spdlog::level::debug: color = ImGui::Spectrum::Static::BLUE400; break;
+        case spdlog::level::info: color = ImGui::Spectrum::Static::GREEN500; break;
+        case spdlog::level::warn: color = ImGui::Spectrum::Colors->YELLOW500; break;
+        case spdlog::level::err: color = ImGui::Spectrum::Static::RED500; break;
+        case spdlog::level::critical: color = ImGui::Spectrum::Colors->PURPLE500; break;
         case spdlog::level::off: break;
         default: break;
         }

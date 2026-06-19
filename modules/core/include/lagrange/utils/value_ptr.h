@@ -31,9 +31,6 @@
 
 #include <memory>
 
-/// @addtogroup group-utils-misc
-/// @{
-
 #ifndef LA_DECLSPEC_EMPTY_BASES
     #ifdef _MSC_VER
         #define LA_DECLSPEC_EMPTY_BASES __declspec(empty_bases)
@@ -121,6 +118,8 @@ struct default_clone
 
 /// @endcond
 
+///
+/// @ingroup group-utils-misc
 ///
 /// Smart pointer with value semantics. Copy/moving the pointer will copy/move the underlying
 /// object. This is useful to implement PIMPL idioms.
@@ -219,6 +218,8 @@ public:
 };
 
 ///
+/// @ingroup group-utils-misc
+///
 /// Helper function to create a value_ptr for a given type.
 ///
 /// @param      args  Arguments to forward to the object's constructor.
@@ -233,7 +234,5 @@ value_ptr<T> make_value_ptr(Args&&... args)
 {
     return value_ptr<T>(new T(std::forward<Args>(args)...));
 }
-
-/// @}
 
 } // namespace lagrange

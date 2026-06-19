@@ -32,6 +32,9 @@ TEST_CASE("load_fbx", "[io][fbx]" LA_CORP_FLAG)
         options);
     REQUIRE(vertex_view(mesh) == vertex_view(expected));
     REQUIRE(facet_view(mesh) == facet_view(expected));
+
+    REQUIRE_THROWS(lagrange::io::load_mesh_fbx<lagrange::SurfaceMesh32d>("file_not_exist.fbx"));
+    REQUIRE_THROWS(lagrange::io::load_scene_fbx<lagrange::scene::Scene32d>("file_not_exist.fbx"));
 }
 
 TEST_CASE("load_fbx_and_save", "[io][fbx]" LA_CORP_FLAG)

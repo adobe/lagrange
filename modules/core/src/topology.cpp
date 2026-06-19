@@ -107,7 +107,7 @@ bool is_vertex_manifold(const SurfaceMesh<Scalar, Index>& mesh)
 
     return tbb::parallel_reduce(
         tbb::blocked_range<Index>(0, num_vertices),
-        true, ///< initial value of the result.
+        true, // initial value of the result.
         [&](const tbb::blocked_range<Index>& r, bool manifold) -> bool {
             if (!manifold) return false;
 

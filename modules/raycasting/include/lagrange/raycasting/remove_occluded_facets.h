@@ -23,7 +23,7 @@
 namespace lagrange::raycasting {
 
 ///
-/// @addtogroup group-raycasting
+/// @addtogroup module-raycasting
 /// @{
 ///
 

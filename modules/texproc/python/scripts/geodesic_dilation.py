@@ -88,11 +88,11 @@ def single_mesh_from_scene(
         )
 
     texture_id = material.base_color_texture.index
-    assert texture_id < len(scene.textures)
+    assert texture_id is not None and texture_id < len(scene.textures)
     texture = scene.textures[texture_id]
 
     image_id = texture.image
-    assert image_id < len(scene.images)
+    assert image_id is not None and image_id < len(scene.images)
     image = scene.images[image_id].image.data
 
     return mesh, image

@@ -16,7 +16,7 @@
 
 #include <string_view>
 
-/// @defgroup group-utils Utilites
+/// @defgroup group-utils Utilities
 /// @ingroup module-core
 /// Utility functions.
 /// @{
@@ -56,7 +56,6 @@
 /// la_debug_assert(x == 3, lagrange::format("Incorrect value of x: {}", x));
 /// @endcode
 ///
-/// @{
 
 namespace lagrange {
 
@@ -160,14 +159,17 @@ LA_CORE_API void trigger_breakpoint();
 
 // -----------------------------------------------------------------------------
 
+/// @addtogroup group-utils-assert
+/// @{
+
 ///
 /// Runtime assertion check. This check is executed for both Debug and Release configurations, and
 /// should be used, e.g., to check the validity of user-given inputs.
 ///
 /// @hideinitializer
 ///
-/// @param      condition  Condition to check at runtime.
-/// @param      message    Optional message argument.
+/// The first argument is the condition to check at runtime, and the optional second argument is a
+/// message describing the failure.
 ///
 /// @return     Void expression.
 ///
@@ -182,8 +184,8 @@ LA_CORE_API void trigger_breakpoint();
 /// (e.g., a doubled linked list is malformed).
 /// @hideinitializer
 ///
-/// @param      condition  Condition to check at runtime.
-/// @param      message    Optional message argument.
+/// The first argument is the condition to check at runtime, and the optional second argument is a
+/// message describing the failure.
 ///
 /// @return     Void expression.
 ///
@@ -196,5 +198,7 @@ LA_CORE_API void trigger_breakpoint();
             LA_INTERNAL_EXPAND(LA_INTERNAL_GET_MACRO(LA_INTERNAL_ASSERT_ARGS_, __VA_ARGS__))
     #endif // NDEBUG
 #endif // la_debug_assert
+
+/// @}
 
 /// @}

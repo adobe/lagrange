@@ -29,7 +29,6 @@ inline EventEmitter& get_event_emitter(Registry& r)
 /// @tparam Event
 /// @param r Registry instance
 /// @param listener function taking reference to Event as parameter
-/// @return Connection instance, can be used to disconnect listener later
 template <typename Event>
 void on(Registry& r, std::function<void(Event&)> listener)
 {

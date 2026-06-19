@@ -13,6 +13,7 @@
 
 #pragma message("Using user-provided fmt::formatter<> for Eigen types")
 
+/// @cond LA_INTERNAL_DOCS
 template <typename T>
 struct fmt::formatter<T, std::enable_if_t<std::is_base_of<Eigen::DenseBase<T>, T>::value, char>>
     : fmt::nested_formatter<typename T::Scalar>
@@ -30,3 +31,4 @@ struct fmt::formatter<T, std::enable_if_t<std::is_base_of<Eigen::DenseBase<T>, T
         });
     }
 };
+/// @endcond

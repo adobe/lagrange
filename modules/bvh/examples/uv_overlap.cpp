@@ -42,6 +42,8 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <imgui_spectrum.h>
+
 #include <unordered_map>
 
 // ============================================================================

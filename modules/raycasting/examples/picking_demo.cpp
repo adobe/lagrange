@@ -31,6 +31,8 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <imgui_spectrum.h>
+
 #include <optional>
 
 using SurfaceMesh = lagrange::SurfaceMesh32f;

@@ -114,6 +114,20 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
     set(CMAKE_EXPORT_COMPILE_COMMANDS ON CACHE BOOL "Enable/Disable output of compile commands during generation.")
 endif()
 
+if(WIN32 AND SKBUILD)
+    include(cmake/lagrange/lagrange_cpm_cache.cmake)
+    include(cmake/recipes/external/CPM.cmake)
+    CPMAddPackage(
+        NAME windowstoolchain
+        GIT_REPOSITORY https://github.com/MarkSchofield/WindowsToolchain.git
+        GIT_TAG        v0.14.0
+        QUIET
+        DOWNLOAD_ONLY ON
+    )
+    FetchContent_GetProperties(windowstoolchain)
+    set(CMAKE_TOOLCHAIN_FILE "${windowstoolchain_SOURCE_DIR}/Windows.MSVC.toolchain.cmake")
+endif()
+
 ################################################################################
 
 if(SKBUILD)

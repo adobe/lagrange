@@ -72,6 +72,7 @@
 # option(LAGRANGE_MODULE_UI             "Build module lagrange::ui"             ON)
 # option(LAGRANGE_MODULE_VOLUME         "Build module lagrange::volume"         ON)
 # option(LAGRANGE_MODULE_WINDING        "Build module lagrange::winding"        ON)
+# option(LAGRANGE_MODULE_XATLAS         "Build module lagrange::xatlas"         ON)
 
 # General options
 # option(LAGRANGE_BINDINGS_JS        "Build JavaScript/WebAssembly bindings"                OFF)

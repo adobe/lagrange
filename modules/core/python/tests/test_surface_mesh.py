@@ -398,9 +398,9 @@ class TestSurfaceMesh:
             fid = mesh.get_corner_facet(cid)
             assert fid in edge_one_ring
 
-        vertex_one_ring_edges = []
-        mesh.foreach_edge_around_vertex(0, lambda eid: vertex_one_ring_edges.append(eid))
-        vertex_one_ring_edges = set(vertex_one_ring_edges)
+        vertex_one_ring_edges_list = []
+        mesh.foreach_edge_around_vertex(0, lambda eid: vertex_one_ring_edges_list.append(eid))
+        vertex_one_ring_edges = set(vertex_one_ring_edges_list)
         assert len(vertex_one_ring_edges) == len(vertex_one_ring)
 
         for eid in vertex_one_ring_edges:

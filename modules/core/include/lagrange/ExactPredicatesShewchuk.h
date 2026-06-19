@@ -32,19 +32,19 @@ public:
     virtual short orient2D(const double p1[2], const double p2[2], const double p3[2]) const;
 
     ///
-    /// @copydoc ExactPredicates::orient2D
+    /// @copydoc ExactPredicates::orient3D
     ///
     virtual short
     orient3D(const double p1[3], const double p2[3], const double p3[3], const double p4[3]) const;
 
     ///
-    /// @copydoc ExactPredicates::orient2D
+    /// @copydoc ExactPredicates::incircle
     ///
     virtual short
     incircle(const double p1[2], const double p2[2], const double p3[2], const double p4[2]) const;
 
     ///
-    /// @copydoc ExactPredicates::orient2D
+    /// @copydoc ExactPredicates::insphere
     ///
     virtual short insphere(
         const double p1[3],

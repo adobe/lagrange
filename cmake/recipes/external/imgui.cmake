@@ -33,10 +33,12 @@ message(STATUS "Third-party (external): creating target 'imgui::imgui' ('docking
 block()
     set(BUILD_SHARED_LIBS OFF)
     include(CPM)
+    set(IMGUI_BACKEND_RENDERER "opengl3;null")
+    set(IMGUI_BACKEND_PLATFORM "glfw;null")
     CPMAddPackage(
         NAME imgui
         GITHUB_REPOSITORY adobe/imgui
-        GIT_TAG dff188effaa59c5c4d502868b96bd717207adb9c # docking_v1.91.5
+        GIT_TAG 8c63f38b165efed6b1ba7bc638b698ab4ca3f36b # docking_v1.92.8
     )
 endblock()
 

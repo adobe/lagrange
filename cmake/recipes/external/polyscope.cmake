@@ -24,16 +24,26 @@ include(glfw)
 include(imgui)
 include(nlohmann_json)
 include(glad)
+include(implot)
+include(imguizmo)
 
 block()
     include(CPM)
     set(BUILD_SHARED_LIBS OFF)
     CPMAddPackage(
         NAME polyscope
-        GITHUB_REPOSITORY nmwsharp/polyscope
-        GIT_TAG f0245f375f4585c0fdd5d57179c28f25aa03cf22
+        GITHUB_REPOSITORY jdumas/polyscope
+        GIT_TAG 3e57795adc4eefae5ec8c4a5afb03ef62e99c110 # jdumas/imgui: imgui 1.92.8 + AddRect fix + ImGuizmo -> nmwsharp@097e4da
     )
 endblock()
+
+# polyscope expects imgui::imgui to contains implot and imguizmo.
+# explicitly link them here to ensure proper build.
+target_link_libraries(polyscope
+    PUBLIC
+        implot::implot
+        imguizmo::imguizmo
+)
 
 add_library(polyscope::polyscope ALIAS polyscope)
 set_target_properties(polyscope PROPERTIES FOLDER third_party)

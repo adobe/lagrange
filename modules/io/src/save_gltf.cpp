@@ -118,6 +118,34 @@ std::vector<double> to_vec4(const Eigen::Vector4f& v)
     return {v(0), v(1), v(2), v(3)};
 }
 
+// glTF mimeType from an image uri's extension, for embedded images.
+std::string mime_type_from_uri(const fs::path& uri, bool quiet)
+{
+    const std::string ext = to_lower(uri.extension().string());
+    if (ext == ".jpg" || ext == ".jpeg") return "image/jpeg";
+    if (ext == ".png") return "image/png";
+    if (!quiet) {
+        logger().warn(
+            "Unrecognized image extension '{}', defaulting to 'image/png' for embedded image '{}'. "
+            "Consider changing the extension to .jpg or .png for better compatibility.",
+            ext,
+            uri.string());
+    }
+    return "image/png";
+}
+
+// Whether images will actually be embedded by the writer (see save_gltf below).
+bool effective_embed_images(const SaveOptions& options)
+{
+#if LAGRANGE_TARGET_COMPILER(EMSCRIPTEN)
+    // External image writes may silently fail on the Emscripten virtual filesystem; always embed.
+    (void)options;
+    return true;
+#else
+    return options.embed_images;
+#endif
+}
+
 void save_gltf(const fs::path& filename, const tinygltf::Model& model, const SaveOptions& options)
 {
     fs::path parent_dir = filename.parent_path();
@@ -148,14 +176,7 @@ void save_gltf(const fs::path& filename, const tinygltf::Model& model, const Sav
     constexpr bool embed_buffers = true;
     constexpr bool pretty_print = true;
 
-#if LAGRANGE_TARGET_COMPILER(EMSCRIPTEN)
-    // On Emscripten, writing external image files via tinygltf may silently fail on the virtual
-    // filesystem, producing a .glb/.gltf with unencoded raw pixel data that STB cannot decode on reload.
-    // Force embedding images when saving as binary .glb/.gltf to ensure a self-contained file.
-    bool embed_images = true;
-#else
-    bool embed_images = options.embed_images;
-#endif
+    const bool embed_images = effective_embed_images(options);
 
     bool success = loader.WriteGltfSceneToFile(
         &model,
@@ -717,7 +738,8 @@ LA_SIMPLE_SCENE_X(save_simple_scene_gltf, 0);
 template <typename Scalar, typename Index>
 tinygltf::Model lagrange_scene_to_gltf_model(
     const scene::Scene<Scalar, Index>& lscene,
-    const SaveOptions& options)
+    const SaveOptions& options,
+    bool embed_images)
 {
     // https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.html
 
@@ -853,10 +875,15 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             image.bits = static_cast<int>(lbuffer.get_bits_per_element());
             std::copy(lbuffer.data.begin(), lbuffer.data.end(), std::back_inserter(image.image));
 
-            if (!limage.uri.empty()) {
+            // When embedding, tinygltf base64-encodes the pixels into a `data:`
+            // URI and picks the encoder from `mimeType`, so set the mimeType and
+            // drop the source uri (otherwise the writer can fall back to it and
+            // emit a dangling external reference). Carry the uri over only when
+            // NOT embedding. `embed_images` is the writer's effective value.
+            if (!limage.uri.empty() && !embed_images) {
                 image.uri = limage.uri.string();
             } else {
-                image.mimeType = "image/png";
+                image.mimeType = mime_type_from_uri(limage.uri, options.quiet);
             }
 
             if (!limage.extensions.empty()) {
@@ -1049,7 +1076,10 @@ void save_scene_gltf(
     const scene::Scene<Scalar, Index>& lscene,
     const SaveOptions& options)
 {
-    auto model = lagrange_scene_to_gltf_model<Scalar, Index>(lscene, options);
+    auto model = lagrange_scene_to_gltf_model<Scalar, Index>(
+        lscene,
+        options,
+        effective_embed_images(options));
     save_gltf(filename, model, options);
 }
 template <typename Scalar, typename Index>
@@ -1058,7 +1088,10 @@ void save_scene_gltf(
     const scene::Scene<Scalar, Index>& lscene,
     const SaveOptions& options)
 {
-    auto model = lagrange_scene_to_gltf_model<Scalar, Index>(lscene, options);
+    // Writing to a stream always embeds images (tinygltf cannot emit external
+    // image files to a stream), so `uri` must always be dropped here.
+    auto model =
+        lagrange_scene_to_gltf_model<Scalar, Index>(lscene, options, /*embed_images=*/true);
     save_gltf(output_stream, model, options);
 }
 

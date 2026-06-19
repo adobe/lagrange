@@ -48,7 +48,7 @@ class TestRemoveOccluded:
         scene = lagrange.scene.mesh_to_simple_scene(cube_triangular)
         lagrange.raycasting.remove_occluded_facets(scene, num_rays=10000)
         with pytest.raises(TypeError):
-            lagrange.raycasting.remove_occluded_facets(scene, 10000)
+            lagrange.raycasting.remove_occluded_facets(scene, 10000)  # ty: ignore[too-many-positional-arguments]
 
 
 # ---------------------------------------------------------------------------

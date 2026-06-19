@@ -199,6 +199,16 @@ auto register_attribute(
         break;
     case lagrange::AttributeElement::Edge:
         if constexpr (IsMesh) {
+            if (ps_struct->edgePerm.empty()) {
+                // Polyscope's edge ordering wasn't set (e.g. mesh isn't triangular), so we cannot
+                // register edge-valued data. Emit a specific warning here so the user isn't misled
+                // by the generic "unsupported attribute" message in the caller.
+                lagrange::logger().warn(
+                    "Skipping edge attribute '{}': polyscope edge ordering is unavailable "
+                    "(edges are only ordered for triangle meshes).",
+                    name);
+                break;
+            }
             if (attr.get_usage() == Usage::Scalar) {
                 lagrange::logger().info("Registering scalar edge attribute: {}", name);
                 return ps_struct->addEdgeScalarQuantity(name, vector_view(attr), scalar_data_type);

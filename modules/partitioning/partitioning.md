@@ -7,6 +7,7 @@ Partitioning Module
 @defgroup module-partitioning Partitioning Module
 @brief Mesh partitioning using METIS.
 
-### Quick links
+Quick links
+-----------
 
-- [partition_mesh_vertices ](@ref lagrange::partitioning::partition_mesh_vertices )
+- [partition_mesh_vertices](@ref lagrange::partitioning::partition_mesh_vertices)

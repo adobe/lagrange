@@ -40,7 +40,7 @@ struct RemoveDuplicateFacetOptions
 /// @tparam Scalar              Mesh scalar type
 /// @tparam Index               Mesh index type
 ///
-/// @paramp[in,out] mesh        Input mesh
+/// @param[in,out] mesh         Input mesh
 /// @param[in]      opts        Options
 ///
 /// @note If `opts.consider_orientation` is false, facets with opposite orientations (e.g. (0, 1, 2)

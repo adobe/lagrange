@@ -229,3 +229,5 @@ internal::SparseRange<T> range_sparse(T /*max*/, std::vector<T>&& /*active*/) = 
 /// @endcond
 
 } // namespace lagrange
+
+/// @}

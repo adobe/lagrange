@@ -20,6 +20,7 @@
 #include <lagrange/python/binding.h>
 #include <lagrange/python/bvh.h>
 #include <lagrange/python/eigen_utils.h>
+#include <lagrange/python/utils/StubType.h>
 
 #include "PyEdgeAABBTree.h"
 
@@ -27,6 +28,11 @@ namespace nb = nanobind;
 using namespace nb::literals;
 
 namespace lagrange::python {
+
+// Renders the dynamically-built `UVOverlapResult` NamedTuple (a runtime nb::object)
+// with the right stub type. TODO: retire once nanobind supports NamedTuple directly.
+LA_STUB_HINT(UVOverlapResultHint, "UVOverlapResult");
+using UVOverlapResultObject = StubType<nb::object, UVOverlapResultHint>;
 
 void populate_bvh_module(nb::module_& m)
 {
@@ -508,7 +514,7 @@ Both meshes must have the same spatial dimension and must be triangle meshes.
             bool compute_overlap_coloring,
             std::string overlap_coloring_attribute_name,
             bool compute_overlapping_pairs,
-            bvh::UVOverlapMethod method) -> nb::object {
+            bvh::UVOverlapMethod method) -> UVOverlapResultObject {
             bvh::UVOverlapOptions opts;
             opts.uv_attribute_name = std::move(uv_attribute_name);
             opts.compute_overlap_area = compute_overlap_area;
@@ -527,11 +533,11 @@ Both meshes must have the same spatial dimension and must be triangle meshes.
                 pairs.append(nb::make_tuple(i, j));
             }
 
-            return UVOverlapResult(
+            return UVOverlapResultObject{UVOverlapResult(
                 nb::cast(result.has_overlap),
                 area,
                 pairs,
-                nb::cast(result.overlap_coloring_id));
+                nb::cast(result.overlap_coloring_id))};
         },
         "mesh"_a,
         "uv_attribute_name"_a = bvh::UVOverlapOptions{}.uv_attribute_name,

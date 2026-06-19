@@ -81,7 +81,7 @@ struct RoundedPlaneConfig
 
     /// @}
     /// @name Output parameters.
-    /// @}
+    /// @{
     bool output_normals = true;
 
     /// @}

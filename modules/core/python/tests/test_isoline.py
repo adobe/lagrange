@@ -34,3 +34,21 @@ class TestIsoline:
         assert trimmed.num_vertices == 2
         assert trimmed.num_facets == 1
         assert trimmed.vertex_per_facet == 2
+
+    def test_insert(self, single_triangle):
+        mesh = single_triangle
+        id = mesh.create_attribute("value", "Vertex", "Scalar", np.array([0, 0, 1], dtype=float))
+        inserted = lagrange.insert_isoline(mesh, id, isovalue=0.5)
+        # Both sides are kept, so the triangle is split into a triangle and a quad.
+        assert inserted.num_facets == 2
+        assert inserted.num_vertices == 5
+
+    def test_keep_attributes(self, single_triangle):
+        mesh = single_triangle
+        id = mesh.create_attribute("value", "Vertex", "Scalar", np.array([0, 0, 1], dtype=float))
+        # By default attributes are propagated to the output.
+        kept = lagrange.trim_by_isoline(mesh, id, isovalue=0.5)
+        assert kept.has_attribute("value")
+        # When disabled, only vertex positions are retained.
+        stripped = lagrange.trim_by_isoline(mesh, id, isovalue=0.5, keep_attributes=False)
+        assert not stripped.has_attribute("value")
