@@ -17,9 +17,7 @@
 namespace lagrange {
 
 ///
-/// @defgroup group-utils Utilites
-/// @ingroup module-core
-///
+/// @addtogroup group-utils
 /// @{
 
 /// Bit field utility class.

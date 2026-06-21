@@ -23,7 +23,7 @@ import logging
 import platform
 import sys
 
-import colorama  # type: ignore
+import colorama
 import lagrange.scripts.meshstat as meshstat
 
 

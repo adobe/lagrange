@@ -19,7 +19,7 @@
 namespace lagrange {
 
 ///
-/// @defgroup group-surfacemesh-utils Mesh utility functions
+/// @defgroup group-surfacemesh-utils Mesh utilities
 /// @ingroup group-surfacemesh
 ///
 /// Various attribute and mesh processing utilities

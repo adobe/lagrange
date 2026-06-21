@@ -95,8 +95,8 @@ void add_semantic_label(
 template <typename Scalar, typename Index>
 void normalize_uv(
     SurfaceMesh<Scalar, Index>& mesh,
-    Eigen::Matrix<Scalar, 1, 2> min_uv,
-    Eigen::Matrix<Scalar, 1, 2> max_uv)
+    const Eigen::Matrix<Scalar, 1, 2>& min_uv,
+    const Eigen::Matrix<Scalar, 1, 2>& max_uv)
 {
     auto uv_mesh = uv_mesh_ref(mesh);
     auto uvs = vertex_ref(uv_mesh);

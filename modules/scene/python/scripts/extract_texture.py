@@ -54,10 +54,12 @@ def main():
             assert instance.mesh != lagrange.invalid_index
             for mat_id in instance.materials:
                 mat = scene.materials[mat_id]
-                if mat.base_color_texture.index != lagrange.invalid_index:
-                    tex = scene.textures[mat.base_color_texture.index]
-                    assert tex.image != lagrange.invalid_index
-                    img = scene.images[tex.image]
+                texture_index = mat.base_color_texture.index
+                if texture_index is not None and texture_index != lagrange.invalid_index:
+                    tex = scene.textures[texture_index]
+                    image_index = tex.image
+                    assert image_index is not None and image_index != lagrange.invalid_index
+                    img = scene.images[image_index]
                     if len(img.image.data) != 0:
                         texture_filename = output_filename.with_suffix(".png").with_stem(
                             f"{basename}_{texture_count:03}"

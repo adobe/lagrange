@@ -48,7 +48,7 @@ if(WIN32)
     CPMAddPackage(
         NAME windowstoolchain
         GIT_REPOSITORY https://github.com/MarkSchofield/WindowsToolchain.git
-        GIT_TAG        v0.13.0
+        GIT_TAG        v0.14.0
         QUIET
         DOWNLOAD_ONLY ON
     )

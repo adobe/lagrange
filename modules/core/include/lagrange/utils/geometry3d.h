@@ -97,6 +97,7 @@ Scalar projected_angle_between(
 ///
 /// Returns the vector from v1 to v2
 ///
+/// @param[in] mesh the mesh providing the vertex positions.
 /// @param[in] v1 first vertex index (from).
 /// @param[in] v2 second vertex index (to)
 ///

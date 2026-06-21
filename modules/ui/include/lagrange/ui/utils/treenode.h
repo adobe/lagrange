@@ -33,20 +33,20 @@ LA_UI_API Entity create_scene_node(
 /// @param recursive removes all children recursively
 LA_UI_API void remove(Registry& r, Entity e, bool recursive = false);
 
-/// @brief Sets new_parent as as child's new parent. Both must have <Tree> component.
+/// @brief Sets new_parent as the child's new parent. Both must have `<Tree>` component.
 /// @param registry
-/// @param Entity child
-/// @param Entity new_parent
+/// @param child
+/// @param new_parent
 LA_UI_API void set_parent(Registry& registry, Entity child, Entity new_parent);
 
-/// @brief  Returns parent of e. Must have <Tree> component.
+/// @brief  Returns parent of e. Must have `<Tree>` component.
 ///         Returns NullEntity if e is top-level.
 /// @param registry
 /// @param e
 /// @return
 LA_UI_API Entity get_parent(const Registry& registry, Entity e);
 
-/// @brief  Returns all children of e. Must have <Tree> component.
+/// @brief  Returns all children of e. Must have `<Tree>` component.
 ///         Note: causes dynamic allocation. Use lagrange::ui::foreach_child to iterate children efficiently.
 /// @param registry
 /// @param e

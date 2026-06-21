@@ -17,7 +17,7 @@
 namespace lagrange {
 namespace ui {
 
-/// Sets <Hovered> component if the mesh is hovered a ViewportPanel.
+/// Sets `<Hovered>` component if the mesh is hovered in a ViewportPanel.
 /// See SelectionContext and default_tools for details
 LA_UI_API void update_mesh_hovered(Registry& ctx);
 

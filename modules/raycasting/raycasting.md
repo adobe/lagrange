@@ -7,13 +7,14 @@ Raycasting Module
 @defgroup module-raycasting Raycasting Module
 @brief Raycasting operations.
 
-### Quick links
+Quick links
+-----------
 
-- [create_ray_caster](@ref lagrange::raycasting::create_ray_caster)
 - [RayCaster](@ref lagrange::raycasting::RayCaster)
-    - [EmbreeRayCaster](@ref lagrange::raycasting::EmbreeRayCaster)
-- [project_attributes](@ref lagrange::raycasting::project_attributes)
-    - [project_attributes_closest_point](@ref lagrange::raycasting::project_attributes_closest_point)
-    - [project_attributes_directional](@ref lagrange::raycasting::project_attributes_directional)
-    - [project_attributes_closest_vertex](@ref lagrange::bvh::project_attributes_closest_vertex)
+- [project](@ref lagrange::raycasting::project)
+  - [project_closest_point](@ref lagrange::raycasting::project_closest_point)
+  - [project_closest_vertex](@ref lagrange::raycasting::project_closest_vertex)
+  - [project_directional](@ref lagrange::raycasting::project_directional)
 - [compute_local_feature_size](@ref lagrange::raycasting::compute_local_feature_size)
+- [remove_occluded_facets](@ref lagrange::raycasting::remove_occluded_facets)
+- [remove_occluded_instances](@ref lagrange::raycasting::remove_occluded_instances)

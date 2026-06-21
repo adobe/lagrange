@@ -58,6 +58,7 @@
 #include <fonts/fontawesome6.h>
 #include <imgui.h>
 #include <imgui_internal.h> //todo move dock stuff to uiwindow system
+#include <imgui_spectrum.h>
 #include <misc/cpp/imgui_stdlib.h>
 
 #include <stdio.h>
@@ -554,7 +555,7 @@ void Viewer::render_one_frame(const std::function<bool(Registry&)>& main_loop)
     m_systems.run(Systems::Stage::Post, registry());
 }
 
-bool Viewer::run(const std::function<bool(Registry&)>& main_loop)
+bool Viewer::run(const std::function<bool(Registry& r)>& main_loop)
 {
     if (!is_initialized()) return false;
 
@@ -890,8 +891,6 @@ bool Viewer::init_imgui_fonts()
         &icons_config,
         icons_ranges);
 
-    io.Fonts->Build();
-
     return font_awesome != nullptr;
 }
 
@@ -998,9 +997,8 @@ void Viewer::start_imgui_frame()
 
     // Set up ui scaling
     {
-        auto& io = ImGui::GetIO();
-        io.FontGlobalScale = 0.5f * m_ui_scaling; // divide by two since we're oversampling
         auto& style = ImGui::GetStyle();
+        style.FontScaleMain = 0.5f * m_ui_scaling; // divide by two since we're oversampling
 
         ImGui::PushStyleVar(
             ImGuiStyleVar_FramePadding,

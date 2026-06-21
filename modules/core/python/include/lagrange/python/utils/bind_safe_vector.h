@@ -15,6 +15,18 @@
 
 #include <type_traits>
 
+// `def_rw` extra that widens a `bind_safe_vector` member's setter stub. nanobind
+// types the generated setter as the exact bound list type, which rejects a plain
+// Python sequence (even though `bind_safe_vector` registers an `iterable`
+// conversion, so it works at runtime). Pass as an extra to `def_rw`:
+//
+//   .def_rw("materials", &T::materials, doc,
+//           LA_SAFE_VECTOR_SETTER("materials", "collections.abc.Sequence[int]"))
+//
+// `prop` must match the property name and `arg_type` is the widened argument type.
+#define LA_SAFE_VECTOR_SETTER(prop, arg_type) \
+    nanobind::for_setter(nanobind::sig("def " prop "(self, arg: " arg_type ", /) -> None"))
+
 NAMESPACE_BEGIN(NB_NAMESPACE)
 
 template <typename Vector, rv_policy Policy = rv_policy::automatic_reference, typename... Args>

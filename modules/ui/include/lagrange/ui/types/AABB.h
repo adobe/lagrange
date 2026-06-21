@@ -61,8 +61,8 @@ public:
     AABB transformed(const Eigen::Affine3f& transform) const;
 
     bool intersects_ray(
-        Eigen::Vector3f origin,
-        Eigen::Vector3f dir,
+        const Eigen::Vector3f& origin,
+        const Eigen::Vector3f& dir,
         float* tmin_out = nullptr,
         float* tmax_out = nullptr) const;
 

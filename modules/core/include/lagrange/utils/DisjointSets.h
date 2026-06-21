@@ -73,7 +73,7 @@ public:
      * Merge the disjoint set containing entry `i` and the disjoint set containing entry `j`.
      *
      * @param[in] i  Entry index i.
-     * @param[in] i  Entry index j.
+     * @param[in] j  Entry index j.
      *
      * @return The root entry index of the merged set.
      */

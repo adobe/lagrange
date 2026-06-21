@@ -25,9 +25,10 @@ namespace ui {
 namespace utils {
 namespace render {
 
-std::pair<Eigen::Vector3f, Eigen::Vector3f> compute_perpendicular_plane(Eigen::Vector3f direction)
+std::pair<Eigen::Vector3f, Eigen::Vector3f> compute_perpendicular_plane(
+    const Eigen::Vector3f& direction)
 {
-    Eigen::Vector3f& u1 = direction;
+    const Eigen::Vector3f& u1 = direction;
     Eigen::Vector3f v2;
 
     if (std::abs(direction.x()) == 1.0f && direction.y() == 0.0f && direction.z() == 0.0f) {

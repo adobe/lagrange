@@ -17,24 +17,31 @@ namespace lagrange {
 
 namespace internal {
 
-bool point_on_segment_2d(Eigen::Vector2d p, Eigen::Vector2d a, Eigen::Vector2d b)
+bool point_on_segment_2d(
+    const Eigen::Vector2d& p,
+    const Eigen::Vector2d& a,
+    const Eigen::Vector2d& b)
 {
     ExactPredicatesShewchuk pred;
     auto res = pred.orient2D(p.data(), a.data(), b.data());
     if (res != 0) {
         return false;
     }
-    if (a.x() > b.x()) {
-        std::swap(a.x(), b.x());
+    double ax = a.x(), ay = a.y();
+    double bx = b.x(), by = b.y();
+    if (ax > bx) {
+        std::swap(ax, bx);
     }
-    if (a.y() > b.y()) {
-        std::swap(a.y(), b.y());
+    if (ay > by) {
+        std::swap(ay, by);
     }
-    auto ret = (a.x() <= p.x() && p.x() <= b.x() && a.y() <= p.y() && p.y() <= b.y());
-    return ret;
+    return (ax <= p.x() && p.x() <= bx && ay <= p.y() && p.y() <= by);
 }
 
-bool point_on_segment_3d(Eigen::Vector3d p, Eigen::Vector3d a, Eigen::Vector3d b)
+bool point_on_segment_3d(
+    const Eigen::Vector3d& p,
+    const Eigen::Vector3d& a,
+    const Eigen::Vector3d& b)
 {
     for (int d = 0; d < 3; ++d) {
         Eigen::Vector2d p2d(p(d), p((d + 1) % 3));

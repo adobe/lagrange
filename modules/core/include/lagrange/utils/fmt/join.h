@@ -198,6 +198,8 @@ struct std::formatter<lagrange::fmt_detail::tuple_join_view<Tuple>, char>
 // `fmt::format`).
 #if !defined(SPDLOG_USE_STD_FORMAT)
 
+/// @cond LA_INTERNAL_DOCS
+
 template <typename Range>
 struct fmt::formatter<lagrange::fmt_detail::range_join_view<Range>, char>
 {
@@ -240,5 +242,7 @@ struct fmt::formatter<lagrange::fmt_detail::tuple_join_view<Tuple>, char>
         });
     }
 };
+
+/// @endcond
 
 #endif // !defined(SPDLOG_USE_STD_FORMAT)

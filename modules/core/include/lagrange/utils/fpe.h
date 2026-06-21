@@ -19,12 +19,12 @@ namespace lagrange {
 /// @{
 
 ///
-/// Enable floating-point exceptions (useful for debugging)..
+/// Enable floating-point exceptions (useful for debugging).
 ///
 LA_CORE_API void enable_fpe();
 
 ///
-/// Disable previously-enabled fpe..
+/// Disable previously-enabled fpe.
 ///
 LA_CORE_API void disable_fpe();
 

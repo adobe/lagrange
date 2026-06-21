@@ -59,7 +59,7 @@ void unflip_uv_triangles(SurfaceMesh<Scalar, Index>& mesh, const UnflipUVOptions
     };
 
     std::vector<Scalar> additional_uv_values;
-    auto update_uv = [&](Index fid, Index lv, Eigen::Matrix<Scalar, 1, 2> new_uv) {
+    auto update_uv = [&](Index fid, Index lv, const Eigen::Matrix<Scalar, 1, 2>& new_uv) {
         additional_uv_values.insert(additional_uv_values.end(), new_uv.data(), new_uv.data() + 2);
         Index old_id = uv_indices(fid, lv);
         uv_indices(fid, lv) = static_cast<Index>(uv_values_attr.get_num_elements()) +

@@ -36,6 +36,7 @@ struct lambda_helper<Result (F::*)(Args...) const>
 
 namespace util {
 
+/// @cond LA_INTERNAL_DOCS
 template <class T>
 struct AsFunction : public AsFunction<decltype(&T::operator())>
 {
@@ -58,6 +59,7 @@ struct AsFunction<ReturnType(Arg) const>
 {
     using arg_type = Arg;
 };
+/// @endcond
 
 } // namespace util
 

@@ -32,9 +32,9 @@ LA_UI_API void end_panel(UIPanel& panel);
 
 /// @brief Adds window that executed given imgui_code. Imgui begin/end is called for you, do not
 /// call it inside the imgui_code.
-/// @param registry
+/// @param r
 /// @param title
-/// @param imgui_code
+/// @param body_fn
 /// @return window entity
 LA_UI_API Entity
 add_panel(Registry& r, const std::string& title, const std::function<void(void)>& body_fn);
@@ -52,7 +52,7 @@ LA_UI_API void toggle_panel(Registry& r, Entity e);
 
 
 /// @brief Returns global window size
-/// @param registry
+/// @param r
 /// @return
 LA_UI_API const WindowSize& get_window_size(const Registry& r);
 

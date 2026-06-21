@@ -49,3 +49,37 @@ class TestTransformMesh:
         expected_normals = orig_normals[:, [1, 2, 0]]
         normals = mesh.attribute(normal_attr_id).data
         assert np.allclose(normals, expected_normals)
+
+    def test_reorient(self, single_triangle):
+        # Reflection along the x-axis: negative determinant.
+        M = np.diag([-1.0, 1.0, 1.0, 1.0])
+        assert np.linalg.det(M[:3, :3]) < 0
+
+        # reorient=True flips facet winding and reorients the facet normal.
+        mesh = single_triangle
+        normal_attr_id = lagrange.compute_facet_normal(mesh)
+        orig_facets = mesh.facets.copy()
+
+        lagrange.transform_mesh(mesh, M, reorient=True)
+
+        # Facet winding is reversed (the triangle's vertex order is flipped).
+        assert np.all(mesh.facets[0] == orig_facets[0][::-1])
+
+        # The stored normal matches a freshly recomputed normal of the
+        # reflected mesh, i.e. it is consistent with the flipped winding.
+        stored_normals = mesh.attribute(normal_attr_id).data.copy()
+        recomputed_attr_id = lagrange.compute_facet_normal(mesh)
+        recomputed_normals = mesh.attribute(recomputed_attr_id).data
+        assert np.allclose(stored_normals, recomputed_normals)
+
+    def test_no_reorient(self, single_triangle):
+        # Reflection along the x-axis: negative determinant.
+        M = np.diag([-1.0, 1.0, 1.0, 1.0])
+
+        # reorient=False (the default) leaves facet winding untouched.
+        mesh = single_triangle
+        orig_facets = mesh.facets.copy()
+
+        lagrange.transform_mesh(mesh, M)
+
+        assert np.all(mesh.facets == orig_facets)

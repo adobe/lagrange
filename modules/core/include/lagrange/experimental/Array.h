@@ -152,6 +152,7 @@ public:
     /**
      * Using index function for row mapping.
      *
+     * @param num_rows:   Number of rows in the output array.
      * @param mapping_fn: An index mapping function:
      *                    input_row_index = mapping_fn(output_row_index)).
      */
@@ -161,6 +162,7 @@ public:
     /**
      * This is the most generic version of row_slice method.
      *
+     * @param num_rows:   Number of rows in the output array.
      * @param mapping_fn: A mapping function that maps each output row index to
      *                    a vector of (input_row_index, weight).
      */

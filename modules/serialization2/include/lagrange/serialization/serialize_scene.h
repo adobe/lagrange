@@ -22,7 +22,7 @@
 
 namespace lagrange::serialization {
 
-/// @addtogroup group-serialization2
+/// @addtogroup module-serialization2
 /// @{
 
 ///

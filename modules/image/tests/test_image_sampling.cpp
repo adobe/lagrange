@@ -17,6 +17,8 @@
 #include <lagrange/image/image_sampling.h>
 #include <lagrange/utils/range.h>
 
+/// @cond LA_INTERNAL_DOCS
+
 namespace {
 template <typename MatrixA, typename MatrixB>
 void is_same(const MatrixA& A, const MatrixB& B)
@@ -102,3 +104,5 @@ TEST_CASE("Sample borders (density)", "[image]" LA_CORP_FLAG)
 
     is_same(samples, gt_samples);
 }
+
+/// @endcond

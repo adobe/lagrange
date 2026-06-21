@@ -88,7 +88,8 @@ void bind_simple_scene(nb::module_& m)
             R"(4x4 transformation matrix for this instance.
 
 The transformation matrix is stored in column-major order. Both row-major and column-major
-input tensors are supported for setting the transform.)");
+input tensors are supported for setting the transform.)",
+            nb::for_setter(nb::sig("def transform(self, arg: numpy.typing.ArrayLike, /) -> None")));
 
     using SimpleScene3D = lagrange::scene::SimpleScene<Scalar, Index, 3>;
     nb::class_<SimpleScene3D>(m, "SimpleScene3D", "Simple scene container for instanced meshes")
@@ -178,41 +179,53 @@ input tensors are supported for setting the transform.)");
         [](const SimpleScene3D& scene,
            bool normalize_normals,
            bool normalize_tangents_bitangents,
+           bool reorient,
            bool preserve_attributes) {
             TransformOptions transform_options;
             transform_options.normalize_normals = normalize_normals;
             transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            transform_options.reorient = reorient;
             return scene::simple_scene_to_mesh(scene, transform_options, preserve_attributes);
         },
         "scene"_a,
+        nb::kw_only(),
         "normalize_normals"_a = TransformOptions{}.normalize_normals,
         "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        "reorient"_a = TransformOptions{}.reorient,
         "preserve_attributes"_a = true,
         R"(Converts a scene into a concatenated mesh with all the transforms applied.
 
 :param scene: Scene to convert.
 :param normalize_normals: If enabled, normals are normalized after transformation.
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+:param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 :param preserve_attributes: Preserve shared attributes and map them to the output mesh.
 
 :return: Concatenated mesh.)");
 
     m.def(
         "simple_scene_to_meshes",
-        [](const SimpleScene3D& scene, bool normalize_normals, bool normalize_tangents_bitangents) {
+        [](const SimpleScene3D& scene,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents,
+           bool reorient) {
             TransformOptions transform_options;
             transform_options.normalize_normals = normalize_normals;
             transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            transform_options.reorient = reorient;
             return scene::simple_scene_to_meshes(scene, transform_options);
         },
         "scene"_a,
+        nb::kw_only(),
         "normalize_normals"_a = TransformOptions{}.normalize_normals,
         "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        "reorient"_a = TransformOptions{}.reorient,
         R"(Converts a scene into a list of meshes with all the transforms applied.
 
 :param scene: Scene to convert.
 :param normalize_normals: If enabled, normals are normalized after transformation.
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+:param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 
 :return: List of transformed meshes.)");
 

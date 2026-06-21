@@ -783,7 +783,7 @@ ShaderValue::set_matrices(const Eigen::Affine3f* data, int n, bool transpose /*=
 ShaderValue ShaderValue::none = {-1, 0, 0, SHADER_INTERFACE_NONE};
 
 
-const ShaderValue& ShaderValue::operator=(Eigen::Vector2f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Vector2f& val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_VEC2);
@@ -797,7 +797,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Vector2f val) const
     return *this;
 }
 
-const ShaderValue& ShaderValue::operator=(Eigen::Vector3f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Vector3f& val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_VEC3);
@@ -811,7 +811,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Vector3f val) const
     return *this;
 }
 
-const ShaderValue& ShaderValue::operator=(Eigen::Vector4f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Vector4f& val) const
 {
     if (location == -1) return *this;
 
@@ -837,7 +837,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Vector4f val) const
     return *this;
 }
 
-const ShaderValue& ShaderValue::operator=(Eigen::Matrix2f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Matrix2f& val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_MAT2 && shaderInterface == SHADER_INTERFACE_UNIFORM);
@@ -845,7 +845,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Matrix2f val) const
     return *this;
 }
 
-const ShaderValue& ShaderValue::operator=(Eigen::Matrix3f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Matrix3f& val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_MAT3 && shaderInterface == SHADER_INTERFACE_UNIFORM);
@@ -853,7 +853,7 @@ const ShaderValue& ShaderValue::operator=(Eigen::Matrix3f val) const
     return *this;
 }
 
-const ShaderValue& ShaderValue::operator=(Eigen::Matrix4f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Matrix4f& val) const
 {
     if (location == -1) return *this;
     assert(type == GL_FLOAT_MAT4 && shaderInterface == SHADER_INTERFACE_UNIFORM);
@@ -861,13 +861,13 @@ const ShaderValue& ShaderValue::operator=(Eigen::Matrix4f val) const
     return *this;
 }
 
-const ShaderValue& ShaderValue::operator=(Eigen::Affine3f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Affine3f& val) const
 {
     // defer to Matrix4f
     return ((*this) = val.matrix());
 }
 
-const ShaderValue& ShaderValue::operator=(Eigen::Projective3f val) const
+const ShaderValue& ShaderValue::operator=(const Eigen::Projective3f& val) const
 {
     // defer to Matrix4f
     return ((*this) = val.matrix());

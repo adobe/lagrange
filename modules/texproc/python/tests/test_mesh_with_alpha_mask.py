@@ -33,11 +33,15 @@ def load_alpha_data(scene_path: Path):
     assert material.alpha_mode == lagrange.scene.Material.AlphaMode.Blend
     assert material.alpha_cutoff >= 0.0
     assert material.alpha_cutoff <= 1.0
-    image = scene.images[material.base_color_texture.index].image.data
+    base_color_index = material.base_color_texture.index
+    assert base_color_index is not None
+    image = scene.images[base_color_index].image.data
     assert image.shape[2] == 4
 
     # retrieve mesh
-    mesh = scene.meshes[instance.mesh]
+    mesh_index = instance.mesh
+    assert mesh_index is not None
+    mesh = scene.meshes[mesh_index]
     texcoord_id = mesh.get_attribute_id(f"texcoord_{material.base_color_texture.texcoord}")
     lagrange.cast_attribute(mesh, texcoord_id, np.float64)
     assert mesh.is_attribute_indexed(texcoord_id)

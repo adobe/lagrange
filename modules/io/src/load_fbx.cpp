@@ -32,7 +32,9 @@
 #include <lagrange/scene/SimpleSceneTypes.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/scene/simple_scene_convert.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/utils/utils.h>
 #include <lagrange/utils/warning.h>
@@ -295,7 +297,15 @@ UfbxScene load_ufbx(const fs::path& filename)
     ufbx_error error{};
 
 
-    return ufbx_load_file(filename_s.c_str(), &opts, &error);
+    ufbx_scene* scene = ufbx_load_file(filename_s.c_str(), &opts, &error);
+    if (!scene) {
+        throw Error(
+            lagrange::format(
+                "Failed to load FBX file '{}': {}",
+                filename.string(),
+                error.description.data));
+    }
+    return UfbxScene(scene);
 }
 
 UfbxScene load_ufbx(std::istream& input_stream)
@@ -306,7 +316,12 @@ UfbxScene load_ufbx(std::istream& input_stream)
     ufbx_load_opts opts = create_load_opts();
     ufbx_error error{};
 
-    return ufbx_load_memory(data.data(), data.size(), &opts, &error);
+    ufbx_scene* scene = ufbx_load_memory(data.data(), data.size(), &opts, &error);
+    if (!scene) {
+        throw Error(
+            lagrange::format("Failed to load FBX data from stream: {}", error.description.data));
+    }
+    return UfbxScene(scene);
 }
 
 template <typename SceneType>

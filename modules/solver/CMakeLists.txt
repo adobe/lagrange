@@ -21,13 +21,17 @@ if(NOT EMSCRIPTEN AND (NOT LAGRANGE_NO_INTERNAL OR NOT SKBUILD))
     # Note: For now we avoid using MKL in our open-source Python bindings, to avoid bloating up the size of
     # the uploaded wheels. The long-term solution is to depend on the PyPI package for MKL at build-time.
 
-    include(blas) # Accelerate on macOS, MKL on other platforms
-    if(APPLE)
-        target_compile_definitions(lagrange_solver INTERFACE LA_SOLVER_ACCELERATE)
-    else()
-        target_compile_definitions(lagrange_solver INTERFACE LA_SOLVER_MKL)
+    # Intel MKL has no Windows ARM64 support; fall back to Eigen's SimplicialLDLT on that platform
+    # (DirectSolver.h uses SimplicialLDLT when LA_SOLVER_MKL is not defined).
+    if(NOT (WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64"))
+        include(blas) # Accelerate on macOS, MKL on other platforms
+        if(APPLE)
+            target_compile_definitions(lagrange_solver INTERFACE LA_SOLVER_ACCELERATE)
+        else()
+            target_compile_definitions(lagrange_solver INTERFACE LA_SOLVER_MKL)
+        endif()
+        target_link_libraries(lagrange_solver INTERFACE BLAS::BLAS)
     endif()
-    target_link_libraries(lagrange_solver INTERFACE BLAS::BLAS)
 endif()
 
 if(USE_SANITIZER MATCHES "([Tt]hread)")

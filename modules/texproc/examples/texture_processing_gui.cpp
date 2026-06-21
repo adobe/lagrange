@@ -40,6 +40,8 @@
 #include <lagrange/utils/fmt/format.h>
 // clang-format on
 
+#include <imgui_spectrum.h>
+
 #include <CLI/CLI.hpp>
 
 using SurfaceMesh = lagrange::SurfaceMesh32d;

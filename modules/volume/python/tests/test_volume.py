@@ -13,8 +13,11 @@ import lagrange
 from lagrange.volume import Grid
 import numpy as np
 import tempfile
+from typing import Literal
 from pathlib import Path
 import pytest
+
+GRID_TYPES: tuple[Literal["vdb", "nvdb"], ...] = ("vdb", "nvdb")
 
 
 class TestMeshToVolume:
@@ -70,7 +73,7 @@ class TestMeshToVolume:
         mesh = cube.clone()
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir = Path(tmp_dir)
-            for ext in ["vdb", "nvdb"]:
+            for ext in GRID_TYPES:
                 for comp in [
                     lagrange.volume.Compression.Uncompressed,
                     lagrange.volume.Compression.Zip,
@@ -288,7 +291,7 @@ class TestMeshToVolume:
 
     def test_dense(self, cube):
         mesh = cube.clone()
-        for ext in ["vdb", "nvdb"]:
+        for ext in GRID_TYPES:
             for comp in [
                 lagrange.volume.Compression.Uncompressed,
                 lagrange.volume.Compression.Zip,

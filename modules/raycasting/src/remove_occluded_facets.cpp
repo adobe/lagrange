@@ -245,6 +245,7 @@ struct OccludedFacetSampler<Scalar, Index>::Impl
     }
 };
 
+/// @cond LA_INTERNAL_DOCS
 template <typename Scalar, typename Index>
 OccludedFacetSampler<Scalar, Index>::OccludedFacetSampler(
     const scene::SimpleScene<Scalar, Index, 3>& scene,
@@ -330,6 +331,7 @@ OccludedFacetSampler<Scalar, Index>::OccludedFacetSampler(
     m_impl->m_ray_caster.add_scene(std::move(occluder_scene));
     m_impl->m_ray_caster.commit_updates();
 }
+/// @endcond
 
 template <typename Scalar, typename Index>
 OccludedFacetSampler<Scalar, Index>::~OccludedFacetSampler() = default;

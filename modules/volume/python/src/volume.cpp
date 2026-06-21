@@ -406,8 +406,8 @@ void populate_volume_module(nb::module_& m)
 
 :returns: Memory buffer (bytes).)",
         nb::sig(
-            "def to_buffer(ext: typing.Literal['vdb', 'nvdb'], compression: Compression = "
-            "Compression.Blosc) -> bytes"));
+            "def to_buffer(self, grid_type: typing.Literal['vdb', 'nvdb'], compression: "
+            "Compression = Compression.Blosc) -> bytes"));
 
     //////////////////////////////////////////////
     // RW properties

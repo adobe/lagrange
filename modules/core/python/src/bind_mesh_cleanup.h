@@ -24,6 +24,7 @@
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/resolve_vertex_nonmanifoldness.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
+#include <lagrange/mesh_cleanup/split_obtuse_triangles.h>
 #include <lagrange/python/binding.h>
 
 #include <vector>
@@ -197,6 +198,38 @@ E.g. quad (0,0,1,1) is degenerate, while (1,1,2,3) is not.
                                 If None, all edges are considered.
 :param edge_length_attribute: Edge length attribute name.
                               If None, edge lengths are computed.
+)");
+
+    m.def(
+        "split_obtuse_triangles",
+        [](MeshType& mesh,
+           float max_angle,
+           size_t max_iterations,
+           std::optional<std::string_view> active_region_attribute) {
+            SplitObtuseTrianglesOptions opts;
+            opts.max_angle = max_angle;
+            opts.max_iterations = max_iterations;
+            if (active_region_attribute.has_value())
+                opts.active_region_attribute = active_region_attribute.value();
+            return split_obtuse_triangles(mesh, std::move(opts));
+        },
+        "mesh"_a,
+        nb::kw_only(),
+        "max_angle"_a = SplitObtuseTrianglesOptions().max_angle,
+        "max_iterations"_a = SplitObtuseTrianglesOptions().max_iterations,
+        "active_region_attribute"_a = nb::none(),
+        R"(Iteratively split obtuse triangles by splitting their longest edge at the
+projection of the obtuse vertex.
+
+:param mesh: Input mesh (modified in place).
+:param max_angle: Maximum allowed interior angle in radians. Triangles with any interior
+                  angle strictly greater than this value are split. Default is pi/2.
+:param max_iterations: Maximum number of split passes. Use 0 to iterate until convergence.
+:param active_region_attribute: Optional facet attribute name (uint8_t) restricting which
+                                facets are considered. If None, all facets are checked.
+
+:returns: Total number of triangle splits performed across all iterations (a triangle
+          re-split in a later iteration is counted again).
 )");
 
     m.def(

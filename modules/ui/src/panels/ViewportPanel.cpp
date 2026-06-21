@@ -33,6 +33,7 @@
 
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
+#include <imgui_spectrum.h>
 
 namespace lagrange {
 namespace ui {
@@ -52,13 +53,7 @@ void draw_imgui_gl_texture(GLuint tex_id, int w, int h)
     const ImVec2 uv0 = ImVec2(0, 1);
     const ImVec2 uv1 = ImVec2(1, 0);
 
-    ImGui::Image(
-        static_cast<ImTextureID>(tex_id),
-        ImVec2(float(w), float(h)),
-        uv0,
-        uv1,
-        ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
-        ImVec4(1.0f, 1.0f, 1.0f, 0.5f));
+    ImGui::Image(static_cast<ImTextureID>(tex_id), ImVec2(float(w), float(h)), uv0, uv1);
 }
 
 void separator()
@@ -67,7 +62,7 @@ void separator()
     ImGui::GetWindowDrawList()->AddLine(
         ImVec2(p.x, p.y),
         ImVec2(p.x, p.y + ImGui::GetTextLineHeightWithSpacing()),
-        ImColor(ImGui::Spectrum::GRAY300),
+        ImColor(ImGui::Spectrum::Static::GRAY300),
         1.0f);
     ImGui::Dummy(ImVec2(2.5f, 0));
     ImGui::SameLine();

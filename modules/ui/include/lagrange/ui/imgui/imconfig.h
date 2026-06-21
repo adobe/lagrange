@@ -41,6 +41,10 @@
 // #define IMGUI_API __declspec( dllexport )
 // #define IMGUI_API __declspec( dllimport )
 
+// Explicitly set Spectrum light theme. imgui.h 1.92.8+ includes imgui_spectrum.h directly, so we
+// must define the theme here (before the inclusion) to ensure GRAY100/GRAY500 etc. are available.
+#define SPECTRUM_USE_LIGHT_THEME
+
 //---- Don't define obsolete functions/enums/behaviors. Consider enabling from time to time after updating to avoid using soon-to-be obsolete function/names.
 // #define IMGUI_DISABLE_OBSOLETE_FUNCTIONS
 

@@ -19,14 +19,14 @@ include(CPM)
 CPMAddPackage(
     NAME gklib
     GITHUB_REPOSITORY KarypisLab/GKlib
-    GIT_TAG 67c6e4322bb326a04727995775c3eafc47d7a252
+    GIT_TAG e2856c2f595b153ca1ce9258c5301dbabc4f39f5
     DOWNLOAD_ONLY ON
 )
 
-file(GLOB INC_FILES "${gklib_SOURCE_DIR}/*.h" )
-file(GLOB SRC_FILES "${gklib_SOURCE_DIR}/*.c" )
+file(GLOB INC_FILES "${gklib_SOURCE_DIR}/include/*.h" )
+file(GLOB SRC_FILES "${gklib_SOURCE_DIR}/src/*.c" )
 if(NOT MSVC)
-    list(REMOVE_ITEM SRC_FILES "${gklib_SOURCE_DIR}/gkregex.c")
+    list(REMOVE_ITEM SRC_FILES "${gklib_SOURCE_DIR}/src/gkregex.c")
 endif()
 
 add_library(GKlib STATIC ${INC_FILES} ${SRC_FILES})
@@ -35,11 +35,20 @@ add_library(GKlib::GKlib ALIAS GKlib)
 if(MSVC)
     target_compile_definitions(GKlib PUBLIC USE_GKREGEX)
     target_compile_definitions(GKlib PUBLIC "__thread=__declspec(thread)")
+    # gk_ms_stdint.h / gk_ms_inttypes.h are 2006-era polyfills for pre-VS2010 MSVC.
+    # Modern MSVC (VS2010+) ships <stdint.h> natively, but on ARM64 it defines
+    # int_fast16_t as 'int' (32-bit) while the polyfill defines it as 'int16_t',
+    # causing a redefinition error. Suppress the polyfills via their include guards
+    # and force-include the real system header so the types are still available.
+    # Upstream fix: https://github.com/KarypisLab/GKlib/pull/59
+    # (remove this workaround once it lands in our pinned GIT_TAG above).
+    target_compile_definitions(GKlib PUBLIC _MSC_STDINT_H_ _MSC_INTTYPES_H_)
+    target_compile_options(GKlib PUBLIC "/FIstdint.h" "/FIinttypes.h")
 endif()
 
 include(GNUInstallDirs)
 target_include_directories(GKlib SYSTEM PUBLIC
-    "$<BUILD_INTERFACE:${gklib_SOURCE_DIR}>"
+    "$<BUILD_INTERFACE:${gklib_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 

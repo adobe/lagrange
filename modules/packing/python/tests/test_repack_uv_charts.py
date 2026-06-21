@@ -176,4 +176,4 @@ class TestRepackUVCharts:
             uv_indices=[[0, 1, 2]],
         )
         with pytest.raises(TypeError):
-            lagrange.packing.repack_uv_charts(mesh, "uv")
+            lagrange.packing.repack_uv_charts(mesh, "uv")  # ty: ignore[too-many-positional-arguments]

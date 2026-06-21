@@ -19,7 +19,7 @@ namespace lagrange {
 namespace ui {
 
 
-/// Sets context <AABB> variable
+/// Sets context `<AABB>` variable
 LA_UI_API void update_scene_bounds_system(Registry& ctx);
 
 

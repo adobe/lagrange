@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/types/ConnectivityType.h>
 #include <lagrange/utils/AdjacencyList.h>
 
 namespace lagrange {
@@ -25,27 +26,32 @@ namespace lagrange {
 /// @{
 
 ///
-/// Compute facet-facet adjacency information based on shared edges.
+/// Compute facet-facet adjacency information.
 ///
-/// Two facets are considered adjacent if they share an edge.  For non-manifold edges with 3 or more
-/// incident facets, a complete clique is formed (every pair of facets around the edge is adjacent).
+/// The connectivity type determines what constitutes adjacency:
+/// - ConnectivityType::Edge: Two facets are adjacent if they share an edge. For non-manifold
+///   edges with 3 or more incident facets, a complete clique is formed (every pair of facets around
+///   the edge is adjacent).
+/// - ConnectivityType::Vertex: Two facets are adjacent if they share at least one vertex.
 ///
-/// @note       If two facets share multiple edges, the neighboring facet will appear in the
-///             adjacency list once for each time the shared edge is referenced by its incident
-///             facets (i.e., neighbors are not deduplicated).
+/// @note       If two facets share multiple edges/vertices (depending on connectivity type), the
+///             neighboring facet may appear multiple times in the adjacency list.
 ///
-/// @note       This function calls @c initialize_edges() if edges have not been initialized yet,
-///             which mutates the mesh.
+/// @note       Both connectivity types may call @c initialize_edges() as a side effect if edges
+///             have not been initialized yet.
 ///
-/// @param      mesh    The input mesh (edges will be initialized if needed).
+/// @param      mesh               The input mesh (edges may be initialized as a side effect).
+/// @param      connectivity_type  The type of connectivity (edge or vertex).
 ///
-/// @tparam     Scalar  Mesh scalar type.
-/// @tparam     Index   Mesh index type.
+/// @tparam     Scalar             Mesh scalar type.
+/// @tparam     Index              Mesh index type.
 ///
 /// @return     The facet-facet adjacency list.
 ///
 template <typename Scalar, typename Index>
-AdjacencyList<Index> compute_facet_facet_adjacency(SurfaceMesh<Scalar, Index>& mesh);
+AdjacencyList<Index> compute_facet_facet_adjacency(
+    SurfaceMesh<Scalar, Index>& mesh,
+    ConnectivityType connectivity_type = ConnectivityType::Edge);
 
 /// @}
 

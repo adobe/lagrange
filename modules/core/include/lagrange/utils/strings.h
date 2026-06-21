@@ -22,9 +22,7 @@
 
 namespace lagrange {
 
-/// @defgroup group-utils-misc Miscellaneous
-/// @ingroup group-utils
-/// Useful functions that don't have their place anywhere else.
+/// @addtogroup group-utils-misc
 /// @{
 
 ///

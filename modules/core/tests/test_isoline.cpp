@@ -12,6 +12,7 @@
 
 #include <lagrange/testing/common.h>
 
+#include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/compute_components.h>
 #include <lagrange/find_matching_attributes.h>
@@ -347,6 +348,270 @@ TEST_CASE("trim_by_isoline color interpolation", "[isoline]")
                         0, 178, 76;
     // clang-format on
     REQUIRE(colors_trimmed == expected_colors);
+}
+
+TEST_CASE("trim_by_isoline facet attribute", "[isoline]")
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    // Two triangles forming a unit square, each carrying a distinct per-facet value.
+    lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({1, 1});
+    mesh.add_vertex({0, 1});
+    mesh.add_triangle(0, 1, 2);
+    mesh.add_triangle(0, 2, 3);
+
+    mesh.create_attribute<int32_t>(
+        "facet_id",
+        lagrange::AttributeElement::Facet,
+        lagrange::AttributeUsage::Scalar);
+    auto facet_id = lagrange::attribute_vector_ref<int32_t>(mesh, "facet_id");
+    facet_id(0) = 10;
+    facet_id(1) = 20;
+
+    // Trim by the y coordinate at 0.5. Both triangles are cut, so every sub-facet must inherit the
+    // facet attribute of the triangle it was carved out of.
+    lagrange::IsolineOptions options;
+    options.attribute_id = mesh.attr_id_vertex_to_position();
+    options.channel_index = 1;
+    options.isovalue = 0.5;
+
+    lagrange::SurfaceMesh<Scalar, Index> trimmed;
+    tbb::task_arena arena(1);
+    arena.execute([&] { trimmed = trim_by_isoline(mesh, options); });
+
+    REQUIRE(trimmed.get_num_facets() == 2);
+    auto trimmed_id = lagrange::attribute_vector_view<int32_t>(trimmed, "facet_id");
+    CHECK(trimmed_id(0) == 10);
+    CHECK(trimmed_id(1) == 20);
+}
+
+TEST_CASE("trim_by_isoline corner and indexed attribute", "[isoline]")
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    // A single triangle whose corners c0, c1, c2 are vertices v0, v1, v2.
+    lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 1});
+    mesh.add_triangle(0, 1, 2);
+
+    // Corner attribute (one scalar per corner).
+    mesh.create_attribute<double>(
+        "corner_value",
+        lagrange::AttributeElement::Corner,
+        lagrange::AttributeUsage::Scalar);
+    auto corner_value = lagrange::attribute_vector_ref<double>(mesh, "corner_value");
+    corner_value << 1, 2, 4;
+
+    // Indexed attribute: distinct value per corner.
+    auto idx_id = mesh.create_attribute<double>(
+        "indexed_value",
+        lagrange::AttributeElement::Indexed,
+        lagrange::AttributeUsage::Scalar,
+        1);
+    {
+        auto& iattr = mesh.ref_indexed_attribute<double>(idx_id);
+        iattr.values().resize_elements(3);
+        auto values = iattr.values().ref_all();
+        values[0] = 10;
+        values[1] = 20;
+        values[2] = 40;
+        auto indices = iattr.indices().ref_all();
+        indices[0] = 0;
+        indices[1] = 1;
+        indices[2] = 2;
+    }
+
+    // Trim by the y coordinate at 0.5. Vertices v0 and v1 survive (y == 0); the isoline crosses
+    // edge c1->c2 and edge c2->c0, each at parameter t = 0.5. The result is a single quad with
+    // corners [v0, v1, cross(c1,c2), cross(c2,c0)].
+    lagrange::IsolineOptions options;
+    options.attribute_id = mesh.attr_id_vertex_to_position();
+    options.channel_index = 1;
+    options.isovalue = 0.5;
+
+    lagrange::SurfaceMesh<Scalar, Index> trimmed;
+    tbb::task_arena arena(1);
+    arena.execute([&] { trimmed = trim_by_isoline(mesh, options); });
+
+    REQUIRE(trimmed.get_num_facets() == 1);
+    REQUIRE(trimmed.get_num_corners() == 4);
+
+    // Corner attribute: surviving corners keep their value, crossings are linearly interpolated.
+    auto out_corner = lagrange::attribute_vector_view<double>(trimmed, "corner_value");
+    CHECK(out_corner(0) == 1.0); // v0
+    CHECK(out_corner(1) == 2.0); // v1
+    CHECK(out_corner(2) == 3.0); // (2 + 4) / 2
+    CHECK(out_corner(3) == 2.5); // (4 + 1) / 2
+
+    // Indexed attribute: same interpolation rule, with surviving corners keeping their value index.
+    const auto& out_iattr = trimmed.get_indexed_attribute<double>("indexed_value");
+    auto out_values = out_iattr.values().get_all();
+    auto out_indices = out_iattr.indices().get_all();
+    auto value_at = [&](Index c) { return out_values[out_indices[c]]; };
+    CHECK(value_at(0) == 10.0); // v0
+    CHECK(value_at(1) == 20.0); // v1
+    CHECK(value_at(2) == 30.0); // (20 + 40) / 2
+    CHECK(value_at(3) == 25.0); // (40 + 10) / 2
+}
+
+TEST_CASE("trim_by_isoline keep_attributes flag", "[isoline]")
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 1});
+    mesh.add_triangle(0, 1, 2);
+
+    mesh.create_attribute<double>(
+        "vertex_value",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Scalar);
+    mesh.create_attribute<double>(
+        "facet_value",
+        lagrange::AttributeElement::Facet,
+        lagrange::AttributeUsage::Scalar);
+    mesh.create_attribute<double>(
+        "corner_value",
+        lagrange::AttributeElement::Corner,
+        lagrange::AttributeUsage::Scalar);
+    auto idx_id = mesh.create_attribute<double>(
+        "indexed_value",
+        lagrange::AttributeElement::Indexed,
+        lagrange::AttributeUsage::Scalar,
+        1);
+    {
+        auto& iattr = mesh.ref_indexed_attribute<double>(idx_id);
+        iattr.values().resize_elements(3);
+        auto indices = iattr.indices().ref_all();
+        indices[0] = 0;
+        indices[1] = 1;
+        indices[2] = 2;
+    }
+
+    lagrange::IsolineOptions options;
+    options.attribute_id = mesh.attr_id_vertex_to_position();
+    options.channel_index = 1;
+    options.isovalue = 0.5;
+
+    // By default, attributes of every element type are propagated.
+    auto kept = trim_by_isoline(mesh, options);
+    CHECK(kept.has_attribute("vertex_value"));
+    CHECK(kept.has_attribute("facet_value"));
+    CHECK(kept.has_attribute("corner_value"));
+    CHECK(kept.has_attribute("indexed_value"));
+
+    // Disabling the flag drops all user attributes while keeping the same geometry.
+    options.keep_attributes = false;
+    auto dropped = trim_by_isoline(mesh, options);
+    CHECK_FALSE(dropped.has_attribute("vertex_value"));
+    CHECK_FALSE(dropped.has_attribute("facet_value"));
+    CHECK_FALSE(dropped.has_attribute("corner_value"));
+    CHECK_FALSE(dropped.has_attribute("indexed_value"));
+
+    CHECK(dropped.get_num_vertices() == kept.get_num_vertices());
+    CHECK(dropped.get_num_facets() == kept.get_num_facets());
+    CHECK(dropped.get_num_corners() == kept.get_num_corners());
+}
+
+TEST_CASE("insert_isoline basic", "[isoline]")
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 1});
+    mesh.add_triangle(0, 1, 2);
+
+    // Facet attribute to verify both sub-facets inherit the parent value.
+    mesh.create_attribute<int32_t>(
+        "facet_id",
+        lagrange::AttributeElement::Facet,
+        lagrange::AttributeUsage::Scalar);
+    lagrange::attribute_vector_ref<int32_t>(mesh, "facet_id")(0) = 7;
+
+    lagrange::IsolineOptions options;
+    options.attribute_id = mesh.attr_id_vertex_to_position();
+    options.channel_index = 1;
+    options.isovalue = 0.5;
+
+    auto out = insert_isoline(mesh, options);
+
+    // The crossed triangle is split into a triangle + a quad, both retained.
+    REQUIRE(out.get_num_facets() == 2);
+    REQUIRE(out.get_num_vertices() == 5); // 3 original + 2 isocrossings
+
+    // Both sub-facets keep the parent facet attribute.
+    auto out_id = lagrange::attribute_vector_view<int32_t>(out, "facet_id");
+    CHECK(out_id(0) == 7);
+    CHECK(out_id(1) == 7);
+
+    // The isoline is inserted as a single interior (non-boundary) edge whose endpoints both lie on
+    // the isovalue line (y == 0.5).
+    out.initialize_edges();
+    auto positions = vertex_view(out);
+    Index num_interior = 0;
+    for (auto e : lagrange::range(out.get_num_edges())) {
+        if (!out.is_boundary_edge(e)) {
+            ++num_interior;
+            auto v = out.get_edge_vertices(e);
+            CHECK(positions(v[0], 1) == Scalar(0.5));
+            CHECK(positions(v[1], 1) == Scalar(0.5));
+        }
+    }
+    CHECK(num_interior == 1);
+}
+
+TEST_CASE("insert_isoline keeps both sides", "[isoline]")
+{
+    using Scalar = float;
+    using Index = uint32_t;
+
+    auto mesh = create_grid<Scalar, Index>(15, 11, 2, 0.2f);
+    auto field_id = mesh.create_attribute<double>(
+        "field",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Scalar);
+    auto field = lagrange::attribute_vector_ref<double>(mesh, "field");
+    auto vertices = vertex_view(mesh);
+    for (auto i : lagrange::range(field.size())) {
+        field[i] = vertices(i, 0) - 0.5123; // isoline at x = 0.5123, off the grid lines
+    }
+
+    lagrange::IsolineOptions options;
+    options.attribute_id = field_id;
+    options.isovalue = 0.0;
+
+    options.keep_below = true;
+    auto below = trim_by_isoline(mesh, options);
+    options.keep_below = false;
+    auto above = trim_by_isoline(mesh, options);
+    auto inserted = insert_isoline(mesh, options);
+
+    // Insert keeps both sides: its facet count equals the two trimmed halves combined.
+    CHECK(inserted.get_num_facets() == below.get_num_facets() + above.get_num_facets());
+
+    // Every original vertex is retained, plus the isocrossing vertices.
+    CHECK(inserted.get_num_vertices() > mesh.get_num_vertices());
+
+    // The propagated field is continuous: the newly created vertices all lie on the isoline, so
+    // their interpolated field value must equal the isovalue.
+    REQUIRE(inserted.has_attribute("field"));
+    auto out_field = lagrange::attribute_vector_view<double>(inserted, "field");
+    for (auto i : lagrange::range(mesh.get_num_vertices(), inserted.get_num_vertices())) {
+        CHECK_THAT(out_field[i], Catch::Matchers::WithinAbs(options.isovalue, 1e-6));
+    }
 }
 
 TEST_CASE("extract_isoline basic", "[isoline]")

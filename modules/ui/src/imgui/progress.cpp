@@ -124,7 +124,7 @@ bool Spinner(const char* label, float radius, int thickness, const ImU32& color)
             centre.y + ImSin(a + float(g.Time) * 8) * radius));
     }
 
-    window->DrawList->PathStroke(color, false, float(thickness));
+    window->DrawList->PathStroke(color, float(thickness), ImDrawFlags_None);
 
     return false;
 }

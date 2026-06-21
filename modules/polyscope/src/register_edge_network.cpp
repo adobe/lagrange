@@ -21,6 +21,8 @@
 
 namespace lagrange::polyscope {
 
+/// @cond LA_INTERNAL_DOCS
+
 template <typename Scalar, typename Index>
 ::polyscope::CurveNetwork* register_edge_network(
     std::string_view name,
@@ -69,5 +71,7 @@ LA_SURFACE_MESH_X(register_edge_network, 0)
         std::string_view name,                                                                  \
         const lagrange::Attribute<ValueType>& attr);
 LA_ATTRIBUTE_X(register_attribute, 0)
+
+/// @endcond
 
 } // namespace lagrange::polyscope

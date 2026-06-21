@@ -19,10 +19,12 @@ namespace lagrange {
 namespace internal {
 
 /// @internal
-bool LA_CORE_API point_on_segment_2d(Eigen::Vector2d p, Eigen::Vector2d a, Eigen::Vector2d b);
+bool LA_CORE_API
+point_on_segment_2d(const Eigen::Vector2d& p, const Eigen::Vector2d& a, const Eigen::Vector2d& b);
 
 /// @internal
-bool LA_CORE_API point_on_segment_3d(Eigen::Vector3d p, Eigen::Vector3d a, Eigen::Vector3d b);
+bool LA_CORE_API
+point_on_segment_3d(const Eigen::Vector3d& p, const Eigen::Vector3d& a, const Eigen::Vector3d& b);
 
 } // namespace internal
 

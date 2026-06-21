@@ -25,7 +25,7 @@
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/attribute_names.h>
-#include <lagrange/internal/set_invalid_indexed_values.h>
+#include <lagrange/internal/set_indexed_values.h>
 #include <lagrange/io/internal/scene_utils.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SceneTypes.h>

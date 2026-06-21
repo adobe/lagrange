@@ -88,9 +88,7 @@ def append_cameras(scene: lagrange.scene.Scene, cameras: dict) -> lagrange.scene
     return scene
 
 
-def split_multiview(
-    multiview: Image.Image, grid_shape: Tuple[int, int]
-) -> List[ArrayNxNxK[np.float32]]:
+def split_multiview(multiview: Image.Image, grid_shape: Tuple[int, int]) -> List[ArrayNxNxK]:
     """
     Split the multiview image into individual render images based on camera data.
     """

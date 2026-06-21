@@ -56,8 +56,8 @@ public:
 
     /// @brief Places system with `system_id` after the system with `after_id`
     /// Note: Does not handle cycles nor topological ordering, only moves `system_id` in execution order.
-    /// @param system StringID
-    /// @param after StringID
+    /// @param system_id StringID
+    /// @param after_id StringID
     /// @return true on success, false if `system_id` or `after_id` do not exist
     bool succeeds(StringID system_id, StringID after_id);
 

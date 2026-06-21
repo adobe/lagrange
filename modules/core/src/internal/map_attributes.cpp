@@ -23,6 +23,26 @@
 
 namespace lagrange::internal {
 
+namespace {
+
+// TODO: could be replaced by making SurfaceMesh::get_num_elements_internal public
+template <AttributeElement element, typename Scalar, typename Index>
+Index get_num_elements(const SurfaceMesh<Scalar, Index>& mesh)
+{
+    if constexpr (element == Vertex) {
+        return mesh.get_num_vertices();
+    } else if constexpr (element == Facet) {
+        return mesh.get_num_facets();
+    } else if constexpr (element == Corner) {
+        return mesh.get_num_corners();
+    } else if constexpr (element == Edge) {
+        return mesh.get_num_edges();
+    } else {
+        throw Error(format("Unsupported attribute element type {}", static_cast<int>(element)));
+    }
+}
+} // namespace
+
 template <AttributeElement element, typename Scalar, typename Index>
 void map_attributes(
     const SurfaceMesh<Scalar, Index>& source_mesh,
@@ -36,7 +56,7 @@ void map_attributes(
 
     la_runtime_assert(
         mapping_offsets.empty() ||
-        static_cast<Index>(mapping_offsets.size()) == target_mesh.get_num_vertices() + 1);
+        mapping_offsets.size() == static_cast<size_t>(get_num_elements<element>(target_mesh) + 1));
 
     auto map_attribute_no_offset = [&](std::string_view name, auto&& attr) {
         using AttributeType = std::decay_t<decltype(attr)>;
@@ -187,30 +207,30 @@ void map_attributes(
         details::Access::Read>(source_mesh, map_attribute, options.selected_attributes);
 }
 
-#define LA_X_map_attributes(_, Scalar, Index)            \
-    template void map_attributes<Vertex, Scalar, Index>( \
-        const SurfaceMesh<Scalar, Index>&,               \
-        SurfaceMesh<Scalar, Index>&,                     \
-        span<const Index>,                               \
-        span<const Index>,                               \
-        const MapAttributesOptions&);                    \
-    template void map_attributes<Facet, Scalar, Index>(  \
-        const SurfaceMesh<Scalar, Index>&,               \
-        SurfaceMesh<Scalar, Index>&,                     \
-        span<const Index>,                               \
-        span<const Index>,                               \
-        const MapAttributesOptions&);                    \
-    template void map_attributes<Corner, Scalar, Index>( \
-        const SurfaceMesh<Scalar, Index>&,               \
-        SurfaceMesh<Scalar, Index>&,                     \
-        span<const Index>,                               \
-        span<const Index>,                               \
-        const MapAttributesOptions&);                    \
-    template void map_attributes<Edge, Scalar, Index>(   \
-        const SurfaceMesh<Scalar, Index>&,               \
-        SurfaceMesh<Scalar, Index>&,                     \
-        span<const Index>,                               \
-        span<const Index>,                               \
+#define LA_X_map_attributes(_, Scalar, Index)                        \
+    template LA_CORE_API void map_attributes<Vertex, Scalar, Index>( \
+        const SurfaceMesh<Scalar, Index>&,                           \
+        SurfaceMesh<Scalar, Index>&,                                 \
+        span<const Index>,                                           \
+        span<const Index>,                                           \
+        const MapAttributesOptions&);                                \
+    template LA_CORE_API void map_attributes<Facet, Scalar, Index>(  \
+        const SurfaceMesh<Scalar, Index>&,                           \
+        SurfaceMesh<Scalar, Index>&,                                 \
+        span<const Index>,                                           \
+        span<const Index>,                                           \
+        const MapAttributesOptions&);                                \
+    template LA_CORE_API void map_attributes<Corner, Scalar, Index>( \
+        const SurfaceMesh<Scalar, Index>&,                           \
+        SurfaceMesh<Scalar, Index>&,                                 \
+        span<const Index>,                                           \
+        span<const Index>,                                           \
+        const MapAttributesOptions&);                                \
+    template LA_CORE_API void map_attributes<Edge, Scalar, Index>(   \
+        const SurfaceMesh<Scalar, Index>&,                           \
+        SurfaceMesh<Scalar, Index>&,                                 \
+        span<const Index>,                                           \
+        span<const Index>,                                           \
         const MapAttributesOptions&);
 LA_SURFACE_MESH_X(map_attributes, 0)
 

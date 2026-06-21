@@ -71,6 +71,7 @@ tensor_*.vdb
 func_*.json
 
 # Extra directories
+/.cursor
 /.vscode
 /.vs
 /.idea
@@ -85,6 +86,10 @@ func_*.json
 /_skbuild
 /data
 /docs/cpp/build
+
+# pixi environments (doc tooling, see docs/cpp/pixi.toml)
+.pixi
+pixi.lock
 
 # Lagrange specifics
 LagrangeOptions.cmake

@@ -40,6 +40,11 @@ struct IsolineOptions
 
     /// Whether to keep the part below the isoline. Ignored for isoline extraction.
     bool keep_below = true;
+
+    /// Whether to propagate input mesh attributes (vertex, facet, corner and indexed) to the output
+    /// mesh. Attributes are linearly interpolated within each parent facet. When set to false, the
+    /// output mesh retains only its vertex positions, which avoids the interpolation cost.
+    bool keep_attributes = true;
 };
 
 ///
@@ -75,6 +80,32 @@ SurfaceMesh<Scalar, Index> trim_by_isoline(
 ///
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> extract_isoline(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const IsolineOptions& options = {});
+
+///
+/// Insert the isoline of an implicit function into a mesh. Unlike trimming, the whole mesh is
+/// retained; facets crossed by the isoline are split so that the isoline appears as a chain of
+/// edges in the output. A triangle crossed in its interior is split into a triangle and a quad, so
+/// the output is in general a mixed triangle/quad mesh. When the isoline passes exactly through an
+/// existing vertex (or lies along an edge), the split degenerates: the triangle may instead be
+/// split into two triangles, or left unchanged. Call triangulate_polygonal_facets() afterwards for
+/// an all-triangle result.
+///
+/// @note The input must be a triangle mesh.
+///
+/// @note The `keep_below` option is ignored, since both sides of the isoline are kept.
+///
+/// @param[in]  mesh     Input triangle mesh to insert the isoline into.
+/// @param[in]  options  Isoline options.
+///
+/// @tparam     Scalar   Mesh scalar type.
+/// @tparam     Index    Mesh index type.
+///
+/// @return     The input mesh with the isoline inserted as a chain of edges.
+///
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> insert_isoline(
     const SurfaceMesh<Scalar, Index>& mesh,
     const IsolineOptions& options = {});
 

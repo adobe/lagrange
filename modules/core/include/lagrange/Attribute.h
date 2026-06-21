@@ -297,7 +297,7 @@ public:
     /// attribute. Note that only the number of element is allowed to change when wrapping an
     /// external buffer (the number of channels is fixed during the attribute construction).
     ///
-    /// @param[in]  shared_buffer Pointer to an external buffer managed by a SharedSpan to be used
+    /// @param[in]  buffer_ptr    Pointer to an external buffer managed by a SharedSpan to be used
     ///                           as storage.  This pointer exposes a view of the buffer managed by
     ///                           the owner. The buffer must have a capacity (determined by
     ///                           buffer_ptr.size()) that is large enough to store num elements x

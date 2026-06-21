@@ -165,15 +165,9 @@ std::vector<Index> spatial_ordering_points(
 
 } // namespace
 
-///
-/// Reorder mesh vertices using Morton encoding.
-///
-/// @todo          Reorder mesh facets as well.
-///
-/// @param[in,out] mesh      Mesh to reorder.
-///
-/// @tparam        MeshType  Mesh type.
-///
+// Reorder mesh vertices using Morton encoding.
+//
+// TODO: Reorder mesh facets as well.
 template <typename Scalar, typename Index>
 void reorder_mesh(SurfaceMesh<Scalar, Index>& mesh, ReorderingMethod method)
 {

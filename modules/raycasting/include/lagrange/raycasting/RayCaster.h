@@ -192,7 +192,7 @@ enum class BuildQuality {
 ///             setters) are **not** thread-safe and must not be called concurrently with each other
 ///             or with query methods.
 ///
-class RayCaster
+class LA_RAYCASTING_API RayCaster
 {
 public:
     /// 3D point type.

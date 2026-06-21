@@ -25,6 +25,8 @@
 // clang-format on
 #endif
 
+#include <imgui_spectrum.h>
+
 #include <CLI/CLI.hpp>
 
 namespace fs = lagrange::fs;
