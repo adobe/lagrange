@@ -40,6 +40,8 @@ if(MSVC)
     # int_fast16_t as 'int' (32-bit) while the polyfill defines it as 'int16_t',
     # causing a redefinition error. Suppress the polyfills via their include guards
     # and force-include the real system header so the types are still available.
+    # Upstream fix: https://github.com/KarypisLab/GKlib/pull/59
+    # (remove this workaround once it lands in our pinned GIT_TAG above).
     target_compile_definitions(GKlib PUBLIC _MSC_STDINT_H_ _MSC_INTTYPES_H_)
     target_compile_options(GKlib PUBLIC "/FIstdint.h" "/FIinttypes.h")
 endif()
