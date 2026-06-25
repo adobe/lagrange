@@ -22,6 +22,8 @@ namespace OPENSUBDIV_VERSION {
 
 namespace Far {
 
+/// @cond LA_INTERNAL_DOCS
+
 // Specify the number of vertices, faces, face-vertices, etc.
 template <>
 bool TopologyRefinerFactory<ConverterType>::resizeComponentTopology(
@@ -234,6 +236,8 @@ void TopologyRefinerFactory<ConverterType>::reportInvalidTopology(
     //
     lagrange::logger().warn("[opensubdiv] {}", msg);
 }
+
+/// @endcond
 
 } // namespace Far
 

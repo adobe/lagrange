@@ -25,12 +25,10 @@
 
 namespace lagrange {
 
-/// @defgroup group-utils-misc-functionref function_ref
-/// @ingroup group-utils-misc
-/// A lightweight non-owning reference to a callable.
+/// @addtogroup group-utils-misc
 /// @{
 
-/// @ingroup group-utils-misc-functionref
+/// @ingroup group-utils-misc
 ///
 /// A lightweight non-owning reference to a callable.
 ///
@@ -47,7 +45,7 @@ template <class F>
 class function_ref;
 
 /// Specialization for function types.
-/// @ingroup group-utils-misc-functionref
+/// @ingroup group-utils-misc
 template <class R, class... Args>
 class function_ref<R(Args...)>
 {

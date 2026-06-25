@@ -19,6 +19,11 @@
 namespace lagrange::poisson {
 
 ///
+/// @addtogroup module-poisson
+/// @{
+///
+
+///
 /// Option struct for Poisson surface reconstruction.
 ///
 struct ReconstructionOptions : public CommonOptions

@@ -74,7 +74,7 @@ void populate_image_module(nb::module_& m)
             const auto cells = image::experimental::split_grid(tensor_to_image_view(grid), options);
 
             nb::object owner = nb::cast(grid);
-            std::vector<nb::object> tensors;
+            std::vector<nb::ndarray<nb::numpy, float, ImageShape>> tensors;
             tensors.reserve(cells.size());
             for (const auto& cell : cells) {
                 const size_t shape[3] = {cell.extent(1), cell.extent(0), cell.extent(2)};
@@ -83,13 +83,7 @@ void populate_image_module(nb::module_& m)
                     static_cast<int64_t>(cell.stride(0)),
                     static_cast<int64_t>(cell.stride(2)),
                 };
-                nb::ndarray<nb::numpy, float, ImageShape> tensor(
-                    cell.data_handle(),
-                    3,
-                    shape,
-                    owner,
-                    strides);
-                tensors.emplace_back(nb::cast(tensor));
+                tensors.emplace_back(cell.data_handle(), 3, shape, owner, strides);
             }
             return tensors;
         },

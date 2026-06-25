@@ -22,7 +22,7 @@
 namespace lagrange::raycasting {
 
 ///
-/// @addtogroup group-raycasting
+/// @addtogroup module-raycasting
 /// @{
 ///
 
@@ -142,7 +142,7 @@ LA_RAYCASTING_API void estimate_occluded_instances(
 
 ///
 /// Remove fully-occluded mesh instances. Convenience wrapper around
-/// @ref estimate_occluded_instances + @ref scene::filter_instances.
+/// @ref estimate_occluded_instances + `lagrange::scene::filter_instances`.
 ///
 /// @note Only 3D scenes are supported.
 ///

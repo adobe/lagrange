@@ -29,7 +29,8 @@ LA_UI_API std::shared_ptr<Texture> load_texture(
     const fs::path& path,
     const Texture::Params& params = Texture::Params());
 
-/// @brief Convertrs tinyobj's material_t to UI's Material
+/// @brief Converts tinyobj's material_t to UI's Material
+/// @param r
 /// @param base_dir
 /// @param tinymat
 /// @return

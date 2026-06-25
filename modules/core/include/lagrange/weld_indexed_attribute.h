@@ -41,7 +41,7 @@ struct WeldOptions
     /// between two corners is less than this value, the attributes are merged. If not set, this
     /// condition is not checked.
     ///
-    /// @note Angle is computed as @f$ arccos(v1 \cdot v2 / (\|v1\| * \|v2\|)) $f@, where v1 and v2
+    /// @note Angle is computed as @f$ arccos(v1 \cdot v2 / (\|v1\| * \|v2\|)) @f$, where v1 and v2
     /// are the corner attribute values. It is well defined for all dimensions. The angle check is
     /// robust against degeneracies (e.g. zero-length vectors).
     ///
@@ -71,6 +71,7 @@ struct WeldOptions
 ///
 /// @param mesh       The source mesh.
 /// @param attr_id    The indexed attribute id.
+/// @param options    Welding options (e.g. vertices to exclude).
 ///
 template <typename Scalar, typename Index>
 void weld_indexed_attribute(

@@ -17,11 +17,7 @@
 namespace lagrange::bvh {
 
 ///
-/// @defgroup   group-bvh-intersecting-pairs Intersecting Pairs
-/// @ingroup    group-bvh
-///
-/// Compute intersecting facet pairs in a mesh using BVH acceleration.
-///
+/// @addtogroup module-bvh
 /// @{
 
 ///

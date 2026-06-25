@@ -119,18 +119,9 @@ bool UIWidget::operator()(Texture& value, int width /* = 0*/, int height /* = 0*
         static_cast<ImTextureID>(value.get_id()),
         ImVec2(float(width), float(height)),
         uv0,
-        uv1,
-        ImVec4(1.0f, 1.0f, 1.0f, 1.0f),
-        ImVec4(0.0f, 0.0f, 0.0f, 0.5f));
+        uv1);
 
     return ImGui::IsItemClicked(0) || ImGui::IsItemClicked(1);
-    /*if (ImGui::BeginPopupContextItem(("Texture " + m_name).c_str())) {
-        ImGui::Text("%s", m_name.c_str());
-        ImGui::Image(texID, ImVec2(800, 800), uv0, uv1, ImVec4(1.0f, 1.0f, 1.0f, 1.0f), ImVec4(0.0f,
-    0.0f, 0.0f, 0.5f)); ImGui::EndPopup();
-    }*/
-
-    return false;
 }
 
 bool UIWidget::operator()(Eigen::Vector2f& value)

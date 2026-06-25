@@ -30,13 +30,13 @@ LA_UI_API IBL generate_ibl(const fs::path& path, size_t resolution = 1024);
 
 /// @brief  Generates Image Based Light from given rectangular texture.
 ///         Throws std::runtime_error on failure.
-/// @param path
+/// @param background_texture
 /// @param resolution
 /// @return IBL
 LA_UI_API IBL
 generate_ibl(const std::shared_ptr<Texture>& background_texture, size_t resolution = 1024);
 
-/// @brief Returns first <IBL> entity found in registry. If there are none, returns invalid Entity
+/// @brief Returns first `<IBL>` entity found in registry. If there are none, returns invalid Entity
 /// @param registry
 /// @return Entity
 LA_UI_API Entity get_ibl_entity(const Registry& registry);
@@ -46,7 +46,7 @@ LA_UI_API Entity get_ibl_entity(const Registry& registry);
 /// @return IBL pointer
 LA_UI_API const IBL* get_ibl(const Registry& registry);
 
-/// @copydoc
+/// @copydoc get_ibl(const Registry&)
 LA_UI_API IBL* get_ibl(Registry& registry);
 
 /// @brief Adds IBL to the scene

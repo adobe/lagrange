@@ -1651,6 +1651,8 @@ uint32_t RayCaster::occluded16(
 // OBB overlap query
 // ============================================================================
 
+/// @cond LA_INTERNAL_DOCS
+
 void RayCaster::overlap_obb_internal(
     const OrientedBox& obb,
     function_ref<bool(uint32_t, uint32_t, uint32_t)> callback) const
@@ -1762,6 +1764,8 @@ void RayCaster::overlap_obb16_internal(
         user_ptrs.data());
     check_errors_debug(m_impl->m_device);
 }
+
+/// @endcond
 
 // ============================================================================
 // Explicit template instantiation

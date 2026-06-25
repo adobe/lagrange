@@ -130,6 +130,7 @@ struct OccludedInstanceSampler<Scalar, Index>::Impl
     void end_batch() {}
 };
 
+/// @cond LA_INTERNAL_DOCS
 template <typename Scalar, typename Index>
 OccludedInstanceSampler<Scalar, Index>::OccludedInstanceSampler(
     const scene::SimpleScene<Scalar, Index, 3>& scene,
@@ -182,6 +183,7 @@ OccludedInstanceSampler<Scalar, Index>::OccludedInstanceSampler(
     m_impl->m_ray_caster.add_scene(std::move(occluder_scene));
     m_impl->m_ray_caster.commit_updates();
 }
+/// @endcond
 
 template <typename Scalar, typename Index>
 OccludedInstanceSampler<Scalar, Index>::~OccludedInstanceSampler() = default;

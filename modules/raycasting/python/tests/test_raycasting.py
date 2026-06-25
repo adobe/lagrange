@@ -494,6 +494,291 @@ class TestProjectNumpy:
 
 
 # ---------------------------------------------------------------------------
+# RayCaster.cast
+# ---------------------------------------------------------------------------
+
+
+class TestCast:
+    def _make_caster(self, mesh):
+        rc = lagrange.raycasting.RayCaster()
+        rc.add_mesh(mesh)
+        rc.commit_updates()
+        return rc
+
+    def test_single_ray_hit(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origin = np.array([0.5, 0.5, -1.0], dtype=np.float32)
+        direction = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        hit = rc.cast(origin, direction)
+        assert hit is not None
+        assert isinstance(hit, lagrange.raycasting.RayHit)
+        np.testing.assert_allclose(hit.position[2], 0.0, atol=1e-5)
+        assert hit.ray_depth == pytest.approx(1.0, abs=1e-5)
+        assert hit.mesh_index == 0
+
+    def test_single_ray_miss(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origin = np.array([10.0, 10.0, -1.0], dtype=np.float32)
+        direction = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        hit = rc.cast(origin, direction)
+        assert hit is None
+
+    def test_batch_rays(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origins = np.array(
+            [[0.5, 0.5, -1.0], [10.0, 10.0, -1.0], [0.5, 0.5, 2.0]],
+            dtype=np.float32,
+        )
+        directions = np.array(
+            [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0]],
+            dtype=np.float32,
+        )
+        results = rc.cast(origins, directions)
+        assert isinstance(results, lagrange.raycasting.RayHits)
+        assert results.hit.shape == (3,)
+        assert results.hit.dtype == bool
+        assert results.hit[0]
+        assert not results.hit[1]
+        assert results.hit[2]
+        np.testing.assert_allclose(results.position[2, 2], 1.0, atol=1e-5)
+
+    def test_batch_larger_than_16(self, unit_cube):
+        """Ensure batches > 16 are processed correctly in chunks."""
+        rc = self._make_caster(unit_cube)
+        n = 20
+        origins = np.tile(np.array([0.5, 0.5, -1.0], dtype=np.float32), (n, 1))
+        directions = np.tile(np.array([0.0, 0.0, 1.0], dtype=np.float32), (n, 1))
+        results = rc.cast(origins, directions)
+        assert results.hit.shape == (n,)
+        assert np.all(results.hit)
+        assert results.position.shape == (n, 3)
+
+    def test_2d_single_row_returns_soa(self, unit_cube):
+        """A 2D (1, 3) input is a batch query and returns a length-1 RayHits."""
+        rc = self._make_caster(unit_cube)
+        origins = np.array([[0.5, 0.5, -1.0]], dtype=np.float32)
+        directions = np.array([[0.0, 0.0, 1.0]], dtype=np.float32)
+        results = rc.cast(origins, directions)
+        assert isinstance(results, lagrange.raycasting.RayHits)
+        assert results.hit.shape == (1,)
+        assert results.hit[0]
+        # 1D (3,) input of the same ray returns a scalar RayHit, not a struct.
+        single = rc.cast(origins[0], directions[0])
+        assert isinstance(single, lagrange.raycasting.RayHit)
+
+    def test_mixed_dim_raises(self, unit_cube):
+        """Mixing 1D and 2D origins/directions is rejected."""
+        rc = self._make_caster(unit_cube)
+        with pytest.raises((ValueError, RuntimeError)):
+            rc.cast(
+                np.array([[0.5, 0.5, -1.0]], dtype=np.float32),
+                np.array([0.0, 0.0, 1.0], dtype=np.float32),
+            )
+
+    def test_tmin_tmax_scalar(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origin = np.array([0.5, 0.5, -1.0], dtype=np.float32)
+        direction = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        # tmax too short to reach the cube
+        hit = rc.cast(origin, direction, tmax=0.5)
+        assert hit is None
+        # tmin past the near face, should hit the far face
+        hit = rc.cast(origin, direction, tmin=1.5)
+        assert hit is not None
+        np.testing.assert_allclose(hit.position[2], 1.0, atol=1e-5)
+
+    def test_tmin_tmax_array(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origins = np.array([[0.5, 0.5, -1.0], [0.5, 0.5, -1.0]], dtype=np.float32)
+        directions = np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]], dtype=np.float32)
+        tmax = np.array([0.5, 10.0], dtype=np.float32)
+        results = rc.cast(origins, directions, tmax=tmax)
+        assert not results.hit[0]  # too short
+        assert results.hit[1]  # reaches cube
+
+    def test_rayhits_soa_fields(self, unit_cube):
+        """Batch cast returns a RayHits struct-of-arrays with the expected shapes/dtypes."""
+        rc = self._make_caster(unit_cube)
+        origins = np.array([[0.5, 0.5, -1.0], [0.5, 0.5, 2.0]], dtype=np.float32)
+        directions = np.array([[0.0, 0.0, 1.0], [0.0, 0.0, -1.0]], dtype=np.float32)
+        r = rc.cast(origins, directions)
+        assert r.hit.shape == (2,) and r.hit.dtype == bool
+        assert r.mesh_index.shape == (2,) and r.mesh_index.dtype == np.uint32
+        assert r.instance_index.shape == (2,)
+        assert r.facet_index.shape == (2,)
+        assert r.barycentric_coord.shape == (2, 2)
+        assert r.position.shape == (2, 3) and r.position.dtype == np.float32
+        assert r.ray_depth.shape == (2,)
+        assert r.normal.shape == (2, 3)
+
+    def test_rayhit_fields(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origin = np.array([0.5, 0.5, -1.0], dtype=np.float32)
+        direction = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        hit = rc.cast(origin, direction)
+        assert hit is not None
+        assert hasattr(hit, "mesh_index")
+        assert hasattr(hit, "instance_index")
+        assert hasattr(hit, "facet_index")
+        assert hasattr(hit, "barycentric_coord")
+        assert hasattr(hit, "position")
+        assert hasattr(hit, "ray_depth")
+        assert hasattr(hit, "normal")
+
+    def test_invalid_shape_raises(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        with pytest.raises((ValueError, RuntimeError)):
+            rc.cast(
+                np.array([1.0, 2.0], dtype=np.float32),
+                np.array([0.0, 0.0, 1.0], dtype=np.float32),
+            )
+
+
+# ---------------------------------------------------------------------------
+# RayCaster.closest_point
+# ---------------------------------------------------------------------------
+
+
+class TestClosestPoint:
+    def _make_caster(self, mesh):
+        rc = lagrange.raycasting.RayCaster()
+        rc.add_mesh(mesh)
+        rc.commit_updates()
+        return rc
+
+    def test_single_query(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        query = np.array([0.5, 0.5, -0.5], dtype=np.float32)
+        hit = rc.closest_point(query)
+        assert hit is not None
+        assert isinstance(hit, lagrange.raycasting.ClosestPointHit)
+        np.testing.assert_allclose(hit.position[2], 0.0, atol=1e-5)
+        assert hit.distance == pytest.approx(0.5, abs=1e-5)
+
+    def test_batch_query(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        queries = np.array(
+            [[0.5, 0.5, -0.5], [0.5, 0.5, 1.5], [0.5, 0.5, 0.5]],
+            dtype=np.float32,
+        )
+        results = rc.closest_point(queries)
+        assert isinstance(results, lagrange.raycasting.ClosestPointHits)
+        assert results.hit.shape == (3,)
+        assert np.all(results.hit)
+        # point below cube → snaps to z=0 face
+        np.testing.assert_allclose(results.position[0, 2], 0.0, atol=1e-5)
+        # point above cube → snaps to z=1 face
+        np.testing.assert_allclose(results.position[1, 2], 1.0, atol=1e-5)
+
+    def test_batch_larger_than_16(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        n = 20
+        queries = np.tile(np.array([0.5, 0.5, -0.5], dtype=np.float32), (n, 1))
+        results = rc.closest_point(queries)
+        assert results.hit.shape == (n,)
+        assert np.all(results.hit)
+
+    def test_2d_single_row_returns_soa(self, unit_cube):
+        """A 2D (1, 3) input is a batch query and returns a length-1 ClosestPointHits."""
+        rc = self._make_caster(unit_cube)
+        queries = np.array([[0.5, 0.5, -0.5]], dtype=np.float32)
+        results = rc.closest_point(queries)
+        assert isinstance(results, lagrange.raycasting.ClosestPointHits)
+        assert results.hit.shape == (1,)
+        assert results.hit[0]
+        # 1D (3,) input returns a scalar ClosestPointHit, not a struct.
+        single = rc.closest_point(queries[0])
+        assert isinstance(single, lagrange.raycasting.ClosestPointHit)
+
+    def test_closestpointhit_fields(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        hit = rc.closest_point(np.array([0.5, 0.5, -1.0], dtype=np.float32))
+        assert hit is not None
+        assert hasattr(hit, "mesh_index")
+        assert hasattr(hit, "instance_index")
+        assert hasattr(hit, "facet_index")
+        assert hasattr(hit, "barycentric_coord")
+        assert hasattr(hit, "position")
+        assert hasattr(hit, "distance")
+
+
+# ---------------------------------------------------------------------------
+# RayCaster.occluded
+# ---------------------------------------------------------------------------
+
+
+class TestOccluded:
+    def _make_caster(self, mesh):
+        rc = lagrange.raycasting.RayCaster()
+        rc.add_mesh(mesh)
+        rc.commit_updates()
+        return rc
+
+    def test_single_ray_occluded(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origin = np.array([0.5, 0.5, -1.0], dtype=np.float32)
+        direction = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        result = rc.occluded(origin, direction)
+        assert result is True
+
+    def test_single_ray_not_occluded(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origin = np.array([10.0, 10.0, -1.0], dtype=np.float32)
+        direction = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        result = rc.occluded(origin, direction)
+        assert result is False
+
+    def test_batch_rays(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origins = np.array(
+            [[0.5, 0.5, -1.0], [10.0, 10.0, -1.0], [0.5, 0.5, 2.0]],
+            dtype=np.float32,
+        )
+        directions = np.array(
+            [[0.0, 0.0, 1.0], [0.0, 0.0, 1.0], [0.0, 0.0, -1.0]],
+            dtype=np.float32,
+        )
+        results = rc.occluded(origins, directions)
+        assert isinstance(results, np.ndarray)
+        assert results.dtype == bool
+        assert results.shape == (3,)
+        assert results[0]
+        assert not results[1]
+        assert results[2]
+
+    def test_batch_larger_than_16(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        n = 20
+        origins = np.tile(np.array([0.5, 0.5, -1.0], dtype=np.float32), (n, 1))
+        directions = np.tile(np.array([0.0, 0.0, 1.0], dtype=np.float32), (n, 1))
+        results = rc.occluded(origins, directions)
+        assert results.shape == (n,)
+        assert np.all(results)
+
+    def test_2d_single_row_returns_array(self, unit_cube):
+        """A 2D (1, 3) input is a batch query and returns a length-1 bool array."""
+        rc = self._make_caster(unit_cube)
+        origins = np.array([[0.5, 0.5, -1.0]], dtype=np.float32)
+        directions = np.array([[0.0, 0.0, 1.0]], dtype=np.float32)
+        results = rc.occluded(origins, directions)
+        assert isinstance(results, np.ndarray)
+        assert results.shape == (1,)
+        assert results[0]
+        # 1D (3,) input returns a scalar bool, not an array.
+        single = rc.occluded(origins[0], directions[0])
+        assert single is True
+
+    def test_tmin_tmax(self, unit_cube):
+        rc = self._make_caster(unit_cube)
+        origin = np.array([0.5, 0.5, -1.0], dtype=np.float32)
+        direction = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+        # tmax too short
+        assert rc.occluded(origin, direction, tmax=0.5) is False
+        # normal range
+        assert rc.occluded(origin, direction) is True
+
+
+# ---------------------------------------------------------------------------
 # compute_local_feature_size
 # ---------------------------------------------------------------------------
 
@@ -629,4 +914,4 @@ class TestComputeLocalFeatureSize:
 
         # This should fail because we're passing positional args after mesh
         with pytest.raises(TypeError):
-            lagrange.raycasting.compute_local_feature_size(unit_cube, 1e-4)
+            lagrange.raycasting.compute_local_feature_size(unit_cube, 1e-4)  # ty: ignore[too-many-positional-arguments]

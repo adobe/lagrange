@@ -129,6 +129,7 @@ Attribute<ValueType>::Attribute(Attribute<ValueType>&& other) noexcept
     }
 }
 
+/// @cond LA_INTERNAL_DOCS
 template <typename ValueType>
 Attribute<ValueType>& Attribute<ValueType>::operator=(Attribute<ValueType>&& other) noexcept
 {
@@ -155,6 +156,7 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(Attribute<ValueType>&& oth
     }
     return *this;
 }
+/// @endcond
 
 template <typename ValueType>
 Attribute<ValueType>::Attribute(const Attribute<ValueType>& other)
@@ -185,6 +187,7 @@ Attribute<ValueType>::Attribute(const Attribute<ValueType>& other)
     }
 }
 
+/// @cond LA_INTERNAL_DOCS
 template <typename ValueType>
 Attribute<ValueType>& Attribute<ValueType>::operator=(const Attribute<ValueType>& other)
 {
@@ -216,6 +219,7 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(const Attribute<ValueType>
     }
     return *this;
 }
+/// @endcond
 
 template <typename TargetValueType>
 template <typename SourceValueType>
@@ -612,6 +616,8 @@ lagrange::span<ValueType> Attribute<ValueType>::ref_row(size_t element)
 // Protected methods
 ////////////////////////////////////////////////////////////////////////////////
 
+/// @cond LA_INTERNAL_DOCS
+
 template <typename ValueType>
 void Attribute<ValueType>::growth_check(size_t new_cap)
 {
@@ -681,6 +687,8 @@ void Attribute<ValueType>::clear_views()
     m_const_view = {};
     m_num_elements = m_data.size() / get_num_channels();
 }
+
+/// @endcond
 
 ////////////////////////////////////////////////////////////////////////////////
 // Explicit template instantiation

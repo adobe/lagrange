@@ -69,8 +69,8 @@ struct PrincipalCurvaturesResult
 /// @param[in,out] mesh    Input surface mesh. Output attributes are added or overwritten.
 /// @param[in]     ops     Precomputed differential operators for the mesh.
 /// @param[in]     options Attribute name options. Defaults produce attributes named
-///                        @kappa_min, @kappa_max, @principal_direction_min,
-///                        @principal_direction_max.
+///                        `@kappa_min`, `@kappa_max`, `@principal_direction_min`,
+///                        `@principal_direction_max`.
 ///
 /// @return Attribute IDs of the four output attributes.
 ///

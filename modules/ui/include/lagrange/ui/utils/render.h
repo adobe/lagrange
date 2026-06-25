@@ -129,6 +129,7 @@ LA_UI_API int get_gl_attribute_dimension(GLenum attrib_type);
 /// @param shader
 /// @param glvd
 /// @param indexing
+/// @param submesh_index
 LA_UI_API void update_vertex_data(
     const GLMesh& glmesh,
     const Shader& shader,

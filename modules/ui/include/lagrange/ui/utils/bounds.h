@@ -28,7 +28,7 @@ LA_UI_API AABB get_bounding_box(const Registry& registry, Entity e);
 /// If entity does not have bounds, returns an empty AABB
 LA_UI_API AABB get_bounding_box_local(const Registry& registry, Entity e);
 
-/// Returns Axis Aligned Bounding Box of all entities with <Selected> component
+/// Returns Axis Aligned Bounding Box of all entities with `<Selected>` component
 /// If there's no selection returns an empty AABB
 LA_UI_API AABB get_selection_bounding_box(const Registry& registry);
 
@@ -57,7 +57,7 @@ LA_UI_API AABB get_scene_bounding_box(const Registry& registry);
 /// (must be set as context variable after update_scene_bounds)
 LA_UI_API const Bounds& get_scene_bounds(const Registry& registry);
 
-/// @copydoc
+/// @copydoc get_scene_bounds(const Registry&)
 LA_UI_API Bounds& get_scene_bounds(Registry& registry);
 
 

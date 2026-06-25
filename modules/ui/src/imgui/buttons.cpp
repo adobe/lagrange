@@ -12,6 +12,8 @@
 
 #include <lagrange/ui/imgui/buttons.h>
 
+#include <imgui_spectrum.h>
+
 namespace lagrange {
 namespace ui {
 
@@ -61,12 +63,12 @@ bool button_icon(
         ImGui::GetStyleColorVec4(selected ? ImGuiCol_Header : ImGuiCol_Button));
 
     if (selected) {
-        ImGui::PushStyleColor(ImGuiCol_Text, ImColor(ImGui::Spectrum::GRAY100).Value);
+        ImGui::PushStyleColor(ImGuiCol_Text, ImColor(ImGui::Spectrum::Colors->GRAY100).Value);
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_Header));
     }
 
     if (!enabled) {
-        ImGui::PushStyleColor(ImGuiCol_Button, ImColor(ImGui::Spectrum::GRAY500).Value);
+        ImGui::PushStyleColor(ImGuiCol_Button, ImColor(ImGui::Spectrum::Static::GRAY500).Value);
         // hovered text: GRAY900
         ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImGui::GetStyleColorVec4(ImGuiCol_Button));
         ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImGui::GetStyleColorVec4(ImGuiCol_Button));

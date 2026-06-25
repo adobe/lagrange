@@ -1615,7 +1615,6 @@ public:
     ///
     /// @param[in]  name   The name
     /// @param      value  Attribute value.
-    /// @param      id    Attribute id.
     ///
     void set_metadata(std::string_view name, std::string_view value);
 

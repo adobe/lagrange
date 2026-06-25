@@ -35,7 +35,7 @@ namespace lagrange {
 /// materials.
 ///
 /// @tparam Scalar                 Mesh scalar type.
-/// @param Index                   Mesh index type.
+/// @tparam Index                  Mesh index type.
 ///
 template <typename Scalar, typename Index>
 void split_facets_by_material(

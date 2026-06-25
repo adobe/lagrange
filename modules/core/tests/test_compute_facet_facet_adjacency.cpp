@@ -206,3 +206,129 @@ TEST_CASE("compute_facet_facet_adjacency", "[surface][adjacency]")
         REQUIRE(n0[0] == 1);
     }
 }
+
+TEST_CASE("compute_facet_facet_adjacency - vertex connectivity", "[surface][adjacency]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SECTION("single triangle")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+
+        auto adj = compute_facet_facet_adjacency(mesh, ConnectivityType::Vertex);
+        REQUIRE(adj.get_num_entries() == 1);
+        REQUIRE(adj.get_neighbors(0).size() == 0);
+    }
+
+    SECTION("two triangles sharing a vertex")
+    {
+        //  2   4
+        //  |\ /|
+        //  | 0 |
+        //  |/ \|
+        //  1   3
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({0, -1, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({1, -1, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_triangle(0, 1, 2); // Triangle 0
+        mesh.add_triangle(0, 3, 4); // Triangle 1
+
+        auto adj = compute_facet_facet_adjacency(mesh, ConnectivityType::Vertex);
+        auto n0 = adj.get_neighbors(0);
+        auto n1 = adj.get_neighbors(1);
+
+        // Each triangle shares vertex 0, so they should be adjacent
+        REQUIRE(n0.size() > 0);
+        REQUIRE(n1.size() > 0);
+
+        // Check that 1 is in neighbors of 0
+        std::set<Index> s0(n0.begin(), n0.end());
+        REQUIRE(s0.count(1) > 0);
+
+        // Check that 0 is in neighbors of 1
+        std::set<Index> s1(n1.begin(), n1.end());
+        REQUIRE(s1.count(0) > 0);
+    }
+
+    SECTION("two triangles sharing an edge - vertex connectivity")
+    {
+        //  2
+        // / \.
+        // 0--1
+        // \ /
+        //  3
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0.5, 1, 0});
+        mesh.add_vertex({0.5, -1, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 0, 3);
+
+        auto adj = compute_facet_facet_adjacency(mesh, ConnectivityType::Vertex);
+        auto n0 = adj.get_neighbors(0);
+        auto n1 = adj.get_neighbors(1);
+
+        // With vertex connectivity, they share vertices 0 and 1 (2 times)
+        REQUIRE(n0.size() == 2); // One for each shared vertex
+        REQUIRE(n1.size() == 2);
+
+        // All neighbors should be the other facet
+        for (Index neighbor : n0) {
+            REQUIRE(neighbor == 1);
+        }
+        for (Index neighbor : n1) {
+            REQUIRE(neighbor == 0);
+        }
+    }
+
+    SECTION("compare edge vs vertex connectivity")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0.5, 1, 0});
+        mesh.add_vertex({0.5, -1, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 0, 3);
+
+        auto adj_edge = compute_facet_facet_adjacency(mesh, ConnectivityType::Edge);
+        auto adj_vertex = compute_facet_facet_adjacency(mesh, ConnectivityType::Vertex);
+
+        // Edge connectivity: each facet has 1 neighbor (shared edge)
+        REQUIRE(adj_edge.get_neighbors(0).size() == 1);
+        REQUIRE(adj_edge.get_neighbors(1).size() == 1);
+
+        // Vertex connectivity: each facet has 2 neighbors (shared vertices)
+        REQUIRE(adj_vertex.get_neighbors(0).size() == 2);
+        REQUIRE(adj_vertex.get_neighbors(1).size() == 2);
+    }
+
+    SECTION("ball.obj symmetry")
+    {
+        auto mesh = lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/ball.obj");
+        const Index num_facets = mesh.get_num_facets();
+
+        auto adj = compute_facet_facet_adjacency(mesh, ConnectivityType::Vertex);
+        REQUIRE(adj.get_num_entries() == num_facets);
+
+        // Symmetry: if f is adjacent to g, g must be adjacent to f.
+        for (Index f = 0; f < num_facets; ++f) {
+            auto neighbors = adj.get_neighbors(f);
+            for (Index g : neighbors) {
+                auto g_neighbors = adj.get_neighbors(g);
+                std::set<Index> g_set(g_neighbors.begin(), g_neighbors.end());
+                CHECK(g_set.count(f) > 0);
+            }
+        }
+    }
+}

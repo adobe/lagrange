@@ -19,6 +19,7 @@
 #include <lagrange/utils/safe_cast.h>
 
 #include <imgui.h>
+#include <imgui_spectrum.h>
 #include <misc/cpp/imgui_stdlib.h>
 #include <fstream>
 
@@ -213,7 +214,7 @@ void keybinds_panel_system(Registry& registry, Entity /*e*/)
                 ImGui::InputText("Key bind", &keybind_str, ImGuiInputTextFlags_ReadOnly);
 
                 ImGui::TextColored(
-                    ImVec4(ImColor(ImGui::Spectrum::GREEN500).Value),
+                    ImVec4(ImColor(ImGui::Spectrum::Static::GREEN500).Value),
                     "Press Enter to Save");
 
                 if (ImGui::IsKeyReleased(ImGuiKey_Escape)) {

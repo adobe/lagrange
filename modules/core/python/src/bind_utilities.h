@@ -49,6 +49,7 @@
 #include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/python/utils/StackVector.h>
+#include <lagrange/python/utils/StubType.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/reorder_mesh.h>
 #include <lagrange/select_facets_by_normal_similarity.h>
@@ -72,6 +73,9 @@
 #include <vector>
 
 namespace lagrange::python {
+
+LA_STUB_HINT(IterableUsageHint, "collections.abc.Iterable[AttributeUsage]");
+LA_STUB_HINT(IterableElementHint, "collections.abc.Iterable[AttributeElement]");
 
 template <typename Scalar, typename Index>
 void bind_utilities(nanobind::module_& m)
@@ -1626,14 +1630,16 @@ oriented.
     m.def(
         "transform_mesh",
         [](MeshType& mesh,
-           const Eigen::Matrix<Scalar, 4, 4>& affine_transform,
+           StubType<Eigen::Matrix<Scalar, 4, 4>, ArrayLikeHint> affine_transform,
            bool normalize_normals,
            bool normalize_tangents_bitangents,
+           bool reorient,
            bool in_place) -> std::optional<MeshType> {
-            Eigen::Transform<Scalar, 3, Eigen::Affine> M(affine_transform);
+            Eigen::Transform<Scalar, 3, Eigen::Affine> M(affine_transform.value);
             TransformOptions options;
             options.normalize_normals = normalize_normals;
             options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            options.reorient = reorient;
 
             std::optional<MeshType> result;
             if (in_place) {
@@ -1645,8 +1651,10 @@ oriented.
         },
         "mesh"_a,
         "affine_transform"_a,
+        nb::kw_only(),
         "normalize_normals"_a = TransformOptions().normalize_normals,
         "normalize_tangents_bitangents"_a = TransformOptions().normalize_tangents_bitangents,
+        "reorient"_a = TransformOptions().reorient,
         "in_place"_a = true,
         R"(Apply affine transformation to a mesh.
 
@@ -1654,6 +1662,7 @@ oriented.
 :param affine_transform: Affine transformation matrix.
 :param normalize_normals: Whether to normalize normals.
 :param normalize_tangents_bitangents: Whether to normalize tangents and bitangents.
+:param reorient: If the transform has a negative determinant, flip facets and reorient attributes (normals, tangents, bitangents).
 :param in_place: Whether to apply transformation in place.
 
 :returns: Transformed mesh if in_place is False.)");
@@ -1698,7 +1707,8 @@ oriented.
         [](const MeshType& mesh,
            std::variant<AttributeId, std::string_view> attribute,
            double isovalue,
-           bool keep_below) {
+           bool keep_below,
+           bool keep_attributes) {
             IsolineOptions opt;
             if (std::holds_alternative<AttributeId>(attribute)) {
                 opt.attribute_id = std::get<AttributeId>(attribute);
@@ -1707,18 +1717,21 @@ oriented.
             }
             opt.isovalue = isovalue;
             opt.keep_below = keep_below;
+            opt.keep_attributes = keep_attributes;
             return trim_by_isoline(mesh, opt);
         },
         "mesh"_a,
         "attribute"_a,
         "isovalue"_a = IsolineOptions().isovalue,
         "keep_below"_a = IsolineOptions().keep_below,
+        "keep_attributes"_a = IsolineOptions().keep_attributes,
         R"(Trim a triangle mesh by an isoline.
 
 :param mesh: Input triangle mesh.
 :param attribute: Attribute ID or name of scalar field (vertex or indexed).
 :param isovalue: Isovalue to trim with.
 :param keep_below: Whether to keep the part below the isoline.
+:param keep_attributes: Whether to propagate input mesh attributes to the output mesh.
 
 :returns: Trimmed mesh.)");
 
@@ -1726,7 +1739,8 @@ oriented.
         "extract_isoline",
         [](const MeshType& mesh,
            std::variant<AttributeId, std::string_view> attribute,
-           double isovalue) {
+           double isovalue,
+           bool keep_attributes) {
             IsolineOptions opt;
             if (std::holds_alternative<AttributeId>(attribute)) {
                 opt.attribute_id = std::get<AttributeId>(attribute);
@@ -1734,11 +1748,13 @@ oriented.
                 opt.attribute_id = mesh.get_attribute_id(std::get<std::string_view>(attribute));
             }
             opt.isovalue = isovalue;
+            opt.keep_attributes = keep_attributes;
             return extract_isoline(mesh, opt);
         },
         "mesh"_a,
         "attribute"_a,
         "isovalue"_a = IsolineOptions().isovalue,
+        "keep_attributes"_a = IsolineOptions().keep_attributes,
         R"(Extract the isoline of an implicit function defined on the mesh vertices/corners.
 
 The input mesh must be a triangle mesh.
@@ -1746,8 +1762,44 @@ The input mesh must be a triangle mesh.
 :param mesh:       Input triangle mesh to extract the isoline from.
 :param attribute:  Attribute id or name of the scalar field to use. Can be a vertex or indexed attribute.
 :param isovalue:   Isovalue to extract.
+:param keep_attributes: Whether to propagate input mesh attributes to the output mesh.
 
 :return: A mesh whose facets is a collection of size 2 elements representing the extracted isoline.)");
+
+    m.def(
+        "insert_isoline",
+        [](const MeshType& mesh,
+           std::variant<AttributeId, std::string_view> attribute,
+           double isovalue,
+           bool keep_attributes) {
+            IsolineOptions opt;
+            if (std::holds_alternative<AttributeId>(attribute)) {
+                opt.attribute_id = std::get<AttributeId>(attribute);
+            } else {
+                opt.attribute_id = mesh.get_attribute_id(std::get<std::string_view>(attribute));
+            }
+            opt.isovalue = isovalue;
+            opt.keep_attributes = keep_attributes;
+            return insert_isoline(mesh, opt);
+        },
+        "mesh"_a,
+        "attribute"_a,
+        "isovalue"_a = IsolineOptions().isovalue,
+        "keep_attributes"_a = IsolineOptions().keep_attributes,
+        R"(Insert the isoline of an implicit function into a triangle mesh.
+
+Unlike trimming, the whole mesh is retained; facets crossed by the isoline are split so that the
+isoline appears as a chain of edges in the output. A triangle crossed in its interior is split into
+a triangle and a quad, so the output is in general a mixed triangle/quad mesh. When the isoline
+passes exactly through an existing vertex (or lies along an edge), the split degenerates: the
+triangle may instead be split into two triangles, or left unchanged.
+
+:param mesh:       Input triangle mesh to insert the isoline into.
+:param attribute:  Attribute id or name of the scalar field to use. Can be a vertex or indexed attribute.
+:param isovalue:   Isovalue to insert.
+:param keep_attributes: Whether to propagate input mesh attributes to the output mesh.
+
+:return: The input mesh with the isoline inserted as a chain of edges.)");
 
     using AttributeNameOrId = AttributeFilter::AttributeNameOrId;
     m.def(
@@ -1755,8 +1807,10 @@ The input mesh must be a triangle mesh.
         [](MeshType& mesh,
            std::optional<std::vector<AttributeNameOrId>> included_attributes,
            std::optional<std::vector<AttributeNameOrId>> excluded_attributes,
-           std::optional<std::unordered_set<AttributeUsage>> included_usages,
-           std::optional<std::unordered_set<AttributeElement>> included_element_types) {
+           StubType<std::optional<std::unordered_set<AttributeUsage>>, IterableUsageHint>
+               included_usages,
+           StubType<std::optional<std::unordered_set<AttributeElement>>, IterableElementHint>
+               included_element_types) {
             AttributeFilter filter;
             if (included_attributes.has_value()) {
                 filter.included_attributes = included_attributes.value();
@@ -1764,15 +1818,15 @@ The input mesh must be a triangle mesh.
             if (excluded_attributes.has_value()) {
                 filter.excluded_attributes = excluded_attributes.value();
             }
-            if (included_usages.has_value()) {
+            if (included_usages.value.has_value()) {
                 filter.included_usages.clear_all();
-                for (auto usage : included_usages.value()) {
+                for (auto usage : included_usages.value.value()) {
                     filter.included_usages.set(usage);
                 }
             }
-            if (included_element_types.has_value()) {
+            if (included_element_types.value.has_value()) {
                 filter.included_element_types.clear_all();
-                for (auto element_type : included_element_types.value()) {
+                for (auto element_type : included_element_types.value.value()) {
                     filter.included_element_types.set(element_type);
                 }
             }
@@ -1924,11 +1978,11 @@ found after ``max_increment`` attempts.
     m.def(
         "compute_mesh_covariance",
         [](MeshType& mesh,
-           std::array<Scalar, 3> center,
+           StubType<std::array<Scalar, 3>, ArrayLikeHint> center,
            std::optional<std::string_view> active_facets_attribute_name)
             -> std::array<std::array<Scalar, 3>, 3> {
             MeshCovarianceOptions options;
-            options.center = center;
+            options.center = center.value;
             options.active_facets_attribute_name = active_facets_attribute_name;
             return compute_mesh_covariance<Scalar, Index>(mesh, options);
         },
@@ -2007,26 +2061,26 @@ found after ``max_increment`` attempts.
         nb::sig(
             "def select_facets_by_normal_similarity(mesh: SurfaceMesh, "
             "seed_facet_id: int, "
-            "flood_error_limit: float | None = None, "
-            "flood_second_to_first_order_limit_ratio: float | None = None, "
-            "facet_normal_attribute_name: str | None = None, "
-            "is_facet_selectable_attribute_name: str | None = None, "
-            "output_attribute_name: str | None = None, "
-            "search_type: typing.Literal['BFS', 'DFS'] | None = None,"
-            "num_smooth_iterations: int | None = None) -> int"));
+            "flood_error_limit: typing.Optional[float] = None, "
+            "flood_second_to_first_order_limit_ratio: typing.Optional[float] = None, "
+            "facet_normal_attribute_name: typing.Optional[str] = None, "
+            "is_facet_selectable_attribute_name: typing.Optional[str] = None, "
+            "output_attribute_name: typing.Optional[str] = None, "
+            "search_type: typing.Optional[typing.Literal['BFS', 'DFS']] = None,"
+            "num_smooth_iterations: typing.Optional[int] = None) -> int"));
 
     m.def(
         "select_facets_in_frustum",
         [](MeshType& mesh,
-           std::array<std::array<Scalar, 3>, 4> frustum_plane_points,
-           std::array<std::array<Scalar, 3>, 4> frustum_plane_normals,
+           StubType<std::array<std::array<Scalar, 3>, 4>, ArrayLikeHint> frustum_plane_points,
+           StubType<std::array<std::array<Scalar, 3>, 4>, ArrayLikeHint> frustum_plane_normals,
            std::optional<bool> greedy,
            std::optional<std::string_view> output_attribute_name) {
             // Set options in the C++ struct
             Frustum<Scalar> frustum;
             for (size_t i = 0; i < 4; ++i) {
-                frustum.planes[i].point = frustum_plane_points[i];
-                frustum.planes[i].normal = frustum_plane_normals[i];
+                frustum.planes[i].point = frustum_plane_points.value[i];
+                frustum.planes[i].normal = frustum_plane_normals.value[i];
             }
             FrustumSelectionOptions options;
             if (greedy.has_value()) options.greedy = greedy.value();

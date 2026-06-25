@@ -27,6 +27,8 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#include <imgui_spectrum.h>
+
 #include <CLI/CLI.hpp>
 
 namespace fs = lagrange::fs;

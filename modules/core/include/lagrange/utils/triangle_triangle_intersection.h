@@ -17,7 +17,9 @@
 namespace lagrange {
 
 ///
-/// @addtogroup group-utils-geom
+/// @defgroup group-utils-geom Geometry utilities
+/// @ingroup group-utils
+/// @brief Geometric predicates and primitive intersection tests.
 /// @{
 ///
 

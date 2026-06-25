@@ -7,7 +7,8 @@ Core Module
 @defgroup module-core Core Module
 @brief Core module for Lagrange.
 
-### Quick links
+Quick links
+-----------
 
 - [SurfaceMesh](@ref group-surfacemesh)
 - [Mesh](@ref lagrange::Mesh) [deprecated]

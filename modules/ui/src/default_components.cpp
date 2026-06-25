@@ -31,6 +31,7 @@
 
 #include <IconsFontAwesome5.h>
 #include <imgui.h>
+#include <imgui_spectrum.h>
 
 
 namespace lagrange {
@@ -85,12 +86,12 @@ void show_mesh_geometry(Registry* rptr, Entity orig_e)
     ImGui::Text("MeshType: %s", typeinfo.name().data());
 
     const size_t num_vertices = get_num_vertices(mesh_data);
-    if (num_vertices == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::RED400);
+    if (num_vertices == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::Static::RED400);
     ImGui::Text("Vertices: %zu", num_vertices);
     if (num_vertices == 0) ImGui::PopStyleColor();
 
     const size_t num_facets = get_num_facets(mesh_data);
-    if (num_facets == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::RED400);
+    if (num_facets == 0) ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::Static::RED400);
     ImGui::Text("Facets: %zu", num_facets);
     if (num_facets == 0) ImGui::PopStyleColor();
 
@@ -1194,7 +1195,7 @@ void show_bounds(Registry* rptr, Entity e)
 
     const auto show_bb = [](const AABB& bb) {
         if (bb.isEmpty()) {
-            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::RED400);
+            ImGui::PushStyleColor(ImGuiCol_Text, ImGui::Spectrum::Static::RED400);
             ImGui::Text("Empty");
             ImGui::PopStyleColor();
         } else {

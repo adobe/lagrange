@@ -55,7 +55,7 @@ struct PointcloudPCAOutput
  * Finds the principal components for a pointcloud
  *
  * Assumes that the points are supplied in a matrix where each
- * ``row'' is a point.
+ * "row" is a point.
  *
  * This is closely related to the inertia tensor, principal directions
  * and principal moments. But it is not exactly the same.

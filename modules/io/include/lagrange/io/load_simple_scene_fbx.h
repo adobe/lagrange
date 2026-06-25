@@ -22,7 +22,7 @@ namespace lagrange::io {
 /**
  * Load a simple scene from fbx.
  *
- * @param[in] filename input file
+ * @param[in] input_stream input stream data
  * @param[in] options
  *
  * @return  scene

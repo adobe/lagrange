@@ -106,7 +106,7 @@ inline const std::map<std::string, FallbackMode>& fallback_modes()
 }
 
 ///
-/// @addtogroup group-raycasting
+/// @addtogroup module-raycasting
 /// @{
 ///
 

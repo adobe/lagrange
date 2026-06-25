@@ -118,7 +118,7 @@ public:
         function_ref<bool(Index)> filter_func = [](Index) { return true; }) const;
 };
 
-/// @
+/// @}
 
 } // namespace bvh
 } // namespace lagrange

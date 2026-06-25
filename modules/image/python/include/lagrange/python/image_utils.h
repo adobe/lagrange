@@ -17,6 +17,8 @@
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/assert.h>
 
+#include <utility>
+
 namespace lagrange::python {
 
 namespace nb = nanobind;
@@ -71,23 +73,26 @@ void copy_tensor_to_image_view(
 }
 
 template <typename Scalar>
-nb::object image_array_to_tensor(const image::experimental::Array3D<Scalar>& image_)
+Tensor<Scalar> image_array_to_tensor(image::experimental::Array3D<Scalar>&& image_)
 {
-    auto image = const_cast<image::experimental::Array3D<Scalar>&>(image_);
-    auto tensor = Tensor<float>(
-        static_cast<float*>(image.data()),
+    // Move the array onto the heap and hand ownership to a capsule, so the tensor
+    // keeps its backing storage alive even after the source `Array3D` is gone.
+    using Array = image::experimental::Array3D<Scalar>;
+    auto* image = new Array(std::move(image_));
+    nb::capsule owner(image, [](void* p) noexcept { delete static_cast<Array*>(p); });
+    return Tensor<Scalar>(
+        static_cast<Scalar*>(image->data()),
         {
-            image.extent(1),
-            image.extent(0),
-            image.extent(2),
+            image->extent(1),
+            image->extent(0),
+            image->extent(2),
         },
-        nb::handle(),
+        owner,
         {
-            static_cast<int64_t>(image.stride(1)),
-            static_cast<int64_t>(image.stride(0)),
-            static_cast<int64_t>(image.stride(2)),
+            static_cast<int64_t>(image->stride(1)),
+            static_cast<int64_t>(image->stride(0)),
+            static_cast<int64_t>(image->stride(2)),
         });
-    return tensor.cast();
 }
 
 } // namespace lagrange::python

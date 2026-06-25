@@ -18,18 +18,13 @@ message(STATUS "Third-party (external): creating target 'imguizmo::imguizmo'")
 include(CPM)
 CPMAddPackage(
     NAME imguizmo
-    GITHUB_REPOSITORY CedricGuillemet/ImGuizmo
-    GIT_TAG e3174578bdc99c715e51c5ad88e7d50b4eeb19b0
+    GITHUB_REPOSITORY jdumas/ImGuizmo
+    GIT_TAG 097e4da69386a6351ec441b7839a3b385eec6a0e
+    OPTIONS "IMGUIZMO_BUILD_EXAMPLE OFF"
 )
 
-add_library(imguizmo STATIC
-    "${imguizmo_SOURCE_DIR}/ImGuizmo.h"
-    "${imguizmo_SOURCE_DIR}/ImGuizmo.cpp"
-)
-add_library(imguizmo::imguizmo ALIAS imguizmo)
-
-target_include_directories(imguizmo PUBLIC "${imguizmo_SOURCE_DIR}")
-
+# The upstream CMakeLists.txt defines imguizmo::imguizmo but does not link imgui.
+# We add the dependency here so our build picks up the correct imgui target.
 include(imgui)
 target_link_libraries(imguizmo PUBLIC imgui::imgui)
 

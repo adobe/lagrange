@@ -36,7 +36,7 @@
 namespace lagrange::internal {
 
 /**
- * Performs linear blend skinning deformation on a mesh..
+ * Performs linear blend skinning deformation on a mesh.
  *
  * @param[in,out] mesh              vertices of this mesh will be modified
  * @param[in] original_vertices     original positions of vertices
@@ -87,7 +87,7 @@ void skinning_deform(
 }
 
 /**
- * Performs linear blend skinning on a mesh, using weights information from the mesh attributes..
+ * Performs linear blend skinning on a mesh, using weights information from the mesh attributes.
  *
  * @param[in,out] mesh              vertices of this mesh will be modified
  * @param[in] original_vertices     original positions of vertices

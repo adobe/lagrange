@@ -20,7 +20,7 @@
 namespace lagrange::io {
 
 /**
- * Load a simple scene with gltf..
+ * Load a simple scene with gltf.
  *
  * @param[in] input_stream input stream data
  * @param[in] options
@@ -31,7 +31,7 @@ template <typename SceneType>
 SceneType load_simple_scene_gltf(std::istream& input_stream, const LoadOptions& options = {});
 
 /**
- * Load a simple scene with gltf..
+ * Load a simple scene with gltf.
  *
  * @param[in] filename input file
  * @param[in] options

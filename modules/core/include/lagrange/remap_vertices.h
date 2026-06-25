@@ -45,6 +45,7 @@ struct RemapVerticesOptions
  * @param[in,out]  mesh             The target mesh.
  * @param[in]      forward_mapping  Vertex mapping where vertex `i` will be remapped to
  *                                  vertex `forward_mapping[i]`.
+ * @param[in]      options          Remapping options (vertex collision policy).
  *
  * @pre
  *   * `forward_mapping` must be surjective.

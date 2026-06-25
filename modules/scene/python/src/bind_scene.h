@@ -86,7 +86,8 @@ void bind_scene(nb::module_& m)
             &SceneMeshInstance::materials,
             "Material indices in the scene.materials vector. This is typically a single material "
             "index. When a single mesh uses multiple materials, the AttributeName::material_id "
-            "facet attribute should be defined.");
+            "facet attribute should be defined.",
+            LA_SAFE_VECTOR_SETTER("materials", "ElementIdList | collections.abc.Sequence[int]"));
 
     nb::class_<Node>(m, "Node", "Represents a node in the scene hierarchy")
         .def(nb::init<>())
@@ -110,7 +111,8 @@ void bind_scene(nb::module_& m)
                     }
                 }
             },
-            "Transform of the node, relative to its parent")
+            "Transform of the node, relative to its parent",
+            nb::for_setter(nb::sig("def transform(self, arg: numpy.typing.ArrayLike, /) -> None")))
         .def_prop_rw(
             "parent",
             [](Node& node) -> std::optional<ElementId> {
@@ -122,7 +124,11 @@ void bind_scene(nb::module_& m)
             [](Node& node, ElementId parent) { node.parent = parent; },
             "Parent index. May be invalid if the node has no parent (e.g. the root)")
         .def_rw("children", &Node::children, "Children indices. May be empty")
-        .def_rw("meshes", &Node::meshes, "List of meshes contained in this node")
+        .def_rw(
+            "meshes",
+            &Node::meshes,
+            "List of meshes contained in this node",
+            LA_SAFE_VECTOR_SETTER("meshes", "collections.abc.Sequence[SceneMeshInstance]"))
         .def_rw("cameras", &Node::cameras, "List of cameras contained in this node")
         .def_rw("lights", &Node::lights, "List of lights contained in this node")
         .def_rw("extensions", &Node::extensions);
@@ -266,7 +272,9 @@ void bind_scene(nb::module_& m)
                     self.data.data());
             },
             "Raw buffer of size (width * height * num_channels * num_bits_per_element / 8) bytes "
-            "containing image data")
+            "containing image data",
+            nb::for_getter(
+                nb::sig("def data(self) -> Annotated[NDArray, dict(order='C', device='cpu')]")))
         .def_prop_ro(
             "dtype",
             [](ImageBufferExperimental& self) -> std::optional<nb::type_object> {
@@ -611,7 +619,11 @@ void bind_scene(nb::module_& m)
             "root_nodes",
             &SceneType::root_nodes,
             "Root nodes. This is typically one. Must be at least one")
-        .def_rw("meshes", &SceneType::meshes, "Scene meshes")
+        .def_rw(
+            "meshes",
+            &SceneType::meshes,
+            "Scene meshes",
+            LA_SAFE_VECTOR_SETTER("meshes", "collections.abc.Sequence[lagrange.core.SurfaceMesh]"))
         .def_rw("images", &SceneType::images, "Images")
         .def_rw("textures", &SceneType::textures, "Textures. They can reference images")
         .def_rw("materials", &SceneType::materials, "Materials. They can reference textures")
@@ -699,63 +711,82 @@ void bind_scene(nb::module_& m)
         [](const SceneType& scene,
            bool normalize_normals,
            bool normalize_tangents_bitangents,
+           bool reorient,
            bool preserve_attributes) {
             TransformOptions transform_options;
             transform_options.normalize_normals = normalize_normals;
             transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            transform_options.reorient = reorient;
             return scene::scene_to_mesh(scene, transform_options, preserve_attributes);
         },
         "scene"_a,
+        nb::kw_only(),
         "normalize_normals"_a = TransformOptions{}.normalize_normals,
         "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        "reorient"_a = TransformOptions{}.reorient,
         "preserve_attributes"_a = true,
         R"(Converts a scene into a concatenated mesh with all the transforms applied.
 
 :param scene: Scene to convert.
 :param normalize_normals: If enabled, normals are normalized after transformation.
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+:param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 :param preserve_attributes: Preserve shared attributes and map them to the output mesh.
 
 :return: Concatenated mesh.)");
 
     m.def(
         "scene_to_meshes",
-        [](const SceneType& scene, bool normalize_normals, bool normalize_tangents_bitangents) {
+        [](const SceneType& scene,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents,
+           bool reorient) {
             TransformOptions transform_options;
             transform_options.normalize_normals = normalize_normals;
             transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            transform_options.reorient = reorient;
             return scene::scene_to_meshes(scene, transform_options);
         },
         "scene"_a,
+        nb::kw_only(),
         "normalize_normals"_a = TransformOptions{}.normalize_normals,
         "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        "reorient"_a = TransformOptions{}.reorient,
         R"(Converts a scene into a list of meshes with all the transforms applied.
 
 :param scene: Scene to convert.
 :param normalize_normals: If enabled, normals are normalized after transformation.
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+:param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 
 :return: List of transformed meshes.)");
 
     m.def(
         "scene_to_meshes_and_materials",
-        [](const SceneType& scene, bool normalize_normals, bool normalize_tangents_bitangents)
+        [](const SceneType& scene,
+           bool normalize_normals,
+           bool normalize_tangents_bitangents,
+           bool reorient)
             -> std::pair<std::vector<SceneType::MeshType>, std::vector<std::vector<ElementId>>> {
             TransformOptions transform_options;
             transform_options.normalize_normals = normalize_normals;
             transform_options.normalize_tangents_bitangents = normalize_tangents_bitangents;
+            transform_options.reorient = reorient;
             auto [meshes, material_ids] =
                 scene::scene_to_meshes_and_materials(scene, transform_options);
             return {std::move(meshes), std::move(material_ids)};
         },
         "scene"_a,
+        nb::kw_only(),
         "normalize_normals"_a = TransformOptions{}.normalize_normals,
         "normalize_tangents_bitangents"_a = TransformOptions{}.normalize_tangents_bitangents,
+        "reorient"_a = TransformOptions{}.reorient,
         R"(Converts a scene into a list of meshes with all the transforms applied and a list of material IDs.
 
 :param scene: Scene to convert.
 :param normalize_normals: If enabled, normals are normalized after transformation.
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
+:param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 
 :return: List of meshes with transforms applied and a list of material IDs.)");
 

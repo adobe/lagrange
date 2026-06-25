@@ -217,7 +217,8 @@ function(lagrange_generate_python_binding_module)
     if(SKBUILD)
         # Write __init__.pyi to import all stubs.
         set(init_pyi_file ${SKBUILD_PLATLIB_DIR}/lagrange/__init__.pyi)
-        file(APPEND ${init_pyi_file} "from ._logging import logger\n")
+        # Explicit re-export (PEP 484) so type checkers treat `logger` as public.
+        file(APPEND ${init_pyi_file} "from ._logging import logger as logger\n")
         file(APPEND ${init_pyi_file} "from .core import *\n")
         file(APPEND ${init_pyi_file} "\n# Package variant identifier\nvariant: str\n")
 

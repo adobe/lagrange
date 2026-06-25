@@ -10,18 +10,32 @@
 # governing permissions and limitations under the License.
 #
 
+# Ensure IconFontCppHeaders target exists
+if(NOT TARGET juliettef::IconFontCppHeaders)
+    message(STATUS "Third-party (external): creating target 'juliettef::IconFontCppHeaders'")
+    include(CPM)
+    CPMAddPackage(
+        NAME IconFontCppHeaders
+        GITHUB_REPOSITORY juliettef/IconFontCppHeaders
+        GIT_TAG 8a381189ecfe58e732466cc52e79ca887dd6a297
+    )
+
+    add_library(IconFontCppHeadersPrime INTERFACE)
+    target_sources(IconFontCppHeadersPrime PUBLIC "${IconFontCppHeaders_SOURCE_DIR}/IconsFontAwesome6.h")
+    target_include_directories(IconFontCppHeadersPrime INTERFACE "${IconFontCppHeaders_SOURCE_DIR}")
+
+    add_library(juliettef::IconFontCppHeaders ALIAS IconFontCppHeadersPrime)
+endif()
+
 # The fonts repo does not add any target by default, but it does add this function
 if(NOT COMMAND fonts_add_font)
-
     message(STATUS "Third-party (external): creating target 'imgui::fonts'")
-
     include(CPM)
     CPMAddPackage(
         NAME imgui_fonts
         GITHUB_REPOSITORY HasKha/imgui-fonts
         GIT_TAG aa4a4c83be6a6b275a74809e853fd272b4eaaaa1
     )
-
 endif()
 
 block()
@@ -32,4 +46,4 @@ endblock()
 
 set_target_properties(fonts_fontawesome6 PROPERTIES FOLDER third_party)
 set_target_properties(fonts_source_sans_pro_regular PROPERTIES FOLDER third_party)
-set_target_properties(IconFontCppHeaders PROPERTIES FOLDER third_party)
+set_target_properties(IconFontCppHeadersPrime PROPERTIES FOLDER third_party)

@@ -43,6 +43,7 @@ IndexedAttribute<ValueType, Index>::IndexedAttribute(
     , m_indices(std::move(other.m_indices))
 {}
 
+/// @cond LA_INTERNAL_DOCS
 template <typename ValueType, typename Index>
 IndexedAttribute<ValueType, Index>& IndexedAttribute<ValueType, Index>::operator=(
     IndexedAttribute<ValueType, Index>&& other) noexcept
@@ -54,6 +55,7 @@ IndexedAttribute<ValueType, Index>& IndexedAttribute<ValueType, Index>::operator
     }
     return *this;
 }
+/// @endcond
 
 template <typename ValueType, typename Index>
 IndexedAttribute<ValueType, Index>::IndexedAttribute(
@@ -63,6 +65,7 @@ IndexedAttribute<ValueType, Index>::IndexedAttribute(
     , m_indices(other.m_indices)
 {}
 
+/// @cond LA_INTERNAL_DOCS
 template <typename ValueType, typename Index>
 IndexedAttribute<ValueType, Index>& IndexedAttribute<ValueType, Index>::operator=(
     const IndexedAttribute<ValueType, Index>& other)
@@ -74,6 +77,7 @@ IndexedAttribute<ValueType, Index>& IndexedAttribute<ValueType, Index>::operator
     }
     return *this;
 }
+/// @endcond
 
 ////////////////////////////////////////////////////////////////////////////////
 // Explicit template instantiation

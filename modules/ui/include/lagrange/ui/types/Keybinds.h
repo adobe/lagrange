@@ -76,7 +76,6 @@ public:
     void push_context(const std::string& context);
 
     /// @brief Pops the last pushed context
-    /// @param context context name
     void pop_context();
 
     void reset_context();

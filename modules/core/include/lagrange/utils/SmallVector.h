@@ -103,9 +103,7 @@ struct SmallBufferAllocator
 /// @endcond
 
 ///
-/// @defgroup group-utils Utilities
-/// @ingroup module-core
-///
+/// @addtogroup group-utils
 /// @{
 
 ///

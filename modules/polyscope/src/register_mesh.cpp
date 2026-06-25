@@ -53,6 +53,8 @@ std::tuple<std::vector<S>, std::vector<I>> standardizeNestedList(
 
 } // namespace
 
+/// @cond LA_INTERNAL_DOCS
+
 template <typename Scalar, typename Index>
 ::polyscope::SurfaceMesh* register_mesh(
     std::string_view name,
@@ -92,6 +94,29 @@ template <typename Scalar, typename Index>
         }
     }();
 
+    // Polyscope's requires an explicit edge permutation for edge-based quantities [1]. This tells
+    // polyscope how to map edge indices between its own internal ordering to Lagrange's edge
+    // ordering. It also does not support setting permutation on non-triangle meshes [2].
+    //
+    // [1]: https://polyscope.run/structures/surface_mesh/indexing_convention/#edges
+    // [2]: https://github.com/nmwsharp/polyscope/blob/59da72df6517cab8379865899bdffdbc96171301/src/surface_mesh.cpp#L217
+    if (mesh.has_edges() && mesh.is_triangle_mesh()) {
+        const size_t num_edges = static_cast<size_t>(mesh.get_num_edges());
+        std::vector<size_t> edge_perm;
+        edge_perm.reserve(num_edges);
+        std::vector<char> seen(num_edges, 0);
+        for (Index c = 0; c < mesh.get_num_corners(); ++c) {
+            Index e = mesh.get_corner_edge(c);
+            if (!seen[e]) {
+                seen[e] = 1;
+                edge_perm.push_back(static_cast<size_t>(e));
+            }
+        }
+        // A mismatch here is impossible by construction.
+        la_debug_assert(edge_perm.size() == num_edges);
+        ps_mesh->setEdgePermutation(edge_perm, num_edges);
+    }
+
     register_attributes(ps_mesh, mesh);
 
     return ps_mesh;
@@ -118,5 +143,7 @@ LA_SURFACE_MESH_X(register_mesh, 0)
         std::string_view name,                                                                 \
         const lagrange::Attribute<ValueType>& attr);
 LA_ATTRIBUTE_X(register_attribute, 0)
+
+/// @endcond
 
 } // namespace lagrange::polyscope

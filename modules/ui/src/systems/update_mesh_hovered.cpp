@@ -142,7 +142,7 @@ void update_mesh_hovered_GL(Registry& r, const SelectionContext& sel_ctx)
 }
 
 
-/// Updates <Hovered> component based on current selection context
+/// Updates `<Hovered>` component based on current selection context
 void update_mesh_hovered(Registry& r)
 {
     // Copy selection context

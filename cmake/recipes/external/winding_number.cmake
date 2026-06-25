@@ -31,8 +31,7 @@ endif()
 CPMAddPackage(
     NAME WindingNumber
     GITHUB_REPOSITORY jdumas/WindingNumber
-    GIT_TAG a48b8f555b490afe7aab9159c7daaf83fa2cdf8e
-    ${WINDINGNUMBER_PATCHES}
+    GIT_TAG 81443613dd2ab66000249401f10589f9794dc048
 )
 
 set_target_properties(WindingNumber PROPERTIES FOLDER third_party)

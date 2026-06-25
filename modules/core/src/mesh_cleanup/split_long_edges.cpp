@@ -15,6 +15,7 @@
 #include <lagrange/cast_attribute.h>
 #include <lagrange/compute_edge_lengths.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/internal/interpolate_attribute_row.h>
 #include <lagrange/internal/split_edges.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
@@ -31,35 +32,6 @@
 #include <numeric>
 
 namespace lagrange {
-
-namespace {
-
-template <typename Derived, typename Scalar, typename Index>
-void interpolate_row(
-    Eigen::MatrixBase<Derived>& data,
-    Index row_to,
-    Index row_from_1,
-    Index row_from_2,
-    Scalar t)
-{
-    la_debug_assert(row_to < static_cast<Index>(data.rows()));
-    la_debug_assert(row_from_1 < static_cast<Index>(data.rows()));
-    la_debug_assert(row_from_2 < static_cast<Index>(data.rows()));
-    using ValueType = typename Derived::Scalar;
-
-    if constexpr (std::is_integral_v<ValueType>) {
-        data.row(row_to) = (data.row(row_from_1).template cast<Scalar>() * (1 - t) +
-                            data.row(row_from_2).template cast<Scalar>() * t)
-                               .array()
-                               .round()
-                               .template cast<ValueType>()
-                               .eval();
-    } else {
-        data.row(row_to) = data.row(row_from_1) * (1 - t) + data.row(row_from_2) * t;
-    }
-}
-
-} // namespace
 
 template <typename Scalar, typename Index>
 void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions options)
@@ -160,7 +132,7 @@ void split_long_edges(SurfaceMesh<Scalar, Index>& mesh, SplitLongEdgesOptions op
                 Index v0, v1;
                 Scalar t;
                 std::tie(v0, v1, t) = additional_vertex_sources[i];
-                interpolate_row(data, num_input_vertices + i, v0, v1, t);
+                internal::interpolate_attribute_row(data, num_input_vertices + i, v0, v1, t);
             }
         });
 

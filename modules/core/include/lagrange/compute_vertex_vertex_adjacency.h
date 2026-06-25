@@ -11,10 +11,8 @@
  */
 #pragma once
 
-#include <tuple>
-#include <vector>
-
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/types/DualConnectivityType.h>
 #include <lagrange/utils/AdjacencyList.h>
 
 namespace lagrange {
@@ -30,15 +28,26 @@ namespace lagrange {
 /**
  * Compute vertex-vertex adjacency information.
  *
- * @tparam Scalar  Mesh scalar type.
- * @tparam Index   Mesh index type.
+ * Two vertices are considered adjacent based on the connectivity type:
+ * - DualConnectivityType::Edge: Two vertices are adjacent if they are connected by a mesh edge
+ *   (i.e., they are consecutive vertices in some facet). This is the default.
+ * - DualConnectivityType::Facet: Two vertices are adjacent if they belong to the same facet
+ *   (includes diagonal connections within a polygon).
  *
- * @param mesh     The input mesh.
+ * The resulting adjacency list is deduplicated: each neighbor appears at most once per vertex.
  *
- * @return         The vertex-vertex adjacency data and adjacency indices.
+ * @tparam Scalar            Mesh scalar type.
+ * @tparam Index             Mesh index type.
+ *
+ * @param mesh               The input mesh.
+ * @param connectivity_type  Adjacency condition (default: Edge).
+ *
+ * @return                   The vertex-vertex adjacency list.
  */
 template <typename Scalar, typename Index>
-AdjacencyList<Index> compute_vertex_vertex_adjacency(SurfaceMesh<Scalar, Index>& mesh);
+AdjacencyList<Index> compute_vertex_vertex_adjacency(
+    SurfaceMesh<Scalar, Index>& mesh,
+    DualConnectivityType connectivity_type = DualConnectivityType::Edge);
 
 /// @}
 

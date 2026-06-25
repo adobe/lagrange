@@ -18,8 +18,9 @@ import json
 import logging
 import pathlib
 import platform
+from contextlib import ExitStack, contextmanager
 
-import colorama  # type: ignore
+import colorama
 import lagrange
 import numpy as np
 
@@ -31,7 +32,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
-def _colored(text: str, color: str) -> str:
+def _colored(text: str, color: object) -> str:
     return f"{color}{text}{colorama.Style.RESET_ALL}"
 
 
@@ -115,6 +116,8 @@ def _facet_type(mesh) -> tuple[str, dict | None]:
             return "triangles", None
         if mesh.vertex_per_facet == 4:
             return "quads", None
+        if mesh.vertex_per_facet == 2:
+            return "two_gons", None
         return f"polygons ({mesh.vertex_per_facet})", None
 
     counts = {"two_gons": 0, "triangles": 0, "quads": 0, "polygons": 0}
@@ -142,6 +145,16 @@ def collect_basic_info(mesh, info: dict) -> None:
         mesh.initialize_edges()
     facet_type, facet_counts = _facet_type(mesh)
 
+    if facet_counts is None:
+        n = int(mesh.vertex_per_facet)
+        num_f = int(mesh.num_facets)
+        facet_counts = {
+            "two_gons": num_f if n == 2 else 0,
+            "triangles": num_f if n == 3 else 0,
+            "quads": num_f if n == 4 else 0,
+            "polygons": num_f if n not in (2, 3, 4) else 0,
+        }
+
     basic: dict = {
         "dim": int(mesh.dimension),
         "num_vertices": int(mesh.num_vertices),
@@ -149,6 +162,7 @@ def collect_basic_info(mesh, info: dict) -> None:
         "num_edges": int(mesh.num_edges),
         "num_corners": int(mesh.num_corners),
         "facet_type": facet_type,
+        "facet_counts": facet_counts,
     }
     if mesh.num_vertices > 0:
         bbox_min = np.amin(mesh.vertices, axis=0)
@@ -165,8 +179,6 @@ def collect_basic_info(mesh, info: dict) -> None:
         basic["bbox_extent"] = None
         basic["bbox_diagonal"] = 0.0
         basic["max_extent"] = 0.0
-    if facet_counts is not None:
-        basic["facet_counts"] = facet_counts
     info["basic"] = basic
 
 
@@ -195,7 +207,7 @@ def print_basic_info(mesh, info: dict) -> None:
         print_bad(f"Unsupported dimension: {basic['dim']}")
     if basic["facet_type"] == "hybrid":
         print_bad("facet type: hybrid")
-        counts = basic.get("facet_counts", {})
+        counts = basic["facet_counts"]
         if counts.get("two_gons", 0) > 0:
             print_bad(f"  # 2-gons: {counts['two_gons']}")
         if counts.get("triangles", 0) > 0:
@@ -210,6 +222,8 @@ def print_basic_info(mesh, info: dict) -> None:
 
 def collect_extended_info(mesh, info: dict) -> None:
     """Populate ``info["extended"]`` with topology/manifoldness checks."""
+    if not mesh.has_edges:
+        mesh.initialize_edges()
     extended: dict = {}
 
     extended["num_components"] = int(lagrange.compute_components(mesh))
@@ -250,6 +264,10 @@ def collect_extended_info(mesh, info: dict) -> None:
 
     extended["num_degenerate_facets"] = int(len(lagrange.detect_degenerate_facets(mesh)))
 
+    extended["euler_characteristic"] = (
+        int(mesh.num_vertices) - int(mesh.num_edges) + int(mesh.num_facets)
+    )
+
     valence_id = lagrange.compute_vertex_valence(mesh)
     extended["num_isolated_vertices"] = int(np.sum(mesh.attribute(valence_id).data == 0))
 
@@ -289,6 +307,7 @@ def print_extra_info(mesh, info: dict) -> None:
         print_property("orientable", True, True)
     print_property("num degenerate facets", extended["num_degenerate_facets"], 0)
     print_property("num isolated vertices", extended["num_isolated_vertices"], 0)
+    print_property("euler characteristic", extended["euler_characteristic"])
     if "num_intersecting_pairs" in extended:
         print_property("num intersecting pairs", extended["num_intersecting_pairs"], 0)
 
@@ -361,6 +380,21 @@ def _safe_attribute_name(name: str) -> str:
     return "".join(ch if ch.isalnum() else "_" for ch in name)
 
 
+def _delete_if_exists(mesh, name: str) -> None:
+    if mesh.has_attribute(name):
+        mesh.delete_attribute(name)
+
+
+@contextmanager
+def _temp_mesh_attribute(mesh, name_hint: str):
+    """Reserve a unique attribute name; delete the attribute on exit if present."""
+    name = lagrange.get_unique_attribute_name(mesh, name_hint, emit_warning=False)
+    try:
+        yield name
+    finally:
+        _delete_if_exists(mesh, name)
+
+
 def _normalize_uv_attribute(mesh, uv_attr_id: int) -> tuple[int, str]:
     """Ensure the UV attribute is indexed and float64. Returns (id, name)."""
     if not mesh.is_attribute_indexed(uv_attr_id):
@@ -384,94 +418,105 @@ def collect_uv_info(mesh, info: dict, metrics: list) -> None:
         logger.warning("No UV attributes on mesh; skipping UV section.")
         return
 
-    edge_lengths_id: int | None = None
     max_extent = float(info.get("basic", {}).get("max_extent", 0.0))
 
-    for uv_attr_id in uv_ids:
-        original_name = mesh.get_attribute_name(uv_attr_id)
-        safe = _safe_attribute_name(original_name)
-        norm_id, compute_name = _normalize_uv_attribute(mesh, uv_attr_id)
+    with ExitStack() as outer_stack:
+        edge_lengths_id: int | None = None
 
-        num_facets = int(mesh.num_facets)
-        entry: dict = {"num_facets_evaluated": num_facets}
+        for uv_attr_id in uv_ids:
+            original_name = mesh.get_attribute_name(uv_attr_id)
+            safe = _safe_attribute_name(original_name)
+            norm_id, compute_name = _normalize_uv_attribute(mesh, uv_attr_id)
 
-        # Charts. Use `get_unique_attribute_name` so re-running on the same mesh
-        # (or two UV attributes whose names sanitize to the same `safe` string)
-        # does not collide with an existing attribute.
-        chart_attr_name = lagrange.get_unique_attribute_name(
-            mesh, f"@meshstat_{safe}_chart_id", emit_warning=False
-        )
-        entry["num_charts"] = int(
-            lagrange.compute_uv_charts(
-                mesh,
-                uv_attribute_name=compute_name,
-                output_attribute_name=chart_attr_name,
-            )
-        )
+            with ExitStack() as inner_stack:
+                if compute_name != original_name:
+                    inner_stack.callback(_delete_if_exists, mesh, compute_name)
 
-        # Orientation (flipped + degenerate facets)
-        orient = lagrange.compute_uv_orientation(mesh, uv_attribute_name=compute_name)
-        entry["num_flipped_facets"] = int(orient.negative)
-        entry["num_degenerate_facets"] = int(orient.degenerate)
-        entry["fraction_flipped_facets"] = (
-            float(orient.negative) / num_facets if num_facets > 0 else 0.0
-        )
+                num_facets = int(mesh.num_facets)
+                entry: dict = {"num_facets_evaluated": num_facets}
 
-        # Overlap
-        overlap_result = lagrange.bvh.compute_uv_overlap(
-            mesh,
-            uv_attribute_name=compute_name,
-            compute_overlap_area=True,
-            compute_overlapping_pairs=True,
-            compute_overlap_coloring=False,
-        )
-        entry["overlap"] = {
-            "has_overlap": bool(overlap_result.has_overlap),
-            "overlap_area": float(overlap_result.overlap_area)
-            if overlap_result.overlap_area is not None
-            else 0.0,
-            "num_overlapping_pairs": int(len(overlap_result.overlapping_pairs)),
-        }
+                chart_attr = inner_stack.enter_context(
+                    _temp_mesh_attribute(mesh, f"@meshstat_{safe}_chart_id")
+                )
+                entry["num_charts"] = int(
+                    lagrange.compute_uv_charts(
+                        mesh,
+                        uv_attribute_name=compute_name,
+                        output_attribute_name=chart_attr,
+                    )
+                )
 
-        # Seams (need 3D edge lengths once). Boundary edges are also counted as seams.
-        seam_attr_name = lagrange.get_unique_attribute_name(
-            mesh, f"@meshstat_{safe}_seam_edges", emit_warning=False
-        )
-        seam_id = lagrange.compute_seam_edges(
-            mesh,
-            norm_id,
-            output_attribute_name=seam_attr_name,
-            include_boundary_edges=True,
-        )
-        if edge_lengths_id is None:
-            edge_lengths_attr_name = lagrange.get_unique_attribute_name(
-                mesh, "@meshstat_edge_lengths", emit_warning=False
-            )
-            edge_lengths_id = lagrange.compute_edge_lengths(
-                mesh, output_attribute_name=edge_lengths_attr_name
-            )
-        seam_mask = np.asarray(mesh.attribute(seam_id).data) != 0
-        edge_lengths = np.asarray(mesh.attribute(edge_lengths_id).data)
-        total_seam_length = float(edge_lengths[seam_mask].sum()) if seam_mask.any() else 0.0
-        entry["seams"] = {
-            "num_seam_edges": int(seam_mask.sum()),
-            "total_length_3d": total_seam_length,
-            "relative_length_3d": (total_seam_length / max_extent if max_extent > 0 else None),
-        }
+                orient_attr = inner_stack.enter_context(
+                    _temp_mesh_attribute(mesh, f"@meshstat_{safe}_uv_orientation")
+                )
+                orient = lagrange.compute_uv_orientation(
+                    mesh,
+                    uv_attribute_name=compute_name,
+                    output_attribute_name=orient_attr,
+                )
+                entry["num_flipped_facets"] = int(orient.negative)
+                entry["num_degenerate_facets"] = int(orient.degenerate)
+                entry["fraction_flipped_facets"] = (
+                    float(orient.negative) / num_facets if num_facets > 0 else 0.0
+                )
 
-        # Distortion (per metric)
-        distortion: dict = {}
-        for metric in metrics:
-            metric_name = str(metric).split(".")[-1]
-            out_attr = lagrange.get_unique_attribute_name(
-                mesh, f"@meshstat_{safe}_uv_distortion_{metric_name}", emit_warning=False
-            )
-            attr_id = lagrange.compute_uv_distortion(mesh, compute_name, out_attr, metric)
-            values = np.asarray(mesh.attribute(attr_id).data, dtype=np.float64)
-            distortion[metric_name] = compute_stats(values)
-        entry["distortion"] = distortion
+                overlap_result = lagrange.bvh.compute_uv_overlap(
+                    mesh,
+                    uv_attribute_name=compute_name,
+                    compute_overlap_area=True,
+                    compute_overlapping_pairs=True,
+                    compute_overlap_coloring=False,
+                )
+                entry["overlap"] = {
+                    "has_overlap": bool(overlap_result.has_overlap),
+                    "overlap_area": float(overlap_result.overlap_area)
+                    if overlap_result.overlap_area is not None
+                    else 0.0,
+                    "num_overlapping_pairs": int(len(overlap_result.overlapping_pairs)),
+                }
 
-        info["uv"][original_name] = entry
+                # Seams (need 3D edge lengths once). Boundary edges are also
+                # counted as seams: they bound the UV chart even though they only
+                # have UV indices on one side.
+                seam_attr = inner_stack.enter_context(
+                    _temp_mesh_attribute(mesh, f"@meshstat_{safe}_seam_edges")
+                )
+                seam_id = lagrange.compute_seam_edges(
+                    mesh,
+                    norm_id,
+                    output_attribute_name=seam_attr,
+                    include_boundary_edges=True,
+                )
+                if edge_lengths_id is None:
+                    edge_lengths_attr = outer_stack.enter_context(
+                        _temp_mesh_attribute(mesh, "@meshstat_edge_lengths")
+                    )
+                    edge_lengths_id = lagrange.compute_edge_lengths(
+                        mesh, output_attribute_name=edge_lengths_attr
+                    )
+                seam_mask = np.asarray(mesh.attribute(seam_id).data) != 0
+                edge_lengths = np.asarray(mesh.attribute(edge_lengths_id).data)
+                total_seam_length = float(edge_lengths[seam_mask].sum()) if seam_mask.any() else 0.0
+                entry["seams"] = {
+                    "num_seam_edges": int(seam_mask.sum()),
+                    "total_length_3d": total_seam_length,
+                    "relative_length_3d": (
+                        total_seam_length / max_extent if max_extent > 0 else None
+                    ),
+                }
+
+                distortion: dict = {}
+                for metric in metrics:
+                    metric_name = str(metric).split(".")[-1]
+                    out_attr = inner_stack.enter_context(
+                        _temp_mesh_attribute(mesh, f"@meshstat_{safe}_uv_distortion_{metric_name}")
+                    )
+                    attr_id = lagrange.compute_uv_distortion(mesh, compute_name, out_attr, metric)
+                    values = np.asarray(mesh.attribute(attr_id).data, dtype=np.float64)
+                    distortion[metric_name] = compute_stats(values)
+                entry["distortion"] = distortion
+
+                info["uv"][original_name] = entry
 
 
 def print_uv_info(info: dict) -> None:
@@ -573,7 +618,6 @@ def run(args: argparse.Namespace) -> int:
     metrics = [getattr(lagrange.DistortionMetric, name) for name in metric_names]
 
     mesh = lagrange.io.load_mesh(args.input_mesh, quiet=True, stitch_vertices=args.stitched)
-    mesh.initialize_edges()
 
     info: dict = {"file": str(args.input_mesh)}
 

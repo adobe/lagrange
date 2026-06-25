@@ -28,7 +28,7 @@ LA_UI_API Eigen::Matrix4f normal_matrix(const Eigen::Affine3f& transform);
 
 /// Constructs perspective projection matrix
 ///
-/// @param[in] fov_y    vertical field of vision in RADIANS
+/// @param[in] fovy     vertical field of vision in RADIANS
 /// @param[in] aspect   aspect ratio
 /// @param[in] zNear    near plane
 /// @param[in] zFar     far plane

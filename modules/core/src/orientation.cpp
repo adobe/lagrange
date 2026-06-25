@@ -64,7 +64,7 @@ bool is_oriented(const SurfaceMesh<Scalar, Index>& mesh)
 
     return tbb::parallel_reduce(
         tbb::blocked_range<Index>(0, mesh.get_num_edges()),
-        true, ///< initial value of the result.
+        true, // initial value of the result.
         [&](const tbb::blocked_range<Index>& r, bool oriented) -> bool {
             if (!oriented) return false;
 
