@@ -34,11 +34,10 @@ using UVOverlapResult = lagrange::bvh::UVOverlapResult<double, uint32_t>;
 
 NB_NAMED_TUPLE(
     UVOverlapResult,
-    "UVOverlapResult",
-    NB_NT_FIELD(has_overlap),
-    NB_NT_FIELD(overlap_area),
-    NB_NT_FIELD(overlapping_pairs),
-    NB_NT_FIELD(overlap_coloring_id))
+    has_overlap,
+    overlap_area,
+    overlapping_pairs,
+    overlap_coloring_id)
 
 namespace lagrange::python {
 
