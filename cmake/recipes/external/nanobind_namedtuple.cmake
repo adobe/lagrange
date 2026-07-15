@@ -25,7 +25,7 @@ include(CPM)
 CPMAddPackage(
     NAME nanobind_namedtuple
     GITHUB_REPOSITORY jdumas/nanobind_namedtuple
-    GIT_TAG bfb9d8a58f4e4cf64a0751efaa947746af01573b
+    GIT_TAG 906b5bd02968e92d0f08d6259250dd395e8ef3d7
 )
 
 set_target_properties(nanobind_namedtuple PROPERTIES FOLDER third_party)

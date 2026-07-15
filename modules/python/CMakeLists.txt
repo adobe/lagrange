@@ -224,6 +224,37 @@ function(lagrange_generate_python_binding_module)
 
         # Generate stubs for python binding within the install location.
         get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
+
+        # When nanobind_namedtuple is in use, generate a stubgen pattern file at install
+        # time so that classes registered through nbnt::bind_namedtuple are emitted as
+        # canonical typing.NamedTuple blocks. Pattern queries are fully qualified, so a
+        # single shared file is safe to pass to every module's stubgen invocation.
+        set(pattern_file_args "")
+        if(TARGET nanobind_namedtuple)
+            get_target_property(nbnt_source_dir nanobind_namedtuple SOURCE_DIR)
+            set(pattern_file ${CMAKE_CURRENT_BINARY_DIR}/nanobind_namedtuple.pat)
+            set(pattern_module_flags "")
+            foreach(module_name IN ITEMS ${active_modules})
+                get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
+                if(NOT python_name)
+                    set(python_name ${module_name})
+                endif()
+                list(APPEND pattern_module_flags -m lagrange.${python_name})
+            endforeach()
+            list(JOIN pattern_module_flags " " pattern_module_flags)
+            install(CODE "
+                message(STATUS \"Generating nanobind_namedtuple pattern file: ${pattern_file}\")
+                execute_process(
+                    COMMAND \"${CMAKE_COMMAND}\" -E env \"PYTHONPATH=${nbnt_source_dir}/stubgen\"
+                        \"${Python_EXECUTABLE}\" -m nanobind_namedtuple_stubgen
+                        -i \"${SKBUILD_PLATLIB_DIR}/lagrange/\" ${pattern_module_flags} -o \"${pattern_file}\"
+                    COMMAND_ERROR_IS_FATAL ANY
+                )"
+                COMPONENT Lagrange_Python_Runtime
+            )
+            set(pattern_file_args PATTERN_FILE ${pattern_file})
+        endif()
+
         foreach(module_name IN ITEMS ${active_modules})
             get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
             if(NOT python_name)
@@ -239,6 +270,7 @@ function(lagrange_generate_python_binding_module)
                 DEPENDS lagrange_python
                 COMPONENT Lagrange_Python_Runtime
                 PYTHON_PATH ${SKBUILD_PLATLIB_DIR}/lagrange/
+                ${pattern_file_args}
                 VERBOSE
             )
         endforeach()
