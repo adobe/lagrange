@@ -32,8 +32,6 @@ using namespace nb::literals;
 // single type name token, hence the alias for the template instantiation.
 using UVOverlapResult = lagrange::bvh::UVOverlapResult<double, uint32_t>;
 
-// clang-format off
-#include <lagrange/utils/warnoff.h>
 NB_NAMED_TUPLE(
     UVOverlapResult,
     "UVOverlapResult",
@@ -41,8 +39,6 @@ NB_NAMED_TUPLE(
     NB_NT_FIELD(overlap_area),
     NB_NT_FIELD(overlapping_pairs),
     NB_NT_FIELD(overlap_coloring_id))
-#include <lagrange/utils/warnon.h>
-// clang-format on
 
 namespace lagrange::python {
 
