@@ -15,24 +15,17 @@ endif()
 
 message(STATUS "Third-party (external): creating target 'nanobind_namedtuple::nanobind_namedtuple'")
 
+# Provide Python and nanobind before adding the package: the upstream CMakeLists.txt skips its own
+# find_package(Python) when Python::Module exists, and skips nanobind discovery (which probes the
+# interpreter via `python -m nanobind`) when nanobind_add_module is available.
+include(python)
+include(nanobind)
+
 include(CPM)
 CPMAddPackage(
     NAME nanobind_namedtuple
     GITHUB_REPOSITORY jdumas/nanobind_namedtuple
     GIT_TAG 5eea9b5497c031ef556a250b04d47b68e54395c1
-    DOWNLOAD_ONLY ON
 )
-
-# The upstream CMakeLists.txt runs its own find_package(Python)/find_package(nanobind), which is
-# redundant within Lagrange's build (nanobind is already fetched via CPM). Since the library is
-# header-only, we declare the interface target manually instead.
-add_library(nanobind_namedtuple INTERFACE)
-add_library(nanobind_namedtuple::nanobind_namedtuple ALIAS nanobind_namedtuple)
-
-target_include_directories(nanobind_namedtuple INTERFACE
-    $<BUILD_INTERFACE:${nanobind_namedtuple_SOURCE_DIR}/include>
-)
-
-target_compile_features(nanobind_namedtuple INTERFACE cxx_std_17)
 
 set_target_properties(nanobind_namedtuple PROPERTIES FOLDER third_party)
