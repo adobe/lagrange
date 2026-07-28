@@ -124,16 +124,12 @@ function(embree_import_target)
     endif()
     set(EMBREE_URL RenderKit/embree)
     if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND EMBREE_VERSION STREQUAL "v4.4.0")
-        message(STATUS "Testing winarm version of embree 4")
-        set(EMBREE_VERSION 03d8ec87213176a7e91c92a18d42e15a8a9bbbc8)
+        message(STATUS "Using winarm-compatible fork of embree 4")
+        # The dousse-adobe fork adds Windows ARM64 (_M_ARM64) support, guarding x86 BMI/LZCNT/PEXT
+        # intrinsics that are unavailable on MSVC ARM64. These fixes now live upstream in the
+        # fork's dousse/arm-forreal branch, so no local patch is required anymore.
+        set(EMBREE_VERSION c5a62076608e3e70471f4d64355e17d0e3be6619)
         set(EMBREE_URL dousse-adobe/embree)
-        # The dousse-adobe fork guards x86 BMI/LZCNT/PEXT intrinsics with !defined(__aarch64__)
-        # (GCC/Clang macro) but misses _M_ARM64 (MSVC macro), causing build failures on Windows
-        # ARM64. We use git apply --ignore-whitespace instead of CPM's PATCHES (patch -p1) because
-        # git-cloned files may have CRLF line endings on Windows, which confuses patch.exe.
-        find_package(Git REQUIRED QUIET)
-        set(EMBREE_ARM64_PATCH "${CMAKE_CURRENT_LIST_DIR}/embree-winarm.patch")
-        set(EMBREE_PATCHES PATCH_COMMAND "${GIT_EXECUTABLE}" apply --ignore-whitespace "${EMBREE_ARM64_PATCH}")
     endif()
     CPMAddPackage(
         NAME embree
