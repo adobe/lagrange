@@ -125,11 +125,7 @@ function(embree_import_target)
     set(EMBREE_URL RenderKit/embree)
     if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND EMBREE_VERSION STREQUAL "v4.4.0")
         message(STATUS "Using winarm-compatible fork of embree 4")
-        # The dousse-adobe fork adds Windows ARM64 (_M_ARM64) support, guarding x86 BMI/LZCNT/PEXT
-        # intrinsics that are unavailable on MSVC ARM64. These fixes now live upstream in the
-        # fork's dousse/arm-forreal branch, so no local patch is required anymore.
-        set(EMBREE_VERSION c5a62076608e3e70471f4d64355e17d0e3be6619)
-        set(EMBREE_URL dousse-adobe/embree)
+        set(EMBREE_VERSION 958014331b95bc6f23a82b8f2ea284ce7410febb)
     endif()
     CPMAddPackage(
         NAME embree
