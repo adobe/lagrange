@@ -35,29 +35,41 @@ using solver::SolverLDLT;
 // solve_connection_laplacian — shared solve kernel for both vertex and facet paths
 // =============================================================================
 
-// Solves for the smoothest (or alignment-constrained) n-rosy field given a
-// regularized Laplacian L_reg = L + εM and mass matrix M.
-//
-// When has_constraints is true, solves (L_reg) x = M q and normalizes in M-norm.
-// When has_constraints is false, finds the smallest generalized eigenvector of
-// L_reg x = σ M x via Spectra, falling back to inverse power iteration.
-//
-// fn_name is used only in runtime-assert/warning messages.
+/**
+ * Solves for the smoothest (or alignment-constrained) n-rosy field given a regularized
+ * Laplacian L_reg = L + εM and mass matrix M.
+ *
+ * has_constraints=true: solve (L_reg − λ_t M) x = M q (Knöppel et al. 2013, Eq. 16) and
+ * normalize in M-norm; lambda_t is the alignment tradeoff parameter.
+ *
+ * has_constraints=false: smallest generalized eigenvector of L_reg x = σ M x via Spectra,
+ * falling back to inverse power iteration (lambda_t is unused).
+ *
+ * fn_name is used only in runtime-assert/warning messages.
+ */
 template <typename Scalar>
 static void solve_connection_laplacian(
     const Eigen::SparseMatrix<Scalar>& L_reg,
     const Eigen::SparseMatrix<Scalar>& M,
     const Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& q,
     bool has_constraints,
+    Scalar lambda_t,
     Eigen::Index size,
     std::string_view fn_name,
     Eigen::Matrix<Scalar, Eigen::Dynamic, 1>& x)
 {
     if (has_constraints) {
-        SolverLDLT<Eigen::SparseMatrix<Scalar>> slv(L_reg);
+        // Eq. 16 system matrix: (L + εM) − λ_t M. Only materialize the shift when λ_t ≠ 0.
+        Eigen::SparseMatrix<Scalar> A_shifted;
+        if (lambda_t != Scalar(0)) A_shifted = L_reg - lambda_t * M;
+        const Eigen::SparseMatrix<Scalar>& A = (lambda_t != Scalar(0)) ? A_shifted : L_reg;
+        SolverLDLT<Eigen::SparseMatrix<Scalar>> slv(A);
         la_runtime_assert(
             slv.info() == Eigen::Success,
-            lagrange::format("{}: factorization of L + eps*M failed", fn_name));
+            lagrange::format(
+                "{}: factorization of (L + eps*M - lambda_t*M) failed; alignment_lambda may be "
+                "too large (must stay below the smallest generalized eigenvalue)",
+                fn_name));
 
         x = slv.solve((M * q).eval());
         la_runtime_assert(
@@ -119,6 +131,7 @@ AttributeId compute_smooth_direction_field_on_facets(
     const Index num_edges = mesh.get_num_edges();
     const Index n = static_cast<Index>(options.nrosy);
     const int n_int = static_cast<int>(options.nrosy);
+    const Scalar lambda_t = static_cast<Scalar>(options.alignment_lambda);
 
     // ---- 1. Edge-to-face mapping ----
     // For each edge store the local vertex index of edge.v0 in each adjacent face.
@@ -277,6 +290,7 @@ AttributeId compute_smooth_direction_field_on_facets(
         M,
         q,
         has_constraints,
+        lambda_t,
         static_cast<Eigen::Index>(2 * num_facets),
         "compute_smooth_direction_field_on_facets",
         x);
@@ -335,6 +349,7 @@ AttributeId compute_smooth_direction_field(
     const Index n = static_cast<Index>(options.nrosy);
     const int n_int = static_cast<int>(options.nrosy);
     const Scalar lambda = static_cast<Scalar>(options.lambda);
+    const Scalar lambda_t = static_cast<Scalar>(options.alignment_lambda);
 
     // Build the connection Laplacian L of size (#V*2) x (#V*2).
     auto L = ops.connection_laplacian_nrosy(n, lambda);
@@ -411,6 +426,7 @@ AttributeId compute_smooth_direction_field(
         M,
         q,
         has_constraints,
+        lambda_t,
         static_cast<Eigen::Index>(num_vertices * 2),
         "compute_smooth_direction_field",
         x);

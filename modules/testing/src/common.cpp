@@ -25,8 +25,39 @@
     #include <mkl.h>
 #endif
 
+#ifdef _WIN32
+    #ifndef WIN32_LEAN_AND_MEAN
+        #define WIN32_LEAN_AND_MEAN
+    #endif
+    #ifndef NOMINMAX
+        #define NOMINMAX
+    #endif
+    #include <windows.h>
+
+    #include <crtdbg.h>
+    #include <stdio.h>
+    #include <stdlib.h>
+#endif
+
 namespace lagrange {
 namespace testing {
+
+#if defined(_WIN32) && defined(_DEBUG)
+namespace {
+
+// Terminate on Debug CRT assert/error reports instead of continuing with "Ignore" semantics.
+int crt_report_hook(int report_type, char* message, int* /*return_value*/)
+{
+    if (report_type == _CRT_ERROR || report_type == _CRT_ASSERT) {
+        fputs(message, stderr);
+        fflush(stderr);
+        abort();
+    }
+    return FALSE;
+}
+
+} // namespace
+#endif
 
 fs::path get_data_dir()
 {
@@ -150,6 +181,37 @@ void setup_mkl_reproducibility()
         }
     };
     MySingleton::instance();
+#endif
+}
+
+void disable_windows_error_dialogs()
+{
+#ifdef _WIN32
+    // Keep interactive dialogs and debug breaks when running under a debugger.
+    if (IsDebuggerPresent()) {
+        return;
+    }
+
+    // Route assert() failure messages to stderr instead of a message box.
+    _set_error_mode(_OUT_TO_STDERR);
+
+    // Write the abort() message to stderr, but don't invoke Windows Error Reporting.
+    _set_abort_behavior(_WRITE_ABORT_MSG, _WRITE_ABORT_MSG | _CALL_REPORTFAULT);
+
+    // Suppress OS-level error popups for hard crashes (e.g. access violations).
+    SetErrorMode(
+        GetErrorMode() | SEM_FAILCRITICALERRORS | SEM_NOGPFAULTERRORBOX | SEM_NOOPENFILEERRORBOX);
+
+    #ifdef _DEBUG
+    // Route Debug CRT reports to stderr instead of the "Debug Assertion Failed" dialog.
+    for (int report_type : {_CRT_WARN, _CRT_ERROR, _CRT_ASSERT}) {
+        _CrtSetReportMode(report_type, _CRTDBG_MODE_FILE);
+        _CrtSetReportFile(report_type, _CRTDBG_FILE_STDERR);
+    }
+
+    // Ensure assert/error reports terminate the process instead of merely logging.
+    _CrtSetReportHook(crt_report_hook);
+    #endif
 #endif
 }
 

@@ -38,6 +38,12 @@ struct LoadImageResult
 LA_IMAGE_IO_API LoadImageResult
 load_image(const fs::path& path, spdlog::level::level_enum error_lvl = spdlog::level::err);
 
+// Load image from a memory buffer (PNG, JPEG, or other stb-supported formats).
+LA_IMAGE_IO_API LoadImageResult load_image_from_buffer(
+    const void* buffer,
+    size_t size,
+    spdlog::level::level_enum error_lvl = spdlog::level::err);
+
 // Load png or jpg image using stb library. Produces uint8 data.
 LA_IMAGE_IO_API LoadImageResult
 load_image_stb(const fs::path& path, spdlog::level::level_enum error_lvl = spdlog::level::err);

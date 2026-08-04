@@ -30,4 +30,20 @@ bool try_load_image(
     const LoadOptions& options,
     scene::ImageExperimental& image);
 
+/**
+ * Load an image from a memory buffer (PNG, JPEG, or other stb-supported formats).
+ *
+ * @param[in] buffer  Pointer to raw image file bytes.
+ * @param[in] size    Number of bytes in the buffer.
+ * @param[in] options Load options.
+ * @param[out] image  This will be filled with the loaded data.
+ *
+ * @return true if successful.
+ */
+bool try_load_image_from_buffer(
+    const void* buffer,
+    size_t size,
+    const LoadOptions& options,
+    scene::ImageExperimental& image);
+
 } // namespace lagrange::io::internal

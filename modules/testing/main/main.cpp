@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/Logger.h>
+#include <lagrange/testing/common.h>
 #include <lagrange/utils/build.h>
 #include <lagrange/utils/fpe.h>
 
@@ -74,6 +75,8 @@ static_assert(false, "Emscripten must be compiled with pthreads support");
 
 int main(int argc, char* argv[])
 {
+    lagrange::testing::disable_windows_error_dialogs();
+
     Catch::Session session;
     int log_level = spdlog::level::warn;
     bool fpe_flag = false;

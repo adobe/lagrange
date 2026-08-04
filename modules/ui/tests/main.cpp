@@ -30,6 +30,8 @@ struct MiniGLContext
 
 int main(int argc, char* argv[])
 {
+    lagrange::testing::disable_windows_error_dialogs();
+
 #ifdef LAGRANGE_UI_OPENGL_TESTS
     MiniGLContext opengl_context;
 #endif

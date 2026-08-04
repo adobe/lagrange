@@ -17,8 +17,6 @@ Configures a colored stderr handler on the library logger and forwards to
 :func:`lagrange.scripts.meshstat.main`.
 """
 
-from __future__ import annotations
-
 import logging
 import platform
 import sys

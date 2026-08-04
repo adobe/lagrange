@@ -74,7 +74,10 @@ SurfaceMesh<Scalar, Index> scene_to_mesh(
 /// @tparam     Scalar             Input scene scalar type.
 /// @tparam     Index              Input scene index type.
 ///
-/// @return     List of meshes with transforms applied.
+/// @return     List of meshes with transforms applied. Each mesh carries a `material_id` facet
+///             attribute (see @ref AttributeName::material_id) whose values are global indices into
+///             `Scene::materials`. Facets with no associated material are marked with
+///             `invalid<Index>()`.
 ///
 template <typename Scalar, typename Index>
 std::vector<SurfaceMesh<Scalar, Index>> scene_to_meshes(
@@ -125,15 +128,30 @@ Scene<Scalar, Index> simple_scene_to_scene(const SimpleScene<Scalar, Index>& sim
 template <typename Scalar, typename Index>
 struct MeshesAndMaterialsResult
 {
-    /// List of meshes with transforms applied.
+    /// List of meshes with transforms applied. Each mesh carries a `material_id` facet attribute
+    /// (see @ref AttributeName::material_id) whose values are global indices into the scene's
+    /// material list (i.e. the same indexing as `Scene::materials` and `material_ids` below).
+    /// Facets with no associated material are marked with `invalid<Index>()`.
     std::vector<SurfaceMesh<Scalar, Index>> meshes;
 
-    /// List of material IDs for each mesh.
+    /// List of material IDs used by each mesh (indices into `Scene::materials`). This is the set of
+    /// materials referenced by the corresponding mesh instance; use the per-facet `material_id`
+    /// attribute on each mesh to recover the exact facet-to-material assignment.
     std::vector<std::vector<ElementId>> material_ids;
 };
 
 ///
-/// Converts a scene into a list of meshes with all the transforms applied and a list of material IDs.
+/// Converts a scene into a list of meshes with all the transforms applied and a list of material
+/// IDs.
+///
+/// In addition to the per-mesh `material_ids` list, every output mesh is given a `material_id`
+/// facet attribute holding the global scene material index used by each facet, so that the
+/// facet-to-material assignment is preserved even when a single mesh uses multiple materials.
+///
+/// **Convention for existing `material_id` attributes:** If an input mesh already carries a
+/// `material_id` facet attribute, its values are interpreted as *instance-local* indices into the
+/// corresponding `SceneMeshInstance::materials` list. Because instances are flattened and meshes
+/// are duplicated, this function remaps them to global `Scene::materials` indices on output.
 ///
 /// @param[in]  scene              Scene to convert.
 /// @param[in]  transform_options  Options to use when applying mesh transformations.

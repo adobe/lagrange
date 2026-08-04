@@ -63,6 +63,17 @@ std::string_view to_string(AttributeUsage usage)
     }
 }
 
+std::string_view value_type_name(AttributeValueType value_type)
+{
+    switch (value_type) {
+#define LA_X_value_type_name(_, ValueType) \
+    case AttributeValueType::e_##ValueType: return #ValueType;
+        LA_ATTRIBUTE_X(value_type_name, 0)
+#undef LA_X_value_type_name
+    default: la_debug_assert(false, "Unsupported enum type"); return "";
+    }
+}
+
 #define LA_X_type_name(_, ValueType)                                                    \
     template <>                                                                         \
     LA_CORE_API std::string_view value_type_name(const lagrange::Attribute<ValueType>&) \

@@ -247,6 +247,25 @@ MeshType convert_mesh_ufbx_to_lagrange(const ufbx_mesh* mesh, const LoadOptions&
             attr.values().ref_all().begin());
     }
 
+    // Per-facet material slot index from ufbx_mesh::face_material (UFBX_NO_INDEX → -1).
+    // The values index into node->materials[] for the primary instancing node, which is
+    // dense (no null slots) since create_load_opts() leaves connect_broken_elements off.
+    // Written before triangulation so triangulate_polygonal_facets replicates it correctly.
+    if (opt.load_materials && mesh->face_material.count == mesh->num_faces && mesh->num_faces > 0) {
+        auto attr_id = lmesh.template create_attribute<Index>(
+            AttributeName::material_id,
+            AttributeElement::Facet,
+            AttributeUsage::Scalar,
+            1);
+        auto& attr = lmesh.template ref_attribute<Index>(attr_id);
+        attr.resize_elements(mesh->num_faces);
+        auto vals = attr.ref_all();
+        for (size_t f = 0; f < mesh->num_faces; ++f) {
+            const uint32_t raw = mesh->face_material.data[f];
+            vals[f] = (raw == UFBX_NO_INDEX) ? invalid<Index>() : safe_cast<Index>(raw);
+        }
+    }
+
     if (opt.stitch_vertices) {
         stitch_mesh(lmesh);
     }
@@ -482,12 +501,17 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
         limage.uri = texture->relative_filename.data;
         // note: there is no width/height anywhere. read the image from disk, or read png from texture->content.
         bool loaded = false;
-        if (texture->content.size > 0) {
-            // TODO: read image from embedded data.
-            // But our image_io module does not support loading from buffer
-            logger().warn(
-                "Loading fbx embedded textures is currently unsupported, missing data for {}",
-                limage.name);
+        if (texture->content.size > 0 && opt.load_images) {
+            loaded = internal::try_load_image_from_buffer(
+                texture->content.data,
+                texture->content.size,
+                opt,
+                limage);
+            if (!loaded && !opt.quiet) {
+                logger().warn(
+                    "Failed to load embedded texture image for texture '{}'",
+                    limage.name);
+            }
         } else if (opt.load_images) {
             loaded |= internal::try_load_image(texture->filename.data, opt, limage);
             loaded |= internal::try_load_image(texture->relative_filename.data, opt, limage);
@@ -555,10 +579,12 @@ SceneType load_scene_fbx(const ufbx_scene* scene, const LoadOptions& opt)
             la_runtime_assert(mesh_idx != lagrange::invalid<size_t>());
             std::vector<scene::ElementId> material_idxs;
 
+            // node->materials[] is dense (no null slots) unless ufbx is loaded with
+            // connect_broken_elements, which create_load_opts() never enables. This keeps
+            // the per-instance list parallel to mesh->face_material indices.
             for (const ufbx_material* material : node->materials) {
-                if (material) {
-                    material_idxs.push_back(element_index[material->element_id]);
-                }
+                la_runtime_assert(material != nullptr);
+                material_idxs.push_back(element_index[material->element_id]);
             }
             lnode.meshes.push_back({mesh_idx, material_idxs});
         }

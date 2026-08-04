@@ -360,6 +360,132 @@ void test_centroid_fan()
     }
 }
 
+template <typename Scalar, typename Index>
+void test_should_triangulate()
+{
+    using namespace lagrange;
+
+    // Two disjoint (convex, planar) pentagons: both schemes honor `should_triangulate` for every
+    // facet with more than 3 vertices, so selecting one pentagon exercises the predicate.
+    auto make_mesh = [] {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        // Pentagon 0.
+        mesh.add_vertex({0, 0, 0}); // 0
+        mesh.add_vertex({2, 0, 0}); // 1
+        mesh.add_vertex({Scalar(2.5), Scalar(1.5), 0}); // 2
+        mesh.add_vertex({1, Scalar(2.5), 0}); // 3
+        mesh.add_vertex({Scalar(-0.5), Scalar(1.5), 0}); // 4
+        // Pentagon 1.
+        mesh.add_vertex({5, 0, 0}); // 5
+        mesh.add_vertex({7, 0, 0}); // 6
+        mesh.add_vertex({Scalar(7.5), Scalar(1.5), 0}); // 7
+        mesh.add_vertex({6, Scalar(2.5), 0}); // 8
+        mesh.add_vertex({Scalar(4.5), Scalar(1.5), 0}); // 9
+        mesh.add_polygon({0, 1, 2, 3, 4}); // facet 0 (pentagon)
+        mesh.add_polygon({5, 6, 7, 8, 9}); // facet 1 (pentagon)
+        return mesh;
+    };
+
+    for (auto scheme :
+         {TriangulationOptions::Scheme::Earcut, TriangulationOptions::Scheme::CentroidFan}) {
+        TriangulationOptions options;
+        options.scheme = scheme;
+
+        // Only triangulate the second facet. The first pentagon is left untouched.
+        auto mesh = make_mesh();
+        const Index target_facet = 1;
+        triangulate_polygonal_facets(
+            mesh,
+            function_ref<bool(Index)>([&](Index f) { return f == target_facet; }),
+            options);
+
+        // Mesh is not fully triangulated since we skipped one facet.
+        REQUIRE(!mesh.is_triangle_mesh());
+
+        // Count facets by size: the untouched pentagon (5) must survive, and the triangulated
+        // pentagon must have become triangles.
+        Index num_tris = 0;
+        Index num_pentagons = 0;
+        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+            switch (mesh.get_facet_size(f)) {
+            case 3: ++num_tris; break;
+            case 5: ++num_pentagons; break;
+            default: break;
+            }
+        }
+        REQUIRE(num_pentagons == 1);
+        // A pentagon triangulates into 3 triangles (earcut) or 5 triangles (centroid fan).
+        REQUIRE(num_tris >= 3);
+    }
+
+    // Quads must also honor the predicate. Regression test: the earcut scheme previously
+    // triangulated every quad unconditionally, ignoring `should_triangulate`.
+    for (auto scheme :
+         {TriangulationOptions::Scheme::Earcut, TriangulationOptions::Scheme::CentroidFan}) {
+        TriangulationOptions options;
+        options.scheme = scheme;
+
+        SurfaceMesh<Scalar, Index> mesh(3);
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({1, 1, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({2, 0, 0});
+        mesh.add_vertex({2, 1, 0});
+        mesh.add_quad(0, 1, 2, 3); // facet 0
+        mesh.add_quad(1, 4, 5, 2); // facet 1
+
+        const Index target_facet = 1;
+        triangulate_polygonal_facets(
+            mesh,
+            function_ref<bool(Index)>([&](Index f) { return f == target_facet; }),
+            options);
+
+        // Facet 0 stays a quad; facet 1 is triangulated.
+        Index num_tris = 0;
+        Index num_quads = 0;
+        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+            switch (mesh.get_facet_size(f)) {
+            case 3: ++num_tris; break;
+            case 4: ++num_quads; break;
+            default: break;
+            }
+        }
+        REQUIRE(num_quads == 1);
+        REQUIRE(num_tris >= 2);
+    }
+
+    // A predicate that always returns false is a no-op for both schemes, even with edge
+    // connectivity (an empty selection must not add empty facet buffers, which asserts).
+    for (auto scheme :
+         {TriangulationOptions::Scheme::Earcut, TriangulationOptions::Scheme::CentroidFan}) {
+        TriangulationOptions options;
+        options.scheme = scheme;
+
+        auto mesh = make_mesh();
+        mesh.initialize_edges();
+        const Index old_num_facets = mesh.get_num_facets();
+        triangulate_polygonal_facets(
+            mesh,
+            function_ref<bool(Index)>([](Index) { return false; }),
+            options);
+        REQUIRE(!mesh.is_triangle_mesh());
+        REQUIRE(mesh.get_num_facets() == old_num_facets);
+    }
+
+    // A predicate that always returns true is equivalent to the default behavior.
+    {
+        TriangulationOptions options;
+        auto mesh = make_mesh();
+        triangulate_polygonal_facets(
+            mesh,
+            function_ref<bool(Index)>([](Index) { return true; }),
+            options);
+        mesh.compress_if_regular();
+        REQUIRE(mesh.is_triangle_mesh());
+    }
+}
+
 } // namespace
 
 TEST_CASE("earcut", "[core]")
@@ -411,6 +537,12 @@ TEST_CASE("triangulate_polygonal_facets: centroid fan", "[core]")
 {
 #define LA_X_centroid_fan(_, Scalar, Index) test_centroid_fan<Scalar, Index>();
     LA_SURFACE_MESH_X(centroid_fan, 0)
+}
+
+TEST_CASE("triangulate_polygonal_facets: should_triangulate", "[core]")
+{
+#define LA_X_should_triangulate(_, Scalar, Index) test_should_triangulate<Scalar, Index>();
+    LA_SURFACE_MESH_X(should_triangulate, 0)
 }
 
 // TODO: Test removal degenerate facets, once we allow sizes <= 2

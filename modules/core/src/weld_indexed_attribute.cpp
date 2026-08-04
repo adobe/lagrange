@@ -18,9 +18,8 @@
 #include <lagrange/utils/DisjointSets.h>
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/safe_cast.h>
-#include <lagrange/utils/scope_guard.h>
-#include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
 
 // clang-format off
@@ -31,51 +30,43 @@
 // clang-format on
 
 #include <algorithm>
+#include <cmath>
+#include <cstdint>
+#include <iterator>
 #include <limits>
+#include <type_traits>
 
 namespace lagrange {
 
 namespace {
 
-// Unsigned integer type using the most significant bit as a flag.
-template <typename Index>
-struct IndexWithFlagT
+// Maps a value type to its corresponding real (non-integer) type for tolerance computations.
+template <typename T>
+struct NonIntegerT
 {
-    explicit IndexWithFlagT(Index i = 0) { set_index(i); }
-
-    void set_index(Index i)
-    {
-        i &= ~Mask; // Clear the flag
-        i |= (m_value & Mask); // Set the flag if it was set
-        m_value = i;
-    }
-
-    Index index() const
-    {
-        return m_value & ~Mask; // Clear the flag
-    }
-
-    void set_flag(bool enabled)
-    {
-        if (enabled) {
-            m_value |= Mask; // Set the flag
-        } else {
-            m_value &= ~Mask; // Clear the flag
-        }
-    }
-
-    bool flag() const
-    {
-        return (m_value & Mask) != 0; // Check the flag
-    }
-
-    Index m_value = 0;
-
-    static constexpr Index Mask = Index(1) << (8 * sizeof(Index) - 1);
-
-    static_assert(std::is_unsigned_v<Index>, "Index must be unsigned");
-    static_assert(Mask != 0 && (Mask << 1 == 0));
+    using type = double;
 };
+template <>
+struct NonIntegerT<float>
+{
+    using type = float;
+};
+template <>
+struct NonIntegerT<double>
+{
+    using type = double;
+};
+
+// Returns the default relative tolerance (equivalent to Eigen::NumTraits<T>::dummy_precision()).
+template <typename T>
+constexpr T default_rel_tolerance()
+{
+    if constexpr (std::is_same_v<T, float>) {
+        return T(1e-5);
+    } else {
+        return T(1e-12);
+    }
+}
 
 template <typename Index>
 struct IndexAndCornerT
@@ -84,56 +75,117 @@ struct IndexAndCornerT
     Index corner;
 };
 
-template <typename ValueType, typename Scalar, typename Index, typename Func>
-void weld_indexed_attribute(
-    SurfaceMesh<Scalar, Index>& mesh,
-    IndexedAttribute<ValueType, Index>& attr,
-    span<const size_t> exclude_vertices,
-    bool merge_across_vertices,
-    Func equal)
+// Check whether two rows of values are approximately equal.
+// Returns true if all channels satisfy |a[c] - b[c]| <= atol + rtol * |b[c]|,
+// and optionally if the angle between the two vectors is within the threshold.
+template <typename ValueType>
+bool rows_are_close(
+    const ValueType* row_a,
+    const ValueType* row_b,
+    size_t num_channels,
+    double eps_rel,
+    double eps_abs,
+    double cos_angle_abs)
 {
-    std::vector<bool> exclude_vertices_mask(mesh.get_num_vertices(), false);
-    for (auto vi : exclude_vertices) {
-        la_debug_assert(vi < mesh.get_num_vertices());
-        exclude_vertices_mask[vi] = true;
+    using RealType = typename NonIntegerT<ValueType>::type;
+
+    // Element-wise tolerance check.
+    for (size_t c = 0; c < num_channels; ++c) {
+        RealType diff = std::abs(static_cast<RealType>(row_a[c]) - static_cast<RealType>(row_b[c]));
+        RealType tol = static_cast<RealType>(eps_abs) +
+                       static_cast<RealType>(eps_rel) * std::abs(static_cast<RealType>(row_b[c]));
+        // Use !(diff <= tol) so that NaN causes the comparison to fail (returns false).
+        if (!(diff <= tol)) return false;
     }
 
-    const bool had_edges = mesh.has_edges();
-    mesh.initialize_edges();
-    const auto _ = make_scope_guard([&]() {
-        if (!had_edges) {
-            mesh.clear_edges();
+    // Angle check (only if cos_angle_abs <= 1).
+    if (cos_angle_abs <= 1.0) {
+        RealType dot = 0;
+        RealType norm_a_sq = 0;
+        RealType norm_b_sq = 0;
+        for (size_t c = 0; c < num_channels; ++c) {
+            RealType a = static_cast<RealType>(row_a[c]);
+            RealType b = static_cast<RealType>(row_b[c]);
+            dot += a * b;
+            norm_a_sq += a * a;
+            norm_b_sq += b * b;
         }
-    });
-    auto& attr_values = attr.values();
-    auto values = matrix_view(attr_values);
-    auto corner_to_value = vector_ref(attr.indices());
-
-    const Index num_vertices = mesh.get_num_vertices();
-    const Index num_values = static_cast<Index>(values.rows());
-    const Index num_corners = mesh.get_num_corners();
-
-    using IndexWithFlag = IndexWithFlagT<Index>;
-    std::vector<IndexWithFlag> corner_map(num_corners);
-    for (Index c = 0; c < num_corners; ++c) {
-        corner_map[c].set_index(c);
+        RealType threshold =
+            static_cast<RealType>(cos_angle_abs) * std::sqrt(norm_a_sq) * std::sqrt(norm_b_sq);
+        // Use !(dot >= threshold) so that NaN causes the comparison to fail (returns false).
+        if (!(dot >= threshold)) {
+            return false;
+        }
     }
 
-    auto find_and_compress = [&](Index c) {
-        while (corner_map[c].index() != c) {
-            corner_map[c].set_index(corner_map[corner_map[c].index()].index());
-            c = corner_map[c].index();
+    return true;
+}
+
+// Check whether two rows of values are exactly equal (per-element ==).
+template <typename ValueType>
+bool rows_are_equal(const ValueType* row_a, const ValueType* row_b, size_t num_channels)
+{
+    return std::equal(row_a, row_a + num_channels, row_b);
+}
+
+// Check whether any channel in a row equals the invalid sentinel value.
+template <typename ValueType>
+bool row_has_invalid(const ValueType* row, size_t num_channels)
+{
+    const ValueType inv = lagrange::invalid<ValueType>();
+    for (size_t c = 0; c < num_channels; ++c) {
+        if (row[c] == inv) return true;
+    }
+    return false;
+}
+
+// Assign a reduced index to the root corner of a group. Updates num_reduced in place.
+template <typename Index>
+void process_root(
+    Index c,
+    Index& num_reduced,
+    const std::vector<bool>& group_flagged,
+    span<const Index> corner_to_value,
+    std::vector<Index>& corner_to_reduced,
+    std::vector<Index>& index_to_reduced)
+{
+    if (corner_to_reduced[c] != invalid<Index>()) {
+        // If the root corner has already been processed, we can skip it.
+        return;
+    }
+    if (group_flagged[c]) {
+        // If the group is flagged, it means a merge happened, and we assign a new index to
+        // the corner group.
+        corner_to_reduced[c] = num_reduced++;
+    } else {
+        // If the group is not flagged, we can preserve the original index. In other words,
+        // we assign a reduced index based on the original index associated to the corner,
+        // not based on the corner group.
+        Index i = corner_to_value[c];
+        if (index_to_reduced[i] == invalid<Index>()) {
+            index_to_reduced[i] = num_reduced++;
         }
-        return c;
-    };
+        corner_to_reduced[c] = index_to_reduced[i];
+    }
+    la_debug_assert(corner_to_reduced[c] != invalid<Index>());
+}
 
-    auto merge_groups = [&](Index c1, Index c2, bool flag = false) {
-        auto r1 = find_and_compress(c1);
-        auto r2 = find_and_compress(c2);
-        corner_map[r2].set_index(r1);
-        corner_map[r1].set_flag(corner_map[r1].flag() || corner_map[r2].flag() || flag);
-    };
-
+// Merge corners around each vertex that share the same index or have similar values.
+//
+// Templated on `Index` only: the per-vertex corner adjacency is supplied as an index-only CSR
+// (`vertex_to_corners`) and the value comparison is type-erased through `values_close`. This keeps
+// the heavy parallel machinery (TBB, SmallVector, DisjointSets) compiled once per index type
+// rather than once per (ValueType, Scalar, Index) combination.
+template <typename Index>
+void merge_corners_per_vertex(
+    Index num_vertices,
+    const internal::InverseMapping<Index>& vertex_to_corners,
+    const std::vector<bool>& exclude_vertices_mask,
+    span<const Index> corner_to_value,
+    function_ref<bool(Index, Index)> values_close,
+    DisjointSets<Index>& corner_map,
+    std::vector<uint8_t>& corner_flagged)
+{
     // Sort and find duplicate values shared by corners around the same vertex.
     using IndexAndCorner = IndexAndCornerT<Index>;
     tbb::parallel_for(
@@ -143,8 +195,8 @@ void weld_indexed_attribute(
                 if (exclude_vertices_mask[vi]) continue;
 
                 SmallVector<IndexAndCorner, 16> involved_indices_and_corners;
-                mesh.foreach_corner_around_vertex(vi, [&](Index ci) {
-                    involved_indices_and_corners.push_back({corner_to_value(ci), ci});
+                vertex_to_corners.foreach_mapped_to(vi, [&](Index ci) {
+                    involved_indices_and_corners.push_back({corner_to_value[ci], ci});
                 });
                 la_debug_assert(involved_indices_and_corners.size() > 0);
 
@@ -160,7 +212,7 @@ void weld_indexed_attribute(
                         return (x.index != it_begin->index);
                     });
                     for (auto it = it_begin; it != it_end; ++it) {
-                        corner_map[it->corner].set_index(it_begin->corner);
+                        corner_map.merge(it_begin->corner, it->corner);
                     }
                     it_begin = it_end;
                 }
@@ -174,7 +226,7 @@ void weld_indexed_attribute(
                 // Update corner associated to the uniqued index to be the root of the group
                 for (auto itr = first; itr != last; itr++) {
                     Index& c = itr->corner;
-                    c = corner_map[c].index();
+                    c = corner_map.find(c);
                 }
 
                 for (auto itr = first; itr != last; itr++) {
@@ -183,95 +235,130 @@ void weld_indexed_attribute(
                     // If the corner is not the root of the group, it means it has been merged with
                     // another corner in this inner loop, and we don't need to compare against all
                     // other uniqued indices again.
-                    if (corner_map[c1].index() != c1) continue;
+                    if (corner_map.find(c1) != c1) continue;
 
                     // Quadratic loop to search for corners with similar values.
                     for (auto itr2 = std::next(itr); itr2 != last; itr2++) {
                         const auto& [i2, c2] = *itr2;
-                        if (equal(i1, i2)) {
+                        if (values_close(i1, i2)) {
                             // Flag any corner group containing merged values.
-                            merge_groups(c1, c2, true);
+                            Index root = corner_map.merge(c1, c2);
+                            corner_flagged[root] = 1;
                         }
                     }
                 }
             }
         });
+}
 
-    if (merge_across_vertices) {
-        // Merge corner groups that share indices
-        auto index_to_corner = internal::invert_mapping(
-            {corner_to_value.data(), static_cast<size_t>(num_corners)},
-            num_values);
-        for (Index i = 0; i < num_values; i++) {
-            auto it_begin = index_to_corner.data.begin() + index_to_corner.offsets[i];
-            auto it_end = index_to_corner.data.begin() + index_to_corner.offsets[i + 1];
-            if (it_begin == it_end) continue;
-            for (auto it = it_begin + 1; it != it_end; ++it) {
-                merge_groups(*it_begin, *it);
-            }
-        }
-    }
-
+// Assign reduced indices to all corners based on the disjoint sets and flags.
+template <typename Index>
+Index assign_reduced_indices(
+    Index num_corners,
+    Index num_values,
+    DisjointSets<Index>& corner_map,
+    const std::vector<uint8_t>& corner_flagged,
+    span<const Index> corner_to_value,
+    std::vector<Index>& corner_to_reduced)
+{
     // Propagate flags to roots after all merges are done
     std::vector<bool> group_flagged(num_corners, false);
     for (Index c = 0; c < num_corners; ++c) {
-        if (corner_map[c].flag()) {
-            Index rc = find_and_compress(c);
+        if (corner_flagged[c]) {
+            Index rc = corner_map.find(c);
             group_flagged[rc] = true;
         }
     }
 
     Index num_reduced = 0;
-    std::vector<Index> corner_to_reduced(num_corners, invalid<Index>());
     std::vector<Index> index_to_reduced(num_values, invalid<Index>());
-
-    auto process_root = [&](Index c) {
-        if (corner_to_reduced[c] != invalid<Index>()) {
-            // If the root corner has already been processed, we can skip it.
-            return;
-        }
-        if (group_flagged[c]) {
-            // If the group is flagged, it means a merge happened, and we assign a new index to
-            // the corner group.
-            corner_to_reduced[c] = num_reduced++;
-        } else {
-            // If the group is not flagged, we can preserve the original index. In other words,
-            // we assign a reduced index based on the original index associated to the corner,
-            // not based on the corner group.
-            Index i = corner_to_value[c];
-            if (index_to_reduced[i] == invalid<Index>()) {
-                index_to_reduced[corner_to_value[c]] = num_reduced++;
-            }
-            corner_to_reduced[c] = index_to_reduced[corner_to_value[c]];
-        }
-        la_debug_assert(corner_to_reduced[c] != invalid<Index>());
-    };
 
     // Assign reduced indices to corners.
     for (Index c = 0; c < num_corners; ++c) {
-        Index rc = find_and_compress(c);
-        process_root(rc);
+        Index rc = corner_map.find(c);
+        process_root(
+            rc,
+            num_reduced,
+            group_flagged,
+            corner_to_value,
+            corner_to_reduced,
+            index_to_reduced);
         if (rc != c) {
             corner_to_reduced[c] = corner_to_reduced[rc];
             la_debug_assert(corner_to_reduced[c] != invalid<Index>());
         }
     }
 
-    if (num_reduced == num_values) {
-        // Nothing to weld.
-        return;
+    return num_reduced;
+}
+
+// Run the index-only welding pipeline: merge corners around each vertex, optionally merge corner
+// groups that share the same value index across vertices, then assign reduced indices.
+//
+// Templated on `Index` only (not ValueType/Scalar): the value comparison is type-erased through
+// `values_close`, so the heavy disjoint-set machinery is compiled once per index type. Fills
+// `corner_to_reduced` and returns the number of reduced (welded) values.
+template <typename Index>
+Index weld_core(
+    Index num_corners,
+    Index num_vertices,
+    Index num_values,
+    const internal::InverseMapping<Index>& vertex_to_corners,
+    const std::vector<bool>& exclude_vertices_mask,
+    span<const Index> corner_to_value,
+    function_ref<bool(Index, Index)> values_close,
+    bool merge_across_vertices,
+    std::vector<Index>& corner_to_reduced)
+{
+    DisjointSets<Index> corner_map(num_corners);
+    std::vector<uint8_t> corner_flagged(num_corners, 0);
+
+    merge_corners_per_vertex<Index>(
+        num_vertices,
+        vertex_to_corners,
+        exclude_vertices_mask,
+        corner_to_value,
+        values_close,
+        corner_map,
+        corner_flagged);
+
+    if (merge_across_vertices) {
+        // Merge corner groups that share indices
+        auto index_to_corner = internal::invert_mapping(
+            span<const Index>(corner_to_value.data(), static_cast<size_t>(num_corners)),
+            num_values);
+        for (Index i = 0; i < num_values; i++) {
+            auto it_begin = index_to_corner.data.begin() + index_to_corner.offsets[i];
+            auto it_end = index_to_corner.data.begin() + index_to_corner.offsets[i + 1];
+            if (it_begin == it_end) continue;
+            for (auto it = it_begin + 1; it != it_end; ++it) {
+                corner_map.merge(*it_begin, *it);
+            }
+        }
     }
 
-    auto reduced_to_corner =
-        internal::invert_mapping({corner_to_reduced.data(), corner_to_reduced.size()}, num_reduced);
+    corner_to_reduced.assign(num_corners, invalid<Index>());
+    return assign_reduced_indices(
+        num_corners,
+        num_values,
+        corner_map,
+        corner_flagged,
+        corner_to_value,
+        corner_to_reduced);
+}
 
-    Attribute<ValueType> attr_welded_values(
-        attr_values.get_element_type(),
-        attr_values.get_usage(),
-        attr_values.get_num_channels());
-    attr_welded_values.resize_elements(num_reduced);
-    auto welded_values = matrix_ref(attr_welded_values);
-    welded_values.setZero();
+// Within each reduced group, sort the member corners by value index and move the unique ones to the
+// front of the group's slice (via std::unique). The group offsets are NOT updated and no elements
+// are erased; instead the per-group count of unique members is returned, and callers must read only
+// the first `unique_count[ri]` entries of each group. Templated on `Index` only, so the heavy
+// parallel sort is compiled once per index type rather than once per value type.
+template <typename Index>
+std::vector<Index> dedup_groups_by_value(
+    internal::InverseMapping<Index>& reduced_to_corner,
+    Index num_reduced,
+    span<const Index> corner_to_value)
+{
+    std::vector<Index> unique_count(static_cast<size_t>(num_reduced));
     tbb::parallel_for(Index(0), num_reduced, [&](Index ri) {
         auto it_begin = reduced_to_corner.data.begin() + reduced_to_corner.offsets[ri];
         auto it_end = reduced_to_corner.data.begin() + reduced_to_corner.offsets[ri + 1];
@@ -280,38 +367,131 @@ void weld_indexed_attribute(
         tbb::parallel_sort(it_begin, it_end, [&](Index ci, Index cj) {
             return corner_to_value[ci] < corner_to_value[cj];
         });
-        it_end = std::unique(it_begin, it_end, [&](Index ci, Index cj) {
+        auto new_end = std::unique(it_begin, it_end, [&](Index ci, Index cj) {
             return corner_to_value[ci] == corner_to_value[cj];
         });
-        for (auto it = it_begin; it != it_end; ++it) {
-            welded_values.row(ri) += values.row(corner_to_value[*it]);
+        unique_count[ri] = static_cast<Index>(std::distance(it_begin, new_end));
+    });
+    return unique_count;
+}
+
+// Compute the welded attribute values by averaging merged groups. Only the final accumulation is
+// ValueType-dependent; the index-only grouping/dedup is handled by `dedup_groups_by_value`.
+template <typename ValueType, typename Index>
+void compute_welded_values(
+    Index num_reduced,
+    span<const ValueType> values_data,
+    span<const Index> corner_to_value,
+    const std::vector<Index>& corner_to_reduced,
+    size_t num_channels,
+    Attribute<ValueType>& attr_values)
+{
+    auto reduced_to_corner =
+        internal::invert_mapping({corner_to_reduced.data(), corner_to_reduced.size()}, num_reduced);
+    std::vector<Index> unique_count =
+        dedup_groups_by_value<Index>(reduced_to_corner, num_reduced, corner_to_value);
+
+    Attribute<ValueType> attr_welded_values(
+        attr_values.get_element_type(),
+        attr_values.get_usage(),
+        attr_values.get_num_channels());
+    attr_welded_values.resize_elements(num_reduced);
+    auto welded_data = attr_welded_values.ref_all();
+    std::fill(welded_data.begin(), welded_data.end(), ValueType(0));
+
+    tbb::parallel_for(Index(0), num_reduced, [&](Index ri) {
+        const Index* group = reduced_to_corner.data.data() + reduced_to_corner.offsets[ri];
+        const Index num = unique_count[ri];
+        ValueType* dst = welded_data.data() + static_cast<size_t>(ri) * num_channels;
+        for (Index k = 0; k < num; ++k) {
+            const ValueType* src =
+                values_data.data() + static_cast<size_t>(corner_to_value[group[k]]) * num_channels;
+            for (size_t ch = 0; ch < num_channels; ++ch) {
+                dst[ch] += src[ch];
+            }
         }
-        auto num = std::distance(it_begin, it_end);
         if (num > 1) {
-            welded_values.row(ri) /= static_cast<ValueType>(num);
+            for (size_t ch = 0; ch < num_channels; ++ch) {
+                dst[ch] /= static_cast<ValueType>(num);
+            }
         }
     });
     attr_values = std::move(attr_welded_values);
-    tbb::parallel_for(Index(0), num_corners, [&](auto c) {
-        corner_to_value[c] = corner_to_reduced[c];
-    });
 }
 
-template <typename DerivedA, typename DerivedB>
-bool allclose(
-    const Eigen::DenseBase<DerivedA>& a,
-    const Eigen::DenseBase<DerivedB>& b,
-    const typename DerivedA::RealScalar& rtol =
-        Eigen::NumTraits<typename DerivedA::RealScalar>::dummy_precision(),
-    const typename DerivedA::RealScalar& atol =
-        Eigen::NumTraits<typename DerivedA::RealScalar>::epsilon(),
-    const typename DerivedA::RealScalar& cos_angle_abs = 1)
+// Thin per-(ValueType, Index) shell: builds the type-erased value comparator and forwards the
+// index-only topology to `weld_core`, then computes the averaged welded values. All the heavy
+// algorithmic code lives in `weld_core` (Index-only) and `compute_welded_values`.
+template <typename ValueType, typename Index>
+void weld_indexed_attribute_impl(
+    IndexedAttribute<ValueType, Index>& attr,
+    Index num_corners,
+    Index num_vertices,
+    const internal::InverseMapping<Index>& vertex_to_corners,
+    const std::vector<bool>& exclude_vertices_mask,
+    bool merge_across_vertices,
+    double eps_rel,
+    double eps_abs,
+    double cos_angle_abs)
 {
-    // TODO: Use two different checks for absolute and relative tolerances.
-    return ((a.derived() - b.derived()).array().abs() <= (atol + rtol * b.derived().array().abs()))
-               .all() &&
-           (cos_angle_abs > 1 || (a.derived().dot(b.derived()) >=
-                                  cos_angle_abs * a.derived().norm() * b.derived().norm()));
+    auto& attr_values = attr.values();
+    auto& attr_indices = attr.indices();
+    const size_t num_channels = attr_values.get_num_channels();
+    span<const ValueType> values_data = attr_values.get_all();
+    span<Index> corner_to_value = attr_indices.ref_all();
+
+    const Index num_values = static_cast<Index>(attr_values.get_num_elements());
+
+    // The only ValueType-dependent part of the merge pipeline: comparison of two value rows.
+    auto values_close = [&](Index i, Index j) -> bool {
+        const ValueType* row_i = values_data.data() + static_cast<size_t>(i) * num_channels;
+        const ValueType* row_j = values_data.data() + static_cast<size_t>(j) * num_channels;
+        if (rows_are_equal(row_i, row_j, num_channels)) {
+            return true;
+        }
+        if (row_has_invalid(row_i, num_channels) || row_has_invalid(row_j, num_channels)) {
+            return false;
+        }
+        // Debug-only finiteness check (equivalent to Eigen's allFinite()).
+        if constexpr (std::is_floating_point_v<ValueType>) {
+            la_debug_assert(std::all_of(row_i, row_i + num_channels, [](ValueType v) {
+                return std::isfinite(v);
+            }));
+            la_debug_assert(std::all_of(row_j, row_j + num_channels, [](ValueType v) {
+                return std::isfinite(v);
+            }));
+        }
+        return rows_are_close(row_i, row_j, num_channels, eps_rel, eps_abs, cos_angle_abs);
+    };
+
+    std::vector<Index> corner_to_reduced;
+    Index num_reduced = weld_core<Index>(
+        num_corners,
+        num_vertices,
+        num_values,
+        vertex_to_corners,
+        exclude_vertices_mask,
+        span<const Index>(corner_to_value.data(), corner_to_value.size()),
+        values_close,
+        merge_across_vertices,
+        corner_to_reduced);
+
+    if (num_reduced == num_values) {
+        // Nothing to weld.
+        return;
+    }
+
+    compute_welded_values(
+        num_reduced,
+        values_data,
+        span<const Index>(corner_to_value.data(), corner_to_value.size()),
+        corner_to_reduced,
+        num_channels,
+        attr_values);
+
+    tbb::parallel_for(Index(0), num_corners, [&](Index c) {
+        corner_to_value[c] = corner_to_reduced[c];
+    });
 }
 
 } // namespace
@@ -322,51 +502,56 @@ void weld_indexed_attribute(
     AttributeId attr_id,
     const WeldOptions& options)
 {
+    // Extract index-only topology once, independent of the attribute's value type: the set of
+    // corners incident to each vertex. Using the intrinsic corner-to-vertex map (rather than edge
+    // connectivity) keeps the heavy welding pipeline free of the Scalar type and avoids the need to
+    // initialize/clear mesh edges.
+    const Index num_vertices = mesh.get_num_vertices();
+    const Index num_corners = mesh.get_num_corners();
+    span<const Index> corner_to_vertex = mesh.get_corner_to_vertex().get_all();
+    const internal::InverseMapping<Index> vertex_to_corners =
+        internal::invert_mapping(corner_to_vertex, num_vertices);
+
+    std::vector<bool> exclude_vertices_mask(static_cast<size_t>(num_vertices), false);
+    for (auto vi : options.exclude_vertices) {
+        la_debug_assert(vi < static_cast<size_t>(num_vertices));
+        exclude_vertices_mask[vi] = true;
+    }
+
     lagrange::internal::visit_attribute_write(mesh, attr_id, [&](auto&& attr) {
         using AttributeType = std::decay_t<decltype(attr)>;
         if constexpr (AttributeType::IsIndexed) {
             using ValueType = typename AttributeType::ValueType;
-            using RealType = typename Eigen::NumTraits<ValueType>::NonInteger;
-            auto values = matrix_view(attr.values());
+            using RealType = typename NonIntegerT<ValueType>::type;
 
-            const RealType eps_rel = options.epsilon_rel.has_value()
-                                         ? safe_cast<RealType>(options.epsilon_rel.value())
-                                         : Eigen::NumTraits<RealType>::dummy_precision();
-            const RealType eps_abs = options.epsilon_abs.has_value()
-                                         ? safe_cast<RealType>(options.epsilon_abs.value())
-                                         : Eigen::NumTraits<RealType>::epsilon();
+            // safe_cast<RealType> validates that a caller-provided tolerance is representable in
+            // the
+            // attribute's real type, throwing (rather than silently saturating to +/-inf inside
+            // rows_are_close) if it overflows a lower-precision ValueType such as float. Done once
+            // here rather than per element comparison.
+            const double eps_rel =
+                options.epsilon_rel.has_value()
+                    ? static_cast<double>(safe_cast<RealType>(options.epsilon_rel.value()))
+                    : static_cast<double>(default_rel_tolerance<RealType>());
+            const double eps_abs =
+                options.epsilon_abs.has_value()
+                    ? static_cast<double>(safe_cast<RealType>(options.epsilon_abs.value()))
+                    : static_cast<double>(std::numeric_limits<RealType>::epsilon());
 
-            constexpr RealType INVALID_COS_ANGLE_ABS = 2; // Out of the valid range.
-            const RealType cos_angle_abs = options.angle_abs.has_value()
-                                               ? std::cos(options.angle_abs.value())
-                                               : INVALID_COS_ANGLE_ABS;
-            weld_indexed_attribute(
-                mesh,
+            constexpr double INVALID_COS_ANGLE_ABS = 2.0; // Out of the valid range.
+            const double cos_angle_abs = options.angle_abs.has_value()
+                                             ? std::cos(options.angle_abs.value())
+                                             : INVALID_COS_ANGLE_ABS;
+            weld_indexed_attribute_impl<ValueType, Index>(
                 attr,
-                options.exclude_vertices,
+                num_corners,
+                num_vertices,
+                vertex_to_corners,
+                exclude_vertices_mask,
                 options.merge_across_vertices,
-                [&, eps_rel, eps_abs, cos_angle_abs](Index i, Index j) -> bool {
-                    if (values.row(i) == values.row(j)) {
-                        return true;
-                    }
-                    const bool invalid_i =
-                        (values.row(i).array() == lagrange::invalid<ValueType>()).any();
-                    const bool invalid_j =
-                        (values.row(j).array() == lagrange::invalid<ValueType>()).any();
-                    if (invalid_i || invalid_j) {
-                        // Along with the equality check above, this ensures that we only merge
-                        // invalid values with other invalid values, and we don't merge valid values
-                        // with invalid values.
-                        return false;
-                    }
-                    la_debug_assert(values.row(i).allFinite() && values.row(j).allFinite());
-                    return allclose(
-                        values.row(i).template cast<RealType>(),
-                        values.row(j).template cast<RealType>(),
-                        eps_rel,
-                        eps_abs,
-                        cos_angle_abs);
-                });
+                eps_rel,
+                eps_abs,
+                cos_angle_abs);
         }
     });
 }

@@ -607,7 +607,9 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 
     m.def(
         "triangulate_polygonal_facets",
-        [](MeshType& mesh, std::string_view scheme) {
+        [](MeshType& mesh,
+           std::string_view scheme,
+           std::optional<std::variant<Tensor<Index>, Tensor<bool>, nb::list>> selected_facets) {
             lagrange::TriangulationOptions opt;
             if (scheme == "earcut") {
                 opt.scheme = lagrange::TriangulationOptions::Scheme::Earcut;
@@ -616,14 +618,71 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
             } else {
                 throw Error(lagrange::format("Unsupported triangulation scheme {}", scheme));
             }
-            lagrange::triangulate_polygonal_facets(mesh, opt);
+
+            if (!selected_facets.has_value()) {
+                // By default, triangulate every polygonal facet.
+                lagrange::triangulate_polygonal_facets(mesh, opt);
+                return;
+            }
+
+            // Build a per-facet mask from either a list/tensor of facet ids or a boolean mask (a
+            // length-num_facets tensor whose `True` entries mark facets to triangulate).
+            const Index num_facets = mesh.get_num_facets();
+            std::vector<uint8_t> should_triangulate(static_cast<size_t>(num_facets), 0);
+            auto mark_ids = [&](span<const Index> ids) {
+                for (Index f : ids) {
+                    if (f >= num_facets) {
+                        throw Error(
+                            lagrange::format(
+                                "Facet index {} is out of range (mesh has {} facets)",
+                                f,
+                                num_facets));
+                    }
+                    should_triangulate[f] = 1;
+                }
+            };
+            auto& selected = selected_facets.value();
+            if (const auto* list_ptr = std::get_if<nb::list>(&selected)) {
+                auto ids = nb::cast<std::vector<Index>>(*list_ptr);
+                mark_ids({ids.data(), ids.size()});
+            } else if (auto* mask_ptr = std::get_if<Tensor<bool>>(&selected)) {
+                // Boolean per-facet mask: entry `f` is true iff facet `f` should be triangulated.
+                if (mask_ptr->ndim() != 1 ||
+                    mask_ptr->shape(0) != static_cast<size_t>(num_facets)) {
+                    throw Error(
+                        lagrange::format(
+                            "Facet mask must be a 1D array of length {} (the number of facets)",
+                            num_facets));
+                }
+                // Access the 1D buffer through a typed view (same pattern as
+                // `bind_surface_mesh.h`); Tensor<> enforces C-contiguity.
+                auto mask_view = mask_ptr->template view<bool, nb::ndim<1>>();
+                for (Index f = 0; f < num_facets; ++f) {
+                    should_triangulate[f] = mask_view(f) ? 1 : 0;
+                }
+            } else {
+                auto [data, shape, stride] = tensor_to_span(std::get<Tensor<Index>>(selected));
+                la_runtime_assert(is_dense(shape, stride));
+                mark_ids(data);
+            }
+
+            lagrange::triangulate_polygonal_facets(
+                mesh,
+                lagrange::function_ref<bool(Index)>(
+                    [&](Index f) { return should_triangulate[f] != 0; }),
+                opt);
         },
         "mesh"_a,
         "scheme"_a = "earcut",
+        "selected_facets"_a = nb::none(),
         R"(Triangulate polygonal facets of the mesh.
 
 :param mesh: The input mesh to be triangulated in place.
-:param scheme: The triangulation scheme (options are 'earcut' and 'centroid_fan'))");
+:param scheme: The triangulation scheme (options are 'earcut' and 'centroid_fan').
+:param selected_facets: Optional subset of facets to triangulate. Either a list/array of facet ids,
+    or a boolean per-facet mask (a length ``num_facets`` array whose ``True`` entries mark facets to
+    triangulate). Honored by both schemes; facets not selected are left untouched. If omitted, all
+    polygonal facets are triangulated.)");
 
     nb::enum_<ComponentOptions::ConnectivityType>(m, "ConnectivityType", "Mesh connectivity type")
         .value(

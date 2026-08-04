@@ -11,10 +11,12 @@
  */
 #include <lagrange/testing/common.h>
 
+#include <lagrange/attribute_names.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/scene_convert.h>
 #include <lagrange/scene/scene_utils.h>
+#include <lagrange/utils/invalid.h>
 #include <lagrange/views.h>
 
 #include <Eigen/Geometry>
@@ -117,6 +119,95 @@ TEST_CASE("Scene: convert", "[scene]")
     auto mesh2 = lagrange::scene::scene_to_mesh(lagrange::scene::mesh_to_scene(mesh));
     REQUIRE(vertex_view(mesh) == vertex_view(mesh2));
     REQUIRE(facet_view(mesh) == facet_view(mesh2));
+}
+
+TEST_CASE("Scene: scene_to_meshes_and_materials material_id", "[scene]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    auto make_mesh = []() {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertices(4);
+        vertex_ref(mesh).setRandom();
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(1, 2, 3);
+        return mesh;
+    };
+
+    SECTION("single material per instance")
+    {
+        scene::Scene<Scalar, Index> scene;
+        scene::ElementId mesh0 = scene.add(make_mesh());
+        scene::ElementId mesh1 = scene.add(make_mesh());
+        scene::ElementId mat0 = scene.add(scene::MaterialExperimental{});
+        scene::ElementId mat1 = scene.add(scene::MaterialExperimental{});
+
+        scene::Node node;
+        node.meshes.push_back({mesh0, {mat1}});
+        node.meshes.push_back({mesh1, {mat0}});
+        scene.root_nodes.push_back(scene.add(std::move(node)));
+
+        auto result = scene::scene_to_meshes_and_materials(scene);
+        REQUIRE(result.meshes.size() == 2);
+        REQUIRE(result.material_ids.size() == 2);
+
+        // Every facet of the first output mesh uses the instance's single (global) material.
+        REQUIRE(result.meshes[0].has_attribute(AttributeName::material_id));
+        auto ids0 = attribute_vector_view<Index>(result.meshes[0], AttributeName::material_id);
+        REQUIRE((ids0.array() == static_cast<Index>(mat1)).all());
+
+        auto ids1 = attribute_vector_view<Index>(result.meshes[1], AttributeName::material_id);
+        REQUIRE((ids1.array() == static_cast<Index>(mat0)).all());
+    }
+
+    SECTION("no material")
+    {
+        scene::Scene<Scalar, Index> scene;
+        scene::ElementId mesh0 = scene.add(make_mesh());
+
+        scene::Node node;
+        node.meshes.push_back({mesh0, {}});
+        scene.root_nodes.push_back(scene.add(std::move(node)));
+
+        auto result = scene::scene_to_meshes_and_materials(scene);
+        REQUIRE(result.meshes.size() == 1);
+
+        auto ids = attribute_vector_view<Index>(result.meshes[0], AttributeName::material_id);
+        REQUIRE((ids.array() == invalid<Index>()).all());
+    }
+
+    SECTION("multiple materials remapped from local indices")
+    {
+        // A mesh carrying a per-facet material_id attribute holds instance-local indices, which
+        // must be remapped to global scene material indices on output.
+        auto mesh = make_mesh();
+        std::vector<Index> local_ids = {1, 0}; // facet 0 -> materials[1], facet 1 -> materials[0]
+        mesh.template create_attribute<Index>(
+            AttributeName::material_id,
+            AttributeElement::Facet,
+            AttributeUsage::Scalar,
+            1,
+            local_ids);
+
+        scene::Scene<Scalar, Index> scene;
+        scene::ElementId mesh0 = scene.add(std::move(mesh));
+        scene::ElementId mat_a = scene.add(scene::MaterialExperimental{});
+        scene.add(scene::MaterialExperimental{}); // unreferenced material
+        scene::ElementId mat_b = scene.add(scene::MaterialExperimental{});
+
+        scene::Node node;
+        node.meshes.push_back({mesh0, {mat_a, mat_b}}); // local 0 -> mat_a, local 1 -> mat_b
+        scene.root_nodes.push_back(scene.add(std::move(node)));
+
+        auto result = scene::scene_to_meshes_and_materials(scene);
+        REQUIRE(result.meshes.size() == 1);
+
+        auto ids = attribute_vector_view<Index>(result.meshes[0], AttributeName::material_id);
+        REQUIRE(ids(0) == static_cast<Index>(mat_b)); // local 1
+        REQUIRE(ids(1) == static_cast<Index>(mat_a)); // local 0
+    }
 }
 
 TEST_CASE("Scene: scene_to_simple_scene empty", "[scene]")

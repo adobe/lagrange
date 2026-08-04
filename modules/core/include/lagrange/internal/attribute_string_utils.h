@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/AttributeFwd.h>
+#include <lagrange/AttributeValueType.h>
 #include <lagrange/api.h>
 #include <lagrange/utils/BitField.h>
 
@@ -68,5 +69,14 @@ std::string_view value_type_name(const lagrange::Attribute<ValueType>& attr);
 ///
 template <typename ValueType>
 std::string_view value_type_name();
+
+///
+/// Returns a string representation of the attribute value type.
+///
+/// @param[in]  value_type  Attribute value type.
+///
+/// @return     String representation.
+///
+LA_CORE_API std::string_view value_type_name(AttributeValueType value_type);
 
 } // namespace lagrange::internal
