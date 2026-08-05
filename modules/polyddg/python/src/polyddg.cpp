@@ -788,7 +788,8 @@ are the principal directions. All four quantities are stored as vertex attribute
            double beta,
            lagrange::AttributeElement output_element_type,
            std::string_view alignment_attribute,
-           std::string_view direction_field_attribute) {
+           std::string_view direction_field_attribute,
+           double alignment_lambda) {
             polyddg::SmoothDirectionFieldOptions opts;
             opts.nrosy = nrosy;
             opts.lambda = beta;
@@ -796,6 +797,7 @@ are the principal directions. All four quantities are stored as vertex attribute
             opts.alignment_attribute = alignment_attribute;
             if (!direction_field_attribute.empty())
                 opts.direction_field_attribute = direction_field_attribute;
+            opts.alignment_lambda = alignment_lambda;
             return polyddg::compute_smooth_direction_field(mesh, ops, opts);
         },
         "mesh"_a,
@@ -806,6 +808,7 @@ are the principal directions. All four quantities are stored as vertex attribute
         "output_element_type"_a = default_sdf_opts.output_element_type,
         "alignment_attribute"_a = default_sdf_opts.alignment_attribute,
         "direction_field_attribute"_a = "",
+        "alignment_lambda"_a = default_sdf_opts.alignment_lambda,
         R"(Compute the globally smoothest n-direction field on a surface mesh.
 
 Dispatches to a vertex-based or facet-based implementation depending on
@@ -839,6 +842,11 @@ per-vertex for ``Vertex``, per-facet for ``Facet``.
 :param direction_field_attribute: Output attribute name. Pass ``""`` (the default) to use
     the canonical name (``"@smooth_direction_field"`` for Vertex,
     ``"@smooth_direction_field_facets"`` for Facet).
+:param alignment_lambda: Tradeoff parameter :math:`\lambda_t` balancing smoothness against
+    alignment strength in the constrained solve (Knöppel et al. 2013, Eq. 16). Only used when
+    ``alignment_attribute`` is set. ``0`` (default) is the recommended balanced value; negative
+    values strengthen alignment; positive values (below the smallest generalized eigenvalue)
+    yield a smoother, less-aligned field.
 
 :return: Attribute ID of the output direction field.)");
 
@@ -849,7 +857,8 @@ per-vertex for ``Vertex``, per-facet for ``Facet``.
            double beta,
            lagrange::AttributeElement output_element_type,
            std::string_view alignment_attribute,
-           std::string_view direction_field_attribute) {
+           std::string_view direction_field_attribute,
+           double alignment_lambda) {
             polyddg::SmoothDirectionFieldOptions opts;
             opts.nrosy = nrosy;
             opts.lambda = beta;
@@ -857,6 +866,7 @@ per-vertex for ``Vertex``, per-facet for ``Facet``.
             opts.alignment_attribute = alignment_attribute;
             if (!direction_field_attribute.empty())
                 opts.direction_field_attribute = direction_field_attribute;
+            opts.alignment_lambda = alignment_lambda;
             return polyddg::compute_smooth_direction_field(mesh, opts);
         },
         "mesh"_a,
@@ -866,6 +876,7 @@ per-vertex for ``Vertex``, per-facet for ``Facet``.
         "output_element_type"_a = default_sdf_opts.output_element_type,
         "alignment_attribute"_a = default_sdf_opts.alignment_attribute,
         "direction_field_attribute"_a = "",
+        "alignment_lambda"_a = default_sdf_opts.alignment_lambda,
         R"(Compute the globally smoothest n-direction field on a surface mesh.
 
 Convenience overload that constructs a :class:`DifferentialOperators` instance internally.
@@ -887,6 +898,11 @@ Dispatches to a vertex-based or facet-based implementation depending on
     (default) for per-vertex output, or ``AttributeElement.Facet`` for per-facet output.
 :param alignment_attribute: Name of an alignment vector attribute (zero = unconstrained).
     Must match ``output_element_type``. If empty, the unconstrained smoothest field is computed.
+:param alignment_lambda: Tradeoff parameter :math:`\lambda_t` balancing smoothness against
+    alignment strength in the constrained solve (Knöppel et al. 2013, Eq. 16). Only used when
+    ``alignment_attribute`` is set. ``0`` (default) is the recommended balanced value; negative
+    values strengthen alignment; positive values (below the smallest generalized eigenvalue)
+    yield a smoother, less-aligned field.
 :param direction_field_attribute: Output attribute name. Pass ``""`` (the default) to use
     the canonical name.
 

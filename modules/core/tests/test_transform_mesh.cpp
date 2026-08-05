@@ -281,6 +281,91 @@ void test_transform_mesh_3d(bool pad_with_sign, TestCase test_case)
     }
 }
 
+// Regression test for normalizing Normal/Tangent attributes on a 2D mesh. The transform used to
+// normalize a hardcoded head<3>, which (a) reads past the end of a 2-channel (== dim) row on a 2D
+// mesh (out-of-bounds / Eigen assert), and (b) would normalize the extra channel of a 3-channel
+// (== dim+1) attribute. Normalization must operate on exactly the Dimension geometric components.
+void test_transform_mesh_2d_attribute_normalization()
+{
+    using Scalar = double;
+    using Index = uint32_t;
+
+    lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 1});
+    mesh.add_triangle(0, 1, 2);
+
+    // dim (2-channel) Normal/Tangent attributes with deliberately non-unit values so normalization
+    // is observable: each normal row is (3, 4) (norm 5), each tangent row is (0, 2).
+    auto id_nrm = mesh.create_attribute<Scalar>(
+        "normal",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Normal,
+        2,
+        std::array<Scalar, 6>{3., 4., 3., 4., 3., 4.});
+    auto id_tan = mesh.create_attribute<Scalar>(
+        "tangent",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Tangent,
+        2,
+        std::array<Scalar, 6>{0., 2., 0., 2., 0., 2.});
+
+    // dim+1 (3-channel) Normal/Tangent attributes: the first 2 channels are the geometric vector
+    // (3, 4); the 3rd is an extra channel (e.g. a sign/padding) set to 7 that must be preserved
+    // verbatim by both the transform (leftCols<Dimension>) and the normalization (head<Dimension>).
+    auto id_nrm3 = mesh.create_attribute<Scalar>(
+        "normal3",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Normal,
+        3,
+        std::array<Scalar, 9>{3., 4., 7., 3., 4., 7., 3., 4., 7.});
+    auto id_tan3 = mesh.create_attribute<Scalar>(
+        "tangent3",
+        lagrange::AttributeElement::Vertex,
+        lagrange::AttributeUsage::Tangent,
+        3,
+        std::array<Scalar, 9>{0., 2., 7., 0., 2., 7., 0., 2., 7.});
+
+    lagrange::TransformOptions opt;
+    opt.normalize_normals = true;
+    opt.normalize_tangents_bitangents = true;
+
+    // Identity transform: leaves directions unchanged, so we exercise (and isolate) the
+    // normalization path. With the previous head<3> code the 2-channel case would read out of
+    // bounds and the 3-channel case would normalize across the extra channel.
+    lagrange::transform_mesh(mesh, Eigen::Affine2d::Identity(), opt);
+
+    auto nrm = lagrange::matrix_view(mesh.get_attribute<Scalar>(id_nrm));
+    auto tan = lagrange::matrix_view(mesh.get_attribute<Scalar>(id_tan));
+    auto nrm3 = lagrange::matrix_view(mesh.get_attribute<Scalar>(id_nrm3));
+    auto tan3 = lagrange::matrix_view(mesh.get_attribute<Scalar>(id_tan3));
+    REQUIRE(nrm.cols() == 2);
+    REQUIRE(tan.cols() == 2);
+    REQUIRE(nrm3.cols() == 3);
+    REQUIRE(tan3.cols() == 3);
+    for (Index v = 0; v < 3; ++v) {
+        // dim case: the 2-vector is normalized.
+        REQUIRE_THAT(nrm.row(v).norm(), Catch::Matchers::WithinAbs(1.0, 1e-12));
+        REQUIRE_THAT(nrm.row(v)(0), Catch::Matchers::WithinAbs(0.6, 1e-12));
+        REQUIRE_THAT(nrm.row(v)(1), Catch::Matchers::WithinAbs(0.8, 1e-12));
+        REQUIRE_THAT(tan.row(v).norm(), Catch::Matchers::WithinAbs(1.0, 1e-12));
+        REQUIRE_THAT(tan.row(v)(0), Catch::Matchers::WithinAbs(0.0, 1e-12));
+        REQUIRE_THAT(tan.row(v)(1), Catch::Matchers::WithinAbs(1.0, 1e-12));
+
+        // dim+1 case: only the first 2 (geometric) channels are normalized; the extra 3rd channel
+        // is left untouched at 7.
+        REQUIRE_THAT(nrm3.row(v).head<2>().norm(), Catch::Matchers::WithinAbs(1.0, 1e-12));
+        REQUIRE_THAT(nrm3.row(v)(0), Catch::Matchers::WithinAbs(0.6, 1e-12));
+        REQUIRE_THAT(nrm3.row(v)(1), Catch::Matchers::WithinAbs(0.8, 1e-12));
+        REQUIRE_THAT(nrm3.row(v)(2), Catch::Matchers::WithinAbs(7.0, 1e-12));
+        REQUIRE_THAT(tan3.row(v).head<2>().norm(), Catch::Matchers::WithinAbs(1.0, 1e-12));
+        REQUIRE_THAT(tan3.row(v)(0), Catch::Matchers::WithinAbs(0.0, 1e-12));
+        REQUIRE_THAT(tan3.row(v)(1), Catch::Matchers::WithinAbs(1.0, 1e-12));
+        REQUIRE_THAT(tan3.row(v)(2), Catch::Matchers::WithinAbs(7.0, 1e-12));
+    }
+}
+
 } // namespace
 
 TEST_CASE("transform_mesh_2d", "[next]")
@@ -288,6 +373,11 @@ TEST_CASE("transform_mesh_2d", "[next]")
     for (int i = 0; i < static_cast<int>(TestCase::NumTestCases); ++i) {
         test_transform_mesh_2d(static_cast<TestCase>(i));
     }
+}
+
+TEST_CASE("transform_mesh_2d_attribute_normalization", "[next]")
+{
+    test_transform_mesh_2d_attribute_normalization();
 }
 
 TEST_CASE("transform_mesh_3d", "[next]")

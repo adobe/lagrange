@@ -19,6 +19,8 @@
 
 #include <stb_image.h>
 
+#include <limits>
+
 namespace lagrange {
 namespace image_io {
 
@@ -244,6 +246,85 @@ LoadImageResult load_image_bin(const fs::path& path, spdlog::level::level_enum e
         return rtn;
     }
     rtn.valid = true;
+    return rtn;
+}
+
+LoadImageResult
+load_image_from_buffer(const void* buffer, size_t size, spdlog::level::level_enum error_lvl)
+{
+    LoadImageResult rtn;
+    if (buffer == nullptr || size == 0) {
+        logger().log(error_lvl, "load_image_from_buffer error: empty buffer");
+        return rtn;
+    }
+    if (size > static_cast<size_t>(std::numeric_limits<int>::max())) {
+        logger().log(error_lvl, "load_image_from_buffer error: buffer too large");
+        return rtn;
+    }
+
+    const auto* buf = reinterpret_cast<const stbi_uc*>(buffer);
+    const int len = static_cast<int>(size);
+    int w, h, ch;
+
+    if (stbi_is_16_bit_from_memory(buf, len)) {
+        rtn.precision = image::ImagePrecision::uint16;
+        uint16_t* data = stbi_load_16_from_memory(buf, len, &w, &h, &ch, STBI_default);
+        if (data == nullptr) {
+            logger().log(error_lvl, "load_image_from_buffer error: stbi failed to decode image");
+            return rtn;
+        }
+        if (ch != 1 && ch != 3 && ch != 4) {
+            logger().log(
+                error_lvl,
+                "load_image_from_buffer error: unsupported channel count {}",
+                ch);
+            stbi_image_free(data);
+            return rtn;
+        }
+        if (w <= 0 || h <= 0) {
+            stbi_image_free(data);
+            return rtn;
+        }
+        size_t _w = static_cast<size_t>(w);
+        size_t _h = static_cast<size_t>(h);
+        size_t _ch = static_cast<size_t>(ch);
+        rtn.valid = true;
+        rtn.width = _w;
+        rtn.height = _h;
+        rtn.channel = static_cast<image::ImageChannel>(ch);
+        rtn.storage = std::make_shared<image::ImageStorage>(sizeof(uint16_t) * _ch * _w, _h, 1);
+        std::copy_n(data, _ch * _w * _h, reinterpret_cast<uint16_t*>(rtn.storage->data()));
+        stbi_image_free(data);
+    } else {
+        rtn.precision = image::ImagePrecision::uint8;
+        unsigned char* data = stbi_load_from_memory(buf, len, &w, &h, &ch, STBI_default);
+        if (data == nullptr) {
+            logger().log(error_lvl, "load_image_from_buffer error: stbi failed to decode image");
+            return rtn;
+        }
+        if (ch != 1 && ch != 3 && ch != 4) {
+            logger().log(
+                error_lvl,
+                "load_image_from_buffer error: unsupported channel count {}",
+                ch);
+            stbi_image_free(data);
+            return rtn;
+        }
+        if (w <= 0 || h <= 0) {
+            stbi_image_free(data);
+            return rtn;
+        }
+        size_t _w = static_cast<size_t>(w);
+        size_t _h = static_cast<size_t>(h);
+        size_t _ch = static_cast<size_t>(ch);
+        rtn.valid = true;
+        rtn.width = _w;
+        rtn.height = _h;
+        rtn.channel = static_cast<image::ImageChannel>(ch);
+        rtn.storage = std::make_shared<image::ImageStorage>(_ch * _w, _h, 1);
+        std::copy_n(data, _ch * _w * _h, rtn.storage->data());
+        stbi_image_free(data);
+    }
     return rtn;
 }
 

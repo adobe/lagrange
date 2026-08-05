@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     struct
     {
         fs::path input;
-        fs::path output = "output.ply";
+        fs::path output = "output.obj";
         fs::path uv_mesh_output;
         std::string uv_attribute_name = "texcoord";
         std::string atlas_attribute_name;

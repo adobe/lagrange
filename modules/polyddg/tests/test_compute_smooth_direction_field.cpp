@@ -27,6 +27,8 @@
 
 #include <algorithm>
 #include <cmath>
+#include <string_view>
+#include <vector>
 
 TEST_CASE("compute_smooth_direction_field", "[polyddg]")
 {
@@ -342,6 +344,75 @@ TEST_CASE("compute_smooth_direction_field", "[polyddg]")
         }
     }
 
+    SECTION("flat grid: alignment_lambda modulates alignment strength")
+    {
+        // A flat grid has a zero-energy smooth mode (λ_1 ≈ 0), so λ_t = 0 is smoothness-dominated
+        // and ignores high-frequency guidance while a strongly negative λ_t recovers it.
+        constexpr Index N = 12;
+        SurfaceMesh<Scalar, Index> grid;
+        for (Index i = 0; i < N; ++i) {
+            for (Index j = 0; j < N; ++j) {
+                grid.add_vertex({static_cast<Scalar>(i), static_cast<Scalar>(j), 0.0});
+            }
+        }
+        for (Index i = 0; i + 1 < N; ++i) {
+            for (Index j = 0; j + 1 < N; ++j) {
+                const Index v00 = i * N + j, v10 = (i + 1) * N + j;
+                const Index v01 = i * N + (j + 1), v11 = (i + 1) * N + (j + 1);
+                grid.add_triangle(v00, v10, v11);
+                grid.add_triangle(v00, v11, v01);
+            }
+        }
+        polyddg::DifferentialOperators<Scalar, Index> ops(grid);
+
+        const Index nv = grid.get_num_vertices();
+
+        // Dense, high-frequency guidance: alternate the target angle by ±22.5° (in each local
+        // frame) with vertex parity. A smooth field cannot follow this alternation.
+        std::vector<Scalar> guide_angle(nv);
+        auto align_id = internal::find_or_create_attribute<Scalar>(
+            grid,
+            "@lambda_t_alignment",
+            AttributeElement::Vertex,
+            AttributeUsage::Vector,
+            3,
+            internal::ResetToDefault::Yes);
+        auto align_data = attribute_matrix_ref<Scalar>(grid, align_id);
+        for (Index vid = 0; vid < nv; ++vid) {
+            const Scalar a = (vid % 2 == 0 ? 1.0 : -1.0) * (internal::pi / 8.0);
+            guide_angle[vid] = a;
+            align_data.row(vid) =
+                (ops.vertex_basis(vid) * Eigen::Matrix<Scalar, 2, 1>(std::cos(a), std::sin(a)))
+                    .transpose();
+        }
+
+        auto mean_align_error = [&](Scalar lambda_t, std::string_view out_name) {
+            polyddg::SmoothDirectionFieldOptions opts;
+            opts.nrosy = 4;
+            opts.alignment_attribute = "@lambda_t_alignment";
+            opts.alignment_lambda = lambda_t;
+            opts.direction_field_attribute = out_name;
+            auto result = polyddg::compute_smooth_direction_field(grid, ops, opts);
+            auto data = attribute_matrix_view<Scalar>(grid, result);
+            Scalar err = 0;
+            for (Index vid = 0; vid < nv; ++vid) {
+                REQUIRE_THAT(data.row(vid).norm(), Catch::Matchers::WithinAbs(1.0, 1e-10));
+                Eigen::Matrix<Scalar, 2, 1> out_2d =
+                    ops.vertex_basis(vid).transpose() * data.row(vid).transpose();
+                Scalar out_angle = std::atan2(out_2d(1), out_2d(0));
+                err += 1.0 - std::cos(4.0 * (out_angle - guide_angle[vid]));
+            }
+            return err / static_cast<Scalar>(nv);
+        };
+
+        // λ_t = 0 favors smoothness and cannot follow the alternating guidance; a strongly
+        // negative λ_t strengthens alignment and drives the mean error toward zero.
+        const Scalar err_default = mean_align_error(0.0, "@sdf_lt_default");
+        const Scalar err_strong = mean_align_error(-100.0, "@sdf_lt_strong");
+        REQUIRE(err_default > 0.1);
+        REQUIRE(err_strong < 0.1 * err_default);
+    }
+
     SECTION("torus: per-face zero-energy condition")
     {
         primitive::TorusOptions torus_opts;
@@ -589,6 +660,90 @@ TEST_CASE("compute_smooth_direction_field_on_facets", "[polyddg]")
         // Loosened from 0.9: meta-build (Eigen 3.4.1) lands at ~0.8886 here, while
         // CMake (Eigen 5.0.1) gets ~0.95. 0.85 still asserts ~<16° angular error.
         REQUIRE(cos4_diff > 0.85);
+    }
+
+    SECTION("flat grid: alignment_lambda modulates alignment strength")
+    {
+        // Facet-path counterpart of the vertex-path test in the "compute_smooth_direction_field"
+        // TEST_CASE above: a flat grid has a zero-energy smooth mode (λ_1 ≈ 0), so λ_t = 0 is
+        // smoothness-dominated and ignores high-frequency guidance while a strongly negative
+        // λ_t recovers it.
+        constexpr Index N = 12;
+        SurfaceMesh<Scalar, Index> grid;
+        for (Index i = 0; i < N; ++i) {
+            for (Index j = 0; j < N; ++j) {
+                grid.add_vertex({static_cast<Scalar>(i), static_cast<Scalar>(j), 0.0});
+            }
+        }
+        for (Index i = 0; i + 1 < N; ++i) {
+            for (Index j = 0; j + 1 < N; ++j) {
+                const Index v00 = i * N + j, v10 = (i + 1) * N + j;
+                const Index v01 = i * N + (j + 1), v11 = (i + 1) * N + (j + 1);
+                grid.add_triangle(v00, v10, v11);
+                grid.add_triangle(v00, v11, v01);
+            }
+        }
+        polyddg::DifferentialOperators<Scalar, Index> ops(grid);
+
+        const Index nf = grid.get_num_facets();
+
+        // Dense, high-frequency guidance: alternate the target angle by ±22.5° (in each local
+        // frame) using (grid-cell parity) XOR (triangle type). This grid is split into two
+        // triangles per cell ("A" = (v00,v10,v11), even fid; "B" = (v00,v11,v01), odd fid), and
+        // each triangle's own local frame (facet_basis's first-edge convention) differs by a
+        // fixed 45° between the two types; the connection Laplacian's n=4 transport therefore
+        // rotates by a fixed 180° across every A/B edge, making "same target for A and B" (or a
+        // plain per-cell checkerboard) a zero-energy pattern the smoothest field reproduces for
+        // free. XOR-ing in the triangle type breaks that degeneracy so the pattern is genuinely
+        // high-frequency with respect to this connection.
+        const auto centroid_id = ops.get_centroid_attribute_id();
+        const auto centroid_view = attribute_matrix_view<Scalar>(grid, centroid_id);
+        std::vector<Scalar> guide_angle(nf);
+        auto align_id = internal::find_or_create_attribute<Scalar>(
+            grid,
+            "@lambda_t_alignment_facets",
+            AttributeElement::Facet,
+            AttributeUsage::Vector,
+            3,
+            internal::ResetToDefault::Yes);
+        auto align_data = attribute_matrix_ref<Scalar>(grid, align_id);
+        for (Index fid = 0; fid < nf; ++fid) {
+            const Index cell_i = static_cast<Index>(std::floor(centroid_view(fid, 0)));
+            const Index cell_j = static_cast<Index>(std::floor(centroid_view(fid, 1)));
+            const Index parity = (cell_i + cell_j + (fid % 2)) % 2;
+            const Scalar a = (parity == 0 ? 1.0 : -1.0) * (internal::pi / 8.0);
+            guide_angle[fid] = a;
+            align_data.row(fid) =
+                (ops.facet_basis(fid) * Eigen::Matrix<Scalar, 2, 1>(std::cos(a), std::sin(a)))
+                    .transpose();
+        }
+
+        auto mean_align_error = [&](Scalar lambda_t, std::string_view out_name) {
+            polyddg::SmoothDirectionFieldOptions opts;
+            opts.nrosy = 4;
+            opts.output_element_type = AttributeElement::Facet;
+            opts.alignment_attribute = "@lambda_t_alignment_facets";
+            opts.alignment_lambda = lambda_t;
+            opts.direction_field_attribute = out_name;
+            auto result = polyddg::compute_smooth_direction_field(grid, ops, opts);
+            auto data = attribute_matrix_view<Scalar>(grid, result);
+            Scalar err = 0;
+            for (Index fid = 0; fid < nf; ++fid) {
+                REQUIRE_THAT(data.row(fid).norm(), Catch::Matchers::WithinAbs(1.0, 1e-10));
+                Eigen::Matrix<Scalar, 2, 1> out_2d =
+                    ops.facet_basis(fid).transpose() * data.row(fid).transpose();
+                Scalar out_angle = std::atan2(out_2d(1), out_2d(0));
+                err += 1.0 - std::cos(4.0 * (out_angle - guide_angle[fid]));
+            }
+            return err / static_cast<Scalar>(nf);
+        };
+
+        // λ_t = 0 favors smoothness and cannot follow the alternating guidance; a strongly
+        // negative λ_t strengthens alignment and drives the mean error toward zero.
+        const Scalar err_default = mean_align_error(0.0, "@sdf_facets_lt_default");
+        const Scalar err_strong = mean_align_error(-100.0, "@sdf_facets_lt_strong");
+        REQUIRE(err_default > 0.5);
+        REQUIRE(err_strong < 0.1);
     }
 
     SECTION("convenience overload (no ops argument)")

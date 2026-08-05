@@ -180,5 +180,14 @@ SurfaceMesh<Scalar, Index> load_surface_mesh(const fs::path& relative_path)
 ///
 LA_TESTING_API void setup_mkl_reproducibility();
 
+///
+/// Disable interactive Windows error dialogs (CRT assert/error report windows, the abort() message
+/// box, and Windows Error Reporting popups) and route their output to stderr instead, so that a
+/// failed assert terminates the process immediately rather than blocking a headless CI agent until
+/// the pipeline timeout. This function has no effect on other platforms, and is a no-op when a
+/// debugger is attached (to preserve interactive debugging behavior).
+///
+LA_TESTING_API void disable_windows_error_dialogs();
+
 } // namespace testing
 } // namespace lagrange

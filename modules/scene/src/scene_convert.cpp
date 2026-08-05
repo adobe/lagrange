@@ -11,12 +11,17 @@
  */
 #include <lagrange/scene/scene_convert.h>
 
+#include <lagrange/Attribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/attribute_names.h>
+#include <lagrange/cast_attribute.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/scene/scene_utils.h>
 #include <lagrange/transform_mesh.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/invalid.h>
 
 namespace lagrange::scene {
 
@@ -47,6 +52,7 @@ MeshesAndMaterialsResult<Scalar, Index> scene_to_meshes_and_materials(
     const TransformOptions& transform_options)
 {
     MeshesAndMaterialsResult<Scalar, Index> ret;
+    ElementId num_materials = scene.materials.size();
 
     for (ElementId node_id = 0; node_id < scene.nodes.size(); ++node_id) {
         const auto& node = scene.nodes[node_id];
@@ -57,12 +63,100 @@ MeshesAndMaterialsResult<Scalar, Index> scene_to_meshes_and_materials(
             utils::compute_global_node_transform(scene, node_id).template cast<Scalar>();
         for (const SceneMeshInstance& mesh_instance : node.meshes) {
             const auto mesh_id = mesh_instance.mesh;
-            ret.meshes.emplace_back(
-                transformed_mesh<Scalar, Index>(
-                    scene.meshes.at(mesh_id),
-                    world_from_mesh,
-                    transform_options));
-            ret.material_ids.push_back(mesh_instance.materials);
+            auto mesh = transformed_mesh<Scalar, Index>(
+                scene.meshes.at(mesh_id),
+                world_from_mesh,
+                transform_options);
+
+            // Write a self-contained, global material_id facet attribute on the output mesh so
+            // that each facet directly identifies the scene material it uses. Values index into
+            // scene.materials (and the parallel material_ids[i] list); facets with no material are
+            // marked with invalid<Index>().
+            const auto& materials = mesh_instance.materials;
+            if (mesh.has_attribute(AttributeName::material_id)) {
+                // Per the SceneMeshInstance convention, an existing material_id facet attribute
+                // holds instance-local indices into mesh_instance.materials. Remap those to global
+                // scene material indices.
+                const auto& attr_base = mesh.get_attribute_base(AttributeName::material_id);
+                la_runtime_assert(
+                    attr_base.get_element_type() == AttributeElement::Facet &&
+                        attr_base.get_num_channels() == 1,
+                    "existing material_id attribute must be a 1-channel Facet attribute");
+                if (!mesh.template is_attribute_type<Index>(AttributeName::material_id)) {
+                    cast_attribute_in_place<Index>(mesh, AttributeName::material_id);
+                }
+                auto values =
+                    mesh.template ref_attribute<Index>(AttributeName::material_id).ref_all();
+                size_t num_invalid_slots = 0;
+                size_t num_invalid_materials = 0;
+                for (auto& value : values) {
+                    if (value < materials.size()) {
+                        const auto global_id = materials[value];
+                        if (global_id < num_materials) {
+                            value = static_cast<Index>(global_id);
+                        } else {
+                            value = invalid<Index>();
+                            ++num_invalid_materials;
+                        }
+                    } else {
+                        value = invalid<Index>();
+                        ++num_invalid_slots;
+                    }
+                }
+                if (num_invalid_slots || num_invalid_materials) {
+                    logger().warn(
+                        "Scene node {} mesh {} has a material_id facet attribute with {} invalid "
+                        "slots and {} invalid materials. Invalid slots/materials will be marked as "
+                        "invalid<Index>().",
+                        node_id,
+                        mesh_id,
+                        num_invalid_slots,
+                        num_invalid_materials);
+                }
+            } else {
+                // No per-facet attribute: assign all facets to the first listed material (or
+                // invalid if none). When the instance lists multiple materials, picking the first
+                // is the best we can do without facet-level data.
+                const Index global_id =
+                    materials.empty() ? invalid<Index>() : static_cast<Index>(materials.front());
+                const Index value = global_id != invalid<Index>() && global_id < num_materials
+                                        ? static_cast<Index>(global_id)
+                                        : invalid<Index>();
+                std::vector<Index> values(mesh.get_num_facets(), value);
+                mesh.template create_attribute<Index>(
+                    AttributeName::material_id,
+                    AttributeElement::Facet,
+                    AttributeUsage::Scalar,
+                    1,
+                    values);
+                if (materials.size() > 1) {
+                    logger().warn(
+                        "Scene node {} mesh {} has no material_id facet attribute, but the "
+                        "instance lists {} materials. All facets will be assigned to the first "
+                        "material ({}).",
+                        node_id,
+                        mesh_id,
+                        materials.size(),
+                        global_id);
+                }
+                if (global_id == invalid<Index>()) {
+                    logger().warn(
+                        "Scene node {} mesh {} has no material. All facets will be marked as "
+                        "invalid<Index>().",
+                        node_id,
+                        mesh_id);
+                } else if (global_id >= num_materials) {
+                    logger().warn(
+                        "Scene node {} mesh {} references material {} which is out of range. All "
+                        "facets will be marked as invalid<Index>().",
+                        node_id,
+                        mesh_id,
+                        global_id);
+                }
+            }
+
+            ret.meshes.emplace_back(std::move(mesh));
+            ret.material_ids.push_back(materials);
         }
     }
 

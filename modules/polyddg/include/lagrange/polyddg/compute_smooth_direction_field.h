@@ -63,6 +63,17 @@ struct SmoothDirectionFieldOptions
     /// - @c AttributeElement::Vertex: @c \@smooth_direction_field
     /// - @c AttributeElement::Facet: @c \@smooth_direction_field_facets
     std::optional<std::string_view> direction_field_attribute;
+
+    /// Alignment tradeoff parameter λ_t balancing smoothness against alignment strength in the
+    /// constrained solve (L_reg − λ_t M) u = M q (Knöppel et al. 2013, Eq. 16 / Algorithm 3).
+    /// Only used when @c alignment_attribute is set.
+    ///
+    /// - @c 0 (default): the paper's recommended balanced value.
+    /// - Negative (toward −∞): stronger alignment, weaker smoothness.
+    /// - Positive (toward λ₁, the smallest generalized eigenvalue): weaker alignment, smoother
+    ///   field. Must stay strictly below λ₁; values at or above it make the system indefinite
+    ///   and the solve fails.
+    double alignment_lambda = 0.0;
 };
 
 ///

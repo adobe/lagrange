@@ -16,6 +16,7 @@
 #include <lagrange/bvh/compute_mesh_distances.h>
 #include <lagrange/bvh/compute_uv_overlap.h>
 #include <lagrange/bvh/remove_interior_shells.h>
+#include <lagrange/bvh/resolve_tjunctions.h>
 #include <lagrange/bvh/weld_vertices.h>
 #include <lagrange/python/binding.h>
 #include <lagrange/python/bvh.h>
@@ -599,6 +600,36 @@ that do not share vertices are tested (vertex-adjacent facets are skipped).
 .. note::
    Vertex-adjacent facets are filtered before testing. The geometric test uses
    include_boundary=false (interior intersection only).
+)");
+
+    m.def(
+        "resolve_tjunctions",
+        [](MeshType& mesh, double tolerance, bool boundary_only, bool triangulate_affected) {
+            bvh::ResolveTJunctionsOptions opts;
+            opts.tolerance = tolerance;
+            opts.boundary_only = boundary_only;
+            opts.triangulate_affected = triangulate_affected;
+            bvh::resolve_tjunctions(mesh, std::move(opts));
+        },
+        "mesh"_a,
+        nb::kw_only(),
+        "tolerance"_a = bvh::ResolveTJunctionsOptions().tolerance,
+        "boundary_only"_a = bvh::ResolveTJunctionsOptions().boundary_only,
+        "triangulate_affected"_a = bvh::ResolveTJunctionsOptions().triangulate_affected,
+        R"(Resolve T-junctions formed by collinear, overlapping edges.
+
+A T-junction occurs when a vertex lies on an edge it is not topologically connected to. This
+splits every such edge at the vertices lying on it, and splits the adjacent facets accordingly,
+so the output mesh has no overlapping collinear edges. Vertices are not moved; only edges and
+facets are subdivided. Both triangle and polygonal meshes are supported.
+
+:param mesh: Input mesh, triangle or polygonal (modified in place).
+:param tolerance: Absolute distance tolerance for detecting vertices on an edge. If negative,
+                  defaults to 1e-6 times the bounding box diagonal.
+:param boundary_only: If True, only boundary edges are checked for T-junctions. Set to False to
+                      also resolve T-junctions on interior edges.
+:param triangulate_affected: If True (default), triangulate the facets affected by a split, so a
+                    triangle mesh stays triangular. If False, keep those facets as polygons.
 )");
 }
 

@@ -16,7 +16,7 @@
 // prevents the crash. This works across all build systems (CMake, Make, etc.)
 //
 // Bug: VectorCombine::foldSelectShuffle() segfaults on (r_0 * r_arc).inverse()
-// Affects: Apple Clang (Xcode 26.4, __apple_build_version__ 21000000-21999999), x86_64 only
+// Affects: Apple Clang (Xcode 26.4, __apple_build_version__ 21000099), x86_64 only
 //
 // Why this function is in a separate file with file-level #pragma:
 // - Localized #pragma around the function (function-level) does NOT work
@@ -27,15 +27,25 @@
 // - Therefore, the #pragma must be at FILE level to disable the pass for the
 //   entire compilation unit containing the problematic template instantiations
 //
-// TODO: Remove this file when Apple fixes the bug in future Xcode release
+// TODO: Remove this file once we stop supporting Xcode 26...
 
 #include <lagrange/utils/build.h>
 
 // Only disable optimizations for the specific problematic configuration
-// Note: __apple_build_version__ is only defined by Apple Clang, not Homebrew LLVM
+//
+// Note:
+// - __apple_build_version__ is only defined by Apple Clang, not Homebrew LLVM
+// - Bug appears in Xcode 26.4 (clang-2100.0.123.102)
+// - Got fixed in Xcode-27.0.0-Beta.3 (clang-2100.3.25.1)
+//
+// Version numbers:
+// - 21000099 = Xcode 26.4.0
+// - 21000323 = Xcode 27.0.0 Beta 2
+// - 21000325 = Xcode 27.0.0 Beta 3
+
 #if LAGRANGE_TARGET_OS(APPLE) && LAGRANGE_TARGET_PLATFORM(x86_64) &&           \
     defined(__apple_build_version__) && __apple_build_version__ >= 21000000 && \
-    __apple_build_version__ < 22000000
+    __apple_build_version__ < 21000325
     #pragma clang optimize off
 #endif
 
@@ -119,6 +129,6 @@ void Camera::rotate_arcball(
 // Re-enable optimizations if they were disabled
 #if LAGRANGE_TARGET_OS(APPLE) && LAGRANGE_TARGET_PLATFORM(x86_64) &&           \
     defined(__apple_build_version__) && __apple_build_version__ >= 21000000 && \
-    __apple_build_version__ < 22000000
+    __apple_build_version__ < 21000325
     #pragma clang optimize on
 #endif
