@@ -10,3 +10,6 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_python_binding()
+
+lagrange_find_package(nanobind_namedtuple REQUIRED)
+target_link_libraries(lagrange_python PRIVATE nanobind_namedtuple::nanobind_namedtuple)

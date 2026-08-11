@@ -224,6 +224,32 @@ function(lagrange_generate_python_binding_module)
 
         # Generate stubs for python binding within the install location.
         get_target_property(active_modules lagrange_python LAGRANGE_ACTIVE_MODULES)
+
+        # When nanobind_namedtuple is in use, generate a stubgen pattern file at install
+        # time so that classes registered through nbnt::bind_namedtuple are emitted as
+        # canonical typing.NamedTuple blocks. Pattern queries are fully qualified, so a
+        # single shared file is safe to pass to every module's stubgen invocation.
+        set(pattern_file_args "")
+        if(TARGET nanobind_namedtuple)
+            set(pattern_file ${CMAKE_CURRENT_BINARY_DIR}/nanobind_namedtuple.pat)
+            set(pattern_modules "")
+            foreach(module_name IN ITEMS ${active_modules})
+                get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
+                if(NOT python_name)
+                    set(python_name ${module_name})
+                endif()
+                list(APPEND pattern_modules lagrange.${python_name})
+            endforeach()
+            nanobind_namedtuple_stub_pattern(
+                OUTPUT ${pattern_file}
+                MODULE ${pattern_modules}
+                INSTALL_TIME
+                COMPONENT Lagrange_Python_Runtime
+                PYTHON_PATH ${SKBUILD_PLATLIB_DIR}/lagrange/
+            )
+            set(pattern_file_args PATTERN_FILE ${pattern_file})
+        endif()
+
         foreach(module_name IN ITEMS ${active_modules})
             get_target_property(python_name lagrange_python LAGRANGE_PYTHON_NAME_${module_name})
             if(NOT python_name)
@@ -239,6 +265,7 @@ function(lagrange_generate_python_binding_module)
                 DEPENDS lagrange_python
                 COMPONENT Lagrange_Python_Runtime
                 PYTHON_PATH ${SKBUILD_PLATLIB_DIR}/lagrange/
+                ${pattern_file_args}
                 VERBOSE
             )
         endforeach()

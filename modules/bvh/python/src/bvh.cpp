@@ -21,19 +21,26 @@
 #include <lagrange/python/binding.h>
 #include <lagrange/python/bvh.h>
 #include <lagrange/python/eigen_utils.h>
-#include <lagrange/python/utils/StubType.h>
+
+#include <nanobind_namedtuple/named_tuple.h>
 
 #include "PyEdgeAABBTree.h"
 
 namespace nb = nanobind;
 using namespace nb::literals;
 
-namespace lagrange::python {
+// Expose lagrange::bvh::UVOverlapResult to Python as a collections.namedtuple. The macro takes a
+// single type name token, hence the alias for the template instantiation.
+using UVOverlapResult = lagrange::bvh::UVOverlapResult<double, uint32_t>;
 
-// Renders the dynamically-built `UVOverlapResult` NamedTuple (a runtime nb::object)
-// with the right stub type. TODO: retire once nanobind supports NamedTuple directly.
-LA_STUB_HINT(UVOverlapResultHint, "UVOverlapResult");
-using UVOverlapResultObject = StubType<nb::object, UVOverlapResultHint>;
+NB_NAMED_TUPLE(
+    UVOverlapResult,
+    has_overlap,
+    overlap_area,
+    overlapping_pairs,
+    overlap_coloring_id)
+
+namespace lagrange::python {
 
 void populate_bvh_module(nb::module_& m)
 {
@@ -492,30 +499,18 @@ Both meshes must have the same spatial dimension and must be triangle meshes.
             "Zomorodian-Edelsbrunner HYBRID algorithm (recursive divide-and-conquer).");
 
     // UV overlap result (Python NamedTuple)
-    // Note: No direct nanobind support for NamedTuple yet, see:
-    // https://github.com/wjakob/nanobind/discussions/1279
-    nb::object typing = nb::module_::import_("typing");
-    nb::object builtins = nb::module_::import_("builtins");
-    nb::object UVOverlapResult = typing.attr("NamedTuple")(
-        "UVOverlapResult",
-        nb::make_tuple(
-            nb::make_tuple("has_overlap", builtins.attr("bool")),
-            nb::make_tuple("overlap_area", typing.attr("Optional")[builtins.attr("float")]),
-            nb::make_tuple("overlapping_pairs", builtins.attr("list")),
-            nb::make_tuple("overlap_coloring_id", builtins.attr("int"))));
-    m.attr("UVOverlapResult") = UVOverlapResult;
+    nbnt::bind_namedtuple<UVOverlapResult>(m);
 
     // compute_uv_overlap function
     m.def(
         "compute_uv_overlap",
-        [UVOverlapResult](
-            MeshType& mesh,
-            std::string uv_attribute_name,
-            bool compute_overlap_area,
-            bool compute_overlap_coloring,
-            std::string overlap_coloring_attribute_name,
-            bool compute_overlapping_pairs,
-            bvh::UVOverlapMethod method) -> UVOverlapResultObject {
+        [](MeshType& mesh,
+           std::string uv_attribute_name,
+           bool compute_overlap_area,
+           bool compute_overlap_coloring,
+           std::string overlap_coloring_attribute_name,
+           bool compute_overlapping_pairs,
+           bvh::UVOverlapMethod method) {
             bvh::UVOverlapOptions opts;
             opts.uv_attribute_name = std::move(uv_attribute_name);
             opts.compute_overlap_area = compute_overlap_area;
@@ -523,22 +518,7 @@ Both meshes must have the same spatial dimension and must be triangle meshes.
             opts.overlap_coloring_attribute_name = std::move(overlap_coloring_attribute_name);
             opts.compute_overlapping_pairs = compute_overlapping_pairs;
             opts.method = method;
-            auto result = bvh::compute_uv_overlap(mesh, opts);
-
-            nb::object area = result.overlap_area.has_value()
-                                  ? nb::cast(result.overlap_area.value())
-                                  : nb::none();
-
-            nb::list pairs;
-            for (auto& [i, j] : result.overlapping_pairs) {
-                pairs.append(nb::make_tuple(i, j));
-            }
-
-            return UVOverlapResultObject{UVOverlapResult(
-                nb::cast(result.has_overlap),
-                area,
-                pairs,
-                nb::cast(result.overlap_coloring_id))};
+            return bvh::compute_uv_overlap(mesh, opts);
         },
         "mesh"_a,
         "uv_attribute_name"_a = bvh::UVOverlapOptions{}.uv_attribute_name,
