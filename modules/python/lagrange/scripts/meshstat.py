@@ -11,8 +11,6 @@
 #
 """Print basic information about a mesh file."""
 
-from __future__ import annotations
-
 import argparse
 import json
 import logging

@@ -234,11 +234,12 @@ endif()
 # When using vcpkg, use find_package() to find external libraries
 if(DEFINED VCPKG_INSTALLED_DIR)
     set(LAGRANGE_USE_FIND_PACKAGE_DEFAULT ON)
-    option(LAGRANGE_WITH_EMBREE_3 "Use Embree3 with Lagrange" ON)
 else()
     set(LAGRANGE_USE_FIND_PACKAGE_DEFAULT OFF)
-    option(LAGRANGE_WITH_EMBREE_3 "Use Embree3 with Lagrange" OFF)
 endif()
+
+# Default to Embree 4
+option(LAGRANGE_WITH_EMBREE_3 "Use Embree3 with Lagrange" OFF)
 
 if(EMSCRIPTEN)
     set(LAGRANGE_DISABLE_FPE_DEFAULT ON)

@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/utils/function_ref.h>
 
 #include <vector>
 
@@ -55,6 +56,25 @@ struct TriangulationOptions
 template <typename Scalar, typename Index>
 void triangulate_polygonal_facets(
     SurfaceMesh<Scalar, Index>& mesh,
+    const TriangulationOptions& options = {});
+
+///
+/// Triangulate polygonal facets of a mesh using a prescribed set of rules.
+///
+/// @param[in, out] mesh                Polygonal mesh to triangulate in place.
+/// @param[in]      should_triangulate  Predicate determining whether a facet with more than 3
+///                                     vertices should be triangulated. Facets for which it
+///                                     returns false are left untouched. This applies to both the
+///                                     earcut and centroid-fan schemes.
+/// @param[in]      options             Options for triangulation.
+///
+/// @tparam         Scalar              Mesh scalar type.
+/// @tparam         Index               Mesh index type.
+///
+template <typename Scalar, typename Index>
+void triangulate_polygonal_facets(
+    SurfaceMesh<Scalar, Index>& mesh,
+    function_ref<bool(Index)> should_triangulate,
     const TriangulationOptions& options = {});
 
 /// @}

@@ -380,3 +380,55 @@ class TestSmoothDirectionField:
         d2 = np.array(octahedron.attribute(id2).data)
         # Fields may differ by global sign flip; compare abs dot products.
         assert np.allclose(np.abs(d1), np.abs(d2), atol=1e-10) or np.allclose(d1, -d2, atol=1e-10)
+
+    def test_alignment_lambda(self):
+        """alignment_lambda is accepted and modulates the smoothness/alignment tradeoff.
+
+        On a flat grid (λ_1 ≈ 0), the λ_t = 0 solve is smoothness-dominated and ignores a
+        high-frequency guidance field, while a strongly negative λ_t recovers it.
+        """
+        n = 12
+        grid = lagrange.SurfaceMesh()
+        for i in range(n):
+            for j in range(n):
+                grid.add_vertex([float(i), float(j), 0.0])
+        for i in range(n - 1):
+            for j in range(n - 1):
+                v00, v10 = i * n + j, (i + 1) * n + j
+                v01, v11 = i * n + (j + 1), (i + 1) * n + (j + 1)
+                grid.add_triangle(v00, v10, v11)
+                grid.add_triangle(v00, v11, v01)
+        ops = lagrange.polyddg.DifferentialOperators(grid)
+        nv = grid.num_vertices
+
+        # Dense, high-frequency guidance: alternate the target angle by ±22.5° per vertex.
+        bases = np.stack([np.array(ops.vertex_basis(v)) for v in range(nv)])  # (nv, 3, 2)
+        guide_angle = np.where(np.arange(nv) % 2 == 0, 1.0, -1.0) * (np.pi / 8.0)
+        local = np.stack([np.cos(guide_angle), np.sin(guide_angle)], axis=1)  # (nv, 2)
+        align = np.einsum("vij,vj->vi", bases, local)
+        grid.create_attribute(
+            "@align",
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Vector,
+            initial_values=align,
+        )
+
+        def mean_align_error(lambda_t, out_name):
+            attr_id = lagrange.polyddg.compute_smooth_direction_field(
+                grid,
+                ops,
+                nrosy=4,
+                alignment_attribute="@align",
+                alignment_lambda=lambda_t,
+                direction_field_attribute=out_name,
+            )
+            data = np.array(grid.attribute(attr_id).data).reshape(-1, 3)
+            assert np.allclose(np.linalg.norm(data, axis=1), 1.0, atol=1e-10)
+            out2 = np.einsum("vij,vi->vj", bases, data)  # project to local frames
+            out_angle = np.arctan2(out2[:, 1], out2[:, 0])
+            return np.mean(1.0 - np.cos(4.0 * (out_angle - guide_angle)))
+
+        err_default = mean_align_error(0.0, "@sdf_lt0")
+        err_strong = mean_align_error(-100.0, "@sdf_lt_strong")
+        assert err_default > 0.1
+        assert err_strong < 0.1 * err_default

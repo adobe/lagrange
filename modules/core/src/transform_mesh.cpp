@@ -34,6 +34,55 @@
 
 namespace lagrange {
 
+// Apply the geometric transform to one attribute's value matrix in place. Templated on
+// <Scalar, Dimension, ValueType> only -- deliberately NOT on the mesh Index type. The heavy Eigen
+// transform/cast machinery here is the dominant contributor to this TU's object size; keeping it
+// Index-free means it is instantiated once per (Scalar, Dimension, ValueType) instead of being
+// duplicated across every mesh index type. The row counter uses Eigen::Index for the same reason.
+template <typename Scalar, int Dimension, typename ValueType>
+void transform_attribute_values(
+    RowMatrixView<ValueType> values,
+    AttributeUsage usage,
+    const Eigen::Transform<Scalar, Dimension, Eigen::Affine>& transform,
+    const Eigen::Matrix<Scalar, Dimension, Dimension>& cotransform,
+    const TransformOptions& options,
+    bool is_reflection)
+{
+    // Select higher-precision type between Scalar and ValueType
+    constexpr bool is_value_type_better = sizeof(ValueType) > sizeof(Scalar);
+    using HigherPrecisionType = std::conditional_t<is_value_type_better, ValueType, Scalar>;
+
+    auto A = transform.template cast<HigherPrecisionType>();
+    auto L = transform.linear().template cast<HigherPrecisionType>();
+    auto coL = cotransform.template cast<HigherPrecisionType>();
+    auto X = values.template cast<HigherPrecisionType>().template leftCols<Dimension>().transpose();
+    auto set = [&](auto&& Y) {
+        values.template leftCols<Dimension>() = Y.transpose().template cast<ValueType>();
+    };
+    HigherPrecisionType sign(options.reorient && is_reflection ? -1 : 1);
+    switch (usage) {
+    case AttributeUsage::Position: set(A * X); break;
+    case AttributeUsage::Normal:
+        set(sign * coL * X);
+        if (options.normalize_normals) {
+            tbb::parallel_for(Eigen::Index(0), Eigen::Index(values.rows()), [&](Eigen::Index c) {
+                values.row(c).template head<Dimension>().stableNormalize();
+            });
+        }
+        break;
+    case AttributeUsage::Tangent: [[fallthrough]];
+    case AttributeUsage::Bitangent:
+        set(sign * L * X);
+        if (options.normalize_tangents_bitangents) {
+            tbb::parallel_for(Eigen::Index(0), Eigen::Index(values.rows()), [&](Eigen::Index c) {
+                values.row(c).template head<Dimension>().stableNormalize();
+            });
+        }
+        break;
+    default: break;
+    }
+}
+
 template <typename Scalar, typename Index, int Dimension>
 void transform_mesh_internal(
     SurfaceMesh<Scalar, Index>& mesh,
@@ -51,8 +100,10 @@ void transform_mesh_internal(
         using AttributeType = std::decay_t<decltype(attr_read)>;
         using ValueType = typename AttributeType::ValueType;
 
+        const AttributeUsage usage = attr_read.get_usage();
+
         // Skip if we don't need to modify the attribute (to avoid triggering copy-on-write)
-        switch (attr_read.get_usage()) {
+        switch (usage) {
         case AttributeUsage::Position:
         case AttributeUsage::Normal:
         case AttributeUsage::Tangent:
@@ -60,59 +111,35 @@ void transform_mesh_internal(
         default: return;
         }
 
-        // Select higher-precision type between Scalar and ValueType
-        constexpr bool is_value_type_better = sizeof(ValueType) > sizeof(Scalar);
-        using HigherPrecisionType = std::conditional_t<is_value_type_better, ValueType, Scalar>;
-
-        // Apply geometric transform.
-        auto transform_values = [&](auto&& values) {
-            auto A = transform.template cast<HigherPrecisionType>();
-            auto L = transform.linear().template cast<HigherPrecisionType>();
-            auto coL = cotransform.template cast<HigherPrecisionType>();
-            auto X = values.template cast<HigherPrecisionType>()
-                         .template leftCols<Dimension>()
-                         .transpose();
-            auto set = [&](auto&& Y) {
-                values.template leftCols<Dimension>() = Y.transpose().template cast<ValueType>();
-            };
-            HigherPrecisionType sign(options.reorient && is_reflection ? -1 : 1);
-            if (!included_usages.test(attr_read.get_usage())) {
+        // Filter by value type/indexed. The heavy Eigen transform lives in the Index-free
+        // transform_attribute_values helper so it is not re-instantiated per mesh index type.
+        if constexpr (std::is_floating_point_v<ValueType>) {
+            // The included-usages check stays inside the floating-point branch so that a
+            // non-floating attribute of a transformable usage still triggers the type error below,
+            // matching the original behavior (the check used to live inside transform_values).
+            if (!included_usages.test(usage)) {
                 logger().debug("Skipping transform for attribute: {}", name);
                 return;
             }
-            switch (attr_read.get_usage()) {
-            case AttributeUsage::Position: set(A * X); break;
-            case AttributeUsage::Normal:
-                set(sign * coL * X);
-                if (options.normalize_normals) {
-                    tbb::parallel_for(Index(0), Index(values.rows()), [&](Index c) {
-                        values.row(c).template head<3>().stableNormalize();
-                    });
-                }
-                break;
-            case AttributeUsage::Tangent: [[fallthrough]];
-            case AttributeUsage::Bitangent:
-                set(sign * L * X);
-                if (options.normalize_tangents_bitangents) {
-                    tbb::parallel_for(Index(0), Index(values.rows()), [&](Index c) {
-                        values.row(c).template head<3>().stableNormalize();
-                    });
-                }
-                break;
-            default: break;
-            }
-        };
-
-        // Filter by value type/indexed
-        if constexpr (std::is_floating_point_v<ValueType>) {
             if constexpr (AttributeType::IsIndexed) {
                 auto& attr = mesh.template ref_indexed_attribute<ValueType>(name);
-                transform_values(matrix_ref(attr.values()));
+                transform_attribute_values<Scalar, Dimension>(
+                    matrix_ref(attr.values()),
+                    usage,
+                    transform,
+                    cotransform,
+                    options,
+                    is_reflection);
             } else {
-                transform_values(attribute_matrix_ref<ValueType>(mesh, name));
+                transform_attribute_values<Scalar, Dimension>(
+                    attribute_matrix_ref<ValueType>(mesh, name),
+                    usage,
+                    transform,
+                    cotransform,
+                    options,
+                    is_reflection);
             }
         } else {
-            LA_IGNORE(transform_values);
             std::string_view type_name;
             if constexpr (AttributeType::IsIndexed) {
                 type_name = internal::value_type_name(attr_read.values());
@@ -122,7 +149,7 @@ void transform_mesh_internal(
             throw Error(format(
                 "Invalid attribute value type ({}) for attribute usage: {}",
                 type_name,
-                internal::to_string(attr_read.get_usage())));
+                internal::to_string(usage)));
         }
     });
 

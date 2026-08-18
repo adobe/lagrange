@@ -164,7 +164,8 @@ template <typename Scalar, typename Index>
 void triangulate_polygonal_facets_earcut(
     SurfaceMesh<Scalar, Index>& mesh,
     bool preserve_edges,
-    bool preserve_points)
+    bool preserve_points,
+    function_ref<bool(Index)>* should_triangulate = nullptr)
 {
     LAGRANGE_ZONE_SCOPED;
 
@@ -198,11 +199,11 @@ void triangulate_polygonal_facets_earcut(
             if (!preserve_edges) {
                 to_remove[f] = true;
             }
-        } else if (facet_size == 4) {
+        } else if (facet_size == 4 && (!should_triangulate || (*should_triangulate)(f))) {
             // Triangulate quad
             to_remove[f] = true;
             append_triangles_from_quad(mesh, f, new_to_old_corners, new_to_old_facets);
-        } else if (facet_size > 4) {
+        } else if (facet_size > 4 && (!should_triangulate || (*should_triangulate)(f))) {
             // Triangulate polygon via ear cutting
             to_remove[f] = true;
             append_triangles_from_polygon(
@@ -311,7 +312,8 @@ template <typename Scalar, typename Index>
 void triangulate_polygonal_facets_centroid_fan(
     SurfaceMesh<Scalar, Index>& mesh,
     bool preserve_edges,
-    bool preserve_points)
+    bool preserve_points,
+    function_ref<bool(Index)>* should_triangulate = nullptr)
 {
     if (mesh.is_triangle_mesh()) {
         return;
@@ -334,7 +336,8 @@ void triangulate_polygonal_facets_centroid_fan(
     for (Index fid = 0; fid < old_num_facets; ++fid) {
         const auto facet_size = mesh.get_facet_size(fid);
         if (facet_size != 3 && !(preserve_edges && facet_size == 2) &&
-            !(preserve_points && facet_size == 1)) {
+            !(preserve_points && facet_size == 1) &&
+            (!should_triangulate || (*should_triangulate)(fid))) {
             auto f = mesh.get_facet_vertices(fid);
             facets_to_remove.push_back(fid);
 
@@ -368,6 +371,12 @@ void triangulate_polygonal_facets_centroid_fan(
             }
             new_triangle_count += facet_size;
         }
+    }
+
+    if (facets_to_remove.empty()) {
+        // Nothing selected: leave the mesh untouched and avoid add_triangles() with empty data,
+        // which asserts on meshes that carry edge/connectivity information.
+        return;
     }
 
     mesh.add_vertices(new_vertex_count, {centroids.data(), centroids.size()});
@@ -547,10 +556,38 @@ void triangulate_polygonal_facets(
     }
 }
 
+template <typename Scalar, typename Index>
+void triangulate_polygonal_facets(
+    SurfaceMesh<Scalar, Index>& mesh,
+    function_ref<bool(Index)> should_triangulate,
+    const TriangulationOptions& options)
+{
+    switch (options.scheme) {
+    case TriangulationOptions::Scheme::Earcut:
+        triangulate_polygonal_facets_earcut(
+            mesh,
+            options.preserve_edges,
+            options.preserve_points,
+            &should_triangulate);
+        break;
+    case TriangulationOptions::Scheme::CentroidFan:
+        triangulate_polygonal_facets_centroid_fan(
+            mesh,
+            options.preserve_edges,
+            options.preserve_points,
+            &should_triangulate);
+        break;
+    }
+}
+
 // Iterate over mesh (scalar, index) types
 #define LA_X_triangulate_polygonal_facets(_, Scalar, Index) \
     template LA_CORE_API void triangulate_polygonal_facets( \
         SurfaceMesh<Scalar, Index>& mesh,                   \
+        const TriangulationOptions& options);               \
+    template LA_CORE_API void triangulate_polygonal_facets( \
+        SurfaceMesh<Scalar, Index>& mesh,                   \
+        function_ref<bool(Index)> should_triangulate,       \
         const TriangulationOptions& options);
 LA_SURFACE_MESH_X(triangulate_polygonal_facets, 0)
 

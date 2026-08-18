@@ -16,6 +16,35 @@
 
 namespace lagrange::io::internal {
 
+namespace {
+
+void populate_image_buffer(
+    const image_io::LoadImageResult& result,
+    scene::ImageBufferExperimental& buf)
+{
+    buf.width = result.width;
+    buf.height = result.height;
+    buf.num_channels = static_cast<size_t>(result.channel);
+    switch (result.precision) {
+    case image::ImagePrecision::uint8: buf.element_type = AttributeValueType::e_uint8_t; break;
+    case image::ImagePrecision::int8: buf.element_type = AttributeValueType::e_int8_t; break;
+    case image::ImagePrecision::uint16: buf.element_type = AttributeValueType::e_uint16_t; break;
+    case image::ImagePrecision::uint32: buf.element_type = AttributeValueType::e_uint32_t; break;
+    case image::ImagePrecision::int32: buf.element_type = AttributeValueType::e_int32_t; break;
+    case image::ImagePrecision::float32: buf.element_type = AttributeValueType::e_float; break;
+    case image::ImagePrecision::float64: buf.element_type = AttributeValueType::e_double; break;
+    case image::ImagePrecision::float16: [[fallthrough]];
+    default: throw std::runtime_error("Unsupported image precision");
+    }
+
+    la_runtime_assert(result.storage != nullptr);
+    const size_t num_bytes =
+        buf.width * buf.height * buf.num_channels * buf.get_bits_per_element() / 8;
+    buf.data.assign(result.storage->data(), result.storage->data() + num_bytes);
+}
+
+} // namespace
+
 bool try_load_image(
     const std::string& name,
     const LoadOptions& options,
@@ -31,30 +60,23 @@ bool try_load_image(
     image_io::LoadImageResult result = image_io::load_image(path, error_lvl);
     if (!result.valid) return false;
 
-    scene::ImageBufferExperimental& buffer = image.image;
-    buffer.width = result.width;
-    buffer.height = result.height;
-    buffer.num_channels = static_cast<size_t>(result.channel);
-    switch (result.precision) {
-    case image::ImagePrecision::uint8: buffer.element_type = AttributeValueType::e_uint8_t; break;
-    case image::ImagePrecision::int8: buffer.element_type = AttributeValueType::e_int8_t; break;
-    case image::ImagePrecision::uint32: buffer.element_type = AttributeValueType::e_uint32_t; break;
-    case image::ImagePrecision::int32: buffer.element_type = AttributeValueType::e_int32_t; break;
-    case image::ImagePrecision::float32: buffer.element_type = AttributeValueType::e_float; break;
-    case image::ImagePrecision::float64: buffer.element_type = AttributeValueType::e_double; break;
-    case image::ImagePrecision::float16: [[fallthrough]];
-    default: throw std::runtime_error("Unsupported image precision");
-    }
+    populate_image_buffer(result, image.image);
+    return true;
+}
 
-    la_runtime_assert(result.storage != nullptr);
-    const size_t num_bytes =
-        buffer.width * buffer.height * buffer.num_channels * buffer.get_bits_per_element() / 8;
-    buffer.data.reserve(num_bytes);
-    std::copy(
-        result.storage->data(),
-        result.storage->data() + num_bytes,
-        std::back_inserter(buffer.data));
+bool try_load_image_from_buffer(
+    const void* buffer,
+    size_t size,
+    const LoadOptions& options,
+    scene::ImageExperimental& image)
+{
+    spdlog::level::level_enum error_lvl = spdlog::level::err;
+    if (options.quiet) error_lvl = spdlog::level::off;
 
+    image_io::LoadImageResult result = image_io::load_image_from_buffer(buffer, size, error_lvl);
+    if (!result.valid) return false;
+
+    populate_image_buffer(result, image.image);
     return true;
 }
 

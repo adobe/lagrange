@@ -783,6 +783,10 @@ void bind_scene(nb::module_& m)
         "reorient"_a = TransformOptions{}.reorient,
         R"(Converts a scene into a list of meshes with all the transforms applied and a list of material IDs.
 
+Each output mesh also carries a ``material_id`` facet attribute holding the global scene material
+index used by each facet, so the facet-to-material assignment is preserved even when a single mesh
+uses multiple materials. Facets with no associated material are marked with ``invalid_index``.
+
 :param scene: Scene to convert.
 :param normalize_normals: If enabled, normals are normalized after transformation.
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
