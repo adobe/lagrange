@@ -112,7 +112,7 @@ function(embree_import_target)
 
     # Ready to include embree's atrocious CMake
     include(CPM)
-    set(EMBREE_VERSION v4.4.0)
+    set(EMBREE_VERSION bb93949614c9fcfa1b850cb9ac79b3d9e4f1d2ec) # ahead of 4.4.1
     set(EMBREE_PATCHES "")
     if(LAGRANGE_WITH_EMBREE_3)
         set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
@@ -122,14 +122,9 @@ function(embree_import_target)
         # https://github.com/RenderKit/embree/issues/486
         set(EMBREE_PATCHES PATCHES embree.patch)
     endif()
-    set(EMBREE_URL RenderKit/embree)
-    if(WIN32 AND CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64" AND EMBREE_VERSION STREQUAL "v4.4.0")
-        message(STATUS "Using winarm-compatible fork of embree 4")
-        set(EMBREE_VERSION 958014331b95bc6f23a82b8f2ea284ce7410febb)
-    endif()
     CPMAddPackage(
         NAME embree
-        GITHUB_REPOSITORY ${EMBREE_URL}
+        GITHUB_REPOSITORY RenderKit/embree
         GIT_TAG ${EMBREE_VERSION}
         ${EMBREE_PATCHES}
     )
