@@ -47,6 +47,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
         env:
+          CIBW_BUILD: "cp310-*"
           CIBW_BUILD_FRONTEND: "build[uv]"
           CIBW_ARCHS_LINUX: auto64
           CIBW_ARCHS_WINDOWS: auto64
