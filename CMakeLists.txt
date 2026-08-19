@@ -19,7 +19,7 @@ else()
 endif()
 
 # Check required CMake version
-cmake_minimum_required(VERSION 3.25.0)
+cmake_minimum_required(VERSION 3.26.0)
 
 cmake_policy(SET CMP0054 NEW) # Only interpret if() arguments as variables or keywords when unquoted.
 cmake_policy(SET CMP0076 NEW) # target_sources() command converts relative paths to absolute.
