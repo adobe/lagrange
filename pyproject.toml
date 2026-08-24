@@ -1,7 +1,7 @@
 [build-system]
 build-backend = "scikit_build_core.build"
 requires = [
-    "nanobind-backend==1.0.0.dev5", # must match the nanobind development release
+    "nanobind-backend>=1.0", # needed at build time for stub generation
     "numpy>=1.25",               # needed at build time for default dtype args
     "scikit-build-core==0.11.6",
     "typing-extensions~=4.1",
@@ -31,7 +31,7 @@ dynamic = [ "version" ]
 dependencies = [
     "colorama>=0.4.4; platform_system!='Windows'",
     "colorama>=0.4.6; platform_system=='Windows'",
-    "nanobind-backend==1.0.0.dev5",
+    "nanobind-backend>=1.0",
     "numpy>=1.25",
     "scipy>=1.13.0",
 ]
