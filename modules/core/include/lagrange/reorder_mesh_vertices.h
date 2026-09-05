@@ -12,7 +12,7 @@
 
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Please use remap_vertices.h instead.
     #include <lagrange/legacy/reorder_mesh_vertices.h>
 #endif

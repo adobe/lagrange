@@ -9,11 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/Mesh.h>
-#include <lagrange/corner_to_edge_mapping.h>
-#include <lagrange/io/load_mesh.h>
 
-#include <lagrange/testing/common.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/corner_to_edge_mapping.h>
+    #include <lagrange/io/load_mesh.h>
+
+    #include <lagrange/testing/common.h>
 
 namespace {
 
@@ -90,3 +92,5 @@ TEST_CASE("corner_to_edge_mapping: regression", "[core]")
     REQUIRE(c2e.size() == c2e_ref.size());
     REQUIRE(c2e == c2e_ref);
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

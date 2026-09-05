@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/image/ImageView.h>
+#include <lagrange/image/api.h>
 
 namespace lagrange {
 namespace image {
@@ -22,56 +23,56 @@ namespace image {
  * @param[in]  size The size of the kernel.
  * @param[out] kernel The resulting kernel.
  */
-void make_box_kernel(size_t size, image::ImageView<float>& kernel);
+LA_IMAGE_API void make_box_kernel(size_t size, image::ImageView<float>& kernel);
 
 /**
  * Creates a 3 by 3 horizontal Sobel filter kernel.
  *
  * @param[out] kernel The resulting kernel.
  */
-void make_sobelh_kernel(image::ImageView<float>& kernel);
+LA_IMAGE_API void make_sobelh_kernel(image::ImageView<float>& kernel);
 
 /**
  * Creates a 3 by 3 vertical Sobel filter kernel.
  *
  * @param[out] kernel The resulting kernel.
  */
-void make_sobelv_kernel(image::ImageView<float>& kernel);
+LA_IMAGE_API void make_sobelv_kernel(image::ImageView<float>& kernel);
 
 /**
  * Creates a 3 by 3 approximation of a Gaussian filter kernel.
  *
  * @param[out] kernel The resulting kernel.
  */
-void make_gaussian_kernel(image::ImageView<float>& kernel);
+LA_IMAGE_API void make_gaussian_kernel(image::ImageView<float>& kernel);
 
 /**
  * Creates a 3 by 1 horizontal kernel with weights (1, 2, 1) / 4.
  *
  * @param[out] kernel The resulting kernel.
  */
-void make_weighted_avg_xkernel(image::ImageView<float>& kernel);
+LA_IMAGE_API void make_weighted_avg_xkernel(image::ImageView<float>& kernel);
 
 /**
  * Creates a 1 by 3 vertical kernel with weights (1, 2, 1) / 4.
  *
  * @param[out] kernel The resulting kernel.
  */
-void make_weighted_avg_ykernel(image::ImageView<float>& kernel);
+LA_IMAGE_API void make_weighted_avg_ykernel(image::ImageView<float>& kernel);
 
 /**
  * Creates a 3 by 1 horizontal finite difference kernel with weights (-1, 0, 1).
  *
  * @param[out] kernel The resulting kernel.
  */
-void make_diff_xkernel(image::ImageView<float>& kernel);
+LA_IMAGE_API void make_diff_xkernel(image::ImageView<float>& kernel);
 
 /**
  * Creates a 1 by 3 vertical finite difference kernel with weights (-1, 0, 1).
  *
  * @param[out] kernel The resulting kernel.
  */
-void make_diff_ykernel(image::ImageView<float>& kernel);
+LA_IMAGE_API void make_diff_ykernel(image::ImageView<float>& kernel);
 
 /**
  * Convolves the given image with the specified kernel, using periodic boundary conditions.
@@ -80,7 +81,7 @@ void make_diff_ykernel(image::ImageView<float>& kernel);
  * @param[in]  kernel The kernel.
  * @param[out] result The result of the convolution. Can be the same as \p image.
  */
-void convolve(
+LA_IMAGE_API void convolve(
     const image::ImageView<float>& image,
     const image::ImageView<float>& kernel,
     image::ImageView<float>& result);
@@ -91,7 +92,7 @@ void convolve(
  * @param[in]  image The input image.
  * @param[out] result The result of the convolution. Can be the same as \p image.
  */
-void sobel_x(const image::ImageView<float>& image, image::ImageView<float>& result);
+LA_IMAGE_API void sobel_x(const image::ImageView<float>& image, image::ImageView<float>& result);
 
 /**
  * Convolves the given image with a vertical Sobel filter.
@@ -99,7 +100,7 @@ void sobel_x(const image::ImageView<float>& image, image::ImageView<float>& resu
  * @param[in]  image The input image.
  * @param[out] result The result of the convolution. Can be the same as \p image.
  */
-void sobel_y(const image::ImageView<float>& image, image::ImageView<float>& result);
+LA_IMAGE_API void sobel_y(const image::ImageView<float>& image, image::ImageView<float>& result);
 
 /**
  * Convolves the given image twice with a horizontal Sobel filter.
@@ -107,7 +108,7 @@ void sobel_y(const image::ImageView<float>& image, image::ImageView<float>& resu
  * @param[in]  image The input image.
  * @param[out] result The result of the convolution. Can be the same as \p image.
  */
-void image_dxx(const image::ImageView<float>& image, image::ImageView<float>& result);
+LA_IMAGE_API void image_dxx(const image::ImageView<float>& image, image::ImageView<float>& result);
 
 /**
  * Convolves the given image twice with a vertical Sobel filter.
@@ -115,7 +116,7 @@ void image_dxx(const image::ImageView<float>& image, image::ImageView<float>& re
  * @param[in]  image The input image.
  * @param[out] result The result of the convolution. Can be the same as \p image.
  */
-void image_dyy(const image::ImageView<float>& image, image::ImageView<float>& result);
+LA_IMAGE_API void image_dyy(const image::ImageView<float>& image, image::ImageView<float>& result);
 
 } // namespace image
 } // namespace lagrange

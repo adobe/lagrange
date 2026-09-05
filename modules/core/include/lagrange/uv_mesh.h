@@ -81,7 +81,7 @@ SurfaceMesh<UVScalar, Index> uv_mesh_ref(
  * @tparam     Index     Mesh index type.
  * @tparam     UVScalar  Target UV attribute value type.
  *
- * @return     The extracted UV mesh reference.
+ * @return     The extracted UV mesh view.
  *
  * @see        @ref UVMeshOptions
  */

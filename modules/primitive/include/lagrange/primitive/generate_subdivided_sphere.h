@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/primitive/legacy/generate_subdivided_sphere.h>
 #endif
+
+#include <lagrange/primitive/api.h>
 
 #include <lagrange/primitive/PrimitiveOptions.h>
 
@@ -64,7 +66,7 @@ struct SubdividedSphereOptions : public PrimitiveOptions
 /// @return A surface mesh representing the subdivided sphere.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_subdivided_sphere(
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_subdivided_sphere(
     const SurfaceMesh<Scalar, Index>& base_shape,
     SubdividedSphereOptions setting);
 

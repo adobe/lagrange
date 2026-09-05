@@ -28,7 +28,7 @@ namespace lagrange {
 ///                                        necessary since there may be isolated vertices, and thus
 ///                                        computing it from the facet array may be misleading.
 /// @param[in]  facets                     #F x k array of facet indices.
-/// @param[out] vertex_to_corner           #E x 1 array of first facet corner in the chain starting
+/// @param[out] vertex_to_corner           #V x 1 array of first facet corner in the chain starting
 ///                                        from a given vertex.
 /// @param[out] next_corner_around_vertex  #C x 1 array of next facet corner in the chain at a given
 ///                                        facet corner.

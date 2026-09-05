@@ -594,14 +594,18 @@ struct TextureAndConfidenceFromRender
                             : Eigen::Vector3d(p_c[0], p_c[1], p_c[2]).stableNormalized();
 
                     // The normal confidence based on the alignment of the normal with the
-                    // view direction
+                    // view direction.
                     [[maybe_unused]] double normal_confidence = fabs(n_view.dot(dir_view));
 
-                    // If the texel is visible, set the confidence to the product of the depth and
-                    // normal confidences
-                    if (d < std::numeric_limits<double>::infinity() &&
-                        z < d * (1. + depth_precision)) {
-                        confidence[i] = normal_confidence * depth_confidence(q);
+                    // Compute confidence based on depth comparison. Perspective camera has relative
+                    // tolerance, orthographic camera has absolute tolerance.
+                    if (d < std::numeric_limits<double>::infinity()) {
+                        const double depth_tol =
+                            camera_params.is_orthographic ? depth_precision : d * depth_precision;
+                        if (z < d + depth_tol) {
+                            confidence[i] = 0;
+                            confidence[i] = normal_confidence * depth_confidence(q);
+                        }
                     }
                 }
             });

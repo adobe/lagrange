@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/legacy/compute_uv_distortion.h>
 #endif
 

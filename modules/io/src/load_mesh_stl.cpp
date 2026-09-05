@@ -20,6 +20,11 @@
 
 #include "stitch_mesh.h"
 
+#include <istream>
+#include <sstream>
+#include <string>
+#include <vector>
+
 namespace lagrange::io {
 
 namespace {

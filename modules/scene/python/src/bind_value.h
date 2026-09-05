@@ -24,7 +24,7 @@ struct type_caster<lagrange::scene::Value>
     NB_TYPE_CASTER(lagrange::scene::Value, const_name("int | float | str | list | dict | bool"));
 
     template <typename T>
-    bool try_cast(const handle& src, uint8_t flags, cleanup_list* cleanup)
+    bool try_cast(const handle& src, uint32_t flags, cleanup_list* cleanup)
     {
         using CasterT = make_caster<T>;
 
@@ -34,7 +34,7 @@ struct type_caster<lagrange::scene::Value>
         return true;
     }
 
-    bool from_python(handle src, uint8_t flags, cleanup_list* cleanup) noexcept
+    bool from_python(handle src, uint32_t flags, cleanup_list* cleanup) noexcept
     {
         if (PyNumber_Check(src.ptr())) {
             lagrange::logger().debug("Number!");
@@ -48,7 +48,7 @@ struct type_caster<lagrange::scene::Value>
             size_t n;
             PyObject* temp;
             /* Will initialize 'temp' (NULL in the case of a failure.) */
-            PyObject** o = seq_get(src.ptr(), &n, &temp);
+            PyObject** o = NB_CALL(seq_get)(src.ptr(), &n, &temp);
 
             bool success = o != nullptr;
 

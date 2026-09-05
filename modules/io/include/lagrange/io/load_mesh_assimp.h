@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #ifdef LAGRANGE_WITH_ASSIMP
 
     #include <lagrange/MeshTrait.h>
@@ -18,7 +20,7 @@
     #include <lagrange/fs/filesystem.h>
     #include <lagrange/io/types.h>
 
-    #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
         #include <lagrange/io/legacy/load_mesh_assimp.h>
     #endif
 
@@ -37,7 +39,7 @@ namespace lagrange::io {
 template <
     typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
-MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options = {});
+LA_IO_API MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options = {});
 
 /**
  * Load a mesh using assimp. If the scene contains multiple meshes, they will be combined into one.
@@ -50,7 +52,7 @@ MeshType load_mesh_assimp(const fs::path& filename, const LoadOptions& options =
 template <
     typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
-MeshType load_mesh_assimp(std::istream& input_stream, const LoadOptions& options = {});
+LA_IO_API MeshType load_mesh_assimp(std::istream& input_stream, const LoadOptions& options = {});
 
 } // namespace lagrange::io
 

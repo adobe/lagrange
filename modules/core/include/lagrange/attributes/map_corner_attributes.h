@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Please use lagrange::internal::map_attributes instead.
     #include <lagrange/legacy/attributes/map_corner_attributes.h>
 #endif

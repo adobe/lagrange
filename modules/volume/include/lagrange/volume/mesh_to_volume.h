@@ -14,7 +14,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/volume/types.h>
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/volume/legacy/mesh_to_volume.h>
 #endif
 
@@ -41,6 +41,12 @@ struct MeshToVolumeOptions
 
     /// Method used to compute the sign of the distance field that determines interior voxels.
     Sign signing_method = Sign::FloodFill;
+
+    /// Half-band width in voxels outside the surface.
+    float exterior_bandwidth = 3.0f;
+
+    /// Half-band width in voxels inside the surface.
+    float interior_bandwidth = 3.0f;
 };
 
 ///

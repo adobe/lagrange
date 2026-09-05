@@ -32,6 +32,10 @@ target_link_libraries(voxelize_gui
     lagrange::io
     CLI11::CLI11
 )
+if(TARGET OpenVDB::nanovdb)
+    target_link_libraries(voxelize_gui OpenVDB::nanovdb)
+    target_compile_definitions(voxelize_gui PRIVATE NANOVDB_ENABLED)
+endif()
 
 lagrange_add_example(fill_with_spheres fill_with_spheres.cpp)
 target_link_libraries(fill_with_spheres lagrange::volume lagrange::io CLI11::CLI11)

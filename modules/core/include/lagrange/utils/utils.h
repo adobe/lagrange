@@ -31,7 +31,7 @@ Scalar to_degrees(Scalar rad = 1)
 }
 
 /// Convert degrees to radians.
-/// Use either as to_degrees(x) or x * to_degrees<double>();
+/// Use either as to_radians(x) or x * to_radians<double>();
 template <typename Scalar>
 Scalar to_radians(Scalar deg = 1)
 {

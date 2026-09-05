@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/mesh_convert.h>
+#include <lagrange/SurfaceMesh.h>
 
 void test_to_surface_mesh()
 {

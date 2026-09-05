@@ -49,6 +49,8 @@ export interface LoadOptions {
   loadObjectIds?: boolean;
   /** Resolve and decode referenced image data. Default: `true`. */
   loadImages?: boolean;
+  /** Import line elements (e.g. OBJ polylines) as 2-vertex facets with a `line_id` attribute. Default: `true`. */
+  loadLines?: boolean;
   /** Merge coincident boundary vertices while loading. Default: `false`. */
   stitchVertices?: boolean;
   /** Suppress warnings printed to the console. Default: `false`. */

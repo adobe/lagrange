@@ -14,13 +14,16 @@
 #include <catch2/catch_approx.hpp>
 #include <cmath>
 
-#include <lagrange/Mesh.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_vertex_normal.h>
-#include <lagrange/create_mesh.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/create_mesh.h>
+#endif
 
 namespace {
 

@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/primitive/legacy/generate_rounded_plane.h>
 #endif
+
+#include <lagrange/primitive/api.h>
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/primitive/PrimitiveOptions.h>
@@ -121,7 +123,7 @@ struct RoundedPlaneOptions : public PrimitiveOptions
 /// @see @ref RoundedPlaneOptions for detailed parameter descriptions.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_rounded_plane(RoundedPlaneOptions settings);
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_rounded_plane(RoundedPlaneOptions settings);
 
 /// @}
 

@@ -10,11 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/mesh_cleanup/remove_duplicate_vertices.h>
 #include <lagrange/remap_vertices.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 
 // clang-format off

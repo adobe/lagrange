@@ -22,12 +22,13 @@ CPMAddPackage(
     GIT_TAG 8e6e38ad5b257d1795a9ef995e4fd7db72ccf551
 )
 
-add_library(quadprog
+add_library(quadprog STATIC
     ${quadprog_SOURCE_DIR}/QuadProgPP.cpp
     ${quadprog_SOURCE_DIR}/QuadProgPP.h
 )
 add_library(quadprog::quadprog ALIAS quadprog)
 set_target_properties(quadprog PROPERTIES FOLDER third_party)
+set_target_properties(quadprog PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
 include(GNUInstallDirs)
 target_include_directories(quadprog SYSTEM INTERFACE

@@ -9,7 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-
+#include <lagrange/testing/common.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
@@ -92,11 +92,15 @@ TEST_CASE("legacy::compute_mesh_covariance", "[mesh][covariance]")
 } // end of TEST
 #endif
 
+#include <lagrange/Logger.h>
 #include <lagrange/compute_mesh_covariance.h>
 #include <lagrange/transform_mesh.h>
+#include <lagrange/utils/fmt_eigen.h>
+#include <lagrange/views.h>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
+#include <catch2/catch_approx.hpp>
 
 TEST_CASE("compute_mesh_covariance", "[mesh][covariance]")
 {

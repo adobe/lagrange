@@ -17,16 +17,21 @@
 
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
-#include <lagrange/Mesh.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/compute_vertex_normal.h>
-#include <lagrange/create_mesh.h>
+#include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/constants.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/unify_index_buffer.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/create_mesh.h>
+#endif
 #include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/views.h>
@@ -271,6 +276,14 @@ TEST_CASE("compute_normal", "[surface][attribute][normal][utilities]")
             REQUIRE(n1[2] < 0.8);
             REQUIRE(n2[2] < 0.8);
             REQUIRE(n3[2] < 0.8);
+        }
+
+        SECTION("Invalid cone vertex")
+        {
+            std::vector<Index> cones;
+            cones.push_back(mesh.get_num_vertices());
+            LA_REQUIRE_THROWS(
+                compute_normal<Scalar, Index>(mesh, lagrange::internal::pi / 2 - 0.1, cones));
         }
     }
 }

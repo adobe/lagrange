@@ -12,6 +12,8 @@
 
 #pragma once
 
+#include <lagrange/subdivision/api.h>
+
 #include <lagrange/SurfaceMesh.h>
 
 #include <optional>
@@ -78,9 +80,8 @@ struct SharpnessOptions
 /// @return         Normal, edge and vertex sharpness attribute ids.
 ///
 template <typename Scalar, typename Index>
-SharpnessResults compute_sharpness(
-    SurfaceMesh<Scalar, Index>& mesh,
-    const SharpnessOptions& options = {});
+LA_SUBDIVISION_API SharpnessResults
+compute_sharpness(SurfaceMesh<Scalar, Index>& mesh, const SharpnessOptions& options = {});
 
 /// @}
 

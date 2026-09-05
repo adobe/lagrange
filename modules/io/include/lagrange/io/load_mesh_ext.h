@@ -13,6 +13,6 @@
 
 // remove this file when we drop support for legacy mesh
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/io/legacy/load_mesh_ext.h>
 #endif

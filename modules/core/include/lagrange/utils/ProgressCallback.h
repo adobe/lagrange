@@ -75,6 +75,8 @@ public:
     /// Updates the current iteration number by a fixed amount, and sends a notification. It is safe
     /// to call this method from multiple threads.
     ///
+    /// @param[in]  increment  Amount to add to the current iteration number.
+    ///
     void advance(size_t increment);
 
     ///

@@ -63,7 +63,7 @@ void transform_mesh(
 ///
 /// @todo       Add an overload for 2D transforms.
 ///
-/// @param[in]  mesh       Mesh to transform in-place.
+/// @param[in]  mesh       Mesh to transform.
 /// @param[in]  transform  Affine transform to apply.
 /// @param[in]  options    Transform options.
 ///

@@ -11,6 +11,8 @@
  */
 
 #include <lagrange/orient_outward.h>
+#include <lagrange/utils/assert.h>
+#include <Eigen/Geometry>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>

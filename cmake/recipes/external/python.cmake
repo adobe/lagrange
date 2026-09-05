@@ -9,9 +9,13 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET Python::Module)
+if(TARGET Python::Module AND TARGET Python::SABIModule)
     return()
 endif()
 
 set(Python_FIND_VIRTUALENV FIRST)
-find_package(Python 3.9 COMPONENTS Interpreter Development.Module REQUIRED)
+find_package(
+    Python 3.10
+    COMPONENTS Interpreter Development.Module Development.SABIModule
+    REQUIRED
+)

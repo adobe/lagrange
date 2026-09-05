@@ -531,6 +531,24 @@ l 8 9
         REQUIRE(seg2[1] == 8);
     }
 
+    SECTION("load_lines=false skips line elements")
+    {
+        std::istringstream input(obj_data);
+        io::LoadOptions load_options;
+        load_options.load_lines = false;
+        auto mesh = io::load_mesh_obj<MeshType>(input, load_options);
+        testing::check_mesh(mesh);
+
+        // Only the 2 face facets remain; the 3 line segments are skipped
+        REQUIRE(mesh.get_num_vertices() == 9);
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.get_facet_size(0) == 3);
+        REQUIRE(mesh.get_facet_size(1) == 3);
+
+        // No line_id attribute is created when lines are not loaded
+        REQUIRE_FALSE(mesh.has_attribute(AttributeName::line_id));
+    }
+
     SECTION("roundtrip preserves polylines")
     {
         std::istringstream input(obj_data);

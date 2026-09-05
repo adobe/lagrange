@@ -25,6 +25,7 @@ class TestTextureProcessing:
             quad_mesh,
             quad_tex,
             stiffness_regularization_weight=1e-5,
+            sanity_check=True,
         )
 
         assert quad_tex_.shape == quad_tex.shape
@@ -35,7 +36,11 @@ class TestTextureProcessing:
         assert quad_mesh.num_facets == 2
         assert quad_tex.dtype == np.float32
 
-        quad_tex_ = lagrange.texproc.texture_stitching(quad_mesh, quad_tex)
+        quad_tex_ = lagrange.texproc.texture_stitching(
+            quad_mesh,
+            quad_tex,
+            sanity_check=True,
+        )
 
         assert quad_tex_.shape == quad_tex.shape
 
@@ -105,6 +110,7 @@ class TestTextureProcessing:
             colors,
             weights,
             clamp_to_range=(0.0, 1.0),
+            sanity_check=True,
         )
 
         assert final_color.shape == (128, 128, 4)

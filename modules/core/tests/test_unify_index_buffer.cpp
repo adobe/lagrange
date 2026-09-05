@@ -12,12 +12,15 @@
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/Logger.h>
 #include <lagrange/compute_edge_lengths.h>
-#include <lagrange/create_mesh.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/unify_index_buffer.h>
 #include <lagrange/utils/range.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/create_mesh.h>
+#endif
 
 #include <Eigen/Core>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
@@ -435,6 +438,7 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
         }
     }
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     SECTION("Ensure all index attribute are unified")
     {
         std::unique_ptr<TriangleMesh3D> legacy = create_cube();
@@ -449,6 +453,7 @@ TEST_CASE("unify_index_buffer", "[attribute][next][unify]")
             REQUIRE(!AttributeType::IsIndexed);
         });
     }
+#endif
 
     SECTION("Value attributes")
     {

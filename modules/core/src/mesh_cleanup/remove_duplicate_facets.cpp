@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/mesh_cleanup/remove_duplicate_facets.h>
+#include <tbb/parallel_sort.h>
 
 #include "../internal/bucket_sort.h"
 

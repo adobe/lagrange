@@ -9,13 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
 
-#include <lagrange/chain_edges.h>
-#include <lagrange/utils/warning.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
 
-#include <array>
-#include <vector>
+    #include <lagrange/chain_edges.h>
+    #include <lagrange/utils/warning.h>
+
+    #include <array>
+    #include <vector>
 
 TEST_CASE("chain_edges", "[core]")
 {
@@ -104,3 +106,5 @@ TEST_CASE("chain_edges", "[core]")
     }
     LA_IGNORE_DEPRECATION_WARNING_END
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

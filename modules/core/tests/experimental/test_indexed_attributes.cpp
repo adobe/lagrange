@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <Eigen/Core>
 
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/experimental/IndexedAttributeManager.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <Eigen/Core>
+
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/experimental/IndexedAttributeManager.h>
 
 namespace {
 
@@ -434,3 +436,5 @@ TEST_CASE("experimental/IndexedAttributes", "[attribute][indexed]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

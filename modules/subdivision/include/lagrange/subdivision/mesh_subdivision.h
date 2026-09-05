@@ -12,9 +12,11 @@
 
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/subdivision/legacy/mesh_subdivision.h>
 #endif
+
+#include <lagrange/subdivision/api.h>
 
 #include <lagrange/SurfaceMesh.h>
 
@@ -332,7 +334,7 @@ struct SubdivisionOptions
 /// @return     Subdivided mesh.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> subdivide_mesh(
+LA_SUBDIVISION_API SurfaceMesh<Scalar, Index> subdivide_mesh(
     const SurfaceMesh<Scalar, Index>& mesh,
     const SubdivisionOptions& options = {});
 

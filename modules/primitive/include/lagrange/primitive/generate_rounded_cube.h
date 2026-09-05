@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/primitive/legacy/generate_rounded_cube.h>
 #endif
+
+#include <lagrange/primitive/api.h>
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/primitive/PrimitiveOptions.h>
@@ -115,7 +117,7 @@ struct RoundedCubeOptions : public PrimitiveOptions
  *       all parameters are within valid bounds before generation.
  */
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_rounded_cube(RoundedCubeOptions setting);
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_rounded_cube(RoundedCubeOptions setting);
 
 /// @}
 

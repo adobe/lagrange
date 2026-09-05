@@ -29,6 +29,8 @@
 
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
+#include <tbb/task_arena.h>
+
 #include <random>
 
 namespace {

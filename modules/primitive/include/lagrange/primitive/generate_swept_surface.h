@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/primitive/legacy/generate_swept_surface.h>
 #endif
+
+#include <lagrange/primitive/api.h>
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/primitive/PrimitiveOptions.h>
@@ -62,7 +64,7 @@ struct SweptSurfaceOptions : public PrimitiveOptions
 /// @return     A SurfaceMesh representing the swept surface.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_swept_surface(
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_swept_surface(
     span<const Scalar> profile,
     const SweepOptions<Scalar>& sweep_setting,
     const SweptSurfaceOptions& options = {});

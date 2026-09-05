@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
@@ -29,7 +31,7 @@ namespace lagrange::io {
  * @return    A `SimpleScene` object created from the input scene file.
  */
 template <typename SceneType>
-SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options = {});
+LA_IO_API SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options = {});
 
 /**
  * Load a simple scene from a stream.
@@ -40,6 +42,6 @@ SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options
  * @return A `SimpleScene` object loaded from the input stream.
  */
 template <typename SceneType>
-SceneType load_simple_scene(std::istream& input_stream, const LoadOptions& options = {});
+LA_IO_API SceneType load_simple_scene(std::istream& input_stream, const LoadOptions& options = {});
 
 } // namespace lagrange::io

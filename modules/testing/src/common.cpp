@@ -16,8 +16,10 @@
 
 #include <lagrange/testing/common.h>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/io/legacy/load_mesh.impl.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/io/legacy/load_mesh.impl.h>
+#endif
 
 #include <lagrange/Logger.h>
 
@@ -138,8 +140,10 @@ fs::path get_test_output_path(const fs::path& relative_path)
     return absolute_path;
 }
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 template std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
 template std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
+#endif
 
 void setup_mkl_reproducibility()
 {

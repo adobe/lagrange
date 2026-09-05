@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/poisson/CommonOptions.h>
+#include <lagrange/poisson/api.h>
 
 #include <array>
 #include <memory>
@@ -51,14 +52,14 @@ public:
     /// @tparam     Index    Point cloud index type.
     ///
     template <typename Scalar, typename Index>
-    AttributeEvaluator(
+    LA_POISSON_API AttributeEvaluator(
         const SurfaceMesh<Scalar, Index>& points,
         const EvaluatorOptions& options = {});
 
     ///
     /// Destroys the object.
     ///
-    ~AttributeEvaluator();
+    LA_POISSON_API ~AttributeEvaluator();
 
     ///
     /// Evaluate the extrapolated attribute at any point in 3D space.
@@ -70,7 +71,7 @@ public:
     /// @tparam     ValueType  Attribute value type.
     ///
     template <typename Scalar, typename ValueType>
-    void eval(span<const Scalar> pos, span<ValueType> out) const;
+    LA_POISSON_API void eval(span<const Scalar> pos, span<ValueType> out) const;
 
 private:
     struct Impl;

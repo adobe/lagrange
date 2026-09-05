@@ -11,10 +11,11 @@
 #
 lagrange_add_test()
 
-lagrange_include_modules(image_io scene)
+lagrange_include_modules(image_io scene solver)
 target_link_libraries(test_lagrange_texproc
     PRIVATE
         texture_signal_processing::texture_signal_processing
         lagrange::image_io
         lagrange::scene
+        lagrange::solver
 )

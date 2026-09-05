@@ -10,5 +10,5 @@
 # governing permissions and limitations under the License.
 #
 lagrange_add_test()
-lagrange_include_modules(scene)
-target_link_libraries(test_lagrange_volume PRIVATE lagrange::scene)
+lagrange_include_modules(scene primitive)
+target_link_libraries(test_lagrange_volume PRIVATE lagrange::scene lagrange::primitive)

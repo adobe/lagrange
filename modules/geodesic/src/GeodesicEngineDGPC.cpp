@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/geodesic/GeodesicEngineDGPC.h>
+#include <lagrange/utils/assert.h>
+#include <Eigen/Geometry>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/Logger.h>
@@ -19,6 +21,7 @@
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_vertex_valence.h>
 #include <lagrange/geodesic/api.h>
+#include <lagrange/internal/constants.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
@@ -208,7 +211,7 @@ SingleSourceGeodesicResult GeodesicEngineDGPC<Scalar, Index>::single_source_geod
         la_runtime_assert(total_angle > 0.0);
         if (!on_boundary) {
             for (Index i = 0; i < one_ring_size; i++) {
-                angles[i] = angles[i] / total_angle * 2 * M_PI;
+                angles[i] = angles[i] / total_angle * 2 * lagrange::internal::pi;
             }
         }
 
@@ -221,10 +224,10 @@ SingleSourceGeodesicResult GeodesicEngineDGPC<Scalar, Index>::single_source_geod
             angle_cumu -= angles[i];
         }
         for (Index i = 0; i < one_ring_size; i++) {
-            if (angle_cumu > M_PI) {
-                angle_cumu -= 2 * M_PI;
-            } else if (angle_cumu < -M_PI) {
-                angle_cumu += 2 * M_PI;
+            if (angle_cumu > lagrange::internal::pi) {
+                angle_cumu -= 2 * lagrange::internal::pi;
+            } else if (angle_cumu < -lagrange::internal::pi) {
+                angle_cumu += 2 * lagrange::internal::pi;
             }
 
             geodesic_distance(one_ring_indices[i], 0) = (one_ring_vertices[i] - p).norm();
@@ -335,10 +338,12 @@ SingleSourceGeodesicResult GeodesicEngineDGPC<Scalar, Index>::single_source_geod
 
             const HighResScalar& tj = theta(vj, 0);
             const HighResScalar& tk = theta(vk, 0);
-            if (std::abs(tk - tj) > M_PI) {
+            if (std::abs(tk - tj) > lagrange::internal::pi) {
                 theta(vi, 0) = (1.0 - alpha) * tj + alpha * tk +
-                               ((tj < tk) ? (1.0 - alpha) : alpha) * 2 * M_PI;
-                if (theta(vi, 0) > M_PI) theta(vi, 0) -= 2 * M_PI;
+                               ((tj < tk) ? (1.0 - alpha) : alpha) * 2 * lagrange::internal::pi;
+                if (theta(vi, 0) > lagrange::internal::pi) {
+                    theta(vi, 0) -= 2 * lagrange::internal::pi;
+                }
             } else {
                 theta(vi, 0) = (1.0 - alpha) * tj + alpha * tk;
             }

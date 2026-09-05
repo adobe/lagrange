@@ -11,6 +11,10 @@
  */
 
 #include <lagrange/compute_mesh_covariance.h>
+#include <lagrange/utils/assert.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_reduce.h>
+#include <Eigen/Geometry>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMesh.h>

@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/create_mesh.h>
 
-#include <lagrange/Edge.h>
-#include <lagrange/common.h>
-#include <lagrange/compute_facet_area.h>
-#include <lagrange/utils/safe_cast.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/create_mesh.h>
+
+    #include <lagrange/Edge.h>
+    #include <lagrange/common.h>
+    #include <lagrange/compute_facet_area.h>
+    #include <lagrange/utils/safe_cast.h>
 
 namespace lagrange {
 
@@ -159,3 +161,5 @@ std::unique_ptr<TriangleMesh3D> create_sphere(double refine_order)
 }
 
 } // namespace lagrange
+
+#endif

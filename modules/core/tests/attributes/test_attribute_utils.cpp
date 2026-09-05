@@ -9,15 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <Eigen/Core>
 
-#include <lagrange/attributes/attribute_utils.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/utils/range.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <Eigen/Core>
 
-#include <catch2/catch_approx.hpp>
+    #include <lagrange/attributes/attribute_utils.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/utils/range.h>
+
+    #include <catch2/catch_approx.hpp>
 
 TEST_CASE("AttributeUtils", "[attribute][conversion]")
 {
@@ -277,3 +279,5 @@ TEST_CASE("AttributeConversions", "[attribute]")
         REQUIRE(uv2(i, 1) == vertices(i, 1));
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

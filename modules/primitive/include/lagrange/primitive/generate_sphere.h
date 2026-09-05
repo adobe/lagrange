@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/primitive/legacy/generate_sphere.h>
 #endif
+
+#include <lagrange/primitive/api.h>
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/internal/constants.h>
@@ -72,7 +74,7 @@ struct SphereOptions : public PrimitiveOptions
 ///       all parameters are within valid bounds before generation.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_sphere(SphereOptions setting);
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_sphere(SphereOptions setting);
 
 /// @}
 

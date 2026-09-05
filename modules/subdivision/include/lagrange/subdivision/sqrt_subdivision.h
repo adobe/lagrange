@@ -12,9 +12,11 @@
 
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/subdivision/legacy/sqrt_subdivision.h>
 #endif
+
+#include <lagrange/subdivision/api.h>
 
 #include <lagrange/SurfaceMesh.h>
 
@@ -40,7 +42,8 @@ namespace lagrange::subdivision {
 /// @return     Subdivided mesh.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> sqrt_subdivision(const SurfaceMesh<Scalar, Index>& mesh);
+LA_SUBDIVISION_API SurfaceMesh<Scalar, Index> sqrt_subdivision(
+    const SurfaceMesh<Scalar, Index>& mesh);
 
 /// @}
 

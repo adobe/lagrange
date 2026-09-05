@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/primitive/legacy/generate_octahedron.h>
 #endif
+
+#include <lagrange/primitive/api.h>
 
 #include <lagrange/primitive/PrimitiveOptions.h>
 
@@ -61,7 +63,7 @@ struct OctahedronOptions : public PrimitiveOptions
 ///       all parameters are within valid bounds before generation.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_octahedron(OctahedronOptions settings);
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_octahedron(OctahedronOptions settings);
 
 /// @}
 

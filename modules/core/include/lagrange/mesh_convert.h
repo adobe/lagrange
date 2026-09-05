@@ -11,8 +11,10 @@
  */
 #pragma once
 
-#include <lagrange/Mesh.h>
-#include <lagrange/SurfaceMesh.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/SurfaceMesh.h>
 
 namespace lagrange {
 ///
@@ -69,4 +71,6 @@ std::unique_ptr<MeshType> to_legacy_mesh(const SurfaceMesh<Scalar, Index>& mesh)
 /// @}
 } // namespace lagrange
 
-#include <lagrange/mesh_convert.impl.h>
+    #include <lagrange/mesh_convert.impl.h>
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

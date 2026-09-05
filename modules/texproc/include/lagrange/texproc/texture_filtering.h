@@ -53,6 +53,10 @@ struct FilteringOptions
 
     /// Clamp out-of-range texels to the given range (nullopt to disable).
     std::optional<std::pair<double, double>> clamp_to_range = std::nullopt;
+
+    /// Whether to run solver sanity checks. If unset, defaults to true in debug builds and false in
+    /// release builds.
+    std::optional<bool> sanity_check = std::nullopt;
 };
 
 ///
