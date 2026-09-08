@@ -9,19 +9,21 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <Eigen/Core>
 
-#include <lagrange/attributes/attribute_utils.h>
-#include <lagrange/attributes/condense_indexed_attribute.h>
-#include <lagrange/attributes/unify_index_buffer.h>
-#include <lagrange/common.h>
-#include <lagrange/compute_facet_area.h>
-#include <lagrange/compute_normal.h>
-#include <lagrange/compute_vertex_valence.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/internal/constants.h>
-#include <lagrange/mesh_cleanup/split_long_edges.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <Eigen/Core>
+
+    #include <lagrange/attributes/attribute_utils.h>
+    #include <lagrange/attributes/condense_indexed_attribute.h>
+    #include <lagrange/attributes/unify_index_buffer.h>
+    #include <lagrange/common.h>
+    #include <lagrange/compute_facet_area.h>
+    #include <lagrange/compute_normal.h>
+    #include <lagrange/compute_vertex_valence.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/internal/constants.h>
+    #include <lagrange/mesh_cleanup/split_long_edges.h>
 
 TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]" LA_SLOW_DEBUG_FLAG)
 {
@@ -212,3 +214,5 @@ TEST_CASE("UnifyIndexBuffer", "[attribute][unify][indexed]" LA_SLOW_DEBUG_FLAG)
             "valence")); // Although, valence is no longer accurate.
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

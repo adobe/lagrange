@@ -14,6 +14,7 @@
 #include <catch2/benchmark/catch_benchmark.hpp>
 
 #include <lagrange/Attribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_vertex_normal.h>
@@ -546,6 +547,37 @@ TEST_CASE(
 
     validate_submesh(mesh, result[0], "@sv", "@sf");
     validate_submesh(mesh, result[1], "@sv", "@sf");
+}
+
+TEST_CASE("separate_by_facet_groups: out-of-bound group index", "[core][utilities][separate]")
+{
+    auto mesh = lagrange::testing::create_test_cube<Scalar, Index>();
+    const Index num_facets = mesh.get_num_facets();
+
+    // Claim only 2 groups, but one facet is assigned to group index 2 (out of bound).
+    std::vector<Index> group_ids(num_facets, 0);
+    group_ids[0] = 2;
+
+    SECTION("span overload")
+    {
+        LA_REQUIRE_THROWS(
+            lagrange::separate_by_facet_groups(
+                mesh,
+                size_t{2},
+                lagrange::span<const Index>(group_ids),
+                lagrange::SeparateByFacetGroupsOptions{}));
+    }
+
+    SECTION("function_ref overload")
+    {
+        LA_REQUIRE_THROWS(
+            lagrange::separate_by_facet_groups(
+                mesh,
+                size_t{2},
+                lagrange::function_ref<Index(Index)>(
+                    [&](Index fi) -> Index { return group_ids[fi]; }),
+                lagrange::SeparateByFacetGroupsOptions{}));
+    }
 }
 
 TEST_CASE(

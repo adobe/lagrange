@@ -135,6 +135,27 @@ size_t compute_components(
     span<const Index> blocker_elements,
     ComponentOptions options)
 {
+    switch (options.connectivity_type) {
+    case ComponentOptions::ConnectivityType::Vertex: {
+        const auto num_vertices = mesh.get_num_vertices();
+        for (auto vi : blocker_elements) {
+            la_runtime_assert(
+                vi < num_vertices,
+                "blocker_vertices contains an out-of-bound vertex index");
+        }
+        break;
+    }
+    case ComponentOptions::ConnectivityType::Edge: {
+        mesh.initialize_edges();
+        const auto num_edges = mesh.get_num_edges();
+        for (auto ei : blocker_elements) {
+            la_runtime_assert(ei < num_edges, "blocker_edges contains an out-of-bound edge index");
+        }
+        break;
+    }
+    default: throw Error("Unsupported connectivity type");
+    }
+
     AttributeId id;
 
     if (mesh.has_attribute(options.output_attribute_name)) {

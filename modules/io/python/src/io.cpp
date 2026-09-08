@@ -78,6 +78,10 @@ void populate_io_module(nb::module_& m)
             &io::LoadOptions::load_object_ids,
             "Load object ids as facet attribute")
         .def_rw(
+            "load_lines",
+            &io::LoadOptions::load_lines,
+            "Load line elements (e.g. OBJ polylines) as 2-vertex facets")
+        .def_rw(
             "search_path",
             &io::LoadOptions::search_path,
             "Search path for related files, such as .mtl, .bin, or image textures. By default, "
@@ -197,7 +201,8 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
            bool load_images,
            bool stitch_vertices,
            bool quiet,
-           std::optional<fs::path> search_path) {
+           std::optional<fs::path> search_path,
+           bool load_lines) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
             opts.load_normals = load_normals;
@@ -211,6 +216,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             opts.stitch_vertices = stitch_vertices;
             opts.quiet = quiet;
             if (search_path.has_value()) opts.search_path = search_path.value();
+            opts.load_lines = load_lines;
             return io::load_mesh<MeshType>(filename, opts);
         },
         "filename"_a,
@@ -226,6 +232,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
         "quiet"_a = io::LoadOptions().quiet,
         "search_path"_a = nb::none(),
+        "load_lines"_a = io::LoadOptions().load_lines,
         R"(Load mesh from a file.
 
 :param filename:           The input file name.
@@ -241,6 +248,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
 :param quiet:              Whether to silence warnings during loading. Defaults to False.
 :param search_path:        Search path for external references (e.g. .mtl, .bin, etc.). Defaults to "".
+:param load_lines:         Whether to load line elements (e.g. OBJ polylines) as 2-vertex facets with a `line_id` facet attribute. Defaults to True.
 
 :return SurfaceMesh: The mesh object loaded from the file.)");
 
@@ -258,7 +266,8 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
            bool load_images,
            bool stitch_vertices,
            bool quiet,
-           std::optional<fs::path> search_path) {
+           std::optional<fs::path> search_path,
+           bool load_lines) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
             opts.load_normals = load_normals;
@@ -272,6 +281,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             opts.stitch_vertices = stitch_vertices;
             opts.quiet = quiet;
             if (search_path.has_value()) opts.search_path = search_path.value();
+            opts.load_lines = load_lines;
             return io::load_simple_scene<SimpleSceneType>(filename, opts);
         },
         "filename"_a,
@@ -287,6 +297,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
         "quiet"_a = io::LoadOptions().quiet,
         "search_path"_a = nb::none(),
+        "load_lines"_a = io::LoadOptions().load_lines,
         R"(Load a simple scene from file.
 
 :param filename:           The input file name.
@@ -302,6 +313,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
 :param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
 :param quiet:              Whether to silence warnings during loading. Defaults to False.
 :param search_path:        Search path for external references (e.g. .mtl, .bin, etc.). Defaults to "".
+:param load_lines:         Whether to load line elements (e.g. OBJ polylines) as 2-vertex facets with a `line_id` facet attribute. Defaults to True.
 
 :return SimpleScene: The scene object loaded from the file.)");
 
@@ -424,7 +436,8 @@ The binary string should use one of the supported formats. Supported formats inc
            bool load_images,
            bool stitch_vertices,
            bool quiet,
-           std::optional<fs::path> search_path) {
+           std::optional<fs::path> search_path,
+           bool load_lines) {
             io::LoadOptions opts;
             opts.triangulate = triangulate;
             opts.load_normals = load_normals;
@@ -438,6 +451,7 @@ The binary string should use one of the supported formats. Supported formats inc
             opts.stitch_vertices = stitch_vertices;
             opts.quiet = quiet;
             if (search_path.has_value()) opts.search_path = search_path.value();
+            opts.load_lines = load_lines;
             return io::load_scene<SceneType>(filename, opts);
         },
         "filename"_a,
@@ -453,6 +467,7 @@ The binary string should use one of the supported formats. Supported formats inc
         "stitch_vertices"_a = io::LoadOptions().stitch_vertices,
         "quiet"_a = io::LoadOptions().quiet,
         "search_path"_a = nb::none(),
+        "load_lines"_a = io::LoadOptions().load_lines,
         R"(Load a scene.
 
 :param filename:          The input file name.
@@ -468,6 +483,7 @@ The binary string should use one of the supported formats. Supported formats inc
 :param stitch_vertices:    Whether to stitch boundary vertices based on position. Defaults to False.
 :param quiet:              Whether to silence warnings during loading. Defaults to False.
 :param search_path:        Search path for external references (e.g. .mtl, .bin, etc.). Defaults to "".
+:param load_lines:         Whether to load line elements (e.g. OBJ polylines) as 2-vertex facets with a `line_id` facet attribute. Defaults to True.
 
 :return Scene: The loaded scene object.)");
 

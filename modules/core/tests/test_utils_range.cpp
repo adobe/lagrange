@@ -9,11 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/create_mesh.h>
+#include <lagrange/common.h>
+#include <lagrange/testing/common.h>
 #include <lagrange/utils/range.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/create_mesh.h>
+#endif
 
 using namespace lagrange;
 
@@ -26,7 +30,9 @@ TEST_CASE("range", "[range]")
     vertices << 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0;
     Triangles facets(2, 3);
     facets << 0, 1, 2, 2, 1, 3;
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     auto mesh = create_mesh(vertices, facets);
+#endif
 
     std::vector<int> active = {1};
 
@@ -72,6 +78,7 @@ TEST_CASE("range", "[range]")
         REQUIRE(sum == 1);
     }
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     SECTION("")
     {
         for (auto f : range(mesh->get_num_facets())) {
@@ -81,6 +88,7 @@ TEST_CASE("range", "[range]")
         REQUIRE(count == 2);
         REQUIRE(sum == 1); // 0 + 1
     }
+#endif
 
     SECTION("")
     {
@@ -102,6 +110,7 @@ TEST_CASE("range", "[range]")
         REQUIRE(sum == 1);
     }
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     SECTION("")
     {
         for (auto v : range(mesh->get_num_vertices())) {
@@ -111,6 +120,7 @@ TEST_CASE("range", "[range]")
         REQUIRE(count == 4);
         REQUIRE(sum == 6);
     }
+#endif
 
     SECTION("")
     {

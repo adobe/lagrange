@@ -25,6 +25,7 @@
 #include <lagrange/map_attribute.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/range.h>
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
 
@@ -37,6 +38,8 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <lagrange/testing/require_approx.h>
+
+#include <Eigen/Geometry>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     #include <lagrange/mesh_convert.h>
@@ -91,6 +94,7 @@ auto indexed_tangent_bitangent(
         lagrange::matrix_view<Index>(bitangent.indices()));
 }
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 template <typename MeshType, typename DerivedT, typename DerivedB>
 auto corner_tangent_bitangent_legacy(
     MeshType& mesh,
@@ -135,6 +139,7 @@ auto indexed_tangent_bitangent_legacy(
     mesh.remove_indexed_attribute("tangent");
     mesh.remove_indexed_attribute("bitangent");
 }
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
 } // namespace
 

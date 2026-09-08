@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Please use lagrange::unify_index_buffer instead.
     #include <lagrange/legacy/attributes/unify_index_buffer.h>
 #endif

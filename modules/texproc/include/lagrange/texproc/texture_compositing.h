@@ -25,6 +25,23 @@ namespace lagrange::texproc {
 /// @{
 
 ///
+/// How per-view gradient contributions are normalized when assembling the edge-difference target.
+///
+enum class GradientNormalization {
+    /// Per-edge weighted average of per-view gradients:
+    ///     edge_target = sum_i(grad_i * w_i(n1) * w_i(n2)) / sum_i(w_i(n1) * w_i(n2))
+    /// Matches the ShapeGradientDomain reference. Produces gradient targets bounded by the range
+    /// of per-view gradients (no overshoot from the gradient term alone).
+    PerEdge,
+
+    /// Per-texel normalization with geometric-mean combination (legacy behavior):
+    ///     edge_target = sum_i(grad_i * sqrt(w_i(n1)/Σw(n1) * w_i(n2)/Σw(n2)))
+    /// The gradient weights do not sum to 1 per edge at view boundaries, which attenuates
+    /// gradient targets in transition regions.
+    PerTexelSqrt,
+};
+
+///
 /// Options for texture compositing.
 ///
 struct CompositingOptions
@@ -41,22 +58,39 @@ struct CompositingOptions
     /// Clamp out-of-range texels to the given range (nullopt to disable).
     std::optional<std::pair<double, double>> clamp_to_range = std::nullopt;
 
-    /// Whether to smooth pixels with a low total weight (< 1). When enabled, this will not dampen
-    /// the gradient terms for pixels with a low total weight, resulting in a smoother texture in
-    /// low-confidence areas.
+    /// How per-view gradient contributions are normalized into the edge-difference target.
+    GradientNormalization gradient_normalization = GradientNormalization::PerTexelSqrt;
+
+    /// Use a direct (LDLT) solver instead of the multigrid v-cycle.
+    /// The direct solver is exact, but uses more memory.
+    /// The multigrid solver is approximate, uses less memory and runs faster.
+    bool use_direct_solver = false;
+
+    /// Weight for combinatorial Laplacian regularization added to the stiffness matrix.
+    /// Helps stabilize the system in poorly conditioned regions.
+    /// Set to 0 to disable.
+    double stiffness_regularization_weight = 1e-9;
+
+    /// When using GradientNormalization::PerTexelSqrt, whether to smooth pixels with a low total
+    /// weight (< 1). When enabled, this will dampen the gradient terms for pixels with a low
+    /// total weight, resulting in a smoother texture in low-confidence areas.
     bool smooth_low_weight_areas = false;
 
-    /// Multigrid solver options.
+    /// Whether to run solver sanity checks. If unset, defaults to true in debug builds and false in
+    /// release builds.
+    std::optional<bool> sanity_check = std::nullopt;
+
+    /// Multigrid solver options (ignored when use_direct_solver is true).
     struct SolverOptions
     {
         /// Number of multigrid levels.
         unsigned int num_multigrid_levels = 4;
 
         /// Number of Gauss-Seidel iterations per multigrid level.
-        unsigned int num_gauss_seidel_iterations = 3;
+        unsigned int num_gauss_seidel_iterations = 2;
 
         /// Number of V-cycles to perform.
-        unsigned int num_v_cycles = 5;
+        unsigned int num_v_cycles = 4;
     } solver;
 };
 

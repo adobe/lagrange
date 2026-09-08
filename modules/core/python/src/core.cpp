@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/extract_boundary_loops.h>
 #include "bind_attribute.h"
 #include "bind_camera_transforms.h"
 #include "bind_enum.h"

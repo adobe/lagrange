@@ -11,13 +11,16 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/legacy/compute_dijkstra_distance.h>
 #endif
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/utils/SmallVector.h>
+#include <lagrange/utils/invalid.h>
 #include <optional>
+#include <string_view>
+#include <vector>
 
 namespace lagrange {
 ///

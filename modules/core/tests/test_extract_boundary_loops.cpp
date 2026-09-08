@@ -9,10 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/create_mesh.h>
 #include <lagrange/extract_boundary_loops.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/testing/common.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/create_mesh.h>
+#endif
 
 #include <Eigen/Core>
 #include <catch2/benchmark/catch_benchmark.hpp>

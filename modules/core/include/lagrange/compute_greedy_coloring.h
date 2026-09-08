@@ -24,7 +24,7 @@ namespace lagrange {
 /// @{
 
 ///
-/// Option struct for computing dihedral angles.
+/// Option struct for computing greedy coloring.
 ///
 struct GreedyColoringOptions
 {
@@ -34,7 +34,7 @@ struct GreedyColoringOptions
     /// Element type to be colored. Can be either Vertex or Facet.
     AttributeElement element_type = AttributeElement::Facet;
 
-    /// Minimum number of colors to use. The algorithm will cycle through them but may use more.
+    /// Initial color palette size. The algorithm allocates more colors when neighbors exhaust the palette, and may use fewer.
     size_t num_color_used = 8;
 };
 

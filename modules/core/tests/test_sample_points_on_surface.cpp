@@ -9,14 +9,16 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/io/save_mesh.h>
-#include <lagrange/sample_points_on_surface.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/io/save_mesh.h>
+    #include <lagrange/sample_points_on_surface.h>
 
 TEST_CASE("SamplePointsOnSurface", "[sample_points_on_surface][triangle_mesh]" LA_SLOW_DEBUG_FLAG)
 {
@@ -344,3 +346,5 @@ TEST_CASE("SamplePointsOnSurface", "[sample_points_on_surface][triangle_mesh]" L
 
     // Final todo: check agains SampleViaGrid
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

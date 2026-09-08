@@ -9,7 +9,13 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
+lagrange_include_module(geodesic COMPONENTS geometrycentral)
 lagrange_add_test()
 
 lagrange_include_modules(primitive)
-target_link_libraries(test_lagrange_geodesic PRIVATE lagrange::primitive)
+target_link_libraries(
+    test_lagrange_geodesic
+    PRIVATE
+        lagrange::geodesic::geometrycentral
+        lagrange::primitive
+)

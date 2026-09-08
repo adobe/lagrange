@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/mesh_cleanup/remove_topologically_degenerate_triangles.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/mesh_cleanup/remove_topologically_degenerate_triangles.h>
 
 TEST_CASE("RemoveTopologicallyDegenerateTriangles", "[degenerate][triangle_mesh][cleanup]")
 {
@@ -79,3 +81,5 @@ TEST_CASE("RemoveTopologicallyDegenerateTriangles", "[degenerate][triangle_mesh]
         REQUIRE(attr(0, 0) == 1);
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

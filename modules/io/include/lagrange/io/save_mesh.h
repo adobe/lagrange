@@ -15,9 +15,11 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/io/legacy/save_mesh.h>
 #endif
+
+#include <lagrange/io/api.h>
 
 #include <iosfwd>
 
@@ -32,7 +34,7 @@ namespace lagrange::io {
  * @param[in] options        Extra options related to saving.
  */
 template <typename Scalar, typename Index>
-void save_mesh(
+LA_IO_API void save_mesh(
     std::ostream& output_stream,
     const SurfaceMesh<Scalar, Index>& mesh,
     FileFormat format,
@@ -46,7 +48,7 @@ void save_mesh(
  * @param[in] options   Extra options related to saving.
  */
 template <typename Scalar, typename Index>
-void save_mesh(
+LA_IO_API void save_mesh(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});

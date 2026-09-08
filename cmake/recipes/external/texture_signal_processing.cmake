@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME texture_signal_processing
     GITHUB_REPOSITORY jdumas/TextureSignalProcessing
-    GIT_TAG 4689f674deadde94511b6f4c00b6dedf3790527e # adobe/lagrange branch
+    GIT_TAG 72de1412d5a579f83407eac86dd428a7032d4e34 # adobe/lagrange branch
 )
 
 add_library(texture_signal_processing::texture_signal_processing INTERFACE IMPORTED GLOBAL)

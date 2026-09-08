@@ -33,7 +33,7 @@ namespace lagrange {
 /// #include <lagrange/Logger.h>
 ///
 /// lagrange::logger().info("This is a message");
-/// lagrange::logger().warning("Invalid value for x: {}", x);
+/// lagrange::logger().warn("Invalid value for x: {}", x);
 ///
 /// // set logger verbosity
 /// lagrange::logger().set_level(spdlog::level::debug);

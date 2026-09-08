@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
@@ -31,7 +33,7 @@ namespace lagrange::io {
  * @return               Loaded mesh.
  */
 template <typename MeshType>
-MeshType load_mesh_fbx(std::istream& input_stream, const LoadOptions& options = {});
+LA_IO_API MeshType load_mesh_fbx(std::istream& input_stream, const LoadOptions& options = {});
 
 /**
  * Loads a mesh from a file in fbx format. If the scene contains multiple meshes, they will
@@ -45,6 +47,6 @@ MeshType load_mesh_fbx(std::istream& input_stream, const LoadOptions& options = 
  * @return     Loaded mesh.
  */
 template <typename MeshType>
-MeshType load_mesh_fbx(const fs::path& filename, const LoadOptions& options = {});
+LA_IO_API MeshType load_mesh_fbx(const fs::path& filename, const LoadOptions& options = {});
 
 } // namespace lagrange::io

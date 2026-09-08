@@ -12,6 +12,7 @@
 #include <lagrange/testing/common.h>
 #include <catch2/benchmark/catch_benchmark.hpp>
 
+#include <lagrange/Attribute.h>
 #include <lagrange/mesh_cleanup/detect_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/remove_degenerate_facets.h>
 #include <lagrange/mesh_convert.h>

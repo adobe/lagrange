@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/Logger.h>
 #include <lagrange/volume/mesh_to_volume.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
@@ -180,15 +181,13 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh_, const MeshToVolumeO
 
             // Use winding number to sign the distance field
             logger().debug("Computing distance field with winding number signing");
-            const float exterior_bandwidth = 3.0f;
-            const float interior_bandwidth = 3.0f;
             openvdb::util::NullInterrupter null_interrupter;
             grid = openvdb::tools::meshToVolume<Grid<GridScalar>, MeshAdapterType>(
                 null_interrupter,
                 adapter,
                 *transform,
-                exterior_bandwidth,
-                interior_bandwidth,
+                options.exterior_bandwidth,
+                options.interior_bandwidth,
                 0 /* flags */,
                 nullptr /* polygonIndexGrid */,
                 [transform, &engine](openvdb::Coord ijk) {
@@ -202,18 +201,18 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh_, const MeshToVolumeO
                 openvdb::tools::EVAL_EVERY_VOXEL);
         } else if (options.signing_method == MeshToVolumeOptions::Sign::Unsigned) {
             // Compute unsigned distance field
-            const float exterior_bandwidth = 3.0f;
-            const float interior_bandwidth = 3.0f;
             grid = openvdb::tools::meshToVolume<Grid<GridScalar>, MeshAdapterType>(
                 adapter,
                 *transform,
-                exterior_bandwidth,
-                interior_bandwidth,
+                options.exterior_bandwidth,
+                options.interior_bandwidth,
                 openvdb::tools::UNSIGNED_DISTANCE_FIELD);
         } else {
             grid = openvdb::tools::meshToVolume<Grid<GridScalar>, MeshAdapterType>(
                 adapter,
-                *transform);
+                *transform,
+                options.exterior_bandwidth,
+                options.interior_bandwidth);
         }
     } catch (const openvdb::ArithmeticError&) {
         logger().error("Voxel size too small: {}", voxel_size);

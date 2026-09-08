@@ -10,12 +10,14 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/mesh_cleanup/remove_topologically_degenerate_facets.h>
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
+#include <numeric>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>

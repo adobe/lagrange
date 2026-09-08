@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/mesh_cleanup/detect_degenerate_triangles.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/mesh_cleanup/detect_degenerate_triangles.h>
 
 TEST_CASE("DetectDegenerateTrianglesTest", "[degenerate][triangle_mesh]")
 {
@@ -61,3 +63,5 @@ TEST_CASE("DetectDegenerateTrianglesTest", "[degenerate][triangle_mesh]")
         REQUIRE(is_degenerate(2, 0) == 1.0);
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

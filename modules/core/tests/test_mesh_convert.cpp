@@ -9,18 +9,20 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/utils/warning.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/utils/warning.h>
 
 // Include early so we can explicitly silence warnings from Eigen.
 // Note: This warning only shows up with GCC 13 when ASan is enabled, even though we include Eigen
 // headers via -isystem. It seems that with GCC 14+ -isystem also silences -Wmaybe-uninitialized.
 LA_IGNORE_MAYBE_UNINITIALIZED_START
-#include <Eigen/Geometry>
+    #include <Eigen/Geometry>
 LA_IGNORE_MAYBE_UNINITIALIZED_END
 
-#include <lagrange/attributes/rename_attribute.h>
-#include <lagrange/common.h>
-#include <lagrange/mesh_convert.h>
+    #include <lagrange/attributes/rename_attribute.h>
+    #include <lagrange/common.h>
+    #include <lagrange/mesh_convert.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -28,8 +30,8 @@ LA_IGNORE_MAYBE_UNINITIALIZED_END
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-#include <random>
-#include <regex>
+    #include <random>
+    #include <regex>
 
 // clang-format off
 #define LA_LEGACY_MESH_X(mode, data) \
@@ -748,20 +750,20 @@ void test_edge_sort(const std::vector<std::array<int, 2>>& edges)
 
 TEST_CASE("mesh_convert: to_surface_mesh", "[core][mesh_convert]")
 {
-#define LA_X_to_surface_mesh(MeshType, Scalar, Index)      \
-    test_to_surface_mesh<Scalar, Index, MeshType>();       \
-    test_to_surface_mesh_empty<Scalar, Index, MeshType>(); \
-    test_to_surface_duplicate<Scalar, Index, MeshType>();
-#define LA_X_to_surface_mesh_aux(_, MeshType) LA_SURFACE_MESH_X(to_surface_mesh, MeshType)
+    #define LA_X_to_surface_mesh(MeshType, Scalar, Index)      \
+        test_to_surface_mesh<Scalar, Index, MeshType>();       \
+        test_to_surface_mesh_empty<Scalar, Index, MeshType>(); \
+        test_to_surface_duplicate<Scalar, Index, MeshType>();
+    #define LA_X_to_surface_mesh_aux(_, MeshType) LA_SURFACE_MESH_X(to_surface_mesh, MeshType)
     LA_LEGACY_MESH_X(to_surface_mesh_aux, 0)
 }
 
 TEST_CASE("mesh_convert: from_surface_mesh", "[core][mesh_convert]")
 {
-#define LA_X_from_surface_mesh(MeshType, Scalar, Index) \
-    test_from_surface_mesh<Scalar, Index, MeshType>();  \
-    test_from_surface_mesh_empty<Scalar, Index, MeshType>();
-#define LA_X_from_surface_mesh_aux(_, MeshType) LA_SURFACE_MESH_X(from_surface_mesh, MeshType)
+    #define LA_X_from_surface_mesh(MeshType, Scalar, Index) \
+        test_from_surface_mesh<Scalar, Index, MeshType>();  \
+        test_from_surface_mesh_empty<Scalar, Index, MeshType>();
+    #define LA_X_from_surface_mesh_aux(_, MeshType) LA_SURFACE_MESH_X(from_surface_mesh, MeshType)
     LA_LEGACY_MESH_X(from_surface_mesh_aux, 0)
 }
 
@@ -785,3 +787,5 @@ TEST_CASE("mesh_convert: fast_edge_sort", "[core][mesh_convert]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

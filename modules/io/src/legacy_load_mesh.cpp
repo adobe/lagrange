@@ -9,8 +9,10 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/io/api.h>
-#include <lagrange/io/legacy/load_mesh.impl.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/io/api.h>
+    #include <lagrange/io/legacy/load_mesh.impl.h>
 
 namespace lagrange::io {
 LAGRANGE_LEGACY_INLINE
@@ -33,3 +35,5 @@ template LA_IO_API std::unique_ptr<Mesh<Eigen::MatrixXf, Eigen::MatrixXi>> load_
 
 } // namespace legacy
 } // namespace lagrange::io
+
+#endif

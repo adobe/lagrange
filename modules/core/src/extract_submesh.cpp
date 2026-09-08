@@ -15,7 +15,10 @@
 #include <lagrange/extract_submesh.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/map_attributes.h>
+#include <lagrange/utils/assert.h>
+#include <lagrange/utils/invalid.h>
 #include <lagrange/views.h>
+#include <string_view>
 
 #include <algorithm>
 #include <vector>
@@ -29,6 +32,14 @@ SurfaceMesh<Scalar, Index> extract_submesh(
     const SubmeshOptions& options)
 {
     SurfaceMesh<Scalar, Index> output_mesh(mesh.get_dimension());
+
+    const Index num_facets = mesh.get_num_facets();
+    la_runtime_assert(
+        std::all_of(
+            selected_facets.begin(),
+            selected_facets.end(),
+            [num_facets](Index fid) { return fid < num_facets; }),
+        "extract_submesh: facet index out of bound");
 
     // Compute vertex mapping.
     const auto num_vertices = mesh.get_num_vertices();

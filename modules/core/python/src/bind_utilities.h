@@ -32,6 +32,7 @@
 #include <lagrange/compute_uv_charts.h>
 #include <lagrange/compute_uv_distortion.h>
 #include <lagrange/compute_uv_orientation.h>
+#include <lagrange/compute_uv_tile_list.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/compute_vertex_valence.h>
 #include <lagrange/disconnect_uv_charts.h>
@@ -41,6 +42,7 @@
 #include <lagrange/internal/constants.h>
 #include <lagrange/isoline.h>
 #include <lagrange/map_attribute.h>
+#include <lagrange/mesh_bbox.h>
 #include <lagrange/normalize_meshes.h>
 #include <lagrange/orient_outward.h>
 #include <lagrange/orientation.h>
@@ -386,7 +388,7 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
 
 :param mesh: Input mesh.
 :param element_type: Element type to be colored. Can be either Vertex or Facet.
-:param num_color_used: Minimum number of colors to use. The algorithm will cycle through them but may use more.
+:param num_color_used: Initial color palette size. The algorithm allocates more colors when neighbors exhaust the palette, and may use fewer.
 :param output_attribute_name: Output attribute name.
 
 :returns: Color attribute id.)");
@@ -772,7 +774,7 @@ argument. Each component id is in [0, num_components-1] range.
         "mesh"_a,
         "output_attribute_name"_a = nb::none(),
         "induced_by_attribute"_a = nb::none(),
-        R"(Compute vertex valence);
+        R"(Compute vertex valence.
 
 :param mesh: The input mesh.
 :param output_attribute_name: The name of the output attribute.
@@ -1361,6 +1363,7 @@ Basel: Birkhäuser Basel, 2008. 175-188.
 :param facet_group_indices:     The group index for each facet. Each group index must be in the range of [0, max(facet_group_indices)]
 :param source_vertex_attr_name: The optional attribute name to track source vertices.
 :param source_facet_attr_name:  The optional attribute name to track source facets.
+:param map_attributes:          Map attributes from the source to target meshes.
 
 :returns: A list of meshes, one for each facet group.
 )");
@@ -2402,6 +2405,40 @@ and k is the number of materials. The value at row i and column j indicates the 
 i belonging to material j. The function will insert boundaries between different materials based on
 the material attribute.
 )");
+
+    m.def(
+        "mesh_bbox",
+        [](MeshType& mesh) -> std::tuple<Eigen::VectorX<Scalar>, Eigen::VectorX<Scalar>> {
+            const Index dim = mesh.get_dimension();
+            if (dim == 2) {
+                auto box = mesh_bbox<2, Scalar, Index>(mesh);
+                return {Eigen::VectorX<Scalar>(box.min()), Eigen::VectorX<Scalar>(box.max())};
+            } else if (dim == 3) {
+                auto box = mesh_bbox<3, Scalar, Index>(mesh);
+                return {Eigen::VectorX<Scalar>(box.min()), Eigen::VectorX<Scalar>(box.max())};
+            }
+            throw nb::value_error("mesh_bbox only supports 2D or 3D meshes.");
+        },
+        "mesh"_a,
+        R"(Compute the axis-aligned bounding box of a mesh.
+
+:param mesh: Input mesh (must be 2D or 3D).
+
+:returns: A tuple ``(min, max)`` of corner coordinates. For a mesh with no vertices, an empty box is returned, where ``min`` is component-wise greater than ``max``.)");
+
+    m.def(
+        "compute_uv_tile_list",
+        &compute_uv_tile_list<Scalar, Index>,
+        "mesh"_a,
+        R"(Extract the list of all UV tiles that a mesh's parametrization spans.
+
+UV tiles are understood to be a regular unit grid in UV space. Tiles are unioned across
+every attribute marked with UV usage (both indexed and per-vertex), adding an entry for
+each distinct integer ``(floor(u), floor(v))`` pair found.
+
+:param mesh: Input mesh to be analyzed.
+
+:returns: A list of integer ``(u, v)`` coordinate pairs, one per UV tile.)");
 }
 
 } // namespace lagrange::python

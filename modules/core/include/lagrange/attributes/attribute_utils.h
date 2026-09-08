@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Please use lagrange::map_attribute instead.
     #include <lagrange/legacy/attributes/attribute_utils.h>
 #endif

@@ -39,6 +39,7 @@ struct MapAttributesOptions
 /// in `options` define the behavior when multiple source vertices are mapped to the same target
 /// vertex.
 ///
+/// @tparam element             The attribute element type to map.
 /// @tparam Scalar              The scalar type.
 /// @tparam Index               The index type.
 ///
@@ -46,8 +47,8 @@ struct MapAttributesOptions
 /// @param target_mesh          The target mesh.
 /// @param mapping_data         A flat array of source element indices.
 /// @param mapping_offsets      The offset index array into the `mapping_data`. Source element with
-///                             index listed from `mapping_data[mapping_offset[i]]` to
-///                             `mapping_data[mapping_offset[i+1]]` are mapped to target element `i`.
+///                             index listed from `mapping_data[mapping_offsets[i]]` to
+///                             `mapping_data[mapping_offsets[i+1]]` are mapped to target element `i`.
 ///                             If empty, source element with index `mapping_data[i]` is mapped to
 ///                             target element `i`.
 /// @param options              Option settings.

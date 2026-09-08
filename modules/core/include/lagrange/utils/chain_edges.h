@@ -83,7 +83,7 @@ struct ChainEdgesResult
 /// Both loops and chains are stored as an array of edges indices if `options.output_edge_index` is
 /// true, otherwise, they are an array of vertex indices.
 ///
-/// If `options.output_edge_vertex` is false and `options.close_loop_with_identical_vertices` is
+/// If `options.output_edge_index` is false and `options.close_loop_with_identical_vertices` is
 /// true, the first and last vertices of a loop is identical.
 ///
 /// @see @ref chain_undirected_edges
@@ -109,7 +109,7 @@ ChainEdgesResult<Index> chain_directed_edges(
 /// Both loops and chains are stored as an array of edges indices if `options.output_edge_index` is
 /// true, otherwise, they are an array of vertex indices.
 ///
-/// If `options.output_edge_vertex` is false and `options.close_loop_with_identical_vertices` is
+/// If `options.output_edge_index` is false and `options.close_loop_with_identical_vertices` is
 /// true, the first and last vertices of a loop is identical.
 ///
 /// @see @ref chain_directed_edges

@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 #include <lagrange/scene/SimpleScene.h>
@@ -28,7 +30,8 @@ namespace lagrange::io {
  * @return  scene
  */
 template <typename SceneType>
-SceneType load_simple_scene_gltf(std::istream& input_stream, const LoadOptions& options = {});
+LA_IO_API SceneType
+load_simple_scene_gltf(std::istream& input_stream, const LoadOptions& options = {});
 
 /**
  * Load a simple scene with gltf.
@@ -39,6 +42,7 @@ SceneType load_simple_scene_gltf(std::istream& input_stream, const LoadOptions& 
  * @return  scene
  */
 template <typename SceneType>
-SceneType load_simple_scene_gltf(const fs::path& filename, const LoadOptions& options = {});
+LA_IO_API SceneType
+load_simple_scene_gltf(const fs::path& filename, const LoadOptions& options = {});
 
 } // namespace lagrange::io

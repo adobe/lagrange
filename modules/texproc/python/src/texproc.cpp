@@ -56,7 +56,8 @@ void populate_texproc_module(nb::module_& m)
            unsigned int quadrature_samples,
            double jitter_epsilon,
            double stiffness_regularization_weight,
-           std::optional<std::pair<double, double>> clamp_to_range) {
+           std::optional<std::pair<double, double>> clamp_to_range,
+           std::optional<bool> sanity_check) {
             auto image = image::experimental::create_image<float>(
                 image_.shape(0),
                 image_.shape(1),
@@ -71,6 +72,7 @@ void populate_texproc_module(nb::module_& m)
             options.jitter_epsilon = jitter_epsilon;
             options.stiffness_regularization_weight = stiffness_regularization_weight;
             options.clamp_to_range = clamp_to_range;
+            options.sanity_check = sanity_check;
 
             tp::texture_filtering(mesh, image.to_mdspan(), options);
 
@@ -86,6 +88,7 @@ void populate_texproc_module(nb::module_& m)
         "stiffness_regularization_weight"_a =
             tp::FilteringOptions().stiffness_regularization_weight,
         "clamp_to_range"_a = tp::FilteringOptions().clamp_to_range,
+        "sanity_check"_a = tp::FilteringOptions().sanity_check,
         R"("Smooth or sharpen a texture image associated with a mesh.
 
 :param mesh: Input mesh with UV attributes.
@@ -97,6 +100,7 @@ void populate_texproc_module(nb::module_& m)
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
 :param stiffness_regularization_weight: Regularize the stiffness matrix using a combinatorial Laplacian energy.
 :param clamp_to_range: Clamp out-of-range texels to the given range (disabled by default).
+:param sanity_check: Whether to run solver sanity checks. If unset, defaults to true in debug builds and false in release builds.
 
 :return: The filtered texture image.)");
 
@@ -108,7 +112,8 @@ void populate_texproc_module(nb::module_& m)
            unsigned int quadrature_samples,
            double jitter_epsilon,
            double stiffness_regularization_weight,
-           std::optional<std::pair<double, double>> clamp_to_range) {
+           std::optional<std::pair<double, double>> clamp_to_range,
+           std::optional<bool> sanity_check) {
             auto image = image::experimental::create_image<float>(
                 image_.shape(0),
                 image_.shape(1),
@@ -121,6 +126,7 @@ void populate_texproc_module(nb::module_& m)
             options.jitter_epsilon = jitter_epsilon;
             options.stiffness_regularization_weight = stiffness_regularization_weight;
             options.clamp_to_range = clamp_to_range;
+            options.sanity_check = sanity_check;
 
             tp::texture_stitching(mesh, image.to_mdspan(), options);
 
@@ -134,6 +140,7 @@ void populate_texproc_module(nb::module_& m)
         "stiffness_regularization_weight"_a =
             tp::StitchingOptions().stiffness_regularization_weight,
         "clamp_to_range"_a = tp::StitchingOptions().clamp_to_range,
+        "sanity_check"_a = tp::StitchingOptions().sanity_check,
         R"(Smooth or sharpen a texture image associated with a mesh.
 
 :param mesh: Input mesh with UV attributes.
@@ -143,6 +150,7 @@ void populate_texproc_module(nb::module_& m)
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
 :param stiffness_regularization_weight: Regularize the stiffness matrix using a combinatorial Laplacian energy.
 :param clamp_to_range: Clamp out-of-range texels to the given range (disabled by default).
+:param sanity_check: Whether to run solver sanity checks. If unset, defaults to true in debug builds and false in release builds.
 
 :return: The stitched texture image.)");
 
@@ -208,6 +216,24 @@ void populate_texproc_module(nb::module_& m)
 
 :return: The dilated position map.)");
 
+    nb::enum_<tp::GradientNormalization>(
+        m,
+        "GradientNormalization",
+        "How per-view gradient contributions are normalized "
+        "when assembling the edge-difference target.")
+        .value(
+            "PerEdge",
+            tp::GradientNormalization::PerEdge,
+            "Per-edge weighted average of per-view gradients, matching the ShapeGradientDomain "
+            "reference. Produces gradient targets bounded by the range of per-view gradients.")
+        .value(
+            "PerTexelSqrt",
+            tp::GradientNormalization::PerTexelSqrt,
+            "Per-texel normalization with geometric-mean combination (legacy behavior). Gradient "
+            "weights do not sum to 1 per edge at view boundaries, attenuating gradient targets "
+            "in transition regions.")
+        .export_values();
+
     m.def(
         "texture_compositing",
         [](const SurfaceMesh<Scalar, Index>& mesh,
@@ -217,10 +243,14 @@ void populate_texproc_module(nb::module_& m)
            unsigned int quadrature_samples,
            double jitter_epsilon,
            std::optional<std::pair<double, double>> clamp_to_range,
+           tp::GradientNormalization gradient_normalization,
+           bool use_direct_solver,
+           double stiffness_regularization_weight,
            bool smooth_low_weight_areas,
            unsigned int num_multigrid_levels,
            unsigned int num_gauss_seidel_iterations,
-           unsigned int num_v_cycles) {
+           unsigned int num_v_cycles,
+           std::optional<bool> sanity_check) {
             la_runtime_assert(
                 textures.size() == weights.size(),
                 "Number of colors and weights images must be the same.");
@@ -241,10 +271,14 @@ void populate_texproc_module(nb::module_& m)
             options.quadrature_samples = quadrature_samples;
             options.jitter_epsilon = jitter_epsilon;
             options.clamp_to_range = clamp_to_range;
+            options.gradient_normalization = gradient_normalization;
+            options.use_direct_solver = use_direct_solver;
+            options.stiffness_regularization_weight = stiffness_regularization_weight;
             options.smooth_low_weight_areas = smooth_low_weight_areas;
             options.solver.num_multigrid_levels = num_multigrid_levels;
             options.solver.num_gauss_seidel_iterations = num_gauss_seidel_iterations;
             options.solver.num_v_cycles = num_v_cycles;
+            options.sanity_check = sanity_check;
 
             auto image = tp::texture_compositing(mesh, weighted_textures, options);
 
@@ -253,15 +287,21 @@ void populate_texproc_module(nb::module_& m)
         "mesh"_a,
         "colors"_a,
         "weights"_a,
+        nb::kw_only(),
         "value_weight"_a = tp::CompositingOptions().value_weight,
         "quadrature_samples"_a = tp::CompositingOptions().quadrature_samples,
         "jitter_epsilon"_a = tp::CompositingOptions().jitter_epsilon,
         "clamp_to_range"_a = tp::CompositingOptions().clamp_to_range,
+        "gradient_normalization"_a = tp::CompositingOptions().gradient_normalization,
+        "use_direct_solver"_a = tp::CompositingOptions().use_direct_solver,
+        "stiffness_regularization_weight"_a =
+            tp::CompositingOptions().stiffness_regularization_weight,
         "smooth_low_weight_areas"_a = tp::CompositingOptions().smooth_low_weight_areas,
         "num_multigrid_levels"_a = tp::CompositingOptions().solver.num_multigrid_levels,
         "num_gauss_seidel_iterations"_a =
             tp::CompositingOptions().solver.num_gauss_seidel_iterations,
         "num_v_cycles"_a = tp::CompositingOptions().solver.num_v_cycles,
+        "sanity_check"_a = tp::CompositingOptions().sanity_check,
         R"(Composite multiple (color, weight) into a single texture given a unwrapped mesh.
 
 :param mesh: Input mesh with UV attributes.
@@ -271,10 +311,14 @@ void populate_texproc_module(nb::module_& m)
 :param quadrature_samples: The number of quadrature samples to use for integration (in {1, 3, 6, 12, 24, 32}).
 :param jitter_epsilon: Jitter amount per texel (0 to deactivate).
 :param clamp_to_range: Clamp out-of-range texels to the given range (disabled by default).
-:param smooth_low_weight_areas: Whether to smooth pixels with a low total weight (< 1). When enabled, this will not dampen the gradient terms for pixels with a low total weight, resulting in a smoother texture in low-confidence areas.
-:param num_multigrid_levels: Number of multigrid levels.
-:param num_gauss_seidel_iterations: Number of Gauss-Seidel iterations per multigrid level.
-:param num_v_cycles: Number of V-cycles to perform.
+:param gradient_normalization: How per-view gradient contributions are normalized into the edge-difference target.
+:param use_direct_solver: Use a direct (LDLT) solver instead of the multigrid v-cycle. Exact and supports Laplacian regularization for better conditioning, but uses more memory.
+:param stiffness_regularization_weight: Weight for combinatorial Laplacian regularization added to the stiffness matrix, to help stabilize the system in poorly conditioned regions. Set to 0 to disable.
+:param smooth_low_weight_areas: When gradient_normalization is PerTexelSqrt, whether to smooth pixels with a low total weight (< 1). When enabled, this will dampen the gradient terms for pixels with a low total weight, resulting in a smoother texture in low-confidence areas.
+:param num_multigrid_levels: Number of multigrid levels (ignored when use_direct_solver is true).
+:param num_gauss_seidel_iterations: Number of Gauss-Seidel iterations per multigrid level. Must be even (ignored when use_direct_solver is true).
+:param num_v_cycles: Number of V-cycles to perform (ignored when use_direct_solver is true).
+:param sanity_check: Whether to run solver sanity checks. If unset, defaults to true in debug builds and false in release builds.
 
 :return: The composited texture image.)");
 

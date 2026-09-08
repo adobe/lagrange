@@ -13,7 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/mesh_cleanup/legacy/remove_isolated_vertices.h>
 #endif
 

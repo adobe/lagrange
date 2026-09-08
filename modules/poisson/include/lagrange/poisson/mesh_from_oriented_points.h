@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/poisson/CommonOptions.h>
+#include <lagrange/poisson/api.h>
 
 #include <string_view>
 
@@ -61,7 +62,7 @@ struct ReconstructionOptions : public CommonOptions
 /// @return     Reconstructed triangle mesh.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
+LA_POISSON_API SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     const SurfaceMesh<Scalar, Index>& points,
     const ReconstructionOptions& options = {});
 

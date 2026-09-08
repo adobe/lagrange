@@ -19,8 +19,10 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
-#include <lagrange/io/legacy/load_mesh.h>
 #include <lagrange/io/load_mesh.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/io/legacy/load_mesh.h>
+#endif
 #include <lagrange/testing/api.h>
 #include <lagrange/utils/assert.h>
 
@@ -137,6 +139,7 @@ LA_TESTING_API fs::path get_test_output_path(const fs::path& relative_path);
 ///
 /// @return     A unique_ptr to the newly allocated mesh.
 ///
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 template <typename MeshType>
 std::unique_ptr<MeshType> load_mesh(const fs::path& relative_path)
 {
@@ -146,6 +149,7 @@ std::unique_ptr<MeshType> load_mesh(const fs::path& relative_path)
 }
 extern template LA_TESTING_API std::unique_ptr<TriangleMesh3D> load_mesh(const fs::path&);
 extern template LA_TESTING_API std::unique_ptr<QuadMesh3D> load_mesh(const fs::path&);
+#endif
 
 ///
 /// Load a mesh from test data directory as a `SurfaceMesh`.

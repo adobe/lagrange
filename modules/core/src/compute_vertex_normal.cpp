@@ -17,6 +17,7 @@
 #include <lagrange/compute_weighted_corner_normal.h>
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/warning.h>
 #include <lagrange/views.h>
 

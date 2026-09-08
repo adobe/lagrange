@@ -76,10 +76,51 @@ export interface SurfaceMesh {
   /** Whether a named attribute exists on the mesh. */
   hasAttribute(name: string): boolean;
   /**
+   * Create a new attribute on this mesh and return its id.
+   *
+   * Throws if `name` already exists, or if `name` starts with `"$"` (the
+   * reserved-name prefix used by internal mesh attributes).
+   */
+  createAttribute(name: string, opts: CreateAttributeOptions): number;
+  /**
+   * Read a (non-indexed) attribute's full data and metadata. Throws if
+   * `name` does not exist or is an indexed attribute — use
+   * {@link getIndexedAttribute} for those.
+   */
+  getAttribute(name: string): AttributeData;
+  /**
+   * Overwrite a (non-indexed) attribute's values in place. `data` must be
+   * exactly `numElements * numChannels` long; values are cast to the
+   * attribute's existing {@link AttributeDType}. Throws if `name` does not
+   * exist, is indexed, or `data`'s length does not match.
+   */
+  setAttribute(name: string, data: AttributeTypedArray | number[]): void;
+  /** Delete an attribute by name. Throws if it does not exist. */
+  deleteAttribute(name: string): void;
+  /** Rename an attribute. Throws if `oldName` does not exist or `newName` is already taken. */
+  renameAttribute(oldName: string, newName: string): void;
+  /**
+   * Shallow-copy an attribute under a new name (copy-on-write: the buffer is
+   * only duplicated once one of the two is mutated). Returns the new
+   * attribute's id.
+   */
+  duplicateAttribute(oldName: string, newName: string): number;
+  /** Look up an attribute's id by name. Throws if not found. */
+  getAttributeId(name: string): number;
+  /** Look up an attribute's name by id. Throws if not found. */
+  getAttributeName(id: number): string;
+  /** Whether the named attribute is an indexed (per-corner-index) attribute. Throws if not found. */
+  isAttributeIndexed(name: string): boolean;
+  /**
+   * Read an indexed attribute's value buffer and per-corner index buffer.
+   * Throws if `name` does not exist or is not indexed.
+   */
+  getIndexedAttribute(name: string): IndexedAttributeData;
+  /**
    * Append one vertex. `vertex.length` must equal {@link getDimension}
    * (typically `3`).
    */
-  addVertex(vertex: Float32Array | ArrayLike<number>): void;
+  addVertex(vertex: Float64Array | ArrayLike<number>): void;
   /** Append a single triangle from three vertex ids. */
   addTriangle(v0: number, v1: number, v2: number): void;
   /**
@@ -153,8 +194,8 @@ export interface CoreModule {
   unifyIndexBuffer(mesh: SurfaceMesh): SurfaceMesh;
   /**
    * Fill topological holes whose boundary has at most `maxHoleSize` vertices.
-   * Modifies `mesh` in place. Set `triangulateHoles` to triangulate the new
-   * patches; otherwise they are inserted as a single polygon.
+   * Modifies `mesh` in place. New patches are triangulated by default; set
+   * `triangulateHoles` to `false` to insert each patch as a single polygon.
    */
   closeSmallHoles(
     mesh: SurfaceMesh,
@@ -272,7 +313,7 @@ export interface CoreModule {
   /** Remove facets whose area is below the threshold. In-place. */
   removeNullAreaFacets(mesh: SurfaceMesh, opts?: RemoveNullAreaFacetsOptions): void;
   /** Collapse edges shorter than `threshold`. In-place. */
-  removeShortEdges(mesh: SurfaceMesh, threshold?: number): void;
+  removeShortEdges(mesh: SurfaceMesh, threshold: number): void;
   /** Remove facets that repeat a vertex (e.g. `[a, b, a]`). In-place. */
   removeTopologicallyDegenerateFacets(mesh: SurfaceMesh): void;
   /**
@@ -402,7 +443,7 @@ export type ColoringElementType = "vertex" | "facet";
 export interface GreedyColoringOptions {
   /** Element to color. Default: `"facet"`. */
   elementType?: ColoringElementType;
-  /** Upper bound on the number of distinct colors. Default: `8`. */
+  /** Initial color palette size; the algorithm allocates more colors when neighbors exhaust the palette, and may use fewer. Default: `8`. */
   numColorUsed?: number;
 }
 
@@ -419,4 +460,126 @@ export interface RemoveNullAreaFacetsOptions {
   nullAreaThreshold?: number;
   /** Also remove vertices that become unreferenced after the removal. Default: `false`. */
   removeIsolatedVertices?: boolean;
+}
+
+/**
+ * Which mesh element an attribute is attached to. `"value"` is a free
+ * buffer not tied to a specific element (used to store indexed-attribute
+ * values). `"indexed"` attaches a per-corner index into such a buffer —
+ * used for seamed UVs, hard-edge normals, etc.
+ */
+export type AttributeElementType = "vertex" | "facet" | "edge" | "corner" | "value" | "indexed";
+
+/**
+ * Usage tag hinting how attribute values should behave under rigid
+ * transforms (e.g. normals get inverse-transposed, positions get
+ * transformed directly). Does not affect storage.
+ */
+export type AttributeUsageType =
+  | "vector"
+  | "scalar"
+  | "position"
+  | "normal"
+  | "tangent"
+  | "bitangent"
+  | "color"
+  | "uv"
+  | "vertexIndex"
+  | "facetIndex"
+  | "cornerIndex"
+  | "edgeIndex"
+  | "string";
+
+/**
+ * Attribute value storage type. `"int64"`/`"uint64"` attributes are
+ * transported as `number` (double) since JS has no safe native 64-bit
+ * integer typed array. Reading or writing a value that cannot be
+ * represented exactly as a double (roughly beyond ±2^53) throws, rather
+ * than silently returning or storing a corrupted value.
+ */
+export type AttributeDType =
+  | "int8"
+  | "int16"
+  | "int32"
+  | "int64"
+  | "uint8"
+  | "uint16"
+  | "uint32"
+  | "uint64"
+  | "float32"
+  | "float64";
+
+/** Typed arrays accepted/returned by the attribute API. `int64`/`uint64` data reads as `Float64Array` (see {@link AttributeDType}). */
+export type AttributeTypedArray =
+  | Int8Array
+  | Int16Array
+  | Int32Array
+  | Uint8Array
+  | Uint8ClampedArray
+  | Uint16Array
+  | Uint32Array
+  | Float32Array
+  | Float64Array;
+
+export interface CreateAttributeOptions {
+  /** Mesh element the attribute is attached to. */
+  element: AttributeElementType;
+  /**
+   * Usage tag. Default: `"vector"` (any channel count). Others constrain
+   * {@link numChannels}: `"scalar"`/index usages/`"string"` require `1`,
+   * `"uv"` requires `2`, `"color"` requires `1`-`4`, `"position"` requires
+   * the mesh dimension, `"normal"`/`"tangent"`/`"bitangent"` require the
+   * mesh dimension or dimension + 1. The `numChannels` default of `1` is
+   * only valid for usages that accept `1`.
+   */
+  usage?: AttributeUsageType;
+  /** Number of channels (columns) per element. Default: `1` — see {@link usage} for constraints. */
+  numChannels?: number;
+  /**
+   * Initial values, flattened row-major (`numElements * numChannels`
+   * long, or the values buffer length when `element` is `"indexed"`). A
+   * typed array also selects {@link dtype} unless it is set explicitly.
+   * Omit to leave the buffer default-initialized.
+   */
+  data?: AttributeTypedArray | number[];
+  /**
+   * Value storage type. Inferred from {@link data}'s typed-array class
+   * when omitted; defaults to `"float64"` if `data` is a plain `number[]`
+   * or absent.
+   */
+  dtype?: AttributeDType;
+  /**
+   * Per-corner indices into {@link data}. Only meaningful when `element`
+   * is `"indexed"`.
+   */
+  indices?: Uint32Array | number[];
+}
+
+export interface AttributeData {
+  id: number;
+  name: string;
+  element: AttributeElementType;
+  usage: AttributeUsageType;
+  numChannels: number;
+  numElements: number;
+  dtype: AttributeDType;
+  /** Flattened row-major values, `numElements * numChannels` long. */
+  data: AttributeTypedArray;
+}
+
+export interface IndexedAttributeValues {
+  numElements: number;
+  /** Flattened row-major values, `numElements * numChannels` long. */
+  data: AttributeTypedArray;
+}
+
+export interface IndexedAttributeData {
+  id: number;
+  name: string;
+  usage: AttributeUsageType;
+  numChannels: number;
+  dtype: AttributeDType;
+  values: IndexedAttributeValues;
+  /** Per-corner index into {@link values}. Length equals the mesh's corner count. */
+  indices: Uint32Array;
 }

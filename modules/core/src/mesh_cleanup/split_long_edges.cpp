@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/mesh_cleanup/split_long_edges.h>
+#include <cassert>
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/cast_attribute.h>

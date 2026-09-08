@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/primitive/legacy/generate_rounded_cone.h>
 #endif
+
+#include <lagrange/primitive/api.h>
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/internal/constants.h>
@@ -173,7 +175,7 @@ struct RoundedConeOptions : public PrimitiveOptions
 ///       When radius_top is 0, the result is a traditional cone.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting);
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_rounded_cone(RoundedConeOptions setting);
 
 /// @}
 

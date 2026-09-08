@@ -12,6 +12,7 @@
 #if defined(__clang__)
     #pragma clang diagnostic push
     #pragma clang diagnostic ignored "-Wunknown-warning-option"
+    #pragma clang diagnostic ignored "-Wc++23-attribute-extensions"
     // Not all warnings are supported by older version of clang.
     // So the line above has to come first.
     #pragma clang diagnostic ignored "-Wdeprecated"

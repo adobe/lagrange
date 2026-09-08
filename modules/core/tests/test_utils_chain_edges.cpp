@@ -9,11 +9,16 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/chain_edges.h>
-#include <lagrange/chain_edges_into_simple_loops.h>
+
 #include <lagrange/testing/common.h>
 #include <lagrange/utils/chain_edges.h>
-#include <lagrange/utils/warning.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/chain_edges.h>
+    #include <lagrange/chain_edges_into_simple_loops.h>
+    #include <lagrange/utils/warning.h>
+#endif
+
 #include <catch2/benchmark/catch_benchmark.hpp>
 
 #include <fstream>
@@ -200,6 +205,7 @@ TEST_CASE("utils/chain_edges", "[core][utils]")
     }
 }
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 TEST_CASE("chain_edges benchmark", "[core][utils][!benchmark]")
 {
     LA_IGNORE_DEPRECATION_WARNING_BEGIN
@@ -257,3 +263,5 @@ TEST_CASE("chain_edges benchmark", "[core][utils][!benchmark]")
     };
     LA_IGNORE_DEPRECATION_WARNING_END
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

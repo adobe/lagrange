@@ -9,8 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/Logger.h>
 #include <lagrange/subdivision/api.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
+#include <lagrange/utils/assert.h>
+#include <Eigen/Geometry>
+#include <optional>
+#include <string_view>
 
 #include "MeshConverter.h"
 

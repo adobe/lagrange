@@ -96,6 +96,7 @@ LagrangeOptions.cmake
 # The MetaBuild equivalent
 /META/META.user.yaml
 /META/META.lock
+/META/build
 
 /external
 /dist

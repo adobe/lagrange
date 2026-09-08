@@ -621,9 +621,9 @@ SurfaceMesh<Scalar, Index> mesh_from_oriented_points(
     }
 }
 
-#define LA_X_mesh_reconstruction(_, Scalar, Index)                 \
-    template SurfaceMesh<Scalar, Index> mesh_from_oriented_points( \
-        const SurfaceMesh<Scalar, Index>& points,                  \
+#define LA_X_mesh_reconstruction(_, Scalar, Index)                                \
+    template LA_POISSON_API SurfaceMesh<Scalar, Index> mesh_from_oriented_points( \
+        const SurfaceMesh<Scalar, Index>& points,                                 \
         const ReconstructionOptions& options);
 LA_SURFACE_MESH_X(mesh_reconstruction, 0)
 

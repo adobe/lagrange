@@ -38,19 +38,26 @@ int main(int argc, char** argv)
     struct
     {
         std::vector<fs::path> inputs;
+        bool show_isocontour = true;
+        bool apply_zup = true;
     } args;
 
     CLI::App app{argv[0]};
     app.option_defaults()->always_capture_default();
     app.add_option("input", args.inputs, "Input grids.")->required()->check(CLI::ExistingFile);
+    app.add_flag(
+        "--isocontour,!--no-isocontour",
+        args.show_isocontour,
+        "Enable isosurface extraction at startup.");
+    app.add_flag("--z-up,!--no-z-up", args.apply_zup, "Use Z-up orientation instead of Y-up.");
     CLI11_PARSE(app, argc, argv)
 
     spdlog::set_level(spdlog::level::debug);
+    openvdb::initialize();
 
     // TODO: Handle both float and double
     auto load_grid = [&](fs::path input) -> ConstFloatGridPtr {
         if (input.extension() == ".vdb") {
-            openvdb::initialize();
             openvdb::io::File file(input.string());
             file.open();
             auto grids_ptr = file.getGrids();
@@ -76,11 +83,14 @@ int main(int argc, char** argv)
         ImGui::Spectrum::StyleColorsSpectrum();
         ImGui::Spectrum::LoadFont();
     };
+    if (args.apply_zup) {
+        polyscope::view::setUpDir(polyscope::UpDir::ZUp);
+    }
     polyscope::init();
 
     for (const auto& input : args.inputs) {
         auto grid = load_grid(input);
-        register_grid(input.stem().string(), *grid);
+        register_grid(input.stem().string(), *grid, args.show_isocontour);
     }
 
     polyscope::show();

@@ -12,6 +12,6 @@
 #pragma once
 
 // Deprecated. Use project_directional instead.
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/raycasting/legacy/project_particles_directional.h>
 #endif

@@ -29,7 +29,10 @@
 
 NAMESPACE_BEGIN(NB_NAMESPACE)
 
-template <typename Vector, rv_policy Policy = rv_policy::automatic_reference, typename... Args>
+template <
+    typename Vector,
+    rv_policy::value Policy = rv_policy::automatic_reference_v,
+    typename... Args>
 class_<Vector> bind_safe_vector(handle scope, const char* name, Args&&... args)
 {
     using ValueRef = typename detail::iterator_access<typename Vector::iterator>::result_type;
@@ -43,7 +46,7 @@ class_<Vector> bind_safe_vector(handle scope, const char* name, Args&&... args)
     static_assert(
         !detail::is_base_caster_v<detail::make_caster<Value>> ||
             detail::is_copy_constructible_v<Value> ||
-            (Policy != rv_policy::automatic_reference && Policy != rv_policy::copy),
+            (Policy != rv_policy::automatic_reference_v && Policy != rv_policy::copy_v),
         "bind_safe_vector(): the generated __getitem__ would copy elements, so the "
         "element type must be copy-constructible");
 
@@ -83,7 +86,7 @@ class_<Vector> bind_safe_vector(handle scope, const char* name, Args&&... args)
                       [](Vector& v, Py_ssize_t i) -> ValueRef {
                           return v.Vector::Super::operator[](detail::wrap(i, v.size()));
                       },
-                      Policy)
+                      rv_policy::policy_tag<Policy>{})
 
                   .def("clear", [](Vector& v) { v.clear(); }, "Remove all items from list.");
 

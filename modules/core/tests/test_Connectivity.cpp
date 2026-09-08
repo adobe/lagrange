@@ -9,14 +9,16 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <Eigen/Core>
-#include <iostream>
 
-#include <lagrange/Connectivity.h>
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <Eigen/Core>
+    #include <iostream>
+
+    #include <lagrange/Connectivity.h>
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
 
 TEST_CASE("ConnectivitySimpleTriangleMesh", "[connectivity][triangle_mesh][simple]")
 {
@@ -183,3 +185,5 @@ TEST_CASE("ConnectivityQuadMesh", "[connectivity][quad_mesh][simple]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS
