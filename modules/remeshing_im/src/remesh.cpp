@@ -38,6 +38,7 @@
 
 #include <map>
 #include <memory>
+#include <mutex>
 #include <set>
 
 namespace lagrange::remeshing_im {
@@ -193,14 +194,22 @@ SurfaceMesh<Scalar, Index> remesh(SurfaceMesh<Scalar, Index>& mesh, const Remesh
     optimizer.setPoSy(posy);
     optimizer.setExtrinsic(options.extrinsic);
 
-    optimizer.optimizeOrientations(-1);
+    // The optimizer worker waits on a condition variable guarded by the hierarchy mutex, but its
+    // flag setters are unsynchronized. Setting them under the mutex avoids a lost-wakeup deadlock.
+    {
+        std::lock_guard<ordered_lock> lock(mRes.mutex());
+        optimizer.optimizeOrientations(-1);
+    }
     optimizer.notify();
     optimizer.wait();
 
     std::map<uint32_t, uint32_t> sing;
     compute_orientation_singularities(mRes, sing, options.extrinsic, rosy);
 
-    optimizer.optimizePositions(-1);
+    {
+        std::lock_guard<ordered_lock> lock(mRes.mutex());
+        optimizer.optimizePositions(-1);
+    }
     optimizer.notify();
     optimizer.wait();
 
