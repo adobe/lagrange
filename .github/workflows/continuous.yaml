@@ -26,16 +26,16 @@ jobs:
       matrix:
         include:
           # Linux release builds exercise tests disabled in Debug mode, and ASan also enables LSan.
-          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: Address }
+          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: "Address;Undefined" }
           - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: Thread }
-          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: Address }
+          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: "Address;Undefined" }
           - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: Thread }
 
           # Keep AppleClang release coverage on Intel and full sanitizer coverage on Apple Silicon.
-          - { os: macos-15-intel, compiler: apple, config: RelWithDebInfo, sanitizer: Address }
-          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: Address }
+          - { os: macos-15-intel, compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
           - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: Thread }
-          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: Address }
+          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: "Address;Undefined" }
           - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: Thread }
     steps:
       - name: Free Disk Space
@@ -133,6 +133,7 @@ jobs:
         with:
           key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.config }}-${{ matrix.sanitizer }}
           max-size: 500M
+          evict-old-files: job
           verbose: 1
 
       - name: Setup Xcode version
