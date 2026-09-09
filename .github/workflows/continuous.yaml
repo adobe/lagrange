@@ -154,11 +154,11 @@ jobs:
 
       - name: Select embree isa (macOS x64)
         if: runner.os == 'macOS' && runner.arch == 'X64'
-        run: echo "embree_max_isa=DEFAULT" >> $GITHUB_ENV
+        run: echo "embree_max_isa=SSE2" >> $GITHUB_ENV
 
       - name: Select embree isa (macOS arm64)
         if: runner.os == 'macOS' && runner.arch == 'ARM64'
-        run: echo "embree_max_isa=NONE" >> $GITHUB_ENV
+        run: echo "embree_max_isa=NEON" >> $GITHUB_ENV
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
