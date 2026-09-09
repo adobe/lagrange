@@ -212,6 +212,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_ZSTD_LEVEL: "5"
     strategy:
       fail-fast: false
       matrix:
