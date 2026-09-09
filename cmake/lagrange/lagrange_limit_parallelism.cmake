@@ -53,7 +53,7 @@ function(lagrange_limit_parallelism)
         message(STATUS "Parallelism: Link job memory budget: ${_link_memory} MB (${_build_type})")
         message(STATUS "Parallelism: Limiting link pool to ${num_link_jobs}")
 
-        set_property(GLOBAL PROPERTY JOB_POOLS pool-link=${num_link_jobs} pool-heavy-compile=1)
+        set_property(GLOBAL PROPERTY JOB_POOLS pool-link=${num_link_jobs} pool-heavy-compile=2)
         set(CMAKE_JOB_POOL_LINK "pool-link" CACHE STRING "Job pool for linking" FORCE)
     endif()
 endfunction()

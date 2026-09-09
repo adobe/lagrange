@@ -185,6 +185,10 @@ jobs:
             -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
+      - name: Build Embree
+        if: runner.os == 'Linux'
+        run: cmake --build ${{ env.build_dir }} --target embree -j 2
+
       - name: Build
         run: cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
 
