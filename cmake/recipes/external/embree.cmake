@@ -33,8 +33,10 @@ option(EMBREE_RAY_PACKETS    "Enable the usage packed ray."                     
 
 # Match embree's platform detection logic for arm
 if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" AND CMAKE_OSX_ARCHITECTURES STREQUAL "") OR ("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES))
+    message(STATUS "Setting arm version of Embree")
     set(EMBREE_ARM ON)
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    message(STATUS "Setting arm version of Embree")
     set(EMBREE_ARM ON)
 endif()
 
@@ -110,7 +112,7 @@ function(embree_import_target)
 
     # Ready to include embree's atrocious CMake
     include(CPM)
-    set(EMBREE_VERSION v4.4.0)
+    set(EMBREE_VERSION bb93949614c9fcfa1b850cb9ac79b3d9e4f1d2ec) # ahead of 4.4.1
     set(EMBREE_PATCHES "")
     if(LAGRANGE_WITH_EMBREE_3)
         set(CMAKE_POLICY_VERSION_MINIMUM 3.5)

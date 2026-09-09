@@ -153,7 +153,8 @@ jobs:
 
       - name: Select embree isa (macOS x64)
         if: runner.os == 'macOS' && runner.arch == 'X64'
-        run: echo "embree_max_isa=DEFAULT" >> $GITHUB_ENV
+        # Cap at SSE2: DEFAULT builds all ISAs, OOM-killing the 14 GB intel runner.
+        run: echo "embree_max_isa=SSE2" >> $GITHUB_ENV
 
       - name: Select embree isa (macOS arm64)
         if: runner.os == 'macOS' && runner.arch == 'ARM64'
@@ -202,7 +203,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2025]
+        os: [windows-2025, windows-11-arm]
         config: [Release, Debug]
     steps:
       - name: Show disk space
@@ -279,7 +280,6 @@ jobs:
             -DLAGRANGE_JENKINS=ON `
             -DLAGRANGE_ALL=ON `
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
-            -DEMBREE_MAX_ISA=AVX2 `
             -B ${{ env.BUILD_DIR }} `
             -S .
 
