@@ -132,8 +132,10 @@ jobs:
         uses: hendrikmuhs/ccache-action@v1.2
         with:
           key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.config }}-${{ matrix.sanitizer }}
-          max-size: 500M
-          evict-old-files: job
+          # A 500 MB cache retains only about half of this build's cacheable objects.
+          # Do not evict entries unused by the current job: cancelled jobs would save
+          # that partially populated cache as the newest restore candidate.
+          max-size: 750M
           verbose: 1
 
       - name: Setup Xcode version
