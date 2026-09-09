@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -21,24 +24,24 @@ jobs:
   Unix:
     name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
     runs-on: ${{ matrix.os }}
+    env:
+      CCACHE_COMPRESSLEVEL: 5
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15-intel, macos-15]
-        config: [RelWithDebInfo, Debug]
-        compiler: [gcc, apple, llvm]
-        sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
-        exclude:
-          - os: macos-15-intel
-            compiler: gcc
-          - os: macos-15-intel
-            sanitizer: Thread
-          - os: macos-15-intel
-            config: Debug
-          - os: macos-15
-            compiler: gcc
-          - os: ubuntu-24.04
-            compiler: apple
+        include:
+          # Linux release builds exercise tests disabled in Debug mode, and ASan also enables LSan.
+          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: Thread }
+          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: "Address;Undefined" }
+          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: Thread }
+
+          # Keep AppleClang release coverage on Intel and full sanitizer coverage on Apple Silicon.
+          - { os: macos-15-intel, compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: Thread }
+          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: Thread }
     steps:
       - name: Free Disk Space
         if: runner.os == 'Linux'
@@ -133,7 +136,11 @@ jobs:
       - name: Ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.sanitizer }}-${{ matrix.config }}
+          key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.config }}-${{ matrix.sanitizer }}
+          # Keep more objects, and do not prune untouched entries because cancelled jobs
+          # would save an incomplete cache as the newest restore candidate.
+          max-size: 750M
+          verbose: 1
 
       - name: Setup Xcode version
         if: matrix.os == 'macos-15-intel'
@@ -153,11 +160,11 @@ jobs:
 
       - name: Select embree isa (macOS x64)
         if: runner.os == 'macOS' && runner.arch == 'X64'
-        run: echo "embree_max_isa=DEFAULT" >> $GITHUB_ENV
+        run: echo "embree_max_isa=SSE2" >> $GITHUB_ENV
 
       - name: Select embree isa (macOS arm64)
         if: runner.os == 'macOS' && runner.arch == 'ARM64'
-        run: echo "embree_max_isa=NONE" >> $GITHUB_ENV
+        run: echo "embree_max_isa=NEON" >> $GITHUB_ENV
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
@@ -178,6 +185,10 @@ jobs:
             -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
+      - name: Build Embree
+        if: runner.os == 'Linux'
+        run: cmake --build ${{ env.build_dir }} --target embree -j 2
+
       - name: Build
         run: cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
 
@@ -190,6 +201,12 @@ jobs:
       - name: Tests
         run: cd ${{ env.build_dir }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
+      - name: Clean and report ccache
+        if: always()
+        run: |
+          ccache --cleanup
+          ccache --show-stats --verbose
+
   ####################
   # Windows
   ####################
@@ -199,6 +216,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_ZSTD_LEVEL: "5"
     strategy:
       fail-fast: false
       matrix:
@@ -250,7 +268,7 @@ jobs:
         id: cpu-cores
 
       - name: Sccache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
 
       - name: Set x64 vars
         if: matrix.os == 'windows-2025'
