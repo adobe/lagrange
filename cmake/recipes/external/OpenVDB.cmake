@@ -176,11 +176,10 @@ function(openvdb_import_target)
     # Inject real Boost dependencies instead of dummy Boost:headers one
     foreach(name IN ITEMS openvdb_static openvdb_shared)
         if(TARGET ${name})
-            if(LAGRANGE_LIMIT_PARALLELISM
+            if(LAGRANGE_LIMIT_GITHUB_ACTIONS_PARALLELISM
                 AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
                 AND CMAKE_GENERATOR MATCHES "^Ninja")
                 set_property(TARGET ${name} PROPERTY JOB_POOL_COMPILE pool-heavy-compile)
-                set_property(TARGET ${name} PROPERTY JOB_POOL_LINK pool-link)
             endif()
             target_link_libraries(${name}
                 PUBLIC

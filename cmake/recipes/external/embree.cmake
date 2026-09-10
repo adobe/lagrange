@@ -131,9 +131,10 @@ function(embree_import_target)
 
     # Embree has several memory-intensive translation units. Limit their concurrency on
     # Linux when the project's memory-aware parallelism policy is enabled.
-    if(LAGRANGE_LIMIT_PARALLELISM AND CMAKE_SYSTEM_NAME STREQUAL "Linux" AND CMAKE_GENERATOR MATCHES "^Ninja")
+    if(LAGRANGE_LIMIT_GITHUB_ACTIONS_PARALLELISM
+        AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
+        AND CMAKE_GENERATOR MATCHES "^Ninja")
         set_property(TARGET embree PROPERTY JOB_POOL_COMPILE pool-heavy-compile)
-        set_property(TARGET embree PROPERTY JOB_POOL_LINK pool-link)
     endif()
 
     # Disable warnings

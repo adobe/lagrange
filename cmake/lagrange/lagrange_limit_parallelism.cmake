@@ -44,14 +44,6 @@ function(lagrange_limit_parallelism)
         set(num_link_jobs 1)
     endif()
 
-    set(num_heavy_compile_jobs 2)
-    if(CMAKE_SYSTEM_NAME STREQUAL "Linux"
-        AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
-        AND USE_SANITIZER MATCHES "([Aa]ddress)"
-        AND USE_SANITIZER MATCHES "([Uu]ndefined)")
-        set(num_heavy_compile_jobs 1)
-    endif()
-
     if(CMAKE_SCRIPT_MODE_FILE)
         # Script mode: echo the number of physical cores for use as the -j flag in Jenkins.
         # Link parallelism is handled separately via Ninja job pools at configure time.
@@ -60,14 +52,23 @@ function(lagrange_limit_parallelism)
         message(STATUS "Parallelism: Total physical memory: ${TOTAL_PHYSICAL_MEMORY} MB")
         message(STATUS "Parallelism: Link job memory budget: ${_link_memory} MB (${_build_type})")
         message(STATUS "Parallelism: Limiting link pool to ${num_link_jobs}")
-        message(STATUS "Parallelism: Limiting heavy compile pool to ${num_heavy_compile_jobs}")
 
-        set_property(GLOBAL PROPERTY JOB_POOLS
-            pool-link=${num_link_jobs}
-            pool-heavy-compile=${num_heavy_compile_jobs}
-        )
+        set_property(GLOBAL PROPERTY JOB_POOLS pool-link=${num_link_jobs})
         set(CMAKE_JOB_POOL_LINK "pool-link" CACHE STRING "Job pool for linking" FORCE)
     endif()
+endfunction()
+
+function(lagrange_limit_github_actions_parallelism)
+    set(num_heavy_compile_jobs 2)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux"
+        AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+        AND USE_SANITIZER MATCHES "([Aa]ddress)"
+        AND USE_SANITIZER MATCHES "([Uu]ndefined)")
+        set(num_heavy_compile_jobs 1)
+    endif()
+
+    message(STATUS "Parallelism: Limiting heavy compile pool to ${num_heavy_compile_jobs}")
+    set_property(GLOBAL APPEND PROPERTY JOB_POOLS pool-heavy-compile=${num_heavy_compile_jobs})
 endfunction()
 
 # If this file is run in script mode, it echoes the number of physical cores for use as
