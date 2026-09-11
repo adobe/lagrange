@@ -43,7 +43,7 @@ jobs:
           - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: "Address;Undefined" }
           - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: Thread }
     steps:
-      - name: Free Disk Space
+      - name: Free Disk Space (Linux)
         if: runner.os == 'Linux'
         uses: jlumbroso/free-disk-space@main
         with:
@@ -59,6 +59,14 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+
+      - name: Free Disk Space (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
 
       - name: Set swap space
         if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.config == 'RelWithDebInfo'
