@@ -187,12 +187,24 @@ jobs:
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
       - name: Build Embree
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' || matrix.compiler == 'llvm'
         run: cmake --build ${{ env.build_dir }} --target embree -j 2
 
+      - name: Show disk space
+        if: always()
+        run: |
+          echo "disk usage:"
+          df -h
+
       - name: Build OpenVDB
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' || matrix.compiler == 'llvm'
         run: cmake --build ${{ env.build_dir }} --target openvdb_shared -j 2
+
+      - name: Show disk space
+        if: always()
+        run: |
+          echo "disk usage:"
+          df -h
 
       - name: Build
         run: cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
