@@ -4,6 +4,9 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -21,26 +24,26 @@ jobs:
   Unix:
     name: ${{ matrix.os }} (${{ matrix.compiler }}, ${{ matrix.config }}, ${{ matrix.sanitizer }}Sanitizer)
     runs-on: ${{ matrix.os }}
+    env:
+      CCACHE_COMPRESSLEVEL: 5
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-24.04, macos-15-intel, macos-15]
-        config: [RelWithDebInfo, Debug]
-        compiler: [gcc, apple, llvm]
-        sanitizer: ["Address", "Thread"] # TODO: Add Memory+Undefined Sanitizer
-        exclude:
-          - os: macos-15-intel
-            compiler: gcc
-          - os: macos-15-intel
-            sanitizer: Thread
-          - os: macos-15-intel
-            config: Debug
-          - os: macos-15
-            compiler: gcc
-          - os: ubuntu-24.04
-            compiler: apple
+        include:
+          # Linux release builds exercise tests disabled in Debug mode, and ASan also enables LSan.
+          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: "Address;Undefined", split_debug: ON }
+          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: Thread }
+          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: "Address;Undefined" }
+          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: Thread }
+
+          # Keep AppleClang release coverage on Intel and full sanitizer coverage on Apple Silicon.
+          - { os: macos-15-intel, compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: Thread }
+          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: Thread }
     steps:
-      - name: Free Disk Space
+      - name: Free Disk Space (Linux)
         if: runner.os == 'Linux'
         uses: jlumbroso/free-disk-space@main
         with:
@@ -56,6 +59,25 @@ jobs:
           large-packages: true
           docker-images: true
           swap-storage: true
+
+      - name: Free Disk Space (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          echo "Disk usage before cleanup:"
+          df -h
+          sudo rm -rf /Library/Developer/CoreSimulator
+          sudo rm -rf "$HOME/Library/Developer/CoreSimulator"
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_xrOSSimulatorRuntime
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_watchOSSimulatorRuntime
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_appleTVOSSimulatorRuntime
+          sudo rm -rf "$ANDROID_HOME"
+          sudo rm -rf /usr/local/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf "/usr/local/share/boost"
+          sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "Disk usage after cleanup:"
+          df -h
 
       - name: Set swap space
         if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.config == 'RelWithDebInfo'
@@ -133,7 +155,11 @@ jobs:
       - name: Ccache
         uses: hendrikmuhs/ccache-action@v1.2
         with:
-          key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.sanitizer }}-${{ matrix.config }}
+          key: ${{ matrix.os }}-${{ matrix.compiler }}-${{ matrix.config }}-${{ matrix.sanitizer }}
+          # Keep more objects, and do not prune untouched entries because cancelled jobs
+          # would save an incomplete cache as the newest restore candidate.
+          max-size: 750M
+          verbose: 1
 
       - name: Setup Xcode version
         if: matrix.os == 'macos-15-intel'
@@ -153,11 +179,11 @@ jobs:
 
       - name: Select embree isa (macOS x64)
         if: runner.os == 'macOS' && runner.arch == 'X64'
-        run: echo "embree_max_isa=DEFAULT" >> $GITHUB_ENV
+        run: echo "embree_max_isa=SSE2" >> $GITHUB_ENV
 
       - name: Select embree isa (macOS arm64)
         if: runner.os == 'macOS' && runner.arch == 'ARM64'
-        run: echo "embree_max_isa=NONE" >> $GITHUB_ENV
+        run: echo "embree_max_isa=NEON" >> $GITHUB_ENV
 
       - name: Get number of CPU cores
         uses: SimenB/github-actions-cpu-cores@v1
@@ -171,12 +197,34 @@ jobs:
             -DLAGRANGE_JENKINS=ON \
             -DLAGRANGE_ALL=ON \
             -DLAGRANGE_LIMIT_PARALLELISM=ON \
+            -DLAGRANGE_LIMIT_GITHUB_ACTIONS_PARALLELISM=ON \
             -DOPENVDB_CORE_SHARED=ON \
             -DOPENVDB_CORE_STATIC=OFF \
-            -DUSE_EXPLICIT_INSTANTIATION=OFF \
+            -DUSE_EXPLICIT_INSTANTIATION=ON \
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON \
+            -DLAGRANGE_USE_SPLIT_DEBUG_INFO=${{ matrix.split_debug }} \
             -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
+
+      - name: Build Embree
+        if: runner.os == 'Linux' || matrix.compiler == 'llvm'
+        run: cmake --build ${{ env.build_dir }} --target embree -j 2
+
+      - name: Show disk space
+        if: always()
+        run: |
+          echo "disk usage:"
+          df -h
+
+      - name: Build OpenVDB
+        if: runner.os == 'Linux' || matrix.compiler == 'llvm'
+        run: cmake --build ${{ env.build_dir }} --target openvdb_shared -j 2
+
+      - name: Show disk space
+        if: always()
+        run: |
+          echo "disk usage:"
+          df -h
 
       - name: Build
         run: cmake --build ${{ env.build_dir }} -j ${{ steps.cpu-cores.outputs.count }}
@@ -190,6 +238,12 @@ jobs:
       - name: Tests
         run: cd ${{ env.build_dir }}; ctest --verbose -j ${{ steps.cpu-cores.outputs.count }}
 
+      - name: Clean and report ccache
+        if: always()
+        run: |
+          ccache --cleanup
+          ccache --show-stats --verbose
+
   ####################
   # Windows
   ####################
@@ -199,6 +253,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       SCCACHE_GHA_ENABLED: "true"
+      SCCACHE_CACHE_ZSTD_LEVEL: "5"
     strategy:
       fail-fast: false
       matrix:
@@ -250,7 +305,7 @@ jobs:
         id: cpu-cores
 
       - name: Sccache
-        uses: mozilla-actions/sccache-action@v0.0.10
+        uses: mozilla-actions/sccache-action@v0.0.11
 
       - name: Set x64 vars
         if: matrix.os == 'windows-2025'

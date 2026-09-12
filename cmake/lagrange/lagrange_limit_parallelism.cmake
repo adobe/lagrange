@@ -58,6 +58,19 @@ function(lagrange_limit_parallelism)
     endif()
 endfunction()
 
+function(lagrange_limit_github_actions_parallelism)
+    set(num_heavy_compile_jobs 2)
+    if(CMAKE_SYSTEM_NAME STREQUAL "Linux"
+        AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang"
+        AND USE_SANITIZER MATCHES "([Aa]ddress)"
+        AND USE_SANITIZER MATCHES "([Uu]ndefined)")
+        set(num_heavy_compile_jobs 1)
+    endif()
+
+    message(STATUS "Parallelism: Limiting heavy compile pool to ${num_heavy_compile_jobs}")
+    set_property(GLOBAL APPEND PROPERTY JOB_POOLS pool-heavy-compile=${num_heavy_compile_jobs})
+endfunction()
+
 # If this file is run in script mode, it echoes the number of physical cores for use as
 # the -j flag for cmake --build and ctest. Link parallelism is not relevant here — it is
 # enforced by Ninja job pools set during the configure step.
