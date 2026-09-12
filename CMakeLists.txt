@@ -264,6 +264,7 @@ option(LAGRANGE_PROPAGATE_WARNINGS      "Propagate warning flags to dependent ta
 option(LAGRANGE_PERFORMANCE_TESTS       "Build all performance tests"                          OFF)
 option(LAGRANGE_UNIT_TESTS              "Build all unit tests"                                 ${LAGRANGE_TOPLEVEL_PROJECT})
 option(LAGRANGE_USE_PCH                 "Enable precompiled headers"                           OFF)
+option(LAGRANGE_USE_SPLIT_DEBUG_INFO    "Store debug information in separate compressed files" OFF)
 option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscripten"            ON)
 option(LAGRANGE_USE_WASM_THREADS        "Enable threads (-pthread) with Emscripten"            ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)

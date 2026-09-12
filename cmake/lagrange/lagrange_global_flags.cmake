@@ -49,6 +49,11 @@ else()
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 endif()
 
+if(LAGRANGE_USE_SPLIT_DEBUG_INFO)
+    add_compile_options(-gsplit-dwarf -gz=zstd)
+    add_link_options(-Wl,--compress-debug-sections=zstd)
+endif()
+
 if(LAGRANGE_WITH_TRACY)
     include(lagrange_filter_flags)
     set(LAGRANGE_GLOBAL_FLAGS

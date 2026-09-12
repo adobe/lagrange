@@ -31,7 +31,7 @@ jobs:
       matrix:
         include:
           # Linux release builds exercise tests disabled in Debug mode, and ASan also enables LSan.
-          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: "Address;Undefined", split_debug: ON }
           - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: Thread }
           - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: "Address;Undefined" }
           - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: Thread }
@@ -202,6 +202,7 @@ jobs:
             -DOPENVDB_CORE_STATIC=OFF \
             -DUSE_EXPLICIT_INSTANTIATION=ON \
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON \
+            -DLAGRANGE_USE_SPLIT_DEBUG_INFO=${{ matrix.split_debug }} \
             -DEMBREE_MAX_ISA=${{ env.embree_max_isa }} \
             -DUSE_SANITIZER="${{ matrix.sanitizer }}"
 
