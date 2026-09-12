@@ -63,10 +63,21 @@ jobs:
       - name: Free Disk Space (macOS)
         if: runner.os == 'macOS'
         run: |
-          sudo rm -rf /usr/share/dotnet
+          echo "Disk usage before cleanup:"
+          df -h
+          sudo rm -rf /Library/Developer/CoreSimulator
+          sudo rm -rf "$HOME/Library/Developer/CoreSimulator"
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_iOSSimulatorRuntime
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_xrOSSimulatorRuntime
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_watchOSSimulatorRuntime
+          sudo rm -rf /System/Library/AssetsV2/com_apple_MobileAsset_appleTVOSSimulatorRuntime
+          sudo rm -rf "$ANDROID_HOME"
+          sudo rm -rf /usr/local/share/dotnet
           sudo rm -rf /opt/ghc
           sudo rm -rf "/usr/local/share/boost"
           sudo rm -rf "$AGENT_TOOLSDIRECTORY"
+          echo "Disk usage after cleanup:"
+          df -h
 
       - name: Set swap space
         if: runner.os == 'Linux' && matrix.compiler == 'gcc' && matrix.config == 'RelWithDebInfo'
