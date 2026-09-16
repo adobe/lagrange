@@ -38,6 +38,7 @@
 // clang-format on
 
 #include <array>
+#include <cstring>
 #include <map>
 #include <string>
 
@@ -3697,40 +3698,46 @@ SurfaceMesh<Scalar, Index> to_surface_mesh(const SurfaceMeshInfo& info)
 
         if (ai->is_indexed) {
             switch (value_type) {
-#define LA_X_restore_indexed(_, ValueType)                               \
-    case make_attribute_value_type<ValueType>(): {                       \
-        auto values = span<const ValueType>(                             \
-            reinterpret_cast<const ValueType*>(ai->values_bytes.data()), \
-            ai->values_bytes.size() / sizeof(ValueType));                \
-        auto indices = span<const Index>(                                \
-            reinterpret_cast<const Index*>(ai->indices_bytes.data()),    \
-            ai->indices_bytes.size() / sizeof(Index));                   \
-        id = mesh.template create_attribute_internal<ValueType>(         \
-            ai->name,                                                    \
-            element,                                                     \
-            usage,                                                       \
-            ai->values_num_channels,                                     \
-            values,                                                      \
-            indices);                                                    \
-        break;                                                           \
+#define LA_X_restore_indexed(_, ValueType)                                                   \
+    case make_attribute_value_type<ValueType>(): {                                           \
+        la_runtime_assert(ai->values_bytes.size() % sizeof(ValueType) == 0);                 \
+        la_runtime_assert(ai->indices_bytes.size() % sizeof(Index) == 0);                    \
+        std::vector<ValueType> values(ai->values_bytes.size() / sizeof(ValueType));          \
+        std::vector<Index> indices(ai->indices_bytes.size() / sizeof(Index));                \
+        if (!values.empty()) {                                                               \
+            std::memcpy(values.data(), ai->values_bytes.data(), ai->values_bytes.size());    \
+        }                                                                                    \
+        if (!indices.empty()) {                                                              \
+            std::memcpy(indices.data(), ai->indices_bytes.data(), ai->indices_bytes.size()); \
+        }                                                                                    \
+        id = mesh.template create_attribute_internal<ValueType>(                             \
+            ai->name,                                                                        \
+            element,                                                                         \
+            usage,                                                                           \
+            ai->values_num_channels,                                                         \
+            span<const ValueType>(values.data(), values.size()),                             \
+            span<const Index>(indices.data(), indices.size()));                              \
+        break;                                                                               \
     }
                 LA_ATTRIBUTE_X(restore_indexed, 0)
 #undef LA_X_restore_indexed
             }
         } else {
             switch (value_type) {
-#define LA_X_restore_attr(_, ValueType)                                \
-    case make_attribute_value_type<ValueType>(): {                     \
-        auto data = span<const ValueType>(                             \
-            reinterpret_cast<const ValueType*>(ai->data_bytes.data()), \
-            ai->data_bytes.size() / sizeof(ValueType));                \
-        id = mesh.template create_attribute_internal<ValueType>(       \
-            ai->name,                                                  \
-            element,                                                   \
-            usage,                                                     \
-            ai->num_channels,                                          \
-            data);                                                     \
-        break;                                                         \
+#define LA_X_restore_attr(_, ValueType)                                             \
+    case make_attribute_value_type<ValueType>(): {                                  \
+        la_runtime_assert(ai->data_bytes.size() % sizeof(ValueType) == 0);          \
+        std::vector<ValueType> data(ai->data_bytes.size() / sizeof(ValueType));     \
+        if (!data.empty()) {                                                        \
+            std::memcpy(data.data(), ai->data_bytes.data(), ai->data_bytes.size()); \
+        }                                                                           \
+        id = mesh.template create_attribute_internal<ValueType>(                    \
+            ai->name,                                                               \
+            element,                                                                \
+            usage,                                                                  \
+            ai->num_channels,                                                       \
+            span<const ValueType>(data.data(), data.size()));                       \
+        break;                                                                      \
     }
                 LA_ATTRIBUTE_X(restore_attr, 0)
 #undef LA_X_restore_attr

@@ -154,6 +154,25 @@ function(embree_import_target)
         target_compile_options(embree PRIVATE "-Wno-unused-but-set-variable")
     endif()
 
+    # Embree intentionally dispatches through ABI-compatible function pointers and uses
+    # type-punning downcasts internally. Exclude only its implementation from UBSan; consumers
+    # and Lagrange's raycasting code remain instrumented.
+    foreach(target IN ITEMS
+        embree
+        embree_sse42
+        embree_avx
+        embree_avx2
+        embree_avx512
+        algorithms
+        lexers
+        math
+        simd
+        sys
+        tasking
+    )
+        lagrange_disable_ubsan_for_external(${target})
+    endforeach()
+
     # Now we need to do some juggling to propagate the include directory properties
     # along with the `embree` target
     add_library(embree::embree INTERFACE IMPORTED GLOBAL)

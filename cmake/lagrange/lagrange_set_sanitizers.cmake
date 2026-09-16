@@ -12,6 +12,18 @@
 
 include(sanitizers)
 
+# Some bundled dependencies intentionally use operations rejected by UBSan (for example,
+# function-pointer casts in Embree). Keep the sanitizer enabled for Lagrange while allowing
+# concrete third-party targets to opt out without propagating the flag to their consumers.
+function(lagrange_disable_ubsan_for_external target)
+    if(TARGET "${target}" AND USE_SANITIZER MATCHES "([Uu]ndefined)")
+        target_compile_options("${target}" PRIVATE
+            $<$<COMPILE_LANG_AND_ID:C,GNU,Clang,AppleClang>:-fno-sanitize=undefined>
+            $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-fno-sanitize=undefined>
+        )
+    endif()
+endfunction()
+
 if(MSVC AND USE_SANITIZER)
     # To use sanitizers with MSVC you need to disable incompatible options. See details here:
     # https://learn.microsoft.com/en-us/cpp/sanitizers/asan?view=msvc-170#ide-msbuild

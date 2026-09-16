@@ -32,6 +32,10 @@ target_include_directories(ufbx PUBLIC
 set_target_properties(ufbx PROPERTIES FOLDER third_party)
 set_target_properties(ufbx PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# ufbx's bit reader intentionally shifts by the encoded bit count before validating it.
+# UBSan diagnoses this in valid FBX inputs, so exclude only the bundled implementation.
+lagrange_disable_ubsan_for_external(ufbx)
+
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ufbx)
 install(DIRECTORY ${ufbx_SOURCE_DIR} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
