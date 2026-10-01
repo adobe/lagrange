@@ -21,7 +21,7 @@ add_library(lagrange::warnings ALIAS lagrange_warnings)
 set_target_properties(lagrange_warnings PROPERTIES EXPORT_NAME warnings)
 install(TARGETS lagrange_warnings EXPORT Lagrange_Targets FILE_SET HEADERS)
 
-include(lagrange_filter_flags)
+include(lagrange_filter_compile_flags)
 
 # options
 # More options can be found at:
@@ -60,7 +60,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
             "/permissive-"
         )
     endif()
-    lagrange_filter_flags(options)
+    lagrange_filter_compile_flags(options)
     target_compile_options(lagrange_warnings INTERFACE ${options})
 else()
     # For non-MSVC compilers, see
@@ -217,7 +217,7 @@ else()
         endif()
     endif()
 
-    lagrange_filter_flags(options)
+    lagrange_filter_compile_flags(options)
     target_compile_options(lagrange_warnings INTERFACE ${options})
 endif()
 

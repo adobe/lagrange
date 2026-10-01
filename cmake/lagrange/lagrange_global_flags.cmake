@@ -31,51 +31,50 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     add_compile_options(/FS)
 
     # Boost::hana requires /EHsc, so we need to enable it globally
-    include(lagrange_filter_flags)
+    include(lagrange_filter_compile_flags)
     set(LAGRANGE_GLOBAL_FLAGS
         /EHsc # Compatibility with Boost::hana
     )
-    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    lagrange_filter_compile_flags(LAGRANGE_GLOBAL_FLAGS)
     message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 else()
-    include(lagrange_filter_flags)
+    include(lagrange_filter_compile_flags)
     set(LAGRANGE_GLOBAL_FLAGS
         -fdiagnostics-color=always # GCC
         -fcolor-diagnostics # Clang
     )
-    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    lagrange_filter_compile_flags(LAGRANGE_GLOBAL_FLAGS)
     message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 endif()
 
 if(LAGRANGE_USE_SPLIT_DEBUG_INFO)
-    include(lagrange_filter_flags)
+    include(lagrange_filter_compile_flags)
     set(LAGRANGE_SPLIT_DEBUG_FLAGS
         -gsplit-dwarf
         -gz=zstd
     )
-    lagrange_filter_flags(LAGRANGE_SPLIT_DEBUG_FLAGS)
+    lagrange_filter_compile_flags(LAGRANGE_SPLIT_DEBUG_FLAGS)
     message(STATUS "Adding split debug flags: ${LAGRANGE_SPLIT_DEBUG_FLAGS}")
     add_compile_options(${LAGRANGE_SPLIT_DEBUG_FLAGS})
 
-    # lagrange_filter_flags only checks compile flags; MSVC may ignore GNU linker flags.
-    if(NOT MSVC)
-        include(CheckLinkerFlag)
-        check_linker_flag(CXX "-Wl,--compress-debug-sections=zstd" LAGRANGE_HAS_ZSTD_DEBUG_LINK)
-    endif()
-    if(LAGRANGE_HAS_ZSTD_DEBUG_LINK)
-        add_link_options(-Wl,--compress-debug-sections=zstd)
-    endif()
+    include(lagrange_filter_link_flags)
+    set(LAGRANGE_SPLIT_DEBUG_LINK_FLAGS
+        LINKER:--compress-debug-sections=zstd
+    )
+    lagrange_filter_link_flags(LAGRANGE_SPLIT_DEBUG_LINK_FLAGS)
+    message(STATUS "Adding split debug link flags: ${LAGRANGE_SPLIT_DEBUG_LINK_FLAGS}")
+    add_link_options(${LAGRANGE_SPLIT_DEBUG_LINK_FLAGS})
 endif()
 
 if(LAGRANGE_WITH_TRACY)
-    include(lagrange_filter_flags)
+    include(lagrange_filter_compile_flags)
     set(LAGRANGE_GLOBAL_FLAGS
         "-fno-omit-frame-pointer"
         "-g"
     )
-    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    lagrange_filter_compile_flags(LAGRANGE_GLOBAL_FLAGS)
     message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 endif()

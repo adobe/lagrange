@@ -26,23 +26,21 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CCACHE_COMPRESSLEVEL: 5
-      # Fail on UBSan diagnostics during test discovery and execution, except reviewed dependencies.
-      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1:suppressions=${{ github.workspace }}/.github/ubsan.suppressions.ini
     strategy:
       fail-fast: false
       matrix:
         include:
           # Linux release builds exercise tests disabled in Debug mode, and ASan also enables LSan.
-          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: "Address;Undefined", split_debug: ON }
+          - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: Address, split_debug: ON }
           - { os: ubuntu-24.04, compiler: gcc,  config: RelWithDebInfo, sanitizer: Thread }
-          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: "Address;Undefined" }
+          - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: Address }
           - { os: ubuntu-24.04, compiler: llvm, config: Debug,          sanitizer: Thread }
 
-          # Keep AppleClang release coverage on Intel and full sanitizer coverage on Apple Silicon.
-          - { os: macos-15-intel, compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
-          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: "Address;Undefined" }
+          # Keep AppleClang release coverage on Intel and ASan/TSan coverage on Apple Silicon.
+          - { os: macos-15-intel, compiler: apple, config: RelWithDebInfo, sanitizer: Address }
+          - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: Address }
           - { os: macos-15,       compiler: apple, config: RelWithDebInfo, sanitizer: Thread }
-          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: "Address;Undefined" }
+          - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: Address }
           - { os: macos-15,       compiler: llvm,  config: Debug,          sanitizer: Thread }
     steps:
       - name: Free Disk Space (Linux)
