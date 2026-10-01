@@ -26,6 +26,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       CCACHE_COMPRESSLEVEL: 5
+      # Fail on UBSan diagnostics during test discovery and execution, except reviewed dependencies.
+      UBSAN_OPTIONS: halt_on_error=1:print_stacktrace=1:suppressions=${{ github.workspace }}/.github/ubsan.suppressions.ini
     strategy:
       fail-fast: false
       matrix:

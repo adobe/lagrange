@@ -50,8 +50,23 @@ else()
 endif()
 
 if(LAGRANGE_USE_SPLIT_DEBUG_INFO)
-    add_compile_options(-gsplit-dwarf -gz=zstd)
-    add_link_options(-Wl,--compress-debug-sections=zstd)
+    include(lagrange_filter_flags)
+    set(LAGRANGE_SPLIT_DEBUG_FLAGS
+        -gsplit-dwarf
+        -gz=zstd
+    )
+    lagrange_filter_flags(LAGRANGE_SPLIT_DEBUG_FLAGS)
+    message(STATUS "Adding split debug flags: ${LAGRANGE_SPLIT_DEBUG_FLAGS}")
+    add_compile_options(${LAGRANGE_SPLIT_DEBUG_FLAGS})
+
+    # lagrange_filter_flags only checks compile flags; MSVC may ignore GNU linker flags.
+    if(NOT MSVC)
+        include(CheckLinkerFlag)
+        check_linker_flag(CXX "-Wl,--compress-debug-sections=zstd" LAGRANGE_HAS_ZSTD_DEBUG_LINK)
+    endif()
+    if(LAGRANGE_HAS_ZSTD_DEBUG_LINK)
+        add_link_options(-Wl,--compress-debug-sections=zstd)
+    endif()
 endif()
 
 if(LAGRANGE_WITH_TRACY)

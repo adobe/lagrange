@@ -3657,6 +3657,26 @@ SurfaceMeshInfo from_surface_mesh(const SurfaceMesh<Scalar, Index>& mesh)
     return info;
 }
 
+namespace {
+
+// Copy possibly unaligned bytes directly into owned typed attribute storage.
+template <typename ValueType>
+void copy_attribute_bytes(Attribute<ValueType>& attr, span<const uint8_t> bytes, bool resize)
+{
+    if (bytes.empty()) return;
+    const size_t element_size = attr.get_num_channels() * sizeof(ValueType);
+    la_runtime_assert(bytes.size() % element_size == 0);
+    const size_t num_elements = bytes.size() / element_size;
+    if (resize) {
+        attr.resize_elements(num_elements);
+    } else {
+        la_runtime_assert(attr.get_num_elements() == num_elements);
+    }
+    std::memcpy(attr.ref_all().data(), bytes.data(), bytes.size());
+}
+
+} // namespace
+
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> to_surface_mesh(const SurfaceMeshInfo& info)
 {
@@ -3698,46 +3718,33 @@ SurfaceMesh<Scalar, Index> to_surface_mesh(const SurfaceMeshInfo& info)
 
         if (ai->is_indexed) {
             switch (value_type) {
-#define LA_X_restore_indexed(_, ValueType)                                                   \
-    case make_attribute_value_type<ValueType>(): {                                           \
-        la_runtime_assert(ai->values_bytes.size() % sizeof(ValueType) == 0);                 \
-        la_runtime_assert(ai->indices_bytes.size() % sizeof(Index) == 0);                    \
-        std::vector<ValueType> values(ai->values_bytes.size() / sizeof(ValueType));          \
-        std::vector<Index> indices(ai->indices_bytes.size() / sizeof(Index));                \
-        if (!values.empty()) {                                                               \
-            std::memcpy(values.data(), ai->values_bytes.data(), ai->values_bytes.size());    \
-        }                                                                                    \
-        if (!indices.empty()) {                                                              \
-            std::memcpy(indices.data(), ai->indices_bytes.data(), ai->indices_bytes.size()); \
-        }                                                                                    \
-        id = mesh.template create_attribute_internal<ValueType>(                             \
-            ai->name,                                                                        \
-            element,                                                                         \
-            usage,                                                                           \
-            ai->values_num_channels,                                                         \
-            span<const ValueType>(values.data(), values.size()),                             \
-            span<const Index>(indices.data(), indices.size()));                              \
-        break;                                                                               \
+#define LA_X_restore_indexed(_, ValueType)                                     \
+    case make_attribute_value_type<ValueType>(): {                             \
+        id = mesh.template create_attribute_internal<ValueType>(               \
+            ai->name,                                                          \
+            element,                                                           \
+            usage,                                                             \
+            ai->values_num_channels);                                          \
+        auto& attr = mesh.m_attributes->template write_indexed<ValueType>(id); \
+        copy_attribute_bytes(attr.values(), ai->values_bytes, true);           \
+        copy_attribute_bytes(attr.indices(), ai->indices_bytes, false);        \
+        break;                                                                 \
     }
                 LA_ATTRIBUTE_X(restore_indexed, 0)
 #undef LA_X_restore_indexed
             }
         } else {
             switch (value_type) {
-#define LA_X_restore_attr(_, ValueType)                                             \
-    case make_attribute_value_type<ValueType>(): {                                  \
-        la_runtime_assert(ai->data_bytes.size() % sizeof(ValueType) == 0);          \
-        std::vector<ValueType> data(ai->data_bytes.size() / sizeof(ValueType));     \
-        if (!data.empty()) {                                                        \
-            std::memcpy(data.data(), ai->data_bytes.data(), ai->data_bytes.size()); \
-        }                                                                           \
-        id = mesh.template create_attribute_internal<ValueType>(                    \
-            ai->name,                                                               \
-            element,                                                                \
-            usage,                                                                  \
-            ai->num_channels,                                                       \
-            span<const ValueType>(data.data(), data.size()));                       \
-        break;                                                                      \
+#define LA_X_restore_attr(_, ValueType)                                                 \
+    case make_attribute_value_type<ValueType>(): {                                      \
+        id = mesh.template create_attribute_internal<ValueType>(                        \
+            ai->name,                                                                   \
+            element,                                                                    \
+            usage,                                                                      \
+            ai->num_channels);                                                          \
+        auto& attr = mesh.m_attributes->template write<ValueType>(id);                  \
+        copy_attribute_bytes(attr, ai->data_bytes, element == AttributeElement::Value); \
+        break;                                                                          \
     }
                 LA_ATTRIBUTE_X(restore_attr, 0)
 #undef LA_X_restore_attr
