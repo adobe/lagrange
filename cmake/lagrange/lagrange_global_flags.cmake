@@ -35,7 +35,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
     set(LAGRANGE_GLOBAL_FLAGS
         /EHsc # Compatibility with Boost::hana
     )
-    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    lagrange_filter_compile_flags(LAGRANGE_GLOBAL_FLAGS)
     message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 else()
@@ -44,9 +44,27 @@ else()
         -fdiagnostics-color=always # GCC
         -fcolor-diagnostics # Clang
     )
-    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    lagrange_filter_compile_flags(LAGRANGE_GLOBAL_FLAGS)
     message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
+endif()
+
+if(LAGRANGE_USE_SPLIT_DEBUG_INFO)
+    include(lagrange_filter_flags)
+    set(LAGRANGE_SPLIT_DEBUG_FLAGS
+        -gsplit-dwarf
+        -gz=zstd
+    )
+    lagrange_filter_compile_flags(LAGRANGE_SPLIT_DEBUG_FLAGS)
+    message(STATUS "Adding split debug flags: ${LAGRANGE_SPLIT_DEBUG_FLAGS}")
+    add_compile_options(${LAGRANGE_SPLIT_DEBUG_FLAGS})
+
+    set(LAGRANGE_SPLIT_DEBUG_LINK_FLAGS
+        LINKER:--compress-debug-sections=zstd
+    )
+    lagrange_filter_link_flags(LAGRANGE_SPLIT_DEBUG_LINK_FLAGS)
+    message(STATUS "Adding split debug link flags: ${LAGRANGE_SPLIT_DEBUG_LINK_FLAGS}")
+    add_link_options(${LAGRANGE_SPLIT_DEBUG_LINK_FLAGS})
 endif()
 
 if(LAGRANGE_WITH_TRACY)
@@ -55,7 +73,7 @@ if(LAGRANGE_WITH_TRACY)
         "-fno-omit-frame-pointer"
         "-g"
     )
-    lagrange_filter_flags(LAGRANGE_GLOBAL_FLAGS)
+    lagrange_filter_compile_flags(LAGRANGE_GLOBAL_FLAGS)
     message(STATUS "Adding global flags: ${LAGRANGE_GLOBAL_FLAGS}")
     add_compile_options(${LAGRANGE_GLOBAL_FLAGS})
 endif()

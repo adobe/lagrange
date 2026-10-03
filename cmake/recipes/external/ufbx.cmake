@@ -32,6 +32,12 @@ target_include_directories(ufbx PUBLIC
 set_target_properties(ufbx PROPERTIES FOLDER third_party)
 set_target_properties(ufbx PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
+# Select UBSan-safe paths explicitly: GCC 13 has no UBSan detection macro.
+# https://github.com/ufbx/ufbx/issues/231
+if(USE_SANITIZER MATCHES "([Uu]ndefined)")
+    target_compile_definitions(ufbx PRIVATE UFBX_UBSAN)
+endif()
+
 # Install rules
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME ufbx)
 install(DIRECTORY ${ufbx_SOURCE_DIR} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})

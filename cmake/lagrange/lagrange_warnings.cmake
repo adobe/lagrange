@@ -60,7 +60,7 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
             "/permissive-"
         )
     endif()
-    lagrange_filter_flags(options)
+    lagrange_filter_compile_flags(options)
     target_compile_options(lagrange_warnings INTERFACE ${options})
 else()
     # For non-MSVC compilers, see
@@ -217,7 +217,7 @@ else()
         endif()
     endif()
 
-    lagrange_filter_flags(options)
+    lagrange_filter_compile_flags(options)
     target_compile_options(lagrange_warnings INTERFACE ${options})
 endif()
 

@@ -129,6 +129,14 @@ function(embree_import_target)
 
     unignore_package(TBB)
 
+    # Embree has several memory-intensive translation units. Limit their concurrency on
+    # Linux when the project's memory-aware parallelism policy is enabled.
+    if(LAGRANGE_LIMIT_GITHUB_ACTIONS_PARALLELISM
+        AND CMAKE_SYSTEM_NAME STREQUAL "Linux"
+        AND CMAKE_GENERATOR MATCHES "^Ninja")
+        set_property(TARGET embree PROPERTY JOB_POOL_COMPILE pool-heavy-compile)
+    endif()
+
     # Disable warnings
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
         # Embree's subgrid.h is known for causing array subscript out of bound
@@ -144,6 +152,26 @@ function(embree_import_target)
     if(CMAKE_CXX_COMPILER_ID IN_LIST unix_compilers) # IN_LIST wants the second arg to be a var
         target_compile_options(embree PRIVATE "-Wno-unused-private-field")
         target_compile_options(embree PRIVATE "-Wno-unused-but-set-variable")
+    endif()
+
+    # Suppress kernel dispatch function casts and AccelSet downcasts, not all UBSan checks.
+    # Keep exclusions private; GCC has no function-pointer sanitizer.
+    if(USE_SANITIZER MATCHES "([Uu]ndefined)")
+        foreach(target IN ITEMS
+            embree
+            embree_sse42
+            embree_avx
+            embree_avx2
+            embree_avx512
+            embree_apx
+        )
+            if(TARGET ${target})
+                target_compile_options(${target} PRIVATE
+                    $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-fno-sanitize=vptr>
+                    $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-fno-sanitize=function>
+                )
+            endif()
+        endforeach()
     endif()
 
     # Now we need to do some juggling to propagate the include directory properties
