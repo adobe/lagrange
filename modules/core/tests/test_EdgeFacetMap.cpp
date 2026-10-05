@@ -9,15 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
 
-#include <cmath>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
 
-#include <lagrange/Edge.h>
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/internal/constants.h>
+    #include <cmath>
+
+    #include <lagrange/Edge.h>
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/internal/constants.h>
 
 namespace {
 
@@ -185,3 +187,5 @@ TEST_CASE("EdgeFacetMap", "[EdgeFacetMap]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

@@ -21,12 +21,14 @@
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/extract_submesh.h>
+#include <lagrange/foreach_attribute.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/testing/create_test_mesh.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/views.h>
 
 #include <array>
+#include <numeric>
 
 namespace {
 
@@ -212,6 +214,16 @@ TEST_CASE("extract_submesh", "[core][utilities][submesh]")
             submesh,
             options.source_vertex_attr_name,
             options.source_facet_attr_name);
+    }
+
+    SECTION("Selected facet out of bound")
+    {
+        std::array<const Index, 1> selected_facets{mesh.get_num_facets()};
+        LA_REQUIRE_THROWS(
+            lagrange::extract_submesh(
+                mesh,
+                {selected_facets.data(), selected_facets.size()},
+                options));
     }
 }
 

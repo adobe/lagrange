@@ -14,13 +14,18 @@
 #include <catch2/catch_approx.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 
-#include <lagrange/Mesh.h>
 #include <lagrange/common.h>
 #include <lagrange/compute_area.h>
 #include <lagrange/compute_facet_area.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/mesh_convert.h>
 #include <lagrange/views.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/mesh_convert.h>
+#endif
+
+#include <Eigen/Geometry>
 
 TEST_CASE("compute_facet_area", "[core][area][surface]")
 {

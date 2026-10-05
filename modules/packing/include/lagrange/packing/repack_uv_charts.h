@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/packing/api.h>
+
 #include <lagrange/SurfaceMesh.h>
 
 #include <string_view>
@@ -53,6 +55,8 @@ struct RepackOptions
 /// @param[in]     options  The packing options.
 ///
 template <typename Scalar, typename Index>
-void repack_uv_charts(SurfaceMesh<Scalar, Index>& mesh, const RepackOptions& options = {});
+LA_PACKING_API void repack_uv_charts(
+    SurfaceMesh<Scalar, Index>& mesh,
+    const RepackOptions& options = {});
 
 } // namespace lagrange::packing

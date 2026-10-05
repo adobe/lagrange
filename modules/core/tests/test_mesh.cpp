@@ -9,13 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <string>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <Eigen/Core>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <string>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <Eigen/Core>
 
 
 TEST_CASE("MeshCreation", "[Mesh][Creation]")
@@ -317,3 +319,5 @@ TEST_CASE("ConnectivityInit_slow", "[Mesh][Connectivity]" LA_SLOW_FLAG LA_CORP_F
         REQUIRE(!mesh->is_vertex_manifold());
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

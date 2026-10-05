@@ -14,11 +14,14 @@
 
 #include <lagrange/common.h>
 #include <lagrange/compute_components.h>
-#include <lagrange/create_mesh.h>
 #include <lagrange/mesh_cleanup/resolve_nonmanifoldness.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/testing/check_mesh.h>
 #include <lagrange/topology.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/create_mesh.h>
+#endif
 
 TEST_CASE("resolve_nonmanifoldness", "[nonmanifold][surface][cleanup]")
 {

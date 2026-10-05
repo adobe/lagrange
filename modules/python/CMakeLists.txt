@@ -22,8 +22,7 @@ endif()
 # 1. define module
 include(nanobind)
 lagrange_find_package(TBB CONFIG REQUIRED)
-nanobind_add_module(lagrange_python NB_STATIC)
-set_target_properties(nanobind-static PROPERTIES FOLDER third_party)
+nanobind_add_module(lagrange_python BACKEND_MODULE nanobind_backend)
 add_library(lagrange::python ALIAS lagrange_python)
 set_target_properties(lagrange_python PROPERTIES
     FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange/Modules"
@@ -184,6 +183,7 @@ function(lagrange_generate_init_file)
 import sys
 
 from .lagrange.core import *
+from .lagrange.core import _ndebug
 from ._logging import logger
 from ._version import *
 
@@ -220,6 +220,7 @@ function(lagrange_generate_python_binding_module)
         # Explicit re-export (PEP 484) so type checkers treat `logger` as public.
         file(APPEND ${init_pyi_file} "from ._logging import logger as logger\n")
         file(APPEND ${init_pyi_file} "from .core import *\n")
+        file(APPEND ${init_pyi_file} "_ndebug: bool\n")
         file(APPEND ${init_pyi_file} "\n# Package variant identifier\nvariant: str\n")
 
         # Generate stubs for python binding within the install location.

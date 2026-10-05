@@ -12,14 +12,19 @@
 #include <lagrange/testing/common.h>
 #include <catch2/benchmark/catch_benchmark.hpp>
 
-#include <lagrange/Mesh.h>
+#include <lagrange/Attribute.h>
 #include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
+#include <lagrange/compute_edge_lengths.h>
 #include <lagrange/mesh_cleanup/remove_short_edges.h>
 #include <lagrange/mesh_cleanup/split_long_edges.h>
-#include <lagrange/mesh_convert.h>
 #include <lagrange/topology.h>
 #include <lagrange/views.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/mesh_convert.h>
+#endif
 
 TEST_CASE("remove_short_edges", "[surface][cleanup]")
 {

@@ -11,10 +11,8 @@
  */
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
-#include <lagrange/corner_to_edge_mapping.h>
 
-#include <lagrange/Logger.h>
-#include <lagrange/utils/assert.h>
+#include <lagrange/legacy/inline.h>
 #include <lagrange/utils/safe_cast.h>
 
 // clang-format off
@@ -31,7 +29,23 @@
 ////////////////////////////////////////////////////////////////////////////////
 
 namespace lagrange {
+LAGRANGE_LEGACY_INLINE
+namespace legacy {
 
+///
+/// Computes a mapping from mesh corners (k*f+i) to unique edge ids.
+///
+/// @param[in]  F         #F x k matrix of facet indices.
+/// @param[out] C2E       #F*k vector of unique edge ids per corner.
+///
+/// @tparam     DerivedF  Type of facet array.
+/// @tparam     DerivedC  Type of corner to edge vector.
+///
+/// @return     Number of unique edges created.
+///
+/// @deprecated This function operates on a raw facet matrix and predates SurfaceMesh. Use
+///             SurfaceMesh::initialize_edges() together with SurfaceMesh::get_corner_edge() instead.
+///
 template <typename DerivedF, typename DerivedC>
 Eigen::Index corner_to_edge_mapping(
     const Eigen::MatrixBase<DerivedF>& F,
@@ -88,4 +102,5 @@ Eigen::Index corner_to_edge_mapping(
     return num_edges;
 }
 
+} // namespace legacy
 } // namespace lagrange

@@ -23,7 +23,7 @@ namespace lagrange {
 namespace io {
 
 enum class FileEncoding { Binary, Ascii };
-enum class FileFormat { Obj, Ply, Gltf, Msh, Fbx, Stl, Unknown };
+enum class FileFormat { Obj, Ply, Gltf, Msh, Fbx, Stl, Pcd, Unknown };
 
 /**
  * Options used when saving a mesh or a scene.
@@ -121,6 +121,10 @@ struct LoadOptions
 
     /// Load external images
     bool load_images = true;
+
+    /// Load line elements (e.g. OBJ polylines). When present, they are added as 2-vertex facets
+    /// and a `line_id` facet attribute is created.
+    bool load_lines = true;
 
     /// Stitch duplicate boundary vertices together when loading file. When loading a glTF mesh with
     /// attributes, or when loading STL files, the loader will warn the users about unwelded

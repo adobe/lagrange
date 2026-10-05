@@ -22,7 +22,7 @@ lagrange_add_example(texture_filtering texture_filtering.cpp)
 target_link_libraries(texture_filtering lagrange::texproc CLI11::CLI11 lagrange::io lagrange::image_io)
 
 lagrange_add_example(texture_compositing texture_compositing.cpp)
-target_link_libraries(texture_compositing lagrange::texproc CLI11::CLI11 lagrange::io lagrange::image_io)
+target_link_libraries(texture_compositing lagrange::texproc CLI11::CLI11 lagrange::io lagrange::image_io lagrange::polyscope)
 
 lagrange_add_example(texture_rasterization texture_rasterization.cpp)
 target_link_libraries(texture_rasterization lagrange::texproc CLI11::CLI11 lagrange::io lagrange::image_io)

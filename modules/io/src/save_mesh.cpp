@@ -21,6 +21,7 @@
 #include <lagrange/io/save_mesh_gltf.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/io/save_mesh_obj.h>
+#include <lagrange/io/save_mesh_pcd.h>
 #include <lagrange/io/save_mesh_ply.h>
 
 #include <ostream>
@@ -39,6 +40,7 @@ void save_mesh(
     case FileFormat::Ply: save_mesh_ply(output_stream, mesh, options); break;
     case FileFormat::Msh: save_mesh_msh(output_stream, mesh, options); break;
     case FileFormat::Gltf: save_mesh_gltf(output_stream, mesh, options); break;
+    case FileFormat::Pcd: save_mesh_pcd(output_stream, mesh, options); break;
     default: la_runtime_assert(false, "Unrecognized file format!");
     }
 }
@@ -60,6 +62,8 @@ void save_mesh(
         save_mesh_msh(filename, mesh, options);
     } else if (ext == ".gltf" || ext == ".glb") {
         save_mesh_gltf(filename, mesh, options);
+    } else if (ext == ".pcd") {
+        save_mesh_pcd(filename, mesh, options);
     } else {
         la_runtime_assert(false, string_format("Unrecognized filetype: {}!", ext));
     }

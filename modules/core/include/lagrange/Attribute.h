@@ -533,7 +533,7 @@ public:
     [[nodiscard]] bool is_read_only() const { return m_is_read_only; }
 
     ///
-    /// Gets an entry for element @p i, at channel @p p. Note that due to internal checks, it is
+    /// Gets an entry for element @p i, at channel @p c. Note that due to internal checks, it is
     /// more efficient to first retrieve a span() of the whole buffer, then do access operations on
     /// this span inside a for loop.
     ///
@@ -545,7 +545,7 @@ public:
     ValueType get(size_t i, size_t c) const;
 
     ///
-    /// Gets a writable reference to the entry for element @p i, at channel @p p. Note that due to
+    /// Gets a writable reference to the entry for element @p i, at channel @p c. Note that due to
     /// internal checks, it is more efficient to first retrieve a span() of the whole buffer, then
     /// do access operations on this span inside a for loop.
     ///
@@ -568,7 +568,7 @@ public:
     ValueType get(size_t i) const;
 
     ///
-    /// Gets a writable reference to a scalar element @p i, at channel @p p. Note that due to
+    /// Gets a writable reference to a scalar element @p i. Note that due to
     /// internal checks, it is more efficient to first retrieve a span() of the whole buffer, then
     /// do access operations on this span inside a for loop.
     ///

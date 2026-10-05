@@ -10,13 +10,144 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
+#include <lagrange/Attribute.h>
 #include <lagrange/mesh_cleanup/remove_isolated_vertices.h>
-#include <lagrange/utils/range.h>
+
+#include <vector>
+
+TEST_CASE("remove_isolated_vertices", "[surface_mesh][mesh_cleanup]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SECTION("No isolated vertices")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 1, 3);
+
+        remove_isolated_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 4);
+        REQUIRE(mesh.get_num_facets() == 2);
+    }
+
+    SECTION("Single isolated vertex")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1}); // isolated
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 1, 0);
+
+        remove_isolated_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_facets() == 2);
+    }
+
+    SECTION("Multiple isolated vertices")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1}); // isolated
+        mesh.add_vertex({1, 1, 1}); // isolated
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 1, 0);
+
+        remove_isolated_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_facets() == 2);
+    }
+
+    SECTION("All vertices are isolated")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+
+        remove_isolated_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 0);
+        REQUIRE(mesh.get_num_facets() == 0);
+    }
+
+    SECTION("Vertex attributes")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0}); // isolated
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_triangle(1, 3, 2);
+        mesh.add_triangle(2, 3, 1);
+
+        std::vector<Index> vertex_index{0, 1, 2, 3};
+        mesh.template create_attribute<Index>(
+            "index",
+            AttributeElement::Vertex,
+            1,
+            AttributeUsage::Scalar,
+            {vertex_index.data(), vertex_index.size()});
+
+        remove_isolated_vertices(mesh);
+        REQUIRE(mesh.get_num_vertices() == 3);
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.has_attribute("index"));
+
+        auto index = mesh.template get_attribute<Index>("index").get_all();
+        REQUIRE(index.size() == 3);
+        // Vertex 0 was removed; remove_vertices preserves the order of survivors.
+        REQUIRE(index[0] == 1);
+        REQUIRE(index[1] == 2);
+        REQUIRE(index[2] == 3);
+    }
+
+    SECTION("Facet attributes")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0}); // isolated
+        mesh.add_vertex({1, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_vertex({0, 0, 1});
+        mesh.add_triangle(1, 3, 2);
+        mesh.add_triangle(2, 3, 1);
+
+        std::vector<Index> facet_index{10, 20};
+        mesh.template create_attribute<Index>(
+            "index",
+            AttributeElement::Facet,
+            1,
+            AttributeUsage::Scalar,
+            {facet_index.data(), facet_index.size()});
+
+        remove_isolated_vertices(mesh);
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.has_attribute("index"));
+
+        auto index = mesh.template get_attribute<Index>("index").get_all();
+        REQUIRE(index.size() == 2);
+        REQUIRE(index[0] == 10);
+        REQUIRE(index[1] == 20);
+    }
+}
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <catch2/catch_approx.hpp>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/utils/range.h>
 
 TEST_CASE("RemoveIsolatedVertices", "[isolated_vertices][cleanup]")
 {
@@ -145,3 +276,5 @@ TEST_CASE("RemoveIsolatedVertices", "[isolated_vertices][cleanup]")
         REQUIRE((index - attr2).norm() == Catch::Approx(0.0));
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

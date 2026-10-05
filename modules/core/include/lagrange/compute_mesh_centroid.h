@@ -12,7 +12,7 @@
 
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Replaced by compute_centroid.h.
     #include <lagrange/legacy/compute_mesh_centroid.h>
 #endif

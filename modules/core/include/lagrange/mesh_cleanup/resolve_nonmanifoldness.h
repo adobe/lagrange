@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/mesh_cleanup/legacy/resolve_nonmanifoldness.h>
 #endif
 

@@ -72,6 +72,33 @@ TEST_CASE("io/obj empty", "[io][obj]")
     testing::ensure_approx_equivalent_mesh(mesh, mesh2);
 }
 
+TEST_CASE("load_obj_point_cloud", "[io][obj]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    Scalar normal_data[] = {0, 0, 1};
+    mesh.create_attribute<Scalar>(
+        AttributeName::normal,
+        AttributeElement::Vertex,
+        AttributeUsage::Normal,
+        3,
+        {normal_data, 3});
+
+    std::stringstream data;
+    REQUIRE_NOTHROW(io::save_mesh_obj(data, mesh));
+
+    io::LoadOptions options;
+    options.stitch_vertices = true;
+    auto mesh2 = io::load_mesh_obj<SurfaceMesh<Scalar, Index>>(data, options);
+    REQUIRE(mesh2.get_num_vertices() == 1);
+    REQUIRE(mesh2.get_num_facets() == 0);
+    REQUIRE(mesh2.has_attribute(AttributeName::normal));
+}
+
 TEST_CASE("io/obj simple_scene", "[io][obj]")
 {
     using namespace lagrange;
@@ -529,6 +556,24 @@ l 8 9
         auto seg2 = mesh.get_facet_vertices(4);
         REQUIRE(seg2[0] == 7);
         REQUIRE(seg2[1] == 8);
+    }
+
+    SECTION("load_lines=false skips line elements")
+    {
+        std::istringstream input(obj_data);
+        io::LoadOptions load_options;
+        load_options.load_lines = false;
+        auto mesh = io::load_mesh_obj<MeshType>(input, load_options);
+        testing::check_mesh(mesh);
+
+        // Only the 2 face facets remain; the 3 line segments are skipped
+        REQUIRE(mesh.get_num_vertices() == 9);
+        REQUIRE(mesh.get_num_facets() == 2);
+        REQUIRE(mesh.get_facet_size(0) == 3);
+        REQUIRE(mesh.get_facet_size(1) == 3);
+
+        // No line_id attribute is created when lines are not loaded
+        REQUIRE_FALSE(mesh.has_attribute(AttributeName::line_id));
     }
 
     SECTION("roundtrip preserves polylines")

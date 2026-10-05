@@ -42,7 +42,7 @@ protected:
     void sink_it_(const spdlog::details::log_msg& msg) override
     {
         // Logging in python requires the current thread to hold the GIL.
-        if (!PyGILState_Check()) return;
+        if (!NB_CALL(gil_check)()) return;
 
         auto payload = msg.payload;
         auto res = nb::str(payload.data(), payload.size());
@@ -62,7 +62,7 @@ protected:
     void flush_() override
     {
         // Logging in python requires the current thread to hold the GIL.
-        if (!PyGILState_Check()) return;
+        if (!NB_CALL(gil_check)()) return;
 
         auto handlers = m_py_logger.attr("handlers");
         for (auto handler : handlers) {

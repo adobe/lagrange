@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
 
-#include <lagrange/combine_mesh_list.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
+
+    #include <lagrange/combine_mesh_list.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
 
 TEST_CASE("combine_mesh_list", "[mesh][combine]")
 {
@@ -186,3 +188,5 @@ TEST_CASE("combine_mesh_list", "[mesh][combine]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

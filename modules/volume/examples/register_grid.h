@@ -30,11 +30,12 @@
 
 using FloatGrid = lagrange::volume::Grid<float>;
 
-void register_grid(std::string_view name, const FloatGrid& grid)
+void register_grid(std::string_view name, const FloatGrid& grid, bool isocontour = false)
 {
-    auto bbox_index = grid.evalActiveVoxelBoundingBox();
+    const auto bbox_index = grid.evalActiveVoxelBoundingBox();
     la_runtime_assert(!bbox_index.empty(), "Grid has no active voxels.");
-    auto bbox_world = grid.transform().indexToWorld(bbox_index);
+    const auto bbox_world = grid.transform().indexToWorld(bbox_index);
+    const auto voxel_size = grid.transform().voxelSize();
 
     uint32_t dimX = bbox_index.dim().x();
     uint32_t dimY = bbox_index.dim().y();
@@ -78,14 +79,16 @@ void register_grid(std::string_view name, const FloatGrid& grid)
             }
         }
     });
-    lagrange::logger().info(
-        "Registered {} voxels. Min corner: {}, {}, {}",
-        num_voxels,
-        bbox_min.x,
-        bbox_min.y,
-        bbox_min.z);
+    lagrange::logger().debug("num_voxels {}", num_voxels);
+    lagrange::logger().debug("bbox_low {} {} {}", bbox_min.x, bbox_min.y, bbox_min.z);
+    lagrange::logger().debug("bbox_high {} {} {}", bbox_max.x, bbox_max.y, bbox_max.z);
+    lagrange::logger().debug("voxel_size {} {} {}", voxel_size.x(), voxel_size.y(), voxel_size.z());
 
     polyscope::VolumeGridNodeScalarQuantity* ps_scalars =
         ps_grid->addNodeScalarQuantity("values", std::make_tuple(values.data(), num_voxels));
     ps_scalars->setEnabled(true);
+    if (isocontour) {
+        ps_scalars->setIsosurfaceVizEnabled(true);
+        ps_scalars->setGridcubeVizEnabled(false);
+    }
 }

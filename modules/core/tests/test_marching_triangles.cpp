@@ -10,19 +10,21 @@
  * governing permissions and limitations under the License.
  */
 
-#include <string>
-#include <vector>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
+    #include <string>
+    #include <vector>
 
-#include <lagrange/create_mesh.h>
-#include <lagrange/internal/constants.h>
-#include <lagrange/io/save_mesh.h>
-#include <lagrange/marching_triangles.h>
-#include <lagrange/utils/range.h>
-#include <lagrange/utils/safe_cast.h>
-#include <lagrange/utils/warning.h>
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
+
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/internal/constants.h>
+    #include <lagrange/io/save_mesh.h>
+    #include <lagrange/marching_triangles.h>
+    #include <lagrange/utils/range.h>
+    #include <lagrange/utils/safe_cast.h>
+    #include <lagrange/utils/warning.h>
 
 namespace {
 
@@ -287,3 +289,5 @@ TEST_CASE("MarchingTriangles_PerimeterOfEllipse", "[marching_triangles]")
         io::save_mesh("isovalues_mesh.vtk", *mesh);
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

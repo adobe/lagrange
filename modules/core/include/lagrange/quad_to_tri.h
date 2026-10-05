@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Please consider using `triangulate_polygoanl_facets`.
     #include <lagrange/legacy/quad_to_tri.h>
 #endif

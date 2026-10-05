@@ -25,6 +25,8 @@ std::optional<std::vector<Index>> compute_dijkstra_distance(
     SurfaceMesh<Scalar, Index>& mesh,
     const DijkstraDistanceOptions<Scalar, Index>& options)
 {
+    la_runtime_assert(options.seed_facet < mesh.get_num_facets(), "seed_facet is out of bound");
+
     const auto dist_attr_id = internal::find_or_create_attribute<Scalar>(
         mesh,
         options.output_attribute_name,

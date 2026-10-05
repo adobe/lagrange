@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/compute_vertex_valence.h>
+#include <lagrange/utils/range.h>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>

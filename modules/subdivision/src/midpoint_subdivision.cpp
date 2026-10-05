@@ -11,6 +11,7 @@
  */
 #include <lagrange/subdivision/api.h>
 #include <lagrange/subdivision/midpoint_subdivision.h>
+#include <lagrange/utils/assert.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/eigen_convert.h>

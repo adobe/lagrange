@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
@@ -30,7 +32,7 @@ namespace lagrange::io {
  * @return     Loaded mesh.
  */
 template <typename MeshType>
-MeshType load_mesh_obj(std::istream& input_stream_obj, const LoadOptions& options = {});
+LA_IO_API MeshType load_mesh_obj(std::istream& input_stream_obj, const LoadOptions& options = {});
 
 /**
  * Loads a mesh from a file in MSH format.
@@ -43,6 +45,6 @@ MeshType load_mesh_obj(std::istream& input_stream_obj, const LoadOptions& option
  * @return     Loaded mesh.
  */
 template <typename MeshType>
-MeshType load_mesh_obj(const fs::path& filename, const LoadOptions& options = {});
+LA_IO_API MeshType load_mesh_obj(const fs::path& filename, const LoadOptions& options = {});
 
 } // namespace lagrange::io

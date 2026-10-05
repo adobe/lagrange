@@ -11,6 +11,6 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/legacy/chain_edges_into_simple_loops.h>
 #endif

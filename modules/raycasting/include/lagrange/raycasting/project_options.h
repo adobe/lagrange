@@ -12,6 +12,6 @@
 #pragma once
 
 // Deprecated: include <lagrange/raycasting/Options.h> instead.
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/raycasting/Options.h>
 #endif

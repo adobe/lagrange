@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/isoline.h>
+#include <lagrange/utils/invalid.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/foreach_attribute.h>

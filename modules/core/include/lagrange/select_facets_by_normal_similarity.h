@@ -11,11 +11,16 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/legacy/select_facets_by_normal_similarity.h>
 #endif
+
+#include <lagrange/AttributeFwd.h>
+#include <lagrange/SurfaceMesh.h>
+
 #include <limits> // needed in options
 #include <optional> // needed in options
+#include <string_view> // needed in options
 
 namespace lagrange {
 
@@ -77,7 +82,8 @@ struct SelectFacetsByNormalSimilarityOptions
  *
  * @param[in, out] mesh           The input mesh.
  * @param[in]      seed_facet_id  The index of the seed facet
- * @param[in]      options        Optional arguments (greedy, output_attribute_name).
+ * @param[in]      options        Optional arguments (flood_error_limit, search_type,
+ * output_attribute_name, etc.).
  *
  * @tparam         Scalar         Mesh scalar type.
  * @tparam         Index          Mesh index type.
@@ -88,7 +94,7 @@ struct SelectFacetsByNormalSimilarityOptions
  * @note           Currently only support triangular mesh and will throw error if
  *                 mesh.is_triangle_mesh() is false! The function will check if the mesh contains
  *                 facet normal by looking for options.facet_normal_attribute_name, and if not
- *                 found, will call compute_facet_normal(meshm,
+ *                 found, will call compute_facet_normal(mesh,
  *                 options.facet_normal_attribute_name).
  *
  * @see            @ref SelectFacetsByNormalSimilarityOptions

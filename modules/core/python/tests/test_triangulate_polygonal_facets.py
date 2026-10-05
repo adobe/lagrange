@@ -48,9 +48,9 @@ class TestTriangulatePolygonalFacets:
         normal_indices = normal_attr.indices
         assert normal_indices.num_elements == mesh.num_corners
 
-    @pytest.mark.parametrize("scheme", ["earcut", "centroid_fan"])
+    @pytest.mark.parametrize("scheme", ["earcut", "centroid_fan", "delaunay"])
     def test_selected_facets_bool_mask(self, cube, scheme):
-        # Both schemes honor `selected_facets`, including for quads. Triangulate only two of the
+        # All schemes honor `selected_facets`, including for quads. Triangulate only two of the
         # six cube (quad) facets and check the other four survive as quads.
         mesh = cube
         mask = np.zeros(mesh.num_facets, dtype=bool)
@@ -61,8 +61,8 @@ class TestTriangulatePolygonalFacets:
 
         sizes = sorted(mesh.get_facet_size(f) for f in range(mesh.num_facets))
         assert sizes.count(4) == 4  # four untouched quads
-        # A quad becomes 2 triangles (earcut) or 4 triangles via a centroid fan (centroid_fan).
-        expected_triangles = {"earcut": 4, "centroid_fan": 8}[scheme]
+        # A quad becomes 2 triangles (earcut / delaunay) or 4 triangles via a centroid fan.
+        expected_triangles = {"earcut": 4, "delaunay": 4, "centroid_fan": 8}[scheme]
         assert sizes.count(3) == expected_triangles
 
     def test_selected_facets_inputs_are_equivalent(self, cube):
@@ -113,6 +113,64 @@ class TestTriangulatePolygonalFacets:
         mesh = cube
         with pytest.raises(RuntimeError):
             lagrange.triangulate_polygonal_facets(mesh, "centroid_fan", [mesh.num_facets])
+
+    def test_cube_delaunay(self, cube):
+        mesh = cube
+        area = lagrange.compute_mesh_area(mesh)
+
+        # Update growth policy to allow copy.
+        mesh.attribute(
+            mesh.attr_id_corner_to_vertex
+        ).growth_policy = lagrange.AttributeGrowthPolicy.WarnAndCopy
+
+        lagrange.triangulate_polygonal_facets(mesh, "delaunay")
+        # Delaunay is earcut + edge flips: no new vertices, each quad -> 2 triangles.
+        assert mesh.num_vertices == 8
+        assert mesh.num_facets == 12
+        assert all(mesh.get_facet_size(f) == 3 for f in range(mesh.num_facets))
+        assert lagrange.compute_mesh_area(mesh) == pytest.approx(area, rel=1e-5)
+
+    def test_delaunay_refines_polygon_sliver(self):
+        # A near-triangle 8-gon: edge A--B is subdivided by points on a shallow convex arc bulging
+        # away from apex C, so each interior point is a thin convex ear. Plain earcut clips these
+        # into sliver triangles; the delaunay scheme flips them away. A polygon with more than four
+        # vertices is required here because quads bypass `mapbox::refine`.
+        A = np.array([0.0, 0.0, 0.0])
+        B = np.array([1.0, 0.0, 0.0])
+        C = np.array([0.5, 1.0, 0.0])
+        n = 6
+        pts = [A]
+        for i in range(1, n):
+            t = i / n
+            pts.append(np.array([t, -1e-5 * t * (1.0 - t), 0.0]))
+        pts += [B, C]
+        pts = np.array(pts)
+
+        def triangulate(scheme):
+            mesh = lagrange.SurfaceMesh()
+            mesh.vertices = pts
+            mesh.add_polygon(np.arange(len(pts), dtype=np.uint32))
+            lagrange.triangulate_polygonal_facets(mesh, scheme)
+            assert mesh.num_vertices == len(pts)  # no new vertices
+            assert mesh.num_facets == n  # (n + 2)-gon -> n triangles
+            v = mesh.vertices
+            areas = [
+                0.5 * np.linalg.norm(np.cross(v[b] - v[a], v[c] - v[a])) for a, b, c in mesh.facets
+            ]
+            return min(areas), sorted(tuple(sorted(t)) for t in mesh.facets)
+
+        earcut_min, earcut_tris = triangulate("earcut")
+        delaunay_min, delaunay_tris = triangulate("delaunay")
+
+        # The two schemes must differ (guards against "delaunay" silently mapping to earcut), and
+        # delaunay's smallest triangle must be far larger than earcut's near-degenerate sliver.
+        assert earcut_tris != delaunay_tris
+        assert earcut_min < 1e-6
+        assert delaunay_min > 1e-3
+
+    def test_unsupported_scheme(self, cube):
+        with pytest.raises(RuntimeError):
+            lagrange.triangulate_polygonal_facets(cube, "not_a_scheme")
 
     def test_cube_with_attribute_centroid_fan(self, cube):
         mesh = cube

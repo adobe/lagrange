@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #define LAGRANGE_LEGACY_INLINE inline
 #else
     #define LAGRANGE_LEGACY_INLINE

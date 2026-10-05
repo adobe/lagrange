@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/Logger.h>
 #include <lagrange/raycasting/compute_local_feature_size.h>
 
 #include "closest_vertex_from_barycentric.h"

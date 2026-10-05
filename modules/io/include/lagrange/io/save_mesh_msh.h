@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
@@ -31,7 +33,7 @@ namespace lagrange::io {
  * @tparam        Index          Mesh index type.
  */
 template <typename Scalar, typename Index>
-void save_mesh_msh(
+LA_IO_API void save_mesh_msh(
     std::ostream& output_stream,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
@@ -52,7 +54,7 @@ void save_mesh_msh(
  * @tparam     Index     Mesh index type.
  */
 template <typename Scalar, typename Index>
-void save_mesh_msh(
+LA_IO_API void save_mesh_msh(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});

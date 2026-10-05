@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/select_facets_in_frustum.h>
+#include <lagrange/utils/assert.h>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>

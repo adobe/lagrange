@@ -24,6 +24,8 @@
 
 #include <catch2/benchmark/catch_benchmark.hpp>
 
+#include <numeric>
+
 TEST_CASE("weld_indexed_attribute", "[core][attribute][surface]")
 {
     using namespace lagrange;

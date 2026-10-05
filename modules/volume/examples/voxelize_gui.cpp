@@ -27,6 +27,15 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
+#ifdef NANOVDB_ENABLED
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <nanovdb/tools/NanoToOpenVDB.h>
+#include <nanovdb/io/IO.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
+#endif
+
 #include <imgui_spectrum.h>
 
 #include <CLI/CLI.hpp>
@@ -77,12 +86,12 @@ int main(int argc, char** argv)
     CLI11_PARSE(app, argc, argv)
 
     spdlog::set_level(spdlog::level::debug);
+    openvdb::initialize();
 
     auto grid = [&]() -> FloatGrid::Ptr {
         const auto& path = args.input;
         if (path.extension() == ".vdb") {
             lagrange::logger().info("Loading volume from OpenVDB grid: {}", path.string());
-            openvdb::initialize();
             openvdb::io::File file(path.string());
             file.open();
             auto grids_ptr = file.getGrids();
@@ -100,6 +109,14 @@ int main(int argc, char** argv)
             const std::string& name = grid_ptr->getName();
             lagrange::logger().info("Using grid: {}", name);
             return openvdb::gridPtrCast<FloatGrid>(grid_ptr);
+        } else if (path.extension() == ".nvdb") {
+#ifdef NANOVDB_ENABLED
+            auto handle = nanovdb::io::readGrid(path.string());
+            auto grid_ptr = nanovdb::tools::nanoToOpenVDB(handle);
+            return openvdb::gridPtrCast<FloatGrid>(grid_ptr);
+#else
+            throw lagrange::Error("NanoVDB support is not enabled in this build.");
+#endif
         } else {
             lagrange::logger().info("Loading input mesh: {}", path.string());
             auto mesh = lagrange::io::load_mesh<lagrange::SurfaceMesh32f>(path);

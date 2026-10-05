@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/utils/assert.h>
 #include "internal/extract_submeshes_by_group.h"
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/separate_by_facet_groups.h>
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <vector>
 
@@ -30,9 +32,11 @@ std::vector<SurfaceMesh<Scalar, Index>> separate_by_facet_groups(
     const Index num_facets = mesh.get_num_facets();
     if (num_facets == 0) return {};
     la_runtime_assert(static_cast<Index>(facet_group_indices.size()) == num_facets);
+    la_runtime_assert(num_groups < std::numeric_limits<size_t>::max(), "num_groups is too large");
     std::vector<Index> facet_indices(num_facets);
     std::vector<Index> group_offsets(num_groups + 1, 0);
     for (auto i : facet_group_indices) {
+        la_runtime_assert(static_cast<size_t>(i) < num_groups, "facet group index is out of bound");
         group_offsets[i + 1]++;
     }
     std::partial_sum(group_offsets.begin(), group_offsets.end(), group_offsets.begin());

@@ -22,7 +22,6 @@
 #include <lagrange/compute_uv_orientation.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/map_attribute.h>
-#include <lagrange/solver/DirectSolver.h>
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/fmt_eigen.h>
@@ -50,22 +49,19 @@ using namespace lagrange::texproc::threadpool;
 
 namespace lagrange::texproc {
 
-namespace {
-
-using namespace MishaK;
-
 // Using `Point` directly leads to ambiguity with Apple Accelerate types.
 template <typename T, unsigned N>
 using Vector = MishaK::Point<T, N>;
+
+namespace {
+
+using namespace MishaK;
 
 // The dimension of the embedding space
 static const unsigned int Dim = 3;
 
 // The dimension of the manifold
 static const unsigned int K = 2;
-
-// The linear solver
-using Solver = lagrange::solver::SolverLDLT<Eigen::SparseMatrix<double>>;
 
 } // namespace
 

@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #ifdef LAGRANGE_WITH_ASSIMP
 
     #include <lagrange/fs/filesystem.h>
@@ -30,7 +32,8 @@ namespace lagrange::io {
  * @return loaded scene
  */
 template <typename SceneType>
-SceneType load_simple_scene_assimp(const fs::path& filename, const LoadOptions& options = {});
+LA_IO_API SceneType
+load_simple_scene_assimp(const fs::path& filename, const LoadOptions& options = {});
 
 /**
  * Load a simple scene using assimp.
@@ -41,7 +44,8 @@ SceneType load_simple_scene_assimp(const fs::path& filename, const LoadOptions& 
  * @return loaded scene
  */
 template <typename SceneType>
-SceneType load_simple_scene_assimp(std::istream& input_stream, const LoadOptions& options = {});
+LA_IO_API SceneType
+load_simple_scene_assimp(std::istream& input_stream, const LoadOptions& options = {});
 
 } // namespace lagrange::io
 

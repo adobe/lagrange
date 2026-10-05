@@ -20,12 +20,16 @@ option(CLIPPER2_EXAMPLES "Build examples" OFF)
 option(CLIPPER2_TESTS "Build tests" OFF)
 
 include(CPM)
-CPMAddPackage(
-    NAME clipper2
-    GITHUB_REPOSITORY AngusJohnson/Clipper2
-    GIT_TAG Clipper2_1.4.0
-    SOURCE_SUBDIR CPP
-)
+block()
+    set(BUILD_SHARED_LIBS OFF)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+    CPMAddPackage(
+        NAME clipper2
+        GITHUB_REPOSITORY AngusJohnson/Clipper2
+        GIT_TAG Clipper2_1.4.0
+        SOURCE_SUBDIR CPP
+    )
+endblock()
 
 add_library(Clipper2::Clipper2 ALIAS Clipper2)
 

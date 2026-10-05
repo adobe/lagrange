@@ -12,7 +12,7 @@
 
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Replaced by compute_area.h.
     #include <lagrange/legacy/compute_facet_area.h>
 #endif

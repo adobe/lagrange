@@ -12,6 +12,7 @@
 #include <lagrange/testing/common.h>
 #include <cmath>
 
+#include <lagrange/Attribute.h>
 #include <lagrange/mesh_convert.h>
 #include <lagrange/select_facets_in_frustum.h>
 

@@ -14,6 +14,7 @@
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_vertex_normal.h>
 #include <lagrange/compute_weighted_corner_normal.h>
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/save_mesh_msh.h>
@@ -28,6 +29,36 @@
 #include <limits>
 #include <sstream>
 
+TEST_CASE("load_msh_point_cloud", "[mesh][io][msh]")
+{
+#if !LAGRANGE_TARGET_OS(WASM)
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    Scalar normal_data[] = {0, 0, 1};
+    mesh.create_attribute<Scalar>(
+        "normal",
+        AttributeElement::Vertex,
+        AttributeUsage::Normal,
+        3,
+        {normal_data, 3});
+
+    std::stringstream data;
+    io::SaveOptions save_options;
+    save_options.encoding = io::FileEncoding::Ascii;
+    REQUIRE_NOTHROW(io::save_mesh_msh(data, mesh, save_options));
+
+    io::LoadOptions load_options;
+    load_options.stitch_vertices = true;
+    auto mesh2 = io::load_mesh_msh<SurfaceMesh<Scalar, Index>>(data, load_options);
+    REQUIRE(mesh2.get_num_vertices() == 1);
+    REQUIRE(mesh2.get_num_facets() == 0);
+    REQUIRE(find_matching_attribute(mesh2, AttributeUsage::Normal).has_value());
+#endif
+}
 
 TEST_CASE("io/msh", "[mesh][io][msh]")
 {

@@ -14,7 +14,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #pragma message( \
         "This header is deprecated. Use `trim_by_isoline` or `extract_isoline` from `<lagrange/isoline.h>` instead.")
     #include <lagrange/legacy/marching_triangles.h>

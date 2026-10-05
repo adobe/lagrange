@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/legacy/normalize_meshes.h>
 #endif
 

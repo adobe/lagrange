@@ -9,13 +9,19 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/Mesh.h>
+
 #include <lagrange/common.h>
 #include <lagrange/internal/constants.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/utils/range.h>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/Mesh.h>
+#endif
+
 #include <Eigen/Core>
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 TEST_CASE("INVALID", "")
 {
     using namespace lagrange;
@@ -31,6 +37,7 @@ TEST_CASE("INVALID", "")
                                                                      // different INVALID values.
     REQUIRE(std::is_arithmetic<Index>::value);
 }
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
 TEST_CASE("MoveData", "[common][eigen]")
 {

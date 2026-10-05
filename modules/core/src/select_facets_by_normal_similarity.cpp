@@ -11,6 +11,9 @@
  */
 
 #include <lagrange/select_facets_by_normal_similarity.h>
+#include <Eigen/Geometry>
+#include <deque>
+#include <string_view>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/Attributes.h>
@@ -36,6 +39,7 @@ AttributeId select_facets_by_normal_similarity(
     using Vector3D = typename Eigen::Vector3<Scalar>;
 
     const Index num_facets = mesh.get_num_facets();
+    la_runtime_assert(seed_facet_id < num_facets, "seed_facet_id is out of bound");
     const Scalar flood_error_limit = static_cast<Scalar>(options.flood_error_limit);
     const Scalar flood_second_to_first_order_limit_ratio =
         static_cast<Scalar>(options.flood_second_to_first_order_limit_ratio);

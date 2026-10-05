@@ -70,6 +70,41 @@ TEST_CASE("voxelization: winding number", "[volume]")
     REQUIRE(mesh3.get_num_facets() > mesh2.get_num_facets());
 }
 
+TEST_CASE("mesh_to_volume: configurable narrow band", "[volume]")
+{
+    auto mesh = lagrange::to_surface_mesh_copy<float, uint32_t>(*lagrange::create_cube());
+
+    lagrange::volume::MeshToVolumeOptions options;
+    options.voxel_size = 0.1;
+    const auto narrow = lagrange::volume::mesh_to_volume(mesh, options);
+
+    SECTION("wide exterior")
+    {
+        options.exterior_bandwidth = 8.0f;
+        const auto wide = lagrange::volume::mesh_to_volume(mesh, options);
+
+        const auto narrow_bbox = narrow->evalActiveVoxelBoundingBox();
+        const auto wide_bbox = wide->evalActiveVoxelBoundingBox();
+        REQUIRE(wide->activeVoxelCount() > narrow->activeVoxelCount());
+        REQUIRE(
+            wide_bbox.max().z() - wide_bbox.min().z() >
+            narrow_bbox.max().z() - narrow_bbox.min().z());
+    }
+
+    SECTION("wide interior")
+    {
+        options.interior_bandwidth = 8.0f;
+        const auto wide = lagrange::volume::mesh_to_volume(mesh, options);
+
+        REQUIRE(wide->activeVoxelCount() > narrow->activeVoxelCount());
+        const openvdb::Vec3d world_position(0.5, 0, 0);
+        const auto coord = openvdb::Coord::round(wide->worldToIndex(world_position));
+        REQUIRE_FALSE(narrow->getConstAccessor().isValueOn(coord));
+        REQUIRE(wide->getConstAccessor().isValueOn(coord));
+        REQUIRE(wide->getConstAccessor().getValue(coord) < 0);
+    }
+}
+
 TEST_CASE("mesh_to_volume: edge facets", "[volume]")
 {
     using Scalar = float;

@@ -10,7 +10,10 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/Mesh.h>
+// The legacy Mesh<> class depends on legacy-only types (e.g. MeshTopology).
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+    #include <lagrange/Mesh.h>
 
 namespace lagrange {
 
@@ -24,3 +27,5 @@ template class Mesh<Vertices3Df, Quads>;
 template class Mesh<Vertices2Df, Quads>;
 
 } // namespace lagrange
+
+#endif

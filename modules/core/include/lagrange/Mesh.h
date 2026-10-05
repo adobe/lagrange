@@ -873,7 +873,7 @@ public:
     /// Applies a function to each corner around a prescribed vertex.
     ///
     /// @param[in]  v     Queried vertex index.
-    /// @param[in]  func  Callback to apply to each incident facet.
+    /// @param[in]  func  Callback to apply to each incident corner.
     ///
     /// @tparam     Func  A callable function of type Index -> void.
     ///
@@ -888,7 +888,7 @@ public:
     /// Applies a function to each corner around a prescribed edge.
     ///
     /// @param[in]  e     Queried edge index.
-    /// @param[in]  func  Callback to apply to each incident facet.
+    /// @param[in]  func  Callback to apply to each incident corner.
     ///
     /// @tparam     Func  A callable function of type Index -> void.
     ///

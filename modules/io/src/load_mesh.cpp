@@ -19,6 +19,7 @@
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/load_mesh_obj.h>
+#include <lagrange/io/load_mesh_pcd.h>
 #include <lagrange/io/load_mesh_ply.h>
 #include <lagrange/io/load_mesh_stl.h>
 #include <lagrange/serialization/serialize_mesh.h>
@@ -45,6 +46,7 @@ MeshType load_mesh(std::istream& input_stream, const LoadOptions& options)
     case FileFormat::Obj: return load_mesh_obj<MeshType>(input_stream, options);
     case FileFormat::Fbx: return load_mesh_fbx<MeshType>(input_stream, options);
     case FileFormat::Stl: return load_mesh_stl<MeshType>(input_stream, options);
+    case FileFormat::Pcd: return load_mesh_pcd<MeshType>(input_stream, options);
     default:
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_mesh_assimp<MeshType>(input_stream, options);
@@ -83,6 +85,8 @@ MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
         return load_mesh_fbx<MeshType>(filename, options);
     } else if (ext == ".stl") {
         return load_mesh_stl<MeshType>(filename, options);
+    } else if (ext == ".pcd") {
+        return load_mesh_pcd<MeshType>(filename, options);
     } else {
 #ifdef LAGRANGE_WITH_ASSIMP
         return load_mesh_assimp<MeshType>(filename, options);

@@ -13,11 +13,12 @@
 
 #include <lagrange/common.h>
 #include <lagrange/image/ImageView.h>
+#include <lagrange/image/api.h>
 
 namespace lagrange {
 namespace image {
 
-float image_standard_deviation(const image::ImageView<float>& image);
+LA_IMAGE_API float image_standard_deviation(const image::ImageView<float>& image);
 
 /**
  * Converts a depth image to a disparity image.
@@ -42,7 +43,7 @@ float image_standard_deviation(const image::ImageView<float>& image);
  * @note If the depth at a pixel is zero or negative, the disparity at that pixel will be set to
  * zero. Depending on your application, you may want to handle this situation differently.
  */
-void depth_to_disparity(
+LA_IMAGE_API void depth_to_disparity(
     const image::ImageView<float>& image,
     float vfov,
     image::ImageView<float>& result);
@@ -55,7 +56,9 @@ void depth_to_disparity(
  * @param image input image
  * @param result output image
  */
-void normalize_max_image(const image::ImageView<float>& image, image::ImageView<float>& result);
+LA_IMAGE_API void normalize_max_image(
+    const image::ImageView<float>& image,
+    image::ImageView<float>& result);
 
 /**
  * A struct for storing an image histogram.
@@ -87,7 +90,8 @@ struct ImageHistogram
  * @return An ImageHistogram struct containing the histogram counts, bin boundaries,
  *         and the overall minimum and maximum pixel values of the image.
  */
-ImageHistogram create_image_histogram(const image::ImageView<float>& image, int num_bins);
+LA_IMAGE_API ImageHistogram
+create_image_histogram(const image::ImageView<float>& image, int num_bins);
 
 /**
  * Computes the Otsu threshold value of a given histogram.
@@ -118,7 +122,7 @@ ImageHistogram create_image_histogram(const image::ImageView<float>& image, int 
  * Otsu, N. (1979). A Threshold Selection Method from Gray-Level Histograms.
  * IEEE Transactions on Systems, Man, and Cybernetics, 9(1), 62–66. doi:10.1109/TSMC.1979.4310076
  */
-float compute_otsu_threshold(const ImageHistogram& histogram, float upper_limit);
+LA_IMAGE_API float compute_otsu_threshold(const ImageHistogram& histogram, float upper_limit);
 
 } // namespace image
 } // namespace lagrange

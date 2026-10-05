@@ -9,13 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/common.h>
-#include <lagrange/compute_facet_area.h>
-#include <lagrange/io/load_mesh.impl.h>
-#include <lagrange/quad_to_tri.h>
-#include <lagrange/testing/common.h>
-#include <Eigen/Core>
-#include <catch2/catch_approx.hpp>
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/common.h>
+    #include <lagrange/compute_facet_area.h>
+    #include <lagrange/io/load_mesh.impl.h>
+    #include <lagrange/quad_to_tri.h>
+    #include <lagrange/testing/common.h>
+    #include <Eigen/Core>
+    #include <catch2/catch_approx.hpp>
 
 
 namespace lagrange_test_internal {
@@ -155,3 +157,5 @@ TEST_CASE("quad_to_tri attribute", "[mesh][quad_to_tri][attribute]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

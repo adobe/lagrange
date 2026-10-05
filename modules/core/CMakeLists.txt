@@ -52,22 +52,19 @@ if(LAGRANGE_ASSERT_DEBUG_BREAK)
     target_compile_definitions(lagrange_core PRIVATE -DLA_ENABLE_ASSERT_DEBUG_BREAK)
 endif()
 
-# TODO: Setup CI/CD to check that we can disable legacy functions.
-#
-# We probably need to split this in two options:
-# - LAGRANGE_ENABLE_LEGACY_REDIRECTION: To enable/disable inclusion of legacy headers from new
-#   headers (and also inlines the `lagrange::legacy::` namespace).
-# - LAGRANGE_ENABLE_LEGACY_FUNCTIONS: To enable/disable compilation of legacy functions altogether.
-#
-# For now this option is commented out because disabling it causes compilation errors due to missing
-# headers. Let's re-enable it once we add some CI/CD checks for it.
-#
-# option(LAGRANGE_ENABLE_LEGACY_FUNCTIONS "Enable redirection for legacy functions." ON)
-# if(LAGRANGE_ENABLE_LEGACY_FUNCTIONS)
-    target_compile_definitions(lagrange_core PUBLIC
-        -DLAGRANGE_ENABLE_LEGACY_FUNCTIONS
-    )
-# endif()
+# LAGRANGE_ENABLE_LEGACY_FUNCTIONS compiles legacy code; LAGRANGE_ENABLE_LEGACY_HEADERS redirects
+# legacy headers from new headers and inlines the legacy namespace (requires the former).
+option(LAGRANGE_ENABLE_LEGACY_FUNCTIONS "Compile legacy functions." ON)
+include(CMakeDependentOption)
+cmake_dependent_option(LAGRANGE_ENABLE_LEGACY_HEADERS
+    "Redirect legacy headers and inline the legacy namespace." ON
+    "LAGRANGE_ENABLE_LEGACY_FUNCTIONS" OFF)
+if(LAGRANGE_ENABLE_LEGACY_FUNCTIONS)
+    target_compile_definitions(lagrange_core PUBLIC -DLAGRANGE_ENABLE_LEGACY_FUNCTIONS)
+endif()
+if(LAGRANGE_ENABLE_LEGACY_HEADERS)
+    target_compile_definitions(lagrange_core PUBLIC -DLAGRANGE_ENABLE_LEGACY_HEADERS)
+endif()
 
 if(LAGRANGE_FMT_EIGEN_FIX)
     target_compile_definitions(lagrange_core PUBLIC

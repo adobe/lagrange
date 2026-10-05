@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME instant-meshes-core
     GITHUB_REPOSITORY qnzhou/instant-meshes-core
-    GIT_TAG 8c87f12bec4b98ce29febcf5dd63ebb90e957104
+    GIT_TAG 632605af06eae75c9aaa6a61a0e551c64de02b71
 )
 
 add_library(instant-meshes-core::instant-meshes-core ALIAS instant-meshes-core)

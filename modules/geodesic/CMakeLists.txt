@@ -17,8 +17,7 @@ if(LAGRANGE_TOPLEVEL_PROJECT)
 endif()
 
 # 2. dependencies
-lagrange_find_package(geometry-central REQUIRED)
-target_link_libraries(lagrange_geodesic PUBLIC lagrange::core geometry-central::geometry-central)
+target_link_libraries(lagrange_geodesic PUBLIC lagrange::core)
 
 # 3. unit tests and examples
 if(LAGRANGE_UNIT_TESTS)

@@ -47,15 +47,34 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v3.4.1
         env:
+          CIBW_BUILD: "cp310-*"
           CIBW_BUILD_FRONTEND: "build[uv]"
           CIBW_ARCHS_LINUX: auto64
           CIBW_ARCHS_WINDOWS: auto64
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
-          CIBW_SKIP: "*-musllinux* pp*"
-          CIBW_TEST_COMMAND: "pytest -s --pdb {project}/modules"
-          CIBW_TEST_REQUIRES: pytest
+          CIBW_SKIP: "*-musllinux*"
           MACOSX_DEPLOYMENT_TARGET: 13.00
           CIBW_BUILD_VERBOSITY: 2
+
+      - name: Test wheel on supported Python versions
+        shell: bash
+        run: |
+          set -euxo pipefail
+          wheels=(wheelhouse/*.whl)
+          if [[ ${#wheels[@]} -ne 1 || ! -f "${wheels[0]}" ]]; then
+            echo "Expected exactly one wheel, found: ${wheels[*]}" >&2
+            exit 1
+          fi
+
+          for python_version in 3.10 3.11 3.12 3.13 3.14; do
+            uv run \
+              --isolated \
+              --no-project \
+              --python "$python_version" \
+              --with pytest \
+              --with "${wheels[0]}" \
+              python -m pytest -s modules
+          done
 
       - uses: actions/upload-artifact@v4
         with:

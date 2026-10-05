@@ -18,6 +18,7 @@
 #include <lagrange/internal/find_attribute_utils.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/select_facets_by_normal_similarity.h>
+#include <lagrange/utils/range.h>
 #include <lagrange/views.h>
 
 namespace {
@@ -305,4 +306,23 @@ TEST_CASE("select_facets_by_normal_similarity<float>", "[select_facets_by_normal
 TEST_CASE("select_facets_by_normal_similarity<double>", "[select_facets_by_normal_similarity]")
 {
     run<double>();
+}
+
+TEST_CASE(
+    "select_facets_by_normal_similarity: invalid seed facet",
+    "[select_facets_by_normal_similarity]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    mesh.add_vertex({1, 0, 0});
+    mesh.add_vertex({0, 1, 0});
+    mesh.add_triangle(0, 1, 2);
+
+    SelectFacetsByNormalSimilarityOptions options;
+    const Index seed_id = mesh.get_num_facets();
+    LA_REQUIRE_THROWS(lagrange::select_facets_by_normal_similarity(mesh, seed_id, options));
 }

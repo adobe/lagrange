@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/utils/build.h>
 #include "GridWrapper.h"
 
 #include <lagrange/Logger.h>
@@ -887,10 +888,14 @@ void populate_volume_module(nb::module_& m)
         [](const SurfaceMesh<Scalar, Index>& mesh,
            double voxel_size,
            Sign signing_method,
+           float exterior_bandwidth,
+           float interior_bandwidth,
            nb::type_object dtype) {
             lagrange::volume::MeshToVolumeOptions options;
             options.voxel_size = voxel_size;
             options.signing_method = signing_method;
+            options.exterior_bandwidth = exterior_bandwidth;
+            options.interior_bandwidth = interior_bandwidth;
 
             auto run = [&](auto&& grid_scalar) -> GridWrapper {
                 using GridScalar = std::decay_t<decltype(grid_scalar)>;
@@ -908,14 +913,19 @@ void populate_volume_module(nb::module_& m)
             }
         },
         "mesh"_a,
+        nb::kw_only(),
         "voxel_size"_a = MeshToVolumeOptions().voxel_size,
         "signing_method"_a = MeshToVolumeOptions().signing_method,
+        "exterior_bandwidth"_a = MeshToVolumeOptions().exterior_bandwidth,
+        "interior_bandwidth"_a = MeshToVolumeOptions().interior_bandwidth,
         "dtype"_a = float_type,
         R"(Convert a triangle mesh to a sparse voxel grid, writing the result to a file.
 
 :param mesh: Input mesh. Must be a triangle mesh, a quad-mesh, or a quad-dominant mesh.
 :param voxel_size: Voxel size. Negative means relative to bbox diagonal (`vs -> -vs * bbox_diag`).
 :param signing_method: Method used to compute the sign of the distance field.
+:param exterior_bandwidth: Exterior bandwidth of the narrow band.
+:param interior_bandwidth: Interior bandwidth of the narrow band.
 :param dtype: Scalar type of the output grid (float32 or float64).
 
 :returns: Generated sparse voxel grid.)");

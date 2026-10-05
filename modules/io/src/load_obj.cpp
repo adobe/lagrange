@@ -177,19 +177,24 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
             shape.mesh.num_face_vertices.end());
         num_facets_per_shape.push_back(static_cast<Index>(shape.mesh.num_face_vertices.size()));
         Index num_line_segments = 0;
-        for (auto nv : shape.lines.num_line_vertices) {
-            la_runtime_assert(nv >= 2, "Line element must have at least 2 vertices");
-            num_line_segments += static_cast<Index>(nv - 1);
+        if (options.load_lines) {
+            for (auto nv : shape.lines.num_line_vertices) {
+                la_runtime_assert(nv >= 2, "Line element must have at least 2 vertices");
+                num_line_segments += static_cast<Index>(nv - 1);
+            }
         }
         num_segments_per_shape.push_back(num_line_segments);
-        num_polylines_per_shape.push_back(static_cast<Index>(shape.lines.num_line_vertices.size()));
+        num_polylines_per_shape.push_back(
+            options.load_lines ? static_cast<Index>(shape.lines.num_line_vertices.size()) : 0);
         if (num_line_segments > 0) has_any_lines = true;
         result.names.push_back(shape.name);
     }
     // Second pass: append all line segment facet sizes (after all faces)
-    for (const auto& shape : shapes) {
-        for (auto nv : shape.lines.num_line_vertices) {
-            facet_sizes.insert(facet_sizes.end(), nv - 1, 2);
+    if (options.load_lines) {
+        for (const auto& shape : shapes) {
+            for (auto nv : shape.lines.num_line_vertices) {
+                facet_sizes.insert(facet_sizes.end(), nv - 1, 2);
+            }
         }
     }
     if (!facet_sizes.empty()) {
@@ -303,7 +308,7 @@ ObjReaderResult<typename MeshType::Scalar, typename MeshType::Index> extract_mes
         }
 
         // Copy line element indices as 2-vertex facets
-        if (!shape.lines.indices.empty()) {
+        if (options.load_lines && !shape.lines.indices.empty()) {
             const Index first_line_facet =
                 total_facets + (i == 0 ? 0 : num_segments_per_shape[i - 1]);
             const Index first_polyline_id = (i == 0 ? 0 : num_polylines_per_shape[i - 1]);

@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/primitive/api.h>
+
 #include <lagrange/primitive/PrimitiveOptions.h>
 
 namespace lagrange::primitive {
@@ -57,7 +59,7 @@ struct IcosahedronOptions : public PrimitiveOptions
 ///       all parameters are within valid bounds before generation.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_icosahedron(IcosahedronOptions settings);
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_icosahedron(IcosahedronOptions settings);
 
 /// @}
 

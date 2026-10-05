@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME xatlas
     GITHUB_REPOSITORY jdumas/xatlas
-    GIT_TAG 649fae81dd20801db55338bc86e0a7eab745ddf4
+    GIT_TAG 3d2c0a44096feb59e20b05a8a399169f3829f210
     DOWNLOAD_ONLY ON
 )
 

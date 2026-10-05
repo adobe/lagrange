@@ -16,9 +16,11 @@
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/io/legacy/load_mesh.h>
 #endif
+
+#include <lagrange/io/api.h>
 
 #include <iosfwd>
 
@@ -39,7 +41,7 @@ namespace lagrange::io {
 template <
     typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
-MeshType load_mesh(std::istream& input_stream, const LoadOptions& options = {});
+LA_IO_API MeshType load_mesh(std::istream& input_stream, const LoadOptions& options = {});
 
 /**
  * Load a mesh from a file. The loader will be chosen depending on the file extension.
@@ -52,7 +54,7 @@ MeshType load_mesh(std::istream& input_stream, const LoadOptions& options = {});
 template <
     typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
-MeshType load_mesh(const fs::path& filename, const LoadOptions& = {});
+LA_IO_API MeshType load_mesh(const fs::path& filename, const LoadOptions& = {});
 
 
 } // namespace lagrange::io

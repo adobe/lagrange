@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_facet_normal.h>
 #include <lagrange/compute_normal.h>
@@ -19,7 +20,10 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/range.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
+#include <string_view>
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>

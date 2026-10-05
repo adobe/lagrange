@@ -204,14 +204,16 @@ void AttributeEvaluator::eval(span<const Scalar> pos, span<ValueType> out) const
     }
 }
 
-#define LA_X_attribute_evaluator(_, Scalar, Index)   \
-    template AttributeEvaluator::AttributeEvaluator( \
-        const SurfaceMesh<Scalar, Index>& points,    \
+#define LA_X_attribute_evaluator(_, Scalar, Index)                  \
+    template LA_POISSON_API AttributeEvaluator::AttributeEvaluator( \
+        const SurfaceMesh<Scalar, Index>& points,                   \
         const EvaluatorOptions& options);
 LA_SURFACE_MESH_X(attribute_evaluator, 0)
 
-#define LA_X_eval_func(ValueType, Scalar) \
-    template void AttributeEvaluator::eval(span<const Scalar> pos, span<ValueType> out) const;
+#define LA_X_eval_func(ValueType, Scalar)                  \
+    template LA_POISSON_API void AttributeEvaluator::eval( \
+        span<const Scalar> pos,                            \
+        span<ValueType> out) const;
 #define LA_X_eval_aux(_, ValueType) LA_SURFACE_MESH_SCALAR_X(eval_func, ValueType)
 LA_ATTRIBUTE_SCALAR_X(eval_aux, 0)
 

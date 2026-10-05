@@ -22,6 +22,9 @@ namespace lagrange::io {
 template <typename Scalar, typename Index>
 void stitch_mesh(SurfaceMesh<Scalar, Index>& mesh)
 {
+    // Point clouds have no corners to stitch. Keep their vertex attributes vertex-based.
+    if (mesh.get_num_corners() == 0) return;
+
     // Convert vertex attributes to indexed before stitching anything
     for (auto& id : find_matching_attributes(mesh, AttributeElement::Vertex)) {
         id = map_attribute_in_place(mesh, id, AttributeElement::Indexed);

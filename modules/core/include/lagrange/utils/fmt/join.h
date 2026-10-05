@@ -34,9 +34,15 @@
 // clang-format on
 #endif
 
-// std::format is available when explicitly selected for spdlog or when the standard library
-// exposes the C++20 header.
-#if defined(SPDLOG_USE_STD_FORMAT) || defined(__cpp_lib_format)
+#include <lagrange/utils/build.h>
+
+// In C++20, <chrono> will forward-declare std::formatter and related types, so we need to include
+// <format> and define `std::formatter` to avoid compilation errors. Note that older versions of
+// Xcode (e.g. 15.3) ship with a <format> header, but do not define `__cpp_lib_format`, so we cannot
+// rely on that macro to detect availability.
+#if defined(SPDLOG_USE_STD_FORMAT) || (defined(__has_include) && __has_include(<format>) && \
+     LAGRANGE_CPLUSPLUS >= 202002L)
+    #define LAGRANGE_JOIN_HAS_STD_FORMAT 1
     #include <format>
 #endif
 
@@ -145,28 +151,36 @@ auto join(const std::pair<T, U>& p, std::string_view sep)
 
 } // namespace lagrange
 
-// std::formatter specializations. Required when std::format is selected at the call site, which
-// can happen via ADL even if `lagrange::format` resolves to `fmt::format` — `fmt::v12::join_view`
-// template arguments pull `std::` into the candidate set. Delegates the format spec to the
-// element formatter so that e.g. `format("{:.3g}", join(vec, ", "))` formats each float with
-// `.3g` precision.
-#if defined(SPDLOG_USE_STD_FORMAT) || defined(__cpp_lib_format)
+/// std::formatter specializations. Required when std::format is selected at the call site, which
+/// can happen via ADL even if `lagrange::format` resolves to `fmt::format` — `fmt::v12::join_view`
+/// template arguments pull `std::` into the candidate set. Delegates the format spec to the
+/// element formatter so that e.g. `format("{:.3g}", join(vec, ", "))` formats each float with
+/// `.3g` precision.
+#if defined(LAGRANGE_JOIN_HAS_STD_FORMAT)
 
+/// `parse`/`format` must be templates (not hardcoded to `std::format_parse_context` /
+/// `std::format_context`): libc++'s `__formattable_with` concept probes formattability using a
+/// dummy context/iterator type distinct from the real ones, so a non-template `format` overload
+/// would fail that check and make the type appear unformattable even though real calls would work.
 template <typename Range>
 struct std::formatter<lagrange::fmt_detail::range_join_view<Range>, char>
 {
     using value_type = lagrange::fmt_detail::range_value_t<Range>;
     std::formatter<value_type, char> m_elem;
 
-    constexpr auto parse(std::format_parse_context& ctx) { return m_elem.parse(ctx); }
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
+    {
+        return m_elem.parse(ctx);
+    }
 
-    auto format(const lagrange::fmt_detail::range_join_view<Range>& jv, std::format_context& ctx)
-        const
+    template <typename FormatContext>
+    auto format(const lagrange::fmt_detail::range_join_view<Range>& jv, FormatContext& ctx) const
     {
         return lagrange::fmt_detail::format_range(
             jv,
             ctx,
-            [this](const auto& elem, std::format_context& c) { return m_elem.format(elem, c); });
+            [this](const auto& elem, FormatContext& c) { return m_elem.format(elem, c); });
     }
 };
 
@@ -174,7 +188,8 @@ struct std::formatter<lagrange::fmt_detail::range_join_view<Range>, char>
 template <typename Tuple>
 struct std::formatter<lagrange::fmt_detail::tuple_join_view<Tuple>, char>
 {
-    constexpr auto parse(std::format_parse_context& ctx)
+    template <typename ParseContext>
+    constexpr auto parse(ParseContext& ctx)
     {
         if (ctx.begin() != ctx.end() && *ctx.begin() != '}') {
             throw std::format_error("format spec not supported for tuple/pair join");
@@ -182,20 +197,26 @@ struct std::formatter<lagrange::fmt_detail::tuple_join_view<Tuple>, char>
         return ctx.begin();
     }
 
-    auto format(const lagrange::fmt_detail::tuple_join_view<Tuple>& jv, std::format_context& ctx)
-        const
+    /// Formats one element via a default-constructed `std::formatter<T>` rather than calling
+    /// `std::format_to`: some libc++ releases (e.g. Xcode 15.2) gate the free `std::format`/
+    /// `std::format_to` functions behind `_LIBCPP_HAS_NO_INCOMPLETE_FORMAT` while still shipping
+    /// the `std::formatter` machinery itself, so relying on the free function would fail to link
+    /// against `std::` name lookup on those toolchains.
+    template <typename FormatContext>
+    auto format(const lagrange::fmt_detail::tuple_join_view<Tuple>& jv, FormatContext& ctx) const
     {
         return lagrange::fmt_detail::format_tuple(jv, ctx, [](const auto& elem, auto& c) {
-            return std::format_to(c.out(), "{}", elem);
+            using ElemType = std::remove_cv_t<std::remove_reference_t<decltype(elem)>>;
+            return std::formatter<ElemType, char>{}.format(elem, c);
         });
     }
 };
 
-#endif // defined(SPDLOG_USE_STD_FORMAT) || defined(__cpp_lib_format)
+#endif // defined(LAGRANGE_JOIN_HAS_STD_FORMAT)
 
-// fmt::formatter specializations — required for callers routing through {fmt} (e.g. spdlog
-// logger calls when SPDLOG_USE_STD_FORMAT is not set, or when `lagrange::format` resolves to
-// `fmt::format`).
+/// fmt::formatter specializations — required for callers routing through {fmt} (e.g. spdlog
+/// logger calls when SPDLOG_USE_STD_FORMAT is not set, or when `lagrange::format` resolves to
+/// `fmt::format`).
 #if !defined(SPDLOG_USE_STD_FORMAT)
 
 /// @cond LA_INTERNAL_DOCS

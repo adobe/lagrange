@@ -14,6 +14,7 @@
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/solver/DirectSolver.h>
 #include <lagrange/utils/build.h>
 
 #include "mesh_utils.h"
@@ -30,6 +31,7 @@ namespace lagrange::texproc {
 namespace {
 
 using namespace MishaK::TSP;
+using Solver = lagrange::solver::SolverLDLT<Eigen::SparseMatrix<double>>;
 
 template <unsigned int NumChannels, typename Scalar, typename Index, typename ValueType>
 void texture_gradient_modulation(
@@ -52,9 +54,9 @@ void texture_gradient_modulation(
     // TODO: Switch to multi-grid solver
     const bool normalize = true;
 #if LAGRANGE_TARGET_BUILD_TYPE(DEBUG)
-    const bool sanity_check = true;
+    const bool sanity_check = options.sanity_check.value_or(true);
 #else
-    const bool sanity_check = false;
+    const bool sanity_check = options.sanity_check.value_or(false);
 #endif
     GradientDomain<double> gd(
         options.quadrature_samples,

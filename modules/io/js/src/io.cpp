@@ -84,6 +84,7 @@ void parse_load_opts(const emscripten::val& opts, io::LoadOptions& o)
     apply_opt(opts, "loadVertexColors", o.load_vertex_colors);
     apply_opt(opts, "loadObjectIds", o.load_object_ids);
     apply_opt(opts, "loadImages", o.load_images);
+    apply_opt(opts, "loadLines", o.load_lines);
     apply_opt(opts, "stitchVertices", o.stitch_vertices);
     apply_opt(opts, "quiet", o.quiet);
 }

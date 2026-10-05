@@ -12,9 +12,11 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/views.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
+#include <geometrycentral/surface/manifold_surface_mesh.h>
 #include <geometrycentral/surface/vertex_position_geometry.h>
 #include <geometrycentral/surface/surface_point.h>
 #include <lagrange/utils/warnon.h>
@@ -25,6 +27,7 @@
 namespace lagrange::geodesic::gc {
 
 using gcSurfaceMesh = geometrycentral::surface::SurfaceMesh;
+using gcManifoldMesh = geometrycentral::surface::ManifoldSurfaceMesh;
 using gcGeometry = geometrycentral::surface::VertexPositionGeometry;
 using gcSurfacePoint = geometrycentral::surface::SurfacePoint;
 
@@ -35,6 +38,17 @@ std::tuple<std::unique_ptr<gcSurfaceMesh>, std::unique_ptr<gcGeometry>> extract_
     auto vertices = vertex_view(mesh);
     auto facets = facet_view(mesh);
     auto gc_mesh = std::make_unique<gcSurfaceMesh>(facets);
+    auto gc_geom = std::make_unique<gcGeometry>(*gc_mesh, vertices);
+    return std::make_tuple(std::move(gc_mesh), std::move(gc_geom));
+}
+
+template <typename Scalar, typename Index>
+std::tuple<std::unique_ptr<gcManifoldMesh>, std::unique_ptr<gcGeometry>> extract_gc_manifold_mesh(
+    SurfaceMesh<Scalar, Index>& mesh)
+{
+    auto vertices = vertex_view(mesh);
+    auto facets = facet_view(mesh);
+    auto gc_mesh = std::make_unique<gcManifoldMesh>(facets);
     auto gc_geom = std::make_unique<gcGeometry>(*gc_mesh, vertices);
     return std::make_tuple(std::move(gc_mesh), std::move(gc_geom));
 }

@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/warning.h>
 
 LA_IGNORE_MAYBE_UNINITIALIZED_START

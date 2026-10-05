@@ -13,13 +13,14 @@
 
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/image/RawInputImage.h>
+#include <lagrange/image_io/api.h>
 
 namespace lagrange {
 namespace image_io {
 
 enum class TinyexrPixelType : unsigned int { uint32, float32, unknown };
 
-bool load_image_exr(
+LA_IMAGE_IO_API bool load_image_exr(
     const lagrange::fs::path& path,
     void** out_rgba,
     int* width,
@@ -27,7 +28,7 @@ bool load_image_exr(
     int* components,
     TinyexrPixelType* pixeltype);
 
-bool save_image_exr(
+LA_IMAGE_IO_API bool save_image_exr(
     const lagrange::fs::path& path,
     const void* data,
     const int width,

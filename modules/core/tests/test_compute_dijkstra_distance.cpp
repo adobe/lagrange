@@ -89,6 +89,23 @@ TEST_CASE("DijkstraDistance", "[dijkstra][surface][triangle]")
         REQUIRE_FALSE(result.has_value());
     }
 
+    SECTION("invalid seed facet")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({2, 0, 0});
+        mesh.add_vertex({0, 2, 0});
+        mesh.add_vertex({2, 2, 0});
+        mesh.add_triangle(0, 1, 2);
+        mesh.add_triangle(2, 1, 3);
+
+        DijkstraDistanceOptions<Scalar, Index> options;
+        options.seed_facet = mesh.get_num_facets();
+        options.barycentric_coords = {1, 0, 0};
+
+        LA_REQUIRE_THROWS(compute_dijkstra_distance(mesh, options));
+    }
+
     SECTION("mixed")
     {
         SurfaceMesh<Scalar, Index> mesh;

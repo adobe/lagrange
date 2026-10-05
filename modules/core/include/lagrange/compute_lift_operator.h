@@ -22,9 +22,9 @@ namespace lagrange {
 /// It uses barycentric coordinates on each triangle to fill in coeffs of a sparse matrix which is then returned.
 /// This bilinear sparse mapping (a.k.a. the returned sparse matrix) can used extend mesh defined fields to fields defined in R^3.
 /// This is useful for interpolating positions or scalar curvatures to a sampled point cloud for example.
-/// This is suited for use with sampling functions like random_sample_uniform that naturally build the third arg.
+/// This is suited for use with sampling functions like sample_uniform that naturally build the third arg.
 ///
-/// @return Sparse n*m matrix, where n is the number of vertex in the input mesh and m is the number of vertex in the input point cloud.
+/// @return Sparse n*m matrix, where n is the number of points in the input point cloud and m is the number of vertices in the input mesh.
 ///
 template <typename MeshType, typename Cloud, typename Indices>
 auto compute_lift_operator_from_sampling(const MeshType& mesh /**< [in] Input triangular mesh.*/, const Cloud& closest_points /**< [in] Input point cloud. should lie on input mesh.*/, const Indices& element_indices /**< [in] Input mesh triangle indices for each point of the input point cloud.*/)
@@ -84,7 +84,7 @@ auto compute_lift_operator_from_sampling(const MeshType& mesh /**< [in] Input tr
 /// This is useful for interpolating positions or scalar curvatures to a sampled point cloud for example.
 /// This is suited for use with bvh structure whose data return by batch_query can be used as the second arg.
 ///
-/// @return Sparse n*m matrix, where n is the number of vertex in the input mesh and m is the number of vertex in the input point cloud.
+/// @return Sparse n*m matrix, where n is the number of points in the input point cloud and m is the number of vertices in the input mesh.
 ///
 template <typename MeshType, typename ClosestPoints>
 auto compute_lift_operator_from_projections(

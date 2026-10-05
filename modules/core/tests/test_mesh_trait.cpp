@@ -9,10 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
 
-#include <lagrange/MeshTrait.h>
-#include <lagrange/create_mesh.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+
+    #include <lagrange/MeshTrait.h>
+    #include <lagrange/create_mesh.h>
 
 TEST_CASE("MeshTrait", "[mesh_trait][mesh]")
 {
@@ -76,3 +78,5 @@ TEST_CASE("MeshTrait", "[mesh_trait][mesh]")
     assert_is_not_mesh_raw_ptr(12);
     assert_is_not_mesh_raw_ptr(&vertices);
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

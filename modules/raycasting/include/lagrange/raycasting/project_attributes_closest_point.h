@@ -11,6 +11,6 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/raycasting/legacy/project_attributes_closest_point.h>
 #endif

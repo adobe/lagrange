@@ -9,14 +9,16 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <Eigen/Core>
 
-#include <lagrange/attributes/attribute_utils.h>
-#include <lagrange/attributes/condense_indexed_attribute.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/utils/range.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <Eigen/Core>
+
+    #include <lagrange/attributes/attribute_utils.h>
+    #include <lagrange/attributes/condense_indexed_attribute.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/utils/range.h>
 
 TEST_CASE("CondenseIndexedAttribute", "[attribute][condense][indexed]")
 {
@@ -78,3 +80,5 @@ TEST_CASE("CondenseIndexedAttribute", "[attribute][condense][indexed]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

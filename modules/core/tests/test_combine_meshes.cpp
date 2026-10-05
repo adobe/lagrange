@@ -17,12 +17,15 @@
 #include <lagrange/compute_normal.h>
 #include <lagrange/internal/constants.h>
 #include <lagrange/map_attribute.h>
+#include <lagrange/utils/range.h>
 #include <lagrange/views.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     #include <lagrange/combine_mesh_list.h>
     #include <lagrange/mesh_convert.h>
 #endif
+
+#include <numeric>
 
 using namespace lagrange;
 
@@ -411,12 +414,14 @@ TEST_CASE("combine_meshes benchmark", "[surface][utilities][!benchmark]")
         lagrange::testing::load_surface_mesh<Scalar, Index>("open/core/poly/mixedFaringPart.obj");
     REQUIRE(mesh.has_attribute("normal"));
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
     using MeshType = TriangleMesh3D;
     auto legacy_mesh = to_legacy_mesh<MeshType>(mesh);
 
     std::vector<MeshType*> meshes;
     meshes.push_back(legacy_mesh.get());
     meshes.push_back(legacy_mesh.get());
+#endif
 
     SECTION("without attributes")
     {
@@ -429,10 +434,12 @@ TEST_CASE("combine_meshes benchmark", "[surface][utilities][!benchmark]")
             return combine_meshes({&mesh, &poly, &mesh}, false);
         };
 
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
         BENCHMARK("legacy::combine_mesh_list without attributes")
         {
             return legacy::combine_mesh_list(meshes, false);
         };
+#endif
     }
 
     SECTION("with attributes")
@@ -441,9 +448,11 @@ TEST_CASE("combine_meshes benchmark", "[surface][utilities][!benchmark]")
         {
             return combine_meshes({&mesh, &mesh}, true);
         };
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
         BENCHMARK("legacy::combine_mesh_list with attributes")
         {
             return legacy::combine_mesh_list(meshes, true);
         };
+#endif
     }
 }

@@ -33,7 +33,7 @@ namespace lagrange {
 /**
  * Unify index buffers of the input `mesh` for all attributes specified in `attribute_ids`.
  *
- * @post The attributes specified by `attribute_id` will become vertex
+ * @post The attributes specified by `attribute_ids` will become vertex
  * attributes in the output mesh under the same names.
  *
  * @param[in]  mesh  The input polygonal mesh.

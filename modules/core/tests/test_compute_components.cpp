@@ -28,6 +28,8 @@
 #include <lagrange/mesh_convert.h>
 #include <lagrange/views.h>
 
+#include <numeric>
+
 TEST_CASE("compute_components", "[surface][components][utilities]")
 {
     using namespace lagrange;
@@ -298,6 +300,19 @@ TEST_CASE("compute_components", "[surface][components][utilities]")
             std::vector<Index> blocker_vertex = {2};
             auto num_components = compute_components<Scalar, Index>(mesh, blocker_vertex, opt);
             REQUIRE(num_components == 2);
+        }
+        SECTION("With out-of-bound blocker vertex")
+        {
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Vertex;
+            std::vector<Index> blocker_vertex = {mesh.get_num_vertices()};
+            LA_REQUIRE_THROWS(compute_components<Scalar, Index>(mesh, blocker_vertex, opt));
+        }
+        SECTION("With out-of-bound blocker edge")
+        {
+            opt.connectivity_type = ComponentOptions::ConnectivityType::Edge;
+            mesh.initialize_edges();
+            std::vector<Index> blocker_edge = {mesh.get_num_edges()};
+            LA_REQUIRE_THROWS(compute_components<Scalar, Index>(mesh, blocker_edge, opt));
         }
     }
 }

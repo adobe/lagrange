@@ -26,6 +26,8 @@
 #include <lagrange/views.h>
 #include <lagrange/weld_indexed_attribute.h>
 
+#include <Eigen/Geometry>
+
 TEST_CASE("orient_outward", "[mesh][orient]")
 {
     using Scalar = double;

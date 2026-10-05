@@ -55,7 +55,7 @@ struct type_caster<lagrange::python::StubType<T, Hint>>
 
     NB_TYPE_CASTER(Wrapper, const_name(Hint::value))
 
-    bool from_python(handle src, uint8_t flags, cleanup_list* cleanup) noexcept
+    bool from_python(handle src, uint32_t flags, cleanup_list* cleanup) noexcept
     {
         TCaster caster;
         if (!caster.from_python(src, flags, cleanup)) return false;

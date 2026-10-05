@@ -9,19 +9,21 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#ifdef LAGRANGE_WITH_EMBREE_3
-    #include <embree3/rtcore.h>
-#else
-    #include <embree4/rtcore.h>
-#endif
 
-#include <lagrange/raycasting/EmbreeHelper.h>
-#include <lagrange/utils/assert.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #ifdef LAGRANGE_WITH_EMBREE_3
+        #include <embree3/rtcore.h>
+    #else
+        #include <embree4/rtcore.h>
+    #endif
 
-#include <cassert>
-#include <exception>
-#include <sstream>
-#include <stdexcept>
+    #include <lagrange/raycasting/EmbreeHelper.h>
+    #include <lagrange/utils/assert.h>
+
+    #include <cassert>
+    #include <exception>
+    #include <sstream>
+    #include <stdexcept>
 
 RTC_NAMESPACE_USE
 
@@ -41,3 +43,5 @@ void lagrange::raycasting::legacy::EmbreeHelper::ensure_no_errors(const RTCDevic
     }
     throw std::runtime_error(err_msg.str());
 }
+
+#endif

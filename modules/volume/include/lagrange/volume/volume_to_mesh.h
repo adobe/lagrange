@@ -14,7 +14,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/volume/types.h>
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/volume/legacy/volume_to_mesh.h>
 #endif
 

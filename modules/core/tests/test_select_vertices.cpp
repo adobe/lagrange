@@ -9,13 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <cmath>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/attributes/eval_as_attribute.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
+    #include <cmath>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/attributes/eval_as_attribute.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
 
 
 TEST_CASE("select_vertices", "[select_vertices]")
@@ -74,3 +76,5 @@ TEST_CASE("select_vertices", "[select_vertices]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

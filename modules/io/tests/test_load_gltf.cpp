@@ -149,14 +149,28 @@ TEST_CASE("load_gltf_point_cloud", "[io][gltf]")
 
     lagrange::SurfaceMesh<Scalar, Index> mesh;
     mesh.add_vertex({0, 0, 0});
+    Scalar normal_data[] = {0, 0, 1};
+    mesh.create_attribute<Scalar>(
+        AttributeName::normal,
+        AttributeElement::Vertex,
+        AttributeUsage::Normal,
+        3,
+        {normal_data, 3});
 
     std::stringstream ss;
     auto scene = lagrange::scene::mesh_to_simple_scene(mesh);
     REQUIRE(scene.get_num_meshes() == 1);
     lagrange::io::save_simple_scene_gltf(ss, scene);
-    auto scene2 =
-        lagrange::io::load_simple_scene_gltf<lagrange::scene::SimpleScene<Scalar, Index>>(ss);
+
+    lagrange::io::LoadOptions options;
+    options.stitch_vertices = true;
+    auto scene2 = lagrange::io::load_simple_scene_gltf<lagrange::scene::SimpleScene<Scalar, Index>>(
+        ss,
+        options);
     REQUIRE(scene2.get_num_meshes() == 1);
+    REQUIRE(scene2.get_mesh(0).get_num_vertices() == 1);
+    REQUIRE(scene2.get_mesh(0).get_num_facets() == 0);
+    REQUIRE(scene2.get_mesh(0).has_attribute(AttributeName::normal));
 }
 
 TEST_CASE("load_gltf_non_triangle_simple", "[io][gltf]" LA_CORP_FLAG)

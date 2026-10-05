@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/primitive/api.h>
+
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/internal/constants.h>
 #include <lagrange/primitive/PrimitiveOptions.h>
@@ -62,7 +64,7 @@ struct DiscOptions : public PrimitiveOptions
 /// @return A `SurfaceMesh` object representing the generated disc.
 ///
 template <typename Scalar, typename Index>
-SurfaceMesh<Scalar, Index> generate_disc(DiscOptions setting);
+LA_PRIMITIVE_API SurfaceMesh<Scalar, Index> generate_disc(DiscOptions setting);
 
 /// @}
 

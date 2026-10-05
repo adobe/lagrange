@@ -51,6 +51,7 @@ namespace {
 using Scalar = double;
 using Index = uint32_t;
 using MeshType = SurfaceMesh<Scalar, Index>;
+using IsOccluderFn = std::function<bool(Index, Index)>;
 // Python None | float scalar | float numpy array
 using FloatArray = nb::ndarray<float, nb::numpy, nb::c_contig, nb::device::cpu>;
 using FloatParam = std::variant<std::monostate, float, FloatArray>;
@@ -58,6 +59,51 @@ using FloatParam = std::variant<std::monostate, float, FloatArray>;
 using DirectionParam = std::variant<std::monostate, AttributeId, Eigen::Vector3f>;
 
 using NDArray3D = nb::ndarray<Scalar, nb::numpy, nb::shape<-1, 3>, nb::c_contig, nb::device::cpu>;
+
+IsOccluderFn resolve_is_occluder(const std::optional<IsOccluderFn>& is_occluder)
+{
+    return is_occluder.value_or([](Index, Index) { return true; });
+}
+
+raycasting::RemoveOccludedInstancesOptions make_occluded_instance_options(
+    uint64_t num_rays,
+    uint64_t batch_size,
+    bool until_converged,
+    double threshold,
+    double size_influence,
+    double confidence)
+{
+    raycasting::RemoveOccludedInstancesOptions options;
+    options.estimate_options = {num_rays, batch_size, until_converged};
+    options.sampler_options = {threshold, size_influence, confidence};
+    return options;
+}
+
+raycasting::RemoveOccludedFacetsOptions make_occluded_facet_options(
+    uint64_t num_rays,
+    uint64_t batch_size,
+    bool adaptive,
+    size_t num_adaptive_per_cosine,
+    double vmf_kappa,
+    double threshold,
+    double size_influence,
+    double confidence,
+    raycasting::InstancingPolicy instancing)
+{
+    raycasting::RemoveOccludedFacetsOptions options;
+    options.estimate_options = {num_rays, batch_size};
+    if (adaptive) {
+        options.sampler_options.adaptive =
+            raycasting::AdaptiveOptions{num_adaptive_per_cosine, vmf_kappa};
+    } else {
+        options.sampler_options.adaptive.reset();
+    }
+    options.sampler_options.threshold = threshold;
+    options.sampler_options.size_influence = size_influence;
+    options.sampler_options.confidence = confidence;
+    options.instancing = instancing;
+    return options;
+}
 
 /// Parse a 1D (3,) or 2D (N, 3) float array and return the number of points/rays.
 size_t get_num_points(const FloatArray& arr, const char* name)
@@ -356,6 +402,23 @@ void populate_raycasting_module(nb::module_& m)
             "ClosestPoint",
             raycasting::FallbackMode::ClosestPoint,
             "Interpolate from the closest surface point.");
+
+    nb::enum_<raycasting::InstancingPolicy>(
+        m,
+        "InstancingPolicy",
+        "How a facet's measure is reconciled across the instances of its source mesh.")
+        .value(
+            "FlattenInstances",
+            raycasting::InstancingPolicy::FlattenInstances,
+            "One output mesh per instance; instancing is lost.")
+        .value(
+            "Max",
+            raycasting::InstancingPolicy::Max,
+            "Preserve instancing; measure is the max (most visible) over its instances.")
+        .value(
+            "Average",
+            raycasting::InstancingPolicy::Average,
+            "Preserve instancing; measure is the mean over its instances.");
 
     nb::enum_<raycasting::ProjectMode>(m, "ProjectMode", "Main projection mode.")
         .value(
@@ -1504,70 +1567,81 @@ The local feature size is stored as a per-vertex attribute on the mesh.
     // =========================================================================
 
     using SimpleScene3D = scene::SimpleScene<Scalar, Index, 3>;
-    using IsOccluderFn = std::function<bool(Index, Index)>;
     constexpr raycasting::OccludedFacetEstimateOptions facet_defaults{};
     constexpr raycasting::OccludedFacetSamplerOptions facet_sampler_defaults{};
+    constexpr raycasting::RemoveOccludedFacetsOptions facet_options_defaults{};
+    constexpr raycasting::AdaptiveOptions adaptive_defaults{};
     constexpr raycasting::OccludedInstanceEstimateOptions instance_defaults{};
+    constexpr raycasting::OccludedInstanceSamplerOptions instance_sampler_defaults{};
 
     m.def(
         "remove_occluded_facets",
         [](const SimpleScene3D& scene,
            uint64_t num_rays,
            uint64_t batch_size,
-           uint64_t num_adaptive_per_normal,
-           bool brute_force,
-           bool until_converged,
-           double jitter_sigma,
-           int visibility_threshold,
+           bool adaptive,
+           size_t num_adaptive_per_cosine,
+           double vmf_kappa,
+           double threshold,
+           double size_influence,
+           double confidence,
+           raycasting::InstancingPolicy instancing,
            std::optional<IsOccluderFn> is_occluder) {
-            la_runtime_assert(
-                visibility_threshold >= 1 && visibility_threshold <= 255,
-                "visibility_threshold must be in [1, 255]");
-            raycasting::RemoveOccludedFacetsOptions options;
-            options.estimate_options.num_rays = num_rays;
-            options.estimate_options.batch_size = batch_size;
-            options.estimate_options.num_adaptive_per_normal = num_adaptive_per_normal;
-            options.estimate_options.brute_force = brute_force;
-            options.estimate_options.until_converged = until_converged;
-            options.sampler_options.jitter_sigma = jitter_sigma;
-            options.sampler_options.visibility_threshold =
-                static_cast<uint8_t>(visibility_threshold);
+            const auto options = make_occluded_facet_options(
+                num_rays,
+                batch_size,
+                adaptive,
+                num_adaptive_per_cosine,
+                vmf_kappa,
+                threshold,
+                size_influence,
+                confidence,
+                instancing);
             ProgressCallback progress;
-            if (is_occluder) {
-                return raycasting::remove_occluded_facets<Scalar, Index>(
-                    scene,
-                    options,
-                    progress,
-                    *is_occluder);
-            }
-            return raycasting::remove_occluded_facets<Scalar, Index>(scene, options, progress);
+            const auto occluder = resolve_is_occluder(is_occluder);
+            return raycasting::remove_occluded_facets<Scalar, Index>(
+                scene,
+                options,
+                progress,
+                occluder);
         },
         "scene"_a,
         nb::kw_only(),
         "num_rays"_a = facet_defaults.num_rays,
         "batch_size"_a = facet_defaults.batch_size,
-        "num_adaptive_per_normal"_a = facet_defaults.num_adaptive_per_normal,
-        "brute_force"_a = facet_defaults.brute_force,
-        "until_converged"_a = facet_defaults.until_converged,
-        "jitter_sigma"_a = facet_sampler_defaults.jitter_sigma,
-        "visibility_threshold"_a = facet_sampler_defaults.visibility_threshold,
+        "adaptive"_a = facet_sampler_defaults.adaptive.has_value(),
+        "num_adaptive_per_cosine"_a = adaptive_defaults.num_adaptive_per_cosine,
+        "vmf_kappa"_a = adaptive_defaults.vmf_kappa,
+        "threshold"_a = facet_sampler_defaults.threshold,
+        "size_influence"_a = facet_sampler_defaults.size_influence,
+        "confidence"_a = facet_sampler_defaults.confidence,
+        "instancing"_a = facet_options_defaults.instancing,
         "is_occluder"_a = nb::none(),
         R"(Build a new scene with facets not visible from the outside removed.
 
-The output contains one unique mesh per input instance: instances of the same source mesh can
-end up with different facets culled, so the input's instancing cannot be preserved.
+A facet is kept when its visibility measure
+``mean_visibility * (area_f / mean_face_area) ** size_influence`` is at least ``threshold``, where
+``mean_visibility`` is the cosine-weighted escaped fraction.
 
 :param scene:                   Input scene.
-:param num_rays:                Total ray budget. Must be > 0 unless ``until_converged`` is True.
+:param num_rays:                Total ray budget. Must be > 0.
 :param batch_size:              Rays per batch.
-:param num_adaptive_per_normal: Adaptive batches per normal batch (0 = pure cosine sampling).
-                                Ignored when ``brute_force`` is True.
-:param brute_force:             Run brute-force batches only — baseline for benchmarking.
-:param until_converged:         Stop early when a cycle finds no new visible facets.
-:param jitter_sigma:            Std-dev of Gaussian jitter applied to adaptive seed directions.
-:param visibility_threshold:    Number of independent escapes required to mark a facet visible
-                                (>= 1). 1 = first-escape-wins (original); 2-3 dampens hairline-
-                                gap shrapnel.
+:param adaptive:                Enable adaptive sampling (seed reuse to find small holes faster).
+                                True by default; False uses plain cosine sampling.
+:param num_adaptive_per_cosine: Seed-guided rays per cosine ray in the adaptive mixture (>= 1).
+                                Ignored when ``adaptive`` is False.
+:param vmf_kappa:               Concentration of the adaptive vMF proposal lobe (> 0; angular
+                                width ~ 1/sqrt(kappa)). Ignored when ``adaptive`` is False.
+:param threshold:               Keep-threshold in [0, 0.5] on the per-face visibility measure.
+:param size_influence:          Exponent on area_f / mean_face_area. 0 = keep any exposed facet
+                                (pure occlusion culling); > 0 also culls facets small relative to
+                                their mesh (visibility-weighted decimation).
+:param confidence:              Per-facet confidence in (0, 1) for anytime-valid early keeping.
+                                Higher values retire later. It does not control final removals or
+                                joint confidence across the scene.
+:param instancing:              How to reconcile a facet's measure across instances of its source
+                                mesh: ``Max`` (default, most visible) or ``Average`` (both preserve
+                                instancing), or ``FlattenInstances`` (one mesh per instance).
 :param is_occluder:             Optional callable ``(mesh_index, instance_index) -> bool``
                                 returning whether an instance should block rays. Non-occluders
                                 are still tested for visibility but do not contribute to the
@@ -1581,35 +1655,57 @@ end up with different facets culled, so the input's instancing cannot be preserv
            uint64_t num_rays,
            uint64_t batch_size,
            bool until_converged,
+           double threshold,
+           double size_influence,
+           double confidence,
            std::optional<IsOccluderFn> is_occluder) {
-            raycasting::OccludedInstanceEstimateOptions options;
-            options.num_rays = num_rays;
-            options.batch_size = batch_size;
-            options.until_converged = until_converged;
+            const auto options = make_occluded_instance_options(
+                num_rays,
+                batch_size,
+                until_converged,
+                threshold,
+                size_influence,
+                confidence);
             ProgressCallback progress;
             // Explicit template args bypass deduction — function_ref is constructed from
             // std::function via the implicit conversion only after deduction is settled.
-            if (is_occluder) {
-                return raycasting::remove_occluded_instances<Scalar, Index>(
-                    scene,
-                    options,
-                    progress,
-                    *is_occluder);
-            }
-            return raycasting::remove_occluded_instances<Scalar, Index>(scene, options, progress);
+            const auto occluder = resolve_is_occluder(is_occluder);
+            return raycasting::remove_occluded_instances<Scalar, Index>(
+                scene,
+                options,
+                progress,
+                occluder);
         },
         "scene"_a,
         nb::kw_only(),
         "num_rays"_a = instance_defaults.num_rays,
         "batch_size"_a = instance_defaults.batch_size,
         "until_converged"_a = instance_defaults.until_converged,
+        "threshold"_a = instance_sampler_defaults.threshold,
+        "size_influence"_a = instance_sampler_defaults.size_influence,
+        "confidence"_a = instance_sampler_defaults.confidence,
         "is_occluder"_a = nb::none(),
-        R"(Remove fully-occluded mesh instances from a scene.
+        R"(Remove instances whose exterior visibility measure is below ``threshold``.
+
+Keeps an instance when its visibility measure—mean visibility weighted by relative surface
+area—is at least ``threshold``. Unlike a per-point test, this can grow with mesh size: a large mesh
+seen through a small hole survives, while a small or barely visible one is culled.
 
 :param scene:           Input scene.
 :param num_rays:        Total ray budget. Must be > 0 unless ``until_converged`` is True.
 :param batch_size:      Rays per batch.
-:param until_converged: Stop early when a batch finds no new visible instances.
+:param until_converged: After the initial batch, stop when a batch confidently retires no new
+                        instances. This is a batch-size-dependent heuristic.
+:param threshold:       Keep-threshold in [0, 0.5]: keep when mean_visibility * (area/scene-AABB-area)
+                        ** size_influence >= threshold. Defaults to ``1e-6`` (matching the C++ API);
+                        larger values enable aggressive culling, and a near-zero value reproduces the
+                        original first-observed-escape behavior.
+:param size_influence:  How much mesh size counts (exponent on area/scene-AABB-area). 0 = size-
+                        independent (keeps small exterior details like emblems); 1 = area-weighted
+                        visibility; 0.5 = weighted by linear size.
+:param confidence:      Per-instance confidence in (0, 1) used at each batch-end early-keep test.
+                        Higher values retire later; it does not control final removals or joint
+                        confidence across the scene.
 :param is_occluder:     Optional callable ``(mesh_index, instance_index) -> bool`` returning
                         whether an instance should block rays. Non-occluders are still tested
                         for visibility but do not contribute to the ray-caster scene. Defaults
@@ -1623,27 +1719,29 @@ end up with different facets culled, so the input's instancing cannot be preserv
            uint64_t num_rays,
            uint64_t batch_size,
            bool until_converged,
+           double threshold,
+           double size_influence,
+           double confidence,
            std::optional<IsOccluderFn> is_occluder) {
-            raycasting::OccludedInstanceEstimateOptions options;
-            options.num_rays = num_rays;
-            options.batch_size = batch_size;
-            options.until_converged = until_converged;
+            const auto options = make_occluded_instance_options(
+                num_rays,
+                batch_size,
+                until_converged,
+                threshold,
+                size_influence,
+                confidence);
             ProgressCallback progress;
+            const auto occluder = resolve_is_occluder(is_occluder);
+            const auto measures = raycasting::estimate_occluded_instance_measures<Scalar, Index>(
+                scene,
+                options,
+                progress,
+                occluder);
             std::vector<std::pair<Index, Index>> occluded;
-            auto callback = [&](Index mi, Index ii) { occluded.emplace_back(mi, ii); };
-            if (is_occluder) {
-                raycasting::estimate_occluded_instances<Scalar, Index>(
-                    scene,
-                    callback,
-                    options,
-                    progress,
-                    *is_occluder);
-            } else {
-                raycasting::estimate_occluded_instances<Scalar, Index>(
-                    scene,
-                    callback,
-                    options,
-                    progress);
+            for (Index mi = 0; mi < scene.get_num_meshes(); ++mi) {
+                for (Index ii = 0; ii < scene.get_num_instances(mi); ++ii) {
+                    if (measures[mi][ii] < threshold) occluded.emplace_back(mi, ii);
+                }
             }
             return occluded;
         },
@@ -1652,17 +1750,163 @@ end up with different facets culled, so the input's instancing cannot be preserv
         "num_rays"_a = instance_defaults.num_rays,
         "batch_size"_a = instance_defaults.batch_size,
         "until_converged"_a = instance_defaults.until_converged,
+        "threshold"_a = instance_sampler_defaults.threshold,
+        "size_influence"_a = instance_sampler_defaults.size_influence,
+        "confidence"_a = instance_sampler_defaults.confidence,
         "is_occluder"_a = nb::none(),
-        R"(Find mesh instances that are fully occluded by other geometry.
+        R"(Find mesh instances whose visibility measure falls below the threshold.
+
+Deprecated: use :py:func:`estimate_occluded_instance_measures` and apply the desired threshold to
+the returned measures.
 
 :param scene:           Input scene.
 :param num_rays:        Total ray budget. Must be > 0 unless ``until_converged`` is True.
 :param batch_size:      Rays per batch.
-:param until_converged: Stop early when a batch finds no new visible instances.
-:param is_occluder:     Optional callable ``(mesh_index, instance_index) -> bool``. See
+:param until_converged: After the initial batch, stop when a batch confidently retires no new
+                        instances. This is a batch-size-dependent heuristic.
+:param threshold:       Keep-threshold in [0, 0.5]. Defaults to ``1e-6`` (matching the C++ API); a
+                        near-zero value reproduces the original first-observed-escape behavior. See
                         :py:func:`remove_occluded_instances`.
+:param size_influence:  Exponent on area/scene-AABB-area (0 = size-independent, 1 = area-weighted).
+                        See :py:func:`remove_occluded_instances`.
+:param confidence:      Per-instance confidence in (0, 1) used at each batch-end early-keep test.
+                        Higher values retire later; it does not control final removals or joint
+                        confidence across the scene.
+:param is_occluder:     Optional callable ``(mesh_index, instance_index) -> bool``.
 
 :return: List of ``(mesh_index, instance_index)`` pairs for occluded instances.)");
+
+    m.def(
+        "estimate_occluded_instance_measures",
+        [](const SimpleScene3D& scene,
+           uint64_t num_rays,
+           uint64_t batch_size,
+           bool until_converged,
+           double threshold,
+           double size_influence,
+           double confidence,
+           std::optional<IsOccluderFn> is_occluder) {
+            const auto options = make_occluded_instance_options(
+                num_rays,
+                batch_size,
+                until_converged,
+                threshold,
+                size_influence,
+                confidence);
+            ProgressCallback progress;
+            const auto occluder = resolve_is_occluder(is_occluder);
+            return raycasting::estimate_occluded_instance_measures<Scalar, Index>(
+                scene,
+                options,
+                progress,
+                occluder);
+        },
+        "scene"_a,
+        nb::kw_only(),
+        "num_rays"_a = instance_defaults.num_rays,
+        "batch_size"_a = instance_defaults.batch_size,
+        "until_converged"_a = instance_defaults.until_converged,
+        "threshold"_a = instance_sampler_defaults.threshold,
+        "size_influence"_a = instance_sampler_defaults.size_influence,
+        "confidence"_a = instance_sampler_defaults.confidence,
+        "is_occluder"_a = nb::none(),
+        R"(Estimate every instance's visibility measure, indexed ``[mesh_index][instance_index]``.
+
+The sampler runs at ``threshold`` (the strictest threshold you intend to use); the returned
+measures let you keep instances at any ``t <= threshold`` without re-tracing — keep
+``(mesh_index, instance_index)`` iff ``measures[mesh_index][instance_index] >= t``.
+
+All instance functions default ``threshold`` to ``1e-6`` (matching the C++ API); pass a near-zero
+value to reproduce the original first-observed-escape behavior.
+
+:param scene:           Input scene.
+:param num_rays:        Total ray budget. Must be > 0 unless ``until_converged`` is True.
+:param batch_size:      Rays per batch.
+:param until_converged: After the initial batch, stop when a batch confidently retires no new
+                        instances. This is a batch-size-dependent heuristic.
+:param threshold:       Strictest keep-threshold in [0, 0.5] to sample for. See
+                        :py:func:`remove_occluded_instances`.
+:param size_influence:  Exponent on area/scene-AABB-area (0 = size-independent, 1 = area-weighted).
+:param confidence:      Per-instance confidence in (0, 1) used at each batch-end early-keep test.
+                        Higher values retire later; it does not control final removals or joint
+                        confidence across the scene.
+:param is_occluder:     Optional callable ``(mesh_index, instance_index) -> bool``.
+
+:return: Per-instance measures as ``measures[mesh_index][instance_index]``.)");
+
+    m.def(
+        "estimate_occluded_facet_measures",
+        [](const SimpleScene3D& scene,
+           std::string attribute_name,
+           uint64_t num_rays,
+           uint64_t batch_size,
+           bool adaptive,
+           size_t num_adaptive_per_cosine,
+           double vmf_kappa,
+           double threshold,
+           double size_influence,
+           double confidence,
+           raycasting::InstancingPolicy instancing,
+           std::optional<IsOccluderFn> is_occluder) {
+            const auto options = make_occluded_facet_options(
+                num_rays,
+                batch_size,
+                adaptive,
+                num_adaptive_per_cosine,
+                vmf_kappa,
+                threshold,
+                size_influence,
+                confidence,
+                instancing);
+            ProgressCallback progress;
+            const auto occluder = resolve_is_occluder(is_occluder);
+            return raycasting::estimate_occluded_facet_measures<Scalar, Index>(
+                scene,
+                attribute_name,
+                options,
+                progress,
+                occluder);
+        },
+        "scene"_a,
+        nb::kw_only(),
+        "attribute_name"_a = "visibility_measure",
+        "num_rays"_a = facet_defaults.num_rays,
+        "batch_size"_a = facet_defaults.batch_size,
+        "adaptive"_a = facet_sampler_defaults.adaptive.has_value(),
+        "num_adaptive_per_cosine"_a = adaptive_defaults.num_adaptive_per_cosine,
+        "vmf_kappa"_a = adaptive_defaults.vmf_kappa,
+        "threshold"_a = facet_sampler_defaults.threshold,
+        "size_influence"_a = facet_sampler_defaults.size_influence,
+        "confidence"_a = facet_sampler_defaults.confidence,
+        "instancing"_a = facet_options_defaults.instancing,
+        "is_occluder"_a = nb::none(),
+        R"(Estimate each facet's visibility measure and write it to a named per-facet attribute.
+
+Each output mesh carries a per-facet Scalar attribute ``attribute_name`` equal to the facet's
+(possibly aggregated) visibility measure
+``mean_visibility * (area_f / mean_face_area) ** size_influence``. The sampler runs at ``threshold``;
+remove facets whose attribute is below any ``t <= threshold`` to filter without re-tracing.
+
+:param scene:                   Input scene.
+:param attribute_name:          Name of the per-facet Scalar attribute to create on each mesh.
+:param num_rays:                Total ray budget. Must be > 0.
+:param batch_size:              Rays per batch.
+:param adaptive:                Enable adaptive sampling (seed reuse to find small holes faster).
+                                True by default; False uses plain cosine sampling.
+:param num_adaptive_per_cosine: Seed-guided rays per cosine ray (>= 1). Ignored when not adaptive.
+:param vmf_kappa:               Concentration of the adaptive vMF proposal lobe (> 0). Ignored
+                                when not adaptive.
+:param threshold:               Strictest keep-threshold in [0, 0.5] to sample for.
+:param size_influence:          Exponent on area_f / mean_face_area (0 = pure occlusion culling).
+:param confidence:              Per-facet confidence in (0, 1) for anytime-valid early keeping.
+                                Higher values retire later. It does not control final removals or
+                                joint confidence across the scene.
+:param instancing:              How to reconcile a facet's measure across instances of its source
+                                mesh: ``Max`` (default, most visible) or ``Average`` (both preserve
+                                instancing), or ``FlattenInstances`` (one mesh per instance).
+:param is_occluder:             Optional callable ``(mesh_index, instance_index) -> bool``.
+
+:return: Scene whose meshes carry the per-facet visibility measure attribute, per ``instancing``.)");
 }
 
 } // namespace lagrange::python

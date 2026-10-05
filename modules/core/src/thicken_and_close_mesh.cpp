@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/thicken_and_close_mesh.h>
+#include <lagrange/utils/assert.h>
 
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/compute_vertex_normal.h>

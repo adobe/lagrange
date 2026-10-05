@@ -11,7 +11,7 @@
  */
 #pragma once
 
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     // Please use lagrange::SurfaceMesh::rename_attribute instead.
     #include <lagrange/legacy/attributes/rename_attribute.h>
 #endif

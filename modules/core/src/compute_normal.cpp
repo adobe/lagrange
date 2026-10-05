@@ -45,6 +45,14 @@ namespace lagrange {
 
 namespace {
 
+template <typename Index>
+void check_cone_vertices(span<const Index> cone_vertices, Index num_vertices)
+{
+    for (auto vi : cone_vertices) {
+        la_runtime_assert(vi < num_vertices, "cone_vertices contains an out-of-bound vertex index");
+    }
+}
+
 template <typename Scalar, typename Index>
 DisjointSets<Index> compute_unified_indices(
     const SurfaceMesh<Scalar, Index>& mesh,
@@ -124,6 +132,10 @@ AttributeId compute_normal_internal(
     Func get_unified_indices)
 {
     la_runtime_assert(mesh.get_dimension() == 3, "Only 3D meshes are supported.");
+
+    const auto num_vertices = mesh.get_num_vertices();
+    check_cone_vertices(cone_vertices, num_vertices);
+
     if (!mesh.has_edges()) mesh.initialize_edges();
 
     auto [facet_normal_id, had_facet_normals] = internal::recompute_facet_normal_if_needed(
@@ -132,10 +144,10 @@ AttributeId compute_normal_internal(
         options.recompute_facet_normals);
     auto facet_normal = attribute_matrix_view<Scalar>(mesh, facet_normal_id);
 
-    const auto num_vertices = mesh.get_num_vertices();
-
     std::vector<bool> is_cone_vertex(num_vertices, false);
-    for (auto vi : cone_vertices) is_cone_vertex[vi] = true;
+    for (auto vi : cone_vertices) {
+        is_cone_vertex[vi] = true;
+    }
 
     // Step 1: For each vertex v, iterate over its incident corners and
     // group corners sharing the same normal together.
@@ -226,6 +238,8 @@ AttributeId compute_normal(
     NormalOptions options)
 {
     la_runtime_assert(mesh.get_dimension() == 3, "Only 3D meshes are supported.");
+
+    check_cone_vertices(cone_vertices, mesh.get_num_vertices());
 
     if (!mesh.has_edges()) mesh.initialize_edges();
 

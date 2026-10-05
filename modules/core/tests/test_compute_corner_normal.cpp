@@ -9,19 +9,19 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <catch2/benchmark/catch_benchmark.hpp>
-#include <catch2/catch_approx.hpp>
-#include <cmath>
-
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/compute_corner_normal.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/internal/constants.h>
-
-
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+    #include <lagrange/testing/common.h>
+    #include <catch2/benchmark/catch_benchmark.hpp>
+    #include <catch2/catch_approx.hpp>
+    #include <cmath>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/compute_corner_normal.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/internal/constants.h>
+
 TEST_CASE("legacy::compute_corner_normal", "[mesh][triangle][attribute][corner_normal][legacy]")
 {
     using namespace lagrange;

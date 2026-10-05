@@ -18,10 +18,11 @@
 
 #include <lagrange/common.h>
 #include <lagrange/compute_mesh_centroid.h>
-#include <lagrange/create_mesh.h>
 #include <lagrange/utils/safe_cast.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+    #include <lagrange/create_mesh.h>
 
 TEST_CASE("ComputeMeshCentroid", "[mesh][centroid]")
 {

@@ -11,6 +11,10 @@
  */
 #pragma once
 
+#ifndef LAGRANGE_GEODESIC_WITH_GEOMETRYCENTRAL
+    #error "GeodesicEngineHeat requires the lagrange::geodesic::geometrycentral component"
+#endif
+
 #include <lagrange/geodesic/GeodesicEngine.h>
 
 namespace lagrange::geodesic {

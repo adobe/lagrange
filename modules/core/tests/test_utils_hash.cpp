@@ -13,6 +13,9 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/utils/hash.h>
+
+#include <Eigen/Core>
+
 #include <unordered_set>
 
 using namespace lagrange;

@@ -9,16 +9,18 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
 
-#include <algorithm>
-#include <numeric>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/testing/common.h>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/mesh_cleanup/detect_degenerate_triangles.h>
-#include <lagrange/mesh_cleanup/remove_degenerate_triangles.h>
+    #include <algorithm>
+    #include <numeric>
+
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/mesh_cleanup/detect_degenerate_triangles.h>
+    #include <lagrange/mesh_cleanup/remove_degenerate_triangles.h>
 
 TEST_CASE("RemoveDegenerateTrianglesTest", "[degenerate][triangle_mesh][cleanup]")
 {
@@ -199,3 +201,5 @@ TEST_CASE("RemoveDegenerateTrianglesTest", "[degenerate][triangle_mesh][cleanup]
         REQUIRE(is_uv_degenerate(0, 0) == 0.0);
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

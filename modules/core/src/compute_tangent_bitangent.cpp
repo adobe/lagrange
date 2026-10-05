@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/compute_tangent_bitangent.h>
+#include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 
 #include <lagrange/AttributeFwd.h>
 #include <lagrange/AttributeTypes.h>

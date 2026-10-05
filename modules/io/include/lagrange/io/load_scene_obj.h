@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 #include <lagrange/scene/Scene.h>
@@ -28,7 +30,7 @@ namespace lagrange::io {
  * @return loaded scene
  */
 template <typename SceneType>
-SceneType load_scene_obj(const fs::path& filename, const LoadOptions& options = {});
+LA_IO_API SceneType load_scene_obj(const fs::path& filename, const LoadOptions& options = {});
 
 /**
  * Loadn obj into a scene.
@@ -40,7 +42,7 @@ SceneType load_scene_obj(const fs::path& filename, const LoadOptions& options = 
  * @return loaded scene
  */
 template <typename SceneType>
-SceneType load_scene_obj(
+LA_IO_API SceneType load_scene_obj(
     std::istream& input_stream_obj,
     std::istream& input_stream_mtl,
     const LoadOptions& options = {});

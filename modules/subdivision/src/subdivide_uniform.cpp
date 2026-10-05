@@ -9,8 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/Logger.h>
 #include <lagrange/subdivision/api.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
+#include <lagrange/utils/assert.h>
+#include <opensubdiv/far/primvarRefiner.h>
+#include <Eigen/Geometry>
 
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/SurfaceMeshTypes.h>

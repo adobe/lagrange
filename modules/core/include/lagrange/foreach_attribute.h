@@ -396,7 +396,7 @@ void par_foreach_named_attribute_write(SurfaceMesh<Scalar, Index>& mesh, Visitor
 ///                         lambda.
 ///
 /// @tparam        mask     Bit field mask to filter attribute based on their element types.
-/// @tparam        Visitor  Type of the visitor function, which should be `template<typename void(Attribute<T> &);`
+/// @tparam        Visitor  Type of the visitor function, which should be `template<typename T> void(Attribute<T> &);`
 /// @tparam        Scalar   Mesh scalar type.
 /// @tparam        Index    Mesh index type.
 ///

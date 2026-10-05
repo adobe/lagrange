@@ -38,8 +38,32 @@ namespace lagrange {
 /// @return     The axis-aligned bounding box of the mesh vertices.
 ///
 template <size_t Dimension, typename Scalar, typename Index>
+[[nodiscard]]
 Eigen::AlignedBox<Scalar, static_cast<int>(Dimension)> mesh_bbox(
     const SurfaceMesh<Scalar, Index>& mesh);
+
+///
+/// @overload
+///
+/// Compute the axis-aligned bounding box after applying an affine transformation to the mesh
+/// vertices. The input mesh is not modified.
+///
+/// If the mesh has no vertices, the returned bounding box is empty.
+///
+/// @param[in]  mesh       Input mesh. Its dimension must match the @p Dimension template parameter.
+/// @param[in]  transform  Affine transformation to apply to the mesh vertices.
+///
+/// @tparam     Dimension  Spatial dimension of the bounding box. Must be 2 or 3.
+/// @tparam     Scalar     Mesh scalar type.
+/// @tparam     Index      Mesh index type.
+///
+/// @return     The axis-aligned bounding box of the transformed mesh vertices.
+///
+template <size_t Dimension, typename Scalar, typename Index>
+[[nodiscard]]
+Eigen::AlignedBox<Scalar, static_cast<int>(Dimension)> mesh_bbox(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const Eigen::Transform<Scalar, static_cast<int>(Dimension), Eigen::Affine>& transform);
 
 /// @}
 

@@ -60,7 +60,8 @@ void position_dilation(
 
     unsigned int res[] = {
         static_cast<unsigned int>(texture.extent(0)),
-        static_cast<unsigned int>(texture.extent(1))};
+        static_cast<unsigned int>(texture.extent(1)),
+    };
 
     Padding padding = create_padding(wrapper, res[0], res[1]);
     res[0] += padding.width();

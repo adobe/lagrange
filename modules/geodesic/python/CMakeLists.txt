@@ -10,4 +10,6 @@
 # governing permissions and limitations under the License.
 #
 
+lagrange_include_module(geodesic COMPONENTS geometrycentral)
 lagrange_add_python_binding()
+target_link_libraries(lagrange_python PRIVATE lagrange::geodesic::geometrycentral)

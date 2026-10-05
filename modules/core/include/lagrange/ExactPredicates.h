@@ -92,7 +92,7 @@ public:
     /// @param      p1    First 2D point.
     /// @param      p2    Second 2D point.
     /// @param      p3    Third 2D point.
-    /// @param      p4    Fourth 3D point.
+    /// @param      p4    Fourth 2D point.
     ///
     /// @return     Return a positive value if the point p4 lies inside the circle passing through
     ///             p1, p2, and p3; a negative value if it lies outside; and zero if the four points

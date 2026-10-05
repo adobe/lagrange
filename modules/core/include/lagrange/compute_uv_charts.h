@@ -39,7 +39,7 @@ struct UVChartOptions
 /**
  * Compute UV charts of an input mesh.
  *
- * This method will create a per-vertex chart id in an attribute named
+ * This method will create a per-facet chart id in an attribute named
  * `UVChartOptions::output_attribute_name`.  Each chart id is in [0, num_charts-1].
  *
  * @param      mesh     Input mesh.

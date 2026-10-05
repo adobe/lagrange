@@ -55,7 +55,7 @@ std::vector<std::pair<int32_t, int32_t>> compute_uv_tile_list(
             if constexpr (std::is_same_v<AttributeType, Attribute<ValueType>>) {
                 auto&& values = attr.get_all();
 
-                for (size_t index = 0; index < attr.get_num_elements(); index += channelCount) {
+                for (size_t index = 0; index < values.size(); index += channelCount) {
                     std::array<int32_t, 2> const tile = {
                         static_cast<int32_t>(std::floor(values[index])),
                         static_cast<int32_t>(std::floor(values[index + 1]))};

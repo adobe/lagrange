@@ -37,12 +37,11 @@ endif()
 CPMAddPackage(
     NAME vcpkg
     GIT_REPOSITORY https://github.com/microsoft/vcpkg.git
-    GIT_TAG        2025.01.13
+    GIT_TAG        2026.06.24
     QUIET
 )
 
 set(ENV{VCPKG_ROOT} "${vcpkg_SOURCE_DIR}")
-set(ENV{VCPKG_KEEP_ENV_VARS} "VCPKG_ROOT;$ENV{VCPKG_KEEP_ENV_VARS}")
 
 if(WIN32)
     CPMAddPackage(

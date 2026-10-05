@@ -10,6 +10,6 @@
  * governing permissions and limitations under the License.
  */
 #pragma once
-#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
     #include <lagrange/mesh_cleanup/legacy/remove_null_area_triangles.h>
 #endif

@@ -20,6 +20,7 @@
     #include <lagrange/views.h>
 
     #include <mikktspace.h>
+    #include <Eigen/Geometry>
 
 namespace lagrange {
 

@@ -16,6 +16,7 @@
 #include <lagrange/map_attribute.h>
 #include <lagrange/mesh_cleanup/close_small_holes.h>
 #include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/views.h>
 

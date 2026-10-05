@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/mesh_cleanup/remove_isolated_vertices.h>
+#include <lagrange/utils/invalid.h>
 
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMeshTypes.h>

@@ -11,6 +11,8 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
+
 #include <lagrange/fs/filesystem.h>
 #include <lagrange/io/types.h>
 #include <lagrange/scene/Scene.h>
@@ -27,7 +29,7 @@ namespace lagrange::io {
  * @param options       SaveOptions, check the struct for more details.
  */
 template <typename Scalar, typename Index>
-void save_scene_gltf(
+LA_IO_API void save_scene_gltf(
     std::ostream& output_stream,
     const scene::Scene<Scalar, Index>& scene,
     const SaveOptions& options = {});
@@ -40,7 +42,7 @@ void save_scene_gltf(
  * @param options       SaveOptions, check the struct for more details.
  */
 template <typename Scalar, typename Index>
-void save_scene_gltf(
+LA_IO_API void save_scene_gltf(
     const fs::path& filename,
     const scene::Scene<Scalar, Index>& scene,
     const SaveOptions& options = {});

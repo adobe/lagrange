@@ -36,6 +36,11 @@ struct TextureRasterizerOptions
     ///
     /// Ideally we'd use raytracing to determine if a texel is visible. But for simplicity we just
     /// compare the texel depth with depth map value at the screen location.
+    ///
+    /// For perspective cameras this is a relative tolerance,
+    /// a texel at depth z is considered visible when z < depth * (1 + depth_precision).
+    /// For orthographic cameras this is an absolute tolerance,
+    /// a texel is considered visible when z < depth + depth_precision.
     double depth_precision = 1e-3;
 
     /// Texture width.

@@ -11,7 +11,13 @@
  */
 #include "../../include/lagrange/utils/fmt_eigen.h"
 
+#include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/fmt/join.h>
+
 #include <catch2/catch_test_macros.hpp>
+
+#include <tuple>
+#include <vector>
 
 TEST_CASE("Format Vector", "[fmt]")
 {
@@ -58,3 +64,15 @@ TEST_CASE("Format Nested", "[fmt]")
     spdlog::info("{:.2f}\n", test);
 }
 #endif
+
+TEST_CASE("Join range", "[fmt]")
+{
+    std::vector<unsigned int> v{1, 2, 3};
+    REQUIRE(lagrange::format("{}", lagrange::join(v, ", ")) == "1, 2, 3");
+}
+
+TEST_CASE("Join tuple", "[fmt]")
+{
+    auto t = std::make_tuple(1, 2.5f, std::string("three"));
+    REQUIRE(lagrange::format("{}", lagrange::join(t, ", ")) == "1, 2.5, three");
+}

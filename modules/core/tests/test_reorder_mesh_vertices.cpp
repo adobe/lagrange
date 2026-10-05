@@ -9,15 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 // Since test_remove_duplicate_vertices already tests this functionality,
 // it is only mildly tested here.
 
-#include <lagrange/testing/common.h>
+    #include <lagrange/testing/common.h>
 
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/reorder_mesh_vertices.h>
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/reorder_mesh_vertices.h>
 
 TEST_CASE("ReorderMeshVertices", "[mesh][reorder_vertices]")
 {
@@ -67,3 +69,5 @@ TEST_CASE("ReorderMeshVertices", "[mesh][reorder_vertices]")
         LA_REQUIRE_THROWS(reorder_mesh_vertices(*mesh, forward_mapping));
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

@@ -26,7 +26,11 @@ namespace lagrange::geodesic {
 /// approach to computing distance based on heat flow." ACM Transactions on Graphics (TOG) 32.5
 /// (2013): 1-11.
 ///
-/// @note MMP is often considered as as exact method, while DGPC and HEAT are approximations.
-enum class Algorithm { DGPC, MMP, HEAT };
+/// - FLIP: Sharp, Nicholas, and Keenan Crane. "You can find geodesic paths in triangle meshes
+/// by just flipping edges." ACM Transactions on Graphics (SIGGRAPH Asia 2020).
+///
+/// @note MMP is often considered an exact method, while DGPC, HEAT, and FLIP are
+/// approximations. FLIP is particularly well-suited for geodesic path computation.
+enum class Algorithm { DGPC, MMP, HEAT, FLIP };
 
 } // namespace lagrange::geodesic
