@@ -9,6 +9,7 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/io/load_mesh_ply.h>
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/testing/check_mesh.h>
@@ -89,6 +90,33 @@ TEST_CASE("io/ply empty", "[io][ply]")
         testing::check_mesh(mesh2);
         testing::ensure_approx_equivalent_mesh(mesh, mesh2);
     }
+}
+
+TEST_CASE("load_ply_point_cloud", "[io][ply]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    Scalar normal_data[] = {0, 0, 1};
+    mesh.create_attribute<Scalar>(
+        "normal",
+        AttributeElement::Vertex,
+        AttributeUsage::Normal,
+        3,
+        {normal_data, 3});
+
+    std::stringstream data;
+    REQUIRE_NOTHROW(io::save_mesh_ply(data, mesh));
+
+    io::LoadOptions options;
+    options.stitch_vertices = true;
+    auto mesh2 = io::load_mesh_ply<SurfaceMesh<Scalar, Index>>(data, options);
+    REQUIRE(mesh2.get_num_vertices() == 1);
+    REQUIRE(mesh2.get_num_facets() == 0);
+    REQUIRE(find_matching_attribute(mesh2, AttributeUsage::Normal).has_value());
 }
 
 TEST_CASE("io/ply multiple special attributes", "[io][ply]")

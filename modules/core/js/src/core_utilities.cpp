@@ -37,6 +37,7 @@
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
 
+#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -51,6 +52,14 @@ NormalWeightingType parse_weight_type(const std::string& s)
     if (s == "uniform") return NormalWeightingType::Uniform;
     if (s == "cornerTriangleArea") return NormalWeightingType::CornerTriangleArea;
     return NormalWeightingType::Angle;
+}
+
+TriangulationOptions::Scheme parse_triangulation_scheme(const std::string& s)
+{
+    if (s == "earcut") return TriangulationOptions::Scheme::Earcut;
+    if (s == "centroidFan") return TriangulationOptions::Scheme::CentroidFan;
+    if (s == "delaunay") return TriangulationOptions::Scheme::Delaunay;
+    throw std::runtime_error("Unsupported triangulation scheme: " + s);
 }
 
 } // namespace
@@ -121,7 +130,18 @@ EMSCRIPTEN_BINDINGS(lagrange_core_utilities)
 
     // --- Mesh operations ---
 
-    function("triangulatePolygonalFacets", +[](MeshType& m) { triangulate_polygonal_facets(m); });
+    function(
+        "triangulatePolygonalFacets",
+        +[](MeshType& mesh, val opts) {
+            TriangulationOptions o;
+            if (!opts.isUndefined()) {
+                auto scheme = opts["scheme"];
+                if (!scheme.isUndefined()) {
+                    o.scheme = parse_triangulation_scheme(scheme.as<std::string>());
+                }
+            }
+            triangulate_polygonal_facets(mesh, o);
+        });
 
     function(
         "combineMeshes",

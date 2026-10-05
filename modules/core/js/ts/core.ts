@@ -252,8 +252,14 @@ export interface CoreModule {
 
   // --- Mesh operations ---
 
-  /** Convert every polygon with more than 3 vertices into triangles. In-place. */
-  triangulatePolygonalFacets(mesh: SurfaceMesh): void;
+  /**
+   * Convert every polygon with more than 3 vertices into triangles. In-place.
+   * The `scheme` option selects the triangulation strategy (default `"earcut"`).
+   */
+  triangulatePolygonalFacets(
+    mesh: SurfaceMesh,
+    opts?: TriangulationOptions,
+  ): void;
   /** Merge several meshes into a single mesh. Returns the combined result. */
   combineMeshes(
     meshes: SurfaceMesh[],
@@ -406,6 +412,22 @@ export interface TangentBitangentOptions {
 export interface CombineMeshesOptions {
   /** Carry attributes from inputs into the combined mesh. Default: `true`. */
   preserveAttributes?: boolean;
+}
+
+/**
+ * Triangulation strategy for {@link CoreModule.triangulatePolygonalFacets}.
+ * - `"earcut"`: ear-clipping (fast, arbitrary interior diagonals).
+ * - `"centroidFan"`: fan from an inserted facet centroid (adds vertices).
+ * - `"delaunay"`: earcut refined toward a constrained Delaunay triangulation via
+ *   edge flips in the facet's dominant-axis 2D projection. This maximizes the
+ *   minimum angle and removes most slivers in that projected plane; for tilted 3D
+ *   facets the guarantee is on the projected angles, not the intrinsic 3D angles.
+ */
+export type TriangulationScheme = "earcut" | "centroidFan" | "delaunay";
+
+export interface TriangulationOptions {
+  /** Triangulation scheme. Default: `"earcut"`. */
+  scheme?: TriangulationScheme;
 }
 
 /**

@@ -486,6 +486,76 @@ void test_should_triangulate()
     }
 }
 
+template <typename Scalar, typename Index>
+void test_subdivided_edge(lagrange::TriangulationOptions::Scheme scheme)
+{
+    using namespace lagrange;
+
+    // Slanted, offset triangle A-B-C: subdividing edge A--B by interpolation puts interior points
+    // only *near* the line (FP rounding), the case earcut's exact `area == 0` filter misses.
+    const std::array<Scalar, 3> A{Scalar(0.2), Scalar(0.1), Scalar(0)};
+    const std::array<Scalar, 3> B{Scalar(1.7), Scalar(0.9), Scalar(0)};
+    const std::array<Scalar, 3> C{Scalar(0.5), Scalar(1.6), Scalar(0)};
+
+    // 2 * signed area of the original slanted triangle (in the z = 0 plane).
+    const Scalar det = (B[0] - A[0]) * (C[1] - A[1]) - (B[1] - A[1]) * (C[0] - A[0]);
+    const Scalar expected_area = Scalar(0.5) * (det < 0 ? -det : det);
+
+    // Guards that at least one interior point is genuinely off the line A--B (n == 2's exact
+    // midpoint stays on it), so this isn't silently re-testing the exactly-collinear case.
+    Scalar overall_max_dev = 0;
+
+    for (Index n : {Index(2), Index(3), Index(5), Index(10)}) {
+        SurfaceMesh<Scalar, Index> mesh(3);
+        for (Index i = 0; i < n; ++i) {
+            const Scalar t = Scalar(i) / Scalar(n); // A (i == 0) and interior subdivisions
+            mesh.add_vertex({A[0] + t * (B[0] - A[0]), A[1] + t * (B[1] - A[1]), Scalar(0)});
+        }
+        mesh.add_vertex({B[0], B[1], B[2]}); // B
+        mesh.add_vertex({C[0], C[1], C[2]}); // C
+        mesh.add_polygon(n + 2, [](span<Index> t) { std::iota(t.begin(), t.end(), Index(0)); });
+
+        auto in = vertex_view(mesh);
+        for (Index i = 1; i < n; ++i) {
+            const Scalar d = (B[0] - A[0]) * (in(i, 1) - A[1]) - (B[1] - A[1]) * (in(i, 0) - A[0]);
+            overall_max_dev = std::max(overall_max_dev, d < 0 ? -d : d);
+        }
+
+        const Index old_num_vertices = mesh.get_num_vertices();
+        TriangulationOptions options;
+        options.scheme = scheme;
+        triangulate_polygonal_facets(mesh, options);
+
+        // Triangulation does not insert new vertices.
+        REQUIRE(mesh.get_num_vertices() == old_num_vertices);
+        mesh.compress_if_regular();
+        REQUIRE(mesh.is_triangle_mesh());
+        REQUIRE(mesh.get_num_facets() == n);
+
+        auto positions = vertex_view(mesh);
+        Scalar total_area = 0;
+        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+            auto verts = mesh.get_facet_vertices(f);
+            const Eigen::Matrix<Scalar, 3, 1> p0 = positions.row(verts[0]).transpose();
+            const Eigen::Matrix<Scalar, 3, 1> e1 = positions.row(verts[1]).transpose() - p0;
+            const Eigen::Matrix<Scalar, 3, 1> e2 = positions.row(verts[2]).transpose() - p0;
+            const Eigen::Matrix<Scalar, 3, 1> cross(
+                e1.y() * e2.z() - e1.z() * e2.y(),
+                e1.z() * e2.x() - e1.x() * e2.z(),
+                e1.x() * e2.y() - e1.y() * e2.x());
+            const Scalar area = Scalar(0.5) * cross.norm();
+            CAPTURE(n, f, area);
+            REQUIRE(area > Scalar(1e-6));
+            total_area += area;
+        }
+        // The triangulation must tile the original slanted triangle.
+        REQUIRE_THAT(total_area, Catch::Matchers::WithinAbs(expected_area, 1e-6));
+    }
+
+    CAPTURE(overall_max_dev);
+    REQUIRE(overall_max_dev > Scalar(0));
+}
+
 } // namespace
 
 TEST_CASE("earcut", "[core]")
@@ -543,6 +613,24 @@ TEST_CASE("triangulate_polygonal_facets: should_triangulate", "[core]")
 {
 #define LA_X_should_triangulate(_, Scalar, Index) test_should_triangulate<Scalar, Index>();
     LA_SURFACE_MESH_X(should_triangulate, 0)
+}
+
+// May-fail (open earcut robustness gap): with the plain Earcut scheme, near-collinear subdivision
+// points get triangulated into a sliver triangle. The Delaunay scheme below refines this away.
+TEST_CASE("triangulate_polygonal_facets: subdivided edge", "[core][!mayfail]")
+{
+#define LA_X_subdivided_edge(_, Scalar, Index) \
+    test_subdivided_edge<Scalar, Index>(lagrange::TriangulationOptions::Scheme::Earcut);
+    LA_SURFACE_MESH_X(subdivided_edge, 0)
+}
+
+// The Delaunay scheme (earcut + Lawson edge flips) legalizes the sliver's interior diagonal, so the
+// same near-collinear input yields only well-shaped triangles.
+TEST_CASE("triangulate_polygonal_facets: subdivided edge delaunay", "[core]")
+{
+#define LA_X_subdivided_edge_delaunay(_, Scalar, Index) \
+    test_subdivided_edge<Scalar, Index>(lagrange::TriangulationOptions::Scheme::Delaunay);
+    LA_SURFACE_MESH_X(subdivided_edge_delaunay, 0)
 }
 
 // TODO: Test removal degenerate facets, once we allow sizes <= 2

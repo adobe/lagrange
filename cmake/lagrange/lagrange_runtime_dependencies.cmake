@@ -116,11 +116,14 @@ function(lagrange_populate_runtime_dependencies target)
         endif()
 
         # Instruction to copy target file if it exists
+        # TODO: Remove lock file guard when https://gitlab.kitware.com/cmake/cmake/-/work_items/27205 is fixed.
         string(APPEND COPY_SCRIPT_CONTENT
             "if(EXISTS \"$<TARGET_FILE:${DEPENDENCY}>\")\n"
             "    message(\"Copying dll file: $<TARGET_FILE_NAME:${DEPENDENCY}> for target ${target}\")\n"
             "    file(MAKE_DIRECTORY \"$<TARGET_FILE_DIR:${target}>\")\n"
+            "    file(LOCK \"${CMAKE_BINARY_DIR}/runtime_deps/$<TARGET_FILE_NAME:${DEPENDENCY}>.lock\" GUARD PROCESS TIMEOUT 120)\n"
             "    file(COPY_FILE \"$<TARGET_FILE:${DEPENDENCY}>\" \"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\" ONLY_IF_DIFFERENT INPUT_MAY_BE_RECENT)\n"
+            "    file(LOCK \"${CMAKE_BINARY_DIR}/runtime_deps/$<TARGET_FILE_NAME:${DEPENDENCY}>.lock\" RELEASE)\n"
             "    if(NOT EXISTS \"$<TARGET_FILE_DIR:${target}>/$<TARGET_FILE_NAME:${DEPENDENCY}>\")\n"
             "        message(FATAL_ERROR \"Failed to copy dll file: $<TARGET_FILE_NAME:${DEPENDENCY}> for target ${target}. Target folder: $<TARGET_FILE_DIR:${target}>\")\n"
             "    endif()\n"

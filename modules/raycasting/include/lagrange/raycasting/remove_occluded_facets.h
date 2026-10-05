@@ -19,6 +19,9 @@
 #include <lagrange/utils/value_ptr.h>
 
 #include <atomic>
+#include <cstddef>
+#include <optional>
+#include <string_view>
 
 namespace lagrange::raycasting {
 
@@ -28,30 +31,52 @@ namespace lagrange::raycasting {
 ///
 
 ///
+/// Options for adaptive mode of OccludedFacetSampler.
+///
+struct AdaptiveOptions
+{
+    /// Seed-guided rays per cosine ray in the adaptive mixture (1:K ratio, K >= 1).
+    size_t num_adaptive_per_cosine = 6;
+
+    /// von Mises-Fisher (vMF) lobe concentration on each seed direction
+    /// (angular width ~ 1/sqrt(kappa)).
+    double vmf_kappa = 128.0;
+};
+
+///
 /// Options for OccludedFacetSampler.
 ///
 struct OccludedFacetSamplerOptions
 {
-    /// Standard deviation of the Gaussian jitter applied to seed directions in adaptive batches.
-    double jitter_sigma = 0.025;
+    /// Adaptive multiple importance sampling (MIS) with a cosine + seed-guided mixture is enabled
+    /// by default. Set to `std::nullopt` for plain cosine-weighted hemisphere sampling.
+    std::optional<AdaptiveOptions> adaptive = AdaptiveOptions{};
 
-    /// Number of independent escapes a facet must accumulate before being marked visible. K=1
-    /// is the original "first escape wins" behavior; K=2-3 dampens single-ray noise (a lucky
-    /// ray sneaking through a hairline gap no longer flips a facet on its own). Counts
-    /// saturate at 255.
-    uint8_t visibility_threshold = 3;
+    /// How much a facet size counts toward keeping it. `0` = size-independent, `1` = area-weighted.
+    double size_influence = 0.5;
+
+    /// Keep-threshold for
+    /// `M = mean_visibility * (area_f / mean_face_area)^size_influence`.
+    /// A facet is kept when `M >= threshold`.
+    double threshold = 5e-06;
+
+    /// Per-facet confidence for anytime-valid early-keep retirement. Under the betting-test
+    /// assumptions, the chance of incorrectly retiring a facet is at most `1 - confidence` over
+    /// any number of batches. Higher values retire later. This does not control final removals or
+    /// joint confidence across the scene.
+    double confidence = 0.9;
 };
 
+namespace internal {
+
 ///
-/// Stateful algorithm for finding occluded facets across every instance of a scene. Each
-/// instance is gated independently with its own world-space facets.
+/// Stateful algorithm for finding occluded facets across every instance of a scene. Each call to
+/// @ref run_batch distributes rays over facets not yet decided, progressively improving the result.
+/// Per-facet results are addressed by a global facet index (mapped back via @ref instances).
 ///
-/// Combines two sampling strategies that can be alternated progressively:
-///  - @ref run_normal_batch : cosine-weighted hemisphere sampling. The first escape direction
-///    is cached against the facet that escaped.
-///  - @ref run_adaptive_batch : for each still-occluded facet, casts jittered rays along
-///    cached escape directions of its edge-adjacent visible neighbors. Exploits topological
-///    coherence — an escape from a neighbor often also escapes from here.
+/// The sampling strategy is fixed at construction by OccludedFacetSamplerOptions::adaptive: plain
+/// cosine-weighted hemisphere sampling, or adaptive sampling that reuses escape directions to find
+/// small holes faster.
 ///
 /// @note Only 3D scenes are supported. Meshes must be triangle meshes.
 ///
@@ -95,106 +120,116 @@ public:
     OccludedFacetSampler(OccludedFacetSampler&&) noexcept;
     OccludedFacetSampler& operator=(OccludedFacetSampler&&) noexcept;
 
-    /// Cosine-weighted hemisphere batch. Caches each facet's first-discovered escape direction
-    /// for later adaptive batches.
-    void run_normal_batch(uint64_t num_rays);
+    /// Trace one batch of `num_rays` rays, distributed across facets not yet decided.
+    void run_batch(uint64_t num_rays);
 
-    /// Adaptive batch using cached escape directions of 1-ring visible neighbors. Skips facets
-    /// with no visible neighbor.
-    void run_adaptive_batch(uint64_t num_rays);
+    /// Whether the facet is currently kept, i.e. `visibility_measure >= threshold`.
+    [[nodiscard]] bool is_visible(uint64_t global_facet_index) const;
 
-    /// Cosine-weighted hemisphere batch with no escape caching — baseline for benchmarking
-    /// the adaptive mode against pure sampling.
-    void run_brute_force_batch(uint64_t num_rays);
-
-    /// Whether the facet has been marked visible so far.
-    bool is_visible(uint64_t global_facet_index) const;
+    /// The facet's visibility measure
+    /// `mean_visibility * (area_f / mean_face_area)^size_influence`, where `mean_visibility` is
+    /// the plain or MIS estimate of the cosine-weighted escaped fraction.
+    [[nodiscard]] double visibility_measure(uint64_t global_facet_index) const;
 
     /// Rays cast so far for the facet.
-    uint64_t num_rays_cast(uint64_t global_facet_index) const;
+    [[nodiscard]] uint64_t num_rays_cast(uint64_t global_facet_index) const;
 
     /// Total number of facets across all instances. Multi-instance meshes are counted once
     /// per instance.
-    uint64_t num_facets() const;
+    [[nodiscard]] uint64_t num_facets() const;
+
+    /// Number of facets confidently above the keep threshold and retired from sampling. This is
+    /// useful to progressive callers for reporting and detecting that all facets have retired.
+    [[nodiscard]] uint64_t num_retired() const;
 
     /// Per-instance metadata for mapping global facet indices to (mesh, instance, local facet).
-    span<const InstanceInfo> instances() const;
+    [[nodiscard]] span<const InstanceInfo> instances() const;
 
 private:
     struct Impl;
     value_ptr<Impl> m_impl;
 };
 
+} // namespace internal
+
 ///
-/// Loop options for @ref estimate_occluded_facets() and @ref remove_occluded_facets().
+/// Ray-budget options for @ref estimate_occluded_facet_measures() and
+/// @ref remove_occluded_facets().
 ///
 struct OccludedFacetEstimateOptions
 {
-    /// Total ray budget. If 0, the loop runs until cancelled or converged — at least one of
-    /// `num_rays>0`, @ref until_converged, or a non-null cancel flag is required.
+    /// Total ray budget. If 0, a non-null cancellation flag is required.
     uint64_t num_rays = 1600000000ULL;
 
-    /// Rays per batch. Cancellation, progress, and convergence are checked at cycle boundaries
-    /// (one batch per cycle in brute-force, one normal + @ref num_adaptive_per_normal adaptive
-    /// otherwise).
-    uint64_t batch_size = 20000000ULL;
-
-    /// Adaptive batches per normal batch. 0 reduces to pure cosine sampling. Ignored when
-    /// @ref brute_force is true.
-    uint64_t num_adaptive_per_normal = 6;
-
-    /// Run brute-force batches only — baseline for benchmarking against the adaptive mode.
-    bool brute_force = false;
-
-    /// Stop early when a cycle finds no new visible facets.
-    bool until_converged = false;
+    /// Rays per batch. Cancellation and progress are checked at batch boundaries.
+    uint64_t batch_size = 50000000ULL;
 };
 
 ///
-/// Drive an @ref OccludedFacetSampler progressively until the budget is exhausted, the search
-/// converges, or cancellation is requested. Logs per-cycle progress via @c lagrange::logger()
-/// and reports a normalized [0, 1] fraction to @p progress.
+/// How a facet's measure is reconciled across the instances of its source mesh.
 ///
-/// The caller can inspect @p sampler after the call returns to retrieve per-element stats,
-/// build an output scene, etc.
-///
-/// @param[in,out]  sampler   Sampler to drive.
-/// @param[in]      options   Estimate options.
-/// @param[in,out]  progress  Progress callback (default-constructed = silent).
-/// @param[in]      cancel    Optional cancellation flag, polled at cycle boundaries.
-///
-/// @tparam         Scalar    Mesh scalar type.
-/// @tparam         Index     Mesh index type.
-///
-template <typename Scalar, typename Index>
-LA_RAYCASTING_API void estimate_occluded_facets(
-    OccludedFacetSampler<Scalar, Index>& sampler,
-    const OccludedFacetEstimateOptions& options,
-    ProgressCallback& progress,
-    const std::atomic_bool* cancel = nullptr);
+enum class InstancingPolicy {
+    /// One output mesh per input instance; instancing is lost.
+    FlattenInstances,
+    /// Preserve instancing; measure is the max (most visible) over its instances.
+    Max,
+    /// Preserve instancing; measure is the mean over its instances.
+    Average,
+};
 
 ///
 /// Options for remove_occluded_facets().
 ///
 struct RemoveOccludedFacetsOptions
 {
-    /// Estimate-loop options forwarded to @ref estimate_occluded_facets().
+    /// Options forwarded to the underlying @ref internal::OccludedFacetSampler.
+    OccludedFacetSamplerOptions sampler_options = {};
+
+    /// Ray-budget and batch-size options.
     OccludedFacetEstimateOptions estimate_options = {};
 
-    /// Options forwarded to the underlying @ref OccludedFacetSampler.
-    OccludedFacetSamplerOptions sampler_options = {};
+    /// How to reconcile a facet's measure across the instances of its source mesh.
+    InstancingPolicy instancing = InstancingPolicy::Max;
 };
+
+///
+/// Estimate each facet's visibility measure and write it to a named per-facet Scalar attribute.
+///
+/// Instances are reconciled per @p options.instancing (see @ref InstancingPolicy). The sampler runs
+/// at `options.sampler_options.threshold`, so a caller can re-threshold the measures without
+/// re-tracing.
+///
+/// @param[in]      scene           Input scene. Every referenced mesh must be a triangle mesh.
+/// @param[in]      attribute_name  Name of the per-facet Scalar attribute to create on each output mesh.
+/// @param[in]      options         Options.
+/// @param[in,out]  progress        Progress callback, updated at batch boundaries.
+/// @param[in]      is_occluder     Forwarded to the underlying @ref internal::OccludedFacetSampler ctor.
+/// @param[in]      cancel          Optional cancellation flag.
+///
+/// @return     The scene with per-facet visibility measures.
+///
+/// @tparam     Scalar    Mesh scalar type.
+/// @tparam     Index     Mesh index type.
+///
+template <typename Scalar, typename Index>
+LA_RAYCASTING_API scene::SimpleScene<Scalar, Index, 3> estimate_occluded_facet_measures(
+    const scene::SimpleScene<Scalar, Index, 3>& scene,
+    std::string_view attribute_name,
+    const RemoveOccludedFacetsOptions& options,
+    ProgressCallback& progress,
+    function_ref<bool(Index mesh_index, Index instance_index)> is_occluder =
+        [](Index, Index) { return true; },
+    const std::atomic_bool* cancel = nullptr);
 
 ///
 /// Build a new scene with facets not visible from the outside removed.
 ///
-/// The output contains one unique mesh per input instance: instances of the same source mesh
-/// can end up with different facets culled, so the input's instancing cannot be preserved.
+/// Instances are reconciled per @p options.instancing (see @ref InstancingPolicy).
 ///
 /// @param[in]      scene        Input scene.
 /// @param[in]      options      Options.
-/// @param[in,out]  progress     Progress callback (see @ref estimate_occluded_facets).
-/// @param[in]      is_occluder  Forwarded to the underlying @ref OccludedFacetSampler ctor.
+/// @param[in,out]  progress     Progress callback, updated at batch boundaries.
+/// @param[in]      is_occluder  Forwarded to the underlying @ref internal::OccludedFacetSampler ctor.
 /// @param[in]      cancel       Optional cancellation flag.
 ///
 /// @return     The filtered scene.

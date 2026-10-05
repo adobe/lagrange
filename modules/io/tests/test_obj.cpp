@@ -72,6 +72,33 @@ TEST_CASE("io/obj empty", "[io][obj]")
     testing::ensure_approx_equivalent_mesh(mesh, mesh2);
 }
 
+TEST_CASE("load_obj_point_cloud", "[io][obj]")
+{
+    using namespace lagrange;
+    using Scalar = double;
+    using Index = uint32_t;
+
+    SurfaceMesh<Scalar, Index> mesh;
+    mesh.add_vertex({0, 0, 0});
+    Scalar normal_data[] = {0, 0, 1};
+    mesh.create_attribute<Scalar>(
+        AttributeName::normal,
+        AttributeElement::Vertex,
+        AttributeUsage::Normal,
+        3,
+        {normal_data, 3});
+
+    std::stringstream data;
+    REQUIRE_NOTHROW(io::save_mesh_obj(data, mesh));
+
+    io::LoadOptions options;
+    options.stitch_vertices = true;
+    auto mesh2 = io::load_mesh_obj<SurfaceMesh<Scalar, Index>>(data, options);
+    REQUIRE(mesh2.get_num_vertices() == 1);
+    REQUIRE(mesh2.get_num_facets() == 0);
+    REQUIRE(mesh2.has_attribute(AttributeName::normal));
+}
+
 TEST_CASE("io/obj simple_scene", "[io][obj]")
 {
     using namespace lagrange;

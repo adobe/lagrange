@@ -16,6 +16,7 @@
 #include <lagrange/io/load_mesh_gltf.h>
 #include <lagrange/io/load_mesh_msh.h>
 #include <lagrange/io/load_mesh_obj.h>
+#include <lagrange/io/load_mesh_pcd.h>
 #include <lagrange/io/load_mesh_ply.h>
 #include <lagrange/io/load_scene.h>
 #include <lagrange/io/load_simple_scene.h>
@@ -23,6 +24,7 @@
 #include <lagrange/io/save_mesh_gltf.h>
 #include <lagrange/io/save_mesh_msh.h>
 #include <lagrange/io/save_mesh_obj.h>
+#include <lagrange/io/save_mesh_pcd.h>
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/io/save_scene.h>
 #include <lagrange/io/save_simple_scene.h>
@@ -179,11 +181,11 @@ void populate_io_module(nb::module_& m)
         "selected_attributes"_a = nb::none(),
         R"(Save mesh to file.
 
-Filename extension determines the file format. Supported formats are: `obj`, `ply`, `msh`, `glb`, `gltf` and `lgm`.
+Filename extension determines the file format. Supported formats are: `obj`, `ply`, `msh`, `glb`, `gltf`, `pcd` and `lgm`.
 
 :param filename: The output file name.
 :param mesh: The input mesh.
-:param binary: Whether to save the mesh in binary format if supported. Defaults to True. Only `msh`, `ply` and `glb` support binary format.
+:param binary: Whether to save the mesh in binary format if supported. Defaults to True. Only `msh`, `ply`, `glb` and `pcd` support binary format.
 :param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
 :param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.)");
 
@@ -366,6 +368,8 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
             } else if (format == "glb") {
                 opts.encoding = io::FileEncoding::Binary;
                 io::save_mesh_gltf(ss, mesh, opts);
+            } else if (format == "pcd") {
+                io::save_mesh_pcd(ss, mesh, opts);
             } else {
                 throw std::invalid_argument(lagrange::format("Unsupported format: {}", format));
             }
@@ -381,8 +385,8 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         R"(Convert a mesh to a binary string based on specified format.
 
 :param mesh: The input mesh.
-:param format: Format to use. Supported formats are "obj", "ply", "msh", "gltf" and "glb".
-:param binary: Whether to save the mesh in binary format if supported. Defaults to True. Only `msh`, `ply` and `glb` support binary format.
+:param format: Format to use. Supported formats are "obj", "ply", "msh", "gltf", "glb" and "pcd".
+:param binary: Whether to save the mesh in binary format if supported. Defaults to True. Only `msh`, `ply`, `glb` and `pcd` support binary format.
 :param exact_match: Whether to save attributes in their exact form. Some mesh formats may not support all the attribute types. If set to False, attributes will be converted to the closest supported attribute type. Defaults to True.
 :param selected_attributes: A list of attribute ids to save. If not specified, all attributes will be saved. Defaults to None.
 
@@ -402,7 +406,7 @@ Filename extension determines the file format. Supported formats are: `obj`, `pl
         R"(Convert a binary string to a mesh.
 
 The binary string should use one of the supported formats. Supported formats include `obj`, `ply`,
-`gltf`, `glb`, `fbx` and `msh`. Format is automatically detected.
+`gltf`, `glb`, `fbx`, `pcd` and `msh`. Format is automatically detected.
 
 :param data:        A binary string representing the mesh data in a supported format.
 :param triangulate: Whether to triangulate the mesh if it is not already triangulated. Defaults to False.

@@ -13,6 +13,7 @@
 #include <lagrange/extract_boundary_loops.h>
 #include "bind_attribute.h"
 #include "bind_camera_transforms.h"
+#include "bind_debug.h"
 #include "bind_enum.h"
 #include "bind_indexed_attribute.h"
 #include "bind_mesh_cleanup.h"
@@ -37,6 +38,7 @@ void populate_core_module(nb::module_& m)
     m.attr("invalid_scalar") = lagrange::invalid<Scalar>();
     m.attr("invalid_index") = nb::int_(lagrange::invalid<Index>());
 
+    lagrange::python::bind_debug(m);
     lagrange::python::bind_enum(m);
     lagrange::python::bind_surface_mesh<Scalar, Index>(m);
     lagrange::python::bind_attribute(m);

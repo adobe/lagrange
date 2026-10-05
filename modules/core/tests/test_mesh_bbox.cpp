@@ -50,6 +50,35 @@ TEST_CASE("mesh_bbox 3D", "[core][mesh_bbox]")
         REQUIRE(bbox.max().y() == 1);
         REQUIRE(bbox.max().z() == 0);
     }
+
+    SECTION("transformed triangle")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0});
+        mesh.add_vertex({2, 0, 0});
+        mesh.add_vertex({0, 1, 0});
+        mesh.add_triangle(0, 1, 2);
+
+        const Eigen::Affine3d transform =
+            Eigen::Translation3d(1, 2, 3) *
+            Eigen::AngleAxisd(0.7853981633974483, Eigen::Vector3d::UnitZ());
+        const auto bbox = lagrange::mesh_bbox<3>(mesh, transform);
+        const Eigen::Vector3d p0 = transform * Eigen::Vector3d(0, 0, 0);
+        const Eigen::Vector3d p1 = transform * Eigen::Vector3d(2, 0, 0);
+        const Eigen::Vector3d p2 = transform * Eigen::Vector3d(0, 1, 0);
+        const Eigen::Vector3d expected_min = p0.cwiseMin(p1).cwiseMin(p2);
+        const Eigen::Vector3d expected_max = p0.cwiseMax(p1).cwiseMax(p2);
+
+        REQUIRE(bbox.min().isApprox(expected_min));
+        REQUIRE(bbox.max().isApprox(expected_max));
+    }
+
+    SECTION("transformed empty mesh")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh;
+        const auto bbox = lagrange::mesh_bbox<3>(mesh, Eigen::Affine3d::Identity());
+        REQUIRE(bbox.isEmpty());
+    }
 }
 
 TEST_CASE("mesh_bbox 2D", "[core][mesh_bbox]")
@@ -74,5 +103,18 @@ TEST_CASE("mesh_bbox 2D", "[core][mesh_bbox]")
         REQUIRE(bbox.min().y() == -2);
         REQUIRE(bbox.max().x() == 4);
         REQUIRE(bbox.max().y() == 3);
+    }
+
+    SECTION("transformed vertices")
+    {
+        lagrange::SurfaceMesh<Scalar, Index> mesh(2);
+        mesh.add_vertex({-1, 3});
+        mesh.add_vertex({4, -2});
+        const Eigen::Affine2f transform = Eigen::Translation2f(2, -1) * Eigen::Scaling(2.f, 3.f);
+        const auto bbox = lagrange::mesh_bbox<2>(mesh, transform);
+        REQUIRE(bbox.min().x() == 0);
+        REQUIRE(bbox.min().y() == -7);
+        REQUIRE(bbox.max().x() == 10);
+        REQUIRE(bbox.max().y() == 8);
     }
 }

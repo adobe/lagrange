@@ -11,11 +11,10 @@
  */
 #include <lagrange/bvh/resolve_tjunctions.h>
 
+#include "internal/split_tjunction_edges.h"
+
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/bvh/api.h>
-#include <lagrange/internal/split_edges.h>
-#include <lagrange/triangulate_polygonal_facets.h>
-#include <lagrange/utils/assert.h>
 #include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/span.h>
 #include <lagrange/views.h>
@@ -28,6 +27,8 @@
 // clang-format on
 
 #include <algorithm>
+#include <atomic>
+#include <cstdint>
 #include <numeric>
 #include <utility>
 #include <vector>
@@ -104,12 +105,16 @@ void resolve_tjunctions(SurfaceMesh<Scalar, Index>& mesh, ResolveTJunctionsOptio
         }
     };
 
-    // Pass 1: count split points per edge, then prefix-sum into CSR offsets.
+    // Pass 1: count split points and classify only facets incident to split edges.
     std::vector<Index> edge_split_offsets(num_edges + 1, 0);
+    std::atomic<std::uint8_t> affected_types{0};
     tbb::parallel_for(Index(0), num_edges, [&](Index e) {
         Index count = 0;
         for_each_split_on_edge(e, [&](Scalar, Index) { ++count; });
         edge_split_offsets[e + 1] = count;
+        if (options.triangulate_affected && count != 0) {
+            internal::classify_affected_facets(mesh, e, affected_types);
+        }
     });
     for (Index e = 0; e < num_edges; e++) edge_split_offsets[e + 1] += edge_split_offsets[e];
 
@@ -131,23 +136,15 @@ void resolve_tjunctions(SurfaceMesh<Scalar, Index>& mesh, ResolveTJunctionsOptio
         for (Index i = begin; i < end; i++) split_pts[i] = split_scratch[i].second;
     });
 
-    // Split edges without retriangulating: each affected facet gets a polygonal copy appended at
-    // id >= old_num_facets, leaving the originals (to be removed) in place.
-    const Index old_num_facets = mesh.get_num_facets();
-    auto facets_to_remove = lagrange::internal::split_edges_only(
+    auto get_edge_split_pts = [&](Index e) -> span<Index> {
+        const Index n = edge_split_offsets[e + 1] - edge_split_offsets[e];
+        return span<Index>(split_pts.data() + edge_split_offsets[e], n);
+    };
+    internal::split_tjunction_edges(
         mesh,
-        function_ref<span<Index>(Index)>([&](Index e) -> span<Index> {
-            const Index n = edge_split_offsets[e + 1] - edge_split_offsets[e];
-            return span<Index>(split_pts.data() + edge_split_offsets[e], n);
-        }),
-        function_ref<bool(Index)>([](Index) { return true; }));
-
-    // Optionally triangulate only the new facets, then drop the original split facets.
-    if (options.triangulate_affected) {
-        auto is_new_facet = [old_num_facets](Index f) { return f >= old_num_facets; };
-        triangulate_polygonal_facets(mesh, function_ref<bool(Index)>(is_new_facet));
-    }
-    mesh.remove_facets(facets_to_remove);
+        function_ref<span<Index>(Index)>(get_edge_split_pts),
+        options.triangulate_affected,
+        affected_types.load(std::memory_order_relaxed));
 }
 
 #define LA_X_resolve_tjunctions(_, Scalar, Index)               \

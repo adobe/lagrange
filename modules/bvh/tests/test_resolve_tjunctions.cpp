@@ -21,10 +21,12 @@
 #include <lagrange/extract_submesh.h>
 #include <lagrange/subdivision/midpoint_subdivision.h>
 #include <lagrange/testing/common.h>
+#include <lagrange/topology.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/views.h>
 
 #include <algorithm>
+#include <limits>
 #include <numeric>
 #include <random>
 #include <vector>
@@ -154,8 +156,9 @@ void run_resolve_tjunctions_tests(Resolve&& resolve)
             REQUIRE(mesh.find_edge_from_vertices(5, 1) != invalid<Index>());
         }
 
-        SECTION("triangulate_affected=true triangulates the split facet (the default)")
+        SECTION("triangulate_affected=true triangulates the split facet (polygon fallback)")
         {
+            // A non-triangle (quad) input falls back to triangulate_polygonal_facets.
             auto mesh = make_mesh();
             Options options;
             options.triangulate_affected = true;
@@ -245,6 +248,144 @@ void run_resolve_tjunctions_tests(Resolve&& resolve)
             options.tolerance = 1e-2;
             resolve(mesh, options);
             REQUIRE(mesh.get_num_facets() == 2);
+        }
+    }
+
+    SECTION("unaffected polygon does not force polygon triangulation")
+    {
+        auto mesh = testing::load_surface_mesh<Scalar, Index>("open/core/tjunction.fbx");
+        const Index q0 = mesh.get_num_vertices();
+        mesh.add_vertex({10, 10, 0});
+        mesh.add_vertex({11, 10, 0});
+        mesh.add_vertex({11, 11, 0});
+        mesh.add_vertex({10, 11, 0});
+        mesh.add_quad(q0, q0 + 1, q0 + 2, q0 + 3);
+        REQUIRE(mesh.get_num_facets() == 9);
+
+        Options options;
+        options.boundary_only = false;
+        resolve(mesh, options);
+
+        mesh.initialize_edges();
+        REQUIRE(mesh.get_num_facets() == 14);
+        std::vector<Index> triangles;
+        Index num_quads = 0;
+        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+            if (mesh.get_facet_size(f) == 3) triangles.push_back(f);
+            if (mesh.get_facet_size(f) == 4) ++num_quads;
+        }
+        REQUIRE(num_quads == 1);
+
+        // Split triangles fan to their opposite corner, avoiding the polygon fallback's slivers.
+        const auto vertices = vertex_view(mesh);
+        Scalar min_area = std::numeric_limits<Scalar>::max();
+        Scalar total_area = 0;
+        for (Index f : triangles) {
+            const auto fv = mesh.get_facet_vertices(f);
+            const Eigen::Matrix<Scalar, 1, 3> e1 = vertices.row(fv[1]) - vertices.row(fv[0]);
+            const Eigen::Matrix<Scalar, 1, 3> e2 = vertices.row(fv[2]) - vertices.row(fv[0]);
+            const Scalar area = Scalar(0.5) * e1.cross(e2).norm();
+            min_area = std::min(min_area, area);
+            total_area += area;
+        }
+        REQUIRE(min_area > Scalar(1e-3) * total_area / static_cast<Scalar>(triangles.size()));
+    }
+
+    SECTION("affected polygon does not degrade split triangles")
+    {
+        auto mesh = testing::load_surface_mesh<Scalar, Index>("open/core/tjunction.fbx");
+        const Index num_triangle_vertices = mesh.get_num_vertices();
+        const Index q = num_triangle_vertices;
+        mesh.add_vertex({10, 10, 0});
+        mesh.add_vertex({12, 10, 0});
+        mesh.add_vertex({12, 11, 0});
+        mesh.add_vertex({10, 11, 0});
+        mesh.add_vertex({10.5, 10, 0});
+        mesh.add_vertex({11.5, 10, 0});
+        mesh.add_quad(q, q + 1, q + 2, q + 3);
+
+        Options options;
+        options.boundary_only = false;
+        resolve(mesh, options);
+
+        // Both components have split edges; a split quad must not change the triangle strategy.
+        REQUIRE(mesh.get_num_facets() == 17);
+        const auto vertices = vertex_view(mesh);
+        Scalar min_area = std::numeric_limits<Scalar>::max();
+        Scalar total_area = 0;
+        Index num_triangles = 0;
+        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+            const auto fv = mesh.get_facet_vertices(f);
+            REQUIRE(fv.size() == 3);
+            if (std::any_of(fv.begin(), fv.end(), [num_triangle_vertices](Index v) {
+                    return v >= num_triangle_vertices;
+                })) {
+                continue;
+            }
+            const Eigen::Matrix<Scalar, 1, 3> e1 = vertices.row(fv[1]) - vertices.row(fv[0]);
+            const Eigen::Matrix<Scalar, 1, 3> e2 = vertices.row(fv[2]) - vertices.row(fv[0]);
+            const Scalar area = Scalar(0.5) * e1.cross(e2).norm();
+            min_area = std::min(min_area, area);
+            total_area += area;
+            ++num_triangles;
+        }
+        REQUIRE(num_triangles == 13);
+        REQUIRE(min_area > Scalar(1e-3) * total_area / num_triangles);
+    }
+
+    SECTION("mixed facets sharing a split edge retain indexed attributes")
+    {
+        SurfaceMesh<Scalar, Index> mesh;
+        mesh.add_vertex({0, 0, 0}); // 0
+        mesh.add_vertex({4, 0, 0}); // 1
+        mesh.add_vertex({2, 2, 0}); // 2: triangle apex
+        mesh.add_vertex({4, -2, 0}); // 3
+        mesh.add_vertex({0, -2, 0}); // 4
+        mesh.add_vertex({1, 0, 0}); // 5: first split point
+        mesh.add_vertex({3, 0, 0}); // 6: second split point
+        mesh.add_quad(1, 0, 4, 3); // opposite winding along the shared edge
+        mesh.add_triangle(0, 1, 2); // triangle comes after the quad in corner storage
+
+        // The shared edge is a UV seam, including at both interpolated split points.
+        std::vector<Scalar> uv_values = {4, 100, 0, 100, 0, 98, 4, 98, 0, 0, 4, 0, 2, 2};
+        std::vector<Index> uv_indices = {0, 1, 2, 3, 4, 5, 6};
+        mesh.template create_attribute<Scalar>(
+            "uv",
+            AttributeElement::Indexed,
+            AttributeUsage::UV,
+            2,
+            uv_values,
+            uv_indices);
+
+        Options options;
+        options.boundary_only = false;
+        resolve(mesh, options);
+
+        REQUIRE(mesh.get_num_facets() == 7);
+        REQUIRE_THAT(compute_mesh_area(mesh), Catch::Matchers::WithinAbs(12., 1e-12));
+        mesh.initialize_edges();
+        REQUIRE(mesh.find_edge_from_vertices(0, 1) == invalid<Index>());
+        REQUIRE(mesh.find_edge_from_vertices(0, 5) != invalid<Index>());
+        REQUIRE(mesh.find_edge_from_vertices(5, 6) != invalid<Index>());
+        REQUIRE(mesh.find_edge_from_vertices(6, 1) != invalid<Index>());
+
+        const auto positions = vertex_view(mesh);
+        const auto& uv_attr = mesh.template get_indexed_attribute<Scalar>("uv");
+        const auto uv = matrix_view(uv_attr.values());
+        const auto uv_idx = matrix_view(uv_attr.indices());
+        for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+            const auto fv = mesh.get_facet_vertices(f);
+            REQUIRE(fv.size() == 3);
+            const Scalar centroid_y =
+                (positions(fv[0], 1) + positions(fv[1], 1) + positions(fv[2], 1)) / 3;
+            const Scalar uv_offset = centroid_y < 0 ? 100 : 0;
+            for (Index k = 0; k < 3; ++k) {
+                const Index uid = uv_idx(mesh.get_facet_corner_begin(f) + k, 0);
+                REQUIRE_THAT(uv(uid, 0), Catch::Matchers::WithinAbs(positions(fv[k], 0), 1e-12));
+                REQUIRE_THAT(
+                    uv(uid, 1),
+                    Catch::Matchers::WithinAbs(positions(fv[k], 1) + uv_offset, 1e-12));
+            }
         }
     }
 

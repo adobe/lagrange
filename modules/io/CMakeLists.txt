@@ -25,6 +25,7 @@ include(libigl) # TODO: remove libigl later
 include(mshio)
 lagrange_find_package(happly REQUIRED)
 include(ufbx)
+include(pcdio)
 target_link_libraries(lagrange_io
     PUBLIC
         lagrange::core
@@ -39,6 +40,7 @@ target_link_libraries(lagrange_io
         tinygltf::tinygltf
         ufbx::ufbx
         mshio::mshio
+        pcdio::pcdio
 )
 
 option(LAGRANGE_WITH_ASSIMP "Add assimp functionality to lagrange::io" OFF)

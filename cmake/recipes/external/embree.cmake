@@ -108,17 +108,29 @@ function(embree_import_target)
     endif()
     set(TBB_LIBRARIES TBB)
 
+    # Embree's MSVC AVX512 kernels have been observed to segfault at runtime on some
+    # Windows machines. Disable AVX512 (and APX, which depends on it) on MSVC until this is root-caused upstream.
+    # TODO: Report and fix issue upstream. See CGT-774 for internal tracking.
+    if(MSVC)
+        set(EMBREE_ISA_AVX512 OFF CACHE BOOL "Enables AVX512 ISA." FORCE)
+        set(EMBREE_ISA_APX OFF CACHE BOOL "Enables APX ISA." FORCE)
+    endif()
+
     # Ready to include embree's atrocious CMake
     include(CPM)
-    set(EMBREE_VERSION v4.4.0)
-    set(EMBREE_PATCHES "")
+    set(EMBREE_VERSION 3d9cb89b9ea099c630e6272d37767e7dd4e78e74) # ahead of 4.4.1
+    set(EMBREE_PATCHES)
+    if(EMSCRIPTEN)
+        # TODO: Remove when https://github.com/RenderKit/embree/pull/633 is merged
+        set(EMBREE_PATCHES PATCHES embree4.patch)
+    endif()
     if(LAGRANGE_WITH_EMBREE_3)
         set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
         set(EMBREE_VERSION v3.13.5)
         # Patch for emscripten compatibility. Fix available upstream in Embree 4+.
         # https://github.com/RenderKit/embree/pull/365
         # https://github.com/RenderKit/embree/issues/486
-        set(EMBREE_PATCHES PATCHES embree.patch)
+        set(EMBREE_PATCHES PATCHES embree3.patch)
     endif()
     CPMAddPackage(
         NAME embree
@@ -155,7 +167,7 @@ function(embree_import_target)
     endif()
 
     # Suppress kernel dispatch function casts and AccelSet downcasts, not all UBSan checks.
-    # Keep exclusions private; GCC has no function-pointer sanitizer.
+    # https://github.com/RenderKit/embree/issues/635
     if(USE_SANITIZER MATCHES "([Uu]ndefined)")
         foreach(target IN ITEMS
             embree
@@ -166,6 +178,7 @@ function(embree_import_target)
             embree_apx
         )
             if(TARGET ${target})
+                # Note: GCC 13 has no function-pointer sanitizer.
                 target_compile_options(${target} PRIVATE
                     $<$<COMPILE_LANG_AND_ID:CXX,GNU,Clang,AppleClang>:-fno-sanitize=vptr>
                     $<$<COMPILE_LANG_AND_ID:CXX,Clang,AppleClang>:-fno-sanitize=function>

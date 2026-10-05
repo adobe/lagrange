@@ -16,168 +16,278 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
-#include <lagrange/compute_area.h>
 #include <lagrange/scene/filter_instances.h>
 #include <lagrange/utils/assert.h>
-#include <lagrange/utils/hash.h>
 #include <lagrange/utils/range.h>
-#include <lagrange/views.h>
+#include <lagrange/utils/warning.h>
 
-#include <tbb/parallel_for.h>
+#include <tbb/blocked_range.h>
+#include <tbb/parallel_reduce.h>
 
 #include <algorithm>
 #include <atomic>
 #include <cmath>
+#include <limits>
 #include <numeric>
-#include <unordered_set>
+#include <utility>
+#include <vector>
 
 namespace lagrange::raycasting {
 
 using namespace detail;
 
+namespace {
+
+OccludedInstanceSamplerOptions legacy_sampler_options()
+{
+    OccludedInstanceSamplerOptions options;
+    options.threshold = std::numeric_limits<double>::min();
+    return options;
+}
+
+} // namespace
+
+namespace internal {
+
 template <typename Scalar, typename Index>
 struct OccludedInstanceSampler<Scalar, Index>::Impl
-    : ImplBase<typename OccludedInstanceSampler<Scalar, Index>::Impl, Scalar, Index>
+    : ImplBase<typename OccludedInstanceSampler<Scalar, Index>::Impl, Scalar>
 {
     explicit Impl(Index num_instances)
-        : m_is_visible(num_instances)
-        , m_num_rays_cast(num_instances)
-    {
-        // Default-constructed atomics have unspecified value in C++17; explicit zeroing.
-        for (auto& v : m_is_visible) v.store(false, std::memory_order_relaxed);
-        for (auto& r : m_num_rays_cast) r.store(0, std::memory_order_relaxed);
-    }
+        : m_retired(num_instances, 0)
+        , m_num_escaped_rays(num_instances, 0)
+        , m_num_rays_cast(num_instances, 0)
+    {}
 
-    std::vector<InstanceData<Scalar, Index>> m_instances;
-    /// Inter-instance ray-distribution weight = cbrt(total area). cbrt-of-sum, not sum-of-cbrt:
-    /// an instance is a single shared Bernoulli trial, so softening is applied to the instance
-    /// total rather than per facet.
+    std::vector<InstanceData<Scalar>> m_instances;
+
+    /// Inter-instance ray-allocation weight ∝ 1/tau_i = (area / R)^size_influence. Rays track each
+    /// instance's statistical difficulty: low-tau (large) instances need the most to resolve.
     std::vector<Scalar> m_instance_weights;
-    std::vector<std::atomic<bool>> m_is_visible;
-    std::vector<std::atomic<uint64_t>> m_num_rays_cast;
+
+    /// Cached `(area / R)^size_influence`, used by both the public measure and ray allocation.
+    std::vector<double> m_instance_size_factor;
+
+    /// Per-instance escape-fraction threshold `tau = threshold / size_factor`.
+    std::vector<double> m_instance_tau;
+
+    /// Public keep threshold applied to visibility_measure().
+    double m_threshold = 0.0;
+
+    /// Retire-KEEP flag: set once confidently above tau (sampling then stops). Occluded instances
+    /// never retire; they sample to the ray budget.
+    std::vector<uint8_t> m_retired;
+    std::vector<uint64_t> m_num_escaped_rays;
+    std::vector<uint64_t> m_num_rays_cast;
+    double m_alpha = 0.01;
+    /// Prefix sum over meshes: flat instance index = m_mesh_offset[mesh] + instance.
+    std::vector<Index> m_mesh_offset;
+    /// Reused per-instance ray-allocation scratch; process_instance() is called sequentially.
+    std::vector<uint64_t> m_ray_boundaries;
+
+    Index flat(Index mesh_index, Index instance_index) const
+    {
+        const size_t mi = static_cast<size_t>(mesh_index);
+        la_runtime_assert(!m_mesh_offset.empty());
+        la_runtime_assert(mi < m_mesh_offset.size() - 1, "mesh_index is out of bounds");
+        const Index num_mesh_instances = m_mesh_offset[mi + 1] - m_mesh_offset[mi];
+        la_runtime_assert(
+            instance_index < num_mesh_instances,
+            "instance_index is out of bounds for the selected mesh");
+        return m_mesh_offset[mi] + instance_index;
+    }
 
     Scalar instance_active_weight(size_t i) const
     {
-        return m_is_visible[i].load(std::memory_order_relaxed) ? Scalar(0) : m_instance_weights[i];
+        return m_retired[i] ? Scalar(0) : m_instance_weights[i];
     }
 
-    template <typename Vertices, typename Facets>
-    void process_instance(
-        size_t i,
-        uint64_t instance_rays,
-        Scalar /*instance_weight*/,
-        const Vertices& vertices,
-        const Facets& facets)
+    /// (number of currently-visible instances, total rays cast) across all instances.
+    std::pair<Index, uint64_t> progress() const
+    {
+        Index num_visible = 0;
+        uint64_t total_rays = 0;
+        for (auto i : lagrange::range(this->num_instances())) {
+            if (kept(i)) ++num_visible;
+            total_rays += m_num_rays_cast[i];
+        }
+        return {num_visible, total_rays};
+    }
+
+    Index num_retired() const
+    {
+        Index count = 0;
+        for (const auto retired : m_retired)
+            if (retired) ++count;
+        return count;
+    }
+
+    /// Estimated cosine-weighted escaped fraction of the instance, in [0, 1]; 0 before sampling.
+    double mean_visibility(size_t i) const
+    {
+        const uint64_t escaped = m_num_escaped_rays[i];
+        const uint64_t cast = m_num_rays_cast[i];
+        if (cast == 0) return 0.0;
+        assert(escaped <= cast);
+        return static_cast<double>(escaped) / static_cast<double>(cast);
+    }
+
+    /// Size-weighted visibility measure: mean_visibility * (area / R)^size_influence.
+    double visibility_measure(size_t i) const
+    {
+        return mean_visibility(i) * m_instance_size_factor[i];
+    }
+
+    /// Point-estimate keep decision on the public visibility measure.
+    bool kept(size_t i) const { return visibility_measure(i) >= m_threshold; }
+
+    void process_instance(size_t i, uint64_t instance_rays, Scalar /*instance_weight*/)
     {
         auto& inst = m_instances[i];
-        const size_t N = inst.facet_areas.size();
-        if (N == 0 || instance_rays == 0) return;
+        const size_t num_facets = inst.facet_areas.size();
+        if (num_facets == 0 || instance_rays == 0) return;
 
-        // Rays are distributed proportionally to plain facet area — no per-facet softening,
-        // since the instance is a shared Bernoulli trial. Some facets may receive zero rays.
+        // Rays ∝ plain facet area (no per-facet softening — the instance is one shared Bernoulli
+        // trial); some facets may get zero rays.
         const Scalar area_sum =
             std::accumulate(inst.facet_areas.begin(), inst.facet_areas.end(), Scalar(0));
         if (area_sum <= 0) return;
 
-        // boundary[k+1] = cumulative ray count up to and including facet k.
-        // packet_start_facet[p] = facet that owns the first ray of packet p; the parallel_for
-        // walks boundary linearly from there (≤ packet capacity steps), no binary search.
-        std::vector<uint64_t> boundary(N + 1, 0);
-        std::vector<size_t> packet_start_facet;
+        // boundary[k+1] = cumulative rays through facet k. The allocation is reused across
+        // instances and batches; each parallel range finds its first facet once, then walks
+        // boundary linearly.
+        m_ray_boundaries.resize(num_facets + 1);
+        m_ray_boundaries[0] = 0;
         {
             const double rays_per_area = static_cast<double>(instance_rays) / area_sum;
             double cumsum = 0;
-            size_t next_p = 0;
-            for (auto k : lagrange::range(N)) {
+            for (auto k : lagrange::range(num_facets)) {
                 cumsum += inst.facet_areas[k] * rays_per_area;
-                boundary[k + 1] = static_cast<uint64_t>(std::llround(cumsum));
-                while (next_p * RayPacket16::capacity < boundary[k + 1]) {
-                    packet_start_facet.push_back(k);
-                    ++next_p;
-                }
+                m_ray_boundaries[k + 1] = static_cast<uint64_t>(std::llround(cumsum));
             }
         }
-        const uint64_t total_rays = boundary[N];
-        const size_t num_packets = packet_start_facet.size();
+        const auto& boundary = m_ray_boundaries;
+        const uint64_t total_rays = boundary[num_facets];
+        const size_t num_packets =
+            total_rays == 0 ? 0 : static_cast<size_t>(1 + (total_rays - 1) / RayPacket16::capacity);
         if (num_packets == 0) return;
 
-        // One packet per iteration, drawing rays from up to 16 different facets. Sampler
-        // thread-safety comes from the atomic index inside RaySampler.
-        tbb::parallel_for(size_t(0), num_packets, [&](size_t p) {
-            if (m_is_visible[i].load(std::memory_order_relaxed)) return;
+        // Reduce packet results locally, then publish once; the instance counters are owned by the
+        // calling thread.
+        const uint64_t num_escaped = tbb::parallel_reduce(
+            tbb::blocked_range<size_t>(0, num_packets),
+            uint64_t{0},
+            [&](const tbb::blocked_range<size_t>& range, uint64_t local_escaped) {
+                const uint64_t first_ray = range.begin() * RayPacket16::capacity;
+                size_t f = static_cast<size_t>(
+                    std::upper_bound(boundary.begin(), boundary.end(), first_ray) -
+                    boundary.begin() - 1);
+                for (size_t p = range.begin(); p != range.end(); ++p) {
+                    const uint64_t r0 = p * RayPacket16::capacity;
+                    const size_t count = static_cast<size_t>(
+                        std::min<uint64_t>(RayPacket16::capacity, total_rays - r0));
 
-            const uint64_t r0 = p * RayPacket16::capacity;
-            const size_t count =
-                static_cast<size_t>(std::min<uint64_t>(RayPacket16::capacity, total_rays - r0));
+                    RayPacket16 packet;
+                    for (auto slot : lagrange::range(count)) {
+                        while (r0 + slot >= boundary[f + 1]) ++f;
+                        const auto s = inst.ray_samplers[f].sample_cosine();
+                        const auto origin = triangle_position(inst.facet_triangles[f], s.bary);
+                        packet.push(origin, s.direction);
+                    }
 
-            RayPacket16 packet;
-            size_t f = packet_start_facet[p];
-            for (auto slot : lagrange::range(count)) {
-                while (r0 + slot >= boundary[f + 1]) ++f;
-                const auto s = inst.ray_samplers[f]();
-                const auto origin = barycentric_position(s.bary, vertices, facets, f);
-                packet.push(origin, s.direction);
-            }
+                    uint32_t escaped = ~packet.cast(this->m_ray_caster) & packet.occupied_mask();
+                    for (; escaped != 0; escaped &= escaped - 1) ++local_escaped;
+                }
+                return local_escaped;
+            },
+            [](uint64_t a, uint64_t b) { return a + b; });
 
-            const uint32_t mask = packet.cast(this->m_ray_caster);
-            if ((mask & packet.occupied_mask()) != packet.occupied_mask()) {
-                m_is_visible[i].store(true, std::memory_order_relaxed);
-            }
-            m_num_rays_cast[i].fetch_add(packet.count, std::memory_order_relaxed);
-        });
+        m_num_escaped_rays[i] += num_escaped;
+        m_num_rays_cast[i] += total_rays;
     }
 
-    void end_batch() {}
+    void end_batch()
+    {
+        // Retire-KEEP instances confidently above their mean-visibility threshold tau.
+        for (auto i : lagrange::range(this->num_instances())) {
+            if (m_retired[i]) continue;
+            if (is_confidently_visible(
+                    m_num_escaped_rays[i],
+                    m_num_rays_cast[i],
+                    m_instance_tau[i],
+                    m_alpha)) {
+                m_retired[i] = true;
+            }
+        }
+    }
 };
 
 /// @cond LA_INTERNAL_DOCS
 template <typename Scalar, typename Index>
 OccludedInstanceSampler<Scalar, Index>::OccludedInstanceSampler(
     const scene::SimpleScene<Scalar, Index, 3>& scene,
+    const OccludedInstanceSamplerOptions& options,
     function_ref<bool(Index, Index)> is_occluder)
 {
+    la_runtime_assert(
+        options.threshold >= 0 && options.threshold <= 0.5,
+        "OccludedInstanceSamplerOptions::threshold must be in [0, 0.5]");
+    la_runtime_assert(
+        options.confidence > 0 && options.confidence < 1,
+        "OccludedInstanceSamplerOptions::confidence must be in (0, 1)");
+    la_runtime_assert(
+        options.size_influence >= 0,
+        "OccludedInstanceSamplerOptions::size_influence must be non-negative");
     const Index total = scene.compute_num_instances();
     la_runtime_assert(total > 0, "scene has no instances");
 
     m_impl = make_value_ptr<Impl>(total);
-    m_impl->m_scene = scene;
+    m_impl->m_alpha = 1.0 - options.confidence;
+    m_impl->m_threshold = options.threshold;
+
+    // Per-instance tau_i = threshold * (R / area_i)^size_influence: size_influence 0 -> mean
+    // visibility, 1 -> area-weighted visibility. Degenerate instances cannot retire early.
+    const double scene_aabb_area = scene_aabb_surface_area(scene);
 
     m_impl->m_instances.resize(total);
     m_impl->m_instance_weights.resize(total);
+    m_impl->m_instance_size_factor.resize(total);
+    m_impl->m_instance_tau.resize(total, 0.0);
+
+    const Index num_meshes = scene.get_num_meshes();
+    m_impl->m_mesh_offset.resize(num_meshes + 1);
+    m_impl->m_mesh_offset[0] = 0;
+    for (auto mi : lagrange::range(num_meshes)) {
+        m_impl->m_mesh_offset[mi + 1] = m_impl->m_mesh_offset[mi] + scene.get_num_instances(mi);
+    }
+
+    std::vector<Eigen::Vector3<Scalar>> world_vertices;
     Index global = 0;
-    for (auto mi : lagrange::range(m_impl->m_scene.get_num_meshes())) {
-        for (auto ii : lagrange::range(m_impl->m_scene.get_num_instances(mi))) {
-            const auto& instance = m_impl->m_scene.get_instance(mi, ii);
+    for (auto mi : lagrange::range(scene.get_num_meshes())) {
+        for (auto ii : lagrange::range(scene.get_num_instances(mi))) {
+            const auto& instance = scene.get_instance(mi, ii);
             auto& inst = m_impl->m_instances[global];
-            inst.mesh_index = instance.mesh_index;
-            inst.transform = instance.transform;
-            const auto& mesh = m_impl->m_scene.get_mesh(inst.mesh_index);
+            const auto& mesh = scene.get_mesh(instance.mesh_index);
             la_runtime_assert(
                 mesh.is_triangle_mesh(),
                 "OccludedInstanceSampler requires triangle meshes");
-            const Index nf = mesh.get_num_facets();
-
-            auto shallow = mesh;
-            const auto area_id = compute_facet_vector_area(shallow, inst.transform);
-            const auto area_view = attribute_matrix_view<Scalar>(shallow, area_id);
-            inst.facet_areas.resize(nf);
-            inst.ray_samplers.reserve(nf);
-            for (auto f : lagrange::range(nf)) {
-                const auto area_vec = area_view.row(f);
-                const Scalar area_norm = area_vec.norm();
-                inst.facet_areas[f] = area_norm;
-                // Degenerate facets contribute zero area; emplace a placeholder normal so the
-                // sampler vector stays index-aligned (no rays will ever be cast from them).
-                inst.ray_samplers.emplace_back(
-                    area_norm > 0 ? Eigen::RowVector3<Scalar>(area_vec / area_norm)
-                                  : Eigen::RowVector3<Scalar>::UnitZ());
-            }
-            m_impl->m_instance_weights[global] = std::cbrt(
-                std::accumulate(inst.facet_areas.begin(), inst.facet_areas.end(), Scalar(0)));
+            const double area =
+                initialize_instance_geometry(inst, instance.transform, mesh, world_vertices);
+            const double size_factor =
+                area > 0 && scene_aabb_area > 0
+                    ? std::pow(area / scene_aabb_area, options.size_influence)
+                    : 0.0;
+            // Allocate rays by statistical difficulty 1/tau_i proportional to size_factor.
+            m_impl->m_instance_weights[global] = static_cast<Scalar>(size_factor);
+            m_impl->m_instance_size_factor[global] = size_factor;
+            m_impl->m_instance_tau[global] = size_factor > 0
+                                                 ? options.threshold / size_factor
+                                                 : std::numeric_limits<double>::infinity();
             ++global;
         }
     }
 
+    // Ray caster sees occluder-only instances.
     lagrange::logger().info("Building ray caster");
     auto occluder_scene = scene::filter_instances(scene, is_occluder);
     m_impl->m_ray_caster.add_scene(std::move(occluder_scene));
@@ -203,17 +313,26 @@ void OccludedInstanceSampler<Scalar, Index>::run_batch(uint64_t num_rays)
 }
 
 template <typename Scalar, typename Index>
-bool OccludedInstanceSampler<Scalar, Index>::is_visible(Index global_index) const
+bool OccludedInstanceSampler<Scalar, Index>::is_visible(Index mesh_index, Index instance_index)
+    const
 {
-    la_runtime_assert(global_index < m_impl->m_is_visible.size());
-    return m_impl->m_is_visible[global_index].load(std::memory_order_relaxed);
+    return m_impl->kept(m_impl->flat(mesh_index, instance_index));
 }
 
 template <typename Scalar, typename Index>
-uint64_t OccludedInstanceSampler<Scalar, Index>::num_rays_cast(Index global_index) const
+double OccludedInstanceSampler<Scalar, Index>::visibility_measure(
+    Index mesh_index,
+    Index instance_index) const
 {
-    la_runtime_assert(global_index < m_impl->m_num_rays_cast.size());
-    return m_impl->m_num_rays_cast[global_index].load(std::memory_order_relaxed);
+    return m_impl->visibility_measure(m_impl->flat(mesh_index, instance_index));
+}
+
+template <typename Scalar, typename Index>
+uint64_t OccludedInstanceSampler<Scalar, Index>::num_rays_cast(
+    Index mesh_index,
+    Index instance_index) const
+{
+    return m_impl->m_num_rays_cast[m_impl->flat(mesh_index, instance_index)];
 }
 
 template <typename Scalar, typename Index>
@@ -223,8 +342,24 @@ Index OccludedInstanceSampler<Scalar, Index>::num_instances() const
 }
 
 template <typename Scalar, typename Index>
-void estimate_occluded_instances(
-    OccludedInstanceSampler<Scalar, Index>& sampler,
+Index OccludedInstanceSampler<Scalar, Index>::num_retired() const
+{
+    return m_impl->num_retired();
+}
+
+template <typename Scalar, typename Index>
+std::pair<Index, uint64_t> OccludedInstanceSampler<Scalar, Index>::progress() const
+{
+    return m_impl->progress();
+}
+
+} // namespace internal
+
+namespace {
+
+template <typename Scalar, typename Index>
+void run_sampler(
+    internal::OccludedInstanceSampler<Scalar, Index>& sampler,
     const OccludedInstanceEstimateOptions& options,
     ProgressCallback& progress,
     const std::atomic_bool* cancel)
@@ -232,24 +367,28 @@ void estimate_occluded_instances(
     la_runtime_assert(options.batch_size > 0);
     la_runtime_assert(
         options.num_rays > 0 || cancel != nullptr || options.until_converged,
-        "estimate_occluded_instances needs at least one termination condition: num_rays>0, "
+        "run_sampler needs at least one termination condition: num_rays>0, "
         "until_converged=true, or a non-null cancel flag");
 
     const Index total_instances = sampler.num_instances();
     lagrange::logger().info("Searching for occluded instances");
     progress.set_section("Searching for occluded instances");
 
-    Index prev_visible = 0;
+    Index prev_retired = 0;
+    uint64_t prev_total_rays = 0;
+    bool has_previous_batch = false;
     while (true) {
         sampler.run_batch(options.batch_size);
 
-        // `total_rays` is the actual count from the sampler, not the budgeted batch size —
-        // packets are skipped once an instance becomes visible mid-batch.
-        const auto [num_visible, total_rays] = sum_progress(sampler, total_instances);
+        // This is the actual count: retired instances receive no rays, and weighted allocation may
+        // differ slightly from the requested batch size.
+        const auto [num_visible, total_rays] = sampler.progress();
+        const Index num_retired = sampler.num_retired();
         lagrange::logger().info(
-            "{}/{} instances visible ({} rays so far)",
+            "{}/{} instances visible, {} confidently retired ({} rays so far)",
             num_visible,
             total_instances,
+            num_retired,
             total_rays);
         const float fraction =
             options.num_rays > 0
@@ -257,19 +396,25 @@ void estimate_occluded_instances(
                       1.f,
                       static_cast<float>(total_rays) / static_cast<float>(options.num_rays))
                 : (total_instances > 0
-                       ? static_cast<float>(num_visible) / static_cast<float>(total_instances)
+                       ? static_cast<float>(num_retired) / static_cast<float>(total_instances)
                        : 1.f);
         progress.update(fraction);
 
-        if (static_cast<Index>(num_visible) == total_instances) {
-            lagrange::logger().info("All instances visible, stopping early");
+        if (num_retired == total_instances) {
+            lagrange::logger().info("All instances confidently visible, stopping early");
             break;
         }
-        if (options.until_converged && static_cast<Index>(num_visible) == prev_visible) {
-            lagrange::logger().info("Converged: no new visible instances in last batch, stopping");
+        if (total_rays == prev_total_rays) {
+            lagrange::logger().info("No instance rays could be cast, stopping");
             break;
         }
-        prev_visible = static_cast<Index>(num_visible);
+        if (options.until_converged && has_previous_batch && num_retired == prev_retired) {
+            lagrange::logger().info("Converged: no instances retired in last batch, stopping");
+            break;
+        }
+        prev_retired = num_retired;
+        prev_total_rays = total_rays;
+        has_previous_batch = true;
 
         if (cancel != nullptr && cancel->load()) {
             lagrange::logger().info("Cancelled, using results so far");
@@ -278,6 +423,61 @@ void estimate_occluded_instances(
         if (options.num_rays > 0 && total_rays >= options.num_rays) break;
     }
 }
+
+} // namespace
+
+template <typename Scalar, typename Index>
+std::vector<std::vector<double>> estimate_occluded_instance_measures(
+    const scene::SimpleScene<Scalar, Index, 3>& scene,
+    const RemoveOccludedInstancesOptions& options,
+    ProgressCallback& progress,
+    function_ref<bool(Index mesh_index, Index instance_index)> is_occluder,
+    const std::atomic_bool* cancel)
+{
+    internal::OccludedInstanceSampler<Scalar, Index> sampler(
+        scene,
+        options.sampler_options,
+        is_occluder);
+    run_sampler(sampler, options.estimate_options, progress, cancel);
+
+    std::vector<std::vector<double>> measures(scene.get_num_meshes());
+    for (auto mi : lagrange::range(scene.get_num_meshes())) {
+        measures[mi].resize(scene.get_num_instances(mi));
+        for (auto ii : lagrange::range(scene.get_num_instances(mi))) {
+            measures[mi][ii] = sampler.visibility_measure(mi, ii);
+        }
+    }
+    return measures;
+}
+
+template <typename Scalar, typename Index>
+scene::SimpleScene<Scalar, Index, 3> remove_occluded_instances(
+    const scene::SimpleScene<Scalar, Index, 3>& scene,
+    const RemoveOccludedInstancesOptions& options,
+    ProgressCallback& progress,
+    function_ref<bool(Index mesh_index, Index instance_index)> is_occluder,
+    const std::atomic_bool* cancel)
+{
+    internal::OccludedInstanceSampler<Scalar, Index> sampler(
+        scene,
+        options.sampler_options,
+        is_occluder);
+    run_sampler(sampler, options.estimate_options, progress, cancel);
+
+    auto result = scene::filter_instances(scene, [&](Index mi, Index ii) {
+        return sampler.is_visible(mi, ii);
+    });
+    lagrange::logger().info(
+        "Filtered scene: {} meshes, {} instances",
+        result.get_num_meshes(),
+        result.compute_num_instances());
+    return result;
+}
+
+// Deprecated back-compat overloads preserve the old "one escaped ray keeps the instance"
+// semantics with the smallest practical positive threshold. Zero would also keep instances with
+// no escapes because the public comparison is inclusive.
+LA_IGNORE_DEPRECATION_WARNING_BEGIN
 
 template <typename Scalar, typename Index>
 void estimate_occluded_instances(
@@ -288,14 +488,14 @@ void estimate_occluded_instances(
     function_ref<bool(Index mesh_index, Index instance_index)> is_occluder,
     const std::atomic_bool* cancel)
 {
-    OccludedInstanceSampler<Scalar, Index> sampler(scene, is_occluder);
-    estimate_occluded_instances(sampler, options, progress, cancel);
-
-    Index global = 0;
+    internal::OccludedInstanceSampler<Scalar, Index> sampler(
+        scene,
+        legacy_sampler_options(),
+        is_occluder);
+    run_sampler(sampler, options, progress, cancel);
     for (auto mi : lagrange::range(scene.get_num_meshes())) {
         for (auto ii : lagrange::range(scene.get_num_instances(mi))) {
-            if (!sampler.is_visible(global)) callback(mi, ii);
-            ++global;
+            if (!sampler.is_visible(mi, ii)) callback(mi, ii);
         }
     }
 }
@@ -308,41 +508,42 @@ scene::SimpleScene<Scalar, Index, 3> remove_occluded_instances(
     function_ref<bool(Index mesh_index, Index instance_index)> is_occluder,
     const std::atomic_bool* cancel)
 {
-    std::unordered_set<std::pair<Index, Index>, lagrange::OrderedPairHash<std::pair<Index, Index>>>
-        occluded;
-    estimate_occluded_instances<Scalar, Index>(
+    return remove_occluded_instances<Scalar, Index>(
         scene,
-        [&](Index mi, Index ii) { occluded.emplace(mi, ii); },
-        options,
+        RemoveOccludedInstancesOptions{legacy_sampler_options(), options},
         progress,
         is_occluder,
         cancel);
-
-    auto result = scene::filter_instances(scene, [&](Index mi, Index ii) {
-        return occluded.find({mi, ii}) == occluded.end();
-    });
-
-    lagrange::logger().info(
-        "Filtered scene: {} meshes, {} instances",
-        result.get_num_meshes(),
-        result.compute_num_instances());
-    return result;
 }
+
+LA_IGNORE_DEPRECATION_WARNING_END
 
 // clang-format off
 #define LA_X_OccludedInstanceSampler(_, Scalar, Index)                                          \
-    template class LA_RAYCASTING_API OccludedInstanceSampler<Scalar, Index>;
+    template class LA_RAYCASTING_API internal::OccludedInstanceSampler<Scalar, Index>;
 LA_SURFACE_MESH_X(OccludedInstanceSampler, 0)
 
-#define LA_X_estimate_occluded_instances(_, Scalar, Index)                                      \
-    template LA_RAYCASTING_API void estimate_occluded_instances(                                \
-        OccludedInstanceSampler<Scalar, Index>&,                                                \
-        const OccludedInstanceEstimateOptions&,                                                 \
+#define LA_X_estimate_occluded_instance_measures(_, Scalar, Index)                              \
+    template LA_RAYCASTING_API std::vector<std::vector<double>>                                 \
+    estimate_occluded_instance_measures(                                                        \
+        const scene::SimpleScene<Scalar, Index, 3>&,                                            \
+        const RemoveOccludedInstancesOptions&,                                                  \
         ProgressCallback&,                                                                      \
+        function_ref<bool(Index, Index)>,                                                       \
         const std::atomic_bool*);
-LA_SURFACE_MESH_X(estimate_occluded_instances, 0)
+LA_SURFACE_MESH_X(estimate_occluded_instance_measures, 0)
 
-#define LA_X_estimate_occluded_instances_scene(_, Scalar, Index)                                \
+#define LA_X_remove_occluded_instances(_, Scalar, Index)                                        \
+    template LA_RAYCASTING_API scene::SimpleScene<Scalar, Index, 3> remove_occluded_instances(  \
+        const scene::SimpleScene<Scalar, Index, 3>&,                                            \
+        const RemoveOccludedInstancesOptions&,                                                  \
+        ProgressCallback&,                                                                      \
+        function_ref<bool(Index, Index)>,                                                       \
+        const std::atomic_bool*);
+LA_SURFACE_MESH_X(remove_occluded_instances, 0)
+
+LA_IGNORE_DEPRECATION_WARNING_BEGIN
+#define LA_X_estimate_occluded_instances_deprecated(_, Scalar, Index)                           \
     template LA_RAYCASTING_API void estimate_occluded_instances(                                \
         const scene::SimpleScene<Scalar, Index, 3>&,                                            \
         function_ref<void(Index, Index)>,                                                       \
@@ -350,16 +551,17 @@ LA_SURFACE_MESH_X(estimate_occluded_instances, 0)
         ProgressCallback&,                                                                      \
         function_ref<bool(Index, Index)>,                                                       \
         const std::atomic_bool*);
-LA_SURFACE_MESH_X(estimate_occluded_instances_scene, 0)
+LA_SURFACE_MESH_X(estimate_occluded_instances_deprecated, 0)
 
-#define LA_X_remove_occluded_instances(_, Scalar, Index)                                        \
+#define LA_X_remove_occluded_instances_deprecated(_, Scalar, Index)                             \
     template LA_RAYCASTING_API scene::SimpleScene<Scalar, Index, 3> remove_occluded_instances(  \
         const scene::SimpleScene<Scalar, Index, 3>&,                                            \
         const OccludedInstanceEstimateOptions&,                                                 \
         ProgressCallback&,                                                                      \
         function_ref<bool(Index, Index)>,                                                       \
         const std::atomic_bool*);
-LA_SURFACE_MESH_X(remove_occluded_instances, 0)
+LA_SURFACE_MESH_X(remove_occluded_instances_deprecated, 0)
+LA_IGNORE_DEPRECATION_WARNING_END
 // clang-format on
 
 } // namespace lagrange::raycasting

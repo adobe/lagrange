@@ -229,7 +229,6 @@ std::vector<Index> split_edges(
         });
 
     auto vertices = vertex_view(mesh);
-    auto facets = facet_view(mesh);
     auto edge_barycentric = [&](Index v0, Index v1, Index v) {
         Scalar diff = 0;
         Scalar t = 0;
@@ -246,9 +245,10 @@ std::vector<Index> split_edges(
 
     auto barycentric_coordinates =
         [&](Index ori_fid, Index vid, Index p_begin, Index p_end) -> std::array<Scalar, 3> {
-        auto vid_0 = facets(ori_fid, 0);
-        auto vid_1 = facets(ori_fid, 1);
-        auto vid_2 = facets(ori_fid, 2);
+        const auto facet_vertices = mesh.get_facet_vertices(ori_fid);
+        auto vid_0 = facet_vertices[0];
+        auto vid_1 = facet_vertices[1];
+        auto vid_2 = facet_vertices[2];
         if (vid == vid_0) return {1, 0, 0};
         if (vid == vid_1) return {0, 1, 0};
         if (vid == vid_2) return {0, 0, 1};
@@ -292,8 +292,9 @@ std::vector<Index> split_edges(
         for (size_t j = split_triangles_offsets[i] / 3; j < split_triangles_offsets[i + 1] / 3;
              j++) {
             Index fid = num_input_facets + static_cast<Index>(j);
+            const auto facet_vertices = mesh.get_facet_vertices(fid);
             for (Index k = 0; k < 3; k++) {
-                Index vid = facets(fid, k);
+                Index vid = facet_vertices[k];
                 corner_bc[j * 3 + k] =
                     barycentric_coordinates(ori_fid, vid, parent_offsets[i], parent_offsets[i + 1]);
             }
@@ -303,16 +304,18 @@ std::vector<Index> split_edges(
     auto map_corner_attribute = [&](auto&& data, auto&& corner_to_index) {
         for (size_t i = 0; i < original_triangle_index.size(); i++) {
             Index ori_fid = original_triangle_index[i];
+            const Index ori_corner_begin = mesh.get_facet_corner_begin(ori_fid);
             std::array<Index, 3> ori_corners{
-                corner_to_index(ori_fid * 3),
-                corner_to_index(ori_fid * 3 + 1),
-                corner_to_index(ori_fid * 3 + 2)};
+                corner_to_index(ori_corner_begin),
+                corner_to_index(ori_corner_begin + 1),
+                corner_to_index(ori_corner_begin + 2)};
             for (size_t j = split_triangles_offsets[i] / 3; j < split_triangles_offsets[i + 1] / 3;
                  j++) {
                 Index fid = num_input_facets + static_cast<Index>(j);
+                const Index corner_begin = mesh.get_facet_corner_begin(fid);
 
                 for (Index k = 0; k < 3; k++) {
-                    Index curr_cid = fid * 3 + k;
+                    Index curr_cid = corner_begin + k;
                     auto& bc = corner_bc[j * 3 + k];
                     interpolate_row<Scalar, Index>(
                         data,

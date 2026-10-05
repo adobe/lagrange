@@ -58,7 +58,8 @@ GeodesicPathResult<Scalar, Index> GeodesicEngine<Scalar, Index>::point_to_point_
     // Derived classes should override this method to provide actual path computation
     throw Error(
         "Geodesic path extraction is not supported by this engine. "
-        "Use GeodesicEngineMMP for exact path computation.");
+        "Use GeodesicEngineMMP for exact path computation, "
+        "or GeodesicEngineFlip for flip-based geodesic path computation.");
 }
 
 #define LA_X_GeodesicEngine(_, Scalar, Index) \

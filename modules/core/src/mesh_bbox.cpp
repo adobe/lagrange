@@ -35,11 +35,35 @@ Eigen::AlignedBox<Scalar, static_cast<int>(Dimension)> mesh_bbox(
     return bbox;
 }
 
+template <size_t Dimension, typename Scalar, typename Index>
+Eigen::AlignedBox<Scalar, static_cast<int>(Dimension)> mesh_bbox(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const Eigen::Transform<Scalar, static_cast<int>(Dimension), Eigen::Affine>& transform)
+{
+    static_assert(Dimension == 2 || Dimension == 3, "Only 2D and 3D meshes are supported.");
+    la_runtime_assert(
+        mesh.get_dimension() == Dimension,
+        "Mesh dimension does not match the requested bounding box dimension.");
+    const auto vertices = vertex_view(mesh);
+    Eigen::AlignedBox<Scalar, static_cast<int>(Dimension)> bbox;
+    for (Eigen::Index i = 0; i < vertices.rows(); ++i) {
+        bbox.extend(
+            transform * vertices.row(i).transpose().template tail<static_cast<int>(Dimension)>());
+    }
+    return bbox;
+}
+
 #define LA_X_mesh_bbox(_, Scalar, Index)                                            \
     template LA_CORE_API Eigen::AlignedBox<Scalar, 2> mesh_bbox<2u, Scalar, Index>( \
         const SurfaceMesh<Scalar, Index>&);                                         \
+    template LA_CORE_API Eigen::AlignedBox<Scalar, 2> mesh_bbox<2u, Scalar, Index>( \
+        const SurfaceMesh<Scalar, Index>&,                                          \
+        const Eigen::Transform<Scalar, 2, Eigen::Affine>&);                         \
     template LA_CORE_API Eigen::AlignedBox<Scalar, 3> mesh_bbox<3u, Scalar, Index>( \
-        const SurfaceMesh<Scalar, Index>&);
+        const SurfaceMesh<Scalar, Index>&);                                         \
+    template LA_CORE_API Eigen::AlignedBox<Scalar, 3> mesh_bbox<3u, Scalar, Index>( \
+        const SurfaceMesh<Scalar, Index>&,                                          \
+        const Eigen::Transform<Scalar, 3, Eigen::Affine>&);
 LA_SURFACE_MESH_X(mesh_bbox, 0)
 
 } // namespace lagrange

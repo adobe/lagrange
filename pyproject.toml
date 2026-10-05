@@ -1,9 +1,9 @@
 [build-system]
 build-backend = "scikit_build_core.build"
 requires = [
-    "nanobind-backend>=1.0",     # needed at build time for stub generation
-    "numpy>=1.25",               # needed at build time for default dtype args
-    "scikit-build-core==0.11.6",
+    "nanobind-backend>=1.0",    # needed at build time for stub generation
+    "numpy>=1.25",              # needed at build time for default dtype args
+    "scikit-build-core==1.1.0",
     "typing-extensions~=4.1",
 ]
 
@@ -43,7 +43,7 @@ optional-dependencies.docs = [
 ]
 optional-dependencies.scripts = [
     "pillow>=10.0.0",
-    "pyexr>=0.5.0",
+    "pyexr>=0.5.0; python_version<'3.14'",
     "pymcubes==0.1.6",
     "torch>=2.2.0",
 ]
