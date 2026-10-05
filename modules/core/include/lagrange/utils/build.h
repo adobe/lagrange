@@ -112,6 +112,14 @@
     #define LAGRANGE_TARGET_BUILD_TYPE_PRIVATE_DEFINITION_DEBUG() 1
 #endif
 
+// MSVC always reports `__cplusplus` as `199711L` unless `/Zc:__cplusplus` is passed,
+// so we use `_MSVC_LANG` with MSVC instead.
+#if defined(_MSVC_LANG)
+    #define LAGRANGE_CPLUSPLUS _MSVC_LANG
+#else
+    #define LAGRANGE_CPLUSPLUS __cplusplus
+#endif
+
 #define LAGRANGE_TARGET_FEATURE(X) LAGRANGE_TARGET_FEATURE_PRIVATE_DEFINITION_##X()
 
 #if __clang__ && !__INTEL_COMPILER

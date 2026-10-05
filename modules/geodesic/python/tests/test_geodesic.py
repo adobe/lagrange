@@ -108,6 +108,40 @@ class TestMMPEngine:
         assert len(facet_ids) == len(points) - 1  # One facet per segment
 
 
+class TestFlipEngine:
+    def test_point_to_point(self, single_triangle):
+        engine = lagrange.geodesic.GeodesicEngineFlip(single_triangle)
+        distance = engine.point_to_point_geodesic(
+            source_facet_id=0,
+            source_facet_bc=[0.3, 0.3],
+            target_facet_id=0,
+            target_facet_bc=[0.6, 0.2],
+        )
+        assert distance >= 0.0
+
+    def test_point_to_point_path(self, single_triangle):
+        engine = lagrange.geodesic.GeodesicEngineFlip(single_triangle)
+        points, facet_ids = engine.point_to_point_geodesic_path(
+            source_facet_id=0,
+            source_facet_bc=[0.3, 0.3],
+            target_facet_id=0,
+            target_facet_bc=[0.6, 0.2],
+        )
+        assert len(points) >= 2
+        assert all(len(p) == 3 for p in points)
+        assert len(facet_ids) == len(points) - 1
+
+    def test_point_to_point_on_sphere(self, sphere_mesh):
+        engine = lagrange.geodesic.GeodesicEngineFlip(sphere_mesh)
+        distance = engine.point_to_point_geodesic(
+            source_facet_id=0,
+            source_facet_bc=[0.33, 0.33],
+            target_facet_id=50,
+            target_facet_bc=[0.33, 0.33],
+        )
+        assert distance > 0.0
+
+
 class TestSphereGeodesic:
     """
     Test geodesic distances on a sphere.

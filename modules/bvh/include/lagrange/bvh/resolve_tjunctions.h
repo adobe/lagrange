@@ -50,10 +50,11 @@ struct ResolveTJunctionsOptions
 /// Vertices are not moved: only edges and facets are subdivided so the topology conforms to the
 /// existing vertex positions. The `tolerance` only controls detection, not geometric snapping.
 ///
-/// Both triangle and polygonal meshes are supported. By default (`triangulate_affected == true`)
-/// the facets touched by a split are triangulated, so a triangle-mesh input yields a triangle-mesh
-/// output. Set `triangulate_affected` to false to instead keep those facets as polygons, with the
-/// split points inserted as additional (collinear) boundary vertices.
+/// Both triangle and polygonal meshes are supported. By default (`triangulate_affected == true`),
+/// affected triangular facets are retriangulated directly, even in a hybrid mesh; affected
+/// polygonal facets use polygon triangulation. Set `triangulate_affected` to false to instead
+/// keep all affected facets as polygons, with the split points inserted as additional (collinear)
+/// boundary vertices.
 ///
 /// @param[in,out] mesh    Input mesh (triangle or polygonal). Modified in place.
 /// @param[in]     options Optional settings.

@@ -221,6 +221,45 @@ class TestIO:
         mesh2 = lagrange.io.string_to_mesh(gltf_data)
         assert_same_vertices_and_facets(mesh, mesh2)
 
+    def test_pcd(self):
+        mesh = lagrange.SurfaceMesh()
+        mesh.add_vertices(
+            np.array([[0.0, 0.0, 0.0], [1.0, 2.0, 3.0], [-1.0, -2.0, -3.0]], dtype=np.float64)
+        )
+        mesh.create_attribute(
+            "normal",
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Normal,
+            initial_values=np.array(
+                [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]], dtype=np.float32
+            ),
+        )
+        mesh.create_attribute(
+            "color",
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Color,
+            initial_values=np.array(
+                [[255, 0, 0, 255], [0, 255, 0, 255], [0, 0, 255, 255]], dtype=np.uint8
+            ),
+        )
+
+        for binary in [False, True]:
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                filename = pathlib.Path(tmp_dir) / "cloud.pcd"
+                lagrange.io.save_mesh(filename, mesh, binary=binary)
+                mesh2 = lagrange.io.load_mesh(filename)
+                assert mesh2.num_vertices == mesh.num_vertices
+                assert mesh2.num_facets == 0
+                assert np.allclose(mesh.vertices, mesh2.vertices)
+                assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.Normal, True)
+                assert_same_attribute(mesh, mesh2, lagrange.AttributeUsage.Color, True)
+
+        # String conversion round-trip.
+        pcd_data = lagrange.io.mesh_to_string(mesh, "pcd")
+        mesh3 = lagrange.io.string_to_mesh(pcd_data)
+        assert mesh3.num_vertices == mesh.num_vertices
+        assert np.allclose(mesh.vertices, mesh3.vertices)
+
     def test_io_with_selected_attributed(self, triangle):
         mesh = triangle
         selected_attributes = [

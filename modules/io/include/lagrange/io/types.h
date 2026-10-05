@@ -23,7 +23,7 @@ namespace lagrange {
 namespace io {
 
 enum class FileEncoding { Binary, Ascii };
-enum class FileFormat { Obj, Ply, Gltf, Msh, Fbx, Stl, Unknown };
+enum class FileFormat { Obj, Ply, Gltf, Msh, Fbx, Stl, Pcd, Unknown };
 
 /**
  * Options used when saving a mesh or a scene.

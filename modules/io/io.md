@@ -16,3 +16,9 @@ Quick links
 - [save_mesh](@ref lagrange::io::save_mesh)
   - [save_mesh_obj](@ref lagrange::io::save_mesh_obj)
   - [save_mesh_ply](@ref lagrange::io::save_mesh_ply)
+
+PCD format support
+------------------
+
+PCD input and output are always available in CMake and MetaBuild builds through the public
+[pcdio](https://github.com/adobe/pcdio) dependency.

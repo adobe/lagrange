@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/geodesic/GeodesicEngineDGPC.h>
+#include <lagrange/geodesic/GeodesicEngineFlip.h>
 #include <lagrange/geodesic/GeodesicEngineHeat.h>
 #include <lagrange/geodesic/GeodesicEngineMMP.h>
 #include <lagrange/python/binding.h>
@@ -201,6 +202,31 @@ void populate_geodesic_module(nb::module_& m)
 :returns: The attribute ID of the computed geodesic distance attributes.)");
     def_point_to_point_geodesic(cls_mmp);
     def_point_to_point_geodesic_path(cls_mmp);
+
+    // Flip engine
+    using FlipOptions = GeodesicEngineFlip<Scalar, Index>::Options;
+    nb::class_<GeodesicEngineFlip<Scalar, Index>> cls_flip(m, "GeodesicEngineFlip");
+    cls_flip.def(
+        "__init__",
+        [](GeodesicEngineFlip<Scalar, Index>* self,
+           lagrange::SurfaceMesh<Scalar, Index>& mesh,
+           size_t max_iterations,
+           double max_relative_length_decrease) {
+            FlipOptions options;
+            options.max_iterations = max_iterations;
+            options.max_relative_length_decrease = max_relative_length_decrease;
+            new (self) GeodesicEngineFlip<Scalar, Index>(mesh, options);
+        },
+        "mesh"_a,
+        "max_iterations"_a = FlipOptions{}.max_iterations,
+        "max_relative_length_decrease"_a = FlipOptions{}.max_relative_length_decrease,
+        R"(Create a flip geodesic engine.
+
+:param mesh: The input triangle mesh.
+:param max_iterations: Maximum number of shortening iterations (0 = unlimited).
+:param max_relative_length_decrease: Stop shortening when the path length falls below this fraction of its initial length (0 = disabled).)");
+    def_point_to_point_geodesic(cls_flip);
+    def_point_to_point_geodesic_path(cls_flip);
 }
 
 } // namespace lagrange::python

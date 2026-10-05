@@ -43,6 +43,7 @@ PREDEFINED             = LA_IGNORE_DOCUMENTATION_WARNING_BEGIN= \
                          LA_SUBDIVISION_API= \
                          LA_TESTING_API= \
                          LA_TEXPROC_API= \
+                         LA_TRIANGULATION_API= \
                          LA_UI_API= \
                          LA_USD_API= \
                          LA_VOLUME_API= \

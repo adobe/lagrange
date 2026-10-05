@@ -65,11 +65,13 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/unflip_uv_charts.h>
 #include <lagrange/unify_index_buffer.h>
+#include <lagrange/utils/chain_edges.h>
 #include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 #include <lagrange/uv_mesh.h>
 #include <lagrange/weld_indexed_attribute.h>
 
+#include <algorithm>
 #include <optional>
 #include <string_view>
 #include <vector>
@@ -85,6 +87,44 @@ void bind_utilities(nanobind::module_& m)
     namespace nb = nanobind;
     using namespace nb::literals;
     using MeshType = SurfaceMesh<Scalar, Index>;
+
+    m.def(
+        "chain_edges",
+        [](Tensor<Index> edges,
+           bool directed,
+           bool output_edge_index,
+           bool close_loop_with_identical_vertices) {
+            auto [data, shape, stride] = tensor_to_span(edges);
+            la_runtime_assert(
+                shape.size() == 2 && shape[1] == 2,
+                "Edge tensor must have shape num_edges x 2");
+            la_runtime_assert(data.empty() || is_dense(shape, stride));
+            la_runtime_assert(
+                std::find(data.begin(), data.end(), invalid<Index>()) == data.end(),
+                "Edge vertex indices cannot equal invalid_index");
+
+            ChainEdgesOptions options;
+            options.output_edge_index = output_edge_index;
+            options.close_loop_with_identical_vertices = close_loop_with_identical_vertices;
+            const span<const Index> edge_span(data.data(), data.size());
+            auto result = directed ? chain_directed_edges<Index>(edge_span, options)
+                                   : chain_undirected_edges<Index>(edge_span, options);
+            return std::make_tuple(std::move(result.loops), std::move(result.chains));
+        },
+        "edges"_a,
+        nb::kw_only(),
+        "directed"_a,
+        "output_edge_index"_a = ChainEdgesOptions().output_edge_index,
+        "close_loop_with_identical_vertices"_a =
+            ChainEdgesOptions().close_loop_with_identical_vertices,
+        R"(Chain a set of edges into loops and chains.
+
+:param edges: An N x 2 tensor of edge vertex indices.
+:param directed: Whether to treat edges as directed (``[v0, v1]`` goes from ``v0`` to ``v1``) or undirected.
+:param output_edge_index: Whether to return edge indices instead of vertex indices.
+:param close_loop_with_identical_vertices: Whether to repeat the first vertex at the end of each loop. Only applies when ``output_edge_index`` is false.
+
+:returns: A tuple ``(loops, chains)`` of lists of edge or vertex index lists.)");
 
     nb::enum_<NormalWeightingType>(m, "NormalWeightingType", "Normal weighting type.")
         .value("Uniform", NormalWeightingType::Uniform, "Uniform weighting")
@@ -617,6 +657,8 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
                 opt.scheme = lagrange::TriangulationOptions::Scheme::Earcut;
             } else if (scheme == "centroid_fan") {
                 opt.scheme = lagrange::TriangulationOptions::Scheme::CentroidFan;
+            } else if (scheme == "delaunay") {
+                opt.scheme = lagrange::TriangulationOptions::Scheme::Delaunay;
             } else {
                 throw Error(lagrange::format("Unsupported triangulation scheme {}", scheme));
             }
@@ -680,10 +722,10 @@ Vertices listed in `cone_vertices` are considered as cone vertices, which is alw
         R"(Triangulate polygonal facets of the mesh.
 
 :param mesh: The input mesh to be triangulated in place.
-:param scheme: The triangulation scheme (options are 'earcut' and 'centroid_fan').
+:param scheme: The triangulation scheme (options are 'earcut', 'centroid_fan', and 'delaunay').
 :param selected_facets: Optional subset of facets to triangulate. Either a list/array of facet ids,
     or a boolean per-facet mask (a length ``num_facets`` array whose ``True`` entries mark facets to
-    triangulate). Honored by both schemes; facets not selected are left untouched. If omitted, all
+    triangulate). Honored by all schemes; facets not selected are left untouched. If omitted, all
     polygonal facets are triangulated.)");
 
     nb::enum_<ComponentOptions::ConnectivityType>(m, "ConnectivityType", "Mesh connectivity type")

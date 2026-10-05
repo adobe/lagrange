@@ -17,7 +17,7 @@ function(lagrange_add_test)
     # Retrieve options
     set(options CUSTOM_MAIN)
     set(oneValueArgs "")
-    set(multiValueArgs "")
+    set(multiValueArgs ENVIRONMENT)
     cmake_parse_arguments(OPTIONS "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     # Create test executable
@@ -43,13 +43,6 @@ function(lagrange_add_test)
     # Enable code coverage
     include(FetchContent)
     target_code_coverage(${test_target} AUTO ALL EXCLUDE "${FETCHCONTENT_BASE_DIR}/*")
-
-    # Sanitizer suppression files to be passed to catch_discover_tests
-    set(LAGRANGE_TESTS_ENVIRONMENT
-        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/tsan.suppressions.ini"
-        "LSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/lsan.suppressions.ini"
-        "ASAN_SAVE_DUMPS=${module_name}.dmp"
-    )
 
     # Output directory
     set_target_properties(${test_target} PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/tests")
@@ -99,13 +92,36 @@ function(lagrange_add_test)
             OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
             OUTPUT_SUFFIX ".xml"
             DISCOVERY_MODE ${_discovery_mode}
-            PROPERTIES ENVIRONMENT ${LAGRANGE_TESTS_ENVIRONMENT}
+            TEST_LIST ${test_target}_TESTS
         )
     else()
         catch_discover_tests(${test_target}
             DISCOVERY_MODE ${_discovery_mode}
-            PROPERTIES ENVIRONMENT ${LAGRANGE_TESTS_ENVIRONMENT}
+            TEST_LIST ${test_target}_TESTS
         )
     endif()
+
+    # Assemble env vars for every discovered test: sanitizer suppressions plus any caller-supplied
+    # entries via the ENVIRONMENT argument. Caller entries are appended last so they can override.
+    set(_test_env
+        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/tsan.suppressions.ini"
+        "LSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/lsan.suppressions.ini"
+        "ASAN_SAVE_DUMPS=${module_name}.dmp"
+        ${OPTIONS_ENVIRONMENT}
+    )
+    list(JOIN _test_env ";" _test_env_joined)
+
+    # Work around Catch2 bug by applying the complete environment list after discovery;
+    # Catch populates ${test_target}_TESTS before this TEST_INCLUDE_FILES script runs.
+    # https://github.com/catchorg/Catch2/issues/2424
+    set(_sanitizer_env_fixup "${CMAKE_CURRENT_BINARY_DIR}/${test_target}_sanitizer_env.cmake")
+    file(WRITE "${_sanitizer_env_fixup}"
+        "foreach(_t IN LISTS ${test_target}_TESTS)\n"
+        "  set_tests_properties(\"\${_t}\" PROPERTIES ENVIRONMENT\n"
+        "    \"${_test_env_joined}\"\n"
+        "  )\n"
+        "endforeach()\n"
+    )
+    set_property(DIRECTORY APPEND PROPERTY TEST_INCLUDE_FILES "${_sanitizer_env_fixup}")
 
 endfunction()

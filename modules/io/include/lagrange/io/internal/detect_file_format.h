@@ -11,6 +11,7 @@
  */
 #pragma once
 
+#include <lagrange/io/api.h>
 #include <lagrange/io/types.h>
 
 #include <iosfwd>
@@ -24,6 +25,8 @@ namespace lagrange::io::internal {
 ///
 /// @return The detected file format.
 ///
-lagrange::io::FileFormat detect_file_format(std::istream& input_stream);
+/// @note This function is exported from the IO library in shared builds.
+///
+LA_IO_API lagrange::io::FileFormat detect_file_format(std::istream& input_stream);
 
 } // namespace lagrange::io::internal

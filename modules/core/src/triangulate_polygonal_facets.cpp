@@ -122,6 +122,7 @@ void append_triangles_from_polygon(
     Index f,
     std::vector<std::array<Scalar, 2>>& polygon,
     mapbox::detail::Earcut<Index>& earcut,
+    bool refine,
     std::vector<Index>& new_to_old_corners,
     std::vector<Index>& new_to_old_facets)
 {
@@ -146,6 +147,11 @@ void append_triangles_from_polygon(
 
     la_debug_assert(earcut.indices.size() % 3 == 0);
 
+    // Legalize interior edges toward a Delaunay triangulation (in place on earcut.indices).
+    if (refine) {
+        mapbox::refine(earcut.indices, polygon);
+    }
+
     // Append new triangles
     {
         LAGRANGE_ZONE_SCOPED;
@@ -165,6 +171,7 @@ void triangulate_polygonal_facets_earcut(
     SurfaceMesh<Scalar, Index>& mesh,
     bool preserve_edges,
     bool preserve_points,
+    bool refine,
     function_ref<bool(Index)>* should_triangulate = nullptr)
 {
     LAGRANGE_ZONE_SCOPED;
@@ -211,6 +218,7 @@ void triangulate_polygonal_facets_earcut(
                 f,
                 polygon,
                 earcut,
+                refine,
                 new_to_old_corners,
                 new_to_old_facets);
         }
@@ -545,7 +553,18 @@ void triangulate_polygonal_facets(
 {
     switch (options.scheme) {
     case TriangulationOptions::Scheme::Earcut:
-        triangulate_polygonal_facets_earcut(mesh, options.preserve_edges, options.preserve_points);
+        triangulate_polygonal_facets_earcut(
+            mesh,
+            options.preserve_edges,
+            options.preserve_points,
+            /*refine=*/false);
+        break;
+    case TriangulationOptions::Scheme::Delaunay:
+        triangulate_polygonal_facets_earcut(
+            mesh,
+            options.preserve_edges,
+            options.preserve_points,
+            /*refine=*/true);
         break;
     case TriangulationOptions::Scheme::CentroidFan:
         triangulate_polygonal_facets_centroid_fan(
@@ -568,6 +587,15 @@ void triangulate_polygonal_facets(
             mesh,
             options.preserve_edges,
             options.preserve_points,
+            /*refine=*/false,
+            &should_triangulate);
+        break;
+    case TriangulationOptions::Scheme::Delaunay:
+        triangulate_polygonal_facets_earcut(
+            mesh,
+            options.preserve_edges,
+            options.preserve_points,
+            /*refine=*/true,
             &should_triangulate);
         break;
     case TriangulationOptions::Scheme::CentroidFan:

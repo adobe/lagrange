@@ -30,7 +30,8 @@ struct TriangulationOptions
 {
     enum class Scheme {
         Earcut, ///< Use earcut algorithm to triangulate polygons
-        CentroidFan ///< Connect facet centroid to polygon edges to form a fan of triangles
+        CentroidFan, ///< Connect facet centroid to polygon edges to form a fan of triangles
+        Delaunay ///< Earcut triangulation refined toward a Delaunay triangulation via edge flips
     };
 
     Scheme scheme = Scheme::Earcut; ///< Triangulation scheme to use
@@ -64,8 +65,8 @@ void triangulate_polygonal_facets(
 /// @param[in, out] mesh                Polygonal mesh to triangulate in place.
 /// @param[in]      should_triangulate  Predicate determining whether a facet with more than 3
 ///                                     vertices should be triangulated. Facets for which it
-///                                     returns false are left untouched. This applies to both the
-///                                     earcut and centroid-fan schemes.
+///                                     returns false are left untouched. This applies to all
+///                                     triangulation schemes.
 /// @param[in]      options             Options for triangulation.
 ///
 /// @tparam         Scalar              Mesh scalar type.

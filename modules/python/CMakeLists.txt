@@ -183,6 +183,7 @@ function(lagrange_generate_init_file)
 import sys
 
 from .lagrange.core import *
+from .lagrange.core import _ndebug
 from ._logging import logger
 from ._version import *
 
@@ -219,6 +220,7 @@ function(lagrange_generate_python_binding_module)
         # Explicit re-export (PEP 484) so type checkers treat `logger` as public.
         file(APPEND ${init_pyi_file} "from ._logging import logger as logger\n")
         file(APPEND ${init_pyi_file} "from .core import *\n")
+        file(APPEND ${init_pyi_file} "_ndebug: bool\n")
         file(APPEND ${init_pyi_file} "\n# Package variant identifier\nvariant: str\n")
 
         # Generate stubs for python binding within the install location.

@@ -11,11 +11,11 @@
  */
 #include <lagrange/bvh/internal/resolve_tjunctions.h>
 
+#include "split_tjunction_edges.h"
+
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/bvh/AABB.h>
 #include <lagrange/bvh/api.h>
-#include <lagrange/internal/split_edges.h>
-#include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/span.h>
@@ -30,6 +30,8 @@
 #include <Eigen/Geometry>
 
 #include <algorithm>
+#include <atomic>
+#include <cstdint>
 #include <utility>
 #include <vector>
 
@@ -76,8 +78,9 @@ void resolve_tjunctions_impl(
     Tree tree;
     tree.build({boxes.data(), boxes.size()});
 
-    // For each edge, query the tree with the edge's tolerance-expanded box for candidate vertices.
+    // Query split points and classify only facets incident to split edges in parallel.
     std::vector<std::vector<std::pair<Scalar, Index>>> edge_splits(num_edges);
+    std::atomic<std::uint8_t> affected_types{0};
     tbb::parallel_for(Index(0), num_edges, [&](Index e) {
         if (options.boundary_only && !mesh.is_boundary_edge(e)) return;
         auto ev = mesh.get_edge_vertices(e);
@@ -108,6 +111,9 @@ void resolve_tjunctions_impl(
                 edge_splits[e].emplace_back(t, v);
                 return true;
             }));
+        if (options.triangulate_affected && !edge_splits[e].empty()) {
+            classify_affected_facets(mesh, e, affected_types);
+        }
         std::sort(edge_splits[e].begin(), edge_splits[e].end(), [](const auto& a, const auto& b) {
             return a.first < b.first;
         });
@@ -123,23 +129,15 @@ void resolve_tjunctions_impl(
 
     if (split_pts.empty()) return;
 
-    // Split edges without retriangulating: each affected facet gets a polygonal copy appended at
-    // id >= old_num_facets, leaving the originals (to be removed) in place.
-    const Index old_num_facets = mesh.get_num_facets();
-    auto facets_to_remove = lagrange::internal::split_edges_only(
+    auto get_edge_split_pts = [&](Index e) -> span<Index> {
+        const Index n = edge_split_offsets[e + 1] - edge_split_offsets[e];
+        return span<Index>(split_pts.data() + edge_split_offsets[e], n);
+    };
+    split_tjunction_edges(
         mesh,
-        function_ref<span<Index>(Index)>([&](Index e) -> span<Index> {
-            const Index n = edge_split_offsets[e + 1] - edge_split_offsets[e];
-            return span<Index>(split_pts.data() + edge_split_offsets[e], n);
-        }),
-        function_ref<bool(Index)>([](Index) { return true; }));
-
-    // Optionally triangulate only the new facets, then drop the original split facets.
-    if (options.triangulate_affected) {
-        auto is_new_facet = [old_num_facets](Index f) { return f >= old_num_facets; };
-        triangulate_polygonal_facets(mesh, function_ref<bool(Index)>(is_new_facet));
-    }
-    mesh.remove_facets(facets_to_remove);
+        function_ref<span<Index>(Index)>(get_edge_split_pts),
+        options.triangulate_affected,
+        affected_types.load(std::memory_order_relaxed));
 }
 
 } // namespace
