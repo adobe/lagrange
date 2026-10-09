@@ -32,7 +32,6 @@ set(BOOST_INCLUDE_LIBRARIES
     chrono
     compute
     container
-    coroutine
     crc
     date_time
     filesystem
@@ -125,7 +124,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ${OLD_CMAKE_POSITION_INDEPENDENT_CODE})
 
 # Indirect deps pulled by other boost targets
 set(Boost_Deps
-    assert context core coroutine exception random serialization variant2
+    assert context core exception random serialization variant2
 )
 foreach(name IN ITEMS ${BOOST_INCLUDE_LIBRARIES} ${Boost_Deps})
     if(TARGET boost_${name})
