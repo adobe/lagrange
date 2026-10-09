@@ -86,18 +86,15 @@ if(EMSCRIPTEN)
     # https://github.com/boostorg/interval/issues/44
     list(APPEND BOOST_PATCHES Boost.wasm.patch)
 endif()
-if(WIN32)
-    # Backport Windows ARM64 assembler support for Boost.Context.
-    list(APPEND BOOST_PATCHES Boost.winarm.patch)
-endif()
 
 # Modern CMake target support was added in Boost 1.82.0
 # CMake support for boost::numeric_ublas was added in Boost 1.84.0
+# Windows ARM64 requires Boost 1.89.0 or newer for Boost.Context assembler support.
 include(CPM)
 CPMAddPackage(
     NAME Boost
-    URL https://github.com/boostorg/boost/releases/download/boost-1.84.0/boost-1.84.0.tar.xz
-    URL_HASH SHA256=2e64e5d79a738d0fa6fb546c6e5c2bd28f88d268a2a080546f74e5ff98f29d0e
+    URL https://github.com/boostorg/boost/releases/download/boost-1.92.0/boost-1.92.0-cmake.tar.xz
+    URL_HASH SHA256=9bed76128d4e46755dbe818487788c6fceb6f72b378f4daa49b7e1e600d9088d
     EXCLUDE_FROM_ALL ON
     PATCHES ${BOOST_PATCHES}
 )
