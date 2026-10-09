@@ -32,6 +32,7 @@ set(BOOST_INCLUDE_LIBRARIES
     chrono
     compute
     container
+    coroutine
     crc
     date_time
     filesystem
