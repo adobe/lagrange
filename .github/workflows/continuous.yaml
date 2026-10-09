@@ -334,6 +334,7 @@ jobs:
             -DLAGRANGE_JENKINS=ON `
             -DLAGRANGE_ALL=ON `
             -DLAGRANGE_POLYSCOPE_MOCK_BACKEND=ON `
+            -DEMBREE_MAX_ISA=AVX2 `
             -B ${{ env.BUILD_DIR }} `
             -S .
 
