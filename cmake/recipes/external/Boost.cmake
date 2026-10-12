@@ -81,6 +81,9 @@ option(BOOST_IOSTREAMS_ENABLE_ZSTD "Boost.Iostreams: Enable Zstd support" OFF)
 
 set(BOOST_PATCHES)
 if(EMSCRIPTEN)
+    # Emscripten provides atomics in its runtime; it has no separate libatomic.
+    set(BOOST_UUID_LINK_LIBATOMIC OFF CACHE BOOL "Boost.UUID: link Boost::uuid to libatomic" FORCE)
+
     # Wasm doesn't have rounding mode control yet, so we trick Boost::interval into thinking it has.
     # https://github.com/WebAssembly/rounding-mode-control
     # https://github.com/boostorg/interval/issues/44
