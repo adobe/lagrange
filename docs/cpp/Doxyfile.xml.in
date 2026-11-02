@@ -1,0 +1,12 @@
+# Reuse the complete module/source configuration, including module Markdown.
+@INCLUDE = "@DOXYFILE_OUT@"
+# Keep exported source locations independent of the build machine.
+STRIP_FROM_PATH += "@DOXYGEN_XML_SOURCE_ROOT@"
+STRIP_FROM_INC_PATH += "@DOXYGEN_XML_SOURCE_ROOT@"
+GENERATE_HTML = NO
+GENERATE_LATEX = NO
+GENERATE_RTF = NO
+GENERATE_MAN = NO
+GENERATE_XML = YES
+XML_OUTPUT = "@DOXYGEN_OUTPUT_XML@"
+XML_PROGRAMLISTING = @DOXYGEN_XML_PROGRAMLISTING@

@@ -77,3 +77,23 @@ add_custom_target(doc
                   COMMENT "Generating docs")
 
 add_dependencies(doc doxygen-awesome)
+
+option(LAGRANGE_DOCS_XML "Enable the standalone Doxygen XML target" OFF)
+if(LAGRANGE_DOCS_XML)
+    set(DOXYGEN_OUTPUT_XML xml CACHE STRING "Output subdir for doxygen XML")
+    set(DOXYGEN_XML_PROGRAMLISTING NO CACHE STRING "Include source listings in doxygen XML (YES or NO)")
+    get_filename_component(DOXYGEN_XML_SOURCE_ROOT "${DOXYGEN_WORKING_DIR}" ABSOLUTE)
+
+    # Reuse the HTML extraction settings without depending on its theme/download.
+    configure_file(
+        "${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile.xml.in"
+        "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.xml"
+        @ONLY
+    )
+    add_custom_target(doc-xml
+        COMMAND "${DOXYGEN_EXECUTABLE}" "${CMAKE_CURRENT_BINARY_DIR}/Doxyfile.xml"
+        WORKING_DIRECTORY "${DOXYGEN_WORKING_DIR}"
+        COMMENT "Generating Doxygen XML"
+        VERBATIM
+    )
+endif()
