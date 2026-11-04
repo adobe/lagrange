@@ -22,6 +22,11 @@
 namespace lagrange::xatlas {
 
 ///
+/// @addtogroup module-xatlas
+/// @{
+///
+
+///
 /// Repack the existing UV islands of a mesh using xatlas.
 ///
 /// @param[in]  mesh               Mesh whose existing indexed UV attribute will be repacked. Must
@@ -41,5 +46,7 @@ LA_XATLAS_API SurfaceMesh<Scalar, Index> repack_mesh(
     const RepackOptions& options = {},
     std::function<void(const std::string&, float)> notification_func = nullptr,
     const std::atomic_bool* cancel = nullptr);
+
+/// @}
 
 } // namespace lagrange::xatlas

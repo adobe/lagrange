@@ -14,17 +14,17 @@ readme = "README.md"
 license = "Apache-2.0"
 license-files = [ "LICENSE", "NOTICE.txt" ]
 maintainers = [ { name = "Lagrange Core Team", email = "lagrange-core@adobe.com" } ]
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Science/Research",
     "Programming Language :: C++",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3.15",
     "Topic :: Multimedia :: Graphics :: 3D Modeling",
 ]
 dynamic = [ "version" ]
@@ -43,9 +43,13 @@ optional-dependencies.docs = [
 ]
 optional-dependencies.scripts = [
     "pillow>=10.0.0",
-    "pyexr>=0.5.0; python_version<'3.14'",
+    # OpenEXR does not yet publish Python 3.15 wheels.
+    "pyexr>=0.5.0; python_version<'3.15'",
+    "pygfx==0.17.0",
     "pymcubes==0.1.6",
+    "rendercanvas==2.6.1",
     "torch>=2.2.0",
+    "wgpu==0.30.1",
 ]
 urls.documentation = "https://opensource.adobe.com/lagrange-docs"
 urls.repository = "https://github.com/adobe/lagrange"
@@ -68,25 +72,25 @@ version_file = "modules/python/lagrange/_version.py"
 version_scheme = "no-guess-dev"
 
 [tool.scikit-build]
-ninja.version = ">=1.11.1"
-ninja.make-fallback = false
-install.components = [ "Lagrange_Python_Runtime" ]
-wheel.packages = [ "modules/python/lagrange" ]
-wheel.py-api = "cp310"
 build-dir = "build-python"
-editable.rebuild = false
-metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
-sdist.include = [ "modules/python/lagrange/_version.py" ]
 # Debug related options
 # cmd: uv sync [--verbose] [--reinstall-package lagrange]
 # ---------------------
 #
 # build.verbose = true
-# editable.verbose = false
-# logging.level = "INFO"
 #
 # cmake.build-type = "Debug"
+ninja.make-fallback = false
+ninja.version = ">=1.11.1"
+sdist.include = [ "modules/python/lagrange/_version.py" ]
+wheel.packages = [ "modules/python/lagrange" ]
+wheel.py-api = "cp311"
+install.components = [ "Lagrange_Python_Runtime" ]
 # install.strip = false
+editable.rebuild = false
+# editable.verbose = false
+# logging.level = "INFO"
+metadata.version.provider = "scikit_build_core.metadata.setuptools_scm"
 
 [tool.scikit-build.cmake.define]
 CMAKE_GENERATOR = "Ninja"
@@ -118,6 +122,9 @@ TBB_PREFER_STATIC = false
 
 [tool.uv]
 python-preference = "only-managed"
+# Only build Lagrange itself and PyMCubes, which lacks wheels for recent Python versions.
+no-binary-package = [ "adobe-lagrange", "adobe-lagrange-debug", "pymcubes" ]
+no-build = true
 
 [tool.black]
 line_length = 100
@@ -131,7 +138,7 @@ keep_full_version = true
 expand_tables = [ "tool.scikit-build.cmake.define" ]
 
 [tool.pytest]
+ini_options.pythonpath = "."
 ini_options.addopts = [
     "--import-mode=importlib",
 ]
-ini_options.pythonpath = "."

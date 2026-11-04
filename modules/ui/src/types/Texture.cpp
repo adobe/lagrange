@@ -410,7 +410,7 @@ bool Texture::save_to(
     return res != 0;
 }
 
-bool Texture::is_internal_format_color_renderable(GLenum internal_format)
+bool Texture::is_internal_format_color_renderable([[maybe_unused]] GLenum internal_format)
 {
 #if defined(__EMSCRIPTEN__)
     // If EXT_color_buffer_float is enabled, other formats are color-renderable

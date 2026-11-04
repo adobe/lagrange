@@ -22,6 +22,7 @@
 #include <lagrange/primitive/generation_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/safe_cast.h>
+#include <lagrange/utils/warning.h>
 
 #include <Eigen/Geometry>
 
@@ -326,10 +327,12 @@ VertexArray compute_offset_directions(const VertexArray& profile)
         }
     }
 
+    LA_IGNORE_MAYBE_UNINITIALIZED_START
     if (!dirs.array().isFinite().all()) {
         // Profile contains degenerate edges.
         lagrange::logger().warn("Sweep profile contains degenerate edges.");
     }
+    LA_IGNORE_MAYBE_UNINITIALIZED_END
     return dirs;
 }
 
@@ -499,7 +502,7 @@ std::unique_ptr<MeshType> generate_swept_surface(
 
     std::vector<Scalar> profile_turning_angles = internal::compute_turning_angles(profile);
     internal::generate_uv(*mesh, profile, transforms, max_strip_len, profile_turning_angles);
-    internal::generate_normal(*mesh, N, lagrange::internal::pi / 4, profile_turning_angles);
+    internal::generate_normal(*mesh, N, Scalar(lagrange::internal::pi / 4), profile_turning_angles);
 
     mesh->add_indexed_attribute("latitude");
     mesh->set_indexed_attribute("latitude", latitude, feature_indices);

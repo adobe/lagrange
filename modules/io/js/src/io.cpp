@@ -14,8 +14,10 @@
 
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/load_scene.h>
+#include <lagrange/io/load_simple_scene.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/io/save_scene.h>
+#include <lagrange/io/save_simple_scene.h>
 #include <lagrange/io/types.h>
 
 #include <emscripten/bind.h>
@@ -177,23 +179,26 @@ SceneType load_scene_from_buffer(const emscripten::val& js_array, const emscript
         [&load_opts](std::istream& ss) { return io::load_scene<SceneType>(ss, load_opts); });
 }
 
+io::FileFormat parse_scene_format(const std::string& format, io::SaveOptions& options)
+{
+    if (format == "glb") {
+        options.encoding = io::FileEncoding::Binary;
+        return io::FileFormat::Gltf;
+    } else if (format == "gltf") {
+        options.encoding = io::FileEncoding::Ascii;
+        return io::FileFormat::Gltf;
+    } else if (format == "obj") {
+        options.encoding = io::FileEncoding::Ascii;
+        return io::FileFormat::Obj;
+    }
+    throw std::invalid_argument("Unsupported scene format: " + format);
+}
+
 emscripten::val
 save_scene_to_buffer(const SceneType& scene, const std::string& format, const emscripten::val& opts)
 {
-    io::FileFormat file_format;
     io::SaveOptions save_opts;
-    if (format == "glb") {
-        file_format = io::FileFormat::Gltf;
-        save_opts.encoding = io::FileEncoding::Binary;
-    } else if (format == "gltf") {
-        file_format = io::FileFormat::Gltf;
-        save_opts.encoding = io::FileEncoding::Ascii;
-    } else if (format == "obj") {
-        file_format = io::FileFormat::Obj;
-        save_opts.encoding = io::FileEncoding::Ascii;
-    } else {
-        throw std::invalid_argument("Unsupported scene format: " + format);
-    }
+    const auto file_format = parse_scene_format(format, save_opts);
     parse_save_opts(opts, save_opts);
     std::ostringstream ss;
     io::save_scene(ss, scene, file_format, save_opts);
@@ -212,4 +217,26 @@ EMSCRIPTEN_BINDINGS(lagrange_io)
     function("saveMeshToBuffer", &save_mesh_to_buffer);
     function("loadSceneFromBuffer", &load_scene_from_buffer);
     function("saveSceneToBuffer", &save_scene_to_buffer);
+    function(
+        "loadSimpleSceneFromBuffer",
+        +[](const val& data, val opts) -> SimpleSceneType {
+            lagrange::io::LoadOptions load_opts;
+            parse_load_opts(opts, load_opts);
+            return load_from_buffer_impl<SimpleSceneType>(
+                data,
+                "load_simple_scene error: ",
+                [&load_opts](std::istream& ss) {
+                    return lagrange::io::load_simple_scene<SimpleSceneType>(ss, load_opts);
+                });
+        });
+    function(
+        "saveSimpleSceneToBuffer",
+        +[](const SimpleSceneType& scene, const std::string& format, val opts) -> val {
+            lagrange::io::SaveOptions save_opts;
+            const auto file_format = parse_scene_format(format, save_opts);
+            parse_save_opts(opts, save_opts);
+            std::ostringstream ss;
+            lagrange::io::save_simple_scene(ss, scene, file_format, save_opts);
+            return to_uint8array(ss);
+        });
 }

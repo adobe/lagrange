@@ -17,13 +17,21 @@
 namespace lagrange::scene {
 
 ///
-/// Cast a scene to a scene of different scalar and/or index type.
+/// @addtogroup module-scene
+/// @{
+///
+
+///
+/// Cast a simple scene to different scalar and/or index types, preserving mesh and instance order.
+/// Instance transforms are converted to ToScalar and instance user data is copied unchanged.
 ///
 /// @param[in]  source_scene                Input scene.
-/// @param[in]  convertible_attributes      Filter to determine which attribute are convertible.
-/// @param[out] converted_attributes_names  Optional output arg storing the list of non-reserved
-///                                         attribute names that were actually converted to a
-///                                         different type.
+/// @param[in]  convertible_attributes      Filter selecting which non-reserved mesh attributes may
+///                                         change type; unselected attributes retain their type.
+/// @param[out] converted_attributes_names  Optional list of non-reserved attribute names converted
+///                                         to a different type. When supplied, every mesh must
+///                                         produce the same ordered list or a runtime assertion
+///                                         fails. Unchanged when the scene contains no meshes.
 ///
 /// @tparam     ToScalar                    Scalar type of the output scene.
 /// @tparam     ToIndex                     Index type of the output scene.
@@ -43,5 +51,7 @@ SimpleScene<ToScalar, ToIndex, Dimension> cast(
     const scene::SimpleScene<FromScalar, FromIndex, Dimension>& source_scene,
     const AttributeFilter& convertible_attributes = {},
     std::vector<std::string>* converted_attributes_names = nullptr);
+
+/// @}
 
 } // namespace lagrange::scene

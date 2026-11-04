@@ -40,7 +40,7 @@ import numpy as np
 from PIL import Image
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
-from texture_from_multiview import (  # noqa: E402  # ty: ignore[unresolved-import]
+from texture_from_multiview import (  # noqa: E402  # type: ignore[ty:unresolved-import, pyrefly:missing-import]
     append_cameras,
     split_multiview,
 )

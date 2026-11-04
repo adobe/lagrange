@@ -21,9 +21,15 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
- * Saves a mesh to a stream in MSH format. If the mesh cannot be saved, an exception is raised
- * (e.g., invalid output stream, incorrect mesh dimension, or facet size < 3).
+ * Saves a mesh to a stream in MSH format.
+ *
+ * Only facets of size 2, 3, and 4 are supported, written as line, triangle, and quad elements.
  *
  * @param[in,out] output_stream  Output stream.
  * @param[in]     mesh           Input mesh.
@@ -41,8 +47,9 @@ LA_IO_API void save_mesh_msh(
 /**
  * @overload
  *
- * Saves a mesh to a stream in MSH format. If the mesh cannot be saved, an exception is raised
- * (e.g., incorrect mesh dimension, or facet size < 3).
+ * Saves a mesh to a file in MSH format.
+ *
+ * Only facets of size 2, 3, and 4 are supported, written as line, triangle, and quad elements.
  *
  * @param[in]  filename  Output filename.
  * @param[in]  mesh      Mesh to write.
@@ -58,5 +65,7 @@ LA_IO_API void save_mesh_msh(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

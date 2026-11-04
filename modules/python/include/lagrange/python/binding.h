@@ -11,6 +11,9 @@
  */
 #pragma once
 
+// Include this before other headers so Python.h can configure feature-test macros.
+#include <nanobind/nb_python.h>
+
 // Avoids potential ODR violations by grouping all nanobind includes in a single file.
 // https://nanobind.readthedocs.io/en/latest/faq.html#compilation-fails-with-a-static-assertion-mentioning-nb-make-opaque
 

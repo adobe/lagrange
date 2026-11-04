@@ -20,6 +20,7 @@
 #include <lagrange/serialization/serialize_scene.h>
 #include <lagrange/serialization/serialize_simple_scene.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 
 #include "CistaMesh.h"
 #include "compress.h"
@@ -28,6 +29,7 @@
 
 namespace lagrange::serialization {
 
+using internal::CistaSize;
 using internal::compress_buffer;
 using internal::decompress_buffer;
 using internal::is_compressed;
@@ -42,9 +44,10 @@ namespace {
 void set_non_owning(data::vector<uint8_t>& dest, lagrange::span<const uint8_t> src)
 {
     if (!src.empty()) {
+        const auto size = safe_cast<CistaSize>(src.size());
         dest.el_ = const_cast<uint8_t*>(src.data());
-        dest.used_size_ = src.size();
-        dest.allocated_size_ = src.size();
+        dest.used_size_ = size;
+        dest.allocated_size_ = size;
         dest.self_allocated_ = false;
     }
 }
@@ -68,7 +71,7 @@ CistaMesh to_cista_mesh(const SurfaceMesh<Scalar, Index>& mesh)
 
     for (const auto& ai : info.attributes) {
         CistaAttributeInfo cai;
-        cai.name = data::string(ai.name.data(), ai.name.size());
+        cai.name = data::string(ai.name.data(), safe_cast<data::string::msize_t>(ai.name.size()));
         cai.attribute_id = ai.attribute_id;
         cai.value_type = ai.value_type;
         cai.element_type = ai.element_type;

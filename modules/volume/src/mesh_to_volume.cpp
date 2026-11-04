@@ -233,9 +233,9 @@ auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh_, const MeshToVolumeO
     return grid;
 }
 
-#define LA_X_mesh_to_volume(GridScalar, Scalar, Index)                  \
-    template typename Grid<GridScalar>::Ptr mesh_to_volume<GridScalar>( \
-        const SurfaceMesh<Scalar, Index>& mesh,                         \
+#define LA_X_mesh_to_volume(GridScalar, Scalar, Index)                                \
+    template LA_VOLUME_API typename Grid<GridScalar>::Ptr mesh_to_volume<GridScalar>( \
+        const SurfaceMesh<Scalar, Index>& mesh,                                       \
         const MeshToVolumeOptions& options);
 #define LA_X_mesh_to_volume_aux(_, GridScalar) LA_SURFACE_MESH_X(mesh_to_volume, GridScalar)
 LA_VOLUME_GRID_X(mesh_to_volume_aux, 0)

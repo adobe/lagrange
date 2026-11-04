@@ -10,9 +10,10 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/python/raycasting.h>
 
-#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/raycasting/Options.h>
 #include <lagrange/raycasting/RayCaster.h>
@@ -27,6 +28,7 @@
 #include <lagrange/utils/ProgressCallback.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>
+#include <lagrange/views.h>
 
 #include <tbb/parallel_for.h>
 
@@ -85,24 +87,58 @@ raycasting::RemoveOccludedFacetsOptions make_occluded_facet_options(
     bool adaptive,
     size_t num_adaptive_per_cosine,
     double vmf_kappa,
-    double threshold,
+    double max_visibility_threshold,
     double size_influence,
     double confidence,
     raycasting::InstancingPolicy instancing)
 {
     raycasting::RemoveOccludedFacetsOptions options;
-    options.estimate_options = {num_rays, batch_size};
+    options.sampler_options.num_rays = num_rays;
+    options.sampler_options.batch_size = batch_size;
     if (adaptive) {
         options.sampler_options.adaptive =
             raycasting::AdaptiveOptions{num_adaptive_per_cosine, vmf_kappa};
     } else {
         options.sampler_options.adaptive.reset();
     }
-    options.sampler_options.threshold = threshold;
+    options.sampler_options.max_visibility_threshold = max_visibility_threshold;
     options.sampler_options.size_influence = size_influence;
     options.sampler_options.confidence = confidence;
     options.instancing = instancing;
     return options;
+}
+
+raycasting::OccludedFacetViewErrorOptions make_view_error_options(
+    double max_view_error,
+    std::optional<std::vector<double>> graphcut_smoothness_candidates,
+    uint64_t num_threshold_iterations,
+    uint64_t num_refinement_iterations,
+    uint64_t num_views,
+    std::optional<double> smoothness_tradeoff)
+{
+    raycasting::OccludedFacetViewErrorOptions options;
+    options.max_view_error = max_view_error;
+    if (graphcut_smoothness_candidates)
+        options.graphcut_smoothness_candidates = std::move(*graphcut_smoothness_candidates);
+    options.num_threshold_iterations = num_threshold_iterations;
+    options.num_refinement_iterations = num_refinement_iterations;
+    options.num_views = num_views;
+    options.smoothness_tradeoff = smoothness_tradeoff;
+    return options;
+}
+
+auto make_view_error_evaluator(nb::callable evaluate)
+{
+    return
+        [callback = std::move(
+             evaluate)](span<const uint8_t> keep, span<const uint64_t> views, span<double> errors) {
+            const auto values = nb::cast<std::vector<double>>(
+                callback(span_to_tensor(keep, nb::handle()), span_to_tensor(views, nb::handle())));
+            la_runtime_assert(
+                values.size() == errors.size(),
+                "evaluator returned incorrect number of errors");
+            std::copy(values.begin(), values.end(), errors.begin());
+        };
 }
 
 /// Parse a 1D (3,) or 2D (N, 3) float array and return the number of points/rays.
@@ -324,7 +360,6 @@ MeshType make_point_mesh(NDArray3D tensor)
     la_runtime_assert(check_shape(shape, invalid<size_t>(), mesh.get_dimension()));
     Index num_vertices = static_cast<Index>(shape[0]);
 
-    auto owner = std::make_shared<nb::object>(nb::find(tensor));
     auto id = mesh.wrap_as_vertices(values, num_vertices);
     auto& attr = mesh.template ref_attribute<Scalar>(id);
     attr.set_growth_policy(AttributeGrowthPolicy::ErrorIfExternal);
@@ -1567,12 +1602,232 @@ The local feature size is stored as a per-vertex attribute on the mesh.
     // =========================================================================
 
     using SimpleScene3D = scene::SimpleScene<Scalar, Index, 3>;
-    constexpr raycasting::OccludedFacetEstimateOptions facet_defaults{};
     constexpr raycasting::OccludedFacetSamplerOptions facet_sampler_defaults{};
     constexpr raycasting::RemoveOccludedFacetsOptions facet_options_defaults{};
     constexpr raycasting::AdaptiveOptions adaptive_defaults{};
     constexpr raycasting::OccludedInstanceEstimateOptions instance_defaults{};
     constexpr raycasting::OccludedInstanceSamplerOptions instance_sampler_defaults{};
+
+    const raycasting::OccludedFacetViewErrorOptions view_error_defaults{};
+    nb::class_<raycasting::OccludedFacetViewErrorResult>(
+        m,
+        "OccludedFacetViewErrorResult",
+        "Chosen view-error filtering parameters, output statistics, and budget feasibility.")
+        .def_ro(
+            "graphcut_smoothness",
+            &raycasting::OccludedFacetViewErrorResult::graphcut_smoothness,
+            "Chosen graph-cut weight; 0 for threshold-only filtering or an all-kept fallback.")
+        .def_ro(
+            "threshold",
+            &raycasting::OccludedFacetViewErrorResult::threshold,
+            "Chosen score cutoff, not constrained by the sampling retirement cutoff.")
+        .def_ro(
+            "removed_fraction",
+            &raycasting::OccludedFacetViewErrorResult::removed_fraction,
+            "Fraction of input instance-facets removed, not weighted by area.")
+        .def_ro(
+            "num_isolated_facets",
+            &raycasting::OccludedFacetViewErrorResult::num_isolated_facets,
+            "Kept facets with no kept edge-neighbor, not the number of disconnected components.")
+        .def_ro(
+            "worst_view_error",
+            &raycasting::OccludedFacetViewErrorResult::worst_view_error,
+            "Achieved worst error across all views for the returned mask, including failed "
+            "baselines.")
+        .def_ro(
+            "within_error_budget",
+            &raycasting::OccludedFacetViewErrorResult::within_error_budget,
+            "Whether the returned mask satisfies the error budget; not an optimality guarantee.");
+
+    using FacetsFilter = raycasting::OccludedFacetsFilter<Scalar, Index>;
+    nb::class_<FacetsFilter>(
+        m,
+        "OccludedFacetsFilter",
+        R"(Estimate per-facet visibility by sampling rays, then cache the results for later filtering.
+
+The source scene is borrowed and kept alive by this object. Keep the scene and its backing arrays
+unchanged while the filter is in use. Estimates are stored in double precision for each instance.
+This class is move-only in C++. Adjacency is cached lazily for graph cuts and view-error statistics;
+every cut builds a fresh graph, with no residual graph retained. External attribute policies must
+permit copying or creating internal buffers as needed.)")
+        .def(
+            "__init__",
+            [](FacetsFilter* self,
+               const SimpleScene3D& scene,
+               uint64_t num_rays,
+               uint64_t batch_size,
+               bool adaptive,
+               size_t num_adaptive_per_cosine,
+               double vmf_kappa,
+               double max_visibility_threshold,
+               double size_influence,
+               double confidence,
+               std::optional<IsOccluderFn> is_occluder) {
+                const auto options = make_occluded_facet_options(
+                    num_rays,
+                    batch_size,
+                    adaptive,
+                    num_adaptive_per_cosine,
+                    vmf_kappa,
+                    max_visibility_threshold,
+                    size_influence,
+                    confidence,
+                    raycasting::InstancingPolicy::Max);
+                ProgressCallback progress;
+                const auto occluder = resolve_is_occluder(is_occluder);
+                new (self) FacetsFilter(scene, options.sampler_options, progress, occluder);
+            },
+            "scene"_a,
+            nb::keep_alive<1, 2>(),
+            nb::kw_only(),
+            "num_rays"_a = facet_sampler_defaults.num_rays,
+            "batch_size"_a = facet_sampler_defaults.batch_size,
+            "adaptive"_a = facet_sampler_defaults.adaptive.has_value(),
+            "num_adaptive_per_cosine"_a = adaptive_defaults.num_adaptive_per_cosine,
+            "vmf_kappa"_a = adaptive_defaults.vmf_kappa,
+            "max_visibility_threshold"_a = facet_sampler_defaults.max_visibility_threshold,
+            "size_influence"_a = facet_sampler_defaults.size_influence,
+            "confidence"_a = facet_sampler_defaults.confidence,
+            "is_occluder"_a = nb::none(),
+            R"(Estimate per-facet visibility by sampling rays, then cache the results for later filtering.
+
+The source scene is kept alive until this filter is released and must remain unchanged, including
+its backing arrays. Sampling retirement uses ``max_visibility_threshold``. Subsequent calls to
+``apply()`` require ``0 <= visibility_threshold <= max_visibility_threshold``; this bounds the
+filtering cutoff, not the facet measures. The measurement and filtering methods never resample
+or invoke ``is_occluder`` again.
+``apply_with_view_error()`` may choose a cutoff above the retirement cutoff; it uses the cached
+measures as a heuristic and independently validates candidate masks against the view-error budget.
+
+:param scene:                    Source triangle-mesh scene, retained without copying.
+:param num_rays:                 Total sampling ray budget. Must be > 0.
+:param batch_size:               Rays per batch.
+:param adaptive:                 Enable adaptive sampling; False uses plain cosine sampling.
+:param num_adaptive_per_cosine:   Seed-guided rays per cosine ray (>= 1), used in adaptive mode.
+:param vmf_kappa:                Positive adaptive vMF concentration.
+:param max_visibility_threshold: Retirement cutoff in [0, 0.5], bounding ordinary ``apply()``'s
+                                 visibility_threshold parameter.
+:param size_influence:           Non-negative exponent on facet area relative to mean face area.
+:param confidence:              Per-facet early-keep confidence in (0, 1).
+:param is_occluder:              Optional predicate selecting which instances block rays.)")
+        .def_prop_ro(
+            "max_visibility_threshold",
+            &FacetsFilter::get_max_visibility_threshold,
+            "Sampling retirement cutoff and maximum ordinary apply() parameter, not a facet "
+            "visibility "
+            "bound.")
+        .def(
+            "estimate_visibility",
+            &FacetsFilter::estimate_visibility,
+            "attribute_name"_a,
+            nb::kw_only(),
+            "instancing"_a = facet_options_defaults.instancing,
+            R"(Export facet visibility estimates as a per-facet float64 attribute.
+
+Cached constructor measures are aggregated across instances according to ``instancing``.
+The borrowed source is unchanged; no resampling or adjacency initialization is performed.
+The single-channel output attribute has shape ``(num_facets,)``.
+
+:param attribute_name: Name of the per-facet visibility attribute to create on each output mesh.
+:param instancing:     Max/Average preserve sharing; FlattenInstances annotates each instance.
+:return: A new scene carrying the facet visibility attribute.)")
+        .def(
+            "apply",
+            [](const FacetsFilter& facet_filter,
+               double visibility_threshold,
+               std::optional<double> graphcut_smoothness,
+               raycasting::InstancingPolicy instancing,
+               std::optional<std::string> visibility_attribute_name,
+               std::optional<std::string> keep_attribute_name) {
+                raycasting::OccludedFacetFilterOptions options;
+                options.visibility_threshold = visibility_threshold;
+                options.graphcut_smoothness = graphcut_smoothness;
+                options.instancing = instancing;
+                options.visibility_attribute_name = std::move(visibility_attribute_name);
+                options.keep_attribute_name = std::move(keep_attribute_name);
+                return facet_filter.apply(options);
+            },
+            nb::kw_only(),
+            "visibility_threshold"_a,
+            "graphcut_smoothness"_a = nb::none(),
+            "instancing"_a = facet_options_defaults.instancing,
+            "visibility_attribute_name"_a = nb::none(),
+            "keep_attribute_name"_a = nb::none(),
+            R"(Apply the occluded-facet filter using cached constructor estimates without resampling.
+
+Visibility measures are aggregated across instances according to ``instancing``. Without
+smoothing, facets below ``visibility_threshold`` are removed. Positive smoothing applies a
+fresh graph cut to the internal double-precision measures and may override independent labels.
+Callers must set external attribute policies to permit copying or internalizing buffers as needed.
+
+If ``visibility_attribute_name`` is specified, visibility measures are exported as a float64
+facet attribute before any pruning. If ``keep_attribute_name`` is specified, no facets are removed;
+instead, a uint8 facet mask (1 keep, 0 cull) is exported. Both attributes have shape
+``(num_facets,)``, including ``(0,)`` on initially zero-facet meshes. Output names must be distinct
+and must not already exist on the source meshes; existing attributes are never overwritten.
+
+:param visibility_threshold: Required finite cutoff in [0, self.max_visibility_threshold].
+:param graphcut_smoothness:   None disables graph cutting; 0 gives independent thresholding.
+                             Positive finite values favor coherent keep/cull regions.
+:param instancing:           Max/Average preserve sharing; FlattenInstances classifies each instance.
+:param visibility_attribute_name: Optional name for the exported per-facet visibility attribute.
+:param keep_attribute_name:  Optional name for the per-facet keep mask; when specified, no facet
+                            is removed.
+:return: A new scene, pruned unless keep_attribute_name is specified.
+:raises RuntimeError: Invalid thresholds/weights, identical output names, or attribute creation
+                      errors, including existing source attributes.)")
+        .def(
+            "apply_with_view_error",
+            [](const FacetsFilter& facet_filter,
+               nb::callable evaluate,
+               double max_view_error,
+               std::optional<std::vector<double>> graphcut_smoothness_candidates,
+               uint64_t num_threshold_iterations,
+               uint64_t num_refinement_iterations,
+               uint64_t num_views,
+               std::optional<double> smoothness_tradeoff) {
+                const auto options = make_view_error_options(
+                    max_view_error,
+                    std::move(graphcut_smoothness_candidates),
+                    num_threshold_iterations,
+                    num_refinement_iterations,
+                    num_views,
+                    smoothness_tradeoff);
+                auto evaluate_cpp = make_view_error_evaluator(std::move(evaluate));
+                auto [result, parameters] =
+                    facet_filter.apply_with_view_error(evaluate_cpp, options);
+                return nb::make_tuple(std::move(result), parameters);
+            },
+            "evaluate"_a,
+            nb::kw_only(),
+            "max_view_error"_a = view_error_defaults.max_view_error,
+            "graphcut_smoothness_candidates"_a = nb::none(),
+            "num_threshold_iterations"_a = view_error_defaults.num_threshold_iterations,
+            "num_refinement_iterations"_a = view_error_defaults.num_refinement_iterations,
+            "num_views"_a,
+            "smoothness_tradeoff"_a = view_error_defaults.smoothness_tradeoff,
+            R"(Search graph-cut parameters using cached measures and a user-supplied view-error budget.
+
+No rays are traced and the source scene remains unchanged. Instances are flattened, and the
+returned mask is reconstructed on the same global graph used during probing. The score cutoff
+may exceed max_visibility_threshold: estimates guide the search, while the evaluator validates
+candidate masks. This is a heuristic search, not a global-optimality guarantee.
+
+:param evaluate: Callable ``(keep_mask, view_indices) -> errors``. The uint8 mask is ordered by
+                 source mesh, instance, then local facet. uint64 indices are empty for all views;
+                 return one finite non-negative error per requested view. Calls are synchronous.
+:param max_view_error: Finite non-negative worst-view error budget; 0 requires an exact match.
+:param graphcut_smoothness_candidates: Finite positive weights, sorted and deduplicated internally;
+                                      None or an empty list selects the automatic sweep.
+:param num_threshold_iterations: Positive iterations per primary threshold search.
+:param num_refinement_iterations: Positive iterations per verification refinement search.
+:param num_views: Positive number of errors returned for an empty view-index list.
+:param smoothness_tradeoff: Optional fraction of baseline removal that may be sacrificed for
+                           smoother regions. None disables the sweep; 0 preserves removal count,
+                           and 1 permits sacrificing all removal. Present values must be in [0, 1].
+:return: Tuple ``(scene, parameters)`` with an OccludedFacetViewErrorResult. A failed all-kept
+         baseline retains the original facets and reports within_error_budget=False.
+:raises RuntimeError: Invalid options, invalid evaluator errors, or incorrect error counts.)");
 
     m.def(
         "remove_occluded_facets",
@@ -1586,8 +1841,9 @@ The local feature size is stored as a per-vertex attribute on the mesh.
            double size_influence,
            double confidence,
            raycasting::InstancingPolicy instancing,
+           std::optional<double> graphcut_smoothness,
            std::optional<IsOccluderFn> is_occluder) {
-            const auto options = make_occluded_facet_options(
+            auto options = make_occluded_facet_options(
                 num_rays,
                 batch_size,
                 adaptive,
@@ -1597,6 +1853,7 @@ The local feature size is stored as a per-vertex attribute on the mesh.
                 size_influence,
                 confidence,
                 instancing);
+            options.graphcut_smoothness = graphcut_smoothness;
             ProgressCallback progress;
             const auto occluder = resolve_is_occluder(is_occluder);
             return raycasting::remove_occluded_facets<Scalar, Index>(
@@ -1607,21 +1864,24 @@ The local feature size is stored as a per-vertex attribute on the mesh.
         },
         "scene"_a,
         nb::kw_only(),
-        "num_rays"_a = facet_defaults.num_rays,
-        "batch_size"_a = facet_defaults.batch_size,
+        "num_rays"_a = facet_sampler_defaults.num_rays,
+        "batch_size"_a = facet_sampler_defaults.batch_size,
         "adaptive"_a = facet_sampler_defaults.adaptive.has_value(),
         "num_adaptive_per_cosine"_a = adaptive_defaults.num_adaptive_per_cosine,
         "vmf_kappa"_a = adaptive_defaults.vmf_kappa,
-        "threshold"_a = facet_sampler_defaults.threshold,
+        "threshold"_a = facet_sampler_defaults.max_visibility_threshold,
         "size_influence"_a = facet_sampler_defaults.size_influence,
         "confidence"_a = facet_sampler_defaults.confidence,
         "instancing"_a = facet_options_defaults.instancing,
+        "graphcut_smoothness"_a = nb::none(),
         "is_occluder"_a = nb::none(),
         R"(Build a new scene with facets not visible from the outside removed.
 
-A facet is kept when its visibility measure
+Without smoothing, a facet is kept iff its size-weighted visibility measure
 ``mean_visibility * (area_f / mean_face_area) ** size_influence`` is at least ``threshold``, where
-``mean_visibility`` is the cosine-weighted escaped fraction.
+``mean_visibility`` is the cosine-weighted escaped fraction. Positive smoothing may override
+these independent labels. The legacy ``threshold`` keyword sets both the sampler's
+``max_visibility_threshold`` and the filter's ``visibility_threshold``, not a facet visibility bound.
 
 :param scene:                   Input scene.
 :param num_rays:                Total ray budget. Must be > 0.
@@ -1642,12 +1902,114 @@ A facet is kept when its visibility measure
 :param instancing:              How to reconcile a facet's measure across instances of its source
                                 mesh: ``Max`` (default, most visible) or ``Average`` (both preserve
                                 instancing), or ``FlattenInstances`` (one mesh per instance).
+:param graphcut_smoothness:      Optional graph-cut smoothing penalty on the per-mesh decision.
+                                None disables graph cutting; 0 gives independent thresholding,
+                                while positive values favor coherent regions.
 :param is_occluder:             Optional callable ``(mesh_index, instance_index) -> bool``
                                 returning whether an instance should block rays. Non-occluders
                                 are still tested for visibility but do not contribute to the
                                 ray-caster scene. Defaults to None (every instance is an
                                 occluder).
 :return: Scene with occluded facets removed.)");
+
+    m.def(
+        "remove_occluded_facets_with_view_error",
+        [](const SimpleScene3D& scene,
+           nb::callable evaluate,
+           double max_view_error,
+           std::optional<std::vector<double>> graphcut_smoothness_candidates,
+           uint64_t num_threshold_iterations,
+           uint64_t num_refinement_iterations,
+           uint64_t num_views,
+           std::optional<double> smoothness_tradeoff,
+           uint64_t num_rays,
+           uint64_t batch_size,
+           bool adaptive,
+           size_t num_adaptive_per_cosine,
+           double vmf_kappa,
+           double threshold,
+           double size_influence,
+           double confidence,
+           std::optional<IsOccluderFn> is_occluder) {
+            const auto options = make_occluded_facet_options(
+                num_rays,
+                batch_size,
+                adaptive,
+                num_adaptive_per_cosine,
+                vmf_kappa,
+                threshold,
+                size_influence,
+                confidence,
+                raycasting::InstancingPolicy::FlattenInstances);
+            const auto view_options = make_view_error_options(
+                max_view_error,
+                std::move(graphcut_smoothness_candidates),
+                num_threshold_iterations,
+                num_refinement_iterations,
+                num_views,
+                smoothness_tradeoff);
+            auto evaluate_cpp = make_view_error_evaluator(std::move(evaluate));
+            ProgressCallback progress;
+            const auto occluder = resolve_is_occluder(is_occluder);
+            auto [result, parameters] =
+                raycasting::remove_occluded_facets_with_view_error<Scalar, Index>(
+                    scene,
+                    evaluate_cpp,
+                    options,
+                    view_options,
+                    progress,
+                    occluder);
+            return nb::make_tuple(std::move(result), parameters);
+        },
+        "scene"_a,
+        "evaluate"_a,
+        nb::kw_only(),
+        "max_view_error"_a = view_error_defaults.max_view_error,
+        "graphcut_smoothness_candidates"_a = nb::none(),
+        "num_threshold_iterations"_a = view_error_defaults.num_threshold_iterations,
+        "num_refinement_iterations"_a = view_error_defaults.num_refinement_iterations,
+        "num_views"_a,
+        "smoothness_tradeoff"_a = view_error_defaults.smoothness_tradeoff,
+        "num_rays"_a = facet_sampler_defaults.num_rays,
+        "batch_size"_a = facet_sampler_defaults.batch_size,
+        "adaptive"_a = false,
+        "num_adaptive_per_cosine"_a = adaptive_defaults.num_adaptive_per_cosine,
+        "vmf_kappa"_a = adaptive_defaults.vmf_kappa,
+        "threshold"_a = facet_sampler_defaults.max_visibility_threshold,
+        "size_influence"_a = facet_sampler_defaults.size_influence,
+        "confidence"_a = facet_sampler_defaults.confidence,
+        "is_occluder"_a = nb::none(),
+        R"(Sample visibility once and filter facets using a user-supplied view-error budget.
+
+This convenience wrapper constructs an OccludedFacetsFilter and calls apply_with_view_error().
+The result is flattened, with one output mesh per surviving instance. Cached visibility scores
+only guide the heuristic search; the evaluator defines the error metric and validates the masks.
+
+:param scene: Input triangle-mesh scene.
+:param evaluate: Callable ``(keep_mask, view_indices) -> errors``. The uint8 keep mask is ordered
+                 by source mesh, instance, then local facet. uint64 view indices are empty for all
+                 views; return one finite non-negative error per requested view.
+:param max_view_error: Finite non-negative worst-view error budget; 0 requires an exact match.
+:param graphcut_smoothness_candidates: Finite positive weights, sorted and deduplicated internally;
+                                      None or an empty list selects the automatic sweep.
+:param num_threshold_iterations: Positive iterations per primary threshold search.
+:param num_refinement_iterations: Positive iterations per verification refinement search.
+:param num_views: Positive number of errors returned when the view-index list is empty.
+:param smoothness_tradeoff: Optional fraction of baseline removal that may be sacrificed for
+                           smoother regions. None disables the sweep; 0 preserves removal count,
+                           and 1 permits sacrificing all removal. Present values must be in [0, 1].
+:param num_rays: Total sampling ray budget.
+:param batch_size: Rays per batch.
+:param adaptive: Enable adaptive sampling; False uses plain cosine sampling (default).
+:param num_adaptive_per_cosine: Seed-guided rays per cosine ray when adaptive.
+:param vmf_kappa: Adaptive vMF lobe concentration.
+:param threshold: Sampler max_visibility_threshold retirement cutoff, not a bound on facet scores
+                  or the cutoff selected by view-error filtering.
+:param size_influence: Exponent on facet area relative to mean facet area.
+:param confidence: Per-facet confidence for anytime-valid early keeping.
+:param is_occluder: Optional callable ``(mesh_index, instance_index) -> bool``.
+:return: Tuple ``(scene, parameters)`` with an OccludedFacetViewErrorResult.
+:raises RuntimeError: Invalid options, invalid evaluator errors, or incorrect error counts.)");
 
     m.def(
         "remove_occluded_instances",
@@ -1835,7 +2197,7 @@ value to reproduce the original first-observed-escape behavior.
 :return: Per-instance measures as ``measures[mesh_index][instance_index]``.)");
 
     m.def(
-        "estimate_occluded_facet_measures",
+        "estimate_facet_visibility",
         [](const SimpleScene3D& scene,
            std::string attribute_name,
            uint64_t num_rays,
@@ -1860,7 +2222,7 @@ value to reproduce the original first-observed-escape behavior.
                 instancing);
             ProgressCallback progress;
             const auto occluder = resolve_is_occluder(is_occluder);
-            return raycasting::estimate_occluded_facet_measures<Scalar, Index>(
+            return raycasting::estimate_facet_visibility<Scalar, Index>(
                 scene,
                 attribute_name,
                 options,
@@ -1870,12 +2232,12 @@ value to reproduce the original first-observed-escape behavior.
         "scene"_a,
         nb::kw_only(),
         "attribute_name"_a = "visibility_measure",
-        "num_rays"_a = facet_defaults.num_rays,
-        "batch_size"_a = facet_defaults.batch_size,
+        "num_rays"_a = facet_sampler_defaults.num_rays,
+        "batch_size"_a = facet_sampler_defaults.batch_size,
         "adaptive"_a = facet_sampler_defaults.adaptive.has_value(),
         "num_adaptive_per_cosine"_a = adaptive_defaults.num_adaptive_per_cosine,
         "vmf_kappa"_a = adaptive_defaults.vmf_kappa,
-        "threshold"_a = facet_sampler_defaults.threshold,
+        "threshold"_a = facet_sampler_defaults.max_visibility_threshold,
         "size_influence"_a = facet_sampler_defaults.size_influence,
         "confidence"_a = facet_sampler_defaults.confidence,
         "instancing"_a = facet_options_defaults.instancing,
@@ -1884,8 +2246,10 @@ value to reproduce the original first-observed-escape behavior.
 
 Each output mesh carries a per-facet Scalar attribute ``attribute_name`` equal to the facet's
 (possibly aggregated) visibility measure
-``mean_visibility * (area_f / mean_face_area) ** size_influence``. The sampler runs at ``threshold``;
-remove facets whose attribute is below any ``t <= threshold`` to filter without re-tracing.
+``mean_visibility * (area_f / mean_face_area) ** size_influence``. The legacy ``threshold`` keyword
+sets the sampler's ``max_visibility_threshold`` retirement cutoff; remove facets whose attribute
+is below any ``0 <= visibility_threshold <= threshold`` to filter without re-tracing.
+The maximum bounds the filtering cutoff, not the returned facet measures.
 
 :param scene:                   Input scene.
 :param attribute_name:          Name of the per-facet Scalar attribute to create on each mesh.

@@ -112,6 +112,9 @@ function(lagrange_add_module)
     message(STATUS "Lagrange: creating target 'lagrange::${module_name}'")
 
     set_target_properties(lagrange_${module_name} PROPERTIES POSITION_INDEPENDENT_CODE ON)
+    if(LAGRANGE_TOPLEVEL_PROJECT)
+        set_target_properties(lagrange_${module_name} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+    endif()
 
     include(GNUInstallDirs)
     target_include_directories(lagrange_${module_name} ${module_scope}

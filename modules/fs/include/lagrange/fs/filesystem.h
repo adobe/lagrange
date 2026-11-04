@@ -11,12 +11,8 @@
  */
 #pragma once
 
-#include <lagrange/fs/detail/guess_backend.h>
-
-#if defined(LAGRANGE_USE_STD_FS)
-
-    #include <filesystem>
-    #include <fstream>
+#include <filesystem>
+#include <fstream>
 namespace lagrange {
 namespace fs {
 using namespace std::filesystem;
@@ -25,40 +21,3 @@ using ofstream = std::ofstream;
 using fstream = std::fstream;
 } // namespace fs
 } // namespace lagrange
-
-#elif defined(LAGRANGE_USE_GHC_FS)
-
-// clang-format off
-#include <lagrange/utils/warnoff.h>
-#include <ghc/fs_fwd.hpp>
-#include <lagrange/utils/warnon.h>
-// clang-format on
-
-namespace lagrange {
-namespace fs {
-using namespace ghc::filesystem;
-using ifstream = ghc::filesystem::ifstream;
-using ofstream = ghc::filesystem::ofstream;
-using fstream = ghc::filesystem::fstream;
-} // namespace fs
-} // namespace lagrange
-
-#elif defined(LAGRANGE_USE_BOOST_FS)
-
-    #include <boost/filesystem.hpp>
-    #include <boost/filesystem/fstream.hpp>
-
-namespace lagrange {
-namespace fs {
-using namespace boost::filesystem;
-using boost::filesystem::fstream;
-using boost::filesystem::ifstream;
-using boost::filesystem::ofstream;
-} // namespace fs
-} // namespace lagrange
-
-#else
-
-    #error Impossible situation occurred. Either LAGRANGE_USE_STD_FS, LAGRANGE_USE_GHC_FS, or LAGRANGE_USE_BOOST_FS should be defined at this point
-
-#endif

@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Save a scene to a file.
  *
@@ -48,5 +53,7 @@ LA_IO_API void save_scene(
     const scene::Scene<Scalar, Index>& scene,
     FileFormat format,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

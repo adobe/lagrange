@@ -15,4 +15,4 @@
 
 namespace lagrange::python {
 void populate_scene_module(nanobind::module_& m);
-}
+} // namespace lagrange::python

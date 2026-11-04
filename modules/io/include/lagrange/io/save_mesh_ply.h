@@ -22,6 +22,11 @@
 namespace lagrange::io {
 
 ///
+/// @addtogroup module-io
+/// @{
+///
+
+///
 /// Saves a mesh to a stream in PLY format.
 ///
 /// @param[in,out] output_stream  Output stream.
@@ -54,5 +59,7 @@ LA_IO_API void save_mesh_ply(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/primitive/generate_disc.h>
 #include <lagrange/primitive/generate_icosahedron.h>
 #include <lagrange/primitive/generate_octahedron.h>
@@ -19,7 +21,6 @@
 #include <lagrange/primitive/generate_sphere.h>
 #include <lagrange/primitive/generate_subdivided_sphere.h>
 #include <lagrange/primitive/generate_torus.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/primitive.h>
 
 namespace nb = nanobind;

@@ -98,7 +98,6 @@ void occlusion_cast(RayCasterPtr& caster, Mesh& /*mesh*/, size_t N)
                     double(k) / double(N) * lagrange::internal::pi - 0.5 * lagrange::internal::pi;
                 Eigen::Vector3d direction(cos(phi) * cos(theta), cos(phi) * sin(theta), sin(phi));
 
-                Eigen::Vector3d bc;
                 bool hit = caster->cast(origin, direction);
                 counter++;
                 if (hit) {

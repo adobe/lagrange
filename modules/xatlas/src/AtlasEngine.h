@@ -13,7 +13,6 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/xatlas/Options.h>
-#include <lagrange/xatlas/api.h>
 
 #include <memory>
 

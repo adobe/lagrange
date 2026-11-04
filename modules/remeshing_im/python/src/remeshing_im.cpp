@@ -11,6 +11,7 @@
  */
 
 #include <lagrange/python/binding.h>
+
 #include <lagrange/python/remeshing_im.h>
 #include <lagrange/remeshing_im/remesh.h>
 

@@ -9,15 +9,17 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <sstream>
-#include <string>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include <lagrange/Logger.h>
-#include <lagrange/io/legacy/load_mesh.h>
-#include <lagrange/io/legacy/load_mesh_ext.h>
+    #include <lagrange/testing/common.h>
+    #include <sstream>
+    #include <string>
 
-#include "test_load_mesh_data.h"
+    #include <lagrange/Logger.h>
+    #include <lagrange/io/legacy/load_mesh.h>
+    #include <lagrange/io/legacy/load_mesh_ext.h>
+
+    #include "test_load_mesh_data.h"
 
 template <typename MeshType>
 bool faces_in_range(const MeshType& mesh)
@@ -134,6 +136,9 @@ TEST_CASE("MeshLoad", "[Mesh][Load]")
 {
     using namespace lagrange;
     using namespace lagrange::io::legacy;
+
+    // Several fixtures intentionally reference unavailable material libraries.
+    ScopedLogLevel log_level(spdlog::level::err);
 
     const std::string tmp_filename = "tmp.obj";
 
@@ -360,3 +365,5 @@ TEST_CASE("MeshLoad", "[Mesh][Load]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

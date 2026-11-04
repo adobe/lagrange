@@ -74,7 +74,7 @@ deserialize_scene(span<const uint8_t> buffer, const DeserializeOptions& options 
 ///
 /// Save a Scene to a file.
 ///
-/// The suggested file extension is `.lgs`.
+/// The suggested file extension is `.lgx`.
 ///
 /// @param[in]  filename  Output file path.
 /// @param[in]  scene     The scene to save.

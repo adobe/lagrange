@@ -16,7 +16,6 @@
 
 #include <lagrange/bvh/EdgeAABBTree.h>
 #include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
 #include <lagrange/utils/range.h>
 
 TEST_CASE("bvh/EdgeAABBTree", "[bvh][aabb][edge]")

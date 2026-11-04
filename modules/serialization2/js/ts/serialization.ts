@@ -11,7 +11,7 @@
  */
 
 /**
- * Fast binary round-trip for a {@link SurfaceMesh} or {@link Scene}, including
+ * Fast binary round-trip for a {@link SurfaceMesh}, {@link SimpleScene}, or {@link Scene}, including
  * all attached attributes. Prefer this over `obj`/`ply`/`gltf` when storing
  * data in IndexedDB, caching in blob storage, or sending over the network —
  * it round-trips every attribute exactly and is significantly smaller than
@@ -23,7 +23,7 @@
  */
 
 import type { SurfaceMesh } from "./core.js";
-import type { Scene } from "./scene.js";
+import type { Scene, SimpleScene } from "./scene.js";
 
 export interface SerializeOptions {
   /** Apply zstd compression. Disable for faster write at the cost of size. Default: `true`. */
@@ -36,13 +36,13 @@ export interface SerializeOptions {
 
 export interface DeserializeOptions {
   /**
-   * Accept input that was serialized as a scene (single-mesh scenes are
-   * unwrapped automatically). Default: `false`.
+   * Allow converting between serialized meshes, simple scenes, and full scenes.
+   * Default: `false`.
    */
   allowSceneConversion?: boolean;
   /**
    * Allow casting between scalar / index types if they don't match the
-   * target mesh. Default: `false`.
+   * target representation. Default: `false`.
    */
   allowTypeCast?: boolean;
   /** Suppress warnings printed to the console. Default: `false`. */
@@ -57,6 +57,10 @@ export interface SerializationModule {
   serializeMesh(mesh: SurfaceMesh, opts?: SerializeOptions): Uint8Array<ArrayBuffer>;
   /** Restore a mesh previously produced by {@link serializeMesh}. */
   deserializeMesh(data: Uint8Array, opts?: DeserializeOptions): SurfaceMesh;
+  /** Serialize meshes, their attributes, and instance transforms into an independent binary blob. */
+  serializeSimpleScene(scene: SimpleScene, opts?: SerializeOptions): Uint8Array<ArrayBuffer>;
+  /** Restore an owned simple scene; call its delete() method when finished. */
+  deserializeSimpleScene(data: Uint8Array, opts?: DeserializeOptions): SimpleScene;
   /** Serialize the scene (meshes, materials, nodes) into a compact binary blob. */
   serializeScene(scene: Scene, opts?: SerializeOptions): Uint8Array<ArrayBuffer>;
   /** Restore a scene previously produced by {@link serializeScene}. */
@@ -66,6 +70,8 @@ export interface SerializationModule {
 export const serializationModuleKeys = [
   "serializeMesh",
   "deserializeMesh",
+  "serializeSimpleScene",
+  "deserializeSimpleScene",
   "serializeScene",
   "deserializeScene",
 ] as const satisfies readonly (keyof SerializationModule)[];

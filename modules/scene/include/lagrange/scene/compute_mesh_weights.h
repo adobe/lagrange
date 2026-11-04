@@ -19,7 +19,18 @@
 namespace lagrange::scene {
 
 ///
-/// Computes mesh weights of a scene
+/// @addtogroup module-scene
+/// @{
+///
+
+///
+/// Computes one weight per source mesh, indexed by mesh index.
+///
+/// EvenSplit includes all meshes equally. RelativeToNumFacets uses each source mesh's facet count,
+/// independent of instances. RelativeToMeshArea uses the maximum transformed surface area over
+/// each mesh's instances; a mesh without instances has zero area weight. Synchronized gives the
+/// best facet budget allocation but is not weight-based: it is handled directly by the remeshing
+/// backends, and passing it to this function throws a std::runtime_error.
 ///
 /// @param[in]  scene                       Input scene.
 /// @param[in]  facet_allocation_strategy   Strategy used to compute the weights distribution.
@@ -28,11 +39,17 @@ namespace lagrange::scene {
 /// @tparam     Index       Index type of scene.
 /// @tparam     Dimension   Dimension value of scene.
 ///
-/// @return     vector<double>  Weights for each mesh of the scene that sums to unity and each being in [0, 1].
+/// @return     Weights in [0, 1], normalized to sum to one when the total weight is positive.
+///             If all areas or facet counts are zero, the corresponding strategy returns all
+///             zeros. An empty scene returns an empty vector.
+///
+/// @throws     std::runtime_error if the strategy is FacetAllocationStrategy::Synchronized.
 ///
 template <typename Scalar, typename Index, size_t Dimension>
 std::vector<double> compute_mesh_weights(
     const SimpleScene<Scalar, Index, Dimension>& scene,
     const FacetAllocationStrategy facet_allocation_strategy);
+
+/// @}
 
 } // namespace lagrange::scene

@@ -26,6 +26,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Load a mesh from a stream.
  *
@@ -56,5 +61,7 @@ template <
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 LA_IO_API MeshType load_mesh(const fs::path& filename, const LoadOptions& = {});
 
+
+/// @}
 
 } // namespace lagrange::io

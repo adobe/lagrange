@@ -9,16 +9,18 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include <limits>
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
 
-#include <lagrange/bvh/AABBIGL.h>
-#include <lagrange/bvh/create_BVH.h>
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/utils/range.h>
+    #include <limits>
+
+    #include <lagrange/bvh/AABBIGL.h>
+    #include <lagrange/bvh/create_BVH.h>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/utils/range.h>
 
 TEST_CASE("AABBIGL", "[bvh][igl][aabb]")
 {
@@ -114,3 +116,5 @@ TEST_CASE("AABBIGL", "[bvh][igl][aabb]")
         }
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

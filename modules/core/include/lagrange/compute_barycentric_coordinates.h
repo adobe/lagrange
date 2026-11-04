@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/warning.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -23,6 +24,9 @@
 #include <limits>
 
 namespace lagrange {
+
+// GCC 13 misdiagnoses SIMD bounds in bounded dynamic Eigen vectors.
+LA_IGNORE_ARRAY_BOUNDS_BEGIN
 
 ///
 /// Compute the barycentric coordinates of point @p p with respect to triangle (v0, v1, v2).
@@ -115,5 +119,6 @@ auto compute_barycentric_coordinates(
     return M.colPivHouseholderQr().solve(rhs);
 }
 
+LA_IGNORE_ARRAY_BOUNDS_END
 
 } // namespace lagrange

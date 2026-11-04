@@ -10,15 +10,16 @@
  * governing permissions and limitations under the License.
  */
 ////////////////////////////////////////////////////////////////////////////////
+#include <lagrange/Logger.h>
 #include <lagrange/Mesh.h>
 #include <lagrange/attributes/attribute_utils.h>
 #include <lagrange/create_mesh.h>
+#include <lagrange/fs/basic_file_sink.h>
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/raycasting/project_attributes.h>
 #include <lagrange/utils/timing.h>
 
-#include <spdlog/sinks/basic_file_sink.h>
 #include <CLI/CLI.hpp>
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -106,7 +107,7 @@ int main(int argc, char const* argv[])
     }
     if (!args.log_file.empty()) {
         lagrange::logger().sinks().emplace_back(
-            std::make_shared<spdlog::sinks::basic_file_sink_mt>(args.log_file, true));
+            lagrange::fs::make_file_sink_mt(args.log_file, true));
     }
     spdlog::set_level(static_cast<spdlog::level::level_enum>(args.log_level));
     spdlog::flush_every(std::chrono::seconds(3));

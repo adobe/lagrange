@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/bvh/EdgeAABBTree.h>
 #include <lagrange/bvh/TriangleAABBTree.h>
 #include <lagrange/bvh/compute_intersecting_pairs.h>
@@ -18,7 +20,6 @@
 #include <lagrange/bvh/remove_interior_shells.h>
 #include <lagrange/bvh/resolve_tjunctions.h>
 #include <lagrange/bvh/weld_vertices.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/bvh.h>
 #include <lagrange/python/eigen_utils.h>
 #include <lagrange/python/utils/StubType.h>

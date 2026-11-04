@@ -549,6 +549,7 @@ class TestCast:
         origins = np.tile(np.array([0.5, 0.5, -1.0], dtype=np.float32), (n, 1))
         directions = np.tile(np.array([0.0, 0.0, 1.0], dtype=np.float32), (n, 1))
         results = rc.cast(origins, directions)
+        assert isinstance(results, lagrange.raycasting.RayHits)
         assert results.hit.shape == (n,)
         assert np.all(results.hit)
         assert results.position.shape == (n, 3)
@@ -593,6 +594,7 @@ class TestCast:
         directions = np.array([[0.0, 0.0, 1.0], [0.0, 0.0, 1.0]], dtype=np.float32)
         tmax = np.array([0.5, 10.0], dtype=np.float32)
         results = rc.cast(origins, directions, tmax=tmax)
+        assert isinstance(results, lagrange.raycasting.RayHits)
         assert not results.hit[0]  # too short
         assert results.hit[1]  # reaches cube
 
@@ -602,6 +604,7 @@ class TestCast:
         origins = np.array([[0.5, 0.5, -1.0], [0.5, 0.5, 2.0]], dtype=np.float32)
         directions = np.array([[0.0, 0.0, 1.0], [0.0, 0.0, -1.0]], dtype=np.float32)
         r = rc.cast(origins, directions)
+        assert isinstance(r, lagrange.raycasting.RayHits)
         assert r.hit.shape == (2,) and r.hit.dtype == bool
         assert r.mesh_index.shape == (2,) and r.mesh_index.dtype == np.uint32
         assert r.instance_index.shape == (2,)
@@ -675,6 +678,7 @@ class TestClosestPoint:
         n = 20
         queries = np.tile(np.array([0.5, 0.5, -0.5], dtype=np.float32), (n, 1))
         results = rc.closest_point(queries)
+        assert isinstance(results, lagrange.raycasting.ClosestPointHits)
         assert results.hit.shape == (n,)
         assert np.all(results.hit)
 
@@ -752,6 +756,7 @@ class TestOccluded:
         origins = np.tile(np.array([0.5, 0.5, -1.0], dtype=np.float32), (n, 1))
         directions = np.tile(np.array([0.0, 0.0, 1.0], dtype=np.float32), (n, 1))
         results = rc.occluded(origins, directions)
+        assert isinstance(results, np.ndarray)
         assert results.shape == (n,)
         assert np.all(results)
 
@@ -914,4 +919,4 @@ class TestComputeLocalFeatureSize:
 
         # This should fail because we're passing positional args after mesh
         with pytest.raises(TypeError):
-            lagrange.raycasting.compute_local_feature_size(unit_cube, 1e-4)  # ty: ignore[too-many-positional-arguments]
+            lagrange.raycasting.compute_local_feature_size(unit_cube, 1e-4)  # type: ignore[ty:too-many-positional-arguments, pyrefly:bad-argument-count]

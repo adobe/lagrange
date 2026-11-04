@@ -14,10 +14,12 @@
 #include <lagrange/io/load_mesh.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/utils/timing.h>
+
+#include <cstdlib>
 #include <iostream>
 
 #ifndef EIGEN_VECTORIZE
-    #warning "Vectorization is disabled"
+    #pragma message("Vectorization is disabled")
 #endif
 
 template <typename DerivedV, typename DerivedF>
@@ -51,7 +53,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    void* mem = malloc(1);
+    void* mem = std::calloc(1, 1);
     std::cout << mem << std::endl;
 
     Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> test(1, 1);
@@ -82,6 +84,6 @@ int main(int argc, char** argv)
     std::cout << vertices_view.data() << "\t" << facets_view.data() << std::endl;
     std::cout << "Average duration (Array, unaligned): " << t2 << "s" << std::endl;
 
-    free(mem);
+    std::free(mem);
     return 0;
 }

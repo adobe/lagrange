@@ -10,10 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include "logging.h"
 
 #include <lagrange/Logger.h>
-#include <lagrange/python/binding.h>
 
 // clang-format off
 #include <lagrange/utils/warnoff.h>
@@ -36,6 +37,12 @@ public:
     {
         nb::module_ logging = nb::module_::import_("logging");
         m_py_logger = logging.attr("getLogger")(logger_name);
+    }
+
+    ~PythonLoggingSink() override
+    {
+        // lagrange::logger() is a C++ static that outlives the interpreter; skip the decref then.
+        if (!nb::is_alive()) m_py_logger.release();
     }
 
 protected:

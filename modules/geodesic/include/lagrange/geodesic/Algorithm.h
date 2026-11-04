@@ -13,6 +13,9 @@
 
 namespace lagrange::geodesic {
 
+/// @addtogroup module-geodesic
+/// @{
+
 /// The available algorithms for computing or approximating geodesic distance.
 ///
 /// - DGPC: Melvær, Eivind Lyche, and Martin Reimers. "Geodesic polar coordinates on polygonal
@@ -32,5 +35,7 @@ namespace lagrange::geodesic {
 /// @note MMP is often considered an exact method, while DGPC, HEAT, and FLIP are
 /// approximations. FLIP is particularly well-suited for geodesic path computation.
 enum class Algorithm { DGPC, MMP, HEAT, FLIP };
+
+/// @}
 
 } // namespace lagrange::geodesic

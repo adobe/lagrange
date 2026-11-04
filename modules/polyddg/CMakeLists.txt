@@ -11,10 +11,6 @@
 #
 # 1. define module
 lagrange_add_module()
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set_target_properties(lagrange_polyddg PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-endif()
-
 # 2. dependencies
 lagrange_include_modules(solver)
 target_link_libraries(lagrange_polyddg

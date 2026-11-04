@@ -21,15 +21,15 @@
  */
 
 import type { SurfaceMesh } from "./core.js";
-import type { Scene } from "./scene.js";
+import type { Scene, SimpleScene } from "./scene.js";
 
 /** Single-mesh output formats. */
 export type OutputMeshFormat = "obj" | "ply" | "glb" | "gltf";
 
-/** Scene-graph output formats. */
+/** Output formats for full scenes and simple scenes. */
 export type OutputSceneFormat = "glb" | "gltf" | "obj";
 
-/** Knobs for `loadMeshFromBuffer` / `loadSceneFromBuffer`. */
+/** Knobs for loading meshes, full scenes, and simple scenes from buffers. */
 export interface LoadOptions {
   /** Triangulate polygons on load. Default: `false`. */
   triangulate?: boolean;
@@ -57,7 +57,7 @@ export interface LoadOptions {
   quiet?: boolean;
 }
 
-/** Knobs for `saveMeshToBuffer` / `saveSceneToBuffer`. */
+/** Knobs for saving meshes, full scenes, and simple scenes to buffers. */
 export interface SaveOptions {
   /**
    * Override the default encoding. If unset, `binary` is used for `ply`/`glb`
@@ -94,6 +94,10 @@ export interface IOModule {
   loadSceneFromBuffer(data: Uint8Array, opts?: LoadOptions): Scene;
   /** Serialize a scene to `glb`, `gltf`, or `obj`. Returns the encoded bytes. */
   saveSceneToBuffer(scene: Scene, format: OutputSceneFormat, opts?: SaveOptions): Uint8Array<ArrayBuffer>;
+  /** Parse an owned 3D instanced scene from glTF/GLB or FBX bytes. Delete it when finished. */
+  loadSimpleSceneFromBuffer(data: Uint8Array, opts?: LoadOptions): SimpleScene;
+  /** Encode a simple scene as glTF/GLB or OBJ. OBJ bakes transforms; scene materials are not stored. */
+  saveSimpleSceneToBuffer(scene: SimpleScene, format: OutputSceneFormat, opts?: SaveOptions): Uint8Array<ArrayBuffer>;
 }
 
 export const ioModuleKeys = [
@@ -101,4 +105,6 @@ export const ioModuleKeys = [
   "saveMeshToBuffer",
   "loadSceneFromBuffer",
   "saveSceneToBuffer",
+  "loadSimpleSceneFromBuffer",
+  "saveSimpleSceneToBuffer",
 ] as const satisfies readonly (keyof IOModule)[];

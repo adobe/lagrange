@@ -25,11 +25,15 @@
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/range.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 
 #include "internal/convert_attribute_utils.h"
 
 #include <mshio/mshio.h>
+
+#include <cstdint>
+#include <vector>
 
 namespace lagrange {
 namespace io {
@@ -82,72 +86,132 @@ get_attribute_name(const SurfaceMesh<Scalar, Index>& mesh, AttributeId id, Attri
     return name;
 }
 
+template <typename Index>
+int element_type_from_facet_size(Index facet_size, Index facet_index)
+{
+    switch (facet_size) {
+    case 2: return 1; // 2-node line.
+    case 3: return 2; // 3-node triangle.
+    case 4: return 3; // 4-node quad.
+    default:
+        throw Error(format(
+            "MSH export only supports line segments, triangles, and quads; facet {} has {} "
+            "vertices",
+            facet_index,
+            facet_size));
+    }
+}
+
+template <typename Scalar, typename Index>
+void append_node(mshio::NodeBlock& block, const SurfaceMesh<Scalar, Index>& mesh, Index vertex)
+{
+    auto position = mesh.get_position(vertex);
+    block.tags.push_back(static_cast<size_t>(vertex + 1));
+    block.data.push_back(static_cast<double>(position[0]));
+    block.data.push_back(static_cast<double>(position[1]));
+    block.data.push_back(mesh.get_dimension() == 3 ? static_cast<double>(position[2]) : 0);
+}
+
 template <typename Scalar, typename Index>
 void populate_nodes(mshio::MshSpec& spec, const SurfaceMesh<Scalar, Index>& mesh)
 {
     const Index dim = mesh.get_dimension();
-
-    const Index num_vertices = mesh.get_num_vertices();
-    spec.nodes.num_entity_blocks = 1;
-    spec.nodes.num_nodes = num_vertices;
-    spec.nodes.min_node_tag = 1;
-    spec.nodes.max_node_tag = num_vertices;
-    spec.nodes.entity_blocks.emplace_back();
-
-    auto& node_block = spec.nodes.entity_blocks.front();
-    node_block.entity_dim = 2; // Encoding surfaces.
-    node_block.entity_tag = 1;
-    node_block.parametric = 0; // We store uv as attribute.
-    node_block.num_nodes_in_block = num_vertices;
-    node_block.data.reserve(3 * num_vertices);
-    node_block.tags.reserve(num_vertices);
-
-    if (dim == 3) {
-        for (Index i = 0; i < num_vertices; i++) {
-            auto p = mesh.get_position(i);
-            node_block.tags.push_back(i + 1);
-            node_block.data.push_back(p[0]);
-            node_block.data.push_back(p[1]);
-            node_block.data.push_back(p[2]);
-        }
-    } else if (dim == 2) {
-        for (Index i = 0; i < num_vertices; i++) {
-            auto p = mesh.get_position(i);
-            node_block.tags.push_back(i + 1);
-            node_block.data.push_back(p[0]);
-            node_block.data.push_back(p[1]);
-            node_block.data.push_back(0);
-        }
-    } else {
+    if (dim != 2 && dim != 3) {
         throw Error("Only 2D and 3D mesh are supported!");
     }
+
+    const Index num_vertices = mesh.get_num_vertices();
+    std::vector<bool> on_line(static_cast<size_t>(num_vertices), false);
+    for (Index f = 0; f < mesh.get_num_facets(); ++f) {
+        if (mesh.get_facet_size(f) != 2) continue;
+        for (Index lv = 0; lv < 2; ++lv) {
+            const Index vertex = mesh.get_facet_vertex(f, lv);
+            la_runtime_assert(vertex < num_vertices, "Line facet vertex is out of range");
+            on_line[static_cast<size_t>(vertex)] = true;
+        }
+    }
+
+    spec.nodes.num_nodes = static_cast<size_t>(num_vertices);
+    spec.nodes.min_node_tag = 1;
+    spec.nodes.max_node_tag = static_cast<size_t>(num_vertices);
+    spec.nodes.entity_blocks.clear();
+
+    auto add_block = [&](int entity_dim, bool line_vertices) {
+        mshio::NodeBlock block;
+        block.entity_dim = entity_dim;
+        block.entity_tag = 1;
+        block.parametric = 0;
+        for (Index vertex = 0; vertex < num_vertices; ++vertex) {
+            if (on_line[static_cast<size_t>(vertex)] != line_vertices) continue;
+            append_node(block, mesh, vertex);
+        }
+        block.num_nodes_in_block = block.tags.size();
+        if (block.num_nodes_in_block == 0) return;
+        spec.nodes.entity_blocks.push_back(std::move(block));
+    };
+
+    if (num_vertices == 0) {
+        // Historical empty surface block for a mesh with no vertices.
+        mshio::NodeBlock block;
+        block.entity_dim = 2;
+        block.entity_tag = 1;
+        block.parametric = 0;
+        spec.nodes.entity_blocks.push_back(std::move(block));
+    } else {
+        // Vertices incident to a line are classified on the curve. Tags stay vertex index + 1.
+        add_block(1, true);
+        add_block(2, false);
+    }
+    spec.nodes.num_entity_blocks = spec.nodes.entity_blocks.size();
 }
 
 template <typename Scalar, typename Index>
 void populate_elements(mshio::MshSpec& spec, const SurfaceMesh<Scalar, Index>& mesh)
 {
-    bool is_tri_mesh = mesh.is_triangle_mesh();
-    const Index vertex_per_facet = mesh.get_vertex_per_facet();
-
     const Index num_facets = mesh.get_num_facets();
-    spec.elements.num_entity_blocks = 1;
-    spec.elements.num_elements = num_facets;
+    spec.elements.num_elements = static_cast<size_t>(num_facets);
     spec.elements.min_element_tag = 1;
-    spec.elements.max_element_tag = num_facets;
-    spec.elements.entity_blocks.emplace_back();
+    spec.elements.max_element_tag = static_cast<size_t>(num_facets);
+    spec.elements.entity_blocks.clear();
 
-    auto& element_block = spec.elements.entity_blocks.front();
-    element_block.entity_dim = 2;
-    element_block.entity_tag = 1;
-    element_block.element_type = is_tri_mesh ? 2 : 3;
-    element_block.num_elements_in_block = num_facets;
-    element_block.data.reserve((vertex_per_facet + 1) * num_facets);
-    for (Index i = 0; i < num_facets; i++) {
-        element_block.data.push_back(i + 1); // element tag.
-        for (Index j = 0; j < vertex_per_facet; j++) {
-            element_block.data.push_back(mesh.get_facet_vertex(i, j) + 1);
-        }
+    // Point clouds have no facets. Keep the historical empty triangle block.
+    if (num_facets == 0) {
+        spec.elements.num_entity_blocks = 1;
+        auto& element_block = spec.elements.entity_blocks.emplace_back();
+        element_block.entity_dim = 2;
+        element_block.entity_tag = 1;
+        element_block.element_type = 2;
+        element_block.num_elements_in_block = 0;
+        return;
     }
+
+    // MSH element blocks are uniform. Split the mesh into contiguous runs so facet order, and
+    // therefore element tags, stay aligned with facet and corner attributes.
+    Index run_begin = 0;
+    while (run_begin < num_facets) {
+        const Index facet_size = mesh.get_facet_size(run_begin);
+        const int element_type = element_type_from_facet_size(facet_size, run_begin);
+        Index run_end = run_begin + 1;
+        while (run_end < num_facets && mesh.get_facet_size(run_end) == facet_size) {
+            ++run_end;
+        }
+
+        auto& element_block = spec.elements.entity_blocks.emplace_back();
+        element_block.entity_dim = element_type == 1 ? 1 : 2;
+        element_block.entity_tag = 1;
+        element_block.element_type = element_type;
+        element_block.num_elements_in_block = static_cast<size_t>(run_end - run_begin);
+        element_block.data.reserve(
+            static_cast<size_t>(run_end - run_begin) * static_cast<size_t>(facet_size + 1));
+        for (Index f = run_begin; f < run_end; ++f) {
+            element_block.data.push_back(static_cast<size_t>(f + 1)); // element tag.
+            for (Index lv = 0; lv < facet_size; ++lv) {
+                element_block.data.push_back(static_cast<size_t>(mesh.get_facet_vertex(f, lv) + 1));
+            }
+        }
+        run_begin = run_end;
+    }
+    spec.elements.num_entity_blocks = spec.elements.entity_blocks.size();
 }
 
 template <typename Scalar, typename Index, typename Value>
@@ -181,7 +245,7 @@ void populate_non_indexed_vertex_attribute(
     for (auto i : range(num_vertices)) {
         node_data.entries.emplace_back();
         auto& entry = node_data.entries.back();
-        entry.tag = static_cast<size_t>(i + 1);
+        entry.tag = safe_cast<std::int32_t>(i + 1);
         entry.data.reserve(num_channels);
 
         for (auto j : range(num_channels)) {
@@ -221,7 +285,7 @@ void populate_non_indexed_facet_attribute(
     for (auto i : range(num_facets)) {
         element_data.entries.emplace_back();
         auto& entry = element_data.entries.back();
-        entry.tag = static_cast<size_t>(i + 1);
+        entry.tag = safe_cast<std::int32_t>(i + 1);
         entry.data.reserve(num_channels);
 
         for (auto j : range(num_channels)) {
@@ -258,8 +322,6 @@ void populate_non_indexed_corner_attribute(
     std::string name = get_attribute_name(mesh, id, counts);
 
     const auto num_facets = mesh.get_num_facets();
-    const auto vertex_per_facet = mesh.get_vertex_per_facet();
-    la_debug_assert(mesh.get_num_corners() == num_facets * vertex_per_facet);
     const auto num_channels = attr.get_num_channels();
 
     spec.element_node_data.emplace_back();
@@ -275,14 +337,16 @@ void populate_non_indexed_corner_attribute(
 
     element_node_data.entries.reserve(num_facets);
     for (auto i : range(num_facets)) {
+        const auto facet_size = mesh.get_facet_size(i);
+        const auto corner_begin = mesh.get_facet_corner_begin(i);
         element_node_data.entries.emplace_back();
         auto& entry = element_node_data.entries.back();
-        entry.tag = static_cast<size_t>(i + 1);
-        entry.num_nodes_per_element = int(vertex_per_facet);
-        entry.data.reserve(num_channels * vertex_per_facet);
-        for (auto j : range(vertex_per_facet)) {
+        entry.tag = safe_cast<std::int32_t>(i + 1);
+        entry.num_nodes_per_element = int(facet_size);
+        entry.data.reserve(num_channels * facet_size);
+        for (auto j : range(facet_size)) {
             for (auto k : range(num_channels)) {
-                entry.data.push_back(static_cast<double>(attr.get(i * vertex_per_facet + j, k)));
+                entry.data.push_back(static_cast<double>(attr.get(corner_begin + j, k)));
             }
         }
     }
@@ -388,11 +452,6 @@ void save_mesh_msh(
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options)
 {
-    if constexpr (sizeof(size_t) != 8) {
-        logger().error("MSH format requries `size_t` to be 8 bytes!");
-        throw Error("Incompatible size_t size detected!");
-    }
-
     // Hanlde index attribute conversion if necessary.
     if (span<const AttributeId> attr_ids{
             options.selected_attributes.data(),
@@ -410,10 +469,6 @@ void save_mesh_msh(
     }
 
     la_runtime_assert(output_stream, "Invalid output stream");
-    la_runtime_assert(
-        mesh.is_triangle_mesh() || mesh.is_quad_mesh(),
-        "Only triangle and quad mesh are supported for now.");
-
     mshio::MshSpec spec;
     spec.mesh_format.file_type = options.encoding == FileEncoding::Binary ? 1 : 0;
     populate_nodes(spec, mesh);

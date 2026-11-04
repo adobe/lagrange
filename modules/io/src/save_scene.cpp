@@ -31,7 +31,7 @@ void save_scene(
 {
     std::string ext = to_lower(filename.extension().string());
 
-    if (ext == ".lgs") {
+    if (ext == ".lgx") {
         serialization::save_scene(filename, scene);
     } else if (ext == ".gltf" || ext == ".glb") {
         save_scene_gltf(filename, scene, options);

@@ -17,6 +17,7 @@
 #include <lagrange/primitive/generate_disc.h>
 #include <lagrange/transform_mesh.h>
 #include <lagrange/triangulate_polygonal_facets.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 
 #include "primitive_utils.h"
@@ -42,7 +43,7 @@ SurfaceMesh<Scalar, Index> generate_disc(DiscOptions setting)
     const size_t num_rings = setting.num_rings;
 
     SurfaceMesh<Scalar, Index> mesh;
-    mesh.add_vertices(vertices_per_ring * num_rings + 1);
+    mesh.add_vertices(safe_cast<Index>(vertices_per_ring * num_rings + 1));
 
     auto vertices = vertex_ref(mesh);
 
@@ -60,7 +61,7 @@ SurfaceMesh<Scalar, Index> generate_disc(DiscOptions setting)
 
     // Populate center triangle fan
     {
-        mesh.add_triangles(setting.radial_sections);
+        mesh.add_triangles(safe_cast<Index>(setting.radial_sections));
         auto facets = facet_ref(mesh);
         for (size_t i = 0; i < setting.radial_sections; ++i) {
             facets.row(i) << 0, static_cast<Index>(i + 1),

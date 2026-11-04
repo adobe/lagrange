@@ -26,6 +26,11 @@ namespace lagrange {
 namespace volume {
 
 ///
+/// @addtogroup module-volume
+/// @{
+///
+
+///
 /// Fill a solid volume with spheres of varying radii.
 ///
 /// @param[in]  grid         Input volume.
@@ -65,6 +70,8 @@ void fill_with_spheres(
         spheres.row(i) << p.template cast<Scalar>();
     }
 }
+
+/// @}
 
 } // namespace volume
 } // namespace lagrange

@@ -29,7 +29,7 @@ namespace ui {
 class LA_UI_API Texture
 {
 public:
-    struct Transform
+    struct LA_UI_API Transform
     {
         Eigen::Vector2f scale;
         Eigen::Vector2f offset;

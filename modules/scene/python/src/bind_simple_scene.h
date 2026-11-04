@@ -34,7 +34,8 @@ void bind_simple_scene(nb::module_& m)
     nb::class_<MeshInstance3D>(m, "MeshInstance3D", "A single mesh instance in a scene")
         .def(
             nb::init<>(),
-            "Creates a new mesh instance with identity transform and mesh_index of 0.")
+            "Creates a mesh instance with identity transform and mesh_index set to "
+            "lagrange.invalid_index.")
         .def_rw(
             "mesh_index",
             &MeshInstance3D::mesh_index,
@@ -85,14 +86,18 @@ void bind_simple_scene(nb::module_& m)
                     M(3, 3) = values[15];
                 }
             },
-            R"(4x4 transformation matrix for this instance.
+            R"(4x4 float64 affine matrix mapping mesh coordinates to world coordinates using
+homogeneous column vectors.
 
-The transformation matrix is stored in column-major order. Both row-major and column-major
-input tensors are supported for setting the transform.)",
+The getter returns a writable column-major NumPy view. Both row-major and column-major
+dense input tensors are supported for setting the transform.)",
             nb::for_setter(nb::sig("def transform(self, arg: numpy.typing.ArrayLike, /) -> None")));
 
     using SimpleScene3D = lagrange::scene::SimpleScene<Scalar, Index, 3>;
-    nb::class_<SimpleScene3D>(m, "SimpleScene3D", "Simple scene container for instanced meshes")
+    nb::class_<SimpleScene3D>(
+        m,
+        "SimpleScene3D",
+        "Flat 3D scene of meshes and their world-space instances; no materials or node hierarchy")
         .def(nb::init<>(), "Creates an empty scene with no meshes or instances.")
         .def_prop_ro("num_meshes", &SimpleScene3D::get_num_meshes, "Number of meshes in the scene")
         .def(
@@ -121,22 +126,39 @@ input tensors are supported for setting the transform.)",
             "ref_mesh",
             &SimpleScene3D::ref_mesh,
             "mesh_index"_a,
-            R"(Gets a reference to the mesh at the specified index.
+            R"(Gets a copy of the mesh at the specified index.
 
 :param mesh_index: Index of the mesh.
 
-:return: Reference to the mesh.)")
+:return: Copy-on-write copy of the mesh. Writable NumPy views may still share buffers with the
+    stored mesh; modifying such a view can affect both copies.)")
         .def(
             "get_instance",
             &SimpleScene3D::get_instance,
             "mesh_index"_a,
             "instance_index"_a,
-            R"(Gets a specific instance of a mesh.
+            R"(Gets a copy of a specific instance of a mesh. Use ref_instance to modify the stored instance.
+
+:param mesh_index: Index of the mesh.
+:param instance_index: Zero-based instance index local to that mesh, not a scene-wide index.
+
+:return: Copy of the mesh instance.)")
+        .def(
+            "ref_instance",
+            &SimpleScene3D::ref_instance,
+            "mesh_index"_a,
+            "instance_index"_a,
+            nb::rv_policy::reference_internal,
+            R"(Gets a mutable reference to a specific instance of a mesh.
+
+Changes to the returned instance's transform update the instance stored in the scene. Do not change
+its mesh_index: instances remain grouped by their original source mesh.
+The reference keeps the scene alive and remains valid when meshes or instances are added or reserved.
 
 :param mesh_index: Index of the mesh.
 :param instance_index: Index of the instance for that mesh.
 
-:return: The mesh instance.)")
+:return: Mutable reference to the mesh instance.)")
         .def(
             "reserve_meshes",
             &SimpleScene3D::reserve_meshes,
@@ -148,7 +170,7 @@ input tensors are supported for setting the transform.)",
             "add_mesh",
             &SimpleScene3D::add_mesh,
             "mesh"_a,
-            R"(Adds a mesh to the scene.
+            R"(Adds a mesh to the scene without creating any instances.
 
 :param mesh: Mesh to add.
 
@@ -168,7 +190,7 @@ input tensors are supported for setting the transform.)",
             "instance"_a,
             R"(Adds an instance to the scene.
 
-:param instance: Mesh instance to add.
+:param instance: Mesh instance to copy into the scene. Its mesh_index must reference an existing mesh.
 
 :return: Index of the newly added instance for its mesh.)");
 
@@ -227,7 +249,8 @@ input tensors are supported for setting the transform.)",
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
 :param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 
-:return: List of transformed meshes.)");
+:return: One world-space mesh per instance, ordered by mesh index and then local instance index.
+    Meshes without instances are omitted.)");
 
     using MeshType = lagrange::SurfaceMesh<Scalar, Index>;
     m.def(
@@ -236,7 +259,7 @@ input tensors are supported for setting the transform.)",
         "mesh"_a,
         R"(Converts a single mesh into a simple scene with a single identity instance of the input mesh.
 
-:param mesh: Input mesh to convert.
+:param mesh: Input 3D mesh to convert.
 
 :return: Simple scene containing the input mesh.)");
 
@@ -248,7 +271,7 @@ input tensors are supported for setting the transform.)",
         "meshes"_a,
         R"(Converts a list of meshes into a simple scene with a single identity instance of each input mesh.
 
-:param meshes: Input meshes to convert.
+:param meshes: Input 3D meshes to convert.
 
 :return: Simple scene containing the input meshes.)");
 
@@ -259,18 +282,17 @@ input tensors are supported for setting the transform.)",
         },
         "scene"_a,
         "facet_allocation_strategy"_a = scene::FacetAllocationStrategy::EvenSplit,
-        R"(Computes mesh weights of a scene.
+        R"(Compute one weight per source mesh, indexed by mesh_index.
 
-:param scene: Input scene. Must contain at least one mesh. For
-    ``RelativeToMeshArea``, if the scene contains no instances (or only
-    degenerate transforms) the total transformed area is zero and all returned
-    weights are zero. For ``RelativeToNumFacets`` the total facet count must be
-    positive, otherwise the returned weights will contain non-finite values.
-:param facet_allocation_strategy: Strategy used to compute the weights distribution. Defaults to
-    ``FacetAllocationStrategy.EvenSplit``. ``FacetAllocationStrategy.Synchronized``
-    is not supported by this function and will raise :class:`RuntimeError`.
+EvenSplit gives each mesh equal weight. RelativeToMeshArea uses each mesh's maximum area
+over its transformed instances, not the sum of instance areas; meshes without instances have
+zero area. RelativeToNumFacets uses each source mesh's facet count, ignoring instances.
 
-:return: Weights for each mesh of the scene that sum to unity, each in [0, 1].)");
+:param scene: Input scene. An empty scene returns an empty list.
+:param facet_allocation_strategy: Weighting strategy. Synchronized is unsupported and raises RuntimeError.
+
+:return: Nonnegative weights summing to one, or all zeros when the total area or facet count
+    is zero for the corresponding strategy.)");
 
     m.def(
         "filter_instances",
@@ -283,7 +305,8 @@ input tensors are supported for setting the transform.)",
 returns True. Meshes with no remaining instances are dropped; mesh indices are compacted.
 
 :param scene: Input scene.
-:param keep:  Callable ``(mesh_index, instance_index) -> bool``.
+:param keep: Callable ``(mesh_index, instance_index) -> bool`` using input scene indices; the
+    instance index is local to its mesh. Retained meshes and instances keep their relative order.
 
 :return: Filtered scene.)");
 }

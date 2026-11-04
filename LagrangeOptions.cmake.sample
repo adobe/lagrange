@@ -64,6 +64,7 @@
 # option(LAGRANGE_MODULE_PYTHON         "Build module lagrange::python"         ON)
 # option(LAGRANGE_MODULE_RAYCASTING     "Build module lagrange::raycasting"     ON)
 # option(LAGRANGE_MODULE_REMESHING_IM   "Build module lagrange::remeshing_im"   ON)
+# option(LAGRANGE_MODULE_SAMPLING       "Build module lagrange::sampling"       ON)
 # option(LAGRANGE_MODULE_SCENE          "Build module lagrange::scene"          ON)
 # option(LAGRANGE_MODULE_SERIALIZATION2 "Build module lagrange::serialization2" ON)
 # option(LAGRANGE_MODULE_SOLVER         "Build module lagrange::solver"         ON)
@@ -98,7 +99,6 @@
 
 # Non-boolean options
 # set(LAGRANGE_DATA_FOLDER "<path/to/data>" CACHE PATH   "Where to download or find test data")
-# set(LAGRANGE_FS_BACKEND  "ghc"            CACHE STRING "Which file system backend to use? Options are 'std', 'ghc' and 'boost'.  Default is 'ghc'")
 
 # Allowlist/blocklist restricting which modules are allowed in the sub-project. This is an advanced
 # option, targeted at users who wish to have explicit knowledge of which module is implicitly

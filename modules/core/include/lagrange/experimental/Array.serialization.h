@@ -89,8 +89,8 @@ std::unique_ptr<ArrayBase> deserialize_array(Archive& ar)
     std::unique_ptr<ArrayBase> ptr;
 
     ar.object([&](auto& ar) {
-        ScalarEnum stype;
-        bool is_row_major;
+        ScalarEnum stype = static_cast<ScalarEnum>(-1);
+        bool is_row_major = false;
         ar("scalar_type", SCALAR_TYPE) & stype;
         ar("is_row_major", IS_ROW_MAJOR) & is_row_major;
 

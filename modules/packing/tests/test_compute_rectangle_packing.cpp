@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/common.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/packing/compute_rectangle_packing.h>
-#include <lagrange/testing/common.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include <vector>
+    #include <lagrange/common.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/packing/compute_rectangle_packing.h>
+    #include <lagrange/testing/common.h>
+
+    #include <vector>
 
 namespace packing_internal {
 
@@ -84,11 +86,11 @@ bool is_disjoint(const MeshType& mesh_1, const MeshType& mesh_2)
 
 } // namespace packing_internal
 
-#ifdef RECTANGLE_BIN_PACK_OSS
-    #define LA_HIDDEN_TAG "[.]"
-#else
-    #define LA_HIDDEN_TAG
-#endif
+    #ifdef RECTANGLE_BIN_PACK_OSS
+        #define LA_HIDDEN_TAG "[.]"
+    #else
+        #define LA_HIDDEN_TAG
+    #endif
 
 TEST_CASE("pack_boxes", "[packing]" LA_HIDDEN_TAG)
 {
@@ -246,10 +248,12 @@ TEST_CASE("pack_2d_meshes", "[packing]")
     {
         std::vector<TriangleMesh2D*> meshes{mesh_1.get(), mesh_2.get()};
         packing::PackingOptions opt;
-#ifndef RECTANGLE_BIN_PACK_OSS
+    #ifndef RECTANGLE_BIN_PACK_OSS
         opt.allow_flip = false;
-#endif
+    #endif
         packing::compute_rectangle_packing(meshes, opt);
         REQUIRE(packing_internal::is_disjoint(*meshes[0], *meshes[1]));
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

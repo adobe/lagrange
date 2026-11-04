@@ -86,10 +86,10 @@ void sample_vertex_normal(
         });
 }
 
-#define LA_X_sample_vertex_normal(GridScalar, Scalar, Index)       \
-    template void sample_vertex_normal<Scalar, Index, GridScalar>( \
-        SurfaceMesh<Scalar, Index> & mesh,                         \
-        const Grid<GridScalar>& grid,                              \
+#define LA_X_sample_vertex_normal(GridScalar, Scalar, Index)                     \
+    template LA_VOLUME_API void sample_vertex_normal<Scalar, Index, GridScalar>( \
+        SurfaceMesh<Scalar, Index> & mesh,                                       \
+        const Grid<GridScalar>& grid,                                            \
         const NormalsFromVolumeOptions& options);
 #define LA_X_sample_vertex_normal_aux(_, GridScalar) \
     LA_SURFACE_MESH_X(sample_vertex_normal, GridScalar)

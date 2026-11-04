@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Load an obj into a scene.
  *
@@ -33,7 +38,7 @@ template <typename SceneType>
 LA_IO_API SceneType load_scene_obj(const fs::path& filename, const LoadOptions& options = {});
 
 /**
- * Loadn obj into a scene.
+ * Load an obj into a scene.
  *
  * @param[in] input_stream_obj  Input stream containing the obj file data
  * @param[in] input_stream_mtl  Input stream containing the mtl file data
@@ -46,5 +51,7 @@ LA_IO_API SceneType load_scene_obj(
     std::istream& input_stream_obj,
     std::istream& input_stream_mtl,
     const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

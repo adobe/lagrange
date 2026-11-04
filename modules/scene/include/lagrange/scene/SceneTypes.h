@@ -14,6 +14,11 @@
 // clang-format off
 
 ///
+/// @addtogroup module-scene
+/// @{
+///
+
+///
 /// [X Macro](https://en.wikipedia.org/wiki/X_Macro) arguments for the Scene<> class.
 ///
 /// Since other modules might need to explicitly instantiate their own functions, this file is a
@@ -27,8 +32,8 @@
 /// LA_SCENE_X(foo, 0)
 /// @endcode
 ///
-/// The optional `data` argument can forwarded to other macros, in order to implement cartesian
-/// products when instantiating nested types.
+/// The `data` argument is forwarded as the first argument of each X macro, for example to implement
+/// Cartesian products when instantiating nested types. Pass a dummy value when unused.
 ///
 /// @param      mode  Suffix to apply to the LA_X_* macro.
 /// @param      data  Data to be passed around as the first argument of the X macro.
@@ -40,5 +45,7 @@
     LA_X_##mode(data, double, uint32_t) \
     LA_X_##mode(data, float, uint64_t) \
     LA_X_##mode(data, double, uint64_t)
+
+/// @}
 
 // clang-format on

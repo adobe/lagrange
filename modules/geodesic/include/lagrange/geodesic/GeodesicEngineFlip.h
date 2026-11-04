@@ -19,6 +19,9 @@
 
 namespace lagrange::geodesic {
 
+/// @addtogroup module-geodesic
+/// @{
+
 ///
 /// Computes surface geodesics using the edge-flip method. This method finds geodesic paths by
 /// iteratively flipping edges to straighten an initial Dijkstra path, producing high-quality
@@ -128,5 +131,7 @@ GeodesicEngineFlip<Scalar, Index> make_flip_engine(
 {
     return GeodesicEngineFlip<Scalar, Index>(mesh, options);
 }
+
+/// @}
 
 } // namespace lagrange::geodesic

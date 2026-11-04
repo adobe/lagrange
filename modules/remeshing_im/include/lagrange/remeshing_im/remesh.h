@@ -16,6 +16,11 @@
 namespace lagrange::remeshing_im {
 
 ///
+/// @addtogroup module-remeshing_im
+/// @{
+///
+
+///
 /// Positional symmetry type.
 ///
 enum class PosyType : uint8_t { Triangle = 3, Quad = 4 };
@@ -76,5 +81,7 @@ template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> remesh(
     SurfaceMesh<Scalar, Index>& mesh,
     const RemeshingOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::remeshing_im

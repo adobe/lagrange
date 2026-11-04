@@ -13,10 +13,6 @@
 lagrange_add_module()
 set_target_properties(lagrange_scene PROPERTIES POSITION_INDEPENDENT_CODE ON)
 
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set_target_properties(lagrange_scene PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-endif()
-
 lagrange_include_modules(fs image)
 
 # 2. dependencies

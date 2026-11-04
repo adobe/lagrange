@@ -79,7 +79,7 @@ bool dehover_all(Registry& r)
 bool is_child_selected(const Registry& registry, Entity e, bool recursive /*= true*/)
 {
     bool any_selected = false;
-    auto fn = [&](Entity e) { any_selected |= ui::is_selected(registry, e); };
+    auto fn = [&](Entity child) { any_selected |= ui::is_selected(registry, child); };
 
     if (recursive) {
         foreach_child(registry, e, fn);
@@ -93,7 +93,7 @@ bool is_child_selected(const Registry& registry, Entity e, bool recursive /*= tr
 bool is_child_hovered(const Registry& registry, Entity e, bool recursive /*= true*/)
 {
     bool any_selected = false;
-    auto fn = [&](Entity e) { any_selected |= ui::is_hovered(registry, e); };
+    auto fn = [&](Entity child) { any_selected |= ui::is_hovered(registry, child); };
 
     if (recursive) {
         foreach_child(registry, e, fn);

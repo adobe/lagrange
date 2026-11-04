@@ -28,6 +28,9 @@ function(lagrange_add_compile_test source_filename)
 
     # Create target library
     add_library(${target_name} STATIC EXCLUDE_FROM_ALL "${source_filename}")
+    if(LAGRANGE_TOPLEVEL_PROJECT)
+        set_target_properties(${target_name} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+    endif()
 
     # Dependencies
     lagrange_include_modules(testing)
@@ -41,6 +44,9 @@ function(lagrange_add_compile_test source_filename)
 
     # Register test
     set(test_name compile_${basename})
-    add_test(NAME ${test_name} COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}" --target ${target_name})
+    add_test(NAME ${test_name}
+        COMMAND "${CMAKE_COMMAND}" --build "${CMAKE_BINARY_DIR}"
+            --target ${target_name} --config "$<CONFIG>"
+    )
     set_tests_properties(${test_name} PROPERTIES WILL_FAIL TRUE)
 endfunction()

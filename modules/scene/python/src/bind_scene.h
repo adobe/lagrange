@@ -49,19 +49,24 @@ void bind_scene(nb::module_& m)
     nb::bind_safe_vector<SafeVector<Skeleton>>(m, "SkeletonList");
     nb::bind_safe_vector<SafeVector<Animation>>(m, "AnimationList");
 
-    nb::class_<lagrange::scene::Extensions>(m, "Extensions")
+    nb::class_<lagrange::scene::Extensions>(
+        m,
+        "Extensions",
+        "Named JSON-like scene extension values")
         .def(
             "__repr__",
             [](const lagrange::scene::Extensions& self) {
                 return scene::internal::to_string(self);
             })
-        .def_prop_ro("size", &Extensions::size)
-        .def_prop_ro("empty", &Extensions::empty)
+        .def_prop_ro("size", &Extensions::size, "Number of JSON-like and C++ user-data extensions")
+        .def_prop_ro("empty", &Extensions::empty, "Whether both extension stores are empty")
         .def_rw(
             "data",
             &Extensions::data,
             nb::rv_policy::reference_internal,
-            "Raw data stored in this extension as a dict");
+            "Dictionary of named extension values, recursively containing numbers, strings, "
+            "lists, and string-keyed dictionaries. The getter returns a copy; assign the whole "
+            "dictionary back to persist edits. None is not supported as a value");
 
     nb::class_<SceneMeshInstance>(
         m,
@@ -84,9 +89,10 @@ void bind_scene(nb::module_& m)
         .def_rw(
             "materials",
             &SceneMeshInstance::materials,
-            "Material indices in the scene.materials vector. This is typically a single material "
-            "index. When a single mesh uses multiple materials, the AttributeName::material_id "
-            "facet attribute should be defined.",
+            "Material indices in scene.materials. A mesh's single-channel ``material_id`` facet "
+            "attribute indexes this list, not scene.materials directly. If absent, conversion "
+            "assigns every facet to the first listed material, or no material if the list is "
+            "empty.",
             LA_SAFE_VECTOR_SETTER("materials", "ElementIdList | collections.abc.Sequence[int]"));
 
     nb::class_<Node>(m, "Node", "Represents a node in the scene hierarchy")
@@ -111,7 +117,8 @@ void bind_scene(nb::module_& m)
                     }
                 }
             },
-            "Transform of the node, relative to its parent",
+            "4x4 float32 affine matrix mapping node coordinates to parent coordinates using "
+            "homogeneous column vectors. The getter returns a writable column-major NumPy view",
             nb::for_setter(nb::sig("def transform(self, arg: numpy.typing.ArrayLike, /) -> None")))
         .def_prop_rw(
             "parent",
@@ -122,15 +129,16 @@ void bind_scene(nb::module_& m)
                     return {};
             },
             [](Node& node, ElementId parent) { node.parent = parent; },
-            "Parent index. May be invalid if the node has no parent (e.g. the root)")
-        .def_rw("children", &Node::children, "Children indices. May be empty")
+            "Parent index in scene.nodes, or None if there is no parent. Setting this does not "
+            "update the parent's children list")
+        .def_rw("children", &Node::children, "Child indices in scene.nodes. May be empty")
         .def_rw(
             "meshes",
             &Node::meshes,
-            "List of meshes contained in this node",
+            "Mesh instances attached to this node",
             LA_SAFE_VECTOR_SETTER("meshes", "collections.abc.Sequence[SceneMeshInstance]"))
-        .def_rw("cameras", &Node::cameras, "List of cameras contained in this node")
-        .def_rw("lights", &Node::lights, "List of lights contained in this node")
+        .def_rw("cameras", &Node::cameras, "Camera indices in scene.cameras attached to this node")
+        .def_rw("lights", &Node::lights, "Light indices in scene.lights attached to this node")
         .def_rw("extensions", &Node::extensions);
 
     nb::class_<ImageBufferExperimental> image_buffer(
@@ -271,8 +279,9 @@ void bind_scene(nb::module_& m)
                     reinterpret_cast<uint8_t*>(tensor.data()) + tensor.nbytes(),
                     self.data.data());
             },
-            "Raw buffer of size (width * height * num_channels * num_bits_per_element / 8) bytes "
-            "containing image data",
+            "Writable C-contiguous NumPy view of shape (height, width, num_channels). Assigning "
+            "a 3D array copies its data and updates the dimensions and dtype. Supported dtypes "
+            "are signed/unsigned 8-, 16-, 32-, and 64-bit integers, float32, and float64",
             nb::for_getter(
                 nb::sig("def data(self) -> Annotated[NDArray, dict(order='C', device='cpu')]")))
         .def_prop_ro(
@@ -390,8 +399,8 @@ void bind_scene(nb::module_& m)
         .def_rw(
             "normal_scale",
             &MaterialExperimental::normal_scale,
-            "Normal scaling factor. normal = normalize(<sampled tex value> * 2 - 1) * vec3(scale, "
-            "scale, 1)")
+            "Normal-map XY scaling factor, applied before normalization: "
+            "normalize((2 * sample - 1) * (scale, scale, 1))")
         .def_rw("occlusion_texture", &MaterialExperimental::occlusion_texture, "Occlusion texture")
         .def_rw(
             "occlusion_strength",
@@ -493,8 +502,11 @@ void bind_scene(nb::module_& m)
             "Light position. Note that the light is part of the scene graph, and has an associated "
             "transform in its node. This value is relative to the coordinate system defined by the "
             "node")
-        .def_rw("direction", &Light::direction, "Light direction")
-        .def_rw("up", &Light::up, "Light up vector")
+        .def_rw(
+            "direction",
+            &Light::direction,
+            "Light direction in the containing node's coordinates")
+        .def_rw("up", &Light::up, "Light up vector in the containing node's coordinates")
         .def_rw("intensity", &Light::intensity, "Light intensity")
         .def_rw(
             "attenuation_constant",
@@ -520,13 +532,13 @@ void bind_scene(nb::module_& m)
         .def_rw(
             "angle_inner_cone",
             &Light::angle_inner_cone,
-            "Inner angle of a spot light's light cone. 2PI for point lights, undefined for "
-            "directional lights")
+            "Inner angle of a spot light's light cone, in radians. 2PI for point lights, undefined "
+            "for directional lights")
         .def_rw(
             "angle_outer_cone",
             &Light::angle_outer_cone,
-            "Outer angle of a spot light's light cone. 2PI for point lights, undefined for "
-            "directional lights")
+            "Outer angle of a spot light's light cone, in radians. 2PI for point lights, undefined "
+            "for directional lights")
         .def_rw("size", &Light::size, "Size of area light source")
         .def_rw("extensions", &Light::extensions, "Light extensions");
 
@@ -548,13 +560,20 @@ void bind_scene(nb::module_& m)
             "Camera position. Note that the camera is part of the scene graph, and has an "
             "associated transform in its node. This value is relative to the coordinate system "
             "defined by the node")
-        .def_rw("up", &Camera::up, "Camera up vector")
-        .def_rw("look_at", &Camera::look_at, "Camera look-at point")
+        .def_rw("up", &Camera::up, "Camera up vector in the containing node's coordinates")
+        .def_rw(
+            "look_at",
+            &Camera::look_at,
+            "Look-at point in the containing node's coordinates, not a direction")
         .def_rw(
             "near_plane",
             &Camera::near_plane,
             "Distance of the near clipping plane. This value cannot be 0")
-        .def_rw("far_plane", &Camera::far_plane, "Distance of the far clipping plane")
+        .def_rw(
+            "far_plane",
+            &Camera::far_plane,
+            "Far clipping distance. None selects an infinite far plane for perspective cameras; "
+            "orthographic cameras require a value")
         .def_rw("type", &Camera::type, "Camera type")
         .def_rw(
             "aspect_ratio",
@@ -575,13 +594,12 @@ void bind_scene(nb::module_& m)
         .def_prop_ro(
             "get_vertical_fov",
             &Camera::get_vertical_fov,
-            "Get the vertical field of view. Make sure aspect_ratio is set before calling this")
+            "Vertical field of view in radians, computed using the current aspect_ratio")
         .def(
             "set_horizontal_fov_from_vertical_fov",
             &Camera::set_horizontal_fov_from_vertical_fov,
             "vfov"_a,
-            "Set horizontal fov from vertical fov. Make sure aspect_ratio is set before calling "
-            "this")
+            "Set horizontal field of view from vfov in radians, using the current aspect_ratio")
         .def_rw("extensions", &Camera::extensions, "Camera extensions");
 
     nb::enum_<Camera::Type>(camera, "Type", "Camera type")
@@ -618,7 +636,7 @@ void bind_scene(nb::module_& m)
         .def_rw(
             "root_nodes",
             &SceneType::root_nodes,
-            "Root nodes. This is typically one. Must be at least one")
+            "Root node indices in scene.nodes. May be empty for an empty scene")
         .def_rw(
             "meshes",
             &SceneType::meshes,
@@ -656,22 +674,23 @@ void bind_scene(nb::module_& m)
                     element);
             },
             "element"_a,
-            R"(Add an element to the scene.
+            R"(Append an element to its corresponding scene list. Adding a node does not register it in root_nodes.
 
 :param element: The element to add to the scene. E.g. node, mesh, image, texture, material, light, camera, skeleton, or animation.
 
-:returns: The id of the added element.)")
+:returns: The zero-based index of the element in its corresponding list.)")
         .def(
             "add_child",
             &SceneType::add_child,
             "parent_id"_a,
             "child_id"_a,
-            R"(Add a child node to a parent node. The parent-child relationship will be updated for both nodes.
+            R"(Append child_id to the parent's children and set the child's parent to parent_id.
 
-:param parent_id: The parent node id.
-:param child_id: The child node id.
+This does not remove an existing parent-child link or update root_nodes; callers must keep the
+hierarchy consistent and acyclic.
 
-:returns: The id of the added child node.)");
+:param parent_id: The parent index in scene.nodes.
+:param child_id: The child index in scene.nodes.)");
 
     m.def(
         "compute_global_node_transform",
@@ -686,12 +705,12 @@ void bind_scene(nb::module_& m)
         },
         "scene"_a,
         "node_idx"_a,
-        R"(Compute the global transform associated with a node.
+        R"(Compute the 4x4 float32 transform mapping node coordinates to world coordinates.
 
-:param scene: The input scene.
-:param node_idx: The index of the target node.
+:param scene: The input scene, with consistent, acyclic parent links.
+:param node_idx: The index of the target node in scene.nodes.
 
-:returns: The global transform of the target node, which is the combination of transforms from this node all the way to the root.
+:returns: The product ``root.transform @ ... @ node.transform``, acting on homogeneous column vectors.
     )");
 
     m.def(
@@ -700,7 +719,11 @@ void bind_scene(nb::module_& m)
             return scene::internal::camera_transforms_from_scene<Scalar, Index>(scene);
         },
         "scene"_a,
-        R"(Extract view and projection transforms for every camera referenced by a node in the scene.
+        R"(Extract camera transforms in scene.nodes order, then each node's cameras order.
+
+View transforms map world space to camera space, ignoring node scale and shear. Projection
+transforms map camera space to OpenGL-style clip space (NDC depth in [-1, 1]). Unreferenced
+cameras are omitted; a camera referenced by multiple nodes produces multiple entries.
 
 :param scene: The input scene.
 
@@ -733,7 +756,8 @@ void bind_scene(nb::module_& m)
 :param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 :param preserve_attributes: Preserve shared attributes and map them to the output mesh.
 
-:return: Concatenated mesh.)");
+:return: Concatenated world-space mesh, excluding uninstantiated meshes. With preserve_attributes,
+    the material_id facet attribute uses global scene.materials indices (invalid_index for no material).)");
 
     m.def(
         "scene_to_meshes",
@@ -759,7 +783,9 @@ void bind_scene(nb::module_& m)
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
 :param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 
-:return: List of transformed meshes.)");
+:return: One world-space mesh per instance, in scene.nodes order and then node.meshes order.
+    Uninstantiated meshes are omitted. Each mesh has a material_id facet attribute with global
+    scene.materials indices (invalid_index for no material).)");
 
     m.def(
         "scene_to_meshes_and_materials",
@@ -785,14 +811,23 @@ void bind_scene(nb::module_& m)
 
 Each output mesh also carries a ``material_id`` facet attribute holding the global scene material
 index used by each facet, so the facet-to-material assignment is preserved even when a single mesh
-uses multiple materials. Facets with no associated material are marked with ``invalid_index``.
+uses multiple materials. Facets with no associated material, invalid local material slots, or
+out-of-range scene material IDs are marked with ``invalid_index``. If the source mesh has no
+``material_id`` attribute, every facet uses the first listed material, or no material if none is listed.
 
 :param scene: Scene to convert.
 :param normalize_normals: If enabled, normals are normalized after transformation.
 :param normalize_tangents_bitangents: If enabled, tangents and bitangents are normalized after transformation.
 :param reorient: If enabled, flip facets and reorient attributes for instances with a negative-determinant transform.
 
-:return: List of meshes with transforms applied and a list of material IDs.)");
+:return: A tuple ``(meshes, material_ids)``. ``meshes`` contains one globally transformed mesh per
+    scene mesh instance, in scene.nodes order and then node.meshes order; uninstantiated meshes
+    are omitted. ``material_ids`` is a list of lists of integers, with one entry per output
+    mesh: ``material_ids[i]`` is an unchanged copy of the instance's material-ID list for
+    ``meshes[i]``. IDs refer to ``scene.materials``; material objects are not returned. The lists
+    are not deduplicated or validated and may contain invalid IDs or materials unused by any facet.
+    For exact facet-to-material assignments, use each mesh's ``material_id`` facet attribute, whose values index
+    ``scene.materials`` directly, not ``material_ids[i]``.)");
 
     m.def(
         "mesh_to_scene",
@@ -842,8 +877,8 @@ preserved in the SimpleScene.
         R"(Converts a SimpleScene into a Scene.
 
 Each mesh instance in the SimpleScene becomes a node in the Scene with the instance
-transform. All nodes are direct children of a single root node. Meshes are copied
-by index.
+transform, converted to float32. All instance nodes are direct children of a single root node.
+Meshes are copied by index, including meshes without instances; no materials are created.
 
 :param simple_scene: Input simple scene to convert.
 

@@ -559,7 +559,7 @@ TEST_CASE("RoundedCone", "[primitive][rounded_cone]" LA_SLOW_DEBUG_FLAG)
         using MeshType = Mesh<VertexArray, FacetArray>;
 
         lagrange::primitive::RoundedConeConfig config;
-        config.radius_top = 0.1;
+        config.radius_top = 0.1f;
         config.output_normals = false;
         auto mesh = lagrange::primitive::generate_rounded_cone<MeshType>(config);
         primitive_test_utils::validate_primitive(*mesh);

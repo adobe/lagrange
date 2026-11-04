@@ -22,6 +22,11 @@
 namespace lagrange {
 namespace io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 enum class FileEncoding { Binary, Ascii };
 enum class FileFormat { Obj, Ply, Gltf, Msh, Fbx, Stl, Pcd, Unknown };
 
@@ -122,8 +127,9 @@ struct LoadOptions
     /// Load external images
     bool load_images = true;
 
-    /// Load line elements (e.g. OBJ polylines). When present, they are added as 2-vertex facets
-    /// and a `line_id` facet attribute is created.
+    /// Load line elements (e.g. OBJ polylines and MSH line elements). When present, they are added
+    /// as 2-vertex facets. OBJ format additionally creates a `line_id` facet attribute, where
+    /// each chain of line elements (i.e. `l` line) share the same `line_id`.
     bool load_lines = true;
 
     /// Stitch duplicate boundary vertices together when loading file. When loading a glTF mesh with
@@ -143,6 +149,8 @@ struct LoadOptions
 
     std::vector<scene::UserDataConverter*> extension_converters;
 };
+
+/// @}
 
 } // namespace io
 } // namespace lagrange

@@ -86,9 +86,9 @@ auto volume_to_mesh(const Grid<GridScalar>& grid, const VolumeToMeshOptions& opt
     return mesh;
 }
 
-#define LA_X_volume_to_mesh(GridScalar, Scalar, Index)                              \
-    template SurfaceMesh<Scalar, Index> volume_to_mesh<SurfaceMesh<Scalar, Index>>( \
-        const Grid<GridScalar>& grid,                                               \
+#define LA_X_volume_to_mesh(GridScalar, Scalar, Index)                                            \
+    template LA_VOLUME_API SurfaceMesh<Scalar, Index> volume_to_mesh<SurfaceMesh<Scalar, Index>>( \
+        const Grid<GridScalar>& grid,                                                             \
         const VolumeToMeshOptions& options);
 #define LA_X_volume_to_mesh_aux(_, GridScalar) LA_SURFACE_MESH_X(volume_to_mesh, GridScalar)
 LA_VOLUME_GRID_X(volume_to_mesh_aux, 0)

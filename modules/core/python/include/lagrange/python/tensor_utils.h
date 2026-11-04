@@ -20,6 +20,7 @@
 #include <lagrange/utils/SmallVector.h>
 
 #include <type_traits>
+#include <utility>
 #include <vector>
 
 namespace lagrange::python {
@@ -31,6 +32,42 @@ using Tensor = nb::ndarray<ValueType, nb::numpy, nb::c_contig, nb::device::cpu>;
 using GenericTensor = nb::ndarray<nb::c_contig, nb::numpy, nb::device::cpu>;
 using Shape = SmallVector<size_t, 2>;
 using Stride = SmallVector<int64_t, 2>;
+
+/**
+ * Create a Python capsule that owns a C++ value.
+ *
+ * This is useful for keeping a C++ buffer owner alive without retaining the Python object that
+ * exposed the buffer.
+ */
+template <typename Owner>
+nb::capsule make_owner_capsule(Owner owner)
+{
+    using OwnerType = std::decay_t<Owner>;
+    auto* stored_owner = new OwnerType(std::move(owner));
+    return nb::capsule(stored_owner, [](void* ptr) noexcept {
+        delete static_cast<OwnerType*>(ptr);
+    });
+}
+
+/**
+ * Apply the Python storage defaults when an attribute is bound to a foreign NumPy buffer.
+ *
+ * Wrapping makes the attribute external and hands its storage to a buffer Lagrange does not
+ * own, which activates the growth and shrink policies. Python callers expect a later resize to
+ * detach rather than fail, so wrapping selects `SilentCopy` for both, replacing the native
+ * `ErrorIfExternal` defaults.
+ *
+ * This is a creation-time default for the buffer being bound here. It is deliberately NOT
+ * applied on export: `Attribute::ensure_shared_storage()` only changes `ErrorIfExternal` growth and
+ * shrink policies to `SilentCopy` when promoting internal storage. Existing external storage
+ * and all other policies are preserved.
+ */
+template <typename ValueType>
+void set_python_attribute_policies(Attribute<ValueType>& attr)
+{
+    attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+    attr.set_shrink_policy(AttributeShrinkPolicy::SilentCopy);
+}
 
 /**
  * Check if shape represent a valid vector.
@@ -89,26 +126,33 @@ template <typename ValueType>
 std::tuple<span<ValueType>, Shape, Stride> tensor_to_span(Tensor<ValueType> tensor);
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>> span_to_tensor(span<ValueType> values, nb::handle base);
+Tensor<ValueType> span_to_tensor(span<ValueType> values, nb::handle base);
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>>
-span_to_tensor(span<ValueType> values, span<const size_t> shape, nb::handle base);
+Tensor<ValueType> span_to_tensor(span<ValueType> values, span<const size_t> shape, nb::handle base);
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>> span_to_tensor(
+Tensor<ValueType> span_to_tensor(
     span<ValueType> values,
     span<const size_t> shape,
     span<const int64_t> stride,
     nb::handle base);
 
+/** Export a shared allocation, preserving its constness and lifetime. */
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>> attribute_to_tensor(
-    const Attribute<ValueType>& attr,
-    nb::handle base);
+Tensor<ValueType> shared_span_to_array(SharedSpan<ValueType> values, span<const size_t> shape = {})
+{
+    auto owner = make_owner_capsule(values.owner());
+    return shape.empty() ? span_to_tensor(values.ref(), owner)
+                         : span_to_tensor(values.ref(), shape, owner);
+}
 
+/**
+ * Promote and export the active attribute allocation, preserving its dtype and write permission.
+ * The dtype-erased C++ wrapper retains the array's runtime writability. Read-only attributes
+ * produce read-only Python arrays; writable attributes produce writable Python arrays.
+ */
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>>
-attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, nb::handle base);
+GenericTensor attribute_to_tensor(Attribute<ValueType>& attr, span<const size_t> shape = {});
 
 } // namespace lagrange::python

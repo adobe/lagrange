@@ -18,6 +18,11 @@
 namespace lagrange::xatlas {
 
 ///
+/// @addtogroup module-xatlas
+/// @{
+///
+
+///
 /// Chart computation options. Maps 1-to-1 onto `xatlas::ChartOptions`.
 ///
 /// Charts are extracted by greedily growing seed faces while a cost function is below
@@ -203,5 +208,7 @@ struct SceneOptions
     /// instances; values must be `> 0` and finite. Affects `unwrap_scene` only.
     std::vector<float> per_instance_importance;
 };
+
+/// @}
 
 } // namespace lagrange::xatlas

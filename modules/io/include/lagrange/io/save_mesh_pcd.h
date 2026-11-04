@@ -21,6 +21,11 @@
 namespace lagrange::io {
 
 ///
+/// @addtogroup module-io
+/// @{
+///
+
+///
 /// Saves a mesh (point cloud) to a stream in PCD (Point Cloud Data) format.
 ///
 /// Only vertices are written (facets are ignored). Vertex positions are written as `x`/`y`/`z`
@@ -61,5 +66,7 @@ LA_IO_API void save_mesh_pcd(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

@@ -15,7 +15,11 @@
 #include <lagrange/views.h>
 #include <lagrange/winding/FastWindingNumber.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <UT_SolidAngle.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 #include <Eigen/Geometry>
 #include <catch2/benchmark/catch_benchmark.hpp>
 

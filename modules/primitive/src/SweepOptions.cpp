@@ -10,6 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/utils/warning.h>
+
+// Eigen's affine inverse triggers a GCC 13 false positive (see DifferentialOperators.cpp).
+LA_IGNORE_MAYBE_UNINITIALIZED_START
+#include <Eigen/Geometry>
+LA_IGNORE_MAYBE_UNINITIALIZED_END
+
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/primitive/SweepOptions.h>

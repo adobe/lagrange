@@ -22,6 +22,7 @@
 
 TEST_CASE("SafeCast: Max Int to Float", "[safe_cast]")
 {
+    lagrange::ScopedLogLevel log_level(spdlog::level::critical);
     int big = std::numeric_limits<int32_t>::max();
     // float f32 = static_cast<float>(big);
     // int result = static_cast<int32_t>(f32); // UB, as detected by UBSan
@@ -30,6 +31,7 @@ TEST_CASE("SafeCast: Max Int to Float", "[safe_cast]")
 
 TEST_CASE("SafeCast", "[safe_cast]")
 {
+    lagrange::ScopedLogLevel log_level(spdlog::level::critical);
     int x0 = lagrange::safe_cast<int>(1.0);
     REQUIRE(x0 == 1);
     int x1 = lagrange::safe_cast<int>(-1.0);
@@ -58,6 +60,7 @@ TEST_CASE("SafeCast", "[safe_cast]")
 
 TEST_CASE("SafeCastStressTest", "[safe_cast]" LA_SLOW_FLAG)
 {
+    lagrange::ScopedLogLevel log_level(spdlog::level::critical);
     auto stress_test = [](auto offset) {
         using Scalar = decltype(offset);
         Scalar base = std::numeric_limits<Scalar>::max();
@@ -102,6 +105,7 @@ TEST_CASE("SafeCastStressTest", "[safe_cast]" LA_SLOW_FLAG)
 
 TEST_CASE("SafeEnumCast", "[safe_cast][enum]")
 {
+    lagrange::ScopedLogLevel log_level(spdlog::level::critical);
     using lagrange::safe_cast_enum;
     enum AnimalFr { cheval = 0, ane, singe, chien };
     enum class AnimalEn : std::uint32_t { horse, donkey, monkey, dog };

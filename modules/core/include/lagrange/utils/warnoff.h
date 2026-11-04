@@ -26,6 +26,7 @@
     #pragma clang diagnostic ignored "-Wglobal-constructors"
     #pragma clang diagnostic ignored "-Wignored-qualifiers"
     #pragma clang diagnostic ignored "-Wmissing-noreturn"
+    #pragma clang diagnostic ignored "-Wnontrivial-memcall"
     #pragma clang diagnostic ignored "-Wnewline-eof"
     #pragma clang diagnostic ignored "-Wold-style-cast"
     #pragma clang diagnostic ignored "-Wrange-loop-analysis"
@@ -56,6 +57,21 @@
     #pragma GCC diagnostic ignored "-Wpragmas"
     // Not all warnings are supported by older version of GCC.
     // So the line above has to come first.
+
+    // We need to include <cstddef> before another header includes it while we mask __DEPRECATED.
+    #include <cstddef>
+
+    // We use std::istrstream which is deprecated in C++98, and will be removed in C++26. Once we
+    // move to C++23 we can use std::ispanstream instead. OpenUSD releases also include deprecated
+    // GNU hash containers that trigger libstdc++'s backward_warning.h.
+    //
+    // `#pragma GCC diagnostic ignored "-Wdeprecated-declarations"` doesn't work with GCC's
+    // backward_warning.h. One can use `#pragma GCC diagnostic ignored "-Wcpp"` to ignore #warning
+    // pragmas, but this only works with GCC 13+. The hacky workaround is to undefine a GCC-specific
+    // macro instead.
+    #pragma push_macro("__DEPRECATED")
+    #undef __DEPRECATED
+
     #pragma GCC diagnostic ignored "-Warray-bounds"
     #pragma GCC diagnostic ignored "-Wcast-function-type"
     #pragma GCC diagnostic ignored "-Wclass-memaccess"
@@ -65,6 +81,7 @@
     #pragma GCC diagnostic ignored "-Wdeprecated"
     #pragma GCC diagnostic ignored "-Wdeprecated-copy"
     #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+    #pragma GCC diagnostic ignored "-Wextra"
     #pragma GCC diagnostic ignored "-Wextra-semi"
     #pragma GCC diagnostic ignored "-Wignored-qualifiers"
     #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
@@ -73,7 +90,10 @@
     #pragma GCC diagnostic ignored "-Wmissing-noreturn"
     #pragma GCC diagnostic ignored "-Wno-comment"
     #pragma GCC diagnostic ignored "-Wold-style-cast"
+    #pragma GCC diagnostic ignored "-Woverloaded-virtual"
     #pragma GCC diagnostic ignored "-Wredundant-decls"
+    #pragma GCC diagnostic ignored "-Wredundant-move"
+    #pragma GCC diagnostic ignored "-Wreorder"
     #pragma GCC diagnostic ignored "-Wshadow"
     #pragma GCC diagnostic ignored "-Wsign-compare"
     #pragma GCC diagnostic ignored "-Wsign-conversion"
@@ -110,6 +130,7 @@
     #pragma warning(disable : 4789) // buffer 'identifier' of size N bytes will be overrun; M bytes
                                     // will be written starting at offset L.
     #pragma warning(disable : 4477) // mismatch in printf argument types.
+    #pragma warning(disable : 4805) // Unsafe mix of types in an operation.
     #pragma warning(disable : 4828) // File contain illegal character.
     #pragma warning(disable : 4996) // Using deprecated methods.
 #endif

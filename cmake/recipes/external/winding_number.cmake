@@ -18,11 +18,16 @@ message(STATUS "Third-party (external): creating target 'WindingNumber::WindingN
 lagrange_find_package(TBB CONFIG REQUIRED)
 include(simde)
 
-include(CPM)
-CPMAddPackage(
-    NAME WindingNumber
-    GITHUB_REPOSITORY jdumas/WindingNumber
-    GIT_TAG 81443613dd2ab66000249401f10589f9794dc048
-)
+block()
+    if(WIN32)
+        set(BUILD_SHARED_LIBS OFF)
+    endif()
+    include(CPM)
+    CPMAddPackage(
+        NAME WindingNumber
+        GITHUB_REPOSITORY jdumas/WindingNumber
+        GIT_TAG 81443613dd2ab66000249401f10589f9794dc048
+    )
+endblock()
 
 set_target_properties(WindingNumber PROPERTIES FOLDER third_party)

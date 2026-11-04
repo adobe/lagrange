@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/volume/api.h>
 #include <lagrange/volume/types.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
@@ -19,6 +20,11 @@
 #endif
 
 namespace lagrange::volume {
+
+///
+/// @addtogroup module-volume
+/// @{
+///
 
 ///
 /// Mesh to volume conversion options.
@@ -66,7 +72,10 @@ struct MeshToVolumeOptions
 /// @return     OpenVDB grid.
 ///
 template <typename GridScalar = float, typename Scalar, typename Index>
-auto mesh_to_volume(const SurfaceMesh<Scalar, Index>& mesh, const MeshToVolumeOptions& options = {})
-    -> typename Grid<GridScalar>::Ptr;
+LA_VOLUME_API auto mesh_to_volume(
+    const SurfaceMesh<Scalar, Index>& mesh,
+    const MeshToVolumeOptions& options = {}) -> typename Grid<GridScalar>::Ptr;
+
+/// @}
 
 } // namespace lagrange::volume

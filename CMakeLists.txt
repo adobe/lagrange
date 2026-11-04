@@ -133,6 +133,9 @@ endif()
 if(SKBUILD)
     # Version number dictated by setuptools_scm
     set(lagrange_version ${SKBUILD_PROJECT_VERSION})
+elseif(LAGRANGE_VERSION_OVERRIDE)
+    # Version number dictated by an external system (e.g. vcpkg)
+    set(lagrange_version ${LAGRANGE_VERSION_OVERRIDE})
 else()
     # Set ${lagrange_version} according to git tag
     include(cmake/lagrange/lagrange_cpm_cache.cmake)
@@ -269,7 +272,14 @@ option(LAGRANGE_USE_WASM_EXCEPTIONS     "Use -fwasm-exception flag with Emscript
 option(LAGRANGE_USE_WASM_THREADS        "Enable threads (-pthread) with Emscripten"            ON)
 option(LAGRANGE_WITH_TRACY              "Build tracy client with Lagrange"                     OFF)
 option(LAGRANGE_USE_FIND_PACKAGE        "Defer to find_package() to find external libraries"   ${LAGRANGE_USE_FIND_PACKAGE_DEFAULT})
+option(LAGRANGE_FIND_PACKAGE_FALLBACK   "Allow lagrange_find_package() to include CPM dependency recipes" ON)
 option(LAGRANGE_WASM_FAST_LINK          "Do not run binaryen optimizations and compile with -O1 for faster linking" OFF)
+
+# The Emscripten cross-DSO test links a MAIN_MODULE against static dependencies.
+# Enable PIC before creating those targets, including Catch2.
+if(EMSCRIPTEN AND LAGRANGE_UNIT_TESTS)
+    set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+endif()
 
 # Set build type as a normal variable to prevent subprojects from overriding it as a option/CACHE variable (thanks to CMP0077/CMP0126)
 if(DEFINED BUILD_SHARED_LIBS)

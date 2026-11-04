@@ -27,11 +27,17 @@ if(NOT TARGET nanoflann)
 endif()
 
 include(CPM)
-CPMAddPackage(
-    NAME geometry-central
-    GITHUB_REPOSITORY jdumas/geometry-central
-    GIT_TAG fcba48bfe8fa419c5469937ce9d77feccc69ebed
-)
+block(PROPAGATE geometry-central_SOURCE_DIR)
+    if(WIN32)
+        # Auto-exported vtables need dllimport in geometry-central's delegating constructors.
+        set(BUILD_SHARED_LIBS OFF)
+    endif()
+    CPMAddPackage(
+        NAME geometry-central
+        GITHUB_REPOSITORY jdumas/geometry-central
+        GIT_TAG fcba48bfe8fa419c5469937ce9d77feccc69ebed
+    )
+endblock()
 
 set_target_properties(geometry-central PROPERTIES FOLDER third_party)
 add_library(geometry-central::geometry-central ALIAS geometry-central)

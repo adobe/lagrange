@@ -30,11 +30,19 @@ using type_identity_t = typename type_identity<T>::type;
 } // namespace detail
 
 ///
+/// @addtogroup module-scene
+/// @{
+///
+
+///
 /// Build a new SimpleScene keeping only instances for which `keep(mesh_index, instance_index)`
 /// returns true. Meshes with no remaining instances are dropped; mesh indices are compacted.
+/// Retained meshes and instances preserve their relative order, transforms, attributes, and user
+/// data. Each retained instance's mesh index is updated to refer to the compacted mesh list.
 ///
 /// @param[in]  scene  Input scene.
-/// @param[in]  keep   Predicate.
+/// @param[in]  keep   Predicate receiving the input mesh index and the instance index local to
+///                   that mesh, called once per instance in mesh-major order.
 ///
 /// @return     The filtered scene.
 ///
@@ -46,5 +54,7 @@ template <typename Scalar, typename Index, size_t Dimension>
 LA_SCENE_API SimpleScene<Scalar, Index, Dimension> filter_instances(
     const SimpleScene<Scalar, Index, Dimension>& scene,
     function_ref<bool(detail::type_identity_t<Index>, detail::type_identity_t<Index>)> keep);
+
+/// @}
 
 } // namespace lagrange::scene

@@ -132,7 +132,7 @@ TEST_CASE("rejects non-triangle mesh", "[xatlas][unwrap_mesh]")
     REQUIRE_THROWS_AS(lagrange::xatlas::unwrap_mesh(mesh), Error);
 }
 
-TEST_CASE("ErrorIfMultiple atlas policy", "[xatlas][unwrap_mesh]")
+TEST_CASE("Reject multiple atlases policy", "[xatlas][unwrap_mesh]")
 {
     auto mesh = make_two_triangle_quad<Scalar, Index>();
 

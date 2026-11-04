@@ -9,11 +9,11 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-if(TARGET nanosvg::nanosvg)
+if(TARGET NanoSVG::nanosvg)
     return()
 endif()
 
-message(STATUS "Third-party (external): creating target 'nanosvg::nanosvg'")
+message(STATUS "Third-party (external): creating target 'NanoSVG::nanosvg'")
 
 include(CPM)
 CPMAddPackage(
@@ -36,7 +36,7 @@ configure_file(${nanosvg_BINARY_DIR}/nanosvg.cpp.in ${nanosvg_BINARY_DIR}/nanosv
 
 # Define nanosvg library
 add_library(nanosvg STATIC ${nanosvg_BINARY_DIR}/nanosvg.cpp)
-add_library(nanosvg::nanosvg ALIAS nanosvg)
+add_library(NanoSVG::nanosvg ALIAS nanosvg)
 
 include(GNUInstallDirs)
 target_include_directories(nanosvg SYSTEM PUBLIC
@@ -50,4 +50,4 @@ set_target_properties(nanosvg PROPERTIES FOLDER "third_party")
 set(CMAKE_INSTALL_DEFAULT_COMPONENT_NAME nanosvg)
 install(FILES ${nanosvg_SOURCE_DIR}/src/nanosvg.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 install(TARGETS nanosvg EXPORT Nanosvg_Targets)
-install(EXPORT Nanosvg_Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/nanosvg NAMESPACE nanosvg::)
+install(EXPORT Nanosvg_Targets DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/nanosvg NAMESPACE NanoSVG::)

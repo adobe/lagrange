@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/internal/SafeVector.h>
 #include <lagrange/scene/api.h>
 #include <lagrange/utils/invalid.h>
 
@@ -19,9 +20,13 @@
 #include <Eigen/Geometry>
 
 #include <any>
-#include <vector>
 
 namespace lagrange::scene {
+
+///
+/// @addtogroup module-scene
+/// @{
+///
 
 ///
 /// A single mesh instance in a scene.
@@ -37,10 +42,11 @@ struct LA_SCENE_API MeshInstance
     /// Affine transformation matrix.
     using AffineTransform = Eigen::Transform<Scalar, static_cast<int>(Dimension), Eigen::Affine>;
 
-    /// Index of the source mesh in the scene.
+    /// Index of the source mesh in the owning SimpleScene. Must identify an existing mesh when
+    /// passed to SimpleScene::add_instance(); do not change it through ref_instance().
     Index mesh_index = invalid<Index>();
 
-    /// Instance transformation.
+    /// Maps source-mesh coordinates to scene coordinates; there is no transform hierarchy.
     AffineTransform transform = AffineTransform::Identity();
 
     /// Opaque user data.
@@ -52,6 +58,11 @@ struct LA_SCENE_API MeshInstance
 
 ///
 /// Simple scene container for instanced meshes.
+///
+/// Meshes and instances are stored by value. Adding a mesh does not create an instance, and a
+/// mesh may have zero instances. Mesh dimensions must match Dimension for geometric operations.
+/// Mesh indices are zero-based; instance indices are zero-based and local to each source mesh.
+/// Accessors require indices within get_num_meshes() and get_num_instances(), respectively.
 ///
 /// @tparam     Scalar     Mesh scalar type.
 /// @tparam     Index      Mesh index type.
@@ -94,7 +105,7 @@ public:
     }
 
     ///
-    /// Calculates the total number instances for all meshes in the scene.
+    /// Calculates the total number of instances for all meshes in the scene.
     ///
     /// @return     Total number of instances in the scene.
     ///
@@ -139,7 +150,7 @@ public:
     /// @param[in]  instance_index  Local instance index relative to other instances of the same
     ///                             source mesh.
     ///
-    /// @return     Reference to the specified mesh instance.
+    /// @return     Reference to the specified mesh instance. Its mesh_index must remain unchanged.
     ///
     InstanceType& ref_instance(Index mesh_index, Index instance_index)
     {
@@ -154,7 +165,7 @@ public:
     void reserve_meshes(Index num_meshes);
 
     ///
-    /// Adds a mesh to the scene, possibly with existing instances.
+    /// Adds a mesh to the scene with no instances.
     ///
     /// @param[in]  mesh  Mesh to be added to the scene. The object will be moved into the scene.
     ///
@@ -173,14 +184,15 @@ public:
     ///
     /// Adds a new instance of an existing mesh.
     ///
-    /// @param[in]  instance  Mesh instance to add to the scene.
+    /// @param[in]  instance  Mesh instance to store by value. Its mesh_index must refer to an
+    ///                       existing mesh in this scene.
     ///
     /// @return     Index of the newly added instance, respective to the specified mesh.
     ///
     Index add_instance(InstanceType instance);
 
     ///
-    /// Iterates over all instances of a specific mesh.
+    /// Iterates over a mesh's instances in insertion order.
     ///
     /// @param[in]  mesh_index  Mesh index on which to iterate over.
     /// @param[in]  func        Callback function to call for each mesh instance.
@@ -189,7 +201,7 @@ public:
         const;
 
     ///
-    /// Iterates over all instances of the scene.
+    /// Iterates over all instances in mesh-index order, then insertion order within each mesh.
     ///
     /// @param[in]  func  Callback function to call for each mesh instance.
     ///
@@ -197,10 +209,10 @@ public:
 
 protected:
     /// List of meshes in the scene.
-    std::vector<MeshType> m_meshes;
+    SafeVector<MeshType> m_meshes;
 
     /// List of mesh instances in the scene. Stored as a list of instances per source mesh.
-    std::vector<std::vector<InstanceType>> m_instances;
+    SafeVector<SafeVector<InstanceType>> m_instances;
 };
 
 using SimpleScene32f2 = SimpleScene<float, uint32_t, 2u>;
@@ -211,5 +223,7 @@ using SimpleScene32f3 = SimpleScene<float, uint32_t, 3u>;
 using SimpleScene32d3 = SimpleScene<double, uint32_t, 3u>;
 using SimpleScene64f3 = SimpleScene<float, uint64_t, 3u>;
 using SimpleScene64d3 = SimpleScene<double, uint64_t, 3u>;
+
+/// @}
 
 } // namespace lagrange::scene

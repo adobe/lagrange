@@ -95,7 +95,7 @@ TEST_CASE("weld_vertices", "[bvh][surface]")
 
         SECTION("small radius")
         {
-            options.radius = 0.1;
+            options.radius = 0.1f;
             bvh::weld_vertices(mesh, options);
             REQUIRE(mesh.get_num_vertices() == 5);
             REQUIRE(mesh.get_num_facets() == 3);

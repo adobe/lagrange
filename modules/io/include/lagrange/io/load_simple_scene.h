@@ -22,6 +22,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Load a simple scene.
  *
@@ -43,5 +48,7 @@ LA_IO_API SceneType load_simple_scene(const fs::path& filename, const LoadOption
  */
 template <typename SceneType>
 LA_IO_API SceneType load_simple_scene(std::istream& input_stream, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

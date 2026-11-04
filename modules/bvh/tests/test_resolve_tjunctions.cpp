@@ -25,6 +25,8 @@
 #include <lagrange/utils/invalid.h>
 #include <lagrange/views.h>
 
+#include <Eigen/Geometry>
+
 #include <algorithm>
 #include <limits>
 #include <numeric>

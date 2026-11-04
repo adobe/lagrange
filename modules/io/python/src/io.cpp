@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/io/load_mesh.h>
@@ -28,7 +30,6 @@
 #include <lagrange/io/save_mesh_ply.h>
 #include <lagrange/io/save_scene.h>
 #include <lagrange/io/save_simple_scene.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/Error.h>

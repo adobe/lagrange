@@ -214,7 +214,7 @@ void geodesic_dilation(
 }
 
 #define LA_X_geodesic_dilation(ValueType, Scalar, Index) \
-    template void geodesic_dilation(                     \
+    template LA_TEXPROC_API void geodesic_dilation(      \
         const SurfaceMesh<Scalar, Index>& mesh,          \
         image::experimental::View3D<ValueType> texture,  \
         const DilationOptions& options);

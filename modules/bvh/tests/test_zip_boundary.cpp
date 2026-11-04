@@ -9,19 +9,21 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/testing/common.h>
-#include <Eigen/Core>
-#include <catch2/benchmark/catch_benchmark.hpp>
-#include <catch2/catch_approx.hpp>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include <lagrange/attributes/attribute_utils.h>
-#include <lagrange/bvh/zip_boundary.h>
-#include <lagrange/combine_mesh_list.h>
-#include <lagrange/common.h>
-#include <lagrange/compute_euler.h>
-#include <lagrange/compute_vertex_normal.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/io/load_mesh.impl.h>
+    #include <lagrange/testing/common.h>
+    #include <Eigen/Core>
+    #include <catch2/benchmark/catch_benchmark.hpp>
+    #include <catch2/catch_approx.hpp>
+
+    #include <lagrange/attributes/attribute_utils.h>
+    #include <lagrange/bvh/zip_boundary.h>
+    #include <lagrange/combine_mesh_list.h>
+    #include <lagrange/common.h>
+    #include <lagrange/compute_euler.h>
+    #include <lagrange/compute_vertex_normal.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/io/load_mesh.impl.h>
 
 TEST_CASE("zip_boundary", "[bvh][zip][boundary]")
 {
@@ -214,3 +216,5 @@ TEST_CASE("zip_boundary_benchmark", "[zip_boundary][!benchmark]")
         return bvh::zip_boundary(*open_mesh, 1e-6f);
     };
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

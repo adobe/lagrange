@@ -10,6 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/utils/warning.h>
+
+// GCC 13 also needs the guard at Eigen's template definition in non-legacy builds.
+LA_IGNORE_MAYBE_UNINITIALIZED_START
+#include <Eigen/Geometry>
+LA_IGNORE_MAYBE_UNINITIALIZED_END
+
 #include <lagrange/IndexedAttribute.h>
 #include <lagrange/SurfaceMeshTypes.h>
 #include <lagrange/bvh/weld_vertices.h>
@@ -21,12 +28,12 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 
 #include "primitive_utils.h"
 
 #include <Eigen/Core>
-#include <Eigen/Geometry>
 
 namespace lagrange::primitive {
 
@@ -140,8 +147,8 @@ SurfaceMesh<Scalar, Index> generate_rounded_plane(RoundedPlaneOptions setting)
             half_width,
             -half_height,
             half_height,
-            setting.width_segments,
-            setting.height_segments);
+            safe_cast<Index>(setting.width_segments),
+            safe_cast<Index>(setting.height_segments));
         parts.push_back(std::move(center_rect));
     }
 
@@ -155,14 +162,14 @@ SurfaceMesh<Scalar, Index> generate_rounded_plane(RoundedPlaneOptions setting)
                     -half_height,
                     half_height,
                     1,
-                    setting.height_segments);
+                    safe_cast<Index>(setting.height_segments));
                 auto right_rect = create_rectangle<Scalar, Index>(
                     half_width,
                     setting.width / 2,
                     -half_height,
                     half_height,
                     1,
-                    setting.height_segments);
+                    safe_cast<Index>(setting.height_segments));
 
                 parts.push_back(std::move(left_rect));
                 parts.push_back(std::move(right_rect));
@@ -174,14 +181,14 @@ SurfaceMesh<Scalar, Index> generate_rounded_plane(RoundedPlaneOptions setting)
                     half_width,
                     half_height,
                     setting.height / 2,
-                    setting.width_segments,
+                    safe_cast<Index>(setting.width_segments),
                     1);
                 auto bottom_rect = create_rectangle<Scalar, Index>(
                     -half_width,
                     half_width,
                     -setting.height / 2,
                     -half_height,
-                    setting.width_segments,
+                    safe_cast<Index>(setting.width_segments),
                     1);
 
                 parts.push_back(std::move(top_rect));
@@ -199,8 +206,9 @@ SurfaceMesh<Scalar, Index> generate_rounded_plane(RoundedPlaneOptions setting)
                     Eigen::Vector3<Scalar>::UnitZ()));
             AffineTransform translate;
 
-            auto quarter_disc =
-                create_quarter_disc<Scalar, Index>(setting.bevel_radius, setting.bevel_segments);
+            auto quarter_disc = create_quarter_disc<Scalar, Index>(
+                setting.bevel_radius,
+                safe_cast<Index>(setting.bevel_segments));
 
             translate.setIdentity();
             translate.translate(Eigen::Matrix<Scalar, 3, 1>(half_width, half_height, 0));
@@ -212,7 +220,9 @@ SurfaceMesh<Scalar, Index> generate_rounded_plane(RoundedPlaneOptions setting)
 
             translate.setIdentity();
             translate.translate(Eigen::Matrix<Scalar, 3, 1>(half_width, -half_height, 0));
+            LA_IGNORE_MAYBE_UNINITIALIZED_START
             auto bottom_right = transformed_mesh(quarter_disc, translate * rot90.inverse());
+            LA_IGNORE_MAYBE_UNINITIALIZED_END
 
             translate.setIdentity();
             translate.translate(Eigen::Matrix<Scalar, 3, 1>(-half_width, -half_height, 0));

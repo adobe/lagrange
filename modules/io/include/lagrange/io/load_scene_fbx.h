@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Load an fbx scene.
  *
@@ -42,5 +47,7 @@ LA_IO_API SceneType load_scene_fbx(const fs::path& filename, const LoadOptions& 
  */
 template <typename SceneType>
 LA_IO_API SceneType load_scene_fbx(std::istream& input_stream, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

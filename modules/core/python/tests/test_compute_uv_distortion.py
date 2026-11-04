@@ -27,7 +27,7 @@ class TestComputeUVDistortion:
             uv_name,
             lagrange.AttributeUsage.UV,
             np.array([[0, 0], [1, 0], [0, 1]], dtype=float),
-            np.array([[0, 1, 2]], dtype=np.intc),
+            np.array([[0, 1, 2]], dtype=np.uint32),
         )
 
         distortion_id = lagrange.compute_uv_distortion(mesh, uv_name)

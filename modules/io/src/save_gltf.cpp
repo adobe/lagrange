@@ -22,6 +22,7 @@
 #include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/foreach_attribute.h>
 #include <lagrange/internal/constants.h>
 #include <lagrange/internal/string_from_scalar.h>
@@ -335,6 +336,7 @@ void populate_attributes(
         // TODO: change this for the attribute visitor that takes id and simplify this.
 
         if (lmesh.attr_name_is_reserved(name)) return;
+        if (attr.get_usage() == AttributeUsage::String) return;
         AttributeId id = lmesh.get_attribute_id(name);
         if (options.output_attributes == SaveOptions::OutputAttributes::SelectedOnly) {
             if (std::find(
@@ -566,12 +568,27 @@ tinygltf::Primitive create_gltf_primitive(
 }
 
 template <typename Scalar, typename Index>
+std::string_view get_mesh_name(const SurfaceMesh<Scalar, Index>& mesh)
+{
+    if (!mesh.has_attribute(AttributeName::name)) return {};
+    const auto id = mesh.get_attribute_id(AttributeName::name);
+    // TODO: Use a shared helper to validate an attribute against an AttributeMatcher.
+    const auto& attr = mesh.get_attribute_base(id);
+    if (attr.get_element_type() != AttributeElement::Value ||
+        attr.get_usage() != AttributeUsage::String) {
+        return {};
+    }
+    return mesh.get_metadata(id);
+}
+
+template <typename Scalar, typename Index>
 tinygltf::Mesh create_gltf_mesh(
     tinygltf::Model& model,
     const SurfaceMesh<Scalar, Index>& lmesh,
     const SaveOptions& options)
 {
     tinygltf::Mesh mesh;
+    mesh.name = get_mesh_name(lmesh);
     mesh.primitives.push_back(create_gltf_primitive(model, lmesh, options));
     return mesh;
 }
@@ -991,8 +1008,12 @@ tinygltf::Model lagrange_scene_to_gltf_model(
             // we treat multiple meshes in one lagrange node as one gltf mesh with multiple
             // primitives. they must reference at most one material.
             tinygltf::Mesh mesh;
+            mesh.name = get_mesh_name(lscene.meshes[lnode.meshes.front().mesh]);
             for (const auto& mesh_instance : lnode.meshes) {
                 const auto& lmesh = lscene.meshes[mesh_instance.mesh];
+                if (mesh.name != get_mesh_name(lmesh)) {
+                    mesh.name.clear();
+                }
                 const auto& tmesh = ensure_triangulated(node.name, lmesh, options);
                 tinygltf::Primitive prim = create_gltf_primitive(model, tmesh, options);
                 if (options.export_materials) {

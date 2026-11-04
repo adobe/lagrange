@@ -102,7 +102,7 @@ TEST_CASE("generate_rounded_plane", "[primitive][surface]")
         auto& normal_attr = mesh.get_indexed_attribute<Scalar>(setting.normal_attribute_name);
         auto& normal_values = normal_attr.values();
         auto normals = matrix_view(normal_values);
-        for (Index i = 0; i < normals.rows(); i++) {
+        for (Eigen::Index i = 0; i < normals.rows(); i++) {
             REQUIRE_THAT(normals(i, 0), Catch::Matchers::WithinAbs(0.0f, 1e-6f));
             REQUIRE_THAT(normals(i, 1), Catch::Matchers::WithinAbs(1.0f, 1e-6f));
             REQUIRE_THAT(normals(i, 2), Catch::Matchers::WithinAbs(0.0f, 1e-6f));
@@ -248,7 +248,7 @@ TEST_CASE("RoundedPlane", "[primitive][rounded_plane]")
     SECTION("Config struct")
     {
         lagrange::primitive::RoundedPlaneConfig config;
-        config.radius = 0.1;
+        config.radius = 0.1f;
         config.center = {1, 1, 1};
         config.output_normals = false;
         auto mesh = lagrange::primitive::generate_rounded_plane<MeshType>(config);

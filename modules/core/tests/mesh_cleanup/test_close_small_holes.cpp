@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/Logger.h>
 #include <lagrange/compute_seam_edges.h>
 #include <lagrange/mesh_cleanup/close_small_holes.h>
 #include <lagrange/orientation.h>
@@ -445,6 +446,8 @@ TEST_CASE("legacy::close_small_holes (non-manifold)", "[cleanup][close_small_hol
 
 TEST_CASE("legacy::close_small_holes (with uv)", "[cleanup][close_small_holes]")
 {
+    // These fixtures reference unavailable material libraries.
+    lagrange::ScopedLogLevel log_level(spdlog::level::err);
     auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/blub_open.obj");
     REQUIRE(mesh);
 
@@ -468,6 +471,8 @@ TEST_CASE(
     "legacy::close_small_holes (with attributes)",
     "[cleanup][close_small_holes]" LA_SLOW_DEBUG_FLAG)
 {
+    // This fixture references an unavailable material library.
+    lagrange::ScopedLogLevel log_level(spdlog::level::err);
     auto mesh = lagrange::testing::load_mesh<lagrange::TriangleMesh3D>("open/core/blub_open.obj");
     REQUIRE(mesh);
 

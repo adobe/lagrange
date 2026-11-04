@@ -23,6 +23,11 @@ namespace lagrange {
 namespace io {
 
 ///
+/// @addtogroup module-io
+/// @{
+///
+
+///
 /// Saves a mesh to a stream in OBJ format. If the mesh cannot be saved, an exception is raised
 /// (e.g., invalid output stream, incorrect mesh dimension, or facet size < 3).
 ///
@@ -57,6 +62,8 @@ LA_IO_API void save_mesh_obj(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace io
 } // namespace lagrange

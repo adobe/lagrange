@@ -20,6 +20,7 @@
 #include <lagrange/serialization/serialize_scene.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/safe_cast.h>
 
 #include "CistaSimpleScene.h"
 #include "compress.h"
@@ -30,6 +31,7 @@
 
 namespace lagrange::serialization {
 
+using internal::CistaSize;
 using internal::compress_buffer;
 using internal::decompress_buffer;
 using internal::is_compressed;
@@ -45,17 +47,17 @@ CistaSimpleScene to_cista_simple_scene(const scene::SimpleScene<Scalar, Index, D
     cscene.index_type_size = sizeof(Index);
     cscene.dimension = static_cast<uint8_t>(Dimension);
 
-    const Index num_meshes = scene.get_num_meshes();
+    const CistaSize num_meshes = safe_cast<CistaSize>(scene.get_num_meshes());
 
     // Serialize meshes
     cscene.meshes.resize(num_meshes);
-    for (Index i = 0; i < num_meshes; ++i) {
+    for (CistaSize i = 0; i < num_meshes; ++i) {
         cscene.meshes[i] = to_cista_mesh(scene.get_mesh(i));
     }
 
     // Serialize instances (flattened with per-mesh counts)
     cscene.instances_per_mesh.resize(num_meshes);
-    for (Index i = 0; i < num_meshes; ++i) {
+    for (CistaSize i = 0; i < num_meshes; ++i) {
         const Index num_instances = scene.get_num_instances(i);
         cscene.instances_per_mesh[i] = num_instances;
 
@@ -68,7 +70,7 @@ CistaSimpleScene to_cista_simple_scene(const scene::SimpleScene<Scalar, Index, D
             // Store transform as raw bytes
             constexpr size_t matrix_size = (Dimension + 1) * (Dimension + 1);
             constexpr size_t byte_size = matrix_size * sizeof(Scalar);
-            cinst.transform_bytes.resize(byte_size);
+            cinst.transform_bytes.resize(safe_cast<CistaSize>(byte_size));
             std::memcpy(cinst.transform_bytes.data(), inst.transform.matrix().data(), byte_size);
 
             cscene.instances.emplace_back(std::move(cinst));
@@ -105,7 +107,7 @@ scene::SimpleScene<Scalar, Index, Dimension> from_cista_simple_scene(const Cista
 
     scene::SimpleScene<Scalar, Index, Dimension> scene;
 
-    const size_t num_meshes = cscene.meshes.size();
+    const CistaSize num_meshes = cscene.meshes.size();
     la_runtime_assert(
         cscene.instances_per_mesh.size() == num_meshes,
         format(
@@ -114,13 +116,13 @@ scene::SimpleScene<Scalar, Index, Dimension> from_cista_simple_scene(const Cista
             cscene.instances_per_mesh.size()));
     scene.reserve_meshes(static_cast<Index>(num_meshes));
 
-    for (size_t i = 0; i < num_meshes; ++i) {
+    for (CistaSize i = 0; i < num_meshes; ++i) {
         scene.add_mesh(from_cista_mesh<Scalar, Index>(cscene.meshes[i]));
     }
 
     // Reconstruct instances from flattened data
     size_t instance_offset = 0;
-    for (size_t i = 0; i < num_meshes; ++i) {
+    for (CistaSize i = 0; i < num_meshes; ++i) {
         const size_t num_instances = static_cast<size_t>(cscene.instances_per_mesh[i]);
         la_runtime_assert(
             instance_offset + num_instances <= cscene.instances.size(),
@@ -132,7 +134,7 @@ scene::SimpleScene<Scalar, Index, Dimension> from_cista_simple_scene(const Cista
         scene.reserve_instances(static_cast<Index>(i), static_cast<Index>(num_instances));
 
         for (size_t j = 0; j < num_instances; ++j) {
-            const auto& cinst = cscene.instances[instance_offset + j];
+            const auto& cinst = cscene.instances[safe_cast<CistaSize>(instance_offset + j)];
 
             using InstanceType = scene::MeshInstance<Scalar, Index, Dimension>;
             InstanceType inst;
@@ -208,7 +210,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
 
     scene::SimpleScene<ToScalar, ToIndex, Dimension> result;
 
-    const size_t num_meshes = cscene->meshes.size();
+    const CistaSize num_meshes = cscene->meshes.size();
     la_runtime_assert(
         cscene->instances_per_mesh.size() == num_meshes,
         format(
@@ -217,14 +219,14 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
             cscene->instances_per_mesh.size()));
     result.reserve_meshes(static_cast<ToIndex>(num_meshes));
 
-    for (size_t i = 0; i < num_meshes; ++i) {
+    for (CistaSize i = 0; i < num_meshes; ++i) {
         result.add_mesh(cast_one_mesh(cscene->meshes[i]));
     }
 
     // Reconstruct instances with transform casting
     constexpr size_t matrix_size = (Dimension + 1) * (Dimension + 1);
     size_t instance_offset = 0;
-    for (size_t i = 0; i < num_meshes; ++i) {
+    for (CistaSize i = 0; i < num_meshes; ++i) {
         const size_t num_instances = static_cast<size_t>(cscene->instances_per_mesh[i]);
         la_runtime_assert(
             instance_offset + num_instances <= cscene->instances.size(),
@@ -236,7 +238,7 @@ scene::SimpleScene<ToScalar, ToIndex, Dimension> deserialize_simple_scene_with_c
         result.reserve_instances(static_cast<ToIndex>(i), static_cast<ToIndex>(num_instances));
 
         for (size_t j = 0; j < num_instances; ++j) {
-            const auto& cinst = cscene->instances[instance_offset + j];
+            const auto& cinst = cscene->instances[safe_cast<CistaSize>(instance_offset + j)];
 
             using InstanceType = scene::MeshInstance<ToScalar, ToIndex, Dimension>;
             InstanceType inst;

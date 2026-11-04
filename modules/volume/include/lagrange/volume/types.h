@@ -19,6 +19,11 @@
 
 namespace lagrange::volume {
 
+///
+/// @addtogroup module-volume
+/// @{
+///
+
 // clang-format off
 
 /// Alias for OpenVDB's common grid types.
@@ -46,5 +51,7 @@ using Grid = openvdb::Grid<
 >;
 
 // clang-format on
+
+/// @}
 
 } // namespace lagrange::volume

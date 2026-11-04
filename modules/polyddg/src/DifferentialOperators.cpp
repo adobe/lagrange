@@ -1587,7 +1587,7 @@ Eigen::Matrix<Scalar, 3, 2> DifferentialOperators<Scalar, Index>::vertex_basis(I
 
 
 #define LA_X_DifferentialOperators(_, Scalar, Index) \
-    template LA_POLYDDG_API class DifferentialOperators<Scalar, Index>;
+    template class LA_POLYDDG_API DifferentialOperators<Scalar, Index>;
 LA_SURFACE_MESH_X(DifferentialOperators, 0)
 
 } // namespace lagrange::polyddg

@@ -20,6 +20,9 @@
 
 namespace lagrange::geodesic {
 
+/// @addtogroup module-geodesic
+/// @{
+
 ///
 /// General options for one-to-many geodesic computations.
 ///
@@ -143,7 +146,7 @@ struct GeodesicPathResult
 /// @tparam     Index   Mesh index type.
 ///
 template <typename Scalar, typename Index>
-class GeodesicEngine
+class LA_GEODESIC_API GeodesicEngine
 {
 public:
     /// The mesh type.
@@ -205,5 +208,7 @@ protected:
 private:
     std::reference_wrapper<Mesh> m_mesh; ///< Reference to the input mesh.
 };
+
+/// @}
 
 } // namespace lagrange::geodesic

@@ -25,6 +25,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Save a mesh to a stream.
  *
@@ -52,5 +57,7 @@ LA_IO_API void save_mesh(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

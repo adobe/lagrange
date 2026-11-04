@@ -23,6 +23,7 @@ function(lagrange_add_test)
     # Create test executable
     file(GLOB_RECURSE SRC_FILES "*.cpp" "*.h")
     list(FILTER SRC_FILES EXCLUDE REGEX "compile_errors/.*.cpp$")
+    list(FILTER SRC_FILES EXCLUDE REGEX "cross_dso/.*.cpp$")
     include(lagrange_add_executable)
     set(test_target "test_lagrange_${module_name}")
     lagrange_add_executable(${test_target} ${SRC_FILES} ${OPTIONS_UNPARSED_ARGUMENTS})
@@ -86,7 +87,7 @@ function(lagrange_add_test)
         endif()
     endif()
 
-    if(LAGRANGE_TOPLEVEL_PROJECT AND NOT USE_SANITIZER MATCHES "([Tt]hread)")
+    if(LAGRANGE_TOPLEVEL_PROJECT)
         catch_discover_tests(${test_target}
             REPORTER junit
             OUTPUT_DIR "${CMAKE_BINARY_DIR}/reports"
@@ -104,7 +105,8 @@ function(lagrange_add_test)
     # Assemble env vars for every discovered test: sanitizer suppressions plus any caller-supplied
     # entries via the ENVIRONMENT argument. Caller entries are appended last so they can override.
     set(_test_env
-        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/tsan.suppressions.ini"
+        # A larger TSan history lets reports from rare races restore both stacks.
+        "TSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/tsan.suppressions.ini:history_size=7"
         "LSAN_OPTIONS=suppressions=${PROJECT_SOURCE_DIR}/.github/lsan.suppressions.ini"
         "ASAN_SAVE_DUMPS=${module_name}.dmp"
         ${OPTIONS_ENVIRONMENT}

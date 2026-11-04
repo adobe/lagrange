@@ -63,6 +63,11 @@ if(TBB_PREFER_STATIC)
     message(FATAL_ERROR "TBB must be compiled as shared library for python binding to work.")
 endif()
 
+if (LAGRANGE_JENKINS)
+    # Enable ref leak abortion on Jenkins for CI.
+    target_compile_definitions(lagrange_python PRIVATE NB_ABORT_ON_LEAK)
+endif()
+
 # 2. installation
 if(SKBUILD)
     message(STATUS "Lagrange: installing python binding to ${SKBUILD_PLATLIB_DIR}/lagrange")

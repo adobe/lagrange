@@ -59,7 +59,14 @@ html_static_path = ["_static"]
 
 html_show_sourcelink = False
 
-# -- Custom functions for TOC prefix stripping -------------------------------
+# -- AutoAPI filtering and TOC prefix stripping ------------------------------
+
+
+def skip_variant(app: Sphinx, what: str, name: str, obj, skip: bool, options) -> bool | None:
+    """Hide package variant metadata without changing other AutoAPI decisions."""
+    if name == "lagrange.variant":
+        return True
+    return None
 
 
 def strip_package_prefix_from_html(html: str, package_name: str = "lagrange") -> str:
@@ -110,7 +117,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     """
     Sphinx extension setup function.
 
-    Connects event handlers to strip package prefix from doctree and TOC.
+    Filters package metadata and strips package prefixes from the TOC.
 
     Args:
         app: Sphinx application instance.
@@ -118,6 +125,7 @@ def setup(app: Sphinx) -> dict[str, Any]:
     Returns:
         Extension metadata dictionary.
     """
+    app.connect("autoapi-skip-member", skip_variant)
     app.connect("html-page-context", strip_package_prefix_from_toc)
 
     return {

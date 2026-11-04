@@ -11,11 +11,16 @@
  */
 #include <lagrange/testing/common.h>
 
-#include <igl/readDMAT.h>
-#include <igl/writeDMAT.h>
 #include <lagrange/common.h>
 #include <lagrange/image/image_sampling.h>
 #include <lagrange/utils/range.h>
+
+// clang-format off
+#include <lagrange/utils/warnoff.h>
+#include <igl/readDMAT.h>
+#include <igl/writeDMAT.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 /// @cond LA_INTERNAL_DOCS
 

@@ -43,11 +43,11 @@ SurfaceMesh<Scalar, Index> repack_mesh(
         options.output_chart_attribute_name);
 }
 
-#define LA_X_repack_mesh(_, S, I)                       \
-    template SurfaceMesh<S, I> repack_mesh<S, I>(       \
-        const SurfaceMesh<S, I>&,                       \
-        const RepackOptions&,                           \
-        std::function<void(const std::string&, float)>, \
+#define LA_X_repack_mesh(_, S, I)                               \
+    template LA_XATLAS_API SurfaceMesh<S, I> repack_mesh<S, I>( \
+        const SurfaceMesh<S, I>&,                               \
+        const RepackOptions&,                                   \
+        std::function<void(const std::string&, float)>,         \
         const std::atomic_bool*);
 LA_SURFACE_MESH_X(repack_mesh, 0)
 #undef LA_X_repack_mesh

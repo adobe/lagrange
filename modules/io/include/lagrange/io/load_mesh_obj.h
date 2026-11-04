@@ -21,8 +21,13 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
- * Loads a mesh from a file in MSH format.
+ * Loads a mesh from a stream in OBJ format.
  *
  * @param[in]  input_stream_obj Input stream.
  * @param[in]  options          Load options.
@@ -35,7 +40,7 @@ template <typename MeshType>
 LA_IO_API MeshType load_mesh_obj(std::istream& input_stream_obj, const LoadOptions& options = {});
 
 /**
- * Loads a mesh from a file in MSH format.
+ * Loads a mesh from a file in OBJ format.
  *
  * @param[in]  filename  Input filename.
  * @param[in]  options   Load options.
@@ -46,5 +51,7 @@ LA_IO_API MeshType load_mesh_obj(std::istream& input_stream_obj, const LoadOptio
  */
 template <typename MeshType>
 LA_IO_API MeshType load_mesh_obj(const fs::path& filename, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

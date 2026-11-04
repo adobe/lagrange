@@ -10,11 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/utils/build.h>
+#include <lagrange/python/binding.h>
+
 #include "GridWrapper.h"
 
 #include <lagrange/Logger.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
@@ -38,25 +38,11 @@
 #include <lagrange/utils/warnon.h>
 // clang-format on
 
-// We use std::istrstream which is deprecated in C++98, and will be removed in C++26.
-// Once we move to C++23 we can use std::ispanstream instead.
-//
-// `#pragma GCC diagnostic ignored "-Wdeprecated-declarations"` doesn't work with GCC's
-// backward_warning.h. One can use `#pragma GCC diagnostic ignored "-Wcpp"` to ignore
-// #warning pragmas, but this only works with GCC 13+. The hacky workaround is to
-// undefine a GCC-specific macro instead.
-#if LAGRANGE_TARGET_COMPILER(GCC) && defined(__DEPRECATED)
-    #undef __DEPRECATED
-    #define LA_RESTORE_DEPRECATED
-#endif
 // clang-format off
 #include <lagrange/utils/warnoff.h>
 #include <strstream>
 #include <lagrange/utils/warnon.h>
 // clang-format on
-#ifdef LA_RESTORE_DEPRECATED
-    #define __DEPRECATED
-#endif
 
 namespace lagrange::python {
 

@@ -10,10 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/subdivision/compute_sharpness.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 
-#include <lagrange/python/binding.h>
 
 namespace lagrange::python {
 

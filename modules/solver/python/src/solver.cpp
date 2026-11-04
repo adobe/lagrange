@@ -10,8 +10,9 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/Logger.h>
 #include <lagrange/python/binding.h>
+
+#include <lagrange/Logger.h>
 #include <lagrange/python/solver.h>
 #include <lagrange/solver/eigen_solvers.h>
 #include <lagrange/utils/Error.h>

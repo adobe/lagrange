@@ -61,7 +61,7 @@ TEST_CASE("generate_torus", "[primitive][surface]")
     SECTION("Low poly")
     {
         setting.major_radius = 1;
-        setting.minor_radius = 0.1;
+        setting.minor_radius = 0.1f;
         setting.pipe_segments = 3;
         setting.ring_segments = 3;
         auto mesh = primitive::generate_torus<Scalar, Index>(setting);

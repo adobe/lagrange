@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/View3D.h>
+#include <lagrange/texproc/api.h>
 
 #include <string_view>
 
@@ -47,7 +48,7 @@ struct DilationOptions
 /// @tparam        ValueType  Image value type.
 ///
 template <typename Scalar, typename Index, typename ValueType>
-void geodesic_dilation(
+LA_TEXPROC_API void geodesic_dilation(
     const SurfaceMesh<Scalar, Index>& mesh,
     image::experimental::View3D<ValueType> texture,
     const DilationOptions& options = {});

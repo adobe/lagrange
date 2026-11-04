@@ -14,8 +14,12 @@
 #include <lagrange/Attribute.h>
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/View3D.h>
+#include <lagrange/texproc/api.h>
 
 namespace lagrange::texproc {
+
+/// @addtogroup module-texproc
+/// @{
 
 ///
 /// Extract mesh with alpha mask options.
@@ -43,9 +47,11 @@ struct ExtractMeshWithAlphaMaskOptions
 /// @return     Tessellated triangle mesh, quad mesh or quad-dominant mesh.
 ///
 template <typename Scalar, typename Index>
-auto extract_mesh_with_alpha_mask(
+LA_TEXPROC_API auto extract_mesh_with_alpha_mask(
     const SurfaceMesh<Scalar, Index>& mesh,
     const image::experimental::View3D<const float> image,
     const ExtractMeshWithAlphaMaskOptions& options) -> SurfaceMesh<Scalar, Index>;
+
+/// @}
 
 } // namespace lagrange::texproc

@@ -11,8 +11,10 @@
  */
 #include <lagrange/testing/common.h>
 #include <catch2/benchmark/catch_benchmark.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/compute_normal.h>
 #include <lagrange/internal/constants.h>
@@ -25,7 +27,10 @@
     #include <lagrange/mesh_convert.h>
 #endif
 
+#include <algorithm>
+#include <array>
 #include <numeric>
+#include <string>
 
 using namespace lagrange;
 
@@ -156,29 +161,279 @@ TEST_CASE("combine_meshes", "[surface][utilities]")
         }
     }
 
-    SECTION("with value attribute")
+    SECTION("default policy concatenates indices")
     {
+        CombineMeshesOptions combine_options;
+        REQUIRE(combine_options.value_attribute_policy == ValueAttributePolicy::ConcatenateIndices);
+        const Index refs[] = {0};
+        mesh1.create_attribute<Index>("refs", Value, AttributeUsage::VertexIndex, 1, refs);
+        mesh2.create_attribute<Index>("refs", Value, AttributeUsage::VertexIndex, 1, refs);
+        auto default_mesh = combine_meshes<Scalar, Index>({&mesh1, &mesh2});
+        auto legacy_mesh = combine_meshes<Scalar, Index>({&mesh1, &mesh2}, true);
+        auto options_mesh = combine_meshes<Scalar, Index>({&mesh1, &mesh2}, combine_options);
+        for (const auto* mesh : {&default_mesh, &legacy_mesh, &options_mesh}) {
+            REQUIRE(mesh->template is_attribute_type<Index>("refs"));
+            const auto& attr = mesh->template get_attribute<Index>("refs");
+            REQUIRE(attr.get_num_elements() == 2);
+            REQUIRE(attr.get_num_channels() == 1);
+            REQUIRE(attr.get(0) == 0);
+            REQUIRE(attr.get(1) == mesh1.get_num_vertices());
+        }
+        combine_options.value_attribute_policy = ValueAttributePolicy::RequireEqual;
+        const std::array<SurfaceMesh<Scalar, Index>, 2> inputs = {mesh1, mesh2};
+        auto span_mesh = combine_meshes<Scalar, Index>(inputs, combine_options);
+        auto callback_mesh = combine_meshes<Scalar, Index>(
+            inputs.size(),
+            [&](size_t i) -> const SurfaceMesh<Scalar, Index>& { return inputs[i]; },
+            combine_options);
+        REQUIRE(span_mesh.template get_attribute<Index>("refs").get_num_elements() == 1);
+        REQUIRE(callback_mesh.template get_attribute<Index>("refs").get_num_elements() == 1);
+    }
+
+    SECTION("with value attributes")
+    {
+        CombineMeshesOptions combine_options;
+        combine_options.value_attribute_policy =
+            GENERATE(ValueAttributePolicy::RequireEqual, ValueAttributePolicy::ConcatenateIndices);
         constexpr char name[] = "value_normal";
         map_attribute(mesh1, options.output_attribute_name, name, Value);
-        map_attribute(mesh2, options.output_attribute_name, name, Value);
-        auto out_mesh = combine_meshes<Scalar, Index>({&mesh1, &mesh2}, true);
+        mesh2.create_attribute_from(name, mesh1);
+        bool identical = true;
+        SECTION("identical") {}
+        SECTION("identical independent storage")
+        {
+            const auto& other_attr = mesh2.ref_attribute<Scalar>(name);
+            REQUIRE(
+                other_attr.get_all().data() != mesh1.get_attribute<Scalar>(name).get_all().data());
+        }
+        SECTION("different sizes")
+        {
+            mesh2.ref_attribute<Scalar>(name).resize_elements(1);
+            identical = false;
+        }
+        SECTION("different values")
+        {
+            mesh2.ref_attribute<Scalar>(name).ref_all().front() = 1;
+            identical = false;
+        }
+
+        auto out_mesh = combine_meshes<Scalar, Index>({&mesh1, &mesh2}, combine_options);
         REQUIRE(out_mesh.get_num_vertices() == 7);
         REQUIRE(out_mesh.get_num_facets() == 2);
-        REQUIRE(out_mesh.has_attribute(name));
-
-        REQUIRE(out_mesh.template is_attribute_type<Scalar>(name));
-        const auto& attr = out_mesh.get_attribute<Scalar>(name);
-        auto attr_view = matrix_view(attr);
-        REQUIRE(attr_view.rows() == 7);
-        REQUIRE(attr_view.cols() == 3);
-
-        for (size_t i = 0; i < 3; i++) {
-            REQUIRE(attr_view.row(i) == normal1);
-        }
-        for (size_t i = 3; i < 7; i++) {
-            REQUIRE(attr_view.row(i) == normal2);
+        REQUIRE(out_mesh.has_attribute(name) == identical);
+        if (identical) {
+            REQUIRE(out_mesh.template is_attribute_type<Scalar>(name));
+            const auto& attr = out_mesh.get_attribute<Scalar>(name);
+            const auto attr_view = matrix_view(attr);
+            REQUIRE(attr_view.rows() == 3);
+            REQUIRE(attr_view.cols() == 3);
+            REQUIRE(attr_view == matrix_view(mesh1.get_attribute<Scalar>(name)));
         }
     }
+}
+
+TEST_CASE("combine_meshes initialized empty edges", "[surface][utilities]")
+{
+    CombineMeshesOptions options;
+    options.value_attribute_policy =
+        GENERATE(ValueAttributePolicy::RequireEqual, ValueAttributePolicy::ConcatenateIndices);
+    SurfaceMesh32d points;
+    points.add_vertices(3);
+    points.initialize_edges();
+    points.create_metadata(AttributeName::name, "Points");
+    points.create_attribute<double>("edge_value", Edge, AttributeUsage::Scalar, 1);
+    points.create_attribute<uint32_t>("edge_refs", Value, AttributeUsage::EdgeIndex, 1);
+    REQUIRE(points.has_edges());
+    REQUIRE(points.get_num_edges() == 0);
+
+    auto combined = combine_meshes({&points, &points}, options);
+    REQUIRE(combined.get_num_vertices() == 6);
+    REQUIRE(combined.get_num_facets() == 0);
+    REQUIRE(combined.get_num_corners() == 0);
+    REQUIRE(combined.get_num_edges() == 0);
+    REQUIRE(combined.has_edges());
+    REQUIRE(combined.get_metadata(AttributeName::name) == "Points");
+    REQUIRE(combined.get_attribute<double>("edge_value").get_num_elements() == 0);
+    REQUIRE(combined.get_attribute<uint32_t>("edge_refs").get_num_elements() == 0);
+    REQUIRE(points.has_edges());
+    REQUIRE(points.get_num_edges() == 0);
+    REQUIRE(points.get_num_facets() == 0);
+}
+
+TEST_CASE("combine_meshes metadata", "[surface][utilities]")
+{
+    SurfaceMesh32d mesh1;
+    mesh1.add_vertices(3);
+    mesh1.add_triangle(0, 1, 2);
+    mesh1.create_metadata(AttributeName::name, "Cube");
+    auto mesh2 = mesh1;
+    bool preserve_attributes = true;
+    bool preserve_name = true;
+    SECTION("identical") {}
+    SECTION("different lengths")
+    {
+        mesh2.set_metadata(AttributeName::name, "Other");
+        preserve_name = false;
+    }
+    SECTION("different strings of the same length")
+    {
+        mesh2.set_metadata(AttributeName::name, "Ball");
+        preserve_name = false;
+    }
+    SECTION("empty")
+    {
+        mesh1.set_metadata(AttributeName::name, "");
+        mesh2.set_metadata(AttributeName::name, "");
+    }
+    SECTION("missing")
+    {
+        mesh2.delete_attribute(AttributeName::name);
+        preserve_name = false;
+    }
+    SECTION("without attributes")
+    {
+        mesh2.set_metadata(AttributeName::name, "Other");
+        preserve_attributes = false;
+        preserve_name = false;
+    }
+
+    auto combined = combine_meshes({&mesh1, &mesh2}, preserve_attributes);
+    REQUIRE(combined.get_num_vertices() == 6);
+    REQUIRE(combined.get_num_facets() == 2);
+    REQUIRE(combined.has_attribute(AttributeName::name) == preserve_name);
+    if (preserve_name) {
+        const std::string original_name(mesh1.get_metadata(AttributeName::name));
+        REQUIRE(combined.get_metadata(AttributeName::name) == original_name);
+        REQUIRE(
+            &combined.get_attribute<uint8_t>(AttributeName::name) ==
+            &mesh1.get_attribute<uint8_t>(AttributeName::name));
+        combined.set_metadata(AttributeName::name, "Combined");
+        REQUIRE(mesh1.get_metadata(AttributeName::name) == original_name);
+        REQUIRE(mesh2.get_metadata(AttributeName::name) == original_name);
+    }
+}
+
+TEST_CASE("combine_meshes Value index attribute policies", "[surface][utilities]")
+{
+    CombineMeshesOptions options;
+    options.value_attribute_policy =
+        GENERATE(ValueAttributePolicy::RequireEqual, ValueAttributePolicy::ConcatenateIndices);
+    const auto usage = GENERATE(
+        AttributeUsage::VertexIndex,
+        AttributeUsage::FacetIndex,
+        AttributeUsage::CornerIndex,
+        AttributeUsage::EdgeIndex);
+    const uint32_t second_value = GENERATE(0u, 1u);
+    SurfaceMesh32d mesh1;
+    mesh1.add_vertices(3);
+    mesh1.add_triangle(0, 1, 2);
+    const uint32_t edges[] = {2, 0, 0, 1, 1, 2};
+    mesh1.initialize_edges(edges);
+    SurfaceMesh32d mesh2;
+    mesh2.add_vertices(4);
+    mesh2.add_quad(0, 1, 2, 3);
+    mesh2.add_triangle(0, 2, 3);
+    mesh2.initialize_edges();
+    const uint32_t first_values[] = {0};
+    const uint32_t second_values[] = {second_value};
+    mesh1.create_attribute<uint32_t>("refs", Value, usage, 1, first_values);
+    mesh2.create_attribute<uint32_t>("refs", Value, usage, 1, second_values);
+    SurfaceMesh32d empty;
+    auto combined = combine_meshes({&empty, &mesh1, &mesh2}, options);
+    const bool concatenate =
+        options.value_attribute_policy == ValueAttributePolicy::ConcatenateIndices;
+    REQUIRE(combined.has_attribute("refs") == (second_value == 0 || concatenate));
+    if (combined.has_attribute("refs")) {
+        REQUIRE(combined.is_attribute_type<uint32_t>("refs"));
+        const auto& attr = combined.get_attribute<uint32_t>("refs");
+        REQUIRE(attr.get_num_elements() == (concatenate ? 2 : 1));
+        REQUIRE(attr.get_num_channels() == 1);
+        REQUIRE(attr.get(0) == 0);
+        if (usage == AttributeUsage::EdgeIndex) {
+            REQUIRE(combined.has_edges());
+            REQUIRE(combined.get_num_edges() == mesh1.get_num_edges() + mesh2.get_num_edges());
+            const auto actual = combined.get_edge_vertices(attr.get(0));
+            const auto expected = mesh1.get_edge_vertices(0);
+            REQUIRE(actual[0] == expected[0]);
+            REQUIRE(actual[1] == expected[1]);
+        }
+        if (concatenate) {
+            uint32_t offset = 0;
+            switch (usage) {
+            case AttributeUsage::VertexIndex: offset = mesh1.get_num_vertices(); break;
+            case AttributeUsage::FacetIndex: offset = mesh1.get_num_facets(); break;
+            case AttributeUsage::CornerIndex: offset = mesh1.get_num_corners(); break;
+            case AttributeUsage::EdgeIndex: offset = mesh1.get_num_edges(); break;
+            default: FAIL("Unexpected index usage");
+            }
+            REQUIRE(attr.get(1) == offset + second_value);
+            if (usage == AttributeUsage::EdgeIndex) {
+                const auto actual = combined.get_edge_vertices(attr.get(1));
+                const auto expected = mesh2.get_edge_vertices(second_value);
+                REQUIRE(actual[0] == expected[0] + mesh1.get_num_vertices());
+                REQUIRE(actual[1] == expected[1] + mesh1.get_num_vertices());
+            }
+        }
+    }
+}
+
+TEST_CASE("combine_meshes edge attributes require connectivity", "[surface][utilities]")
+{
+    const bool initialize_first = GENERATE(false, true);
+    const bool initialize_second = GENERATE(false, true);
+    const std::array<bool, 2> initialized = {initialize_first, initialize_second};
+    const uint32_t edges[] = {2, 0, 0, 1, 1, 2};
+    std::array<SurfaceMesh32d, 2> meshes;
+    for (size_t i = 0; i < meshes.size(); ++i) {
+        auto& mesh = meshes[i];
+        mesh.add_vertices(3);
+        mesh.add_triangle(0, 1, 2);
+        mesh.create_metadata(AttributeName::name, "Triangle");
+        if (initialized[i]) mesh.initialize_edges(edges);
+        auto id = mesh.create_attribute<double>("edge_value", Edge, AttributeUsage::Scalar, 1);
+        auto data = mesh.ref_attribute<double>(id).ref_all();
+        for (size_t e = 0; e < data.size(); ++e) data[e] = double(i * 10 + e);
+    }
+    auto combined = combine_meshes<double, uint32_t>(meshes);
+    const bool all_have_edges = initialized[0] && initialized[1];
+    REQUIRE(combined.get_num_vertices() == 6);
+    REQUIRE(combined.get_num_facets() == 2);
+    REQUIRE(combined.get_metadata(AttributeName::name) == "Triangle");
+    REQUIRE(combined.has_attribute("edge_value") == all_have_edges);
+    REQUIRE(combined.has_edges() == all_have_edges);
+    if (all_have_edges) {
+        REQUIRE(combined.get_num_edges() == 6);
+        const auto values = vector_view(combined.get_attribute<double>("edge_value"));
+        for (uint32_t i = 0; i < 2; ++i) {
+            REQUIRE(
+                values.segment(i * 3, 3) ==
+                vector_view(meshes[i].get_attribute<double>("edge_value")));
+            for (uint32_t e = 0; e < 3; ++e) {
+                const auto actual = combined.get_edge_vertices(i * 3 + e);
+                const auto wanted = meshes[i].get_edge_vertices(e);
+                REQUIRE(actual[0] == wanted[0] + i * 3);
+                REQUIRE(actual[1] == wanted[1] + i * 3);
+            }
+        }
+    }
+    for (size_t i = 0; i < meshes.size(); ++i) {
+        REQUIRE(meshes[i].has_edges() == initialized[i]);
+    }
+}
+
+TEST_CASE("combine_meshes rejects uninitialized EdgeIndex attributes", "[surface][utilities]")
+{
+    CombineMeshesOptions options;
+    options.preserve_attributes = GENERATE(false, true);
+    const auto element = GENERATE(Value, Vertex, Facet, Corner, Edge, Indexed);
+    std::array<SurfaceMesh32d, 2> meshes;
+    meshes[0].add_vertices(3);
+    meshes[0].add_triangle(0, 1, 2);
+    meshes[0].initialize_edges();
+    meshes[1].create_attribute<uint32_t>("unshared_refs", element, AttributeUsage::EdgeIndex, 1);
+    LA_REQUIRE_THROWS(combine_meshes<double, uint32_t>(meshes, options));
+    REQUIRE(meshes[0].has_edges());
+    REQUIRE_FALSE(meshes[1].has_edges());
 }
 
 TEST_CASE("combine_meshes with custom edges", "[surface][utilities]")
@@ -376,6 +631,24 @@ TEST_CASE("combine_meshes empty", "[surface][utilities]")
     mesh3.add_quad(0, 1, 3, 2);
 
     SurfaceMesh<Scalar, Index> empty;
+
+    SECTION("all inputs empty")
+    {
+        for (bool preserve_attributes : {false, true}) {
+            for (auto policy :
+                 {ValueAttributePolicy::RequireEqual, ValueAttributePolicy::ConcatenateIndices}) {
+                CombineMeshesOptions options;
+                options.preserve_attributes = preserve_attributes;
+                options.value_attribute_policy = policy;
+                auto result = combine_meshes<Scalar, Index>({&empty, &empty}, options);
+                REQUIRE(result.get_num_vertices() == 0);
+                REQUIRE(result.get_num_facets() == 0);
+                auto legacy = combine_meshes<Scalar, Index>({&empty}, preserve_attributes);
+                REQUIRE(legacy.get_num_vertices() == 0);
+                REQUIRE(legacy.get_num_facets() == 0);
+            }
+        }
+    }
 
     SECTION("without attributes")
     {

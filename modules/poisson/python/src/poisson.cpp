@@ -10,11 +10,12 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/poisson/mesh_from_oriented_points.h>
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>

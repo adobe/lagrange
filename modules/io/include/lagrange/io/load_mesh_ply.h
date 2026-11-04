@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Loads a mesh from a stream in PLY format.
  *
@@ -48,5 +53,7 @@ LA_IO_API MeshType load_mesh_ply(std::istream& input_stream, const LoadOptions& 
  */
 template <typename MeshType>
 LA_IO_API MeshType load_mesh_ply(const fs::path& filename, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

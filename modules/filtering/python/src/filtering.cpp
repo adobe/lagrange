@@ -10,12 +10,13 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/filtering/attribute_smoothing.h>
 #include <lagrange/filtering/mesh_smoothing.h>
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/invalid.h>

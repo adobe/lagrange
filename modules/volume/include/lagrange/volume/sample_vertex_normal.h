@@ -12,9 +12,15 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/volume/api.h>
 #include <lagrange/volume/types.h>
 
 namespace lagrange::volume {
+
+///
+/// @addtogroup module-volume
+/// @{
+///
 
 /// Normals from volume options.
 struct NormalsFromVolumeOptions
@@ -35,9 +41,11 @@ struct NormalsFromVolumeOptions
 /// @tparam        GridScalar  Grid scalar type. Can only be float or double.
 ///
 template <typename Scalar, typename Index, typename GridScalar>
-void sample_vertex_normal(
+LA_VOLUME_API void sample_vertex_normal(
     SurfaceMesh<Scalar, Index>& mesh,
     const Grid<GridScalar>& grid,
     const NormalsFromVolumeOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::volume

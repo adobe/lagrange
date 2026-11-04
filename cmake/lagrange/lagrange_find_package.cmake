@@ -18,11 +18,14 @@ function(lagrange_find_package name)
         Eigen3
         embree
         MKL
+        nanoflann
+        NanoSVG
         OpenSubdiv
         OpenVDB
         # pxr
         span-lite
         spdlog
+        spectra
         TBB
         zstd
     )
@@ -57,6 +60,11 @@ function(lagrange_find_package name)
         if(${name} STREQUAL OpenSubdiv)
             target_compile_definitions(OpenSubdiv::osdCPU_static INTERFACE _USE_MATH_DEFINES)
         endif()
+    elseif(NOT LAGRANGE_FIND_PACKAGE_FALLBACK)
+        message(FATAL_ERROR
+            "lagrange_find_package(${name}) would include a CPM dependency recipe, but "
+            "LAGRANGE_FIND_PACKAGE_FALLBACK is OFF."
+        )
     else()
         if(${name} STREQUAL algcmake)
             include(3di/algcmake)

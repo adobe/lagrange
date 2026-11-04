@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Loads a mesh from a stream in STL format.
  *
@@ -46,5 +51,7 @@ LA_IO_API MeshType load_mesh_stl(std::istream& input_stream, const LoadOptions& 
  */
 template <typename MeshType>
 LA_IO_API MeshType load_mesh_stl(const fs::path& filename, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

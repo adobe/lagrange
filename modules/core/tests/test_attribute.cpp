@@ -1070,6 +1070,453 @@ void test_ownership()
     REQUIRE(owner.use_count() == 3);
 }
 
+template <typename ValueType>
+void test_policy_propagation()
+{
+    using namespace lagrange;
+
+    auto make_source = []() {
+        auto attr = make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Vector, 3, 2);
+        attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
+        attr.set_shrink_policy(AttributeShrinkPolicy::IgnoreIfExternal);
+        attr.set_write_policy(AttributeWritePolicy::SilentCopy);
+        attr.set_copy_policy(AttributeCopyPolicy::KeepExternalPtr);
+        attr.set_cast_policy(AttributeCastPolicy::DoNotRemapInvalid);
+        return attr;
+    };
+    auto check = [](const Attribute<ValueType>& attr) {
+        REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::AllowWithinCapacity);
+        REQUIRE(attr.get_shrink_policy() == AttributeShrinkPolicy::IgnoreIfExternal);
+        REQUIRE(attr.get_write_policy() == AttributeWritePolicy::SilentCopy);
+        REQUIRE(attr.get_copy_policy() == AttributeCopyPolicy::KeepExternalPtr);
+        REQUIRE(attr.get_cast_policy() == AttributeCastPolicy::DoNotRemapInvalid);
+    };
+
+    {
+        auto source = make_source();
+        Attribute<ValueType> copied(source);
+        check(copied);
+    }
+    {
+        auto source = make_source();
+        auto target = make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Vector, 3, 1);
+        target = source;
+        check(target);
+    }
+    {
+        auto source = make_source();
+        Attribute<ValueType> moved(std::move(source));
+        check(moved);
+    }
+    {
+        auto source = make_source();
+        auto target = make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Vector, 3, 1);
+        target = std::move(source);
+        check(target);
+    }
+}
+
+template <typename ValueType>
+void test_ensure_shared_storage()
+{
+    using namespace lagrange;
+
+    // Internal promotion adopts values and initialized capacity.
+    {
+        auto attr = make_attr<ValueType>(AttributeElement::Vertex, AttributeUsage::Vector, 3, 2);
+        attr.set_default_value(ValueType(17));
+        attr.reserve_entries(10);
+        const auto* old_data = attr.get_all().data();
+        attr.set_growth_policy(AttributeGrowthPolicy::AllowWithinCapacity);
+        attr.set_shrink_policy(AttributeShrinkPolicy::IgnoreIfExternal);
+        attr.set_copy_policy(AttributeCopyPolicy::KeepExternalPtr);
+        attr.set_write_policy(AttributeWritePolicy::SilentCopy);
+        attr.set_cast_policy(AttributeCastPolicy::DoNotRemapInvalid);
+        LA_REQUIRE_THROWS(attr.get_owner());
+        REQUIRE(!attr.is_external());
+        REQUIRE(attr.get_all().data() == old_data);
+
+        attr.ensure_shared_storage();
+        auto values = attr.ref_owner();
+        REQUIRE(attr.is_external());
+        REQUIRE(attr.is_managed());
+        REQUIRE(!attr.is_read_only());
+        REQUIRE(attr.get_num_elements() == 2);
+        REQUIRE(values.size() == 6);
+        REQUIRE(values.ref().data() == old_data);
+        for (size_t i = 0; i < values.size(); ++i) {
+            REQUIRE(values.get()[i] == ValueType(i));
+        }
+        // This entry was reserved, but not a live element of the original internal vector.
+        REQUIRE(values.get().data()[9] == ValueType(17));
+        REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::AllowWithinCapacity);
+        REQUIRE(attr.get_shrink_policy() == AttributeShrinkPolicy::IgnoreIfExternal);
+        REQUIRE(attr.get_copy_policy() == AttributeCopyPolicy::KeepExternalPtr);
+        REQUIRE(attr.get_write_policy() == AttributeWritePolicy::SilentCopy);
+        REQUIRE(attr.get_cast_policy() == AttributeCastPolicy::DoNotRemapInvalid);
+
+        values.ref()[0] = ValueType(42);
+        REQUIRE(attr.get(0, 0) == ValueType(42));
+        attr.ref(1, 0) = ValueType(23);
+        REQUIRE(values.get()[3] == ValueType(23));
+        attr.ensure_shared_storage();
+        const auto again = attr.get_owner();
+        REQUIRE(again.get().data() == values.get().data());
+        REQUIRE(!again.owner().owner_before(values.owner()));
+        REQUIRE(!values.owner().owner_before(again.owner()));
+
+        attr.shrink_to_fit();
+        REQUIRE(attr.get_owner().get().data() == values.get().data());
+        attr.resize_elements(3);
+        REQUIRE(attr.get_owner().get().data() == values.get().data());
+        REQUIRE(attr.get_owner().size() == 9);
+        REQUIRE(attr.get(2, 2) == ValueType(17));
+        REQUIRE(values.size() == 6);
+        auto copy = Attribute<ValueType>(attr);
+        copy.ref(0, 0) = ValueType(31);
+        REQUIRE(attr.get(0, 0) == ValueType(31));
+    }
+
+    // Casting a promoted attribute must transform only its live values, never the padding that
+    // promotion materialized to preserve reserved capacity.
+    if constexpr (!std::is_same_v<ValueType, double>) {
+        auto attr = make_attr<ValueType>(AttributeElement::Value, AttributeUsage::Scalar, 1, 4);
+        attr.set_default_value(ValueType(7));
+        attr.reserve_entries(8);
+        attr.ensure_shared_storage();
+        REQUIRE(attr.get_num_elements() == 4);
+        REQUIRE(attr.get_owner().size() == 4);
+
+        auto casted = Attribute<double>::template cast_copy<ValueType>(attr);
+        REQUIRE(casted.get_num_elements() == 4);
+        REQUIRE(casted.get_all().size() == 4);
+        for (size_t i = 0; i < 4; ++i) {
+            REQUIRE(casted.get(i, 0) == static_cast<double>(attr.get(i, 0)));
+        }
+    }
+
+    // Internal promotion normalizes error policies; policies set afterward apply normally.
+    for (bool shrink : {false, true}) {
+        auto attr = make_attr<ValueType>(AttributeElement::Value, AttributeUsage::Scalar, 1, 4);
+        attr.reserve_entries(8);
+        attr.ensure_shared_storage();
+        auto values = attr.get_owner();
+        REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::SilentCopy);
+        REQUIRE(attr.get_shrink_policy() == AttributeShrinkPolicy::SilentCopy);
+        REQUIRE(values.size() == 4);
+
+        attr.set_growth_policy(AttributeGrowthPolicy::ErrorIfExternal);
+        attr.set_shrink_policy(AttributeShrinkPolicy::ErrorIfExternal);
+        attr.ensure_shared_storage();
+        REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::ErrorIfExternal);
+        REQUIRE(attr.get_shrink_policy() == AttributeShrinkPolicy::ErrorIfExternal);
+        LA_REQUIRE_THROWS(attr.resize_elements(5));
+        LA_REQUIRE_THROWS(attr.shrink_to_fit());
+        REQUIRE(attr.get_num_elements() == 4);
+        REQUIRE(attr.get_all().data() == values.get().data());
+
+        attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+        attr.set_shrink_policy(AttributeShrinkPolicy::SilentCopy);
+        if (shrink) {
+            attr.shrink_to_fit();
+        } else {
+            attr.resize_elements(5);
+        }
+        REQUIRE(!attr.is_external());
+        REQUIRE(attr.get_num_elements() == (shrink ? 4 : 5));
+        REQUIRE(attr.get_all().data() != values.get().data());
+        for (size_t i = 0; i < values.size(); ++i) {
+            REQUIRE(values.get()[i] == ValueType(i));
+        }
+    }
+
+    // A caller-supplied buffer is genuinely foreign: growth, shrink and copy policies apply.
+    {
+        auto buffer = std::make_shared<std::vector<ValueType>>(8, ValueType(7));
+        Attribute<ValueType> attr(AttributeElement::Value, AttributeUsage::Scalar, 1);
+        attr.wrap(make_shared_span(buffer, buffer->data(), buffer->size()), 4);
+        LA_REQUIRE_THROWS(attr.resize_elements(5));
+        LA_REQUIRE_THROWS(attr.shrink_to_fit());
+        auto copy = Attribute<ValueType>(attr);
+        REQUIRE(!copy.is_external());
+        copy.ref(0) = ValueType(42);
+        REQUIRE(attr.get(0) == ValueType(7));
+        attr.set_copy_policy(AttributeCopyPolicy::ErrorIfExternal);
+        LA_REQUIRE_THROWS(Attribute<ValueType>(attr));
+    }
+
+    // Managed external buffers are preserved, including read-only storage.
+    {
+        auto buffer = std::make_shared<std::vector<ValueType>>(8, ValueType(7));
+        auto shared = make_shared_span(buffer, buffer->data(), buffer->size());
+        Attribute<ValueType> attr(AttributeElement::Value, AttributeUsage::Scalar, 1);
+        attr.wrap(shared, 4);
+        attr.ensure_shared_storage();
+        REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::ErrorIfExternal);
+        REQUIRE(attr.get_shrink_policy() == AttributeShrinkPolicy::ErrorIfExternal);
+        LA_REQUIRE_THROWS(attr.resize_elements(5));
+        LA_REQUIRE_THROWS(attr.shrink_to_fit());
+        auto values = attr.ref_owner();
+        REQUIRE(values.ref().data() == buffer->data());
+        REQUIRE(values.size() == 4);
+        REQUIRE(!values.owner().owner_before(shared.owner()));
+        REQUIRE(!shared.owner().owner_before(values.owner()));
+
+        attr.wrap_const(SharedSpan<const ValueType>(shared.owner(), shared.size()), 4);
+        attr.ensure_shared_storage();
+        REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::ErrorIfExternal);
+        REQUIRE(attr.get_shrink_policy() == AttributeShrinkPolicy::ErrorIfExternal);
+        LA_REQUIRE_THROWS(attr.resize_elements(5));
+        LA_REQUIRE_THROWS(attr.shrink_to_fit());
+        REQUIRE(attr.is_read_only());
+        REQUIRE(attr.get_owner().get().data() == buffer->data());
+        LA_REQUIRE_THROWS(attr.ref_owner());
+        REQUIRE(attr.is_read_only());
+        REQUIRE(attr.get_owner().get().data() == buffer->data());
+
+        for (auto policy : {AttributeWritePolicy::SilentCopy, AttributeWritePolicy::WarnAndCopy}) {
+            attr.wrap_const(SharedSpan<const ValueType>(shared.owner(), shared.size()), 4);
+            attr.set_default_value(ValueType(23));
+            attr.set_write_policy(policy);
+            auto writable = attr.ref_owner();
+            REQUIRE(attr.is_external());
+            REQUIRE(attr.is_managed());
+            REQUIRE(!attr.is_read_only());
+            REQUIRE(writable.ref().data() != buffer->data());
+            REQUIRE(writable.size() == 4);
+            for (size_t i = 0; i < writable.size(); ++i) {
+                REQUIRE(writable.get()[i] == ValueType(7));
+            }
+            // Retain initialized padding without including it in the exported extent.
+            for (size_t i = writable.size(); i < shared.size(); ++i) {
+                REQUIRE(writable.get().data()[i] == ValueType(23));
+            }
+            writable.ref()[0] = ValueType(42);
+            REQUIRE(attr.get(0) == ValueType(42));
+            REQUIRE((*buffer)[0] == ValueType(7));
+        }
+    }
+
+    // Empty promotion and null alias owners retain lifetime.
+    {
+        Attribute<ValueType> attr(AttributeElement::Value, AttributeUsage::Scalar, 1);
+        attr.ensure_shared_storage();
+        REQUIRE(attr.is_external());
+        REQUIRE(attr.is_managed());
+        REQUIRE(attr.get_owner().has_owner());
+        REQUIRE(attr.ref_owner().size() == 0);
+
+        auto buffer = std::make_shared<std::vector<ValueType>>();
+        attr.set_growth_policy(AttributeGrowthPolicy::ErrorIfExternal);
+        attr.set_shrink_policy(AttributeShrinkPolicy::ErrorIfExternal);
+        auto shared = make_shared_span(buffer, static_cast<ValueType*>(nullptr), 0);
+        attr.wrap(shared, 0);
+        attr.ensure_shared_storage();
+        REQUIRE(attr.get_growth_policy() == AttributeGrowthPolicy::ErrorIfExternal);
+        REQUIRE(attr.get_shrink_policy() == AttributeShrinkPolicy::ErrorIfExternal);
+        LA_REQUIRE_THROWS(attr.resize_elements(1));
+        auto empty = attr.get_owner();
+        REQUIRE(attr.is_managed());
+        REQUIRE(empty.has_owner());
+        REQUIRE(empty.get().data() == nullptr);
+        REQUIRE(!empty.owner().owner_before(shared.owner()));
+        REQUIRE(!shared.owner().owner_before(empty.owner()));
+        REQUIRE(attr.ref_owner().has_owner());
+
+        attr.wrap_const(SharedSpan<const ValueType>(shared.owner(), shared.size()), 0);
+        attr.ensure_shared_storage();
+        REQUIRE(attr.is_managed());
+        REQUIRE(attr.is_read_only());
+        LA_REQUIRE_THROWS(attr.ref_owner());
+        REQUIRE(attr.get_owner().has_owner());
+
+        attr.wrap(SharedSpan<ValueType>(), 0);
+        REQUIRE(!attr.is_managed());
+        LA_REQUIRE_THROWS(attr.ensure_shared_storage());
+        LA_REQUIRE_THROWS(attr.get_owner());
+        attr.wrap_const(SharedSpan<const ValueType>(), 0);
+        REQUIRE(!attr.is_managed());
+        REQUIRE(attr.is_read_only());
+        LA_REQUIRE_THROWS(attr.ensure_shared_storage());
+    }
+
+    // Unmanaged storage is rejected without changing borrowed values.
+    {
+        std::vector<ValueType> buffer(4, ValueType(7));
+        Attribute<ValueType> attr(AttributeElement::Value, AttributeUsage::Scalar, 1);
+        attr.wrap(buffer, 4);
+        LA_REQUIRE_THROWS(attr.ensure_shared_storage());
+        LA_REQUIRE_THROWS(attr.get_owner());
+        LA_REQUIRE_THROWS(attr.ref_owner());
+        REQUIRE(!attr.is_managed());
+        REQUIRE(attr.ref_all().data() == buffer.data());
+        attr.ref(0) = ValueType(42);
+        REQUIRE(buffer[0] == ValueType(42));
+
+        attr.wrap_const(buffer, 4);
+        LA_REQUIRE_THROWS(attr.ensure_shared_storage());
+        LA_REQUIRE_THROWS(attr.ref_owner());
+        REQUIRE(attr.is_read_only());
+        REQUIRE(attr.get_all().data() == buffer.data());
+        // A deliberate write-policy copy may replace borrowed read-only storage with owned storage.
+        attr.set_write_policy(AttributeWritePolicy::SilentCopy);
+        auto values = attr.ref_owner();
+        values.ref()[0] = ValueType(23);
+        REQUIRE(attr.is_managed());
+        REQUIRE(attr.get(0) == ValueType(23));
+        REQUIRE(buffer[0] == ValueType(42));
+    }
+}
+
+template <typename ValueType>
+void test_managed_lifetime()
+{
+    using namespace lagrange;
+    SharedSpan<ValueType> retained;
+    std::weak_ptr<const ValueType> lifetime;
+    {
+        auto attr = make_attr<ValueType>(AttributeElement::Value, AttributeUsage::Scalar, 1, 4);
+        retained = attr.ref_owner();
+        lifetime = retained.owner();
+        Attribute<ValueType> moved(std::move(attr));
+        REQUIRE(moved.get_owner().get().data() == retained.get().data());
+        moved.ref(1) = ValueType(42);
+        REQUIRE(retained.get()[1] == ValueType(42));
+
+        moved.create_internal_copy();
+        REQUIRE(!moved.is_external());
+        moved.ref(1) = ValueType(23);
+        REQUIRE(retained.get()[1] == ValueType(42));
+        REQUIRE(!lifetime.expired());
+        moved.ensure_shared_storage();
+        REQUIRE(moved.get_owner().get().data() != retained.get().data());
+        moved.wrap(retained.subspan(1, 3), 3);
+        REQUIRE(moved.get(0) == ValueType(42));
+        moved.wrap(retained, 4);
+        REQUIRE(moved.get(1) == ValueType(42));
+        auto replacement = std::make_shared<std::vector<ValueType>>(4, ValueType(9));
+        moved.wrap(make_shared_span(replacement, replacement->data(), replacement->size()), 4);
+        REQUIRE(moved.get(1) == ValueType(9));
+        REQUIRE(retained.get()[1] == ValueType(42));
+    }
+    REQUIRE(!lifetime.expired());
+    REQUIRE(retained.get()[0] == ValueType(0));
+    REQUIRE(retained.get()[1] == ValueType(42));
+    REQUIRE(retained.get()[3] == ValueType(3));
+    retained = {};
+    REQUIRE(lifetime.expired());
+
+    // Destruction of the attribute actively using this allocation must not destroy the buffer.
+    {
+        auto attr = make_attr<ValueType>(AttributeElement::Value, AttributeUsage::Scalar, 1, 2);
+        retained = attr.ref_owner();
+        lifetime = retained.owner();
+        Attribute<ValueType> destination(AttributeElement::Value, AttributeUsage::Scalar, 1);
+        destination = std::move(attr);
+        destination.ref(1) = ValueType(23);
+        REQUIRE(retained.get()[1] == ValueType(23));
+    }
+    REQUIRE(!lifetime.expired());
+    REQUIRE(retained.get()[1] == ValueType(23));
+    retained = {};
+    REQUIRE(lifetime.expired());
+}
+
+template <typename ValueType>
+void test_managed_detachment()
+{
+    using namespace lagrange;
+    auto attr = make_attr<ValueType>(AttributeElement::Value, AttributeUsage::Scalar, 1, 4);
+    attr.reserve_entries(9);
+    attr.set_default_value(ValueType(17));
+    attr.set_growth_policy(AttributeGrowthPolicy::SilentCopy);
+    attr.set_shrink_policy(AttributeShrinkPolicy::SilentCopy);
+    auto original = attr.ref_owner();
+    original.ref()[0] = ValueType(42);
+    attr.resize_elements(2);
+    REQUIRE(!attr.is_external());
+    REQUIRE(attr.get_num_elements() == 2);
+    REQUIRE(attr.get(0) == ValueType(42));
+    REQUIRE(original.size() == 4);
+    REQUIRE(original.get()[3] == ValueType(3));
+    REQUIRE(original.get().data()[8] == ValueType(17));
+    attr.ref(0) = ValueType(23);
+    REQUIRE(original.get()[0] == ValueType(42));
+
+    auto shrunk = attr.ref_owner();
+    REQUIRE(shrunk.size() == 2);
+    REQUIRE(shrunk.get().data() != original.get().data());
+    attr.shrink_to_fit();
+    REQUIRE(!attr.is_external());
+    REQUIRE(shrunk.get()[0] == ValueType(23));
+    REQUIRE(shrunk.get().data()[8] == ValueType(17));
+    attr.ref(0) = ValueType(31);
+    REQUIRE(shrunk.get()[0] == ValueType(23));
+
+    auto grown_from = attr.ref_owner();
+    attr.resize_elements(5);
+    REQUIRE(!attr.is_external());
+    REQUIRE(attr.get(0) == ValueType(31));
+    REQUIRE(attr.get(4) == ValueType(17));
+    REQUIRE(grown_from.size() == 2);
+    REQUIRE(grown_from.get()[0] == ValueType(31));
+    auto grown = attr.ref_owner();
+    REQUIRE(grown.size() == 5);
+    REQUIRE(grown.get().data() != grown_from.get().data());
+    grown.ref()[4] = ValueType(42);
+    REQUIRE(attr.get(4) == ValueType(42));
+}
+
+template <typename ValueType>
+void test_shared_span()
+{
+    using namespace lagrange;
+    auto buffer = std::make_shared<std::vector<ValueType>>(4);
+    std::iota(buffer->begin(), buffer->end(), ValueType(0));
+    auto values = make_shared_span(buffer, buffer->data(), buffer->size());
+    std::weak_ptr<std::vector<ValueType>> lifetime = buffer;
+    auto middle = values.subspan(1, 2);
+    SharedSpan<const ValueType> readonly(middle.owner(), middle.size());
+    auto end = values.subspan(4, 0);
+    REQUIRE(middle.ref().data() == buffer->data() + 1);
+    REQUIRE(middle.size() == 2);
+    REQUIRE(end.has_owner());
+    REQUIRE(end.size() == 0);
+    REQUIRE(end.get().data() == buffer->data() + 4);
+    middle.ref()[0] = ValueType(42);
+    REQUIRE(readonly.get()[0] == ValueType(42));
+    LA_REQUIRE_THROWS(values.subspan(5, 0));
+    LA_REQUIRE_THROWS(values.subspan(3, 2));
+    LA_REQUIRE_THROWS(values.subspan(1, std::numeric_limits<size_t>::max()));
+    buffer.reset();
+    values = {};
+    middle = {};
+    readonly = {};
+    REQUIRE(!lifetime.expired());
+    end = {};
+    REQUIRE(lifetime.expired());
+
+    auto owner = std::make_shared<std::vector<ValueType>>();
+    auto empty = make_shared_span(owner, static_cast<ValueType*>(nullptr), 0);
+    std::weak_ptr<std::vector<ValueType>> empty_lifetime = owner;
+    auto empty_end = empty.subspan(0, 0);
+    SharedSpan<const ValueType> const_empty(empty_end.owner(), empty_end.size());
+    REQUIRE(empty.has_owner());
+    REQUIRE(empty_end.get().data() == nullptr);
+    REQUIRE(const_empty.has_owner());
+    LA_REQUIRE_THROWS(empty.subspan(1, 0));
+    LA_REQUIRE_THROWS(empty.subspan(0, 1));
+    owner.reset();
+    empty = {};
+    empty_end = {};
+    REQUIRE(!empty_lifetime.expired());
+    const_empty = {};
+    REQUIRE(empty_lifetime.expired());
+    SharedSpan<ValueType> unowned;
+    REQUIRE(!unowned.has_owner());
+    REQUIRE(!unowned.subspan(0, 0).has_owner());
+}
+
 } // namespace
 
 TEST_CASE("IndexedAttribute: Move-Copy", "[attribute]")
@@ -1125,6 +1572,36 @@ TEST_CASE("Attribute: ownership", "[attribute]")
 {
 #define LA_X_ownership(_, ValueType) test_ownership<ValueType>();
     LA_ATTRIBUTE_X(ownership, 0)
+}
+
+TEST_CASE("Attribute: Policy propagation", "[attribute]")
+{
+#define LA_X_policy_propagation(_, ValueType) test_policy_propagation<ValueType>();
+    LA_ATTRIBUTE_X(policy_propagation, 0)
+}
+
+TEST_CASE("Attribute: Managed promotion", "[attribute]")
+{
+#define LA_X_ensure_shared_storage(_, ValueType) test_ensure_shared_storage<ValueType>();
+    LA_ATTRIBUTE_X(ensure_shared_storage, 0)
+}
+
+TEST_CASE("Attribute: Managed allocation lifetime", "[attribute]")
+{
+#define LA_X_managed_lifetime(_, ValueType) test_managed_lifetime<ValueType>();
+    LA_ATTRIBUTE_X(managed_lifetime, 0)
+}
+
+TEST_CASE("Attribute: Managed allocation detachment", "[attribute]")
+{
+#define LA_X_managed_detachment(_, ValueType) test_managed_detachment<ValueType>();
+    LA_ATTRIBUTE_X(managed_detachment, 0)
+}
+
+TEST_CASE("SharedSpan: Ownership and bounded views", "[utils][attribute]")
+{
+#define LA_X_shared_span(_, ValueType) test_shared_span<ValueType>();
+    LA_ATTRIBUTE_X(shared_span, 0)
 }
 
 // TODO

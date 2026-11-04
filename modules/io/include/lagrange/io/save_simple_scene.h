@@ -21,11 +21,16 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
- * Save a mesh to a file.
+ * Save a simple scene to a file.
  *
  * @param[in] filename  path to output
- * @param[in] scene     mesh to save
+ * @param[in] scene     scene to save
  * @param[in] options   SaveOptions, check the struct for more details.
  */
 template <typename Scalar, typename Index, size_t Dimension = 3>
@@ -48,5 +53,7 @@ LA_IO_API void save_simple_scene(
     const scene::SimpleScene<Scalar, Index, Dimension>& scene,
     FileFormat format,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

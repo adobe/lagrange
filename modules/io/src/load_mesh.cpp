@@ -67,7 +67,7 @@ MeshType load_mesh(const fs::path& filename, const LoadOptions& options)
         enc_options.allow_type_cast = true;
         enc_options.quiet = options.quiet;
         return serialization::load_mesh<MeshType>(filename, enc_options);
-    } else if (ext == ".lgs") {
+    } else if (ext == ".lgs" || ext == ".lgx") {
         serialization::DeserializeOptions enc_options;
         enc_options.allow_scene_conversion = true;
         enc_options.allow_type_cast = true;

@@ -18,6 +18,11 @@
 namespace lagrange::scene {
 
 ///
+/// @addtogroup module-scene
+/// @{
+///
+
+///
 /// Compute the axis-aligned bounding box of all instantiated mesh vertices in a simple scene.
 ///
 /// Each mesh is transformed independently by each of its instance transformations. Meshes without
@@ -36,5 +41,7 @@ template <typename Scalar, typename Index, size_t Dimension>
 [[nodiscard]]
 Eigen::AlignedBox<Scalar, static_cast<int>(Dimension)> simple_scene_bbox(
     const SimpleScene<Scalar, Index, Dimension>& scene);
+
+/// @}
 
 } // namespace lagrange::scene

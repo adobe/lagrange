@@ -20,9 +20,14 @@
 namespace lagrange::scene {
 
 ///
+/// @addtogroup module-scene
+/// @{
+///
+
+///
 /// Converts a single mesh into a simple scene with a single identity instance of the input mesh.
 ///
-/// @param[in]  mesh       Input mesh to convert.
+/// @param[in]  mesh       Input mesh, whose dimension must equal @p Dimension.
 ///
 /// @tparam     Dimension  Output scene dimension.
 /// @tparam     Scalar     Input mesh scalar type.
@@ -37,7 +42,7 @@ SimpleScene<Scalar, Index, Dimension> mesh_to_simple_scene(SurfaceMesh<Scalar, I
 /// Converts a list of meshes into a simple scene with a single identity instance of each input
 /// mesh.
 ///
-/// @param[in]  meshes     Input meshes to convert.
+/// @param[in]  meshes     Input meshes, each of dimension @p Dimension, retained in input order.
 ///
 /// @tparam     Dimension  Output scene dimension.
 /// @tparam     Scalar     Input mesh scalar type.
@@ -50,7 +55,8 @@ SimpleScene<Scalar, Index, Dimension> meshes_to_simple_scene(
     std::vector<SurfaceMesh<Scalar, Index>> meshes);
 
 ///
-/// Converts a scene into a concatenated mesh with all the transforms applied.
+/// Concatenates all mesh instances with their transforms applied. Meshes without instances are
+/// omitted; each instance contributes a separate copy of its source mesh.
 ///
 /// @param[in]  scene                Scene to convert.
 /// @param[in]  transform_options    Options to use when applying mesh transformations.
@@ -69,7 +75,8 @@ SurfaceMesh<Scalar, Index> simple_scene_to_mesh(
     bool preserve_attributes = true);
 
 ///
-/// Converts a scene into a list of meshes with all the transforms applied.
+/// Converts each mesh instance into a mesh with its transform applied. Meshes without instances
+/// are omitted. The input scene is not modified.
 ///
 /// @param[in]  scene              Scene to convert.
 /// @param[in]  transform_options  Options to use when applying mesh transformations.
@@ -78,11 +85,14 @@ SurfaceMesh<Scalar, Index> simple_scene_to_mesh(
 /// @tparam     Index              Input scene index type.
 /// @tparam     Dimension          Input scene dimension.
 ///
-/// @return     List of meshes with transforms applied.
+/// @return     One transformed mesh per instance, ordered by source mesh index, then local
+///             instance index. Instance user data is not included.
 ///
 template <typename Scalar, typename Index, size_t Dimension>
 std::vector<SurfaceMesh<Scalar, Index>> simple_scene_to_meshes(
     const SimpleScene<Scalar, Index, Dimension>& scene,
     const TransformOptions& transform_options = {});
+
+/// @}
 
 } // namespace lagrange::scene

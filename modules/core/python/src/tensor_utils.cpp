@@ -9,11 +9,12 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
+#include <lagrange/python/binding.h>
+
 #include <lagrange/python/tensor_utils.h>
 
 #include <lagrange/AttributeTypes.h>
 #include <lagrange/Logger.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/fmt/format.h>
@@ -81,7 +82,8 @@ bool is_dense(const Shape& shape, const Stride& stride)
     switch (ndim) {
     case 1: return static_cast<size_t>(shape[0]) == 0 || static_cast<size_t>(stride[0]) == 1;
     case 2:
-        return static_cast<size_t>(stride[0]) == shape[1] && static_cast<size_t>(stride[1]) == 1;
+        return shape[0] == 0 || shape[1] == 0 ||
+               (static_cast<size_t>(stride[0]) == shape[1] && static_cast<size_t>(stride[1]) == 1);
     default: throw Error(lagrange::format("{}-dimensional tensor is not supported", ndim));
     }
 }
@@ -102,110 +104,75 @@ std::tuple<span<ValueType>, Shape, Stride> tensor_to_span(Tensor<ValueType> tens
 }
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>> span_to_tensor(span<ValueType> values, nb::handle base)
+Tensor<ValueType> span_to_tensor(span<ValueType> values, nb::handle base)
 {
-    using T = std::decay_t<ValueType>;
     const size_t shape = values.size();
-    Tensor<std::decay_t<ValueType>> tensor(const_cast<T*>(values.data()), 1, &shape, base);
-    return tensor;
+    return Tensor<ValueType>(values.data(), 1, &shape, base);
 }
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>>
-span_to_tensor(span<ValueType> values, span<const size_t> shape, nb::handle base)
+Tensor<ValueType> span_to_tensor(span<ValueType> values, span<const size_t> shape, nb::handle base)
 {
-    using T = std::decay_t<ValueType>;
-    Tensor<std::decay_t<ValueType>> tensor(
-        const_cast<T*>(values.data()),
-        shape.size(),
-        shape.data(),
-        base);
-    return tensor;
+    return Tensor<ValueType>(values.data(), shape.size(), shape.data(), base);
 }
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>> span_to_tensor(
+Tensor<ValueType> span_to_tensor(
     span<ValueType> values,
     span<const size_t> shape,
     span<const int64_t> stride,
     nb::handle base)
 {
-    using T = std::decay_t<ValueType>;
-    Tensor<std::decay_t<ValueType>> tensor(
-        const_cast<T*>(values.data()),
-        shape.size(),
-        shape.data(),
-        base,
-        stride.data());
-    return tensor;
+    return Tensor<ValueType>(values.data(), shape.size(), shape.data(), base, stride.data());
 }
 
 template <typename ValueType>
-Tensor<std::decay_t<ValueType>> attribute_to_tensor(
-    const Attribute<ValueType>& attr,
-    nb::handle base)
+GenericTensor attribute_to_tensor(Attribute<ValueType>& attr, span<const size_t> shape)
 {
-    return attribute_to_tensor(attr, {}, base);
-}
-
-template <typename ValueType>
-Tensor<std::decay_t<ValueType>>
-attribute_to_tensor(const Attribute<ValueType>& attr, span<const size_t> shape, nb::handle base)
-{
-    auto data = attr.get_all();
-
-    size_t num_elements = attr.get_num_elements();
-    size_t num_channels = attr.get_num_channels();
+    attr.ensure_shared_storage();
+    const size_t default_shape[2] = {attr.get_num_elements(), attr.get_num_channels()};
+    if (shape.empty() && attr.get_num_channels() != 1) shape = default_shape;
     if (!shape.empty()) {
         la_runtime_assert(shape.size() == 2);
-        la_runtime_assert(num_elements * num_channels == shape[0] * shape[1]);
-        num_elements = shape[0];
-        num_channels = shape[1];
+        la_runtime_assert(attr.get_all().size() == shape[0] * shape[1]);
     }
-
-    if (num_channels == 1) {
-        return span_to_tensor(data, base);
-    } else {
-        size_t tmp_shape[2]{num_elements, num_channels};
-        return span_to_tensor(data, tmp_shape, base);
+    if (attr.is_read_only()) {
+        return GenericTensor(shared_span_to_array(attr.get_owner(), shape));
     }
+    return GenericTensor(shared_span_to_array(attr.ref_owner(), shape));
 }
 
-#define LA_X_tensor_utils(_, ValueType)                                            \
-    template Tensor<ValueType> create_empty_tensor<ValueType>();                   \
-    template std::tuple<span<ValueType>, Shape, Stride> tensor_to_span<ValueType>( \
-        Tensor<ValueType>);                                                        \
-    template Tensor<std::decay_t<ValueType>> span_to_tensor<ValueType>(            \
-        span<ValueType>,                                                           \
-        nb::handle);                                                               \
-    template Tensor<std::decay_t<ValueType>> span_to_tensor<const ValueType>(      \
-        span<const ValueType>,                                                     \
-        nb::handle);                                                               \
-    template Tensor<std::decay_t<ValueType>> span_to_tensor<ValueType>(            \
-        span<ValueType>,                                                           \
-        span<const size_t>,                                                        \
-        nb::handle);                                                               \
-    template Tensor<std::decay_t<ValueType>> span_to_tensor<const ValueType>(      \
-        span<const ValueType>,                                                     \
-        span<const size_t>,                                                        \
-        nb::handle);                                                               \
-    template Tensor<std::decay_t<ValueType>> span_to_tensor<ValueType>(            \
-        span<ValueType>,                                                           \
-        span<const size_t>,                                                        \
-        span<const int64_t>,                                                       \
-        nb::handle);                                                               \
-    template Tensor<std::decay_t<ValueType>> span_to_tensor<const ValueType>(      \
-        span<const ValueType>,                                                     \
-        span<const size_t>,                                                        \
-        span<const int64_t>,                                                       \
-        nb::handle);                                                               \
-    template Tensor<std::decay_t<ValueType>> attribute_to_tensor<ValueType>(       \
-        const Attribute<ValueType>&,                                               \
-        nb::handle base);                                                          \
-    template Tensor<std::decay_t<ValueType>> attribute_to_tensor<ValueType>(       \
-        const Attribute<ValueType>&,                                               \
-        span<const size_t>,                                                        \
-        nb::handle base);
+#define LA_X_tensor_utils(_, ValueType)                                                        \
+    template Tensor<ValueType> create_empty_tensor<ValueType>();                               \
+    template std::tuple<span<ValueType>, Shape, Stride> tensor_to_span<ValueType>(             \
+        Tensor<ValueType>);                                                                    \
+    template std::tuple<span<const ValueType>, Shape, Stride> tensor_to_span<const ValueType>( \
+        Tensor<const ValueType>);                                                              \
+    template Tensor<ValueType> span_to_tensor<ValueType>(span<ValueType>, nb::handle);         \
+    template Tensor<const ValueType> span_to_tensor<const ValueType>(                          \
+        span<const ValueType>,                                                                 \
+        nb::handle);                                                                           \
+    template Tensor<ValueType> span_to_tensor<ValueType>(                                      \
+        span<ValueType>,                                                                       \
+        span<const size_t>,                                                                    \
+        nb::handle);                                                                           \
+    template Tensor<const ValueType> span_to_tensor<const ValueType>(                          \
+        span<const ValueType>,                                                                 \
+        span<const size_t>,                                                                    \
+        nb::handle);                                                                           \
+    template Tensor<ValueType> span_to_tensor<ValueType>(                                      \
+        span<ValueType>,                                                                       \
+        span<const size_t>,                                                                    \
+        span<const int64_t>,                                                                   \
+        nb::handle);                                                                           \
+    template Tensor<const ValueType> span_to_tensor<const ValueType>(                          \
+        span<const ValueType>,                                                                 \
+        span<const size_t>,                                                                    \
+        span<const int64_t>,                                                                   \
+        nb::handle);                                                                           \
+    template GenericTensor attribute_to_tensor<ValueType>(                                     \
+        Attribute<ValueType>&,                                                                 \
+        span<const size_t>);
 LA_ATTRIBUTE_X(tensor_utils, 0)
 
 } // namespace lagrange::python

@@ -368,7 +368,7 @@ public:
         return false;
     }
 
-    bool operator==(const SweepPath<Scalar>& other) const override
+    bool operator==([[maybe_unused]] const SweepPath<Scalar>& other) const override
     {
 #if LAGRANGE_TARGET_FEATURE(RTTI)
         if (const auto* other_linear = dynamic_cast<const LinearSweepPath<Scalar>*>(&other)) {
@@ -509,7 +509,7 @@ public:
         return (winding != 0) && std::abs(angle_diff - winding * two_pi) < point_five_degree;
     }
 
-    bool operator==(const SweepPath<Scalar>& other) const override
+    bool operator==([[maybe_unused]] const SweepPath<Scalar>& other) const override
     {
 #if LAGRANGE_TARGET_FEATURE(RTTI)
         if (const auto* other_circular =
@@ -542,6 +542,8 @@ public:
     using Scalar = typename _VertexArray::Scalar;
     using VertexArray = _VertexArray;
     using Parent = SweepPath<Scalar>;
+    using TransformType = typename Parent::TransformType;
+    using PointType = typename Parent::PointType;
     using Index = Eigen::Index;
 
 public:
@@ -584,9 +586,6 @@ public:
 public:
     void initialize() override
     {
-        using TransformType = Eigen::Transform<Scalar, 3, Eigen::AffineCompact>;
-        using PointType = Eigen::Matrix<Scalar, 1, 3>;
-
         const Index N = Parent::get_num_samples();
         const Index M = static_cast<Index>(m_polyline.rows());
         const bool path_closed = is_polyline_closed();
@@ -740,7 +739,7 @@ public:
         return false;
     }
 
-    bool operator==(const SweepPath<Scalar>& other) const override
+    bool operator==([[maybe_unused]] const SweepPath<Scalar>& other) const override
     {
 #if LAGRANGE_TARGET_FEATURE(RTTI)
         if (const auto* other_polyline =

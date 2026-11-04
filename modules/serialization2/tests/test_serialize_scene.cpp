@@ -498,7 +498,7 @@ TEST_CASE("serialization2: scene file round-trip", "[serialization2][scene]")
 
     SECTION("compressed")
     {
-        auto path = tmp_dir / "test_scene_compressed.lscene";
+        auto path = tmp_dir / "test_scene_compressed.lgx";
         lagrange::serialization::save_scene(path, scene);
         auto result = lagrange::serialization::load_scene<Scene<Scalar, Index>>(path);
         lagrange::testing::check_scenes_equal(scene, result);
@@ -507,7 +507,7 @@ TEST_CASE("serialization2: scene file round-trip", "[serialization2][scene]")
 
     SECTION("uncompressed")
     {
-        auto path = tmp_dir / "test_scene_uncompressed.lscene";
+        auto path = tmp_dir / "test_scene_uncompressed.lgx";
         lagrange::serialization::SerializeOptions opts;
         opts.compress = false;
         lagrange::serialization::save_scene(path, scene, opts);

@@ -17,7 +17,11 @@
 #include <lagrange/views.h>
 #include <lagrange/winding/FastWindingNumber.h>
 
+// clang-format off
+#include <lagrange/utils/warnoff.h>
 #include <UT_SolidAngle.h>
+#include <lagrange/utils/warnon.h>
+// clang-format on
 
 #include <vector>
 
@@ -113,8 +117,9 @@ float FastWindingNumber::solid_angle(const std::array<float, 3>& pos) const
 }
 
 // Iterate over mesh (scalar, index) types
-#define LA_X_fast_winding_number(_, Scalar, Index) \
-    template FastWindingNumber::FastWindingNumber(const SurfaceMesh<Scalar, Index>& mesh);
+#define LA_X_fast_winding_number(_, Scalar, Index)                \
+    template LA_WINDING_API FastWindingNumber::FastWindingNumber( \
+        const SurfaceMesh<Scalar, Index>& mesh);
 LA_SURFACE_MESH_X(fast_winding_number, 0)
 
 } // namespace winding

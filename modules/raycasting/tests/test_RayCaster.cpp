@@ -20,6 +20,10 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 #include <catch2/catch_approx.hpp>
+#include <catch2/catch_template_test_macros.hpp>
+
+#include <limits>
+#include <variant>
 
 namespace {
 
@@ -115,6 +119,65 @@ TEST_CASE("RayCaster: occluded", "[raycasting][RayCaster]")
         bool occ = caster.occluded(Eigen::Vector3f(5, 0, 0), Eigen::Vector3f(1, 0, 0));
         REQUIRE(!occ);
     }
+}
+
+TEMPLATE_TEST_CASE_SIG(
+    "RayCaster: packet occlusion",
+    "[raycasting][RayCaster]",
+    ((int N), N),
+    4,
+    8,
+    16)
+{
+    namespace rc = lagrange::raycasting;
+    using Points = Eigen::Matrix<float, N, 3, Eigen::RowMajor>;
+    using Mask = Eigen::Vector<bool, N>;
+    using Distances = Eigen::Vector<float, N>;
+
+    rc::RayCaster caster(
+        lagrange::BitField(rc::SceneFlags::Robust) | lagrange::BitField(rc::SceneFlags::Filter));
+    const auto mesh_id = caster.add_mesh(create_cube_surface_mesh());
+    caster.commit_updates();
+
+    Points origins = Points::Zero();
+    Points directions = Points::Zero();
+    Mask active;
+    uint32_t expected = 0;
+    uint32_t masked_expected = 0;
+    for (int i = 0; i < N; ++i) {
+        origins(i, 0) = 5.f;
+        directions(i, 0) = i % 2 == 0 ? -1.f : 1.f;
+        active[i] = i % 3 != 0;
+        if (i % 2 == 0) {
+            expected |= 1u << i;
+            if (active[i]) masked_expected |= 1u << i;
+        }
+    }
+    const auto query = [&](const std::variant<Mask, size_t>& mask,
+                           float max_distance = std::numeric_limits<float>::infinity()) {
+        const Distances tmin = Distances::Zero();
+        const Distances tmax = Distances::Constant(max_distance);
+        if constexpr (N == 4) {
+            return caster.occluded4(origins, directions, mask, tmin, tmax);
+        } else if constexpr (N == 8) {
+            return caster.occluded8(origins, directions, mask, tmin, tmax);
+        } else {
+            return caster.occluded16(origins, directions, mask, tmin, tmax);
+        }
+    };
+
+    REQUIRE(query(size_t(N)) == expected);
+    REQUIRE(query(active) == masked_expected);
+    REQUIRE(query(size_t(0)) == 0);
+    REQUIRE(query(size_t(N), 1.f) == 0);
+    REQUIRE(query(size_t(N - 1)) == (expected & ((1u << (N - 1)) - 1)));
+
+    caster.set_occlusion_filter(mesh_id, [](uint32_t, uint32_t) { return false; });
+    REQUIRE(query(size_t(N)) == 0);
+    caster.set_occlusion_filter(mesh_id, [](uint32_t, uint32_t) { return true; });
+    REQUIRE(query(active) == masked_expected);
+    caster.set_occlusion_filter(mesh_id, {});
+    REQUIRE(query(size_t(N)) == expected);
 }
 
 TEST_CASE("RayCaster: closest_point", "[raycasting][RayCaster]")
@@ -531,9 +594,9 @@ TEST_CASE("RayCaster: update_vertices", "[raycasting][RayCaster]")
     caster.commit_updates();
 
     // Now should hit at x=2
-    hit = caster.cast(Eigen::Vector3f(5, 0, 0), Eigen::Vector3f(-1, 0, 0));
-    REQUIRE(hit.has_value());
-    REQUIRE(hit->position.x() == Catch::Approx(2.0f).margin(1e-3f));
+    const auto updated_hit = caster.cast(Eigen::Vector3f(5, 0, 0), Eigen::Vector3f(-1, 0, 0));
+    REQUIRE(updated_hit.has_value());
+    REQUIRE(updated_hit->position.x() == Catch::Approx(2.0f).margin(1e-3f));
 }
 
 TEST_CASE("RayCaster: intersection filter", "[raycasting][RayCaster]")
@@ -623,9 +686,9 @@ TEST_CASE("RayCaster: update_transform", "[raycasting][RayCaster]")
     REQUIRE(!hit.has_value());
 
     // New position should hit at x=9 (10-1)
-    hit = caster.cast(Eigen::Vector3f(15, 0, 0), Eigen::Vector3f(-1, 0, 0));
-    REQUIRE(hit.has_value());
-    REQUIRE(hit->position.x() == Catch::Approx(11.0f).margin(1e-3f));
+    const auto updated_hit = caster.cast(Eigen::Vector3f(15, 0, 0), Eigen::Vector3f(-1, 0, 0));
+    REQUIRE(updated_hit.has_value());
+    REQUIRE(updated_hit->position.x() == Catch::Approx(11.0f).margin(1e-3f));
 }
 
 TEST_CASE("RayCaster: rotated directions", "[raycasting][RayCaster]")

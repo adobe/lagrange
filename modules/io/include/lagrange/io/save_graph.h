@@ -20,6 +20,11 @@
 namespace lagrange {
 
 ///
+/// @addtogroup module-io
+/// @{
+///
+
+///
 /// Saves a 2D undirected graph (V,E) using off format.
 ///
 /// @param[in]  filename  Target filename path.
@@ -72,5 +77,7 @@ void save_graph(
         throw std::runtime_error("Unsupported file extension");
     }
 }
+
+/// @}
 
 } // namespace lagrange

@@ -10,11 +10,12 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/geodesic/GeodesicEngineDGPC.h>
 #include <lagrange/geodesic/GeodesicEngineFlip.h>
 #include <lagrange/geodesic/GeodesicEngineHeat.h>
 #include <lagrange/geodesic/GeodesicEngineMMP.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/geodesic.h>
 
 #include <array>

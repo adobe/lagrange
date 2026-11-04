@@ -13,8 +13,11 @@
 
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
+#include <lagrange/utils/Error.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/fmt/format.h>
 #include <lagrange/views.h>
 
 #include <algorithm>
@@ -23,26 +26,45 @@ namespace lagrange {
 
 namespace {
 
+bool concatenate_values(AttributeUsage usage, ValueAttributePolicy policy)
+{
+    if (policy != ValueAttributePolicy::ConcatenateIndices) return false;
+    switch (usage) {
+    case AttributeUsage::VertexIndex:
+    case AttributeUsage::FacetIndex:
+    case AttributeUsage::CornerIndex:
+    case AttributeUsage::EdgeIndex: return true;
+    default: return false;
+    }
+}
+
 template <typename Scalar, typename Index, typename ValueType>
-bool validate_attribute_metadata(
+bool validate_attribute(
     size_t num_meshes,
-    function_ref<const SurfaceMesh<Scalar, Index>(size_t)> get_mesh,
+    function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
     std::string_view name,
     AttributeElement target_element,
     size_t target_num_channels,
-    AttributeUsage target_usage)
+    AttributeUsage target_usage,
+    ValueAttributePolicy value_attribute_policy)
 {
-    for (size_t i = 0; i < num_meshes; ++i) {
+    const bool require_equal =
+        target_element == Value && !concatenate_values(target_usage, value_attribute_policy);
+    const auto target_values = require_equal
+                                   ? get_mesh(0).template get_attribute<ValueType>(name).get_all()
+                                   : span<const ValueType>{};
+    for (size_t i = 1; i < num_meshes; ++i) {
         const auto& mesh = get_mesh(i);
         if (!mesh.has_attribute(name)) {
             logger().warn("combine_meshes: not all meshes contain attribute {}, skipping!", name);
             return false;
         }
-        if (!mesh.template is_attribute_type<ValueType>(name)) {
+        const AttributeId id = mesh.get_attribute_id(name);
+        if (!mesh.template is_attribute_type<ValueType>(id)) {
             logger().warn("combine_meshes: attribute {} has inconsistent ValueType.", name);
             return false;
         }
-        const auto& local_attr = mesh.get_attribute_base(name);
+        const auto& local_attr = mesh.get_attribute_base(id);
         if (local_attr.get_usage() != target_usage) {
             logger().warn("combine_meshes: attribute {} has inconsistent usage!", name);
             return false;
@@ -56,6 +78,17 @@ bool validate_attribute_metadata(
                 "combine_meshes: attribute {} has inconsistent number of channels. Skipping!",
                 name);
             return false;
+        }
+        if (require_equal) {
+            const auto local_values = mesh.template get_attribute<ValueType>(id).get_all();
+            if (target_values.size() != local_values.size() ||
+                (target_values.data() != local_values.data() &&
+                 !std::equal(target_values.begin(), target_values.end(), local_values.begin()))) {
+                logger().error(
+                    "combine_meshes: Value attribute '{}' differs between meshes, skipping!",
+                    name);
+                return false;
+            }
         }
     }
     return true;
@@ -77,9 +110,18 @@ template <typename Scalar, typename Index>
 void combine_attributes(
     size_t num_meshes,
     function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
-    SurfaceMesh<Scalar, Index>& out_mesh)
+    SurfaceMesh<Scalar, Index>& out_mesh,
+    ValueAttributePolicy value_attribute_policy)
 {
     la_debug_assert(num_meshes > 0);
+
+    bool all_have_edges = true;
+    for (size_t i = 0; i < num_meshes; ++i) {
+        if (!get_mesh(i).has_edges()) {
+            all_have_edges = false;
+            break;
+        }
+    }
 
     auto resize_value_attribute = [&](auto&& attr, auto mesh_to_attr) {
         size_t num_elements = 0;
@@ -97,7 +139,7 @@ void combine_attributes(
         AttributeUsage usage = attr.get_usage();
 
         if (attr.get_element_type() == Value) {
-            resize_value_attribute(attr, [&](auto i) -> decltype(auto) {
+            resize_value_attribute(attr, [&](size_t i) -> decltype(auto) {
                 return get_mesh(i).template get_attribute<ValueType>(name);
             });
         }
@@ -181,19 +223,32 @@ void combine_attributes(
         AttributeElement element = attr.get_element_type();
         AttributeUsage usage = attr.get_usage();
         size_t num_channels = attr.get_num_channels();
+        const bool edge_attribute = element == Edge || usage == AttributeUsage::EdgeIndex;
+        if (edge_attribute && !all_have_edges) {
+            logger().warn(
+                "combine_meshes: not all meshes have edges, skipping attribute '{}'.",
+                name);
+            return;
+        }
 
-        if (!validate_attribute_metadata<Scalar, Index, ValueType>(
+        if (!validate_attribute<Scalar, Index, ValueType>(
                 num_meshes,
                 get_mesh,
                 name,
                 element,
                 num_channels,
-                usage)) {
+                usage,
+                value_attribute_policy)) {
             return;
         }
-        if (element == Edge && !out_mesh.has_edges()) {
+        if (edge_attribute && !out_mesh.has_edges()) {
             auto edges = combined_edge_vertices();
-            out_mesh.initialize_edges({&edges[0][0], 2 * edges.size()});
+            out_mesh.initialize_edges(
+                {edges.empty() ? nullptr : edges.front().data(), 2 * edges.size()});
+        }
+        if (element == Value && !concatenate_values(usage, value_attribute_policy)) {
+            out_mesh.create_attribute_from(name, get_mesh(0));
+            return;
         }
 
         auto id = out_mesh.template create_attribute<ValueType>(name, element, usage, num_channels);
@@ -212,7 +267,7 @@ template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> combine_meshes_impl(
     size_t num_meshes,
     function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
-    bool preserve_attributes)
+    const CombineMeshesOptions& options)
 {
     if (num_meshes == 0) return SurfaceMesh<Scalar, Index>{};
 
@@ -249,7 +304,9 @@ SurfaceMesh<Scalar, Index> combine_meshes_impl(
     combined_mesh.add_vertices(total_num_vertices);
     if (is_regular) {
         // Fast path for combining meshes with the same facet sizes
-        combined_mesh.add_polygons(total_num_facets, vertex_per_facet);
+        if (total_num_facets > 0) {
+            combined_mesh.add_polygons(total_num_facets, vertex_per_facet);
+        }
     } else {
         // Slow path for hybrid cases
         for (size_t i = 0; i < num_meshes; ++i) {
@@ -282,8 +339,8 @@ SurfaceMesh<Scalar, Index> combine_meshes_impl(
     la_debug_assert(current_v == combined_mesh.get_num_vertices());
     la_debug_assert(current_c == combined_mesh.get_num_corners());
 
-    if (preserve_attributes) {
-        combine_attributes(num_meshes, get_mesh, combined_mesh);
+    if (options.preserve_attributes) {
+        combine_attributes(num_meshes, get_mesh, combined_mesh, options.value_attribute_policy);
     }
 
     return combined_mesh;
@@ -295,9 +352,20 @@ template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> combine_meshes(
     size_t num_meshes,
     function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
-    bool preserve_attributes)
+    const CombineMeshesOptions& options)
 {
-    if (preserve_attributes) {
+    for (size_t i = 0; i < num_meshes; ++i) {
+        const auto& mesh = get_mesh(i);
+        if (mesh.has_edges()) continue;
+        if (auto id = find_matching_attribute(mesh, AttributeUsage::EdgeIndex)) {
+            throw Error(format(
+                "combine_meshes: attribute '{}' has EdgeIndex usage, but edges are not "
+                "initialized in input mesh {}.",
+                mesh.get_attribute_name(*id),
+                i));
+        }
+    }
+    if (options.preserve_attributes) {
         // Check for empty meshes and skip them
         bool has_empty_mesh = false;
         for (size_t i = 0; i < num_meshes; ++i) {
@@ -319,11 +387,46 @@ SurfaceMesh<Scalar, Index> combine_meshes(
                 [&](size_t i) -> const SurfaceMesh<Scalar, Index>& {
                     return get_mesh(non_empty_meshes[i]);
                 },
-                true);
+                options);
         }
     }
     // Default path when we don't need to remap anything.
-    return combine_meshes_impl(num_meshes, get_mesh, preserve_attributes);
+    return combine_meshes_impl(num_meshes, get_mesh, options);
+}
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> combine_meshes(
+    std::initializer_list<const SurfaceMesh<Scalar, Index>*> meshes,
+    const CombineMeshesOptions& options)
+{
+    return combine_meshes<Scalar, Index>(
+        meshes.size(),
+        [&](size_t i) -> const SurfaceMesh<Scalar, Index>& {
+            return **std::next(meshes.begin(), i);
+        },
+        options);
+}
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> combine_meshes(
+    span<const SurfaceMesh<Scalar, Index>> meshes,
+    const CombineMeshesOptions& options)
+{
+    return combine_meshes<Scalar, Index>(
+        meshes.size(),
+        [&](size_t i) -> const SurfaceMesh<Scalar, Index>& { return meshes[i]; },
+        options);
+}
+
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> combine_meshes(
+    size_t num_meshes,
+    function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
+    bool preserve_attributes)
+{
+    CombineMeshesOptions options;
+    options.preserve_attributes = preserve_attributes;
+    return combine_meshes<Scalar, Index>(num_meshes, get_mesh, options);
 }
 
 template <typename Scalar, typename Index>
@@ -331,12 +434,9 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     std::initializer_list<const SurfaceMesh<Scalar, Index>*> meshes,
     bool preserve_attributes)
 {
-    return combine_meshes<Scalar, Index>(
-        meshes.size(),
-        [&](size_t i) -> const SurfaceMesh<Scalar, Index>& {
-            return **std::next(meshes.begin(), i);
-        },
-        preserve_attributes);
+    CombineMeshesOptions options;
+    options.preserve_attributes = preserve_attributes;
+    return combine_meshes<Scalar, Index>(meshes, options);
 }
 
 template <typename Scalar, typename Index>
@@ -344,10 +444,9 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     span<const SurfaceMesh<Scalar, Index>> meshes,
     bool preserve_attributes)
 {
-    return combine_meshes<Scalar, Index>(
-        meshes.size(),
-        [&](size_t i) -> const SurfaceMesh<Scalar, Index>& { return meshes[i]; },
-        preserve_attributes);
+    CombineMeshesOptions options;
+    options.preserve_attributes = preserve_attributes;
+    return combine_meshes<Scalar, Index>(meshes, options);
 }
 
 #define LA_X_combine_meshes(_, Scalar, Index)                                      \
@@ -360,7 +459,17 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     template LA_CORE_API SurfaceMesh<Scalar, Index> combine_meshes<Scalar, Index>( \
         size_t,                                                                    \
         function_ref<const SurfaceMesh<Scalar, Index>&(size_t)>,                   \
-        bool);
+        bool);                                                                     \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> combine_meshes<Scalar, Index>( \
+        std::initializer_list<const SurfaceMesh<Scalar, Index>*>,                  \
+        const CombineMeshesOptions&);                                              \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> combine_meshes<Scalar, Index>( \
+        span<const SurfaceMesh<Scalar, Index>>,                                    \
+        const CombineMeshesOptions&);                                              \
+    template LA_CORE_API SurfaceMesh<Scalar, Index> combine_meshes<Scalar, Index>( \
+        size_t,                                                                    \
+        function_ref<const SurfaceMesh<Scalar, Index>&(size_t)>,                   \
+        const CombineMeshesOptions&);
 LA_SURFACE_MESH_X(combine_meshes, 0)
 
 } // namespace lagrange

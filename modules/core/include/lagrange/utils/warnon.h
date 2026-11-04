@@ -9,10 +9,11 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#if defined(__GNUC__)
-    #pragma GCC diagnostic pop
-#elif defined(__clang__)
+#if defined(__clang__)
     #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+    #pragma pop_macro("__DEPRECATED")
+    #pragma GCC diagnostic pop
 #elif defined(_MSC_VER)
     #pragma warning(pop)
 #endif

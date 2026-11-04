@@ -100,11 +100,11 @@ bool SmoothedMeshGradientField::sample_direction(
     return direction_out.allFinite();
 }
 
-#define LA_X_construct(_, Scalar, Index)                           \
-    template SmoothedMeshGradientField::SmoothedMeshGradientField( \
-        const SurfaceMesh<Scalar, Index>&,                         \
-        double,                                                    \
-        double,                                                    \
+#define LA_X_construct(_, Scalar, Index)                                         \
+    template LA_VOLUME_API SmoothedMeshGradientField::SmoothedMeshGradientField( \
+        const SurfaceMesh<Scalar, Index>&,                                       \
+        double,                                                                  \
+        double,                                                                  \
         double);
 LA_SURFACE_MESH_X(construct, 0)
 

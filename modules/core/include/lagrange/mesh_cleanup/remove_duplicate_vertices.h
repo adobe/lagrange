@@ -37,6 +37,10 @@ struct RemoveDuplicateVerticesOptions
 
     /// Only remove duplicate vertices on the boundary.
     bool boundary_only = false;
+
+    /// Optional map from each input vertex to its vertex after removal.
+    /// Empty means the map is not written. Otherwise it must have one entry per input vertex.
+    span<size_t> old_to_new = {};
 };
 
 ///
@@ -45,9 +49,8 @@ struct RemoveDuplicateVerticesOptions
 /// @tparam Scalar          Mesh scalar type
 /// @tparam Index           Mesh index type
 ///
-/// @param[in,out] mesh     The mesh to remove duplicate vertices from.
-/// @param         options  The options for duplicate vertex detection.
-///
+/// @param[in,out] mesh         The mesh to remove duplicate vertices from.
+/// @param         options      The options for duplicate vertex detection.
 template <typename Scalar, typename Index>
 void remove_duplicate_vertices(
     SurfaceMesh<Scalar, Index>& mesh,

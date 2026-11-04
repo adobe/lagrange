@@ -74,8 +74,6 @@ template <size_t N>
 using RTCRayHitN =
     std::conditional_t<N <= 4, RTCRayHit4, std::conditional_t<N <= 8, RTCRayHit8, RTCRayHit16>>;
 template <size_t N>
-using RTCRayN = std::conditional_t<N <= 4, RTCRay4, std::conditional_t<N <= 8, RTCRay8, RTCRay16>>;
-template <size_t N>
 using RTCPointQueryN = std::conditional_t<
     N <= 4,
     RTCPointQuery4,
@@ -1484,7 +1482,10 @@ uint32_t occludedN(
     alignas(kAlign) std::array<int, N> embree_mask;
     resolve_active_mask<N>(active, embree_mask);
 
-    RTCRayN<N> packet;
+    // Embree's scalar rtcOccludedN fallback reads/writes the larger RTCRayHitN layout, so allocate it
+    // to keep those accesses in bounds. See https://github.com/RenderKit/embree/pull/275.
+    RTCRayHitN<N> storage{};
+    auto& packet = storage.ray;
     for (size_t i = 0; i < N; ++i) {
         // Only copy data for active rays to avoid using potentially uninitialized data.
         // Inactive rays get safe default values.

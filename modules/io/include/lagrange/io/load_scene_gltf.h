@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Load a scene using gltf.
  *
@@ -42,5 +47,7 @@ LA_IO_API SceneType load_scene_gltf(const fs::path& filename, const LoadOptions&
  */
 template <typename SceneType>
 LA_IO_API SceneType load_scene_gltf(std::istream& input_stream, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

@@ -18,6 +18,16 @@
 #include <catch2/reporters/catch_reporter_event_listener.hpp>
 #include <catch2/reporters/catch_reporter_registrars.hpp>
 
+#if __has_include(<tbb/version.h>)
+    #include <tbb/version.h>
+#endif
+
+// task_scheduler_handle(attach) requires oneTBB 2021.6+.
+#if !LAGRANGE_TARGET_OS(WASM) && defined(TBB_INTERFACE_VERSION) && TBB_INTERFACE_VERSION >= 12060
+    #define LAGRANGE_TESTING_JOIN_TBB_WORKERS
+    #include <tbb/global_control.h>
+#endif
+
 #ifdef LAGRANGE_WITH_CPPTRACE
     #include <cpptrace/from_current.hpp>
 #endif
@@ -27,6 +37,7 @@
 #endif
 
 #include <cstdlib>
+#include <new>
 
 namespace {
 
@@ -77,6 +88,13 @@ int main(int argc, char* argv[])
 {
     lagrange::testing::disable_windows_error_dialogs();
 
+#ifdef LAGRANGE_TESTING_JOIN_TBB_WORKERS
+    // Join TBB workers before exit: detaching them races with their exit in glibc < 2.43.
+    // See https://sourceware.org/bugzilla/show_bug.cgi?id=19951
+    // https://github.com/uxlfoundation/oneTBB/issues/175
+    tbb::task_scheduler_handle tbb_handle{tbb::attach{}};
+#endif
+
     Catch::Session session;
     int log_level = spdlog::level::warn;
     bool fpe_flag = false;
@@ -99,5 +117,15 @@ int main(int argc, char* argv[])
         lagrange::enable_fpe();
     }
 
-    return wrapped_run(session);
+    const int ret = wrapped_run(session);
+
+#ifdef LAGRANGE_TESTING_JOIN_TBB_WORKERS
+    // Fails when another owner keeps TBB alive (e.g. USD's detached-task thread), in which case
+    // workers are not torn down at exit.
+    if (!tbb::finalize(tbb_handle, std::nothrow)) {
+        lagrange::logger().debug("TBB is still in use, skipped joining worker threads");
+    }
+#endif
+
+    return ret;
 }

@@ -12,10 +12,6 @@
 
 # 1. define module
 lagrange_add_module(NO_INSTALL)
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set_target_properties(lagrange_polyscope PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-endif()
-
 # 2. dependencies
 include(polyscope)
 target_link_libraries(lagrange_polyscope PUBLIC lagrange::core polyscope::polyscope)

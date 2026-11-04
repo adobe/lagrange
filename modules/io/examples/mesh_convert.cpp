@@ -27,7 +27,7 @@ constexpr size_t Dimension = 3;
 
 std::unordered_set<std::string_view> input_scene_formats()
 {
-    return {".gltf", ".glb", ".fbx", ".lgs"};
+    return {".gltf", ".glb", ".fbx", ".lgs", ".lgx"};
 }
 std::unordered_set<std::string_view> output_scene_formats()
 {

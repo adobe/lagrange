@@ -11,9 +11,11 @@
  */
 #pragma once
 
-#include <memory>
-
+#include <lagrange/utils/assert.h>
 #include <lagrange/utils/span.h>
+
+#include <memory>
+#include <type_traits>
 
 namespace lagrange {
 
@@ -50,6 +52,9 @@ public:
     /**
      * Constructing a SharedSpan object from a shared buffer.
      *
+     * A read-only shared span can be constructed from a mutable shared span using
+     * its owner() and size(), without copying the buffer.
+     *
      * @param data  The owner of the shared buffer.
      * @param size  The size of the shared buffer.
      */
@@ -77,6 +82,31 @@ public:
      * @return The buffer size.
      */
     size_t size() const { return m_size; }
+
+    /**
+     * @return Whether the span retains a lifetime owner, even when its data pointer is null.
+     */
+    bool has_owner() const { return m_data.use_count() != 0; }
+
+    /**
+     * Return a bounded subspan sharing the same lifetime owner.
+     *
+     * Empty subspans, including one at the end of the buffer, retain ownership.
+     *
+     * @param offset  The first entry of the subspan, at most size().
+     * @param count   The number of entries, at most size() - offset.
+     *
+     * @return A subspan retaining the original buffer's owner.
+     */
+    SharedSpan<T> subspan(size_t offset, size_t count) const
+    {
+        la_runtime_assert(offset <= m_size && count <= m_size - offset);
+        T* data = m_data.get();
+        if (data != nullptr && offset != 0) {
+            data += offset;
+        }
+        return {std::shared_ptr<T>(m_data, data), count};
+    }
 
 protected:
     // Technically, we should be using `std::shared_ptr<T[]>`.  However, some versions of Apple

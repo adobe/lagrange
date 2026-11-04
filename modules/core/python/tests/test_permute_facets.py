@@ -26,7 +26,7 @@ class TestPermuteFacets:
         )
         ori_facets = mesh.facets.copy()
 
-        permutation = np.array([3, 2, 1, 0, 5, 4], dtype=np.int64)
+        permutation = np.array([3, 2, 1, 0, 5, 4], dtype=np.uint32)
         lagrange.permute_facets(mesh, permutation)
 
         assert np.allclose(mesh.facets, ori_facets[permutation])
@@ -36,7 +36,7 @@ class TestPermuteFacets:
 
     def test_bad_permuation(self, cube):
         mesh = cube
-        permutation = np.array([0, 2, 1, 0, 5, 4], dtype=np.int64)
+        permutation = np.array([0, 2, 1, 0, 5, 4], dtype=np.uint32)
 
         with pytest.raises(RuntimeError):
             lagrange.permute_facets(mesh, permutation)

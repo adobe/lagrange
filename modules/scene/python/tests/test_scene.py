@@ -13,6 +13,7 @@ import math
 
 import lagrange
 import numpy as np
+import pytest
 
 
 class TestScene:
@@ -190,10 +191,9 @@ class TestScene:
         assert animation_id == 0
         assert len(scene.animations) == 1
 
+    @pytest.mark.skip(reason="Nested scene extension mutation is not supported yet")
     def test_scene_extension(self):
         # TODO: Fix our bindings to make this test work
-        return
-
         scene = lagrange.scene.Scene()
         assert scene.extensions.size == 0
         # TODO: Add |= to nb::bind_map objects
@@ -206,9 +206,9 @@ class TestScene:
         scene.extensions.data.update({"extension1": {"key": "foo"}})
         assert scene.extensions.size == 2
         assert scene.extensions.data["extension1"] == {"key": "foo"}
-        scene.extensions.data["extension0"]["key"][0] = 10
+        scene.extensions.data["extension0"]["key"][0] = 10  # type: ignore[ty:invalid-argument-type, ty:not-subscriptable, pyrefly:bad-index]
         assert scene.extensions.data["extension0"] == {"key": [10, 1, 2]}
-        scene.extensions.data["extension0"]["key"] = [3, 4, 5]
+        scene.extensions.data["extension0"]["key"] = [3, 4, 5]  # type: ignore[ty:invalid-assignment, pyrefly:unsupported-operation]
         assert scene.extensions.data["extension0"] == {"key": [3, 4, 5]}
 
     def test_scene_convert(self, single_triangle):

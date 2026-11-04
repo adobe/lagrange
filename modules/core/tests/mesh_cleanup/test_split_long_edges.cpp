@@ -15,6 +15,7 @@
 
 #include <lagrange/Attribute.h>
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/compute_area.h>
 #include <lagrange/compute_edge_lengths.h>
 #include <lagrange/compute_facet_area.h>
@@ -333,6 +334,8 @@ TEST_CASE("SplitLongEdgesTest", "[split_long_edges][triangle_mesh][cleanup]" LA_
 
     SECTION("with uv")
     {
+        // This fixture references an unavailable material library.
+        ScopedLogLevel log_level(spdlog::level::err);
         using MeshType = decltype(mesh)::element_type;
         mesh = testing::load_mesh<MeshType>("open/core/blub_open.obj");
         REQUIRE(mesh->get_num_vertices() == 5857);

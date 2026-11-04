@@ -19,7 +19,7 @@ include(CPM)
 CPMAddPackage(
     NAME mshio
     GITHUB_REPOSITORY qnzhou/MshIO
-    GIT_TAG v0.1.0
+    GIT_TAG v0.2.0
 )
 
 set_target_properties(mshio PROPERTIES FOLDER third_party)

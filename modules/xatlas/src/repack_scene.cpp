@@ -119,12 +119,12 @@ scene::SimpleScene<Scalar, Index, 3> repack_scene(
     return result;
 }
 
-#define LA_X_repack_scene(_, S, I)                           \
-    template scene::SimpleScene<S, I, 3> repack_scene<S, I>( \
-        const scene::SimpleScene<S, I, 3>&,                  \
-        const RepackOptions&,                                \
-        const SceneOptions&,                                 \
-        std::function<void(const std::string&, float)>,      \
+#define LA_X_repack_scene(_, S, I)                                         \
+    template LA_XATLAS_API scene::SimpleScene<S, I, 3> repack_scene<S, I>( \
+        const scene::SimpleScene<S, I, 3>&,                                \
+        const RepackOptions&,                                              \
+        const SceneOptions&,                                               \
+        std::function<void(const std::string&, float)>,                    \
         const std::atomic_bool*);
 LA_SURFACE_MESH_X(repack_scene, 0)
 #undef LA_X_repack_scene
