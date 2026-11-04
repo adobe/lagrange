@@ -43,8 +43,10 @@ std::vector<float> generate_uv_image_with_normal_as_color(MeshType& mesh, size_t
 {
     using Scalar = typename MeshType::Scalar;
 
-    auto normal2rgb = [&](Eigen::Matrix<Scalar, 1, 3> n) {
-        return ((n.array() + 1) / 2).template cast<float>();
+    auto normal2rgb = [](Eigen::Matrix<Scalar, 1, 3> n) {
+        // Evaluate before n is destroyed instead of returning a lazy Eigen expression.
+        Eigen::Matrix<float, 1, 3> rgb = ((n.array() + 1) / 2).template cast<float>();
+        return rgb;
     };
 
     auto uv_mesh = lagrange::to_shared_ptr(extract_uv_mesh(mesh));
