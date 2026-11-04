@@ -51,8 +51,8 @@ jobs:
           CIBW_BUILD_FRONTEND: "build[uv]"
           CIBW_ARCHS_LINUX: auto64
           CIBW_ARCHS_WINDOWS: auto64
-          # OpenVDB and TBB DLLs are already installed beside lagrange.pyd.
-          # Resolve their dependencies without searching PATH for the bundled DLLs.
+          # cibuildwheel 4 enables delvewheel repair on Windows by default.
+          # Recognize the OpenVDB/TBB DLLs CMake already bundles and check their dependencies.
           CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: "delvewheel repair --ignore-existing -w {dest_dir} -v {wheel}"
           CIBW_MANYLINUX_X86_64_IMAGE: manylinux_2_28
           CIBW_SKIP: "*-musllinux*"
