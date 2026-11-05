@@ -101,7 +101,9 @@ public:
     /// Stores a real number. Reals are not implicitly converted to or from integers.
     explicit Value(double n) { value = n; }
     /// Stores a string, taking ownership.
-    explicit Value(std::string s) { value = std::move(s); }
+    explicit Value(std::string s)
+        : value(std::move(s))
+    {}
     /// Stores a copy of the string view.
     explicit Value(std::string_view s) { value = std::string(s); }
     /// Stores a copy of the C string.
