@@ -87,7 +87,7 @@ int main(int argc, char** argv)
     auto scaling = Eigen::Scaling(2.0f / bbox_diag, 2.0f / bbox_diag, 2.0f / bbox_diag);
 
     auto sweep_setting =
-        lagrange::primitive::SweepOptions<Scalar>::circular_sweep({1.2, 0, 0}, {0, 1, 0});
+        lagrange::primitive::SweepOptions<Scalar>::circular_sweep({Scalar(1.2), 0, 0}, {0, 1, 0});
     sweep_setting.set_normalization(scaling * translation);
     sweep_setting.set_num_samples(64);
 

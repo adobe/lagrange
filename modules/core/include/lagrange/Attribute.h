@@ -15,6 +15,7 @@
 #include <lagrange/utils/SharedSpan.h>
 #include <lagrange/utils/span.h>
 
+#include <memory>
 #include <vector>
 
 namespace lagrange {
@@ -340,6 +341,24 @@ public:
     ///
     void wrap_const(SharedSpan<const ValueType> shared_buffer, size_t num_elements);
 
+    ///
+    /// Converts internal storage into a shared-owner-backed external buffer by transferring its
+    /// allocation without copying existing values. Reserved capacity is preserved and its padding
+    /// is initialized with the default value. The logical element count is unchanged. When
+    /// promoting internal storage, ErrorIfExternal growth and shrink policies become SilentCopy;
+    /// all other policies are preserved.
+    ///
+    /// Existing managed external buffers are unchanged, including read-only and empty buffers.
+    /// Unmanaged external buffers throw an exception. Promotion does not invalidate the active data
+    /// pointer and previously obtained non-owning views, which do not extend the allocation's lifetime.
+    ///
+    /// @note Resizing a promoted allocation follows the selected policies. SilentCopy detaches
+    ///       into internal storage, leaving previously exported views holding the old allocation
+    ///       and its initialized extent. Policies explicitly set after promotion apply normally
+    ///       and are not changed by subsequent calls while storage remains external.
+    ///
+    void ensure_shared_storage();
+
     /// @}
     /// @name Attribute growth
     /// @{
@@ -522,7 +541,7 @@ public:
     ///
     /// @return     True if the buffer is managed, False otherwise.
     ///
-    [[nodiscard]] bool is_managed() const { return !is_external() || m_owner; }
+    [[nodiscard]] bool is_managed() const { return !is_external() || m_owner.use_count() != 0; }
 
     ///
     /// Checks whether the attribute is external and pointing to a const buffer. If the attribute
@@ -598,6 +617,29 @@ public:
     /// @return     A writable view of the attribute buffer.
     ///
     lagrange::span<ValueType> ref_all();
+
+    ///
+    /// Returns a read-only view retaining the active buffer's lifetime owner. The view spans only
+    /// num elements x num channels entries, excluding reserved capacity and padding.
+    ///
+    /// Requires managed external storage; call ensure_shared_storage() to promote internal storage first.
+    /// The returned view remains valid after the attribute is destroyed or rebound to new storage.
+    ///
+    /// @return A read-only shared view of the active attribute values.
+    ///
+    [[nodiscard]] SharedSpan<const ValueType> get_owner() const;
+
+    ///
+    /// Returns a writable view retaining the active buffer's lifetime owner. Applies the write
+    /// policy for read-only buffers, creating an internal writable copy when allowed and then
+    /// transferring its allocation into shared ownership. Existing managed writable storage is
+    /// reused. Unmanaged writable external storage is rejected. The view excludes capacity padding.
+    ///
+    /// The returned view remains valid after the attribute is destroyed or rebound to new storage.
+    ///
+    /// @return A writable shared view of the active attribute values.
+    ///
+    [[nodiscard]] SharedSpan<ValueType> ref_owner();
 
     ///
     /// Returns a read-only view of the attribute values for the first elements in the buffer.
@@ -691,8 +733,8 @@ protected:
     void growth_check(size_t new_cap);
 
     ///
-    /// Checks whether the buffer can be written to. This check only applies to external buffers.
-    /// Depending on the attribute growth policy, an internal copy of the data may be created.
+    /// Checks whether the buffer can be written to. Depending on the write policy, an internal
+    /// copy of read-only external data may be created.
     ///
     void write_check();
 

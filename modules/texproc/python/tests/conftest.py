@@ -176,7 +176,7 @@ def quad_scene(quad_mesh):
         camera.aspect_ratio = 4.0 / 3.0
         camera.position = np.array([0.5, 4.0, 0.5])
         camera.up = np.array([0.0, 0.0, 1.0])
-        camera.look_at = np.zeros(3)
+        camera.look_at = np.zeros(3, dtype=np.float32)
         camera_id = scene.add(camera)
         assert len(scene.cameras) == kk + 1
 

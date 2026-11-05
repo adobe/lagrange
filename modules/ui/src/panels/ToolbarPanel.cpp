@@ -41,7 +41,7 @@ void toolbar_panel_system(Registry& registry, Entity /*e*/)
         for (auto tool_type : tools.get_tool_types()) {
             using namespace entt::literals;
             auto type = entt::resolve(tool_type);
-            const TypeData& type_data = type.custom();
+            const TypeData type_data = type.custom();
 
             if (button_toolbar(
                     current_tool_type == type.id(),
@@ -62,7 +62,7 @@ void toolbar_panel_system(Registry& registry, Entity /*e*/)
         for (auto elem_type : tools.get_element_types()) {
             using namespace entt::literals;
             auto type = entt::resolve(elem_type);
-            const TypeData& type_data = type.custom();
+            const TypeData type_data = type.custom();
 
             if (button_toolbar(
                     current_element_type == type.id(),

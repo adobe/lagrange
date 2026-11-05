@@ -438,10 +438,10 @@ auto load_mesh_ext(
     object_cb(&mesh_loader, "");
 
     if (!error_message.empty()) {
-        logger().error("Load mesh warning:\n{}", error_message);
+        logger().error("Load mesh error:\n{}", error_message);
     }
     if (!warning_message.empty()) {
-        logger().warn("Load mesh error:\n{}", warning_message);
+        logger().warn("Load mesh warning:\n{}", warning_message);
     }
 
     if (params.normalize) {

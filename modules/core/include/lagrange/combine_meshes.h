@@ -27,6 +27,24 @@ namespace lagrange {
 ///
 /// @{
 
+/// Policy for combining shared AttributeElement::Value attributes.
+enum class ValueAttributePolicy {
+    /// Preserve identical values once; log an error and omit conflicting attributes.
+    RequireEqual,
+    /// Concatenate index-usage values with offsets; require equal values for other usages.
+    ConcatenateIndices,
+};
+
+/// Options for combining meshes.
+struct CombineMeshesOptions
+{
+    /// Preserve shared attributes and map them to the output mesh.
+    bool preserve_attributes = true;
+
+    /// How to combine Value attributes.
+    ValueAttributePolicy value_attribute_policy = ValueAttributePolicy::ConcatenateIndices;
+};
+
 /**
  * Combine multiple meshes into a single mesh.
  *
@@ -81,6 +99,42 @@ SurfaceMesh<Scalar, Index> combine_meshes(
     size_t num_meshes,
     function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
     bool preserve_attributes = true);
+
+/**
+ * Combine meshes using the specified attribute preservation policy.
+ *
+ * @param[in] meshes   Input mesh pointers.
+ * @param[in] options  Combination options.
+ * @return The combined mesh.
+ */
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> combine_meshes(
+    std::initializer_list<const SurfaceMesh<Scalar, Index>*> meshes,
+    const CombineMeshesOptions& options);
+
+/**
+ * @overload
+ * @param[in] meshes   Input meshes.
+ * @param[in] options  Combination options.
+ * @return The combined mesh.
+ */
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> combine_meshes(
+    span<const SurfaceMesh<Scalar, Index>> meshes,
+    const CombineMeshesOptions& options);
+
+/**
+ * @overload
+ * @param[in] num_meshes  Number of input meshes.
+ * @param[in] get_mesh    Retrieve the i-th input mesh.
+ * @param[in] options     Combination options.
+ * @return The combined mesh.
+ */
+template <typename Scalar, typename Index>
+SurfaceMesh<Scalar, Index> combine_meshes(
+    size_t num_meshes,
+    function_ref<const SurfaceMesh<Scalar, Index>&(size_t)> get_mesh,
+    const CombineMeshesOptions& options);
 
 /// @}
 

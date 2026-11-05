@@ -14,10 +14,14 @@ lagrange_add_module()
 
 # 2. dependencies
 lagrange_include_modules(bvh scene)
-target_link_libraries(lagrange_raycasting PUBLIC
-    lagrange::core
-    lagrange::bvh
-    lagrange::scene
+include(fcbk)
+target_link_libraries(lagrange_raycasting
+    PUBLIC
+        lagrange::core
+        lagrange::bvh
+        lagrange::scene
+    PRIVATE
+        fcbk::fcbk
 )
 
 if(LAGRANGE_WITH_EMBREE_3)

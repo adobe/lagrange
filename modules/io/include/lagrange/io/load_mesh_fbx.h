@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Loads a mesh from an input stream in fbx format. If the scene contains multiple meshes,
  * they will be merged into one.
@@ -48,5 +53,7 @@ LA_IO_API MeshType load_mesh_fbx(std::istream& input_stream, const LoadOptions& 
  */
 template <typename MeshType>
 LA_IO_API MeshType load_mesh_fbx(const fs::path& filename, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

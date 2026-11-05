@@ -230,7 +230,7 @@ void texture_stitching(
 //     const StitchingOptions& options);
 
 #define LA_X_texture_stitching(ValueType, Scalar, Index) \
-    template void texture_stitching(                     \
+    template LA_TEXPROC_API void texture_stitching(      \
         const SurfaceMesh<Scalar, Index>& mesh,          \
         image::experimental::View3D<ValueType> texture,  \
         const StitchingOptions& options);

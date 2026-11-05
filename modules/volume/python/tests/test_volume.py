@@ -39,35 +39,35 @@ class TestMeshToVolume:
                 grid.index_to_world(grid.bbox_index.astype(np.float64)),
             )
 
-    def test_sampling(self, cube):
+    @pytest.mark.parametrize("pts_dtype", [np.float32, np.float64])
+    def test_sampling(self, cube, pts_dtype):
         mesh = cube.clone()
         for grid_dtype in [np.float32, np.float64]:
-            for pts_dtype in [np.float32, np.float64]:
-                grid = Grid.from_mesh(mesh, dtype=grid_dtype)
-                points_index = np.array(
-                    [
-                        [0, 0, 0],
-                        [5, 5, 5],
-                        [10, 10, 10],
-                        [15, 15, 15],
-                    ],
-                    dtype=np.int32,
-                )
-                values_is_i = grid.sample_trilinear_index_space(points_index)
-                values_is_s = grid.sample_trilinear_index_space(points_index.astype(pts_dtype))
-                assert values_is_i.dtype == grid_dtype
-                assert values_is_s.dtype == grid_dtype
-                assert np.allclose(values_is_i, values_is_s)
-                points_world_i = grid.index_to_world(points_index)
-                points_world_s = grid.index_to_world(points_index.astype(pts_dtype))
-                assert points_world_i.dtype == np.dtype(np.float64)
-                assert points_world_s.dtype == pts_dtype
-                values_ws_i = grid.sample_trilinear_world_space(points_world_i)
-                values_ws_s = grid.sample_trilinear_world_space(points_world_s)
-                assert values_ws_i.dtype == grid_dtype
-                assert values_ws_s.dtype == grid_dtype
-                assert np.allclose(values_is_i, values_ws_i)
-                assert np.allclose(values_ws_i, values_ws_s)
+            grid = Grid.from_mesh(mesh, dtype=grid_dtype)
+            points_index = np.array(
+                [
+                    [0, 0, 0],
+                    [5, 5, 5],
+                    [10, 10, 10],
+                    [15, 15, 15],
+                ],
+                dtype=np.int32,
+            )
+            values_is_i = grid.sample_trilinear_index_space(points_index)
+            values_is_s = grid.sample_trilinear_index_space(points_index.astype(pts_dtype))
+            assert values_is_i.dtype == grid_dtype
+            assert values_is_s.dtype == grid_dtype
+            assert np.allclose(values_is_i, values_is_s)
+            points_world_i = grid.index_to_world(points_index)
+            points_world_s = grid.index_to_world(points_index.astype(pts_dtype))
+            assert points_world_i.dtype == np.dtype(np.float64)
+            assert points_world_s.dtype == pts_dtype
+            values_ws_i = grid.sample_trilinear_world_space(points_world_i)
+            values_ws_s = grid.sample_trilinear_world_space(points_world_s)
+            assert values_ws_i.dtype == grid_dtype
+            assert values_ws_s.dtype == grid_dtype
+            assert np.allclose(values_is_i, values_ws_i)
+            assert np.allclose(values_ws_i, values_ws_s)
 
     def test_cube(self, cube):
         mesh = cube.clone()
@@ -125,7 +125,8 @@ class TestMeshToVolume:
                         else:
                             assert active_after < active_before
 
-    def test_from_points(self):
+    @pytest.mark.parametrize("values_dtype", [np.float32, np.float64])
+    def test_from_points(self, values_dtype):
         points = np.array(
             [
                 [0, 0, 0],
@@ -137,14 +138,13 @@ class TestMeshToVolume:
         values = np.array([1.0, -2.5, 3.25], dtype=np.float32)
 
         for grid_dtype in [np.float32, np.float64, float]:
-            for values_dtype in [np.float32, np.float64]:
-                grid = Grid.from_points(points, values.astype(values_dtype), dtype=grid_dtype)
-                assert grid.num_active_voxels == points.shape[0]
-                assert np.array_equal(grid.bbox_index[0], points.min(axis=0))
-                assert np.array_equal(grid.bbox_index[1], points.max(axis=0))
-                sampled = grid.sample_trilinear_index_space(points)
-                assert sampled.dtype == np.dtype(grid_dtype)
-                assert np.allclose(sampled, values)
+            grid = Grid.from_points(points, values.astype(values_dtype), dtype=grid_dtype)
+            assert grid.num_active_voxels == points.shape[0]
+            assert np.array_equal(grid.bbox_index[0], points.min(axis=0))
+            assert np.array_equal(grid.bbox_index[1], points.max(axis=0))
+            sampled = grid.sample_trilinear_index_space(points)
+            assert sampled.dtype == np.dtype(grid_dtype)
+            assert np.allclose(sampled, values)
 
     def test_from_points_length_mismatch(self):
         import pytest
@@ -164,7 +164,8 @@ class TestMeshToVolume:
             grid_ = Grid.load(tmp_path)
             assert grid_.name == "my_grid"
 
-    def test_set_transform(self):
+    @pytest.mark.parametrize("mat_dtype", [np.float32, np.float64])
+    def test_set_transform(self, mat_dtype):
         points = np.array([[0, 0, 0], [2, 0, 0], [0, 4, 0]], dtype=np.int32)
         values = np.array([1.0, 2.0, 3.0], dtype=np.float32)
 
@@ -175,16 +176,15 @@ class TestMeshToVolume:
 
         # Uniform scale 0.5 + translation [1, 2, 3], column-vector convention.
         # Accepts both float32 and float64 matrices.
-        for mat_dtype in [np.float32, np.float64]:
-            xform = np.eye(4, dtype=mat_dtype)
-            xform[:3, :3] *= 0.5
-            xform[:3, 3] = [1.0, 2.0, 3.0]
-            grid.transform = xform
-            assert np.allclose(grid.transform, xform)
-            assert np.allclose(grid.voxel_size, [0.5, 0.5, 0.5])
-            expected_world = points.astype(np.float64) * 0.5 + np.array([1.0, 2.0, 3.0])
-            assert np.allclose(grid.index_to_world(points), expected_world)
-            assert np.allclose(grid.world_to_index(expected_world), points.astype(np.float64))
+        xform = np.eye(4, dtype=mat_dtype)
+        xform[:3, :3] *= 0.5
+        xform[:3, 3] = [1.0, 2.0, 3.0]
+        grid.transform = xform
+        assert np.allclose(grid.transform, xform)
+        assert np.allclose(grid.voxel_size, [0.5, 0.5, 0.5])
+        expected_world = points.astype(np.float64) * 0.5 + np.array([1.0, 2.0, 3.0])
+        assert np.allclose(grid.index_to_world(points), expected_world)
+        assert np.allclose(grid.world_to_index(expected_world), points.astype(np.float64))
 
     def test_set_background(self):
         points = np.array([[0, 0, 0]], dtype=np.int32)

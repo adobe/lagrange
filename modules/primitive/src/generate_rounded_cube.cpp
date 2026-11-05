@@ -22,6 +22,7 @@
 #include <lagrange/triangulate_polygonal_facets.h>
 #include <lagrange/utils/SmallVector.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 
 #include "primitive_utils.h"
@@ -246,8 +247,8 @@ SurfaceMesh<Scalar, Index> generate_rounded_edge(
     const Eigen::Transform<Scalar, 2, Eigen::Affine>& uv_transformation)
 {
     SurfaceMesh<Scalar, Index> mesh;
-    Index num_vertices = (setting.bevel_segments + 1) * (edge_segments + 1);
-    Index num_facets = setting.bevel_segments * edge_segments;
+    Index num_vertices = safe_cast<Index>((setting.bevel_segments + 1) * (edge_segments + 1));
+    Index num_facets = safe_cast<Index>(setting.bevel_segments * edge_segments);
 
     mesh.add_vertices(num_vertices);
     mesh.add_quads(num_facets);
@@ -343,7 +344,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 h,
-                setting.height_segments,
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
 
@@ -359,7 +360,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 h,
-                setting.height_segments,
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
 
@@ -375,7 +376,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 h,
-                setting.height_segments,
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
 
@@ -391,7 +392,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 h,
-                setting.height_segments,
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
     }
@@ -410,7 +411,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 w,
-                setting.width_segments,
+                safe_cast<Index>(setting.width_segments),
                 transformation,
                 uv_transformation));
 
@@ -429,7 +430,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 w,
-                setting.width_segments,
+                safe_cast<Index>(setting.width_segments),
                 transformation,
                 uv_transformation));
 
@@ -449,7 +450,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 w,
-                setting.width_segments,
+                safe_cast<Index>(setting.width_segments),
                 transformation,
                 uv_transformation));
 
@@ -468,7 +469,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 w,
-                setting.width_segments,
+                safe_cast<Index>(setting.width_segments),
                 transformation,
                 uv_transformation));
     }
@@ -487,7 +488,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 d,
-                setting.depth_segments,
+                safe_cast<Index>(setting.depth_segments),
                 transformation,
                 uv_transformation));
 
@@ -506,7 +507,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 d,
-                setting.depth_segments,
+                safe_cast<Index>(setting.depth_segments),
                 transformation,
                 uv_transformation));
 
@@ -525,7 +526,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 d,
-                setting.depth_segments,
+                safe_cast<Index>(setting.depth_segments),
                 transformation,
                 uv_transformation));
 
@@ -544,7 +545,7 @@ void generate_edges(const RoundedCubeOptions& setting, Vector& parts)
             generate_rounded_edge<Scalar, Index>(
                 setting,
                 d,
-                setting.depth_segments,
+                safe_cast<Index>(setting.depth_segments),
                 transformation,
                 uv_transformation));
     }
@@ -646,8 +647,8 @@ void generate_quads(const RoundedCubeOptions& setting, Vector& parts)
                 setting,
                 w,
                 h,
-                setting.width_segments,
-                setting.height_segments,
+                safe_cast<Index>(setting.width_segments),
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
         add_semantic_label(
@@ -667,8 +668,8 @@ void generate_quads(const RoundedCubeOptions& setting, Vector& parts)
                 setting,
                 w,
                 h,
-                setting.width_segments,
-                setting.height_segments,
+                safe_cast<Index>(setting.width_segments),
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
         add_semantic_label(
@@ -690,8 +691,8 @@ void generate_quads(const RoundedCubeOptions& setting, Vector& parts)
                 setting,
                 d,
                 h,
-                setting.depth_segments,
-                setting.height_segments,
+                safe_cast<Index>(setting.depth_segments),
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
         add_semantic_label(
@@ -711,8 +712,8 @@ void generate_quads(const RoundedCubeOptions& setting, Vector& parts)
                 setting,
                 d,
                 h,
-                setting.depth_segments,
-                setting.height_segments,
+                safe_cast<Index>(setting.depth_segments),
+                safe_cast<Index>(setting.height_segments),
                 transformation,
                 uv_transformation));
         add_semantic_label(
@@ -734,8 +735,8 @@ void generate_quads(const RoundedCubeOptions& setting, Vector& parts)
                 setting,
                 w,
                 d,
-                setting.width_segments,
-                setting.depth_segments,
+                safe_cast<Index>(setting.width_segments),
+                safe_cast<Index>(setting.depth_segments),
                 transformation,
                 uv_transformation));
         add_semantic_label(parts.back(), setting.semantic_label_attribute_name, SemanticLabel::Top);
@@ -752,8 +753,8 @@ void generate_quads(const RoundedCubeOptions& setting, Vector& parts)
                 setting,
                 w,
                 d,
-                setting.width_segments,
-                setting.depth_segments,
+                safe_cast<Index>(setting.width_segments),
+                safe_cast<Index>(setting.depth_segments),
                 transformation,
                 uv_transformation));
         add_semantic_label(
@@ -801,11 +802,11 @@ SurfaceMesh<Scalar, Index> generate_side(
     Index v_segments,
     SemanticLabel semantic_label)
 {
-    const Index half_bevel_segments = setting.bevel_segments / 2;
-    Index num_vertices =
-        (u_segments + setting.bevel_segments + 1) * (v_segments + setting.bevel_segments + 1);
-    Index num_facets =
-        (u_segments + setting.bevel_segments) * (v_segments + setting.bevel_segments);
+    const Index half_bevel_segments = safe_cast<Index>(setting.bevel_segments / 2);
+    Index num_vertices = safe_cast<Index>(
+        (u_segments + setting.bevel_segments + 1) * (v_segments + setting.bevel_segments + 1));
+    Index num_facets = safe_cast<Index>(
+        (u_segments + setting.bevel_segments) * (v_segments + setting.bevel_segments));
 
     SurfaceMesh<Scalar, Index> mesh;
     mesh.add_vertices(num_vertices);
@@ -878,7 +879,7 @@ SurfaceMesh<Scalar, Index> generate_side(
                                                      u_segments * u_length;
             }
 
-            Index idx = i * (u_segments + setting.bevel_segments + 1) + j;
+            Index idx = static_cast<Index>(i * (u_segments + setting.bevel_segments + 1) + j);
             auto p = interpolate_corner(s, t);
             vertices.row(idx) << x_offset + setting.bevel_radius * p[0],
                 y_offset + setting.bevel_radius * p[1], setting.bevel_radius * (p[2] - 1);
@@ -893,11 +894,12 @@ SurfaceMesh<Scalar, Index> generate_side(
 
     for (Index i = 0; i < v_segments + setting.bevel_segments; i++) {
         for (Index j = 0; j < u_segments + setting.bevel_segments; j++) {
-            Index idx = i * (u_segments + setting.bevel_segments) + j;
-            Index v0 = i * (u_segments + setting.bevel_segments + 1) + j;
-            Index v1 = i * (u_segments + setting.bevel_segments + 1) + j + 1;
-            Index v2 = (i + 1) * (u_segments + setting.bevel_segments + 1) + j + 1;
-            Index v3 = (i + 1) * (u_segments + setting.bevel_segments + 1) + j;
+            Index idx = static_cast<Index>(i * (u_segments + setting.bevel_segments) + j);
+            Index v0 = static_cast<Index>(i * (u_segments + setting.bevel_segments + 1) + j);
+            Index v1 = static_cast<Index>(i * (u_segments + setting.bevel_segments + 1) + j + 1);
+            Index v2 =
+                static_cast<Index>((i + 1) * (u_segments + setting.bevel_segments + 1) + j + 1);
+            Index v3 = static_cast<Index>((i + 1) * (u_segments + setting.bevel_segments + 1) + j);
 
             facets.row(idx) << v0, v1, v2, v3;
             semantic_labels[idx] =
@@ -949,10 +951,10 @@ SurfaceMesh<Scalar, Index> generate_rounded_cube_v1(RoundedCubeOptions setting)
     Scalar h = setting.height - 2 * setting.bevel_radius;
     Scalar d = setting.depth - 2 * setting.bevel_radius;
 
-    Index b_segments = setting.bevel_segments;
-    Index w_segments = w < setting.epsilon ? 0 : setting.width_segments;
-    Index h_segments = h < setting.epsilon ? 0 : setting.height_segments;
-    Index d_segments = d < setting.epsilon ? 0 : setting.depth_segments;
+    Index b_segments = safe_cast<Index>(setting.bevel_segments);
+    Index w_segments = safe_cast<Index>(w < setting.epsilon ? 0 : setting.width_segments);
+    Index h_segments = safe_cast<Index>(h < setting.epsilon ? 0 : setting.height_segments);
+    Index d_segments = safe_cast<Index>(d < setting.epsilon ? 0 : setting.depth_segments);
 
     if ((w_segments + b_segments) != 0 && (h_segments + b_segments) != 0) {
         auto side = generate_side<Scalar, Index>(
@@ -975,7 +977,9 @@ SurfaceMesh<Scalar, Index> generate_rounded_cube_v1(RoundedCubeOptions setting)
         transform.setIdentity();
         transform.translate(Eigen::Matrix<Scalar, 3, 1>(0, 0, -setting.depth / 2));
         transform.rotate(
-            Eigen::AngleAxis<Scalar>(lagrange::internal::pi, Eigen::Matrix<Scalar, 3, 1>::UnitY()));
+            Eigen::AngleAxis<Scalar>(
+                Scalar(lagrange::internal::pi),
+                Eigen::Matrix<Scalar, 3, 1>::UnitY()));
         auto back_side = transformed_mesh(side, transform);
         normalize_uv(back_side, {0.75, 0.25}, {1, 0.5});
         parts.push_back(std::move(back_side));
@@ -996,7 +1000,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cube_v1(RoundedCubeOptions setting)
         transform.translate(Eigen::Matrix<Scalar, 3, 1>(-setting.width / 2, 0, 0));
         transform.rotate(
             Eigen::AngleAxis<Scalar>(
-                -lagrange::internal::pi / 2,
+                Scalar(-lagrange::internal::pi / 2),
                 Eigen::Matrix<Scalar, 3, 1>::UnitY()));
         auto left_side = transformed_mesh(side, transform);
         normalize_uv(left_side, {0.0, 0.25}, {0.25, 0.5});
@@ -1007,7 +1011,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cube_v1(RoundedCubeOptions setting)
         transform.translate(Eigen::Matrix<Scalar, 3, 1>(setting.width / 2, 0, 0));
         transform.rotate(
             Eigen::AngleAxis<Scalar>(
-                lagrange::internal::pi / 2,
+                Scalar(lagrange::internal::pi / 2),
                 Eigen::Matrix<Scalar, 3, 1>::UnitY()));
         auto right_side = transformed_mesh(side, transform);
         normalize_uv(right_side, {0.5, 0.25}, {0.75, 0.5});
@@ -1023,7 +1027,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cube_v1(RoundedCubeOptions setting)
         transform.translate(Eigen::Matrix<Scalar, 3, 1>(0, setting.height / 2, 0));
         transform.rotate(
             Eigen::AngleAxis<Scalar>(
-                -lagrange::internal::pi / 2,
+                Scalar(-lagrange::internal::pi / 2),
                 Eigen::Matrix<Scalar, 3, 1>::UnitX()));
         transform_mesh(top_side, transform);
         normalize_uv(top_side, {0.25, 0.5}, {0.5, 0.75});
@@ -1041,7 +1045,7 @@ SurfaceMesh<Scalar, Index> generate_rounded_cube_v1(RoundedCubeOptions setting)
         transform.translate(Eigen::Matrix<Scalar, 3, 1>(0, -setting.height / 2, 0));
         transform.rotate(
             Eigen::AngleAxis<Scalar>(
-                lagrange::internal::pi / 2,
+                Scalar(lagrange::internal::pi / 2),
                 Eigen::Matrix<Scalar, 3, 1>::UnitX()));
         transform_mesh(bottom_side, transform);
         normalize_uv(bottom_side, {0.25, 0.0}, {0.5, 0.25});

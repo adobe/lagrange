@@ -41,13 +41,13 @@ void update_transform_recursive(
         }
 
 
-        foreach_child(registry, e, [&](Entity e) {
-            update_transform_recursive(registry, e, transform.global, check_change);
+        foreach_child(registry, e, [&](Entity child) {
+            update_transform_recursive(registry, child, transform.global, check_change);
         });
     } else {
         // Passthrough if entity doesn't have Transform component
-        foreach_child(registry, e, [&](Entity e) {
-            update_transform_recursive(registry, e, parent_global_transform, check_change);
+        foreach_child(registry, e, [&](Entity child) {
+            update_transform_recursive(registry, child, parent_global_transform, check_change);
         });
     }
 }

@@ -44,7 +44,7 @@ target_include_directories(metis SYSTEM PUBLIC
 target_compile_definitions(metis PUBLIC -DIDXTYPEWIDTH=32)
 target_compile_definitions(metis PUBLIC -DREALTYPEWIDTH=32)
 
-set_target_properties(metis PROPERTIES FOLDER third_party)
+set_target_properties(metis PROPERTIES FOLDER third_party POSITION_INDEPENDENT_CODE ON)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

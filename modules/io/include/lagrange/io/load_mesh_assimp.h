@@ -28,6 +28,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Load a mesh using assimp. If the scene contains multiple meshes, they will be combined into one.
  *
@@ -53,6 +58,8 @@ template <
     typename MeshType,
     std::enable_if_t<!lagrange::MeshTraitHelper::is_mesh<MeshType>::value>* = nullptr>
 LA_IO_API MeshType load_mesh_assimp(std::istream& input_stream, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io
 

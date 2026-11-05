@@ -9,11 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/common.h>
-#include <lagrange/primitive/generate_rounded_cylinder.h>
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
-#include "primitive_test_utils.h"
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+    #include <lagrange/common.h>
+    #include <lagrange/primitive/generate_rounded_cylinder.h>
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
+    #include "primitive_test_utils.h"
 
 TEST_CASE("RoundedCylinder", "[primitive][rounded_cylinder]" LA_SLOW_DEBUG_FLAG)
 {
@@ -168,3 +170,5 @@ TEST_CASE("RoundedCylinder", "[primitive][rounded_cylinder]" LA_SLOW_DEBUG_FLAG)
         REQUIRE(vertices.col(1).minCoeff() > -std::numeric_limits<Scalar>::epsilon());
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

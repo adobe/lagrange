@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/View3D.h>
+#include <lagrange/texproc/api.h>
 
 #include <optional>
 #include <string_view>
@@ -63,7 +64,7 @@ struct StitchingOptions
 /// @tparam        ValueType  Image value type.
 ///
 template <typename Scalar, typename Index, typename ValueType>
-void texture_stitching(
+LA_TEXPROC_API void texture_stitching(
     const SurfaceMesh<Scalar, Index>& mesh,
     image::experimental::View3D<ValueType> texture,
     const StitchingOptions& options = {});

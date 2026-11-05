@@ -23,11 +23,11 @@ def make_parallel_squares(d: float):
     closest-point distance from each vertex to the opposite mesh is exactly d.
     """
     sq_a = lagrange.SurfaceMesh()
-    sq_a.vertices = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=np.float32)
+    sq_a.vertices = np.array([[0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0]], dtype=np.float64)
     sq_a.facets = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.uint32)
 
     sq_b = lagrange.SurfaceMesh()
-    sq_b.vertices = np.array([[0, 0, d], [1, 0, d], [1, 1, d], [0, 1, d]], dtype=np.float32)
+    sq_b.vertices = np.array([[0, 0, d], [1, 0, d], [1, 1, d], [0, 1, d]], dtype=np.float64)
     sq_b.facets = np.array([[0, 1, 2], [0, 2, 3]], dtype=np.uint32)
 
     return sq_a, sq_b

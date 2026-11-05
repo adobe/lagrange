@@ -19,6 +19,9 @@
 
 namespace lagrange::geodesic {
 
+/// @addtogroup module-geodesic
+/// @{
+
 ///
 /// Computes surface geodesics using the heat method. The heat method offers fast geodesic
 /// computation for all points on the mesh, at the expense of some accuracy compared to exact
@@ -85,5 +88,7 @@ GeodesicEngineHeat<Scalar, Index> make_heat_engine(SurfaceMesh<Scalar, Index>& m
 {
     return GeodesicEngineHeat<Scalar, Index>(mesh);
 }
+
+/// @}
 
 } // namespace lagrange::geodesic

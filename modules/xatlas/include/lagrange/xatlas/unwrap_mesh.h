@@ -22,6 +22,11 @@
 namespace lagrange::xatlas {
 
 ///
+/// @addtogroup module-xatlas
+/// @{
+///
+
+///
 /// Unwrap a single mesh using xatlas.
 ///
 /// @param[in]  mesh               Mesh to unwrap. Must be triangle-only.
@@ -40,5 +45,7 @@ LA_XATLAS_API SurfaceMesh<Scalar, Index> unwrap_mesh(
     const UnwrapOptions& options = {},
     std::function<void(const std::string&, float)> notification_func = nullptr,
     const std::atomic_bool* cancel = nullptr);
+
+/// @}
 
 } // namespace lagrange::xatlas

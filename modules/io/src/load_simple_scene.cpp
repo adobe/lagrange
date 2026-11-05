@@ -33,7 +33,7 @@ SceneType load_simple_scene(const fs::path& filename, const LoadOptions& options
 {
     // TODO: load .obj as simple scene
     std::string ext = to_lower(filename.extension().string());
-    if (ext == ".lgm" || ext == ".lgs") {
+    if (ext == ".lgm" || ext == ".lgs" || ext == ".lgx") {
         serialization::DeserializeOptions enc_options;
         enc_options.allow_scene_conversion = true;
         enc_options.allow_type_cast = true;

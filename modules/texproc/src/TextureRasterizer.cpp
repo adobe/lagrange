@@ -759,7 +759,8 @@ void filter_low_confidences(
     }
 }
 
-#define LA_X_rasterizer_class(_, Scalar, Index) template class TextureRasterizer<Scalar, Index>;
+#define LA_X_rasterizer_class(_, Scalar, Index) \
+    template class LA_TEXPROC_API TextureRasterizer<Scalar, Index>;
 LA_SURFACE_MESH_X(rasterizer_class, 0)
 
 } // namespace lagrange::texproc

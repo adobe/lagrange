@@ -52,7 +52,7 @@ target_include_directories(GKlib SYSTEM PUBLIC
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 
-set_target_properties(GKlib PROPERTIES FOLDER third_party)
+set_target_properties(GKlib PROPERTIES FOLDER third_party POSITION_INDEPENDENT_CODE ON)
 
 if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR
    "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")

@@ -18,6 +18,11 @@
 // clang-format off
 
 ///
+/// @addtogroup module-volume
+/// @{
+///
+
+///
 /// [X Macro](https://en.wikipedia.org/wiki/X_Macro) arguments for the lagrange::volume::Grid<>
 /// class (which is an alias for the common OpenVDB grid).
 ///
@@ -43,5 +48,7 @@
 #define LA_VOLUME_GRID_X(mode, data) \
     LA_X_##mode(data, float) \
     LA_X_##mode(data, double)
+
+/// @}
 
 // clang-format on

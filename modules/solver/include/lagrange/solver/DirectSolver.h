@@ -24,6 +24,11 @@
 
 namespace lagrange::solver {
 
+///
+/// @addtogroup module-solver
+/// @{
+///
+
 #ifdef LA_SOLVER_ACCELERATE
 template <typename MatrixType>
 using SolverLDLT = lagrange::solver::internal::AccelerateLDLT<MatrixType>;
@@ -36,5 +41,7 @@ template <typename MatrixType>
 using SolverLDLT = Eigen::PardisoLDLT<MatrixType>;
     #endif
 #endif
+
+/// @}
 
 } // namespace lagrange::solver

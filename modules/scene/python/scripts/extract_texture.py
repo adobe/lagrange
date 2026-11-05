@@ -12,7 +12,7 @@
 # governing permissions and limitations under the License.
 #
 
-"""Extract texture from a mesh"""
+"""Extract embedded base-color images to PNG files and save the scene with updated image paths."""
 
 import argparse
 import lagrange
@@ -22,8 +22,10 @@ from PIL import Image
 
 def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("input", help="input mesh file")
-    parser.add_argument("output", help="output mesh file")
+    parser.add_argument("input", help="input scene file")
+    parser.add_argument(
+        "output", help="output scene file; PNG files use the same directory and stem"
+    )
     return parser.parse_args()
 
 

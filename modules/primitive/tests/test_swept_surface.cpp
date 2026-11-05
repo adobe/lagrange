@@ -14,7 +14,9 @@
 #include <lagrange/common.h>
 #include <lagrange/compute_euler.h>
 #include <lagrange/compute_uv_charts.h>
-#include <lagrange/create_mesh.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+    #include <lagrange/create_mesh.h>
+#endif
 #include <lagrange/io/save_mesh.h>
 #include <lagrange/mesh_cleanup/detect_degenerate_triangles.h>
 #include <lagrange/primitive/SweepPath.h>

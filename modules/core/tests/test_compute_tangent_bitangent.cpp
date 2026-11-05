@@ -10,6 +10,7 @@
  * governing permissions and limitations under the License.
  */
 #include <lagrange/IndexedAttribute.h>
+#include <lagrange/Logger.h>
 #include <lagrange/attribute_names.h>
 #include <lagrange/attributes/attribute_utils.h>
 #include <lagrange/attributes/condense_indexed_attribute.h>
@@ -756,6 +757,8 @@ TEST_CASE("compute_tangent_bitangent mikktspace", "[core][tangent]" LA_CORP_FLAG
 
 TEST_CASE("compute_tangent_bitangent old vs new", "[core][tangent]" LA_SLOW_DEBUG_FLAG)
 {
+    // This fixture references an unavailable material library.
+    lagrange::ScopedLogLevel log_level(spdlog::level::err);
     using Scalar = double;
     using Index = uint32_t;
 

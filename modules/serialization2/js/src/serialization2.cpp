@@ -14,6 +14,7 @@
 
 #include <lagrange/serialization/serialize_mesh.h>
 #include <lagrange/serialization/serialize_scene.h>
+#include <lagrange/serialization/serialize_simple_scene.h>
 
 #include <emscripten/bind.h>
 #include <emscripten/val.h>
@@ -59,6 +60,36 @@ EMSCRIPTEN_BINDINGS(lagrange_serialization)
             apply_opt(opts, "quiet", o.quiet);
 
             return serialization::deserialize_mesh<MeshType>(
+                span<const uint8_t>(buf.data(), buf.size()),
+                o);
+        });
+
+    function(
+        "serializeSimpleScene",
+        +[](const SimpleSceneType& scene, val opts) -> val {
+            serialization::SerializeOptions o;
+            apply_opt(opts, "compress", o.compress);
+            apply_opt(opts, "compressionLevel", o.compression_level);
+            apply_opt(opts, "numThreads", o.num_threads);
+
+            auto buf = serialization::serialize_simple_scene(scene, o);
+            return val::global("Uint8Array").new_(typed_memory_view(buf.size(), buf.data()));
+        });
+
+    function(
+        "deserializeSimpleScene",
+        +[](const val& data, val opts) -> SimpleSceneType {
+            const auto length = data["length"].as<size_t>();
+            std::vector<uint8_t> buf(length);
+            val memory_view = val(typed_memory_view(length, buf.data()));
+            memory_view.call<void>("set", data);
+
+            serialization::DeserializeOptions o;
+            apply_opt(opts, "allowSceneConversion", o.allow_scene_conversion);
+            apply_opt(opts, "allowTypeCast", o.allow_type_cast);
+            apply_opt(opts, "quiet", o.quiet);
+
+            return serialization::deserialize_simple_scene<SimpleSceneType>(
                 span<const uint8_t>(buf.data(), buf.size()),
                 o);
         });

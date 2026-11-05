@@ -38,53 +38,60 @@ enum class AttributeValueType : uint8_t;
 
 namespace lagrange::scene {
 
+///
+/// @addtogroup module-scene
+/// @{
+///
+
+/// Zero-based index into a scene element vector. Each element type has its own index space.
 using ElementId = size_t;
+/// Sentinel for an absent scene element reference.
 constexpr ElementId invalid_element = lagrange::invalid<ElementId>();
 
-// Used in Node, it pairs a mesh with its materials (zero, one, or more).
+/// A mesh reference and its instance-specific material bindings, attached to a Node.
 struct LA_SCENE_API SceneMeshInstance
 {
-    // Mesh index. Has to be a valid index in the scene.meshes vector.
+    /// Index into Scene::meshes, or invalid_element when unset. The instance does not own the mesh.
     ElementId mesh = invalid_element;
 
-    // Material indices in the scene.materials vector. This is typically a single material index.
-    // When a single mesh uses multiple materials,
-    // the AttributeName::material_id facet attribute should be defined.
+    /// Global indices into Scene::materials. A mesh's one-channel `material_id` facet attribute
+    /// stores local indices into this list, not global scene material indices. Without that
+    /// attribute, scene-to-mesh conversion assigns the first material to every facet; an empty
+    /// list means no material.
     SafeVector<ElementId> materials;
 };
 
-// Represents a node in the scene hierarchy.
+/// A scene-graph node. Element references are zero-based indices into the owning Scene's vectors.
 struct LA_SCENE_API Node
 {
-    // Note that the node name may not be unique, and can be empty.
+    /// Node name; may be empty or non-unique.
     std::string name;
 
-    // Transform of the node, relative to its parent (maps node coords -> parent coords).
+    /// Maps node-local coordinates to parent coordinates (or world coordinates for a root).
     Eigen::Affine3f transform = Eigen::Affine3f::Identity();
 
-    // parent index. May be invalid if the node has no parent (e.g. the root).
+    /// Index into Scene::nodes, or invalid_element when the node has no parent.
     ElementId parent = invalid_element;
 
-    // children indices. May be empty.
+    /// Child indices into Scene::nodes; keep consistent with each child's parent field.
     SafeVector<ElementId> children;
 
-    // List of meshes contained in this node.
-    // Node that some file formats only allow 1 mesh per node (gltf). In this case we treat
-    // multiple meshes as one mesh with multiple primitives, and only one material per mesh is
-    // allowed.
+    /// Mesh instances attached to this node, all using this node's transform. Format-specific
+    /// restrictions (such as one material per glTF primitive) are handled during I/O.
     SafeVector<SceneMeshInstance> meshes;
 
-    // List of cameras contained in this node.
+    /// Camera indices into Scene::cameras.
     SafeVector<ElementId> cameras;
 
-    // List of lights contained in this node.
+    /// Light indices into Scene::lights.
     SafeVector<ElementId> lights;
 
+    /// Application- or format-specific node data.
     Extensions extensions;
 };
 
 ///
-/// Minimalistic image data structure that stores the raw image data.
+/// Minimal image buffer storing interleaved channel values in row-major (y, x, channel) order.
 ///
 struct LA_SCENE_API ImageBufferExperimental
 {
@@ -97,20 +104,22 @@ struct LA_SCENE_API ImageBufferExperimental
     /// Number of image channels (must be 1, 3, or 4).
     size_t num_channels = 4;
 
-    /// The scalar type of the elements in the buffer.
+    /// Scalar type of each channel value; must be set before interpreting data.
     AttributeValueType element_type;
 
-    /// Raw buffer of size (width * height * num_channels * num_bits_per_element / 8) bytes containing image data.
+    /// Raw image data, with width * height * num_channels channel values of element_type.
     std::vector<unsigned char> data;
 
     ///
-    /// Get the size of an element in bits.
+    /// Gets the scalar element size in bits, or zero for an unsupported element_type.
+    /// @warning Floating-point cases currently return sizeof(float) or sizeof(double) in bytes,
+    ///          unlike the bit counts returned for integer types.
     ///
     size_t get_bits_per_element() const;
 };
 
 ///
-/// Image structure that can store either image data or reference to an image file.
+/// Image data and/or a reference to an external image file.
 ///
 struct LA_SCENE_API ImageExperimental
 {
@@ -120,8 +129,8 @@ struct LA_SCENE_API ImageExperimental
     /// Image data.
     ImageBufferExperimental image;
 
-    /// Image file path. This path is relative to the file that contains the scene.
-    /// It is only valid if image data should be mapped to an external file.
+    /// External image file path, optionally retained alongside loaded image data. Relative paths
+    /// are relative to the file containing the scene.
     fs::path uri;
 
     /// Image extensions.
@@ -129,288 +138,314 @@ struct LA_SCENE_API ImageExperimental
 };
 
 
-// Pair of texture index (which texture to use) and texture coordinate index (which set of UVs to
-// use).
+/// Texture reference with the index of the mesh UV set to sample.
 struct LA_SCENE_API TextureInfo
 {
-    /// Texture index. Index in scene.textures vector.
+    /// Index into Scene::textures, or invalid_element when no texture is assigned.
     ElementId index = invalid_element;
 
-    /// Index of UV coordinates. Usually stored in the mesh as `texcoord_x` attribute where x is this
-    /// variable. This is typically 0.
+    /// Zero-based UV set index, typically zero. Importers commonly name sets `texcoord_0`,
+    /// `texcoord_1`, etc.; the attribute must have AttributeUsage::UV.
     int texcoord = 0;
 };
 
-// PBR material, based on the gltf specification.
-// This is subject to change, to support more material models.
+/// Experimental metallic-roughness PBR material based on glTF; the material model may change.
 struct LA_SCENE_API MaterialExperimental
 {
-    // Note that material name may not be unique, and can be empty.
+    /// Material name; may be empty or non-unique.
     std::string name;
 
+    /// RGBA base-color factor, multiplied by base_color_texture when present.
     Eigen::Vector4f base_color_value = Eigen::Vector4f::Ones();
+    /// Texture supplying base color and opacity.
     TextureInfo base_color_texture;
 
+    /// RGB emissive factor, multiplied by emissive_texture when present.
     Eigen::Vector3f emissive_value = Eigen::Vector3f::Zero();
+    /// Texture supplying emissive color.
     TextureInfo emissive_texture;
 
-    // metalness and roughness are packed together in a single texture.
-    // green channel has roughness, blue channel has metalness.
+    /// Packed texture: green stores roughness, blue stores metalness.
     TextureInfo metallic_roughness_texture;
+    /// Metalness factor, multiplied by the packed texture's blue channel when present.
     float metallic_value = 1.f;
+    /// Roughness factor, multiplied by the packed texture's green channel when present.
     float roughness_value = 1.f;
 
-    // The alpha mode specifies how to interpret the alpha value of the base color.
+    /// Interpretation of the base-color alpha component.
     enum class AlphaMode {
-        Opaque, // Alpha is ignored, and rendered output is opaque
-        Mask, // Output is either opaque or transparent depending on the alpha value and the
-              // alpha_cutoff value.
-        Blend // Alpha value is used to composite source and destination.
+        Opaque, ///< Ignore alpha and render as opaque.
+        Mask, ///< Render as opaque or transparent according to alpha_cutoff.
+        Blend ///< Use alpha to composite source and destination.
     };
     AlphaMode alpha_mode = AlphaMode::Opaque;
+    /// Alpha threshold used by AlphaMode::Mask.
     float alpha_cutoff = 0.5f;
 
 
-    // normal = normalize(<sampled tex value> * 2 - 1) * vec3(scale, scale, 1)
+    /// Scale of the sampled tangent-space normal's X and Y components.
     float normal_scale = 1.f;
+    /// Tangent-space normal map.
     TextureInfo normal_texture;
 
-    // color = lerp(color, color * <sampled tex value>, strength)
+    /// Occlusion strength: result = lerp(color, color * sampled red channel, strength).
     float occlusion_strength = 1.f;
+    /// Texture supplying occlusion in its red channel.
     TextureInfo occlusion_texture;
 
+    /// Whether both sides of each surface should be rendered.
     bool double_sided = false;
 
     Extensions extensions;
 };
 
+/// Image reference, sampling parameters, and texture-coordinate transform.
 struct LA_SCENE_API Texture
 {
+    /// Texture name; may be empty or non-unique.
     std::string name;
-    ElementId image = invalid_element; // index of image in scene.images vector
+    /// Index into Scene::images, or invalid_element if absent.
+    ElementId image = invalid_element;
 
-    enum TextureFilter : int {
-        Undefined = 0,
-        Nearest = 9728,
-        Linear = 9729,
-        NearestMipmapNearest = 9984,
-        LinearMipmapNearest = 9985,
-        NearestMipmapLinear = 9986,
-        LinearMipmapLinear = 9987
+    /// Sampling filter; values match the glTF sampler filter enums.
+    enum class TextureFilter : int {
+        Undefined = 0, ///< No filter specified.
+        Nearest = 9728, ///< Nearest-neighbor sampling.
+        Linear = 9729, ///< Linear interpolation between adjacent texels.
+        NearestMipmapNearest = 9984, ///< Nearest texel from the closest mipmap level.
+        LinearMipmapNearest = 9985, ///< Linear texel interpolation in the closest mipmap level.
+        NearestMipmapLinear = 9986, ///< Nearest texel blended between the two closest mipmaps.
+        LinearMipmapLinear = 9987 ///< Trilinear interpolation between texels and mipmap levels.
     };
-    // Texture magnification filter, used when texture appears larger on screen than the source
-    // image. Allowed values are UNDEFINED, NEAREST, LINEAR
+    /// Magnification filter; allowed values are Undefined, Nearest, and Linear.
     TextureFilter mag_filter = TextureFilter::Undefined;
 
-    // Texture minification filter, used when the texture appears smaller on screen than the source
-    // image. Allowed values are: UNDEFINED, NEAREST, LINEAR, NEAREST_MIPMAP_NEAREST,
-    // LINEAR_MIPMAP_NEAREST, NEAREST_MIPMAP_LINEAR, LINEAR_MIPMAP_LINEAR
+    /// Minification filter; accepts any TextureFilter value.
     TextureFilter min_filter = TextureFilter::Undefined;
 
+    /// Behavior outside the unit texture-coordinate interval.
     enum class WrapMode {
-        Wrap, // u|v becomes u%1|v%1
-        Clamp, // coordinates outside [0, 1] are clamped to the nearest value
-        Decal, // If the texture coordinates for a pixel are outside [0, 1], the texture is not
-               // applied
-        Mirror
+        Wrap, ///< Repeat periodically outside [0, 1].
+        Clamp, ///< Clamp coordinates to [0, 1].
+        Decal, ///< Do not apply the texture outside [0, 1].
+        Mirror ///< Repeat with alternating mirrored intervals.
     };
     WrapMode wrap_u = WrapMode::Wrap;
     WrapMode wrap_v = WrapMode::Wrap;
 
+    /// Texture-coordinate scale.
     Eigen::Vector2f scale = Eigen::Vector2f::Ones();
+    /// Texture-coordinate offset.
     Eigen::Vector2f offset = Eigen::Vector2f::Zero();
+    /// Texture-coordinate rotation.
     float rotation = 0.0f;
 
     Extensions extensions;
 };
 
+/// Light parameters in the coordinate system of each node referencing this light.
 struct LA_SCENE_API Light
 {
+    /// Light name; may be empty or non-unique.
     std::string name;
 
+    /// Light type; determines which type-specific parameters are used.
     enum class Type { Undefined, Directional, Point, Spot, Ambient, Area };
     Type type = Type::Undefined;
 
-    // note that the light is part of the scene graph, and has an associated transform in its node.
-    // The values below (position, up, look_at) are relative to the coordinate system defined by the
-    // node.
+    /// Position in node-local coordinates.
     Eigen::Vector3f position = Eigen::Vector3f::Zero();
+    /// Emission direction in node-local coordinates.
     Eigen::Vector3f direction = Eigen::Vector3f(0, 1, 0);
+    /// Up vector in node-local coordinates.
     Eigen::Vector3f up = Eigen::Vector3f(0, 0, 1);
 
-    // Attenuation factor. Intensity of light at a given distance 'd' is:
-    // intensity / (attenuation_constant
-    // + attenuation_linear * d
-    // + attenuation_quadratic * d * d
-    // + attenuation_cubic * d * d * d)
+    /// Light intensity; divided by attenuation_constant + attenuation_linear * d +
+    /// attenuation_quadratic * d^2 + attenuation_cubic * d^3 at distance d.
     float intensity = 1.f;
+    /// Constant attenuation coefficient.
     float attenuation_constant = 1.f;
+    /// Linear attenuation coefficient, multiplied by the distance d.
     float attenuation_linear = 0.f;
+    /// Quadratic attenuation coefficient, multiplied by d^2.
     float attenuation_quadratic = 0.f;
+    /// Cubic attenuation coefficient, multiplied by d^3.
     float attenuation_cubic = 0.f;
 
-    // Range is defined for point and spot lights. It defines a distance cutoff at which the
-    // light intensity is to be considered zero, so the light does not affects objects beyond this
-    // range. When the value is 0, range is assumed to be infinite.
+    /// Distance cutoff for point and spot lights; zero means infinite range.
     float range = 0.0;
 
-    // Colors
+    /// Diffuse RGB light color.
     Eigen::Vector3f color_diffuse = Eigen::Vector3f::Zero();
+    /// Specular RGB light color.
     Eigen::Vector3f color_specular = Eigen::Vector3f::Zero();
+    /// Ambient RGB light color.
     Eigen::Vector3f color_ambient = Eigen::Vector3f::Zero();
 
-    // inner and outer angle of a spot light's light cone
-    // they are both 2PI for point lights, and undefined for directional lights.
+    /// Inner spotlight cone angle in radians, measured from the emission axis.
+    /// Not used for other light types.
     std::optional<float> angle_inner_cone;
+    /// Outer spotlight cone angle in radians, measured from the emission axis.
+    /// Not used for other light types.
     std::optional<float> angle_outer_cone;
 
-    // size of area light source
+    /// Area-light source size.
     Eigen::Vector2f size = Eigen::Vector2f::Zero();
 
+    /// Application- or format-specific light data.
     Extensions extensions;
 };
 
+/// Camera parameters in the coordinate system of each node referencing this camera.
 struct LA_SCENE_API Camera
 {
-    // note that the camera is part of the scene graph, and has an associated transform in its node.
-    // The values below (position, up, look_at) are relative to the coordinate system defined by the
-    // node.
+    /// Camera name; may be empty or non-unique.
     std::string name;
+    /// Camera position in node-local coordinates.
     Eigen::Vector3f position = Eigen::Vector3f::Zero();
+    /// Up vector in node-local coordinates.
     Eigen::Vector3f up = Eigen::Vector3f(0, 1, 0);
+    /// Look-at target point in node-local coordinates, not a direction vector.
     Eigen::Vector3f look_at = Eigen::Vector3f(0, 0, -1);
 
-    // Distance of the near clipping plane. This value cannot be 0.
+    /// Near clipping-plane distance; must be positive for projection.
     float near_plane = 0.1f;
 
-    // Distance of the far clipping plane. Required for orthographic cameras, optional for
-    // perspective ones.
+    /// Far clipping-plane distance. Required for orthographic projection; std::nullopt gives an
+    /// infinite far plane for perspective projection. A finite value must exceed near_plane.
     std::optional<float> far_plane = 1000.f;
 
+    /// Projection type.
     enum class Type { Perspective, Orthographic };
     Type type = Type::Perspective;
 
-    // Half width of the orthographic view box. Or horizontal magnification.
-    //
-    // This is only defined when the camera type is orthographic, otherwise it should be 0.
+    /// Half-width of the orthographic view box (horizontal magnification); positive for
+    /// orthographic projection and unused for perspective projection.
     float orthographic_width = 0.f;
 
-    // Screen aspect ratio. This is the value of width / height of the screen.
-    //
-    // aspect_ratio = tan(horizontal_fov / 2) / tan(vertical_fov / 2)
-    //
-    // So we can compute any of those 3 variables from any 2. We store 2 (aspect_ratio and
-    // horizontal_fov) and provide utilities below to compute any of them from the other 2.
+    /// Viewport width / height; must be positive. For perspective cameras this equals
+    /// tan(horizontal_fov / 2) / tan(vertical_fov / 2).
     float aspect_ratio = 1.f;
 
-    // horizontal field of view angle, in radians.
-    //
-    // This is the angle between the left and right borders of the viewport.
-    // It should not be greater than Pi.
-    //
-    // fov is only defined when the camera type is perspective, otherwise it should be 0.
+    /// Perspective horizontal field of view in radians, between the left and right viewport
+    /// borders. Must be in (0, pi) for projection; unused for orthographic projection.
     float horizontal_fov = (float)lagrange::internal::pi_2;
 
-    // convenience methods to get or set the vertical fov instead.
-    // make sure aspect_ratio is set before calling those!
+    /// Gets the vertical field of view in radians using the current aspect_ratio.
     float get_vertical_fov() const
     {
         return 2.f * std::atan(std::tan(horizontal_fov * 0.5f) / aspect_ratio);
     }
+    /// Sets horizontal_fov from a vertical field of view in radians and the current aspect_ratio.
     void set_horizontal_fov_from_vertical_fov(float vfov)
     {
         horizontal_fov = 2.f * std::atan(std::tan(vfov * 0.5f) * aspect_ratio);
     }
+    /// Sets aspect_ratio from vertical and horizontal fields of view in radians.
     void set_aspect_ratio_from_fov(float vfov, float hfov)
     {
         aspect_ratio = std::tan(hfov * 0.5f) / std::tan(vfov * 0.5f);
     }
 
+    /// Application- or format-specific camera data.
     Extensions extensions;
 };
 
+/// Animation metadata; animation channels are not represented by this type.
 struct LA_SCENE_API Animation
 {
+    /// Animation name; may be empty or non-unique.
     std::string name;
     // TODO
 
+    /// Application- or format-specific animation data.
     Extensions extensions;
 };
 
+/// Skeleton metadata; joint and skinning data are not represented by this type.
 struct LA_SCENE_API Skeleton
 {
-    // This skeleton is used to deform those meshes.
-    // This will typically contain one value, but can have zero or multiple meshes.
-    // The value is the index in the scene meshes.
+    /// Indices into Scene::meshes for meshes deformed by this skeleton; may be empty.
     SafeVector<ElementId> meshes;
     // TODO
 
+    /// Application- or format-specific skeleton data.
     Extensions extensions;
 };
 
+/// Scene container owning meshes, graph nodes, and rendering metadata. References between
+/// elements are indices into the corresponding vectors and must remain valid when vectors change.
+/// The node hierarchy must be acyclic, with matching parent/children links and root_nodes.
+/// Node transforms use single precision independently of the mesh scalar type.
+///
+/// @tparam Scalar  Mesh scalar type.
+/// @tparam Index   Mesh index type, distinct from the scene's ElementId index type.
 template <typename Scalar, typename Index>
 struct Scene
 {
     using MeshType = SurfaceMesh<Scalar, Index>;
 
-    // Name of the scene
+    /// Scene name.
     std::string name;
 
-    // Scene nodes. This is a list of nodes, the hierarchy information is contained by each
-    // node having a list of children as indices to this vector.
+    /// Nodes indexed by Node::parent, Node::children, and root_nodes.
     SafeVector<Node> nodes;
 
-    // Root nodes. This is typically one. Must be at least one.
+    /// Root-node indices into nodes. May be empty for an empty scene.
     SafeVector<ElementId> root_nodes;
 
-    // Scene meshes.
+    /// Source meshes, including meshes that may have no instances in the node graph.
     SafeVector<MeshType> meshes;
 
-    // Images.
+    /// Images referenced by textures.
     SafeVector<ImageExperimental> images;
 
-    // Textures. They can reference images;
+    /// Textures, which may reference images.
     SafeVector<Texture> textures;
 
-    // Materials. They can reference textures.
+    /// Materials, which may reference textures.
     SafeVector<MaterialExperimental> materials;
 
-    // Lights in the scene.
+    /// Lights referenced by nodes.
     SafeVector<Light> lights;
 
-    // Cameras. The first camera (if any) is the default camera view.
+    /// Cameras referenced by nodes. The first camera, if any, is the default view.
     SafeVector<Camera> cameras;
 
-    // Scene skeletons.
+    /// Skeleton metadata.
     SafeVector<Skeleton> skeletons;
 
-    // Unused for now.
+    /// Animation metadata; currently unused.
     SafeVector<Animation> animations;
 
-    // Extensions.
+    /// Application- or format-specific scene data.
     Extensions extensions;
 
 public:
     ///
-    /// Add an element to the scene.
+    /// Appends an element by copying an lvalue or moving an rvalue. Adding a node does not
+    /// attach it to the hierarchy or update root_nodes; adding a mesh does not instantiate it.
     ///
     /// @param value The element to add. It can be node, mesh, image, texture, material,
     ///              light, camera, skeleton or animation.
     ///
-    /// @return The element id of the added element.
+    /// @return Index of the new element in its corresponding scene vector.
     ///
     template <typename T>
     ElementId add(T&& value);
 
     ///
-    /// Add a child node to a given parent node. The parent-child relationship will be updated for
-    /// both nodes.
+    /// Appends child_id to the parent's children and sets the child's parent. Both nodes must
+    /// already exist. Does not remove a previous parent link, deduplicate children, update
+    /// root_nodes, or detect cycles; callers must preserve a valid hierarchy.
     ///
-    /// @param parent_id  The parent node id.
-    /// @param child_id   The child node id.
+    /// @param parent_id  Valid index into nodes of the parent.
+    /// @param child_id   Valid index into nodes of the child.
     ///
     void add_child(ElementId parent_id, ElementId child_id);
 };
+
+/// @}
 
 template <typename Scalar, typename Index>
 template <typename T>
@@ -449,9 +484,16 @@ ElementId Scene<Scalar, Index>::add(T&& value)
     }
 }
 
+///
+/// @addtogroup module-scene
+/// @{
+///
+
 using Scene32f = Scene<float, uint32_t>;
 using Scene32d = Scene<double, uint32_t>;
 using Scene64f = Scene<float, uint64_t>;
 using Scene64d = Scene<double, uint64_t>;
+
+/// @}
 
 } // namespace lagrange::scene

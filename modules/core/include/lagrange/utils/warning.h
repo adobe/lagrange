@@ -159,7 +159,7 @@
 ///   Affects GCC 13.1-13.3, fixed in GCC 13.4.0, 14.3.0, and 15.1.0.
 /// @hideinitializer
 #define LA_IGNORE_ARRAY_BOUNDS_BEGIN LA_DISABLE_WARNING_BEGIN \
-    LA_DISABLE_WARNING_GCC(-Warray-bounds)
+    LA_DISABLE_WARNING_GCC(-Warray-bounds) \
     LA_DISABLE_WARNING_GCC(-Wstringop-overread)
 /// @hideinitializer
 #define LA_IGNORE_ARRAY_BOUNDS_END LA_DISABLE_WARNING_END

@@ -15,6 +15,9 @@
 
 namespace lagrange::geodesic {
 
+/// @addtogroup module-geodesic
+/// @{
+
 ///
 /// Computes surface geodesics using the Discrete Geodesic Polar Coordinates (DGPC) method. DGPC is
 /// fast and relatively accurate near the source point, but accuracy degrades with distance from the
@@ -86,5 +89,7 @@ GeodesicEngineDGPC<Scalar, Index> make_dgpc_engine(SurfaceMesh<Scalar, Index>& m
 {
     return GeodesicEngineDGPC<Scalar, Index>(mesh);
 }
+
+/// @}
 
 } // namespace lagrange::geodesic

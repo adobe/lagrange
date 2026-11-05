@@ -187,7 +187,7 @@ TEST_CASE("smoothed mesh gradient: flat and sphere orientation", "[volume][smoot
     options.triangulate = true;
     auto sphere = lagrange::primitive::generate_sphere<double, uint32_t>(options);
     lagrange::volume::SmoothedMeshGradientField sphere_field(sphere, 0.04, 0.12, 0.2);
-    for (const Eigen::Vector3d p :
+    for (const Eigen::Vector3d& p :
          {Eigen::Vector3d(1.05, 0, 0), Eigen::Vector3d(0, 1.05, 0), Eigen::Vector3d(0, 0, 1.05)}) {
         CAPTURE(p.x(), p.y(), p.z());
         REQUIRE(sphere_field.sample_direction(p, direction));

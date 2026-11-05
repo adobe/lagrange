@@ -480,10 +480,10 @@ auto extract_mesh_with_alpha_mask(
     return result;
 }
 
-#define LA_X_extract_mesh_with_alpha_mask(_, Scalar, Index)   \
-    template auto extract_mesh_with_alpha_mask(               \
-        const SurfaceMesh<Scalar, Index>& mesh,               \
-        const image::experimental::View3D<const float> image, \
+#define LA_X_extract_mesh_with_alpha_mask(_, Scalar, Index)    \
+    template LA_TEXPROC_API auto extract_mesh_with_alpha_mask( \
+        const SurfaceMesh<Scalar, Index>& mesh,                \
+        const image::experimental::View3D<const float> image,  \
         const ExtractMeshWithAlphaMaskOptions& options) -> SurfaceMesh<Scalar, Index>;
 
 LA_SURFACE_MESH_X(extract_mesh_with_alpha_mask, 0)

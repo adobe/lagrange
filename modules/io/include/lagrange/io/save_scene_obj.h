@@ -22,6 +22,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Save a scene to an obj file. The following information will be saved:
  * - Geometry (vertices, faces)
@@ -71,5 +76,7 @@ LA_IO_API void save_scene_obj(
     const fs::path& filename,
     const scene::Scene<Scalar, Index>& scene,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

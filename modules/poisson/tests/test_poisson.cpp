@@ -21,6 +21,7 @@
 #include <lagrange/testing/common.h>
 #include <lagrange/topology.h>
 #include <lagrange/utils/fmt_eigen.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 
 #include <catch2/catch_test_macros.hpp>
@@ -183,7 +184,7 @@ namespace {
 lagrange::SurfaceMesh32d fibonacci_sphere(size_t num_points = 1000)
 {
     lagrange::SurfaceMesh32d mesh;
-    mesh.add_vertices(num_points);
+    mesh.add_vertices(lagrange::safe_cast<uint32_t>(num_points));
     mesh.create_attribute<double>(
         "normals",
         lagrange::AttributeElement::Vertex,

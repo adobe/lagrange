@@ -19,6 +19,9 @@
 
 namespace lagrange::packing {
 
+/// @addtogroup module-packing
+/// @{
+
 /**
  * RepackOptions allows one to customize packing options.
  */
@@ -58,5 +61,7 @@ template <typename Scalar, typename Index>
 LA_PACKING_API void repack_uv_charts(
     SurfaceMesh<Scalar, Index>& mesh,
     const RepackOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::packing

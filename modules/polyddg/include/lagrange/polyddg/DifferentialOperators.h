@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/polyddg/api.h>
 
 #include <Eigen/Core>
 #include <Eigen/Sparse>
@@ -34,7 +35,7 @@ namespace lagrange::polyddg {
 /// @tparam Index  Index type.
 ///
 template <typename Scalar, typename Index>
-class DifferentialOperators
+class LA_POLYDDG_API DifferentialOperators
 {
 public:
     using Vector = Eigen::Matrix<Scalar, 1, 3>;

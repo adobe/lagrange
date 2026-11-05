@@ -18,6 +18,7 @@
 #include <lagrange/scene/simple_scene_bbox.h>
 #include <lagrange/utils/AdjacencyList.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/function_ref.h>
 #include <lagrange/utils/geometry3d.h>
 #include <lagrange/utils/range.h>
 #include <lagrange/views.h>
@@ -371,49 +372,38 @@ struct FacetInstanceData : InstanceData<Scalar>
     std::vector<SeedReservoir<Scalar>> facet_seeds_snapshot;
 };
 
-template <typename Derived, typename Scalar>
-struct ImplBase
+/// Schedule one weighted sampling batch through synchronous, non-owning callbacks.
+/// Per-instance ray counts use independent rounding; the actual total may differ from num_rays.
+template <typename Scalar>
+void run_sampling_batch(
+    uint64_t num_rays,
+    size_t num_instances,
+    function_ref<Scalar(size_t)> active_weight,
+    function_ref<void(size_t, uint64_t, Scalar)> process_instance,
+    function_ref<void()> finish_batch)
 {
-    RayCaster m_ray_caster;
+    const auto r = lagrange::range(num_instances);
+    const Scalar total = std::accumulate(r.begin(), r.end(), Scalar(0), [&](Scalar s, size_t i) {
+        return s + active_weight(i);
+    });
+    if (total <= 0) return;
 
-    Derived& derived() { return static_cast<Derived&>(*this); }
-    const Derived& derived() const { return static_cast<const Derived&>(*this); }
-
-    size_t num_instances() const { return derived().m_instances.size(); }
-    Scalar compute_total_active_weight() const
-    {
-        const auto r = lagrange::range(num_instances());
-        return std::accumulate(r.begin(), r.end(), Scalar(0), [&](Scalar s, size_t i) {
-            return s + derived().instance_active_weight(i);
-        });
+    const auto t_start = std::chrono::steady_clock::now();
+    for (auto i : lagrange::range(num_instances)) {
+        const Scalar inst_weight = active_weight(i);
+        if (inst_weight <= 0) continue;
+        const uint64_t inst_rays =
+            static_cast<uint64_t>(std::round(static_cast<double>(num_rays) * inst_weight / total));
+        if (inst_rays == 0) continue;
+        process_instance(i, inst_rays, inst_weight);
     }
+    finish_batch();
 
-    void run_batch(uint64_t num_rays)
-    {
-        const Scalar total = compute_total_active_weight();
-        if (total <= 0) return;
-
-        const auto t_start = std::chrono::steady_clock::now();
-
-        for (auto i : lagrange::range(num_instances())) {
-            const Scalar inst_weight = derived().instance_active_weight(i);
-            if (inst_weight <= 0) continue;
-
-            const uint64_t inst_rays = static_cast<uint64_t>(
-                std::round(static_cast<double>(num_rays) * inst_weight / total));
-            if (inst_rays == 0) continue;
-
-            derived().process_instance(i, inst_rays, inst_weight);
-        }
-
-        derived().end_batch();
-
-        const auto t_end = std::chrono::steady_clock::now();
-        const auto batch_ms =
-            std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
-        lagrange::logger().info("Batch: {} ms", batch_ms);
-    }
-};
+    const auto t_end = std::chrono::steady_clock::now();
+    const auto batch_ms =
+        std::chrono::duration_cast<std::chrono::milliseconds>(t_end - t_start).count();
+    lagrange::logger().info("Batch: {} ms", batch_ms);
+}
 
 /// Sum `is_visible(i)` and `num_rays_cast(i)` over `i in [0, count)`.
 template <typename Sampler, typename Index>

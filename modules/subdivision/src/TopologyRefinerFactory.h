@@ -63,7 +63,7 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTopology(
         IndexArray dst_facet_vertices = getBaseFaceVertices(refiner, facet);
 
         auto fv = mesh.get_facet_vertices(facet);
-        for (size_t lv = 0; lv < fv.size(); ++lv) {
+        for (int lv = 0; lv < static_cast<int>(fv.size()); ++lv) {
             dst_facet_vertices[lv] = static_cast<int>(fv[lv]);
         }
     }
@@ -101,7 +101,8 @@ bool TopologyRefinerFactory<ConverterType>::assignComponentTags(
                     auto values = attr.get_all();
                     for (int e = 0; e < static_cast<int>(values.size()); ++e) {
                         auto v = mesh.get_edge_vertices(e);
-                        Index idx = findBaseEdge(refiner, v[0], v[1]);
+                        Index idx =
+                            findBaseEdge(refiner, static_cast<int>(v[0]), static_cast<int>(v[1]));
 
                         if (idx != INDEX_INVALID) {
                             float s = static_cast<float>(ValueType(10.0) * values[e]);
@@ -213,7 +214,7 @@ bool TopologyRefinerFactory<ConverterType>::assignFaceVaryingTopology(
                     IndexArray dst_indices = getBaseFaceFVarValues(refiner, f, channel);
 
                     for (int lv = 0; lv < dst_indices.size(); ++lv) {
-                        dst_indices[lv] = src_indices[src_next++];
+                        dst_indices[lv] = static_cast<int>(src_indices[src_next++]);
                     }
                 }
             }

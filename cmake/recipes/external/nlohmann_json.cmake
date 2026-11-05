@@ -30,7 +30,7 @@ add_library(nlohmann_json::nlohmann_json ALIAS nlohmann_json)
 
 include(GNUInstallDirs)
 target_include_directories(nlohmann_json INTERFACE
-    "$<BUILD_INTERFACE:${nlohmann_json_SOURCE_DIR}>/include"
+    "$<BUILD_INTERFACE:${nlohmann_json_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>"
 )
 target_compile_features(nlohmann_json INTERFACE cxx_std_11)

@@ -243,7 +243,7 @@ Entity get_parent(const Registry& registry, Entity e)
 std::vector<Entity> get_children(const Registry& registry, Entity e)
 {
     std::vector<Entity> res;
-    foreach_child(registry, e, [&](Entity e) { res.push_back(e); });
+    foreach_child(registry, e, [&](Entity child) { res.push_back(child); });
     return res;
 }
 

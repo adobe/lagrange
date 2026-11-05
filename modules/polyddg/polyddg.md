@@ -12,3 +12,9 @@ vector fields on polygonal meshes.
 
 [1] De Goes, Fernando, Andrew Butts, and Mathieu Desbrun. "Discrete differential operators on polygonal
 meshes." ACM Transactions on Graphics (TOG) 39.4 (2020): 110-1.
+
+Quick links
+-----------
+
+- [DifferentialOperators](@ref lagrange::polyddg::DifferentialOperators)
+- [hodge_decomposition_vector_field](@ref lagrange::polyddg::hodge_decomposition_vector_field)

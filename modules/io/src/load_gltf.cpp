@@ -23,6 +23,7 @@
 #include <lagrange/AttributeValueType.h>
 #include <lagrange/Logger.h>
 #include <lagrange/SurfaceMeshTypes.h>
+#include <lagrange/attribute_names.h>
 #include <lagrange/combine_meshes.h>
 #include <lagrange/internal/skinning.h>
 #include <lagrange/scene/SceneTypes.h>
@@ -606,6 +607,10 @@ SceneType load_simple_scene_gltf(const tinygltf::Model& model, const LoadOptions
                         lmeshes,
                         preserve_attributes));
             }
+            if (!mesh.name.empty()) {
+                lscene.ref_mesh(lscene.get_num_meshes() - 1)
+                    .create_metadata(AttributeName::name, mesh.name);
+            }
         }
     }
 
@@ -660,8 +665,12 @@ SceneType load_scene_gltf(const tinygltf::Model& model, const LoadOptions& optio
 
     for (const tinygltf::Mesh& mesh : model.meshes) {
         for (const tinygltf::Primitive& primitive : mesh.primitives) {
-            lscene.add(
-                convert_tinygltf_primitive_to_lagrange_mesh<MeshType>(model, primitive, options));
+            auto lmesh =
+                convert_tinygltf_primitive_to_lagrange_mesh<MeshType>(model, primitive, options);
+            if (!mesh.name.empty()) {
+                lmesh.create_metadata(AttributeName::name, mesh.name);
+            }
+            lscene.add(std::move(lmesh));
         }
         primitive_count.push_back(primitive_count_tmp);
         primitive_count_tmp += mesh.primitives.size();

@@ -45,6 +45,59 @@ class TestSimpleScene:
 
         assert scene.get_instance(mesh_id, instance_id).mesh_index == mesh_id
 
+    def test_ref_instance_transform(self):
+        scene, mesh_id, instance_id = self.create_simple_scene()
+        instance = scene.ref_instance(mesh_id, instance_id)
+
+        transform = np.eye(4)
+        transform[:3, 3] = [1, 2, 3]
+        instance.transform = transform
+        np.testing.assert_array_equal(scene.get_instance(mesh_id, instance_id).transform, transform)
+
+        instance.transform[0, 3] = 4
+        transform[0, 3] = 4
+        np.testing.assert_array_equal(scene.get_instance(mesh_id, instance_id).transform, transform)
+
+        del scene
+        np.testing.assert_array_equal(instance.transform, transform)
+
+    @pytest.mark.parametrize(
+        "operation", ["reserve_instances", "add_instance", "reserve_meshes", "add_mesh"]
+    )
+    def test_ref_instance_survives_scene_growth(self, operation):
+        scene, mesh_id, instance_id = self.create_simple_scene()
+        instance = scene.ref_instance(mesh_id, instance_id)
+        view = instance.transform
+        address = view.ctypes.data
+
+        if operation == "reserve_instances":
+            scene.reserve_instances(mesh_id, 128)
+        elif operation == "add_instance":
+            for _ in range(128):
+                new_instance = lagrange.scene.MeshInstance3D()
+                new_instance.mesh_index = mesh_id
+                scene.add_instance(new_instance)
+        elif operation == "reserve_meshes":
+            scene.reserve_meshes(128)
+        else:
+            for _ in range(128):
+                scene.add_mesh(lagrange.SurfaceMesh())
+
+        assert scene.ref_instance(mesh_id, instance_id).transform.ctypes.data == address
+        transform = np.eye(4)
+        transform[:3, 3] = [1, 2, 3]
+        instance.transform = transform
+        np.testing.assert_array_equal(view, transform)
+        view[0, 3] = 4
+        transform[0, 3] = 4
+        np.testing.assert_array_equal(scene.get_instance(mesh_id, instance_id).transform, transform)
+
+        del instance
+        del scene
+        view[1, 3] = 5
+        transform[1, 3] = 5
+        np.testing.assert_array_equal(view, transform)
+
     def test_multiple_instances(self):
         scene, mesh_id, instance_id = self.create_simple_scene()
 

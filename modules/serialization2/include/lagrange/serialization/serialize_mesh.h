@@ -26,8 +26,8 @@ namespace lagrange::serialization {
 /// @addtogroup module-serialization2
 /// @{
 ///
-/// The suggested file extension for serialized meshes is `.lgm`, and `.lgs` for serialized scenes
-/// (both SimpleScene and Scene).
+/// The suggested file extensions are `.lgm` for SurfaceMesh, `.lgs` for SimpleScene, and `.lgx` for
+/// Scene.
 ///
 
 ///

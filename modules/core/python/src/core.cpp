@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/extract_boundary_loops.h>
 #include "bind_attribute.h"
 #include "bind_camera_transforms.h"

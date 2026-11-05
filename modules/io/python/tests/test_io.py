@@ -9,12 +9,14 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
-import lagrange
-
 import datetime
-import numpy as np
-import tempfile
+import json
 import pathlib
+import struct
+import tempfile
+
+import lagrange
+import numpy as np
 import pytest
 
 
@@ -49,6 +51,23 @@ def triangle_with_uv_normal_color(triangle):
         color_values,
         color_indices,
     )
+    return mesh
+
+
+@pytest.fixture
+def hybrid_mesh():
+    mesh = lagrange.SurfaceMesh()
+    mesh.add_vertex([0, 0, 0])
+    mesh.add_vertex([1, 0, 0])
+    mesh.add_vertex([1, 1, 0])
+    mesh.add_vertex([0, 1, 0])
+    mesh.add_vertex([2, 0.5, 0])
+    mesh.add_vertex([3, 0.5, 0])
+
+    mesh.add_quad(0, 1, 2, 3)
+    mesh.add_triangle(2, 1, 4)
+    mesh.add_polygon(np.array([4, 5], dtype=np.uint32))
+
     return mesh
 
 
@@ -99,6 +118,21 @@ def assert_same_attribute(mesh, mesh2, usage, required):
 
 
 class TestIO:
+    @pytest.mark.parametrize("binary", [False, True], ids=["ascii", "binary"])
+    def test_save_hybrid_mesh_msh(self, hybrid_mesh, tmp_path, binary):
+        filename = tmp_path / "hybrid.msh"
+        lagrange.io.save_mesh(filename, hybrid_mesh, binary=binary)
+        loaded = lagrange.io.load_mesh(filename)
+
+        np.testing.assert_allclose(loaded.vertices, hybrid_mesh.vertices)
+        assert loaded.num_facets == 3
+        assert loaded.is_hybrid
+        assert [loaded.get_facet_size(f) for f in range(loaded.num_facets)] == [4, 3, 2]
+        for f in range(loaded.num_facets):
+            np.testing.assert_array_equal(
+                loaded.get_facet_vertices(f), hybrid_mesh.get_facet_vertices(f)
+            )
+
     def __save_and_load__(
         self, suffix, mesh, *, binary, exact_match, selected_attributes, as_scene
     ):
@@ -221,6 +255,62 @@ class TestIO:
         mesh2 = lagrange.io.string_to_mesh(gltf_data)
         assert_same_vertices_and_facets(mesh, mesh2)
 
+    @pytest.mark.parametrize("extension", ["gltf", "glb"])
+    @pytest.mark.parametrize("kind", ["mesh", "simple_scene", "scene"])
+    def test_gltf_mesh_names(self, triangle, tmp_path, extension, kind):
+        name = 'Triangle "with quotes" / café'
+        triangle.metadata["name"] = name
+        filename = tmp_path / f"named_mesh.{extension}"
+        if kind == "mesh":
+            lagrange.io.save_mesh(filename, triangle)
+        elif kind == "simple_scene":
+            scene = lagrange.scene.mesh_to_simple_scene(triangle)
+            lagrange.io.save_simple_scene(filename, scene)
+        else:
+            scene = lagrange.scene.Scene()
+            mesh_idx = scene.add(triangle)
+            node = lagrange.scene.Node()
+            node.name = "Node name is not the mesh name"
+            instance = lagrange.scene.SceneMeshInstance()
+            instance.mesh = mesh_idx
+            node.meshes.append(instance)
+            scene.add(node)
+            lagrange.io.save_scene(filename, scene)
+
+        data = filename.read_bytes()
+        if extension == "glb":
+            json_length, chunk_type = struct.unpack_from("<II", data, 12)
+            assert chunk_type == 0x4E4F534A
+            data = data[20 : 20 + json_length]
+        model = json.loads(data)
+        assert model["meshes"][0]["name"] == name
+        assert "_NAME" not in model["meshes"][0]["primitives"][0]["attributes"]
+
+        mesh = lagrange.io.load_mesh(filename)
+        assert mesh.metadata["name"] == name
+        simple_scene = lagrange.io.load_simple_scene(filename)
+        simple_mesh = simple_scene.get_mesh(0)
+        assert simple_mesh.metadata["name"] == name
+        scene = lagrange.io.load_scene(filename)
+        scene_mesh = scene.meshes[0]
+        assert scene_mesh.metadata["name"] == name
+        if kind == "scene":
+            assert scene.nodes[0].name == "Node name is not the mesh name"
+
+    @pytest.mark.parametrize("mesh_format", ["gltf", "glb"])
+    def test_gltf_name_with_selected_attributes(self, triangle, mesh_format):
+        triangle.metadata["name"] = "Triangle"
+        weight_id = triangle.create_attribute(
+            "_weight",
+            element=lagrange.AttributeElement.Vertex,
+            usage=lagrange.AttributeUsage.Scalar,
+            initial_values=np.arange(triangle.num_vertices, dtype=np.float32),
+        )
+        data = lagrange.io.mesh_to_string(triangle, mesh_format, selected_attributes=[weight_id])
+        reloaded = lagrange.io.string_to_mesh(data)
+        assert reloaded.metadata["name"] == "Triangle"
+        assert reloaded.has_attribute("_weight")
+
     def test_pcd(self):
         mesh = lagrange.SurfaceMesh()
         mesh.add_vertices(
@@ -324,10 +414,11 @@ class TestIO:
         with tempfile.TemporaryDirectory() as tmp_dir:
             tmp_dir_path = pathlib.Path(tmp_dir)
             stamp = datetime.datetime.now().isoformat().replace(":", ".")
-            filename = tmp_dir_path / f"{stamp}.gltf"
-            lagrange.io.save_scene(filename, scene)
-            scene2 = lagrange.io.load_scene(filename)
-            check_scene(scene2)
+            for extension in [".gltf", ".lgx"]:
+                filename = tmp_dir_path / f"{stamp}{extension}"
+                lagrange.io.save_scene(filename, scene)
+                scene2 = lagrange.io.load_scene(filename)
+                check_scene(scene2)
 
         # Save and load the scene using string.
         data = lagrange.io.scene_to_string(scene, "gltf")

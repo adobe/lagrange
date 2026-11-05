@@ -10,7 +10,7 @@
  * governing permissions and limitations under the License.
  */
 
-#ifdef LAGRANGE_WITH_ASSIMP
+#if defined(LAGRANGE_WITH_ASSIMP) && defined(LAGRANGE_ENABLE_LEGACY_FUNCTIONS)
 
     #include <lagrange/Logger.h>
     #include <lagrange/io/load_mesh_assimp.h>

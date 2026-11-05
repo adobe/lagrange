@@ -13,6 +13,7 @@
 #include <lagrange/utils/strings.h>
 
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/warning.h>
 
 #ifdef _WIN32
     #include <Windows.h>
@@ -27,7 +28,11 @@
 
 #include <cstring>
 #include <fstream>
+
+// GCC 13 emits false-positive warnings in libstdc++'s regex automaton with ASan and -O2.
+LA_IGNORE_MAYBE_UNINITIALIZED_START
 #include <regex>
+LA_IGNORE_MAYBE_UNINITIALIZED_END
 
 namespace lagrange {
 namespace fs {

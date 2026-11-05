@@ -21,6 +21,9 @@
 
 namespace lagrange {
 
+/// Vector with stable element addresses and value-copy semantics.
+/// Copies invoke T's copy constructor; moves transfer ownership without copying elements.
+/// References owned by T follow T's copy semantics and are not recursively cloned.
 template <typename T>
 class SharedPtrVector : public std::vector<std::shared_ptr<T>>
 {
@@ -77,6 +80,31 @@ public:
 
 public:
     using Super::Super;
+
+    SharedPtrVector() = default;
+
+    /// Copy elements into separately owned objects, preserving null storage slots.
+    SharedPtrVector(const SharedPtrVector& other)
+        : Super()
+    {
+        Super::reserve(other.size());
+        for (const auto& value : static_cast<const Super&>(other)) {
+            Super::push_back(value ? std::make_shared<T>(*value) : nullptr);
+        }
+    }
+
+    /// Copy elements without modifying the destination if an element copy throws.
+    SharedPtrVector& operator=(const SharedPtrVector& other)
+    {
+        if (this != &other) {
+            SharedPtrVector copy(other);
+            Super::swap(copy);
+        }
+        return *this;
+    }
+
+    SharedPtrVector(SharedPtrVector&&) noexcept = default;
+    SharedPtrVector& operator=(SharedPtrVector&&) noexcept = default;
 
     template <typename InputIter>
     SharedPtrVector(InputIter first, InputIter last)

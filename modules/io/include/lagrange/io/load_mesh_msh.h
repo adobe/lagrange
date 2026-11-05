@@ -21,8 +21,14 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
- * Loads a mesh from a stream in MSH format.
+ * Loads a mesh from a stream in MSH format. 2-node lines, triangles, and quads are loaded as
+ * facets, including a mixture of those element types.
  *
  * @param[in]  input_stream  Input stream.
  * @param[in]  options       Load options.
@@ -37,7 +43,8 @@ LA_IO_API MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& 
 /**
  * @overload
  *
- * Loads a mesh from a file in MSH format.
+ * Loads a mesh from a file in MSH format. 2-node lines, triangles, and quads are loaded as
+ * facets, including a mixture of those element types.
  *
  * @param[in]  filename  Input filename.
  * @param[in]  options   Load options.
@@ -50,5 +57,7 @@ LA_IO_API MeshType load_mesh_msh(std::istream& input_stream, const LoadOptions& 
  */
 template <typename MeshType>
 LA_IO_API MeshType load_mesh_msh(const fs::path& filename, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

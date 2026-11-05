@@ -62,8 +62,7 @@ GeodesicPathResult<Scalar, Index> GeodesicEngine<Scalar, Index>::point_to_point_
         "or GeodesicEngineFlip for flip-based geodesic path computation.");
 }
 
-#define LA_X_GeodesicEngine(_, Scalar, Index) \
-    template class LA_GEODESIC_API GeodesicEngine<Scalar, Index>;
+#define LA_X_GeodesicEngine(_, Scalar, Index) template class GeodesicEngine<Scalar, Index>;
 LA_SURFACE_MESH_X(GeodesicEngine, 0)
 
 } // namespace lagrange::geodesic

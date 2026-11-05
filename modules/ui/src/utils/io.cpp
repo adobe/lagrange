@@ -18,7 +18,6 @@
 
 #ifdef LAGRANGE_WITH_ASSIMP
     #include <assimp/material.h>
-    #include <assimp/pbrmaterial.h>
 #endif
 
 namespace lagrange {

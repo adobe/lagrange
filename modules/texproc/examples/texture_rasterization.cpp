@@ -192,7 +192,7 @@ int main(int argc, char** argv)
 
     // Save textured meshes (one per view)
     if (!args.output_meshes.empty()) {
-        auto mesh = lagrange::scene::scene_to_mesh(scene);
+        auto merged_mesh = lagrange::scene::scene_to_mesh(scene);
         lagrange::io::SaveOptions save_options;
         save_options.encoding = lagrange::io::FileEncoding::Binary;
         save_options.embed_images = true;
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
             fs::path output_mesh = make_output_path(args.output_meshes, i);
             lagrange::logger().info("Saving textured mesh: {}", output_mesh.string());
             auto output_scene = lagrange::scene::internal::single_mesh_to_scene(
-                mesh,
+                merged_mesh,
                 textures_and_weights[i].first.to_mdspan());
             lagrange::io::save_scene(output_mesh, output_scene, save_options);
         }

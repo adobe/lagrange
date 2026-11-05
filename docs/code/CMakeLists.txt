@@ -37,6 +37,9 @@ execute_process(COMMAND ${CODE_EXTRACT_PATH} ${LAGRANGE_WEBSITE_REPO} ${extracte
 file(GLOB_RECURSE SRC_FILES "${extracted_code_dir}/*.cpp")
 source_group(TREE "${extracted_code_dir}/" PREFIX "Source Files" FILES ${SRC_FILES})
 add_library(lagrange_extracted_code ${SRC_FILES})
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set_target_properties(lagrange_extracted_code PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
 
 # Dependencies. For now we only enable the core module. But once we cover more files on the website
 # we will have to include additional modules.

@@ -17,6 +17,11 @@
 namespace lagrange::solver {
 
 ///
+/// @addtogroup module-solver
+/// @{
+///
+
+///
 /// Solver status.
 ///
 enum class Status { Successful, NotComputed, NotConverging, NumericalIssue };
@@ -122,5 +127,7 @@ EigenResult<Scalar> generalized_selfadjoint_eigen_smallest(
     const Eigen::SparseMatrix<Scalar>& A,
     const Eigen::SparseMatrix<Scalar>& M,
     size_t k);
+
+/// @}
 
 } // namespace lagrange::solver

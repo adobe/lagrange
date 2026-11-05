@@ -10,10 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/image/ImageStorage.h>
 #include <lagrange/image/ImageType.h>
 #include <lagrange/image/split_grid.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/image_utils.h>
 #include <lagrange/python/tensor_utils.h>
 

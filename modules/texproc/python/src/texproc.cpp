@@ -10,6 +10,8 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include "../shared/shared_utils.h"
 
 #include <lagrange/Logger.h>
@@ -18,7 +20,6 @@
 #include <lagrange/cast_attribute.h>
 #include <lagrange/image/Array3D.h>
 #include <lagrange/image/View3D.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/image_utils.h>
 #include <lagrange/python/tensor_utils.h>
 #include <lagrange/texproc/TextureRasterizer.h>

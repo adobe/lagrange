@@ -19,6 +19,9 @@
 
 namespace lagrange::geodesic {
 
+/// @addtogroup module-geodesic
+/// @{
+
 ///
 /// Computes surface geodesics using the [MMP] algorithm. This is an exact method, which offers the
 /// best accuracy overall, but can be slow for large meshes.
@@ -99,5 +102,7 @@ GeodesicEngineMMP<Scalar, Index> make_mmp_engine(SurfaceMesh<Scalar, Index>& mes
 {
     return GeodesicEngineMMP<Scalar, Index>(mesh);
 }
+
+/// @}
 
 } // namespace lagrange::geodesic

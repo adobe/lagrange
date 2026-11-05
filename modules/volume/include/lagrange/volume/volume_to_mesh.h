@@ -12,6 +12,7 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/volume/api.h>
 #include <lagrange/volume/types.h>
 
 #ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
@@ -19,6 +20,11 @@
 #endif
 
 namespace lagrange::volume {
+
+///
+/// @addtogroup module-volume
+/// @{
+///
 
 /// Volume to mesh isosurfacing options.
 struct VolumeToMeshOptions
@@ -48,7 +54,11 @@ struct VolumeToMeshOptions
 /// @return     Meshed isosurface.
 ///
 template <typename MeshType, typename GridScalar>
-auto volume_to_mesh(const Grid<GridScalar>& grid, const VolumeToMeshOptions& options = {})
+LA_VOLUME_API auto volume_to_mesh(
+    const Grid<GridScalar>& grid,
+    const VolumeToMeshOptions& options = {})
     -> SurfaceMesh<typename MeshType::Scalar, typename MeshType::Index>;
+
+/// @}
 
 } // namespace lagrange::volume

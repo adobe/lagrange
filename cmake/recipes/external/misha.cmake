@@ -18,8 +18,8 @@ message(STATUS "Third-party (external): creating target 'misha::misha'")
 include(CPM)
 CPMAddPackage(
     NAME Misha
-    GITHUB_REPOSITORY mkazhdan/Misha
-    GIT_TAG 53f43d2a8290ddebcc438a97da9d4f994d35fc6a
+    GITHUB_REPOSITORY jdumas/Misha
+    GIT_TAG 9255c0e15139d95208e3b61098c6e01c72a7a968 # adobe/lagrange branch
 )
 
 add_library(misha::misha INTERFACE IMPORTED GLOBAL)

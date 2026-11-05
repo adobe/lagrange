@@ -14,6 +14,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/Array3D.h>
 #include <lagrange/image/View3D.h>
+#include <lagrange/texproc/api.h>
 
 #include <optional>
 #include <string_view>
@@ -122,7 +123,7 @@ struct ConstWeightedTextureView
 /// @return     Texture image resulting from the compositing.
 ///
 template <typename Scalar, typename Index, typename ValueType>
-image::experimental::Array3D<ValueType> texture_compositing(
+LA_TEXPROC_API image::experimental::Array3D<ValueType> texture_compositing(
     const SurfaceMesh<Scalar, Index>& mesh,
     std::vector<ConstWeightedTextureView<ValueType>> textures,
     const CompositingOptions& options = {});

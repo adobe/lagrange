@@ -198,7 +198,7 @@ class TestSceneSerialization:
 
     def test_save_load_file(self, scene):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            filepath = pathlib.Path(tmp_dir) / "test.lgs"
+            filepath = pathlib.Path(tmp_dir) / "test.lgx"
             lagrange.serialization.save_scene(filepath, scene)
             assert filepath.exists()
 

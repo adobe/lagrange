@@ -47,7 +47,8 @@ void repack_uv_charts_impl(
     map_attribute_in_place(uv_mesh, "chart_id", AttributeElement::Vertex);
     auto vertex_chart_ids = attribute_vector_view<Index>(uv_mesh, "chart_id");
 
-    auto uv_values = vertex_ref(uv_mesh);
+    Eigen::Ref<Eigen::Matrix<UVScalar, Eigen::Dynamic, 2, Eigen::RowMajor>> uv_values =
+        vertex_ref(uv_mesh);
     la_runtime_assert(uv_values.array().isFinite().all());
 
     Eigen::Matrix<UVScalar, Eigen::Dynamic, 2, Eigen::RowMajor> bbox_mins(num_charts, 2);
@@ -90,7 +91,7 @@ void repack_uv_charts_impl(
         }
     }
 
-    const auto all_bbox_min = uv_values.colwise().minCoeff().eval();
+    const Eigen::Matrix<UVScalar, 1, 2> all_bbox_min = uv_values.colwise().minCoeff();
     if (options.normalize) {
         uv_values = (uv_values.rowwise() - all_bbox_min) / canvas_size;
     } else {

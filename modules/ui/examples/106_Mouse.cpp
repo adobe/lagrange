@@ -29,7 +29,7 @@ int main(int argc, char** argv)
 
         // For querying mouse buttons, use keybinds:
         const auto& keybinds = ui::get_keybinds(r);
-        if (keybinds.is_pressed(GLFW_MOUSE_BUTTON_LEFT)) {
+        if (keybinds.is_pressed(ImGuiKey_MouseLeft)) {
             lagrange::logger().info("Left mouse button pressed");
         }
 

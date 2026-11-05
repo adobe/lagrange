@@ -49,6 +49,9 @@ void sqrt_subdivision_internal(
     Eigen::PlainObjectBase<DerivedVO>& VO,
     Eigen::PlainObjectBase<DerivedFO>& FO)
 {
+    la_runtime_assert(VI.cols() == 3, "Only 3D meshes are supported.");
+    la_runtime_assert(FI.cols() == 3, "Only triangle meshes are supported.");
+
     using Scalar = typename DerivedVI::Scalar;
     using Index = typename DerivedFI::Scalar;
     using MatrixXs = Eigen::Matrix<Scalar, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
@@ -73,7 +76,7 @@ void sqrt_subdivision_internal(
         for (auto j : VV[i]) {
             sum_vi += VI.row(j);
         }
-        VO.row(i) = (1 - an) * VI.row(i) + an / n * sum_vi;
+        VO.row(i).template head<3>() = (1 - an) * VI.row(i).template head<3>() + an / n * sum_vi;
     }
 
     // Step 3: compute a new set of faces, and flip edges as required

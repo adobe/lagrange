@@ -26,6 +26,8 @@
 #include <lagrange/mesh_cleanup/detect_degenerate_facets.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/topology.h>
+#include <lagrange/utils/range.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/uv_mesh.h>
 
 namespace lagrange {

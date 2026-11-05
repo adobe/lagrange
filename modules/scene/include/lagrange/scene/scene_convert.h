@@ -18,8 +18,12 @@
 
 #include <vector>
 
-// TODO: We're still missing scene <-> simple scene conversion functions.
 namespace lagrange::scene {
+
+///
+/// @addtogroup module-scene
+/// @{
+///
 
 ///
 /// Converts a single mesh into a scene with a single identity instance of the input mesh.
@@ -50,6 +54,10 @@ Scene<Scalar, Index> meshes_to_scene(std::vector<SurfaceMesh<Scalar, Index>> mes
 ///
 /// Converts a scene into a concatenated mesh with all the transforms applied.
 ///
+/// Only mesh instances are included; uninstantiated meshes are omitted. Instance transforms are
+/// accumulated along each node's parent chain. See scene_to_meshes_and_materials() for material
+/// attribute conventions.
+///
 /// @param[in]  scene                Scene to convert.
 /// @param[in]  transform_options    Options to use when applying mesh transformations.
 /// @param[in]  preserve_attributes  Preserve shared attributes and map them to the output mesh.
@@ -67,6 +75,10 @@ SurfaceMesh<Scalar, Index> scene_to_mesh(
 
 ///
 /// Converts a scene into a list of meshes with all the transforms applied.
+///
+/// Outputs follow node index order, then instance order within each node. All nodes are visited,
+/// regardless of membership in `Scene::root_nodes`; meshes without instances are omitted.
+/// See scene_to_meshes_and_materials() for material attribute conventions.
 ///
 /// @param[in]  scene              Scene to convert.
 /// @param[in]  transform_options  Options to use when applying mesh transformations.
@@ -87,10 +99,10 @@ std::vector<SurfaceMesh<Scalar, Index>> scene_to_meshes(
 ///
 /// Converts a Scene into a SimpleScene.
 ///
-/// The Scene's node hierarchy is flattened: each mesh instance in the scene becomes a
-/// MeshInstance in the SimpleScene with the accumulated world transform. Meshes are copied
-/// by index. Materials and other scene metadata (images, textures, cameras, lights) are not
-/// preserved in the SimpleScene.
+/// Each mesh instance in every node becomes a MeshInstance with the accumulated world transform.
+/// All source meshes are copied in index order, including meshes without instances. Materials and
+/// other scene metadata (images, textures, cameras, lights) are not preserved. Mesh attributes are
+/// copied unchanged, including any instance-local `material_id` values.
 ///
 /// @param[in]  scene   Input scene to convert.
 ///
@@ -105,9 +117,10 @@ SimpleScene<Scalar, Index> scene_to_simple_scene(const Scene<Scalar, Index>& sce
 ///
 /// Converts a SimpleScene into a Scene.
 ///
-/// Each mesh instance in the SimpleScene becomes a node in the Scene with the instance
-/// transform. All nodes are direct children of a single root node. Meshes are copied
-/// by index.
+/// Each mesh instance becomes a node with the instance transform, converted to single precision.
+/// All instance nodes are direct children of a single root node. All source meshes are copied in
+/// index order, including meshes without instances. Instance user data is not preserved, and no
+/// scene materials are created.
 ///
 /// @param[in]  simple_scene  Input simple scene to convert.
 ///
@@ -128,15 +141,16 @@ Scene<Scalar, Index> simple_scene_to_scene(const SimpleScene<Scalar, Index>& sim
 template <typename Scalar, typename Index>
 struct MeshesAndMaterialsResult
 {
-    /// List of meshes with transforms applied. Each mesh carries a `material_id` facet attribute
-    /// (see @ref AttributeName::material_id) whose values are global indices into the scene's
-    /// material list (i.e. the same indexing as `Scene::materials` and `material_ids` below).
+    /// List of meshes with global transforms applied, one per scene mesh instance. Each mesh carries
+    /// a `material_id` facet attribute (see @ref AttributeName::material_id) whose values are global
+    /// indices into `Scene::materials`, not local indices into `material_ids[i]`.
     /// Facets with no associated material are marked with `invalid<Index>()`.
     std::vector<SurfaceMesh<Scalar, Index>> meshes;
 
-    /// List of material IDs used by each mesh (indices into `Scene::materials`). This is the set of
-    /// materials referenced by the corresponding mesh instance; use the per-facet `material_id`
-    /// attribute on each mesh to recover the exact facet-to-material assignment.
+    /// Material IDs into `Scene::materials`, one list per mesh instance and aligned with `meshes`.
+    /// `material_ids[i]` is an unchanged copy of `SceneMeshInstance::materials` for `meshes[i]`.
+    /// Material objects are not returned. Lists are not deduplicated or validated and may contain
+    /// invalid IDs or unused materials. Use each mesh's `material_id` facet attribute for exact assignments.
     std::vector<std::vector<ElementId>> material_ids;
 };
 
@@ -148,10 +162,18 @@ struct MeshesAndMaterialsResult
 /// facet attribute holding the global scene material index used by each facet, so that the
 /// facet-to-material assignment is preserved even when a single mesh uses multiple materials.
 ///
+/// Outputs follow node index order, then instance order within each node. All nodes are visited,
+/// regardless of membership in `Scene::root_nodes`; meshes without instances are omitted.
+///
 /// **Convention for existing `material_id` attributes:** If an input mesh already carries a
 /// `material_id` facet attribute, its values are interpreted as *instance-local* indices into the
 /// corresponding `SceneMeshInstance::materials` list. Because instances are flattened and meshes
 /// are duplicated, this function remaps them to global `Scene::materials` indices on output.
+///
+/// The existing attribute must have one channel and be facet-associated; its values are cast to
+/// `Index`. Invalid local slots or scene material indices become `invalid<Index>()`. If no
+/// attribute exists, every facet uses the first listed material, or `invalid<Index>()` if no valid
+/// first material is available.
 ///
 /// @param[in]  scene              Scene to convert.
 /// @param[in]  transform_options  Options to use when applying mesh transformations.
@@ -159,12 +181,16 @@ struct MeshesAndMaterialsResult
 /// @tparam     Scalar             Input scene scalar type.
 /// @tparam     Index              Input scene index type.
 ///
-/// @return     List of meshes with transforms applied and a list of material IDs.
+/// @return     A result containing one globally transformed mesh per scene mesh instance and a
+///             parallel list of material-ID lists. `material_ids[i]` is the instance's unchanged
+///             `SceneMeshInstance::materials` list for `meshes[i]`, with IDs referring to
+///             `Scene::materials`; lists are not deduplicated or validated.
 ///
 template <typename Scalar, typename Index>
 MeshesAndMaterialsResult<Scalar, Index> scene_to_meshes_and_materials(
     const Scene<Scalar, Index>& scene,
     const TransformOptions& transform_options = {});
 
+/// @}
 
 } // namespace lagrange::scene

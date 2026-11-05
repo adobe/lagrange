@@ -18,6 +18,7 @@
 
 
 #include <iomanip>
+#include <tuple>
 
 namespace lagrange {
 namespace ui {
@@ -225,7 +226,8 @@ bool Keybinds::is_released(const std::string& action) const
 
 Keybinds::Keybind::Keybind(ImGuiKey btn, const std::vector<ImGuiKey>& modifier_keys)
     : button(btn)
-    , modifier_count((int)std::min(modifiers.size(), modifier_keys.size()))
+    , modifier_count(
+          static_cast<int>(std::min(std::tuple_size_v<decltype(modifiers)>, modifier_keys.size())))
 {
     for (auto i = 0; i < modifier_count; i++) {
         modifiers[i] = modifier_keys[i];

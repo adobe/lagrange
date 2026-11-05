@@ -10,8 +10,9 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/AttributeFwd.h>
 #include <lagrange/python/binding.h>
+
+#include <lagrange/AttributeFwd.h>
 
 namespace lagrange::python {
 

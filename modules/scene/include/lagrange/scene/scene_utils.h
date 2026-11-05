@@ -17,7 +17,14 @@
 
 namespace lagrange::scene::utils {
 
-// add child to the node. Assumes the child was already added to the scene.
+///
+/// @addtogroup module-scene
+/// @{
+///
+
+/// Appends an existing node index to node.children. Does not update the child's parent or the
+/// scene's root_nodes. Prefer Scene::add_child() to maintain both sides of the relationship.
+/// @deprecated Use Scene::add_child instead.
 [[deprecated("Use Scene::add_child instead")]] inline void add_child(
     Node& node,
     ElementId child_index)
@@ -25,7 +32,9 @@ namespace lagrange::scene::utils {
     node.children.push_back(child_index);
 }
 
-// add child to the node and the scene. Assumes the child was not already added to the scene.
+/// Adds a node to scene.nodes and appends its index to node.children. Does not set child.parent
+/// or update root_nodes. The node reference must remain valid while scene.nodes grows.
+/// @deprecated Use Scene::add_child instead.
 template <typename Scalar, typename Index>
 [[deprecated("Use Scene::add_child instead")]] ElementId
 add_child(Scene<Scalar, Index>& scene, Node& node, Node child)
@@ -36,7 +45,8 @@ add_child(Scene<Scalar, Index>& scene, Node& node, Node child)
     return child_idx;
 }
 
-// add mesh to the scene (but not to the node graph!) and return its index.
+/// Adds a mesh to the scene and returns its index. Does not create a node or mesh instance.
+/// @deprecated Use Scene::add instead.
 template <typename Scalar, typename Index>
 [[deprecated("Use Scene::add(mesh) instead")]] ElementId add_mesh(
     Scene<Scalar, Index>& scene,
@@ -46,9 +56,9 @@ template <typename Scalar, typename Index>
     return scene.meshes.size() - 1;
 }
 
-// Returns the global transform of a node.
-// Note that this has to traverse the node hierarchy up to the root.
-// Considering saving the global transforms if you need them often.
+/// Computes the node-to-world transform by multiplying local transforms along the parent chain.
+/// The chain must be acyclic and contain valid node indices, ending at invalid_element. Passing
+/// invalid_element returns identity. Recomputes the chain on each call; root_nodes is not used.
 template <typename Scalar, typename Index>
 Eigen::Affine3f compute_global_node_transform(const Scene<Scalar, Index>& scene, ElementId node_idx)
 {
@@ -64,6 +74,8 @@ Eigen::Affine3f compute_global_node_transform(const Scene<Scalar, Index>& scene,
 /// scaling ignored. This overload extracts the closest proper rotation from the linear part of
 /// @p world_from_local via polar decomposition (SVD), correctly handling scale and shear. For
 /// scale-free transforms, prefer the Isometry3f overload to avoid the SVD cost.
+/// The camera's position and look_at target are expressed in node-local coordinates. Camera space
+/// looks along negative Z with positive Y up.
 ///
 /// @param[in]  camera            Camera object.
 /// @param[in]  world_from_local  Local -> world transform of the node containing the camera
@@ -92,32 +104,34 @@ LA_SCENE_API Eigen::Affine3f camera_view_transform(
     const Eigen::Isometry3f& world_from_local);
 
 ///
-/// Computes the (intrinsic) projection matrix projection (camera space -> clip space)
+/// Computes the intrinsic projection transform from camera space to OpenGL-style clip space.
+/// After perspective division, the near and far planes map to Z = -1 and Z = 1, respectively.
 ///
-/// @param[in]  camera  Camera object.
+/// @param[in]  camera  Camera with positive aspect ratio and near-plane distance. Perspective
+///                     cameras require a field of view in (0, pi); an absent far plane means
+///                     infinite depth. Orthographic cameras require positive orthographic_width
+///                     and a far plane. A finite far-plane distance must exceed the near plane.
 ///
 /// @return     The projection transform mapping camera space -> clip space.
 ///
 LA_SCENE_API Eigen::Projective3f camera_projection_transform(const Camera& camera);
 
-/**
- * Lagrange scene and most 3d software use UV texture coordinates.
- * OpenGL and gltf use ST texture coordinates.
- * Those are almost the same thing, except they invert the v/t axis:
- * s = u
- * t = 1-v
- *
- * In practice, we call this function to convert between the two when dealing with gltf.
- *
- * @tparam Scalar        Scene mesh scalar type.
- * @tparam Index         Scene mesh index type.
- *
- * @param mesh           The mesh to modify.
- * @param attribute_id   The attribute to change. By default converts all attributes with usage=UV.
- */
+/// Flips the second texture-coordinate component in place: (u, v) -> (u, 1 - v).
+/// This operation is its own inverse and is used by glTF I/O to convert texture conventions.
+/// Selected attributes must have two channels. For indexed attributes, only the value table is
+/// modified; indices are unchanged.
+///
+/// @tparam Scalar        Scene mesh scalar type.
+/// @tparam Index         Scene mesh index type.
+///
+/// @param[in,out] mesh    The mesh to modify.
+/// @param[in] attribute_id  Attribute to change, regardless of usage. By default selects all
+///                         attributes with AttributeUsage::UV.
 template <typename Scalar, typename Index>
 void convert_texcoord_uv_st(
     SurfaceMesh<Scalar, Index>& mesh,
     AttributeId attribute_id = invalid<AttributeId>());
+
+/// @}
 
 } // namespace lagrange::scene::utils

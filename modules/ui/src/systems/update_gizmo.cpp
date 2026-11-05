@@ -129,8 +129,9 @@ void gizmo_system(
 
             GizmoObjectTransform got;
             got.initial_transform = view.get<Transform>(e);
-            got.parent_inverse =
-                (got.initial_transform.global * got.initial_transform.local.inverse()).inverse();
+            const Eigen::Affine3f local_inverse(got.initial_transform.local.matrix().inverse());
+            got.parent_inverse.matrix() =
+                (got.initial_transform.global * local_inverse).matrix().inverse();
 
             registry.emplace<GizmoObjectTransform>(e, got);
         }
@@ -166,7 +167,7 @@ void gizmo_system(
 
     if (ctx.active) {
         // Set final transform without initial gizmo transform
-        Eigen::Affine3f inv_start = ctx.transform_start.inverse();
+        Eigen::Affine3f inv_start(ctx.transform_start.matrix().inverse());
 
         auto active_transform_view = registry.view<Transform, GizmoObjectTransform>();
         active_transform_view.each([&](Entity e, Transform& t, GizmoObjectTransform& got) {

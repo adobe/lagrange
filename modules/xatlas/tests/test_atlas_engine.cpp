@@ -13,11 +13,15 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/testing/common.h>
 #include <lagrange/utils/Error.h>
+#include <lagrange/utils/build.h>
 
-#include "../src/AtlasEngine.h"
+// Internal symbols are not exported by Windows DLLs.
+#if !LAGRANGE_TARGET_OS(WINDOWS) || defined(LA_XATLAS_STATIC_DEFINE)
 
-#include <atomic>
-#include <stdexcept>
+    #include "../src/AtlasEngine.h"
+
+    #include <atomic>
+    #include <stdexcept>
 
 using Scalar = float;
 using Index = uint32_t;
@@ -202,3 +206,5 @@ TEST_CASE("cancelled add_mesh is rolled back", "[xatlas][engine][progress]")
     REQUIRE_THROWS_AS(engine.add_mesh(mesh), Error);
     REQUIRE(engine.mesh_count() == 0);
 }
+
+#endif

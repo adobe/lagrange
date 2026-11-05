@@ -9,12 +9,14 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/common.h>
-#include <lagrange/primitive/generate_torus.h>
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include "primitive_test_utils.h"
+    #include <lagrange/common.h>
+    #include <lagrange/primitive/generate_torus.h>
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
+
+    #include "primitive_test_utils.h"
 
 TEST_CASE("SlicedTorus", "[primitive][sliced_torus]" LA_SLOW_DEBUG_FLAG)
 {
@@ -156,3 +158,5 @@ TEST_CASE("SlicedTorus", "[primitive][sliced_torus]" LA_SLOW_DEBUG_FLAG)
         check_dimension(*mesh, r_major, r_minor);
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

@@ -457,7 +457,7 @@ Viewer::Viewer(const WindowOptions& window_options)
 }
 
 
-void Viewer::render_one_frame(const std::function<bool(Registry&)>& main_loop)
+void Viewer::render_one_frame([[maybe_unused]] const std::function<bool(Registry&)>& main_loop)
 {
     for (unsigned int fn_counter = 0; fn_counter < m_main_thread_max_func_per_frame; fn_counter++) {
         std::pair<std::promise<void>, std::function<void(void)>> item;
@@ -568,10 +568,10 @@ bool Viewer::run(const std::function<bool(Registry& r)>& main_loop)
     // Make a C-style function pointer out of a non-capturing lambda. This lambda receives a pointer
     // to the RunData pair and uses it to call the viewer's render_one_frame method.
     void (*function_ptr)(void*) = [](void* data) {
-        auto run_data = reinterpret_cast<RunData*>(data);
-        auto viewer = run_data->first;
-        const auto& main_loop = run_data->second;
-        viewer->render_one_frame(main_loop);
+        auto loop_data = reinterpret_cast<RunData*>(data);
+        auto viewer = loop_data->first;
+        const auto& loop_callback = loop_data->second;
+        viewer->render_one_frame(loop_callback);
     };
 
     // Pass the function pointer to Emscripten's main loop. See

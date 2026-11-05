@@ -15,6 +15,7 @@
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/Array3D.h>
 #include <lagrange/image/View3D.h>
+#include <lagrange/texproc/api.h>
 
 namespace lagrange::texproc {
 
@@ -57,7 +58,7 @@ struct TextureRasterizerOptions
 /// @tparam     Index   Mesh index type.
 ///
 template <typename Scalar, typename Index>
-class TextureRasterizer
+class LA_TEXPROC_API TextureRasterizer
 {
 public:
     using Array3Df = image::experimental::Array3D<float>;
@@ -105,7 +106,7 @@ private:
 /// @param[in,out] textures_and_weights  A list of compute texture and confidence images.
 /// @param[in]     low_ratio_threshold   Threshold for discarding low-confidence texels.
 ///
-void filter_low_confidences(
+LA_TEXPROC_API void filter_low_confidences(
     span<std::pair<image::experimental::Array3D<float>, image::experimental::Array3D<float>>>
         textures_and_weights,
     float low_ratio_threshold);

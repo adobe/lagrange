@@ -43,7 +43,7 @@ std::vector<float> generate_uv_image_with_normal_as_color(MeshType& mesh, size_t
 {
     using Scalar = typename MeshType::Scalar;
 
-    auto normal2rgb = [&](Eigen::Matrix<Scalar, 1, 3> n) {
+    auto normal2rgb = [](Eigen::Matrix<Scalar, 1, 3> n) -> Eigen::Matrix<float, 1, 3> {
         return ((n.array() + 1) / 2).template cast<float>();
     };
 

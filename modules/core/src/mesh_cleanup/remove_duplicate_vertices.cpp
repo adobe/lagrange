@@ -36,6 +36,7 @@ void remove_duplicate_vertices(
     SurfaceMesh<Scalar, Index>& mesh,
     const RemoveDuplicateVerticesOptions& options)
 {
+    const auto old_to_new_out = options.old_to_new;
     // Step 0: Some sanity check.
     for (const auto& id : options.extra_attributes) {
         const auto& attr = mesh.get_attribute_base(id);
@@ -206,6 +207,12 @@ void remove_duplicate_vertices(
         }
     }
 
+    if (!old_to_new_out.empty()) {
+        la_runtime_assert(
+            old_to_new_out.size() == static_cast<size_t>(num_vertices),
+            "old_to_new must have one entry per input vertex");
+        std::copy(old_to_new.begin(), old_to_new.end(), old_to_new_out.begin());
+    }
     if (is_identity) {
         logger().debug("No duplicate vertices detected. Returning early.");
         return;

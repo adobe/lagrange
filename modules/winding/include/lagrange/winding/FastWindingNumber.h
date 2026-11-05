@@ -13,15 +13,21 @@
 #pragma once
 
 #include <lagrange/SurfaceMesh.h>
+#include <lagrange/winding/api.h>
 
 namespace lagrange {
 
 namespace winding {
 
 ///
+/// @addtogroup module-winding
+/// @{
+///
+
+///
 /// Fast winding number computation for triangle soups.
 ///
-class FastWindingNumber
+class LA_WINDING_API FastWindingNumber
 {
 public:
     ///
@@ -106,6 +112,8 @@ protected:
     /// PIMPL to hide internal data structures.
     value_ptr<Impl> m_impl;
 };
+
+/// @}
 
 } // namespace winding
 } // namespace lagrange

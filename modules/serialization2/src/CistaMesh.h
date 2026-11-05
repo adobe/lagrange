@@ -23,6 +23,7 @@
 namespace lagrange::serialization::internal {
 
 namespace data = cista::offset;
+using CistaSize = data::vector<uint8_t>::size_type;
 
 /// Metadata and raw data for a single serialized attribute.
 struct CistaAttributeInfo

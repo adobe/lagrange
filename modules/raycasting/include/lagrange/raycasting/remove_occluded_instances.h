@@ -15,10 +15,9 @@
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/utils/ProgressCallback.h>
 #include <lagrange/utils/function_ref.h>
-#include <lagrange/utils/value_ptr.h>
 
 #include <atomic>
-#include <utility>
+#include <cstdint>
 #include <vector>
 
 namespace lagrange::raycasting {
@@ -29,7 +28,7 @@ namespace lagrange::raycasting {
 ///
 
 ///
-/// Options for OccludedInstanceSampler.
+/// Options for occluded-instance visibility sampling.
 ///
 struct OccludedInstanceSamplerOptions
 {
@@ -46,74 +45,6 @@ struct OccludedInstanceSamplerOptions
     /// across the scene.
     double confidence = 0.9;
 };
-
-namespace internal {
-
-///
-/// Stateful algorithm for finding occluded instances in a scene. Each call to @ref run_batch
-/// distributes rays over instances not yet decided, progressively improving the result. Per-instance
-/// results are addressed by `(mesh_index, instance_index)`.
-///
-/// @note Only 3D scenes are supported.
-///
-/// @tparam Scalar  Mesh scalar type.
-/// @tparam Index   Mesh index type.
-///
-template <typename Scalar, typename Index>
-class LA_RAYCASTING_API OccludedInstanceSampler
-{
-public:
-    ///
-    /// Build the ray caster and per-instance precomputation.
-    ///
-    /// @param[in]  scene         Scene to process.
-    /// @param[in]  options       Sampler options (keep-threshold, size influence, confidence).
-    /// @param[in]  is_occluder   Returns whether `(mesh_index, instance_index)` should block
-    ///                           rays. Non-occluder instances are still tested for visibility
-    ///                           but do not contribute to the ray-caster scene.
-    ///
-    explicit OccludedInstanceSampler(
-        const scene::SimpleScene<Scalar, Index, 3>& scene,
-        const OccludedInstanceSamplerOptions& options = {},
-        function_ref<bool(Index mesh_index, Index instance_index)> is_occluder = [](Index, Index) {
-            return true;
-        });
-
-    ~OccludedInstanceSampler();
-    OccludedInstanceSampler(OccludedInstanceSampler&&) noexcept;
-    OccludedInstanceSampler& operator=(OccludedInstanceSampler&&) noexcept;
-
-    /// Run a batch distributing @p num_rays across instances not yet decided.
-    void run_batch(uint64_t num_rays);
-
-    /// Whether the instance is currently kept: `visibility_measure(mesh, instance) >= threshold`.
-    [[nodiscard]] bool is_visible(Index mesh_index, Index instance_index) const;
-
-    /// The instance's visibility measure
-    /// `mean_visibility * (area / R)^size_influence`, where `mean_visibility` is the estimated
-    /// cosine-weighted escaped fraction in [0, 1].
-    [[nodiscard]] double visibility_measure(Index mesh_index, Index instance_index) const;
-
-    /// Rays cast so far for the instance.
-    [[nodiscard]] uint64_t num_rays_cast(Index mesh_index, Index instance_index) const;
-
-    /// Total number of instances across all meshes.
-    [[nodiscard]] Index num_instances() const;
-
-    /// Number of instances confidently above the keep threshold and retired from sampling. This
-    /// is useful to progressive callers for reporting and detecting that all instances retired.
-    [[nodiscard]] Index num_retired() const;
-
-    /// Aggregate `(number of currently-visible instances, total rays cast)` for progress reporting
-    /// without rescanning the scene's `(mesh_index, instance_index)` address space.
-    [[nodiscard]] std::pair<Index, uint64_t> progress() const;
-
-private:
-    struct Impl;
-    value_ptr<Impl> m_impl;
-};
-
-} // namespace internal
 
 ///
 /// Loop options for @ref estimate_occluded_instances() and @ref remove_occluded_instances().
@@ -155,7 +86,8 @@ struct RemoveOccludedInstancesOptions
 /// @param[in]      scene        Scene to process.
 /// @param[in]      options      Options.
 /// @param[in,out]  progress     Progress callback.
-/// @param[in]      is_occluder  Forwarded to @ref internal::OccludedInstanceSampler ctor.
+/// @param[in]      is_occluder  Whether `(mesh_index, instance_index)` should block rays.
+///                              Non-occluders are still tested for visibility.
 /// @param[in]      cancel       Optional cancellation flag.
 ///
 /// @return     Per-instance measures indexed `[mesh_index][instance_index]`.
@@ -174,15 +106,15 @@ LA_RAYCASTING_API std::vector<std::vector<double>> estimate_occluded_instance_me
 
 ///
 /// Remove instances whose visibility measure is below `options.sampler_options.threshold`.
-/// Convenience wrapper around @ref internal::OccludedInstanceSampler and
-/// `lagrange::scene::filter_instances`.
+/// Estimates visibility and filters the scene with `lagrange::scene::filter_instances`.
 ///
 /// @note Only 3D scenes are supported.
 ///
 /// @param[in]      scene        Scene to process.
 /// @param[in]      options      Options.
 /// @param[in,out]  progress     Progress callback.
-/// @param[in]      is_occluder  Forwarded to the underlying sampler.
+/// @param[in]      is_occluder  Whether `(mesh_index, instance_index)` should block rays.
+///                              Non-occluders are still tested for visibility.
 /// @param[in]      cancel       Optional cancellation flag.
 ///
 /// @tparam     Scalar    Mesh scalar type.

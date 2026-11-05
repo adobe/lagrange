@@ -9,14 +9,19 @@
 # OF ANY KIND, either express or implied. See the License for the specific language
 # governing permissions and limitations under the License.
 #
+lagrange_add_performance(predicates_speed predicates_speed.cpp)
+target_link_libraries(predicates_speed lagrange::core)
+
+# The remaining benchmarks use legacy Mesh APIs, including the UI visualizer.
+if(NOT LAGRANGE_ENABLE_LEGACY_HEADERS)
+    return()
+endif()
+
 include(cli11)
 lagrange_include_modules(io ui)
 
 lagrange_add_performance(remove_duplicate_vertices remove_duplicate_vertices.cpp)
 target_link_libraries(remove_duplicate_vertices lagrange::core lagrange::io)
-
-lagrange_add_performance(predicates_speed predicates_speed.cpp)
-target_link_libraries(predicates_speed lagrange::core)
 
 lagrange_add_performance(refine_mesh refine.cpp)
 target_link_libraries(refine_mesh lagrange::core lagrange::io)

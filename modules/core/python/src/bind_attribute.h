@@ -24,7 +24,11 @@
 #include <lagrange/utils/fmt/format.h>
 #include <lagrange/utils/invalid.h>
 
+#include <memory>
+#include <vector>
+
 namespace lagrange::python {
+
 
 void bind_attribute(nanobind::module_& m)
 {
@@ -110,6 +114,18 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self) { self.process([](auto& attr) { attr.create_internal_copy(); }); },
         "Create an internal copy if the attribute wraps external data.");
     attr_class.def(
+        "ensure_shared_storage",
+        [](PyAttribute& self) { self.process([](auto& attr) { attr.ensure_shared_storage(); }); },
+        "Transfer internal storage into shared ownership without copying values. Managed external "
+        "storage is preserved; unmanaged external storage is rejected. Only when "
+        "promoting internal storage, ErrorIfExternal growth and shrink policies become "
+        "SilentCopy; all other policies are preserved. Policies set afterward apply normally.");
+    attr_class.def(
+        "shrink_to_fit",
+        [](PyAttribute& self) { self.process([](auto& attr) { attr.shrink_to_fit(); }); },
+        "Shrink allocation using the selected shrink policy; retained arrays keep their previous "
+        "allocation.");
+    attr_class.def(
         "clear",
         [](PyAttribute& self) { self.process([](auto& attr) { attr.clear(); }); },
         "Remove all elements from the attribute.");
@@ -177,7 +193,8 @@ void bind_attribute(nanobind::module_& m)
         [](PyAttribute& self) {
             return self.process([](auto& attr) { return attr.is_external(); });
         },
-        "Check if the attribute wraps external data.");
+        "Check if storage is external to the attribute's embedded vector; NumPy export promotes "
+        "internal storage to managed external storage.");
     attr_class.def_prop_ro(
         "readonly",
         [](PyAttribute& self) {
@@ -187,10 +204,7 @@ void bind_attribute(nanobind::module_& m)
     attr_class.def_prop_rw(
         "data",
         [](PyAttribute& self) {
-            return self.process([&](auto& attr) {
-                auto tensor = attribute_to_tensor(attr, nb::find(&self));
-                return nb::cast(tensor, nb::rv_policy::reference_internal);
-            });
+            return self.process([](auto& attr) { return attribute_to_tensor(attr); });
         },
         [](PyAttribute& self, nb::object value) {
             auto wrap_tensor = [&](auto& attr) {
@@ -213,8 +227,15 @@ void bind_attribute(nanobind::module_& m)
                         shape.size() == 2 ? shape[1] == attr.get_num_channels() : true);
                     const size_t num_elements = shape[0];
 
+                    const auto current_data = attr.get_all();
+                    if (data.data() == current_data.data() && data.size() == current_data.size()) {
+                        return;
+                    }
+
+                    // Incoming arrays own allocations, never the mutable attribute itself.
                     auto owner = std::make_shared<nb::object>(nb::find(tensor));
                     attr.wrap(make_shared_span(owner, data.data(), data.size()), num_elements);
+                    set_python_attribute_policies(attr);
                 } else if (nb::try_cast(value, buffer)) {
                     attr.clear();
                     attr.insert_elements({buffer.data(), buffer.size()});
@@ -224,8 +245,17 @@ void bind_attribute(nanobind::module_& m)
             };
             self.process(wrap_tensor);
         },
+        nb::for_getter(nb::rv_policy::reference),
         nb::for_getter(nb::sig("def data(self, /) -> numpy.typing.NDArray")),
-        "Raw data as a numpy array.");
+        R"(Raw data as a NumPy array.
+
+The first export transfers internal storage into shared ownership without copying existing values.
+Later exports share that allocation. Value-only writes remain shared; rebinding, growth,
+or allocation shrink may detach, while previously returned arrays keep their allocation alive.
+Read-only attributes produce read-only arrays. Only internal-storage promotion changes
+ErrorIfExternal growth and shrink policies to SilentCopy; existing external storage and all
+other policies are preserved.
+Assigning a NumPy array rebinds the attribute to that buffer with `SilentCopy` growth and shrink.)");
     attr_class.def_prop_ro(
         "dtype",
         [](PyAttribute& self) -> std::optional<nb::type_object> {

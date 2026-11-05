@@ -330,7 +330,8 @@ SurfaceMesh<Scalar, Index> subdivide_uniform(
 
     // Check number of refinement levels
     int num_refined_levels = topology_refiner.GetNumLevels();
-    la_debug_assert(num_refined_levels == options.num_levels + 1);
+    la_debug_assert(
+        static_cast<decltype(options.num_levels)>(num_refined_levels) == options.num_levels + 1);
     la_debug_assert(num_refined_levels >= 1);
 
     // Extract mesh facet topology

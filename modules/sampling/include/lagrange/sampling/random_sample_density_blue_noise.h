@@ -9,8 +9,11 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/fs/detail/guess_backend.h>
+#pragma once
 
-#if defined(LAGRANGE_USE_GHC_FS)
-    #include <ghc/fs_impl.hpp>
+// This header is kept for backward compatibility.
+// New code should include <lagrange/sampling/sample_blue_noise.h> directly.
+
+#ifdef LAGRANGE_ENABLE_LEGACY_HEADERS
+    #include <lagrange/sampling/legacy/random_sample_density_blue_noise.h>
 #endif

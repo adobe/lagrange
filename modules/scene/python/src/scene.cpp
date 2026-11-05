@@ -10,10 +10,11 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include "bind_scene.h"
 #include "bind_simple_scene.h"
 
-#include <lagrange/python/binding.h>
 #include <lagrange/scene/RemeshingOptions.h>
 
 namespace lagrange::python {
@@ -34,11 +35,13 @@ void populate_scene_module(nb::module_& m)
         .value(
             "RelativeToMeshArea",
             lagrange::scene::FacetAllocationStrategy::RelativeToMeshArea,
-            "Allocate facet budget according to the mesh area in the scene.")
+            "Allocate facet budget in proportion to each mesh's maximum area over its transformed "
+            "instances.")
         .value(
             "RelativeToNumFacets",
             lagrange::scene::FacetAllocationStrategy::RelativeToNumFacets,
-            "Allocate facet budget according to the number of facets.")
+            "Allocate facet budget in proportion to source mesh facet counts, ignoring instance "
+            "counts.")
         .value(
             "Synchronized",
             lagrange::scene::FacetAllocationStrategy::Synchronized,
@@ -64,7 +67,10 @@ void populate_scene_module(nb::module_& m)
             lagrange::scene::UninstantiatedMeshesStrategy::ReplaceWithEmpty,
             "Replace meshes with zero instances with empty meshes.");
 
-    nb::class_<lagrange::scene::RemeshingOptions>(m, "RemeshingOptions")
+    nb::class_<lagrange::scene::RemeshingOptions>(
+        m,
+        "RemeshingOptions",
+        "Options controlling how scene remeshing algorithms allocate work among source meshes")
         .def(nb::init<>())
         .def_rw(
             "facet_allocation_strategy",
@@ -73,7 +79,8 @@ void populate_scene_module(nb::module_& m)
         .def_rw(
             "min_facets",
             &lagrange::scene::RemeshingOptions::min_facets,
-            "Minimum amount of facets for meshes in the scene.")
+            "Minimum facet count per source mesh. The default unsigned-integer sentinel selects "
+            "the backend-specific default")
         .def_rw(
             "uninstantiated_meshes_strategy",
             &lagrange::scene::RemeshingOptions::uninstantiated_meshes_strategy,
@@ -81,7 +88,9 @@ void populate_scene_module(nb::module_& m)
         .def_rw(
             "per_instance_importance",
             &lagrange::scene::RemeshingOptions::per_instance_importance,
-            "Optional per-instance weights/importance. Must be > 0.");
+            "Optional positive per-instance importance weights. Leave empty for default behavior; "
+            "otherwise provide one value per instance, ordered by mesh index and then local "
+            "instance index.");
 
     bind_simple_scene<Scalar, Index>(m);
 

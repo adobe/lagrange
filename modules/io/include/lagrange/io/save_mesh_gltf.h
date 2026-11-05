@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Saves a mesh to an output stream in glTF or GLB format.
  *
@@ -52,5 +57,7 @@ LA_IO_API void save_mesh_gltf(
     const fs::path& filename,
     const SurfaceMesh<Scalar, Index>& mesh,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

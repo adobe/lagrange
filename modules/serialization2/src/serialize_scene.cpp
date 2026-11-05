@@ -20,6 +20,7 @@
 #include <lagrange/serialization/serialize_mesh.h>
 #include <lagrange/serialization/serialize_simple_scene.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 
 #include "CistaScene.h"
 #include "compress.h"
@@ -30,6 +31,7 @@
 
 namespace lagrange::serialization {
 
+using internal::CistaSize;
 using internal::compress_buffer;
 using internal::decompress_buffer;
 using internal::is_compressed;
@@ -57,28 +59,29 @@ CistaValue to_cista_value(const scene::Value& value)
     } else if (value.is_string()) {
         cv.type = CistaValueType::String;
         const auto& s = value.get_string();
-        cv.string_val = data::string(s.data(), s.size());
+        cv.string_val = data::string(s.data(), safe_cast<data::string::msize_t>(s.size()));
     } else if (value.is_buffer()) {
         cv.type = CistaValueType::Buffer;
         const auto& buf = value.get_buffer();
-        cv.buffer_val.resize(buf.size());
+        cv.buffer_val.resize(safe_cast<CistaSize>(buf.size()));
         if (!buf.empty()) {
             std::memcpy(cv.buffer_val.data(), buf.data(), buf.size());
         }
     } else if (value.is_array()) {
         cv.type = CistaValueType::Array;
         const auto& arr = value.get_array();
-        cv.array_val.reserve(arr.size());
+        cv.array_val.reserve(safe_cast<CistaSize>(arr.size()));
         for (const auto& elem : arr) {
             cv.array_val.emplace_back(to_cista_value(elem));
         }
     } else if (value.is_object()) {
         cv.type = CistaValueType::Object;
         const auto& obj = value.get_object();
-        cv.object_keys.reserve(obj.size());
-        cv.object_values.reserve(obj.size());
+        cv.object_keys.reserve(safe_cast<CistaSize>(obj.size()));
+        cv.object_values.reserve(safe_cast<CistaSize>(obj.size()));
         for (const auto& [key, val] : obj) {
-            cv.object_keys.emplace_back(data::string(key.data(), key.size()));
+            cv.object_keys.emplace_back(
+                data::string(key.data(), safe_cast<data::string::msize_t>(key.size())));
             cv.object_values.emplace_back(to_cista_value(val));
         }
     }
@@ -110,7 +113,7 @@ scene::Value from_cista_value(const CistaValue& cv)
     }
     case CistaValueType::Object: {
         scene::Value::Object obj;
-        for (size_t i = 0; i < cv.object_keys.size(); ++i) {
+        for (CistaSize i = 0; i < cv.object_keys.size(); ++i) {
             std::string key(cv.object_keys[i].data(), cv.object_keys[i].size());
             obj.emplace(std::move(key), from_cista_value(cv.object_values[i]));
         }
@@ -123,10 +126,11 @@ scene::Value from_cista_value(const CistaValue& cv)
 CistaExtensions to_cista_extensions(const scene::Extensions& ext)
 {
     CistaExtensions cext;
-    cext.keys.reserve(ext.data.size());
-    cext.values.reserve(ext.data.size());
+    cext.keys.reserve(safe_cast<CistaSize>(ext.data.size()));
+    cext.values.reserve(safe_cast<CistaSize>(ext.data.size()));
     for (const auto& [key, val] : ext.data) {
-        cext.keys.emplace_back(data::string(key.data(), key.size()));
+        cext.keys.emplace_back(
+            data::string(key.data(), safe_cast<data::string::msize_t>(key.size())));
         cext.values.emplace_back(to_cista_value(val));
     }
     return cext;
@@ -135,7 +139,7 @@ CistaExtensions to_cista_extensions(const scene::Extensions& ext)
 scene::Extensions from_cista_extensions(const CistaExtensions& cext)
 {
     scene::Extensions ext;
-    for (size_t i = 0; i < cext.keys.size(); ++i) {
+    for (CistaSize i = 0; i < cext.keys.size(); ++i) {
         std::string key(cext.keys[i].data(), cext.keys[i].size());
         ext.data.emplace(std::move(key), from_cista_value(cext.values[i]));
     }
@@ -169,7 +173,7 @@ scene::TextureInfo from_cista_texture_info(const CistaTextureInfo& cti)
 CistaNode to_cista_node(const scene::Node& node)
 {
     CistaNode cn;
-    cn.name = data::string(node.name.data(), node.name.size());
+    cn.name = data::string(node.name.data(), safe_cast<data::string::msize_t>(node.name.size()));
 
     // Affine3f = 4x4 float = 16 floats
     const float* tf = node.transform.matrix().data();
@@ -177,30 +181,30 @@ CistaNode to_cista_node(const scene::Node& node)
 
     cn.parent = (node.parent == scene::invalid_element) ? k_invalid_element : node.parent;
 
-    cn.children.reserve(node.children.size());
-    for (size_t i = 0; i < node.children.size(); ++i) {
+    cn.children.reserve(safe_cast<CistaSize>(node.children.size()));
+    for (CistaSize i = 0; i < node.children.size(); ++i) {
         cn.children.emplace_back(node.children[i]);
     }
 
-    cn.meshes.reserve(node.meshes.size());
-    for (size_t i = 0; i < node.meshes.size(); ++i) {
+    cn.meshes.reserve(safe_cast<CistaSize>(node.meshes.size()));
+    for (CistaSize i = 0; i < node.meshes.size(); ++i) {
         CistaSceneMeshInstance cmi;
         cmi.mesh = (node.meshes[i].mesh == scene::invalid_element) ? k_invalid_element
                                                                    : node.meshes[i].mesh;
-        cmi.materials.reserve(node.meshes[i].materials.size());
-        for (size_t j = 0; j < node.meshes[i].materials.size(); ++j) {
+        cmi.materials.reserve(safe_cast<CistaSize>(node.meshes[i].materials.size()));
+        for (CistaSize j = 0; j < node.meshes[i].materials.size(); ++j) {
             cmi.materials.emplace_back(node.meshes[i].materials[j]);
         }
         cn.meshes.emplace_back(std::move(cmi));
     }
 
-    cn.cameras.reserve(node.cameras.size());
-    for (size_t i = 0; i < node.cameras.size(); ++i) {
+    cn.cameras.reserve(safe_cast<CistaSize>(node.cameras.size()));
+    for (CistaSize i = 0; i < node.cameras.size(); ++i) {
         cn.cameras.emplace_back(node.cameras[i]);
     }
 
-    cn.lights.reserve(node.lights.size());
-    for (size_t i = 0; i < node.lights.size(); ++i) {
+    cn.lights.reserve(safe_cast<CistaSize>(node.lights.size()));
+    for (CistaSize i = 0; i < node.lights.size(); ++i) {
         cn.lights.emplace_back(node.lights[i]);
     }
 
@@ -249,19 +253,19 @@ scene::Node from_cista_node(const CistaNode& cn)
 CistaImage to_cista_image(const scene::ImageExperimental& img)
 {
     CistaImage ci;
-    ci.name = data::string(img.name.data(), img.name.size());
+    ci.name = data::string(img.name.data(), safe_cast<data::string::msize_t>(img.name.size()));
 
     ci.image.width = img.image.width;
     ci.image.height = img.image.height;
     ci.image.num_channels = img.image.num_channels;
     ci.image.element_type = static_cast<uint8_t>(img.image.element_type);
-    ci.image.data_bytes.resize(img.image.data.size());
+    ci.image.data_bytes.resize(safe_cast<CistaSize>(img.image.data.size()));
     if (!img.image.data.empty()) {
         std::memcpy(ci.image.data_bytes.data(), img.image.data.data(), img.image.data.size());
     }
 
     auto uri_str = img.uri.string();
-    ci.uri = data::string(uri_str.data(), uri_str.size());
+    ci.uri = data::string(uri_str.data(), safe_cast<data::string::msize_t>(uri_str.size()));
 
     ci.extensions = to_cista_extensions(img.extensions);
     return ci;
@@ -294,7 +298,7 @@ scene::ImageExperimental from_cista_image(const CistaImage& ci)
 CistaTexture to_cista_texture(const scene::Texture& tex)
 {
     CistaTexture ct;
-    ct.name = data::string(tex.name.data(), tex.name.size());
+    ct.name = data::string(tex.name.data(), safe_cast<data::string::msize_t>(tex.name.size()));
     ct.image = (tex.image == scene::invalid_element) ? k_invalid_element : tex.image;
     ct.mag_filter = static_cast<int32_t>(tex.mag_filter);
     ct.min_filter = static_cast<int32_t>(tex.min_filter);
@@ -334,7 +338,7 @@ scene::Texture from_cista_texture(const CistaTexture& ct)
 CistaMaterial to_cista_material(const scene::MaterialExperimental& mat)
 {
     CistaMaterial cm;
-    cm.name = data::string(mat.name.data(), mat.name.size());
+    cm.name = data::string(mat.name.data(), safe_cast<data::string::msize_t>(mat.name.size()));
 
     cm.base_color_value = {
         mat.base_color_value.x(),
@@ -397,7 +401,7 @@ scene::MaterialExperimental from_cista_material(const CistaMaterial& cm)
 CistaLight to_cista_light(const scene::Light& light)
 {
     CistaLight cl;
-    cl.name = data::string(light.name.data(), light.name.size());
+    cl.name = data::string(light.name.data(), safe_cast<data::string::msize_t>(light.name.size()));
     cl.type = static_cast<uint8_t>(light.type);
 
     cl.position = {light.position.x(), light.position.y(), light.position.z()};
@@ -461,7 +465,7 @@ scene::Light from_cista_light(const CistaLight& cl)
 CistaCamera to_cista_camera(const scene::Camera& cam)
 {
     CistaCamera cc;
-    cc.name = data::string(cam.name.data(), cam.name.size());
+    cc.name = data::string(cam.name.data(), safe_cast<data::string::msize_t>(cam.name.size()));
     cc.type = static_cast<uint8_t>(cam.type);
 
     cc.position = {cam.position.x(), cam.position.y(), cam.position.z()};
@@ -503,8 +507,8 @@ scene::Camera from_cista_camera(const CistaCamera& cc)
 CistaSkeleton to_cista_skeleton(const scene::Skeleton& skel)
 {
     CistaSkeleton cs;
-    cs.meshes.reserve(skel.meshes.size());
-    for (size_t i = 0; i < skel.meshes.size(); ++i) {
+    cs.meshes.reserve(safe_cast<CistaSize>(skel.meshes.size()));
+    for (CistaSize i = 0; i < skel.meshes.size(); ++i) {
         cs.meshes.emplace_back(skel.meshes[i]);
     }
     cs.extensions = to_cista_extensions(skel.extensions);
@@ -524,7 +528,7 @@ scene::Skeleton from_cista_skeleton(const CistaSkeleton& cs)
 CistaAnimation to_cista_animation(const scene::Animation& anim)
 {
     CistaAnimation ca;
-    ca.name = data::string(anim.name.data(), anim.name.size());
+    ca.name = data::string(anim.name.data(), safe_cast<data::string::msize_t>(anim.name.size()));
     ca.extensions = to_cista_extensions(anim.extensions);
     return ca;
 }
@@ -547,65 +551,65 @@ CistaScene to_cista_scene(const scene::Scene<Scalar, Index>& scene)
     CistaScene cs;
     cs.scalar_type_size = sizeof(Scalar);
     cs.index_type_size = sizeof(Index);
-    cs.name = data::string(scene.name.data(), scene.name.size());
+    cs.name = data::string(scene.name.data(), safe_cast<data::string::msize_t>(scene.name.size()));
 
     // Nodes
-    cs.nodes.reserve(scene.nodes.size());
-    for (size_t i = 0; i < scene.nodes.size(); ++i) {
+    cs.nodes.reserve(safe_cast<CistaSize>(scene.nodes.size()));
+    for (CistaSize i = 0; i < scene.nodes.size(); ++i) {
         cs.nodes.emplace_back(to_cista_node(scene.nodes[i]));
     }
 
     // Root nodes
-    cs.root_nodes.reserve(scene.root_nodes.size());
-    for (size_t i = 0; i < scene.root_nodes.size(); ++i) {
+    cs.root_nodes.reserve(safe_cast<CistaSize>(scene.root_nodes.size()));
+    for (CistaSize i = 0; i < scene.root_nodes.size(); ++i) {
         cs.root_nodes.emplace_back(scene.root_nodes[i]);
     }
 
     // Meshes
-    cs.meshes.reserve(scene.meshes.size());
-    for (size_t i = 0; i < scene.meshes.size(); ++i) {
+    cs.meshes.reserve(safe_cast<CistaSize>(scene.meshes.size()));
+    for (CistaSize i = 0; i < scene.meshes.size(); ++i) {
         cs.meshes.emplace_back(to_cista_mesh(scene.meshes[i]));
     }
 
     // Images
-    cs.images.reserve(scene.images.size());
-    for (size_t i = 0; i < scene.images.size(); ++i) {
+    cs.images.reserve(safe_cast<CistaSize>(scene.images.size()));
+    for (CistaSize i = 0; i < scene.images.size(); ++i) {
         cs.images.emplace_back(to_cista_image(scene.images[i]));
     }
 
     // Textures
-    cs.textures.reserve(scene.textures.size());
-    for (size_t i = 0; i < scene.textures.size(); ++i) {
+    cs.textures.reserve(safe_cast<CistaSize>(scene.textures.size()));
+    for (CistaSize i = 0; i < scene.textures.size(); ++i) {
         cs.textures.emplace_back(to_cista_texture(scene.textures[i]));
     }
 
     // Materials
-    cs.materials.reserve(scene.materials.size());
-    for (size_t i = 0; i < scene.materials.size(); ++i) {
+    cs.materials.reserve(safe_cast<CistaSize>(scene.materials.size()));
+    for (CistaSize i = 0; i < scene.materials.size(); ++i) {
         cs.materials.emplace_back(to_cista_material(scene.materials[i]));
     }
 
     // Lights
-    cs.lights.reserve(scene.lights.size());
-    for (size_t i = 0; i < scene.lights.size(); ++i) {
+    cs.lights.reserve(safe_cast<CistaSize>(scene.lights.size()));
+    for (CistaSize i = 0; i < scene.lights.size(); ++i) {
         cs.lights.emplace_back(to_cista_light(scene.lights[i]));
     }
 
     // Cameras
-    cs.cameras.reserve(scene.cameras.size());
-    for (size_t i = 0; i < scene.cameras.size(); ++i) {
+    cs.cameras.reserve(safe_cast<CistaSize>(scene.cameras.size()));
+    for (CistaSize i = 0; i < scene.cameras.size(); ++i) {
         cs.cameras.emplace_back(to_cista_camera(scene.cameras[i]));
     }
 
     // Skeletons
-    cs.skeletons.reserve(scene.skeletons.size());
-    for (size_t i = 0; i < scene.skeletons.size(); ++i) {
+    cs.skeletons.reserve(safe_cast<CistaSize>(scene.skeletons.size()));
+    for (CistaSize i = 0; i < scene.skeletons.size(); ++i) {
         cs.skeletons.emplace_back(to_cista_skeleton(scene.skeletons[i]));
     }
 
     // Animations
-    cs.animations.reserve(scene.animations.size());
-    for (size_t i = 0; i < scene.animations.size(); ++i) {
+    cs.animations.reserve(safe_cast<CistaSize>(scene.animations.size()));
+    for (CistaSize i = 0; i < scene.animations.size(); ++i) {
         cs.animations.emplace_back(to_cista_animation(scene.animations[i]));
     }
 

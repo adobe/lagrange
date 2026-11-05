@@ -18,7 +18,7 @@ import pytest
 class TestRemapVertices:
     def test_cube(self, cube):
         mesh = cube
-        mapping = np.zeros(mesh.num_vertices, dtype=np.intc)
+        mapping = np.zeros(mesh.num_vertices, dtype=np.uint32)
         lagrange.remap_vertices(mesh, mapping)
         assert mesh.num_vertices == 1
         assert mesh.num_facets == 6
@@ -26,7 +26,7 @@ class TestRemapVertices:
     def test_identity(self, cube):
         mesh = cube
         old_vertices = np.copy(mesh.vertices)
-        mapping = np.arange(mesh.num_vertices, dtype=np.intc)
+        mapping = np.arange(mesh.num_vertices, dtype=np.uint32)
         lagrange.remap_vertices(mesh, mapping)
         assert mesh.num_vertices == 8
         assert mesh.num_facets == 6
@@ -35,7 +35,7 @@ class TestRemapVertices:
     def test_reverse(self, cube):
         mesh = cube
         old_vertices = np.copy(mesh.vertices)
-        mapping = np.flip(np.arange(mesh.num_vertices, dtype=np.intc))
+        mapping = np.flip(np.arange(mesh.num_vertices, dtype=np.uint32))
         lagrange.remap_vertices(mesh, mapping)
         assert mesh.num_vertices == 8
         assert mesh.num_facets == 6
@@ -43,7 +43,7 @@ class TestRemapVertices:
 
     def test_invalid_mapping(self, cube):
         mesh = cube
-        mapping = np.array([0, 0, 0, 0, 1, 1, 1, 3], dtype=np.intc)
+        mapping = np.array([0, 0, 0, 0, 1, 1, 1, 3], dtype=np.uint32)
         with pytest.raises(Exception):
             lagrange.remap_vertices(mesh, mapping)
 
@@ -54,7 +54,7 @@ class TestRemapVertices:
         uv_values = np.copy(uv_attr.values.data)
         uv_indices = np.copy(uv_attr.indices.data)
 
-        mapping = np.array([0, 0, 0, 0, 1, 2, 3, 4], dtype=np.intc)
+        mapping = np.array([0, 0, 0, 0, 1, 2, 3, 4], dtype=np.uint32)
         lagrange.remap_vertices(mesh, mapping)
         assert mesh.num_vertices == 5
         assert mesh.num_facets == 6
@@ -73,7 +73,7 @@ class TestRemapVertices:
             np.arange(8, dtype=np.uint32),
             np.array([]),
         )
-        mapping = np.array([0, 0, 0, 0, 1, 2, 3, 4], dtype=np.intc)
+        mapping = np.array([0, 0, 0, 0, 1, 2, 3, 4], dtype=np.uint32)
         options = lagrange.RemapVerticesOptions()
         options.collision_policy_float = lagrange.MappingPolicy.Average
         options.collision_policy_integral = lagrange.MappingPolicy.KeepFirst

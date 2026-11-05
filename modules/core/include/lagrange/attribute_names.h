@@ -27,6 +27,11 @@ namespace lagrange {
 struct AttributeName
 {
     /**
+     * Mesh name metadata. Paired with AttributeUsage::String and AttributeElement::Value.
+     */
+    static constexpr std::string_view name = "name";
+
+    /**
      * Normal. Paired with AttributeUsage::Normal.
      */
     static constexpr std::string_view normal = "normal";

@@ -12,10 +12,6 @@
 
 # 1. define module
 lagrange_add_module()
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set_target_properties(lagrange_texproc PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-endif()
-
 # 2. dependencies
 include(texture_signal_processing)
 lagrange_include_modules(image solver)

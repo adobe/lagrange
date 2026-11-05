@@ -10,8 +10,9 @@
  * governing permissions and limitations under the License.
  */
 
-#include <lagrange/SurfaceMesh.h>
 #include <lagrange/python/binding.h>
+
+#include <lagrange/SurfaceMesh.h>
 #include <lagrange/scene/Scene.h>
 #include <lagrange/scene/SimpleScene.h>
 #include <lagrange/serialization/serialize_mesh.h>

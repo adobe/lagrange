@@ -34,10 +34,7 @@ triangle_orientation(span<const Scalar, 2> a, span<const Scalar, 2> b, span<cons
 {
     const ExactPredicatesShewchuk predicates;
     if constexpr (std::is_same_v<Scalar, double>) {
-        return static_cast<Orientation>(predicates.orient2D(
-            const_cast<double*>(a.data()),
-            const_cast<double*>(b.data()),
-            const_cast<double*>(c.data())));
+        return static_cast<Orientation>(predicates.orient2D(a.data(), b.data(), c.data()));
     } else {
         double data[6]{
             static_cast<double>(a[0]),

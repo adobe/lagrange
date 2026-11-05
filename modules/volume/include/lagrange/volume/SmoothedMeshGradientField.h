@@ -26,6 +26,11 @@
 namespace lagrange::volume {
 
 ///
+/// @addtogroup module-volume
+/// @{
+///
+
+///
 /// A world-space direction field obtained by Gaussian-filtering a winding-number signed distance
 /// field and differentiating the filtered scalar field.
 ///
@@ -78,5 +83,7 @@ private:
     // The grid is never mutated after construction.
     Grid::Ptr m_grid;
 };
+
+/// @}
 
 } // namespace lagrange::volume

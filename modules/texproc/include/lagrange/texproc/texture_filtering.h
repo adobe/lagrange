@@ -13,6 +13,7 @@
 
 #include <lagrange/SurfaceMesh.h>
 #include <lagrange/image/View3D.h>
+#include <lagrange/texproc/api.h>
 
 #include <optional>
 #include <string_view>
@@ -71,7 +72,7 @@ struct FilteringOptions
 /// @tparam        ValueType  Texture value type.
 ///
 template <typename Scalar, typename Index, typename ValueType>
-void texture_filtering(
+LA_TEXPROC_API void texture_filtering(
     const SurfaceMesh<Scalar, Index>& mesh,
     image::experimental::View3D<ValueType> texture,
     const FilteringOptions& options = {});

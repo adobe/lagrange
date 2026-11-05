@@ -9,14 +9,16 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/common.h>
-#include <lagrange/io/save_mesh.h>
-#include <lagrange/primitive/generate_hexahedron.h>
-#include <lagrange/primitive/generate_octahedron.h>
-#include <lagrange/primitive/generate_subdivided_sphere.h>
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
-#include "primitive_test_utils.h"
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+    #include <lagrange/common.h>
+    #include <lagrange/io/save_mesh.h>
+    #include <lagrange/primitive/generate_hexahedron.h>
+    #include <lagrange/primitive/generate_octahedron.h>
+    #include <lagrange/primitive/generate_subdivided_sphere.h>
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
+    #include "primitive_test_utils.h"
 
 template <typename MeshType>
 void check_dimension(const MeshType& mesh, typename MeshType::Scalar radius)
@@ -158,3 +160,5 @@ TEST_CASE("SubdividedSphere", "[primitive][subdivided_sphere]")
         LA_REQUIRE_THROWS(lagrange::primitive::generate_hexahedron<MeshType>(r));
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

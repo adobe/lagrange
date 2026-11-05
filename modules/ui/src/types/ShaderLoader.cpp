@@ -89,8 +89,10 @@ std::shared_ptr<Shader> ShaderLoader::operator()(
 
         try {
             return std::make_shared<Shader>(fallback_shader, ShaderDefines{});
-        } catch (const ShaderException& ex) {
-            lagrange::logger().error("Failed to compile fallback shader: {}", ex.what());
+        } catch (const ShaderException& fallback_error) {
+            lagrange::logger().error(
+                "Failed to compile fallback shader: {}",
+                fallback_error.what());
         }
     }
     return nullptr;

@@ -64,9 +64,9 @@ class TestChainEdges:
         edges = np.array([[0, 1]], dtype=np.uint32)
 
         with pytest.raises(TypeError):
-            lagrange.chain_edges(edges)  # ty: ignore[missing-argument]
+            lagrange.chain_edges(edges)  # type: ignore[ty:missing-argument, pyrefly:missing-argument]
         with pytest.raises(TypeError):
-            lagrange.chain_edges(edges, True)  # ty: ignore[missing-argument, too-many-positional-arguments]
+            lagrange.chain_edges(edges, True)  # type: ignore[ty:missing-argument, ty:too-many-positional-arguments, pyrefly:unexpected-positional-argument]
 
     @pytest.mark.parametrize(
         "edges",

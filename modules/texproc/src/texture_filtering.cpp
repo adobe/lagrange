@@ -173,7 +173,7 @@ void texture_filtering(
 }
 
 #define LA_X_texture_filtering(ValueType, Scalar, Index) \
-    template void texture_filtering(                     \
+    template LA_TEXPROC_API void texture_filtering(      \
         const SurfaceMesh<Scalar, Index>& mesh,          \
         image::experimental::View3D<ValueType> texture,  \
         const FilteringOptions& options);

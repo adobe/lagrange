@@ -135,7 +135,11 @@ void show_transform(Registry* rptr, Entity e)
         }
 
 
+#if EIGEN_VERSION_AT_LEAST(5, 0, 0)
+        const auto r0 = t.local.rotation().canonicalEulerAngles(0, 1, 2).eval();
+#else
         const auto r0 = t.local.rotation().eulerAngles(0, 1, 2).eval();
+#endif
         auto r1 = r0;
         if (ImGui::DragFloat3("Rotation", r1.data(), 0.01f)) {
             const auto d = (r1 - r0).eval();
@@ -162,7 +166,11 @@ void show_transform(Registry* rptr, Entity e)
             lagrange::logger().warn("Global transform UI change not implemented yet");
         }
 
+#if EIGEN_VERSION_AT_LEAST(5, 0, 0)
+        const auto r0 = t.global.rotation().canonicalEulerAngles(0, 1, 2).eval();
+#else
         const auto r0 = t.global.rotation().eulerAngles(0, 1, 2).eval();
+#endif
         auto r1 = r0;
         if (ImGui::DragFloat3("Rotation", r1.data(), 0.01f)) {
             lagrange::logger().warn("Global transform UI change not implemented yet");
@@ -515,7 +523,11 @@ void show_material(Registry* rptr, Entity e, Material& mat)
                             ImGui::SliderFloat("##value", val.color.data(), 0, 1);
                             if (ImGui::IsItemDeactivatedAfterEdit()) changed = true;
                         } else if (prop.value_dimension == 2) {
-                            UIWidget("##value")(reinterpret_cast<Eigen::Vector2f&>(val.color));
+                            Eigen::Vector2f value = val.color.head<2>();
+                            if (UIWidget("##value")(value)) {
+                                val.color.head<2>() = value;
+                                changed = true;
+                            }
                         } else if (prop.value_dimension == 3) {
                             Color c = Color(val.color.x(), val.color.y(), val.color.z(), 1.0f);
                             if (UIWidget("##value")(c)) {
@@ -935,12 +947,12 @@ void show_material(Registry* rptr, Entity e, Material& mat)
 
 
     if (shader && ImGui::CollapsingHeader("Rasterizer Options")) {
-        auto option_bool = [](Material& mat, const StringID& id, const std::string& name) {
+        auto option_bool = [](Material& material, const StringID& id, const std::string& name) {
             ImGui::PushID(id);
             ImGui::Text("%s", name.c_str());
             ImGui::SameLine();
-            if (mat.int_values.count(id)) {
-                auto& val = mat.int_values[id];
+            if (material.int_values.count(id)) {
+                auto& val = material.int_values[id];
                 bool toggle = val == GL_TRUE;
                 if (ImGui::Checkbox("##", &toggle)) {
                     if (toggle)
@@ -951,7 +963,7 @@ void show_material(Registry* rptr, Entity e, Material& mat)
 
             } else {
                 if (ImGui::SmallButton("Set")) {
-                    mat.int_values[id] = GL_TRUE;
+                    material.int_values[id] = GL_TRUE;
                 }
             }
             ImGui::PopID();
@@ -1230,18 +1242,18 @@ void show_tree_node(Registry* rptr, Entity e)
 
     // parent: 14 "parent name" >
 
-    const auto row = [&](const char* label, Entity e, const char* icon) {
+    const auto row = [&](const char* label, Entity row_entity, const char* icon) {
         ImGui::Text("%s", label);
         ImGui::NextColumn();
 
-        ImGui::Text("%d", int(e));
+        ImGui::Text("%d", int(row_entity));
         ImGui::NextColumn();
 
-        ImGui::Text("%s", ui::get_name(r, e).c_str());
+        ImGui::Text("%s", ui::get_name(r, row_entity).c_str());
         ImGui::NextColumn();
 
         if (ImGui::SmallButton(icon)) {
-            ui::select(r, e);
+            ui::select(r, row_entity);
         }
         ImGui::NextColumn();
     };

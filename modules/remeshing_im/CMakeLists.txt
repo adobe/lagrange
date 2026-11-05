@@ -12,10 +12,6 @@
 
 # 1. define module
 lagrange_add_module()
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set_target_properties(lagrange_remeshing_im PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-endif()
-
 # 2. dependencies
 include(instant-meshes-core)
 target_link_libraries(lagrange_remeshing_im

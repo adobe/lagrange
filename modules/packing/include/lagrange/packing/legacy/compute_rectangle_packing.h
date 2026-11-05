@@ -38,9 +38,11 @@ namespace legacy {
 namespace internal {
 
 template <typename T>
-LA_NOSANITIZE_SIGNED_INTEGER_OVERFLOW bool product_will_overflow(volatile T x, volatile T y)
+LA_NOSANITIZE_SIGNED_INTEGER_OVERFLOW bool product_will_overflow(T a, T b)
 {
     // Note that volatile is needed to avoid compiler optimization.
+    volatile T x = a;
+    volatile T y = b;
     if (x == 0) return false;
     return ((x * y) / x) != y;
 }
@@ -138,7 +140,7 @@ std::tuple<Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor>, std::vecto
     };
 
     // Find max_canvas_size large enough to fit all boxes.
-    while (!pack(max_canvas_size, true)) {
+    while (!pack(static_cast<int>(max_canvas_size), true)) {
         min_canvas_size = max_canvas_size;
         max_canvas_size *= 2;
         if (MAX_AREA / max_canvas_size <= max_canvas_size) {
@@ -153,14 +155,14 @@ std::tuple<Eigen::Matrix<Scalar, Eigen::Dynamic, 2, Eigen::RowMajor>, std::vecto
         if (l == min_canvas_size) {
             break;
         }
-        if (pack(l, true)) {
+        if (pack(static_cast<int>(l), true)) {
             max_canvas_size = l;
         } else {
             min_canvas_size = l;
         }
     }
     la_runtime_assert(max_canvas_size > 0);
-    bool r = pack(max_canvas_size, false);
+    bool r = pack(static_cast<int>(max_canvas_size), false);
     la_runtime_assert(r);
 
     return std::make_tuple(centers, flipped);

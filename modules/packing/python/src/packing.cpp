@@ -10,9 +10,10 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/packing/repack_uv_charts.h>
 
-#include <lagrange/python/binding.h>
 
 namespace lagrange::python {
 

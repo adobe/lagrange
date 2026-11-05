@@ -57,7 +57,7 @@ Entity load_obj(
     p.load_materials = false;
     p.triangulate = true;
 
-    auto res = lagrange::io::load_mesh_ext<MeshType>(path, params);
+    auto res = lagrange::io::load_mesh_ext<MeshType>(path, p);
     if (!res.success) return NullEntity;
 
     auto mesh = lagrange::to_shared_ptr(std::move(res.meshes.front()));
@@ -87,7 +87,7 @@ std::pair<Entity, std::vector<std::shared_ptr<Material>>> load_obj_with_material
     p.load_materials = true;
     p.triangulate = true;
 
-    auto res = lagrange::io::load_mesh_ext<MeshType>(path, params);
+    auto res = lagrange::io::load_mesh_ext<MeshType>(path, p);
     if (!res.success) return {NullEntity, {}};
 
     auto mesh = lagrange::to_shared_ptr(std::move(res.meshes.front()));

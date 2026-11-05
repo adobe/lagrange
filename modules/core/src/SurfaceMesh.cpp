@@ -1312,7 +1312,6 @@ internal::weak_ptr<const AttributeBase> SurfaceMesh<Scalar, Index>::_get_attribu
     AttributeId id) const
 {
     la_debug_assert(id != invalid_attribute_id());
-    la_debug_assert(!is_attribute_indexed(id));
     return m_attributes->_get_weak_ptr(id);
 }
 

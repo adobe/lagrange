@@ -23,6 +23,9 @@ function(lagrange_add_executable name)
 
     # Creates a target for executable
     add_executable(${name} ${OPTIONS_UNPARSED_ARGUMENTS})
+    if(LAGRANGE_TOPLEVEL_PROJECT)
+        set_target_properties(${name} PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+    endif()
 
     # Defines a PRE_LINK custom command to copy target runtime dependencies into target output folder
     include(lagrange_runtime_dependencies)

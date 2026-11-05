@@ -6,8 +6,9 @@ Remeshing-Instant-Meshes Module
 @defgroup module-remeshing_im Remeshing-Instant-Meshes Module
 @brief This module provides a headless API to the Instant Meshes library.
 
-It exposes `lagrange::remeshing_im::remesh()`, which wraps the field-aligned
-remeshing algorithm described in:
+- Field-aligned surface remeshing using Instant Meshes: [remesh](@ref lagrange::remeshing_im::remesh).
+
+Algorithm reference:
 
 > Wenzel Jakob, Marco Tarini, Daniele Panozzo, Olga Sorkine-Hornung.
 > **Instant Field-Aligned Meshes.**

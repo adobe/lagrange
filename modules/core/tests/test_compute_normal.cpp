@@ -574,6 +574,8 @@ TEST_CASE("legacy::compute_normal", "[mesh][attribute][normal][legacy]" LA_SLOW_
 
     SECTION("Blub")
     {
+        // This fixture references an unavailable material library.
+        ScopedLogLevel log_level(spdlog::level::err);
         using MeshType = TriangleMesh3D;
         auto mesh = lagrange::testing::load_mesh<MeshType>("open/core/blub/blub.obj");
         REQUIRE(mesh->get_num_vertices() == 7106);

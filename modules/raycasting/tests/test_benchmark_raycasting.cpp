@@ -182,7 +182,7 @@ size_t new_ao_pack(
         Eigen::Vector3f origin = V.row(v).transpose().template cast<float>();
 
         for (size_t d = 0; d < nd; d += N) {
-            const size_t batch = std::min<int>(nd - d, N);
+            const size_t batch = std::min<size_t>(nd - d, N);
             PointNf origins;
             DirectionNf dirs;
             for (size_t i = 0; i < N; ++i) origins.row(i) = origin.transpose();

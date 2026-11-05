@@ -12,6 +12,7 @@
 ////////////////////////////////////////////////////////////////////////////////
 #pragma once
 
+#include <lagrange/partitioning/api.h>
 #include <lagrange/partitioning/types.h>
 
 #include <lagrange/utils/function_ref.h>
@@ -38,7 +39,7 @@ namespace internal {
 ///
 /// @return     #V x 1 array of partition ids.
 ///
-Eigen::Matrix<index_t, Eigen::Dynamic, 1> partition_mesh_vertices_raw(
+LA_PARTITIONING_API Eigen::Matrix<index_t, Eigen::Dynamic, 1> partition_mesh_vertices_raw(
     index_t num_elems,
     index_t num_nodes,
     index_t elem_size,

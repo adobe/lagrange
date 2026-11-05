@@ -22,6 +22,11 @@
 namespace lagrange::xatlas {
 
 ///
+/// @addtogroup module-xatlas
+/// @{
+///
+
+///
 /// Unwrap all meshes in a scene using xatlas.
 ///
 /// Each mesh (when sharing UVs) or each instance (when not sharing) is unwrapped independently as
@@ -45,5 +50,7 @@ LA_XATLAS_API scene::SimpleScene<Scalar, Index, 3> unwrap_scene(
     const SceneOptions& scene_options = {},
     std::function<void(const std::string&, float)> notification_func = nullptr,
     const std::atomic_bool* cancel = nullptr);
+
+/// @}
 
 } // namespace lagrange::xatlas

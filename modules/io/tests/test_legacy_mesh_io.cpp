@@ -9,18 +9,23 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/Mesh.h>
-#include <lagrange/common.h>
-#include <lagrange/testing/common.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include <lagrange/io/legacy/load_mesh.h>
-#include <lagrange/io/legacy/save_mesh.h>
+    #include <lagrange/Logger.h>
+    #include <lagrange/Mesh.h>
+    #include <lagrange/common.h>
+    #include <lagrange/testing/common.h>
 
-#include <catch2/catch_approx.hpp>
+    #include <lagrange/io/legacy/load_mesh.h>
+    #include <lagrange/io/legacy/save_mesh.h>
+
+    #include <catch2/catch_approx.hpp>
 
 TEST_CASE("drop", "[mesh][io]")
 {
     using namespace lagrange;
+    // This fixture references an unavailable material library.
+    ScopedLogLevel log_level(spdlog::level::err);
     auto mesh = lagrange::testing::load_mesh<TriangleMesh3D>("open/core/drop_tri.obj");
     lagrange::io::save_mesh("io_test_drop.obj", *mesh);
     auto mesh2 = lagrange::io::legacy::load_mesh<TriangleMesh3D>("io_test_drop.obj");
@@ -33,3 +38,5 @@ TEST_CASE("drop", "[mesh][io]")
     REQUIRE((mesh->get_uv() - mesh2->get_uv()).norm() == Catch::Approx(0.0).margin(1e-14));
     REQUIRE((mesh->get_uv_indices() - mesh2->get_uv_indices()).norm() == Catch::Approx(0.0));
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

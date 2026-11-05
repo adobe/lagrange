@@ -144,12 +144,12 @@ std::unique_ptr<MeshType> generate_rounded_cylinder(RoundedCylinderConfig config
 
 
     Scalar r = config.bevel_radius;
-    Scalar torus_start_angle = 2 * lagrange::internal::pi * 3 / 4;
+    Scalar torus_start_angle = Scalar(2 * lagrange::internal::pi * 3 / 4);
     Scalar radius_post_bevel = config.radius - r;
-    Scalar torus_slice = (lagrange::internal::pi / 2);
+    Scalar torus_slice = Scalar(lagrange::internal::pi / 2);
     Scalar sweep_angle = compute_sweep_angle(config.start_sweep_angle, config.end_sweep_angle);
     // take into account numerical errors
-    sweep_angle = std::min<Scalar>(2 * lagrange::internal::pi, sweep_angle);
+    sweep_angle = std::min<Scalar>(Scalar(2 * lagrange::internal::pi), sweep_angle);
 
     /*
      *Generate Torus for base with radius = r starting from 270 degrees

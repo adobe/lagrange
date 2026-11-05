@@ -85,6 +85,9 @@ add_library(lagrange::testing::main ALIAS lagrange_testing_main)
 set_target_properties(lagrange_testing_main PROPERTIES FOLDER "${LAGRANGE_IDE_PREFIX}Lagrange//Tests")
 
 set_target_properties(lagrange_testing_main PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS ON)
+if(LAGRANGE_TOPLEVEL_PROJECT)
+    set_target_properties(lagrange_testing_main PROPERTIES COMPILE_WARNING_AS_ERROR ON)
+endif()
 
 # Get stack trace information
 if(EMSCRIPTEN)

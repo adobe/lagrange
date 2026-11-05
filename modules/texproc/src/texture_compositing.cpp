@@ -500,10 +500,10 @@ image::experimental::Array3D<ValueType> texture_compositing(
     return output;
 }
 
-#define LA_X_texture_compositing(ValueType, Scalar, Index)                \
-    template image::experimental::Array3D<ValueType> texture_compositing( \
-        const SurfaceMesh<Scalar, Index>& mesh,                           \
-        std::vector<ConstWeightedTextureView<ValueType>> textures,        \
+#define LA_X_texture_compositing(ValueType, Scalar, Index)                               \
+    template LA_TEXPROC_API image::experimental::Array3D<ValueType> texture_compositing( \
+        const SurfaceMesh<Scalar, Index>& mesh,                                          \
+        std::vector<ConstWeightedTextureView<ValueType>> textures,                       \
         const CompositingOptions& options);
 #define LA_X_texture_compositing_aux(_, ValueType) LA_SURFACE_MESH_X(texture_compositing, ValueType)
 LA_ATTRIBUTE_X(texture_compositing_aux, 0)

@@ -20,6 +20,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Loads a point cloud from a stream in PCD (Point Cloud Data) format.
  *
@@ -56,5 +61,7 @@ LA_IO_API MeshType load_mesh_pcd(std::istream& input_stream, const LoadOptions& 
  */
 template <typename MeshType>
 LA_IO_API MeshType load_mesh_pcd(const fs::path& filename, const LoadOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

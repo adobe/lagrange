@@ -13,6 +13,7 @@
 #include <lagrange/subdivision/api.h>
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/utils/assert.h>
+#include <lagrange/utils/safe_cast.h>
 #include <Eigen/Geometry>
 #include <optional>
 #include <string_view>
@@ -534,7 +535,7 @@ void eval_patch_btn(
             // Insert values to attr
             auto& values = attr->values();
             size_t next_value = values.get_all().size();
-            Index offset = values.get_num_elements();
+            Index offset = static_cast<Index>(values.get_num_elements());
             values.insert_elements(num_coords * num_channels);
             std::copy(
                 patch_values_out.begin(),
@@ -967,6 +968,7 @@ void interpolate_attributes(
     std::optional<Scalar> max_chordal_deviation,
     bool preserve_shared_indices)
 {
+    const int dimension = safe_cast<int>(input_mesh.get_dimension());
     const bool need_limit_btn =
         (output_limit_normals || output_limit_tangents || output_limit_bitangents);
 
@@ -984,7 +986,7 @@ void interpolate_attributes(
     std::vector<SharedEdges> all_shared_edges(num_indexed_attrs + 1);
 
     all_shared_verts[0].resize(input_mesh.get_num_vertices());
-    all_shared_edges[0].set_num_vertices(input_mesh.get_num_vertices());
+    all_shared_edges[0].set_num_vertices(safe_cast<int>(input_mesh.get_num_vertices()));
 
     // Chain surfaces and attributes to interpolate in the correct order
     using AttributeSurfaceV =
@@ -1089,7 +1091,8 @@ void interpolate_attributes(
                 sfc.fvar_ids.push_back(static_cast<FVarId>(fvar_index++));
                 logger().trace("FVar ID for attribute {}: {}", id, sfc.fvar_ids.back());
                 all_shared_verts[fvar_index].resize(attr.values().get_num_elements());
-                all_shared_edges[fvar_index].set_num_vertices(attr.values().get_num_elements());
+                all_shared_edges[fvar_index].set_num_vertices(
+                    safe_cast<int>(attr.values().get_num_elements()));
                 attributes_and_surfaces.push_back(
                     AttributeSurface{
                         info,
@@ -1142,7 +1145,7 @@ void interpolate_attributes(
                 is_first = true;
             } else {
                 // Not a vertex attribute, retrieve prev num values from value attribute directly
-                old_num_values = attr.values_out.get_num_elements();
+                old_num_values = static_cast<int>(attr.values_out.get_num_elements());
             }
 
             patch_nv = eval_patch_indices(
@@ -1282,7 +1285,7 @@ void interpolate_attributes(
             face_index,
             surfaces.template get<Scalar>().vertex.value(),
             input_mesh.get_vertex_to_position().get_all(),
-            input_mesh.get_dimension(),
+            dimension,
             patch_cache.template get<Scalar>().patch_values_in,
             patch_cache.template get<Scalar>().patch_coords,
             use_limit_positions,
@@ -1505,7 +1508,7 @@ SurfaceMesh<Scalar, Index> subdivide_edge_adaptive(
         auto [min_len, max_len, avg_len] = find_min_max_avg_edges(
             topology_refiner,
             input_mesh.get_vertex_to_position().get_all(),
-            input_mesh.get_dimension());
+            safe_cast<int>(input_mesh.get_dimension()));
         tess_interval = max_len / static_cast<float>(tess_rate_max);
         logger().info(
             "Adaptive tessellation.\n\t- Max edge len: {},\n\t- Min edge len: {},\n\t- Avg "

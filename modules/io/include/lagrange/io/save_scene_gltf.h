@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Save a scene to a gltf or glb file.
  *
@@ -46,5 +51,7 @@ LA_IO_API void save_scene_gltf(
     const fs::path& filename,
     const scene::Scene<Scalar, Index>& scene,
     const SaveOptions& options = {});
+
+/// @}
 
 } // namespace lagrange::io

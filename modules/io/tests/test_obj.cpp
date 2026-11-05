@@ -29,7 +29,11 @@
 TEST_CASE("Grenade_H", "[mesh][io]" LA_CORP_FLAG)
 {
     using namespace lagrange;
-    auto mesh = io::load_mesh_obj<SurfaceMesh32d>(testing::get_data_path("corp/io/Grenade_H.obj"));
+    // The fixture references a material library that is not included in the test data.
+    io::LoadOptions options;
+    options.quiet = true;
+    auto mesh =
+        io::load_mesh_obj<SurfaceMesh32d>(testing::get_data_path("corp/io/Grenade_H.obj"), options);
 }
 
 TEST_CASE("io/obj", "[io][obj]")

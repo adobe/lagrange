@@ -19,6 +19,7 @@
 #include <lagrange/subdivision/mesh_subdivision.h>
 #include <lagrange/utils/assert.h>
 #include <lagrange/utils/fmt/format.h>
+#include <lagrange/utils/safe_cast.h>
 #include <lagrange/views.h>
 
 #include "primitive_utils.h"
@@ -31,7 +32,8 @@ SurfaceMesh<Scalar, Index> generate_subdivided_sphere(
     SubdividedSphereOptions setting)
 {
     subdivision::SubdivisionOptions subdiv_options;
-    subdiv_options.num_levels = setting.subdiv_level;
+    subdiv_options.num_levels =
+        safe_cast<decltype(subdiv_options.num_levels)>(setting.subdiv_level);
     if (base_shape.is_quad_mesh()) {
         subdiv_options.scheme = subdivision::SchemeType::CatmullClark;
     } else {

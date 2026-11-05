@@ -35,7 +35,40 @@
 #include <lagrange/utils/fmt/format.h>
 // clang-format on
 
+#include <memory>
+#include <type_traits>
+#include <utility>
+#include <vector>
+
 namespace lagrange::python {
+
+// Read-only exports reuse managed allocations without triggering mesh copy-on-write.
+template <typename ValueType, typename Scalar, typename Index>
+SharedSpan<const ValueType> get_attribute_owner(SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
+{
+    const auto& attr = mesh.template get_attribute<ValueType>(id);
+    if (attr.is_external() && attr.is_managed()) return attr.get_owner();
+
+    auto& writable = mesh.template ref_attribute<ValueType>(id);
+    writable.ensure_shared_storage();
+    return writable.get_owner();
+}
+
+template <typename ValueType, typename Scalar, typename Index>
+SharedSpan<ValueType> ref_attribute_owner(SurfaceMesh<Scalar, Index>& mesh, AttributeId id)
+{
+    return mesh.template ref_attribute<ValueType>(id).ref_owner();
+}
+
+template <typename Scalar, typename Index>
+void rebuild_edges_after_facet_assignment(SurfaceMesh<Scalar, Index>& mesh, bool had_edges)
+{
+    if (!had_edges) return;
+    logger().warn(
+        "Rebuilding edge connectivity after facet assignment; edge attribute values are reset to "
+        "their defaults.");
+    mesh.initialize_edges();
+}
 
 template <typename Scalar, typename Index>
 void bind_surface_mesh(nanobind::module_& m)
@@ -301,9 +334,12 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def(
         "get_position",
         [](MeshType& self, Index i) {
-            return span_to_tensor(self.get_position(i), nb::find(&self));
+            auto values = get_attribute_owner<Scalar>(self, self.attr_id_vertex_to_position());
+            auto row = self.get_position(i);
+            return shared_span_to_array(make_shared_span(values.owner(), row.data(), row.size()));
         },
         "vertex_id"_a,
+        nb::rv_policy::reference,
         R"(Get the position of a vertex.
 
 :param vertex_id: vertex index
@@ -312,9 +348,12 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def(
         "ref_position",
         [](MeshType& self, Index i) {
-            return span_to_tensor(self.ref_position(i), nb::find(&self));
+            auto values = ref_attribute_owner<Scalar>(self, self.attr_id_vertex_to_position());
+            auto row = self.ref_position(i);
+            return shared_span_to_array(make_shared_span(values.owner(), row.data(), row.size()));
         },
         "vertex_id"_a,
+        nb::rv_policy::reference,
         R"(Get a mutable reference to the position of a vertex.
 
 :param vertex_id: vertex index
@@ -379,9 +418,12 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def(
         "get_facet_vertices",
         [](MeshType& self, Index f) {
-            return span_to_tensor(self.get_facet_vertices(f), nb::find(&self));
+            auto values = get_attribute_owner<Index>(self, self.attr_id_corner_to_vertex());
+            return shared_span_to_array(
+                values.subspan(self.get_facet_corner_begin(f), self.get_facet_size(f)));
         },
         "facet_id"_a,
+        nb::rv_policy::reference,
         R"(Get all vertex indices of a facet.
 
 :param facet_id: facet index
@@ -390,9 +432,12 @@ void bind_surface_mesh(nanobind::module_& m)
     surface_mesh_class.def(
         "ref_facet_vertices",
         [](MeshType& self, Index f) {
-            return span_to_tensor(self.ref_facet_vertices(f), nb::find(&self));
+            auto values = ref_attribute_owner<Index>(self, self.attr_id_corner_to_vertex());
+            return shared_span_to_array(
+                values.subspan(self.get_facet_corner_begin(f), self.get_facet_size(f)));
         },
         "facet_id"_a,
+        nb::rv_policy::reference,
         R"(Get a mutable reference to all vertex indices of a facet.
 
 :param facet_id: facet index
@@ -765,25 +810,15 @@ void bind_surface_mesh(nanobind::module_& m)
                 auto [data, shape, stride] = tensor_to_span(tensor);
                 la_runtime_assert(is_dense(shape, stride));
                 Index num_channels = shape.size() == 1 ? 1 : static_cast<Index>(shape[1]);
-                AttributeId id;
                 auto owner = std::make_shared<nb::object>(nb::find(values));
-                if constexpr (std::is_const_v<ValueType>) {
-                    id = self.wrap_as_const_attribute(
-                        name,
-                        element,
-                        usage,
-                        num_channels,
-                        make_shared_span(owner, data.data(), data.size()));
-                } else {
-                    id = self.wrap_as_attribute(
-                        name,
-                        element,
-                        usage,
-                        num_channels,
-                        make_shared_span(owner, data.data(), data.size()));
-                }
+                auto id = self.wrap_as_attribute(
+                    name,
+                    element,
+                    usage,
+                    num_channels,
+                    make_shared_span(owner, data.data(), data.size()));
                 auto& attr = self.template ref_attribute<ValueType>(id);
-                attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+                set_python_attribute_policies(attr);
                 return id;
             };
 
@@ -824,31 +859,20 @@ void bind_surface_mesh(nanobind::module_& m)
                 Index num_values = static_cast<Index>(value_shape[0]);
                 Index num_channels =
                     value_shape.size() == 1 ? 1 : static_cast<Index>(value_shape[1]);
-                AttributeId id;
 
                 auto value_owner = std::make_shared<nb::object>(nb::find(values));
                 auto index_owner = std::make_shared<nb::object>(nb::find(indices));
 
-                if constexpr (std::is_const_v<ValueType>) {
-                    id = self.wrap_as_const_indexed_attribute(
-                        name,
-                        usage,
-                        num_values,
-                        num_channels,
-                        make_shared_span(value_owner, value_data.data(), value_data.size()),
-                        make_shared_span(index_owner, index_data.data(), index_data.size()));
-                } else {
-                    id = self.wrap_as_indexed_attribute(
-                        name,
-                        usage,
-                        num_values,
-                        num_channels,
-                        make_shared_span(value_owner, value_data.data(), value_data.size()),
-                        make_shared_span(index_owner, index_data.data(), index_data.size()));
-                }
+                auto id = self.wrap_as_indexed_attribute(
+                    name,
+                    usage,
+                    num_values,
+                    num_channels,
+                    make_shared_span(value_owner, value_data.data(), value_data.size()),
+                    make_shared_span(index_owner, index_data.data(), index_data.size()));
                 auto& attr = self.template ref_indexed_attribute<ValueType>(id);
-                attr.values().set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
-                attr.indices().set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+                set_python_attribute_policies(attr.values());
+                set_python_attribute_policies(attr.indices());
                 return id;
             };
 
@@ -1053,42 +1077,67 @@ void bind_surface_mesh(nanobind::module_& m)
 :returns: reference count of the attribute)");
     surface_mesh_class.def_prop_rw(
         "vertices",
-        [](const MeshType& self) {
-            const auto& attr = self.get_vertex_to_position();
-            return attribute_to_tensor(attr, nb::find(&self));
+        [](MeshType& self) {
+            auto& attr = self.template ref_attribute<Scalar>(self.attr_id_vertex_to_position());
+            return attribute_to_tensor(attr);
         },
         [](MeshType& self, Tensor<Scalar> tensor) {
             auto [values, shape, stride] = tensor_to_span(tensor);
             la_runtime_assert(is_dense(shape, stride));
             la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
+            // Augmented assignment returns the unchanged allocation; avoid rebuilding the mesh.
+            const auto& current_attr = self.get_vertex_to_position();
+            const auto current_values = current_attr.get_all();
+            if (values.data() == current_values.data() && values.size() == current_values.size()) {
+                return;
+            }
 
-            size_t num_vertices = shape.size() == 1 ? 1 : shape[0];
+            const size_t num_vertices = shape.size() == 1 ? 1 : shape[0];
             auto owner = std::make_shared<nb::object>(nb::find(tensor));
             auto id = self.wrap_as_vertices(
                 make_shared_span(owner, values.data(), values.size()),
                 static_cast<Index>(num_vertices));
-            auto& attr = self.template ref_attribute<Scalar>(id);
-            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            set_python_attribute_policies(self.template ref_attribute<Scalar>(id));
         },
-        "Vertices of the mesh.");
+        nb::for_getter(nb::rv_policy::reference),
+        R"(Vertices as a NumPy array owning the active allocation. First export transfers internal
+storage into shared ownership without copying existing values. Value writes remain shared;
+size changes or rebinding can detach without invalidating previously exported arrays.)");
     surface_mesh_class.def_prop_rw(
         "facets",
-        [](const MeshType& self) {
+        [](MeshType& self) {
+            auto& attr = self.template ref_attribute<Index>(self.attr_id_corner_to_vertex());
             if (self.is_regular()) {
-                const auto& attr = self.get_corner_to_vertex();
                 const size_t shape[2] = {
                     static_cast<size_t>(self.get_num_facets()),
                     static_cast<size_t>(self.get_vertex_per_facet())};
-                return attribute_to_tensor(attr, shape, nb::find(&self));
+                return attribute_to_tensor(attr, shape);
             } else {
                 logger().warn("Mesh is not regular, returning the flattened facets.");
-                const auto& attr = self.get_corner_to_vertex();
-                return attribute_to_tensor(attr, nb::find(&self));
+                return attribute_to_tensor(attr);
             }
         },
         [](MeshType& self, Tensor<Index> tensor) {
             auto [values, shape, stride] = tensor_to_span(tensor);
             la_runtime_assert(is_dense(shape, stride));
+            // The buffer may have been edited in place, even when its address and shape match.
+            const bool had_edges = self.has_edges();
+            self.clear_edges();
+            // Preserve current regular/hybrid facet boundaries for the same getter view.
+            const auto& current_attr = self.get_corner_to_vertex();
+            const auto current_values = current_attr.get_all();
+            const bool has_current_shape =
+                (self.is_regular() && ((shape.size() == 1 && self.get_num_facets() == 1 &&
+                                        shape[0] == self.get_vertex_per_facet()) ||
+                                       (shape.size() == 2 && shape[0] == self.get_num_facets() &&
+                                        shape[1] == self.get_vertex_per_facet()))) ||
+                (self.is_hybrid() && shape.size() == 1 && shape[0] == self.get_num_corners());
+            const bool uses_current_data =
+                values.data() == current_values.data() && values.size() == current_values.size();
+            if (uses_current_data && has_current_shape) {
+                rebuild_edges_after_facet_assignment(self, had_edges);
+                return;
+            }
 
             const size_t num_facets = shape.size() == 1 ? 1 : shape[0];
             const size_t vertex_per_facet = shape.size() == 1 ? shape[0] : shape[1];
@@ -1097,10 +1146,15 @@ void bind_surface_mesh(nanobind::module_& m)
                 make_shared_span(owner, values.data(), values.size()),
                 static_cast<Index>(num_facets),
                 static_cast<Index>(vertex_per_facet));
-            auto& attr = self.template ref_attribute<Index>(id);
-            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            set_python_attribute_policies(self.template ref_attribute<Index>(id));
+            rebuild_edges_after_facet_assignment(self, had_edges);
         },
-        "Facets of the mesh.");
+        nb::for_getter(nb::rv_policy::reference),
+        "Facet indices as an allocation-owning NumPy array; hybrid meshes expose a flattened view. "
+        "Value writes remain shared, while topology/size changes may detach without invalidating "
+        "older arrays. Assignment rebuilds previously initialized edge connectivity and resets "
+        "user-defined edge attributes to their defaults, even for the same buffer, with a warning. "
+        "Direct array edits alone do not invalidate connectivity.");
     surface_mesh_class.def_prop_ro(
         "edges",
         [](MeshType& self) {
@@ -1125,12 +1179,18 @@ void bind_surface_mesh(nanobind::module_& m)
             la_runtime_assert(is_dense(shape, stride));
             la_runtime_assert(check_shape(shape, invalid<size_t>(), self.get_dimension()));
 
+            const auto& current_attr = self.get_vertex_to_position();
+            const auto current_values = current_attr.get_all();
+            if (values.data() == current_values.data() && values.size() == current_values.size() &&
+                num_vertices == self.get_num_vertices()) {
+                return self.attr_id_vertex_to_position();
+            }
+
             auto owner = std::make_shared<nb::object>(nb::find(tensor));
             auto id = self.wrap_as_vertices(
                 make_shared_span(owner, values.data(), values.size()),
                 num_vertices);
-            auto& attr = self.template ref_attribute<Scalar>(id);
-            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            set_python_attribute_policies(self.template ref_attribute<Scalar>(id));
             return id;
         },
         "tensor"_a,
@@ -1146,20 +1206,34 @@ void bind_surface_mesh(nanobind::module_& m)
         [](MeshType& self, Tensor<Index> tensor, Index num_facets, Index vertex_per_facet) {
             auto [values, shape, stride] = tensor_to_span(tensor);
             la_runtime_assert(is_dense(shape, stride));
+            const bool had_edges = self.has_edges();
+            self.clear_edges();
+
+            const auto& current_attr = self.get_corner_to_vertex();
+            const auto current_values = current_attr.get_all();
+            if (self.is_regular() && values.data() == current_values.data() &&
+                values.size() == current_values.size() && num_facets == self.get_num_facets() &&
+                vertex_per_facet == self.get_vertex_per_facet()) {
+                rebuild_edges_after_facet_assignment(self, had_edges);
+                return self.attr_id_corner_to_vertex();
+            }
 
             auto owner = std::make_shared<nb::object>(nb::find(tensor));
             auto id = self.wrap_as_facets(
                 make_shared_span(owner, values.data(), values.size()),
                 num_facets,
                 vertex_per_facet);
-            auto& attr = self.template ref_attribute<Index>(id);
-            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            set_python_attribute_policies(self.template ref_attribute<Index>(id));
+            rebuild_edges_after_facet_assignment(self, had_edges);
             return id;
         },
         "tensor"_a,
         "num_facets"_a,
         "vertex_per_facet"_a,
         R"(Wrap a tensor as a list of regular facets.
+
+This rebuilds previously initialized edge connectivity and resets user-defined edge attributes
+to their defaults, even when wrapping the current buffer. A warning is logged when rebuilding.
 
 :param tensor: The tensor to wrap.
 :param num_facets: Number of facets.
@@ -1177,17 +1251,20 @@ void bind_surface_mesh(nanobind::module_& m)
             auto [facets_data, facets_shape, facets_stride] = tensor_to_span(facets);
             la_runtime_assert(is_dense(offsets_shape, offsets_stride));
             la_runtime_assert(is_dense(facets_shape, facets_stride));
+            const bool had_edges = self.has_edges();
+            self.clear_edges();
 
-            auto offsets_owner = std::make_shared<nb::object>(nb::find(offsets));
-            auto facets_owner = std::make_shared<nb::object>(nb::find(facets));
-
+            auto offset_owner = std::make_shared<nb::object>(nb::find(offsets));
+            auto facet_owner = std::make_shared<nb::object>(nb::find(facets));
             auto id = self.wrap_as_facets(
-                make_shared_span(offsets_owner, offsets_data.data(), offsets_data.size()),
+                make_shared_span(offset_owner, offsets_data.data(), offsets_data.size()),
                 num_facets,
-                make_shared_span(facets_owner, facets_data.data(), facets_data.size()),
+                make_shared_span(facet_owner, facets_data.data(), facets_data.size()),
                 num_corners);
-            auto& attr = self.template ref_attribute<Index>(id);
-            attr.set_growth_policy(AttributeGrowthPolicy::WarnAndCopy);
+            set_python_attribute_policies(self.template ref_attribute<Index>(id));
+            set_python_attribute_policies(
+                self.template ref_attribute<Index>(self.attr_id_facet_to_first_corner()));
+            rebuild_edges_after_facet_assignment(self, had_edges);
             return id;
         },
         "offsets"_a,
@@ -1195,6 +1272,9 @@ void bind_surface_mesh(nanobind::module_& m)
         "facets"_a,
         "num_corners"_a,
         R"(Wrap a tensor as a list of hybrid facets.
+
+This rebuilds previously initialized edge connectivity and resets user-defined edge attributes
+to their defaults, even when wrapping the current buffer. A warning is logged when rebuilding.
 
 :param offsets: The offset indices into the facets array.
 :param num_facets: Number of facets.
@@ -1821,10 +1901,7 @@ If not provided, the edges are initialized in an arbitrary order.
 
     surface_mesh_class.def(
         "__copy__",
-        [](MeshType& self) -> MeshType {
-            MeshType mesh = self;
-            return mesh;
-        },
+        [](MeshType& self) -> MeshType { return MeshType(self); },
         R"(Create a shallow copy of this mesh.)");
 
     surface_mesh_class.def(

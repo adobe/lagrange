@@ -9,13 +9,15 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/bvh/project_attributes_closest_vertex.h>
-#include <lagrange/compute_edge_lengths.h>
-#include <lagrange/create_mesh.h>
-#include <lagrange/io/load_mesh.h>
-#include <lagrange/testing/common.h>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
 
-#include <random>
+    #include <lagrange/bvh/project_attributes_closest_vertex.h>
+    #include <lagrange/compute_edge_lengths.h>
+    #include <lagrange/create_mesh.h>
+    #include <lagrange/io/load_mesh.h>
+    #include <lagrange/testing/common.h>
+
+    #include <random>
 
 std::unique_ptr<lagrange::TriangleMesh3D> create_perturbed_mesh(lagrange::TriangleMesh3D& mesh)
 {
@@ -60,3 +62,5 @@ TEST_CASE("project_attributes_closest_vertex", "[bvh]")
         REQUIRE(id == id2);
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

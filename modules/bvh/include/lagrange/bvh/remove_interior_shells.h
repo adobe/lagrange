@@ -16,6 +16,9 @@
 
 namespace lagrange::bvh {
 
+/// @addtogroup module-bvh
+/// @{
+
 ///
 /// Removes interior shells from a (manifold, non-intersecting) mesh.
 ///
@@ -29,5 +32,7 @@ namespace lagrange::bvh {
 ///
 template <typename Scalar, typename Index>
 SurfaceMesh<Scalar, Index> remove_interior_shells(const SurfaceMesh<Scalar, Index>& mesh);
+
+/// @}
 
 } // namespace lagrange::bvh

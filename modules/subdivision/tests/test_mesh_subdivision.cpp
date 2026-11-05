@@ -15,7 +15,6 @@
 #include <lagrange/cast_attribute.h>
 #include <lagrange/compute_area.h>
 #include <lagrange/compute_normal.h>
-#include <lagrange/create_mesh.h>
 #include <lagrange/filter_attributes.h>
 #include <lagrange/find_matching_attributes.h>
 #include <lagrange/foreach_attribute.h>
@@ -39,7 +38,10 @@
 
 #include <lagrange/testing/common.h>
 
+#include <Eigen/Geometry>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+#include <numeric>
 
 namespace {
 
@@ -233,7 +235,7 @@ TEST_CASE("mesh_subdivision_with_uv", "[mesh][subdivision]" LA_SLOW_DEBUG_FLAG)
             const auto& uv_attr = subdivided_mesh.get_indexed_attribute<Scalar>("uv");
             uv_mesh_.wrap_as_const_vertices(
                 uv_attr.values().get_all(),
-                uv_attr.values().get_num_elements());
+                static_cast<uint32_t>(uv_attr.values().get_num_elements()));
             uv_mesh_.wrap_as_const_facets(
                 uv_attr.indices().get_all(),
                 subdivided_mesh.get_num_facets(),
@@ -448,7 +450,7 @@ void compare_with_expected(
     auto F_expected = facet_view(expected_mesh);
     REQUIRE(F_result == F_expected);
     const Scalar eps = Scalar(1e-8);
-    for (Index i = 0; i < V_result.size(); ++i) {
+    for (Eigen::Index i = 0; i < V_result.size(); ++i) {
         REQUIRE_THAT(
             V_result.data()[i],
             Catch::Matchers::WithinRel(V_expected.data()[i], eps) ||
@@ -531,6 +533,16 @@ TEST_CASE("mesh_subdivision_sqrt", "[mesh][subdivision][sqrt]")
     auto subdivided_mesh = lagrange::subdivision::sqrt_subdivision(mesh);
     REQUIRE(vertex_view(subdivided_mesh) == vertex_view(expected_mesh));
     REQUIRE(facet_view(subdivided_mesh) == facet_view(expected_mesh));
+}
+
+TEST_CASE("mesh_subdivision_sqrt rejects 2D meshes", "[mesh][subdivision][sqrt]")
+{
+    lagrange::SurfaceMesh<double, uint32_t> mesh(2);
+    mesh.add_vertex({0, 0});
+    mesh.add_vertex({1, 0});
+    mesh.add_vertex({0, 1});
+    mesh.add_triangle(0, 1, 2);
+    LA_REQUIRE_THROWS(lagrange::subdivision::sqrt_subdivision(mesh));
 }
 
 TEST_CASE("mesh_subdivision_midpoint", "[mesh][subdivision][sqrt]")
@@ -841,7 +853,7 @@ TEST_CASE("compute_sharpness", "[mesh][subdivision][sharpness]")
         REQUIRE(has_sharp);
         // The specific configuration depends on the normal seams created
         // Just verify the attribute is populated
-        REQUIRE(vertex_sharpness.size() == mesh.get_num_vertices());
+        REQUIRE(static_cast<size_t>(vertex_sharpness.size()) == mesh.get_num_vertices());
     }
 }
 

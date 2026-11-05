@@ -19,6 +19,11 @@
 namespace lagrange::scene {
 
 ///
+/// @addtogroup module-scene
+/// @{
+///
+
+///
 /// Facet allocation strategy.
 ///
 enum class FacetAllocationStrategy {
@@ -55,16 +60,20 @@ struct RemeshingOptions
     /// Facet allocation strategy for meshes in the scene.
     FacetAllocationStrategy facet_allocation_strategy = FacetAllocationStrategy::EvenSplit;
 
-    /// Minimum amount of facets for meshes in the scene.
-    /// Set to lagrange::invalid to use backend-specific default value.
+    /// Minimum number of facets per mesh.
+    /// Set to lagrange::invalid<size_t>() to use the backend-specific default.
     size_t min_facets = lagrange::invalid<size_t>();
 
     /// Behavior for meshes without instances in the scene.
     UninstantiatedMeshesStrategy uninstantiated_meshes_strategy =
         UninstantiatedMeshesStrategy::None;
 
-    /// Optional per-instance weights/importance. Must be > 0.
+    /// Optional positive per-instance importance values. Empty means no weighting; otherwise one
+    /// value is required per instance, ordered by mesh index, then local instance index (the order
+    /// of SimpleScene::foreach_instances()).
     std::vector<float> per_instance_importance;
 };
+
+/// @}
 
 } // namespace lagrange::scene

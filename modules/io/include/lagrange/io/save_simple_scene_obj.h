@@ -21,6 +21,11 @@
 
 namespace lagrange::io {
 
+///
+/// @addtogroup module-io
+/// @{
+///
+
 /**
  * Save a simple scene to an obj file. Some information about the scene will be lost,
  * as the obj format does not support all scene features.
@@ -49,5 +54,7 @@ LA_IO_API void save_simple_scene_obj(
     const scene::SimpleScene<Scalar, Index, Dimension>& scene,
     const SaveOptions& options = {});
 
+
+/// @}
 
 } // namespace lagrange::io

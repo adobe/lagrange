@@ -114,6 +114,7 @@ Attribute<ValueType>::Attribute(Attribute<ValueType>&& other) noexcept
     , m_view(other.m_view)
     , m_const_view(other.m_const_view)
     , m_growth_policy(other.m_growth_policy)
+    , m_shrink_policy(other.m_shrink_policy)
     , m_write_policy(other.m_write_policy)
     , m_copy_policy(other.m_copy_policy)
     , m_cast_policy(other.m_cast_policy)
@@ -140,6 +141,7 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(Attribute<ValueType>&& oth
         m_view = other.m_view;
         m_const_view = other.m_const_view;
         m_growth_policy = other.m_growth_policy;
+        m_shrink_policy = other.m_shrink_policy;
         m_write_policy = other.m_write_policy;
         m_copy_policy = other.m_copy_policy;
         m_cast_policy = other.m_cast_policy;
@@ -167,6 +169,7 @@ Attribute<ValueType>::Attribute(const Attribute<ValueType>& other)
     , m_view(other.m_view)
     , m_const_view(other.m_const_view)
     , m_growth_policy(other.m_growth_policy)
+    , m_shrink_policy(other.m_shrink_policy)
     , m_write_policy(other.m_write_policy)
     , m_copy_policy(other.m_copy_policy)
     , m_cast_policy(other.m_cast_policy)
@@ -198,6 +201,7 @@ Attribute<ValueType>& Attribute<ValueType>::operator=(const Attribute<ValueType>
         m_view = other.m_view;
         m_const_view = other.m_const_view;
         m_growth_policy = other.m_growth_policy;
+        m_shrink_policy = other.m_shrink_policy;
         m_write_policy = other.m_write_policy;
         m_copy_policy = other.m_copy_policy;
         m_cast_policy = other.m_cast_policy;
@@ -241,6 +245,7 @@ Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(
         target.m_default_value = safe_cast<TargetValueType>(source.m_default_value);
     }
     target.m_growth_policy = source.m_growth_policy;
+    target.m_shrink_policy = source.m_shrink_policy;
     target.m_write_policy = source.m_write_policy;
     target.m_copy_policy = source.m_copy_policy;
     target.m_cast_policy = source.m_cast_policy;
@@ -258,6 +263,9 @@ Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(
         }
     }
 
+    // Promotion can back the attribute with a buffer larger than its live extent, so reserve the
+    // whole allocation but only cast the active values.
+    const auto source_values = source.get_all();
     target.m_data.reserve(std::max(source.m_data.capacity(), source.m_const_view.size()));
 
     constexpr BitField<AttributeUsage> indices_mask = [] {
@@ -272,8 +280,8 @@ Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(
         (source.m_cast_policy == AttributeCastPolicy::RemapInvalidIndices &&
          indices_mask.test(source.get_usage()))) {
         std::transform(
-            source.m_const_view.begin(),
-            source.m_const_view.end(),
+            source_values.begin(),
+            source_values.end(),
             std::back_inserter(target.m_data),
             [](auto&& v) {
                 if (v == invalid<SourceValueType>()) {
@@ -284,8 +292,8 @@ Attribute<TargetValueType> Attribute<TargetValueType>::cast_copy(
             });
     } else {
         std::transform(
-            source.m_const_view.begin(),
-            source.m_const_view.end(),
+            source_values.begin(),
+            source_values.end(),
             std::back_inserter(target.m_data),
             [](auto&& v) { return static_cast<TargetValueType>(v); });
     }
@@ -326,6 +334,7 @@ void Attribute<ValueType>::wrap(lagrange::span<ValueType> buffer, size_t num_ele
 template <typename ValueType>
 void Attribute<ValueType>::wrap(SharedSpan<ValueType> shared_buffer, size_t num_elements)
 {
+    la_runtime_assert(num_elements * get_num_channels() <= shared_buffer.size());
     m_view = shared_buffer.ref();
     m_const_view = m_view;
     m_num_elements = num_elements;
@@ -353,6 +362,7 @@ void Attribute<ValueType>::wrap_const(
     SharedSpan<const ValueType> shared_buffer,
     size_t num_elements)
 {
+    la_runtime_assert(num_elements * get_num_channels() <= shared_buffer.size());
     m_view = {};
     m_const_view = shared_buffer.get();
     m_num_elements = num_elements;
@@ -360,6 +370,26 @@ void Attribute<ValueType>::wrap_const(
     m_owner = shared_buffer.owner();
     m_is_external = true;
     m_is_read_only = true;
+}
+
+template <typename ValueType>
+void Attribute<ValueType>::ensure_shared_storage()
+{
+    if (is_external()) {
+        la_runtime_assert(is_managed(), "Cannot promote unmanaged external storage");
+        return;
+    }
+    const size_t num_elements = get_num_elements();
+    auto owner = std::make_shared<std::vector<ValueType>>();
+    owner->swap(m_data);
+    owner->resize(owner->capacity(), m_default_value);
+    wrap(make_shared_span(owner, owner->data(), owner->size()), num_elements);
+    if (m_growth_policy == AttributeGrowthPolicy::ErrorIfExternal) {
+        m_growth_policy = AttributeGrowthPolicy::SilentCopy;
+    }
+    if (m_shrink_policy == AttributeShrinkPolicy::ErrorIfExternal) {
+        m_shrink_policy = AttributeShrinkPolicy::SilentCopy;
+    }
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -404,7 +434,7 @@ void Attribute<ValueType>::shrink_to_fit()
             return;
         }
         la_debug_assert(new_cap <= m_const_view.size());
-        // Capacity is too big for the number of entries: check shrink policy
+        // Capacity is too big for the number of entries: check shrink policy.
         switch (m_shrink_policy) {
         case AttributeShrinkPolicy::ErrorIfExternal:
             throw Error("Attribute policy prevents shrinking external buffer");
@@ -561,6 +591,23 @@ lagrange::span<ValueType> Attribute<ValueType>::ref_all()
 }
 
 template <typename ValueType>
+SharedSpan<const ValueType> Attribute<ValueType>::get_owner() const
+{
+    la_runtime_assert(is_external() && is_managed(), "Attribute requires managed external storage");
+    const auto values = get_all();
+    return make_shared_span(m_owner, values.data(), values.size());
+}
+
+template <typename ValueType>
+SharedSpan<ValueType> Attribute<ValueType>::ref_owner()
+{
+    write_check();
+    ensure_shared_storage();
+    const auto values = m_view.first(m_num_elements * get_num_channels());
+    return make_shared_span(m_owner, values.data(), values.size());
+}
+
+template <typename ValueType>
 lagrange::span<const ValueType> Attribute<ValueType>::get_first(size_t num_elements) const
 {
     return get_all().first(num_elements * get_num_channels());
@@ -672,7 +719,7 @@ template <typename ValueType>
 void Attribute<ValueType>::update_views()
 {
     la_debug_assert(!is_external());
-    la_debug_assert(m_owner == nullptr);
+    la_debug_assert(m_owner.use_count() == 0);
     la_debug_assert(get_num_channels() != 0);
     la_debug_assert(m_data.size() % get_num_channels() == 0);
     m_view = {m_data.data(), m_data.size()};

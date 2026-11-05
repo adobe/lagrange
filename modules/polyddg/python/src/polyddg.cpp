@@ -10,11 +10,12 @@
  * governing permissions and limitations under the License.
  */
 
+#include <lagrange/python/binding.h>
+
 #include <lagrange/polyddg/DifferentialOperators.h>
 #include <lagrange/polyddg/compute_principal_curvatures.h>
 #include <lagrange/polyddg/compute_smooth_direction_field.h>
 #include <lagrange/polyddg/hodge_decomposition.h>
-#include <lagrange/python/binding.h>
 #include <lagrange/python/polyddg.h>
 
 namespace nb = nanobind;

@@ -9,11 +9,13 @@
  * OF ANY KIND, either express or implied. See the License for the specific language
  * governing permissions and limitations under the License.
  */
-#include <lagrange/common.h>
-#include <lagrange/internal/constants.h>
-#include <lagrange/primitive/SweepPath.h>
-#include <lagrange/testing/common.h>
-#include <catch2/catch_approx.hpp>
+#ifdef LAGRANGE_ENABLE_LEGACY_FUNCTIONS
+
+    #include <lagrange/common.h>
+    #include <lagrange/internal/constants.h>
+    #include <lagrange/primitive/SweepPath.h>
+    #include <lagrange/testing/common.h>
+    #include <catch2/catch_approx.hpp>
 
 TEST_CASE("SweepPath", "[primitive][sweep_path]")
 {
@@ -28,7 +30,7 @@ TEST_CASE("SweepPath", "[primitive][sweep_path]")
         sweep_path->set_depth_begin(0);
         sweep_path->set_depth_end(2);
         sweep_path->set_twist_begin(0);
-        sweep_path->set_twist_end(2 * lagrange::internal::pi);
+        sweep_path->set_twist_end(Scalar(2 * lagrange::internal::pi));
         sweep_path->set_num_samples(10);
         sweep_path->initialize();
 
@@ -51,3 +53,5 @@ TEST_CASE("SweepPath", "[primitive][sweep_path]")
             Catch::Approx(0).margin(1e-6));
     }
 }
+
+#endif // LAGRANGE_ENABLE_LEGACY_FUNCTIONS

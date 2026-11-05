@@ -13,6 +13,10 @@
 # 1. define module
 lagrange_add_module(NO_INSTALL)
 
+if(NOT LAGRANGE_ENABLE_LEGACY_HEADERS)
+    message(FATAL_ERROR "lagrange::ui requires LAGRANGE_ENABLE_LEGACY_HEADERS")
+endif()
+
 if(WIN32)
     target_compile_definitions(lagrange_ui PUBLIC -DNOMINMAX -D_SILENCE_CXX17_ADAPTOR_TYPEDEFS_DEPRECATION_WARNING)
 endif()

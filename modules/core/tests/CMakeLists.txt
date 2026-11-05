@@ -14,10 +14,6 @@ lagrange_add_test()
 include(mikktspace)
 target_link_libraries(test_lagrange_core PUBLIC mikktspace::mikktspace)
 target_compile_definitions(test_lagrange_core PUBLIC LAGRANGE_WITH_MIKKTSPACE)
-if(LAGRANGE_TOPLEVEL_PROJECT)
-    set_target_properties(test_lagrange_core PROPERTIES COMPILE_WARNING_AS_ERROR ON)
-endif()
-
 if(LAGRANGE_USE_PCH)
     # Use precompiled headers in core tests since there are a lot of cpp files in core tests.
     # Check the timing if you want to add this to your own module, it may or may not be worth it.
@@ -25,3 +21,4 @@ if(LAGRANGE_USE_PCH)
 endif()
 
 add_subdirectory(compile_errors)
+add_subdirectory(cross_dso)

@@ -33,8 +33,10 @@ option(EMBREE_RAY_PACKETS    "Enable the usage packed ray."                     
 
 # Match embree's platform detection logic for arm
 if(APPLE AND CMAKE_SYSTEM_NAME STREQUAL "Darwin" AND (CMAKE_SYSTEM_PROCESSOR STREQUAL "arm64" AND CMAKE_OSX_ARCHITECTURES STREQUAL "") OR ("arm64" IN_LIST CMAKE_OSX_ARCHITECTURES))
+    message(STATUS "Setting arm version of Embree")
     set(EMBREE_ARM ON)
 elseif(CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" OR CMAKE_SYSTEM_PROCESSOR STREQUAL "ARM64")
+    message(STATUS "Setting arm version of Embree")
     set(EMBREE_ARM ON)
 endif()
 
